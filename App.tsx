@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Navigation from './components/Navigation';
 import CreationCanvas from './components/CreationCanvas';
 import SmartEditor from './components/SmartEditor';
@@ -7,69 +7,13 @@ import VisualStudio from './components/VisualStudio';
 import SettingsPanel from './components/SettingsPanel';
 import PricingPage from './components/PricingPage';
 import GamificationHub from './components/GamificationHub';
-import BlueprintReview from './components/BlueprintReview';
 import { AppMode, BookProject, GenerationSettings, GamificationState } from './types';
-import { analyzeContent, generateStyleGuide, generateCharacterSheet } from './services/generator';
-import { ContentStructure, CharacterSheet, StyleGuide } from './types/generator';
-import { saveProject, getUserProjects, trackGeneration } from './lib/supabaseHelpers';
-import { isAuthenticated as checkAuth } from './lib/supabase';
+import { generateBookStructure } from './services/geminiService';
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [blueprint, setBlueprint] = useState<ContentStructure | null>(null);
-  const [generationSettings, setGenerationSettings] = useState<GenerationSettings | null>(null);
-  const [userProjects, setUserProjects] = useState<any[]>([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Load user projects on mount
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const authenticated = await checkAuth();
-        setIsAuthenticated(authenticated);
-
-        if (authenticated) {
-          const projects = await getUserProjects();
-          setUserProjects(projects);
-
-          // Load last project from localStorage as fallback
-          const lastProjectId = localStorage.getItem('genesis_last_project');
-          if (lastProjectId && projects.length > 0) {
-            const lastProject = projects.find(p => p.id === lastProjectId);
-            if (lastProject) {
-              // Load full project data would go here
-              console.log('Last project found:', lastProject.title);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load user data:', error);
-      }
-    };
-
-    loadUserData();
-  }, []);
-
-  // Auto-save project when it changes
-  useEffect(() => {
-    const autoSave = async () => {
-      if (currentProject && isAuthenticated) {
-        try {
-          await saveProject(currentProject);
-          localStorage.setItem('genesis_last_project', currentProject.id);
-          console.log('Project auto-saved:', currentProject.title);
-        } catch (error) {
-          console.error('Auto-save failed:', error);
-        }
-      }
-    };
-
-    // Debounce auto-save by 2 seconds
-    const timeoutId = setTimeout(autoSave, 2000);
-    return () => clearTimeout(timeoutId);
-  }, [currentProject, isAuthenticated]);
 
   // Mock Gamification State
   const [gamificationState] = useState<GamificationState>({
@@ -91,107 +35,50 @@ const App: React.FC = () => {
     ]
   });
 
-  const handleInitialAnalysis = async (settings: GenerationSettings) => {
+  const handleGenerateProject = async (settings: GenerationSettings) => {
     setIsGenerating(true);
-    setGenerationSettings(settings);
     try {
-      // Step 1: Analyze Content & Create Blueprint
-      const structure = await analyzeContent({
-        topic: settings.prompt,
-        targetAudience: settings.audience,
-        pageCount: settings.pageCount,
-        style: settings.style,
-        tone: settings.tone,
-        brandProfile: settings.brandProfile
-      });
+      const structure = await generateBookStructure(settings);
 
-      setBlueprint(structure);
-      setCurrentMode(AppMode.BLUEPRINT_REVIEW);
-    } catch (error) {
-      console.error("Analysis failed", error);
-      alert("Failed to analyze request. Please check your API key.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleConfirmBlueprint = async (finalBlueprint: ContentStructure) => {
-    if (!generationSettings) return;
-    setIsGenerating(true);
-
-    try {
-      // Step 2: Generate Style Guide
-      const styleGuide = await generateStyleGuide({
-        topic: generationSettings.prompt,
-        targetAudience: generationSettings.audience,
-        pageCount: generationSettings.pageCount,
-        style: generationSettings.style,
-        tone: generationSettings.tone,
-        brandProfile: generationSettings.brandProfile
-      });
-
-      // Step 3: Generate Character Sheets
-      const characterSheets: CharacterSheet[] = [];
-      for (const charProfile of finalBlueprint.characterNeeds) {
-        const sheet = await generateCharacterSheet(charProfile, {
-          topic: generationSettings.prompt,
-          targetAudience: generationSettings.audience,
-          pageCount: generationSettings.pageCount,
-          style: generationSettings.style,
-          tone: generationSettings.tone
-        });
-        characterSheets.push(sheet);
+      if (!structure.chapters || structure.chapters.length === 0 || !structure.chapters[0].pages || structure.chapters[0].pages.length === 0) {
+        throw new Error("Generated content is empty. Please try again with a different prompt.");
       }
 
-      // Step 4: Create Project Object
       const newProject: BookProject = {
         id: crypto.randomUUID(),
-        title: finalBlueprint.title,
-        synopsis: finalBlueprint.synopsis,
-        style: generationSettings.style,
-        tone: generationSettings.tone,
-        targetAudience: generationSettings.audience,
-        isBranching: generationSettings.isBranching,
-        brandProfile: generationSettings.brandProfile,
-        chapters: [{
+        title: structure.title || "Untitled Masterpiece",
+        synopsis: structure.synopsis || "",
+        style: settings.style,
+        tone: settings.tone,
+        targetAudience: settings.audience,
+        isBranching: settings.isBranching,
+        brandProfile: settings.brandProfile,
+        chapters: (structure.chapters || []).map(c => ({
           id: crypto.randomUUID(),
-          title: "Chapter 1", // Simplified for now, blueprint has chapters but we map to single list often
-          pages: finalBlueprint.pages.map(p => ({
+          title: c.title || "Chapter",
+          pages: (c.pages || []).map((p: any) => ({
             id: crypto.randomUUID(),
             pageNumber: p.pageNumber,
-            text: "", // Will be generated page-by-page
-            imagePrompt: p.scene, // This is the base scene description
-            layoutType: p.layoutTemplate,
-            choices: []
+            text: p.text,
+            imagePrompt: p.imagePrompt,
+            layoutType: p.layoutType || 'text-only',
+            choices: p.choices || []
           }))
-        }],
-        characters: characterSheets.map(sheet => ({
-          id: sheet.id,
-          name: sheet.baseProfile.name,
-          description: sheet.baseProfile.description,
-          visualTraits: JSON.stringify(sheet.visualIdentity),
-          imageUrl: sheet.midjourneyRefUrl
         })),
-        createdAt: new Date(),
-        styleGuide,
-        characterSheets
+        characters: (structure.characters || []).map((c: any) => ({
+          id: crypto.randomUUID(),
+          name: c.name,
+          description: c.description,
+          visualTraits: c.visualTraits
+        })),
+        createdAt: new Date()
       };
 
       setCurrentProject(newProject);
       setCurrentMode(AppMode.EDITOR);
-
-      // Track generation usage
-      if (isAuthenticated) {
-        await trackGeneration('blueprint', newProject.id);
-        await trackGeneration('style_guide', newProject.id);
-        characterSheets.forEach(() => trackGeneration('character', newProject.id));
-      }
-
-      // TODO: Trigger background generation for text and images using the new engines
-
     } catch (error) {
       console.error("Generation failed", error);
-      alert("Failed to generate assets.");
+      alert("Failed to generate project. Please check your API key or try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -203,22 +90,12 @@ const App: React.FC = () => {
       case AppMode.DASHBOARD:
         return (
           <CreationCanvas
-            onGenerate={handleInitialAnalysis}
-            isGenerating={isGenerating}
-          />
-        );
-      case AppMode.BLUEPRINT_REVIEW:
-        if (!blueprint) return <div>Error: No blueprint found</div>;
-        return (
-          <BlueprintReview
-            blueprint={blueprint}
-            onConfirm={handleConfirmBlueprint}
-            onBack={() => setCurrentMode(AppMode.CREATION)}
+            onGenerate={handleGenerateProject}
             isGenerating={isGenerating}
           />
         );
       case AppMode.EDITOR:
-        if (!currentProject) return <CreationCanvas onGenerate={handleInitialAnalysis} isGenerating={isGenerating} />;
+        if (!currentProject) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} />;
         return (
           <SmartEditor
             project={currentProject}
@@ -260,7 +137,7 @@ const App: React.FC = () => {
           </div>
         );
       default:
-        return <CreationCanvas onGenerate={handleInitialAnalysis} isGenerating={isGenerating} />;
+        return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} />;
     }
   };
 

@@ -263,7 +263,6 @@ const PricingPage: React.FC = () => {
             <span className="text-sm font-bold text-charcoal-soft">- Sarah J., Children's Author</span>
           </div>
         </div>
-
       </div>
     </div>
   );

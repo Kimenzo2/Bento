@@ -1,15 +1,82 @@
+// Generator Types for the Genesis Brain System
 
-export interface EbookRequest {
-    topic: string;
+export interface ContentStructure {
+    title: string;
+    synopsis: string;
     targetAudience: string;
-    pageCount: number;
-    style: string;
-    tone: string;
-    brandProfile?: {
-        name: string;
-        colors: string[];
-        guidelines: string;
+    estimatedReadingTime: number;
+    chapters: ChapterStructure[];
+    characterNeeds: CharacterProfile[];
+    styleRecommendations: string[];
+    pages: PageStructure[];
+    narrativeArc: {
+        introduction: string;
+        learning: string;
+        mastery: string;
     };
+    visualStrategy: {
+        artStyleDetails: string;
+        motifs: string[];
+    };
+    colorPalette: {
+        primary: string[];
+        accent: string[];
+    };
+}
+
+export interface ChapterStructure {
+    chapterNumber: number;
+    title: string;
+    summary: string;
+    pageRange: [number, number];
+    keyEvents: string[];
+    emotionalArc: string;
+}
+
+export interface PageStructure {
+    pageNumber: number;
+    chapterNumber: number;
+    scene: string;
+    narrativePurpose: string;
+    visualFocus: string;
+    layoutTemplate: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only';
+    estimatedWordCount: number;
+    visualEnergy: string;
+    characterAction: string;
+}
+
+export interface CharacterProfile {
+    name: string;
+    role: 'protagonist' | 'antagonist' | 'supporting' | 'background';
+    description: string;
+    visualTraits: {
+        eyes: string;
+        hair: string;
+        clothing: string;
+    };
+    personalityTraits: string[];
+    importance: 'critical' | 'major' | 'minor';
+}
+
+export interface VisualIdentity {
+    faceStructure: string;
+    bodyType: string;
+    clothingStyle: string;
+    accessories: string[];
+    expressionRange: string[];
+    colorPalette: string[];
+    coreFeatures?: string[];
+    styleNotes?: string;
+}
+
+export interface CharacterSheet {
+    id: string;
+    baseProfile: CharacterProfile;
+    visualIdentity: VisualIdentity;
+    consistencyPrompt?: string;
+    referenceImagePrompt: string;
+    styleEnforcement: string;
+    midjourneyRefUrl?: string;
 }
 
 export interface ColorPalette {
@@ -21,107 +88,78 @@ export interface ColorPalette {
     text: string;
 }
 
-export interface CharacterProfile {
-    name: string;
-    role: string;
-    description: string;
-    visualTraits: {
-        eyes: string;
-        hair: string;
-        body: string;
-        clothing: string;
-        distinctiveFeatures: string[];
+export interface StyleGuide {
+    id: string;
+    artStyle: {
+        name: string;
+        description: string;
+        technicalSpecs: {
+            lineWeight: string;
+            renderingTechnique: string;
+            textureApproach: string;
+            lightingModel: string;
+        };
     };
-    personality: string[];
+    colorPalette: ColorPalette;
+    styleEnforcementPrompt: string;
+    consistencyRules: string[];
+}
+
+export interface EbookRequest {
+    topic: string;
+    targetAudience: string;
+    pageCount: number;
+    style: string;
+    tone: string;
+    brandProfile?: {
+        name: string;
+        guidelines: string;
+        colors: string[];
+        sampleText: string;
+    };
+}
+
+export interface GenerationRequest {
+    topic: string;
+    targetAudience: string;
+    pageCount: number;
+    style: string;
+    tone: string;
+    brandProfile?: {
+        name: string;
+        guidelines: string;
+        colors: string[];
+        sampleText: string;
+    };
+}
+
+export interface AnalysisResult {
+    structure: ContentStructure;
+    confidence: number;
+    warnings: string[];
+    suggestions: string[];
 }
 
 export interface PageOutline {
     pageNumber: number;
-    purpose: string;
-    scene: string;
-    characterAction: string;
-    expression: string;
-    background: string;
-    props: string[];
-    cameraAngle: string;
-    mood: string;
-    visualMetaphor?: string;
-    textPlacement: string;
-    visualEnergy: string;
-    keyPoints: string[];
-    wordCount: number;
-    layoutTemplate: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-overlay' | 'comic-panel';
-}
-
-export interface ContentStructure {
-    title: string;
-    synopsis: string;
-    narrativeArc: {
-        introduction: string;
-        learning: string;
-        mastery: string;
-    };
-    visualStrategy: {
-        metaphors: string[];
-        motifs: string[];
-        artStyleDetails: string;
-    };
-    colorPalette: ColorPalette;
-    characterNeeds: CharacterProfile[];
-    pages: PageOutline[];
-}
-
-export interface VisualIdentity {
-    faceStructure: string;
-    bodyType: string;
-    clothingStyle: string;
-    accessories: string[];
-    expressionRange: string[];
-    colorPalette: string[]; // Specific colors for this character
-}
-
-export interface CharacterSheet {
-    id: string;
-    baseProfile: CharacterProfile;
-    visualIdentity: VisualIdentity;
-    referenceImagePrompt: string; // The "Master Prompt" for consistency
-    styleEnforcement: string; // Keywords to always include (e.g. "Pixar style, 3D render")
-    midjourneyRefUrl?: string; // Optional: if we generate a reference image and host it
+    layoutTemplate: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'text-overlay' | 'comic-panel';
 }
 
 export interface PageLayout {
     layoutId: string;
     cssGrid: string;
-    areas: string[]; // Grid areas
+    areas: string[];
     textStyle: {
         fontFamily: string;
         fontSize: string;
         color: string;
-        position: string; // 'overlay', 'side', 'bottom'
-        alignment: 'left' | 'center' | 'right' | 'justify';
+        position: string;
+        alignment: string;
     };
     imageStyle: {
         filter: string;
-        mask: string; // CSS mask for interesting shapes
-        objectFit: 'cover' | 'contain';
+        mask: string;
+        objectFit: string;
     };
-    animation: string; // 'fade-in', 'slide-up', etc.
-}
-
-export interface StyleGuide {
-    id: string;
-    artStyle: {
-        name: string; // e.g., "Pixar 3D Style", "Flat Design Cartoon"
-        description: string;
-        technicalSpecs: {
-            lineWeight: string; // e.g., "2px consistent stroke"
-            renderingTechnique: string; // e.g., "soft shadows with ambient occlusion"
-            textureApproach: string; // e.g., "realistic textures with stylization"
-            lightingModel: string; // e.g., "three-point cinematic lighting"
-        };
-    };
-    colorPalette: ColorPalette;
-    referenceImageUrl?: string; // The "master style reference" image
-    styleEnforcementPrompt: string; // Keywords to append to EVERY image generation
-    consistencyRules: string[]; // Specific rules like "always use soft shadows", "no gradients"
+    animation: string;
 }

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BookProject, Page } from '../types';
 import {
@@ -13,7 +14,7 @@ import {
     Edit3,
     Eye
 } from 'lucide-react';
-import { generateIllustration, createStyleEnforcedPrompt } from '../services/generator';
+import { generateIllustration } from '../services/geminiService';
 
 interface SmartEditorProps {
     project: BookProject;
@@ -42,22 +43,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
         if (!activePage) return;
         setIsGeneratingImage(true);
         try {
-            let prompt = activePage.imagePrompt;
-
-            // Use Style Engine if available
-            if (project.styleGuide) {
-                // Find previous page image for reference
-                const prevPageIdx = allPages.findIndex(p => p.pageNumber === activePage.pageNumber - 1);
-                const prevPageImage = prevPageIdx >= 0 ? allPages[prevPageIdx].imageUrl : undefined;
-
-                prompt = createStyleEnforcedPrompt(
-                    activePage.imagePrompt,
-                    project.styleGuide,
-                    prevPageImage
-                );
-            }
-
-            const base64Image = await generateIllustration(prompt, project.style);
+            const base64Image = await generateIllustration(activePage.imagePrompt, project.style);
             if (base64Image) {
                 const newProject = JSON.parse(JSON.stringify(project)) as BookProject;
                 newProject.chapters.forEach(ch => {
@@ -67,7 +53,6 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
                 onUpdateProject(newProject);
             }
         } catch (e) {
-            console.error("Image generation failed", e);
             alert("Failed to generate image. Please try again.");
         } finally {
             setIsGeneratingImage(false);
