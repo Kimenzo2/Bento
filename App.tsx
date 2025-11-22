@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import CreationCanvas from './components/CreationCanvas';
 import SmartEditor from './components/SmartEditor';
@@ -11,6 +11,8 @@ import BlueprintReview from './components/BlueprintReview';
 import { AppMode, BookProject, GenerationSettings, GamificationState } from './types';
 import { analyzeContent, generateStyleGuide, generateCharacterSheet } from './services/generator';
 import { ContentStructure, CharacterSheet, StyleGuide } from './types/generator';
+import { saveProject, getUserProjects, trackGeneration } from './lib/supabaseHelpers';
+import { isAuthenticated as checkAuth } from './lib/supabase';
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
@@ -18,6 +20,56 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [blueprint, setBlueprint] = useState<ContentStructure | null>(null);
   const [generationSettings, setGenerationSettings] = useState<GenerationSettings | null>(null);
+  const [userProjects, setUserProjects] = useState<any[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Load user projects on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const authenticated = await checkAuth();
+        setIsAuthenticated(authenticated);
+
+        if (authenticated) {
+          const projects = await getUserProjects();
+          setUserProjects(projects);
+
+          // Load last project from localStorage as fallback
+          const lastProjectId = localStorage.getItem('genesis_last_project');
+          if (lastProjectId && projects.length > 0) {
+            const lastProject = projects.find(p => p.id === lastProjectId);
+            if (lastProject) {
+              // Load full project data would go here
+              console.log('Last project found:', lastProject.title);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // Auto-save project when it changes
+  useEffect(() => {
+    const autoSave = async () => {
+      if (currentProject && isAuthenticated) {
+        try {
+          await saveProject(currentProject);
+          localStorage.setItem('genesis_last_project', currentProject.id);
+          console.log('Project auto-saved:', currentProject.title);
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        }
+      }
+    };
+
+    // Debounce auto-save by 2 seconds
+    const timeoutId = setTimeout(autoSave, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [currentProject, isAuthenticated]);
 
   // Mock Gamification State
   const [gamificationState] = useState<GamificationState>({
@@ -117,14 +169,23 @@ const App: React.FC = () => {
           id: sheet.id,
           name: sheet.baseProfile.name,
           description: sheet.baseProfile.description,
-          visualTraits: JSON.stringify(sheet.visualIdentity), // Storing complex object as string for now
-          imageUrl: sheet.midjourneyRefUrl // If available
+          visualTraits: JSON.stringify(sheet.visualIdentity),
+          imageUrl: sheet.midjourneyRefUrl
         })),
-        createdAt: new Date()
+        createdAt: new Date(),
+        styleGuide,
+        characterSheets
       };
 
       setCurrentProject(newProject);
       setCurrentMode(AppMode.EDITOR);
+
+      // Track generation usage
+      if (isAuthenticated) {
+        await trackGeneration('blueprint', newProject.id);
+        await trackGeneration('style_guide', newProject.id);
+        characterSheets.forEach(() => trackGeneration('character', newProject.id));
+      }
 
       // TODO: Trigger background generation for text and images using the new engines
 
