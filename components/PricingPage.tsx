@@ -9,15 +9,15 @@ const PricingPage: React.FC = () => {
   const [userEmail, setUserEmail] = useState("author@genesis.ai");
 
   useEffect(() => {
-      try {
-          const saved = localStorage.getItem('genesis_settings');
-          if (saved) {
-              const parsed = JSON.parse(saved);
-              if (parsed.email) setUserEmail(parsed.email);
-          }
-      } catch (e) {
-          console.error("Failed to load user settings");
+    try {
+      const saved = localStorage.getItem('genesis_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) setUserEmail(parsed.email);
       }
+    } catch (e) {
+      console.error("Failed to load user settings");
+    }
   }, []);
 
   const tiers = [
@@ -117,9 +117,8 @@ const PricingPage: React.FC = () => {
     const amountToCharge = isAnnual ? (tier.priceAnnual * 12) : tier.priceMonthly;
 
     try {
-<<<<<<< HEAD
       initializePayment({
-        email: "user@example.com", // TODO: Replace with authenticated user's email from your auth system
+        email: userEmail, // Using authenticated user's email
         amount: amountToCharge,
         currency: "USD", // Using USD for international compatibility
         onSuccess: (transaction) => {
@@ -136,21 +135,6 @@ const PricingPage: React.FC = () => {
           setProcessingTier(null);
         }
       });
-=======
-        await initializePayment({
-            email: userEmail, 
-            amount: amountToCharge,
-            currency: "USD", // Using USD for international compatibility
-            onSuccess: (reference) => {
-                alert(`Subscription successful! Reference: ${reference.reference}`);
-                setProcessingTier(null);
-                // Here you would typically call your backend to verify transaction and update user role
-            },
-            onClose: () => {
-                setProcessingTier(null);
-            }
-        });
->>>>>>> e187479d90b97d414132047e5f47540a1dbee875
     } catch (error) {
       console.error("Payment initialization failed:", error);
       alert("Unable to start payment processing. Please try again.");
