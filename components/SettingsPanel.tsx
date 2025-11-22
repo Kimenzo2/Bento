@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Settings, 
   User, 
@@ -10,12 +10,17 @@ import {
   Cpu,
   Save,
   Upload,
-  CheckCircle
+  CheckCircle,
+  Image as ImageIcon
 } from 'lucide-react';
 
 const SettingsPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'ai' | 'notifications' | 'privacy'>('profile');
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     displayName: 'Creative Author',
     email: 'author@genesis.ai',
@@ -36,12 +41,24 @@ const SettingsPanel: React.FC = () => {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-      alert("Settings saved successfully!");
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     }, 1500);
   };
 
-  const handleChangeAvatar = () => {
-    alert("Avatar upload dialog would open here.");
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const TabButton = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
@@ -58,10 +75,9 @@ const SettingsPanel: React.FC = () => {
   );
 
   const Toggle = ({ label, checked, onChange }: { label: string, checked: boolean, onChange: (val: boolean) => void }) => (
-    <div className="flex items-center justify-between py-4 border-b border-peach-soft/30 last:border-0">
-      <span className="text-charcoal-soft font-medium text-sm">{label}</span>
+    <div className="flex items-center justify-between py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group" onClick={() => onChange(!checked)}>
+      <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">{label}</span>
       <button 
-        onClick={() => onChange(!checked)}
         className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 relative focus:outline-none ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
       >
         <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`}></div>
@@ -70,8 +86,19 @@ const SettingsPanel: React.FC = () => {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 pb-24 animate-fadeIn">
+    <div className="w-full max-w-4xl mx-auto p-6 pb-24 animate-fadeIn relative">
         
+        {/* Success Toast */}
+        {showSuccess && (
+            <div className="fixed top-24 right-6 z-50 bg-white border border-green-200 text-green-700 px-6 py-4 rounded-xl shadow-soft-lg flex items-center gap-3 animate-fadeIn">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                <div>
+                    <h4 className="font-bold text-sm">Success</h4>
+                    <p className="text-xs">Settings saved successfully.</p>
+                </div>
+            </div>
+        )}
+
         <div className="mb-10">
             <h1 className="font-heading font-bold text-4xl text-charcoal-soft mb-2">Settings</h1>
             <p className="text-cocoa-light font-body">Manage your profile, preferences, and system configuration.</p>
@@ -96,19 +123,32 @@ const SettingsPanel: React.FC = () => {
                     {activeTab === 'profile' && (
                         <div className="animate-fadeIn space-y-8">
                              <div className="flex items-center gap-6">
-                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-lg text-white relative group">
-                                     <User className="w-10 h-10" />
+                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-lg text-white relative group overflow-hidden">
+                                     {avatarPreview ? (
+                                         <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                                     ) : (
+                                         <User className="w-10 h-10" />
+                                     )}
                                      <button 
-                                        onClick={handleChangeAvatar}
-                                        className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                        onClick={handleAvatarClick}
+                                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                      >
                                          <Upload className="w-6 h-6 text-white" />
                                      </button>
+                                     <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleFileChange} 
+                                        className="hidden" 
+                                        accept="image/*"
+                                     />
                                 </div>
                                 <div>
                                     <h3 className="font-heading font-bold text-2xl text-charcoal-soft">{formData.displayName}</h3>
                                     <p className="text-cocoa-light">Pro Plan • Member since 2023</p>
-                                    <button onClick={handleChangeAvatar} className="mt-2 text-sm font-bold text-coral-burst hover:underline">Change Avatar</button>
+                                    <button onClick={handleAvatarClick} className="mt-2 text-sm font-bold text-coral-burst hover:underline flex items-center gap-1">
+                                        <ImageIcon className="w-3 h-3" /> Change Avatar
+                                    </button>
                                 </div>
                             </div>
                             <div className="h-px bg-peach-soft/50 w-full"></div>
@@ -156,7 +196,7 @@ const SettingsPanel: React.FC = () => {
                                 <select 
                                     value={formData.defaultStyle}
                                     onChange={(e) => handleChange('defaultStyle', e.target.value)}
-                                    className="w-full bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft"
+                                    className="w-full bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all cursor-pointer"
                                 >
                                     <option>Pixar 3D</option>
                                     <option>Watercolor</option>
@@ -167,7 +207,7 @@ const SettingsPanel: React.FC = () => {
                              <div className="space-y-4">
                                 <div className="flex justify-between">
                                     <label className="text-xs font-bold text-cocoa-light uppercase">Creativity (Temperature)</label>
-                                    <span className="text-xs font-bold text-coral-burst">{formData.temperature}</span>
+                                    <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded">{formData.temperature}</span>
                                 </div>
                                 <input 
                                     type="range" 
@@ -176,7 +216,7 @@ const SettingsPanel: React.FC = () => {
                                     step="0.1"
                                     value={formData.temperature}
                                     onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
-                                    className="w-full accent-coral-burst h-2 bg-peach-soft rounded-lg appearance-none cursor-pointer"
+                                    className="w-full accent-coral-burst h-2 bg-peach-soft rounded-lg appearance-none cursor-pointer hover:bg-peach-light transition-colors"
                                 />
                                 <div className="flex justify-between text-xs text-cocoa-light">
                                     <span>Precise</span>
@@ -218,7 +258,7 @@ const SettingsPanel: React.FC = () => {
                             />
                             <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100">
                                 <h4 className="text-sm font-bold text-red-800 mb-2">Danger Zone</h4>
-                                <button className="text-xs text-red-600 hover:underline font-bold">Delete Account & All Data</button>
+                                <button className="text-xs text-red-600 hover:underline font-bold hover:text-red-800 transition-colors">Delete Account & All Data</button>
                             </div>
                         </div>
                     )}
@@ -238,7 +278,7 @@ const SettingsPanel: React.FC = () => {
                         {isSaving ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Saving Changes...
+                                Saving...
                             </>
                         ) : (
                             <>
