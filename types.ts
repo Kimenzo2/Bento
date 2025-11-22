@@ -2,6 +2,7 @@
 export enum AppMode {
   DASHBOARD = 'DASHBOARD',
   CREATION = 'CREATION',
+  BLUEPRINT_REVIEW = 'BLUEPRINT_REVIEW',
   EDITOR = 'EDITOR',
   VISUAL_STUDIO = 'VISUAL_STUDIO',
   LAYOUT_LAB = 'LAYOUT_LAB',
@@ -79,7 +80,7 @@ export interface Page {
   text: string;
   imagePrompt: string;
   imageUrl?: string; // Base64 or URL
-  layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only';
+  layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only' | 'text-overlay' | 'comic-panel' | 'vignette';
   choices?: Choice[];
 }
 
@@ -109,6 +110,8 @@ export interface BookProject {
   createdAt: Date;
   isBranching: boolean;
   brandProfile?: BrandProfile;
+  styleGuide?: any;
+  characterSheets?: any[];
 }
 
 export interface GenerationSettings {

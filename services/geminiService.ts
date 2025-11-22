@@ -23,11 +23,11 @@ export const generateBookStructure = async (settings: GenerationSettings): Promi
   if (!apiKey) {
     throw new Error("API Key is missing. Please configure your environment variables.");
   }
-  
+
   const modelId = "gemini-2.5-flash"; // Optimized for text and logic
 
   let specificInstructions = "";
-  
+
   if (settings.brandProfile) {
     specificInstructions += `
     \n*** BRAND VOICE ENFORCEMENT ***
@@ -145,13 +145,57 @@ export const generateBookStructure = async (settings: GenerationSettings): Promi
   }
 };
 
-export const generateIllustration = async (imagePrompt: string, style: ArtStyle): Promise<string | null> => {
+/**
+ * Generic function to generate structured JSON content using Gemini
+ * @param prompt - The prompt to send to the model
+ * @param schema - The JSON schema to enforce structure (optional but recommended)
+ * @param systemInstruction - System prompt to guide the model
+ */
+export const generateStructuredContent = async <T>(
+  prompt: string,
+  schema?: any,
+  systemInstruction?: string
+): Promise<T> => {
+  if (!apiKey) {
+    throw new Error("API Key is missing");
+  }
+
+  const modelId = "gemini-2.5-flash";
+
+  try {
+    const config: any = {
+      responseMimeType: "application/json",
+    };
+
+    if (schema) {
+      config.responseSchema = schema;
+    }
+
+    if (systemInstruction) {
+      config.systemInstruction = systemInstruction;
+    }
+
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: prompt,
+      config
+    });
+
+    if (!response.text) throw new Error("No response from Gemini");
+    return JSON.parse(response.text) as T;
+  } catch (error) {
+    console.error("Structured generation failed:", error);
+    throw error;
+  }
+};
+
+export const generateIllustration = async (imagePrompt: string, style: string): Promise<string | null> => {
   if (!apiKey) return null;
-  const modelId = "gemini-2.5-flash-image"; // Optimized for image generation
+  const modelId = "gemini-2.5-flash"; // Or an appropriate image generation model ID
 
   try {
     const fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, cinematic lighting, 8k resolution.`;
-    
+
     const response = await ai.models.generateContent({
       model: modelId,
       contents: fullPrompt,
@@ -163,11 +207,11 @@ export const generateIllustration = async (imagePrompt: string, style: ArtStyle)
 
     // Check for inline data (image)
     for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData && part.inlineData.data) {
-            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
+      if (part.inlineData && part.inlineData.data) {
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
     }
-    
+
     return null;
   } catch (error) {
     console.error("Visual Synthesis Agent failed:", error);
@@ -176,14 +220,14 @@ export const generateIllustration = async (imagePrompt: string, style: ArtStyle)
 };
 
 export const generateRefinedImage = async (
-  prompt: string, 
+  prompt: string,
   params: {
-      styleA: string,
-      styleB?: string,
-      mixRatio?: number,
-      lighting?: string,
-      camera?: string,
-      characterDescription?: string
+    styleA: string,
+    styleB?: string,
+    mixRatio?: number,
+    lighting?: string,
+    camera?: string,
+    characterDescription?: string
   }
 ): Promise<string | null> => {
   if (!apiKey) return null;
@@ -191,7 +235,7 @@ export const generateRefinedImage = async (
 
   let styleInstruction = `Style: ${params.styleA}`;
   if (params.styleB && params.mixRatio !== undefined) {
-      styleInstruction = `Visual Style: A blend of ${params.mixRatio}% ${params.styleA} and ${100 - params.mixRatio}% ${params.styleB}.`;
+    styleInstruction = `Visual Style: A blend of ${params.mixRatio}% ${params.styleA} and ${100 - params.mixRatio}% ${params.styleB}.`;
   }
 
   let composition = "";
@@ -213,9 +257,9 @@ export const generateRefinedImage = async (
     });
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData && part.inlineData.data) {
-            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
+      if (part.inlineData && part.inlineData.data) {
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
     }
     return null;
   } catch (error) {
