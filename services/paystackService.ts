@@ -6,9 +6,39 @@ import Paystack from '@paystack/inline-js';
  * Documentation: https://paystack.com/docs/developer-tools/inlinejs/
  */
 
+<<<<<<< HEAD
 interface PaystackTransactionOptions {
   email: string;
   amount: number; // Actual amount in currency (e.g., 19.99)
+=======
+export const loadPaystackScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const scriptId = 'paystack-script-v2';
+    if (document.getElementById(scriptId)) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = scriptId;
+    // Upgrade to Paystack Inline JS V2
+    script.src = 'https://js.paystack.co/v2/inline.js';
+    script.async = true;
+    script.onload = () => {
+        console.log("Paystack V2 script loaded");
+        resolve(true);
+    };
+    script.onerror = () => {
+        console.error("Paystack V2 script failed to load");
+        resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
+
+interface PaystackProps {
+  email: string;
+  amount: number; // Actual amount in dollars (e.g. 19.99)
+>>>>>>> e187479d90b97d414132047e5f47540a1dbee875
   currency?: string;
   reference?: string;
   firstName?: string;
@@ -56,6 +86,7 @@ export const initializePayment = ({
     console.warn('WARNING: You are using a Paystack LIVE KEY on localhost. Payments may fail or process real money!');
   }
 
+<<<<<<< HEAD
   // Validate required parameters
   if (!email || !amount) {
     const errorMessage = 'Email and amount are required for payment initialization.';
@@ -158,5 +189,30 @@ export const resumeTransaction = (
     console.error('Failed to resume transaction:', error);
     alert('Unable to resume payment. Please try again.');
     onCancel();
+=======
+  try {
+      // @ts-ignore - PaystackPop is available globally from the V2 script
+      const paystack = new window.PaystackPop();
+      
+      paystack.newTransaction({
+        key: publicKey,
+        email: email,
+        amount: Math.round(amount * 100), // Convert to lowest currency unit (e.g. cents)
+        currency: currency,
+        onSuccess: (transaction: any) => {
+          onSuccess(transaction);
+        },
+        onCancel: () => {
+          onClose();
+        },
+        onError: (error: any) => {
+          console.error("Paystack transaction error:", error);
+          onClose();
+        }
+      });
+  } catch (error) {
+      console.error("Error initializing Paystack V2:", error);
+      onClose();
+>>>>>>> e187479d90b97d414132047e5f47540a1dbee875
   }
 };

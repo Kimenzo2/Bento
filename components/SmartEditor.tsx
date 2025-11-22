@@ -10,7 +10,9 @@ import {
   GitFork,
   Image as ImageIcon,
   Maximize2,
-  ArrowLeft
+  ArrowLeft,
+  Edit3,
+  Eye
 } from 'lucide-react';
 import { generateIllustration } from '../services/geminiService';
 
@@ -22,6 +24,7 @@ interface SmartEditorProps {
 const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) => {
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
 
   const allPages = project.chapters.flatMap(c => c.pages);
   const activePage = allPages[activePageIndex];
@@ -64,14 +67,32 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
   if (!activePage) return <div className="text-center p-20 font-heading text-2xl text-cocoa-light">Loading masterpiece...</div>;
 
   return (
-    <div className="h-[calc(100vh-80px)] w-full flex flex-col md:flex-row overflow-hidden bg-cream-base">
+    <div className="h-[calc(100vh-80px)] w-full flex flex-col md:flex-row overflow-hidden bg-cream-base relative">
       
+      {/* Mobile Tab Toggle */}
+      <div className="md:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30 shadow-sm">
+        <div className="flex p-1 bg-cream-soft rounded-xl w-full max-w-xs border border-peach-soft/50">
+            <button 
+                onClick={() => setMobileView('edit')}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${mobileView === 'edit' ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light'}`}
+            >
+                <Edit3 className="w-3.5 h-3.5" /> Editor
+            </button>
+            <button 
+                onClick={() => setMobileView('preview')}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${mobileView === 'preview' ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light'}`}
+            >
+                <Eye className="w-3.5 h-3.5" /> Preview
+            </button>
+        </div>
+      </div>
+
       {/* Left Panel: Tools & Text */}
-      <div className="w-full md:w-[40%] flex flex-col border-r border-peach-soft/50 bg-cream-soft">
+      <div className={`w-full md:w-[40%] flex-col border-r border-peach-soft/50 bg-cream-soft ${mobileView === 'preview' ? 'hidden md:flex' : 'flex h-full'}`}>
         
         {/* Header */}
-        <div className="h-20 px-8 flex items-center justify-between border-b border-peach-soft/30">
-            <div>
+        <div className="h-20 px-8 flex items-center justify-between border-b border-peach-soft/30 shrink-0">
+            <div className="overflow-hidden">
                 <h2 className="font-heading font-bold text-xl text-charcoal-soft truncate max-w-[200px]">{project.title}</h2>
                 <div className="flex items-center gap-2 text-xs text-cocoa-light mt-1">
                     <span className="font-bold text-coral-burst">Page {activePage.pageNumber}</span>
@@ -135,7 +156,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
         </div>
 
         {/* Bottom Navigation Strip */}
-        <div className="h-24 bg-white border-t border-peach-soft/50 flex items-center gap-3 px-6 overflow-x-auto pb-2 pt-2">
+        <div className="h-24 bg-white border-t border-peach-soft/50 flex items-center gap-3 px-6 overflow-x-auto pb-2 pt-2 shrink-0">
             {allPages.map((p, idx) => (
                 <button 
                     key={p.id}
@@ -154,11 +175,11 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
       </div>
 
       {/* Right Panel: Preview */}
-      <div className="w-full md:w-[60%] bg-peach-soft/20 flex items-center justify-center p-8 md:p-12 relative overflow-hidden">
+      <div className={`w-full md:w-[60%] bg-peach-soft/20 items-center justify-center p-4 md:p-12 relative overflow-hidden ${mobileView === 'edit' ? 'hidden md:flex' : 'flex h-full'}`}>
         <div className="absolute inset-0 pointer-events-none opacity-30" style={{backgroundImage: "radial-gradient(#FF9B71 1px, transparent 1px)", backgroundSize: "24px 24px"}}></div>
         
         {/* Book Page Container */}
-        <div className="w-full max-w-2xl aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-[4px] relative flex flex-col overflow-hidden transform transition-transform duration-500 hover:scale-[1.01]">
+        <div className="w-full max-w-md md:max-w-2xl aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-[4px] relative flex flex-col overflow-hidden transform transition-transform duration-500 hover:scale-[1.01]">
             
             {/* Texture Overlay */}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none z-10"></div>
@@ -184,8 +205,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
             </div>
 
             {/* Text Content */}
-            <div className="flex-1 p-8 md:p-12 relative z-20 flex flex-col">
-                <p className="font-heading text-2xl md:text-3xl text-charcoal-soft leading-normal mb-auto">
+            <div className="flex-1 p-6 md:p-12 relative z-20 flex flex-col overflow-y-auto">
+                <p className="font-heading text-xl md:text-2xl lg:text-3xl text-charcoal-soft leading-normal mb-auto">
                     {activePage.text}
                 </p>
                 
@@ -212,11 +233,11 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
         </div>
 
         {/* Floating Action Bar */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full shadow-soft-lg px-6 py-3 flex items-center gap-6 border border-white">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full shadow-soft-lg px-6 py-3 flex items-center gap-6 border border-white z-30">
              <button onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))} className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors">
                 <ArrowLeft className="w-5 h-5" />
              </button>
-             <span className="font-heading font-bold text-charcoal-soft text-sm">Preview Mode</span>
+             <span className="font-heading font-bold text-charcoal-soft text-sm whitespace-nowrap">Preview Mode</span>
              <button onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))} className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors">
                 <ChevronRight className="w-5 h-5" />
              </button>
@@ -228,4 +249,3 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
 };
 
 export default SmartEditor;
-    
