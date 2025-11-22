@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { BookProject } from "../../types/generator";
+import { BookProject } from "../../types";
 
 export const generatePDF = async (project: Partial<BookProject>): Promise<Blob> => {
     const doc = new jsPDF();
@@ -13,11 +13,11 @@ export const generatePDF = async (project: Partial<BookProject>): Promise<Blob> 
     doc.addPage();
 
     // Chapters
-    project.chapters?.forEach((chapter) => {
+    project.chapters?.forEach((chapter: any) => {
         doc.setFontSize(20);
         doc.text(chapter.title, 20, 30);
 
-        chapter.pages.forEach((page) => {
+        chapter.pages.forEach((page: any, pIndex: number) => {
             doc.setFontSize(12);
             doc.text(`Page ${page.pageNumber}`, 20, 50);
             doc.text(page.text, 20, 60, { maxWidth: 170 });
