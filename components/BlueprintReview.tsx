@@ -51,7 +51,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({ blueprint, onConfirm,
                         onClick={() => setActiveTab('chapters')}
                         className={`flex-1 py-6 font-heading font-bold text-lg flex items-center justify-center gap-2 transition-colors ${activeTab === 'chapters' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
                     >
-                        <BookOpen className="w-5 h-5" /> Chapters ({editedBlueprint.pages.length} Pages)
+                        <BookOpen className="w-5 h-5" /> Chapters ({editedBlueprint.pages?.length ?? 0} Pages)
                     </button>
                 </div>
 
