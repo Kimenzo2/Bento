@@ -1,11 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Star, Zap, Briefcase, Crown, X, Loader } from 'lucide-react';
 import { initializePayment } from '../services/paystackService';
 
 const PricingPage: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("author@genesis.ai");
+
+  useEffect(() => {
+      try {
+          const saved = localStorage.getItem('genesis_settings');
+          if (saved) {
+              const parsed = JSON.parse(saved);
+              if (parsed.email) setUserEmail(parsed.email);
+          }
+      } catch (e) {
+          console.error("Failed to load user settings");
+      }
+  }, []);
 
   const tiers = [
     {
@@ -105,7 +118,7 @@ const PricingPage: React.FC = () => {
     
     try {
         await initializePayment({
-            email: "author@genesis.ai", // In a real app, use the authenticated user's email
+            email: userEmail, 
             amount: amountToCharge,
             currency: "USD", // Using USD for international compatibility
             onSuccess: (reference) => {

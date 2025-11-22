@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Settings, 
   User, 
@@ -19,31 +19,68 @@ const SettingsPanel: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Initialize avatar from localStorage
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('genesis_avatar');
+    } catch (e) {
+      return null;
+    }
+  });
 
-  const [formData, setFormData] = useState({
-    displayName: 'Creative Author',
-    email: 'author@genesis.ai',
-    bio: 'I love creating magical stories for children...',
-    defaultStyle: 'Pixar 3D',
-    temperature: 0.7,
-    emailUpdates: true,
-    marketingEmails: false,
-    publicProfile: true,
-    dataSharing: false
+  // Initialize form data from localStorage or defaults
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('genesis_settings');
+      return saved ? JSON.parse(saved) : {
+        displayName: 'Creative Author',
+        email: 'author@genesis.ai',
+        bio: 'I love creating magical stories for children...',
+        defaultStyle: 'Pixar 3D',
+        temperature: 0.7,
+        emailUpdates: true,
+        marketingEmails: false,
+        publicProfile: true,
+        dataSharing: false
+      };
+    } catch (e) {
+      return {
+        displayName: 'Creative Author',
+        email: 'author@genesis.ai',
+        bio: 'I love creating magical stories for children...',
+        defaultStyle: 'Pixar 3D',
+        temperature: 0.7,
+        emailUpdates: true,
+        marketingEmails: false,
+        publicProfile: true,
+        dataSharing: false
+      };
+    }
   });
 
   const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
     setIsSaving(true);
+    
+    // Persist settings and avatar
+    try {
+      localStorage.setItem('genesis_settings', JSON.stringify(formData));
+      if (avatarPreview) {
+        localStorage.setItem('genesis_avatar', avatarPreview);
+      }
+    } catch (e) {
+      console.error("Failed to save settings to local storage", e);
+    }
+
     setTimeout(() => {
       setIsSaving(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-    }, 1500);
+    }, 800);
   };
 
   const handleAvatarClick = () => {
@@ -258,7 +295,12 @@ const SettingsPanel: React.FC = () => {
                             />
                             <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100">
                                 <h4 className="text-sm font-bold text-red-800 mb-2">Danger Zone</h4>
-                                <button className="text-xs text-red-600 hover:underline font-bold hover:text-red-800 transition-colors">Delete Account & All Data</button>
+                                <button 
+                                    onClick={() => alert('Account deletion requested. Please contact support to finalize.')}
+                                    className="text-xs text-red-600 hover:underline font-bold hover:text-red-800 transition-colors"
+                                >
+                                    Delete Account & All Data
+                                </button>
                             </div>
                         </div>
                     )}

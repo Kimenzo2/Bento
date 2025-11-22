@@ -4,24 +4,31 @@ declare const process: { env: { PAYSTACK_PUBLIC_KEY: string } };
 
 export const loadPaystackScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
-    const scriptId = 'paystack-script';
+    const scriptId = 'paystack-script-v2';
     if (document.getElementById(scriptId)) {
       resolve(true);
       return;
     }
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = 'https://js.paystack.co/v1/inline.js';
+    // Upgrade to Paystack Inline JS V2
+    script.src = 'https://js.paystack.co/v2/inline.js';
     script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
+    script.onload = () => {
+        console.log("Paystack V2 script loaded");
+        resolve(true);
+    };
+    script.onerror = () => {
+        console.error("Paystack V2 script failed to load");
+        resolve(false);
+    };
     document.body.appendChild(script);
   });
 };
 
 interface PaystackProps {
   email: string;
-  amount: number; // Actual amount (e.g. 19.99)
+  amount: number; // Actual amount in dollars (e.g. 19.99)
   currency?: string;
   onSuccess: (reference: any) => void;
   onClose: () => void;
@@ -45,19 +52,28 @@ export const initializePayment = async ({ email, amount, currency = 'USD', onSuc
       return;
   }
 
-  const handler = (window as any).PaystackPop.setup({
-    key: publicKey,
-    email,
-    amount: Math.round(amount * 100), // Convert to lowest currency unit (cents/kobo)
-    currency,
-    ref: '' + Math.floor((Math.random() * 1000000000) + 1),
-    callback: function(response: any) {
-      onSuccess(response);
-    },
-    onClose: function() {
+  try {
+      // @ts-ignore - PaystackPop is available globally from the V2 script
+      const paystack = new window.PaystackPop();
+      
+      paystack.newTransaction({
+        key: publicKey,
+        email: email,
+        amount: Math.round(amount * 100), // Convert to lowest currency unit (e.g. cents)
+        currency: currency,
+        onSuccess: (transaction: any) => {
+          onSuccess(transaction);
+        },
+        onCancel: () => {
+          onClose();
+        },
+        onError: (error: any) => {
+          console.error("Paystack transaction error:", error);
+          onClose();
+        }
+      });
+  } catch (error) {
+      console.error("Error initializing Paystack V2:", error);
       onClose();
-    },
-  });
-
-  handler.openIframe();
+  }
 };
