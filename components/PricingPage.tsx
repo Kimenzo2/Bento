@@ -117,7 +117,7 @@ const PricingPage: React.FC = () => {
     const amountToCharge = isAnnual ? (tier.priceAnnual * 12) : tier.priceMonthly;
 
     try {
-      initializePayment({
+      await initializePayment({
         email: userEmail, // Using authenticated user's email
         amount: amountToCharge,
         currency: "USD", // Using USD for international compatibility

@@ -1,10 +1,25 @@
-import Paystack from '@paystack/inline-js';
-
 /**
  * Paystack Payment Service
- * Uses Paystack InlineJS V2 for secure payment processing
- * Documentation: https://paystack.com/docs/developer-tools/inlinejs/
+ * Uses Paystack Inline JS (loaded from CDN)
+ * Documentation: https://paystack.com/docs/payments/accept-payments/#popup
  */
+
+// Load Paystack Inline script from CDN
+const loadPaystackScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if ((window as any).PaystackPop) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+};
 
 interface PaystackTransactionOptions {
   email: string;
@@ -25,7 +40,7 @@ interface PaystackTransactionOptions {
  * Initialize a payment transaction using Paystack InlineJS V2
  * @param options - Transaction configuration options
  */
-export const initializePayment = ({
+export const initializePayment = async ({
   email,
   amount,
   currency = 'USD',
@@ -38,7 +53,14 @@ export const initializePayment = ({
   onSuccess,
   onCancel,
   onError
-}: PaystackTransactionOptions): void => {
+}: PaystackTransactionOptions): Promise<void> => {
+  // Load Paystack script first
+  const scriptLoaded = await loadPaystackScript();
+  if (!scriptLoaded) {
+    alert('Failed to load payment provider. Please check your internet connection.');
+    onCancel();
+    return;
+  }
   // Get Paystack public key from environment
   // Support both VITE_ prefix (standard) and process.env polyfill (legacy)
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY;
@@ -66,18 +88,22 @@ export const initializePayment = ({
   }
 
   try {
-    // Create new Paystack instance
-    const popup = new Paystack();
+    // Use Paystack Inline (loaded from CDN via script tag)
+    // The @paystack/inline-js package provides TypeScript types but we use the global PaystackPop
+    const PaystackPop = (window as any).PaystackPop;
 
-    // Initialize transaction using official Paystack InlineJS V2 API
-    popup.newTransaction({
+    if (!PaystackPop) {
+      throw new Error('Paystack library not loaded. Please refresh the page.');
+    }
+
+    const handler = PaystackPop.setup({
       key: publicKey,
       email,
       amount: Math.round(amount * 100), // Convert to kobo/cents (smallest currency unit)
       currency,
       ref: reference || generateReference(),
-      firstName,
-      lastName,
+      firstname: firstName,
+      lastname: lastName,
       phone,
       metadata: {
         ...metadata,
@@ -86,33 +112,19 @@ export const initializePayment = ({
       channels: channels || ['card', 'bank', 'ussd', 'qr', 'bank_transfer'],
 
       // Success callback - called when payment is successful
-      onSuccess: (transaction) => {
-        console.log('Payment successful:', transaction);
-        onSuccess(transaction);
+      callback: (response: any) => {
+        console.log('Payment successful:', response);
+        onSuccess(response);
       },
 
-      // Load callback - called when checkout is loaded
-      onLoad: (response) => {
-        console.log('Paystack checkout loaded:', response);
-      },
-
-      // Cancel callback - called when user closes the payment modal
-      onCancel: () => {
-        console.log('Payment cancelled by user');
+      // Close callback - called when user closes the payment modal
+      onClose: () => {
+        console.log('Payment modal closed');
         onCancel();
-      },
-
-      // Error callback - called when an error occurs
-      onError: (error) => {
-        console.error('Payment error:', error);
-        if (onError) {
-          onError(error);
-        } else {
-          alert(`Payment error: ${error.message || 'An error occurred during payment processing'}`);
-          onCancel();
-        }
       }
     });
+
+    handler.openIframe();
   } catch (error: any) {
     console.error('Failed to initialize Paystack:', error);
     alert('Unable to start payment. Please try again.');
@@ -149,8 +161,12 @@ export const resumeTransaction = (
   }
 
   try {
-    const popup = new Paystack();
-    popup.resumeTransaction(accessCode);
+    const PaystackPop = (window as any).PaystackPop;
+    if (!PaystackPop) {
+      throw new Error('Paystack library not loaded');
+    }
+
+    PaystackPop.resumeTransaction(accessCode);
 
     // Note: resumeTransaction doesn't support callbacks directly
     // You'll need to handle success/failure via webhooks or redirect
