@@ -92,9 +92,9 @@ const PricingPage: React.FC = () => {
 
   const handleSubscribe = async (tier: any) => {
     if (tier.priceMonthly === 0) {
-      // Free tier logic - likely just redirect or do nothing
-      alert("You are now on the Free Spark plan!");
-      return;
+        // Free tier logic - likely just redirect or do nothing
+        alert("You are now on the Free Spark plan!");
+        return;
     }
 
     setProcessingTier(tier.name);
@@ -102,43 +102,38 @@ const PricingPage: React.FC = () => {
     // Calculate total amount to charge based on billing cycle
     // Annual prices in the array are "monthly equivalent", so we multiply by 12 for the actual charge
     const amountToCharge = isAnnual ? (tier.priceAnnual * 12) : tier.priceMonthly;
-
+    
     try {
-      initializePayment({
-        email: "user@example.com", // TODO: Replace with authenticated user's email from your auth system
-        amount: amountToCharge,
-        currency: "USD", // Using USD for international compatibility
-        onSuccess: (transaction) => {
-          alert(`Subscription successful! Reference: ${transaction.reference}`);
-          setProcessingTier(null);
-          // Here you would typically call your backend to verify transaction and update user role
-        },
-        onCancel: () => {
-          setProcessingTier(null);
-        },
-        onError: (error) => {
-          console.error("Payment error:", error);
-          alert(`Payment failed: ${error.message}`);
-          setProcessingTier(null);
-        }
-      });
+        await initializePayment({
+            email: "author@genesis.ai", // In a real app, use the authenticated user's email
+            amount: amountToCharge,
+            currency: "USD", // Using USD for international compatibility
+            onSuccess: (reference) => {
+                alert(`Subscription successful! Reference: ${reference.reference}`);
+                setProcessingTier(null);
+                // Here you would typically call your backend to verify transaction and update user role
+            },
+            onClose: () => {
+                setProcessingTier(null);
+            }
+        });
     } catch (error) {
-      console.error("Payment initialization failed:", error);
-      alert("Unable to start payment processing. Please try again.");
-      setProcessingTier(null);
+        console.error("Payment initialization failed:", error);
+        alert("Unable to start payment processing. Please try again.");
+        setProcessingTier(null);
     }
   };
 
   return (
     <div className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn">
-
+      
       {/* Urgency Banner */}
       <div className="w-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white text-center py-3 font-heading font-bold text-sm shadow-md sticky top-[80px] z-40">
         🎉 FOUNDING MEMBER SPECIAL: Lock in 50% OFF forever! 847 spots left. <span className="underline cursor-pointer ml-2">Claim Now</span>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-12">
-
+        
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="font-heading font-bold text-4xl md:text-5xl text-charcoal-soft mb-6">
@@ -151,14 +146,14 @@ const PricingPage: React.FC = () => {
           {/* Toggle */}
           <div className="flex items-center justify-center gap-4">
             <span className={`font-heading font-bold ${!isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}>Monthly</span>
-            <button
+            <button 
               onClick={() => setIsAnnual(!isAnnual)}
               className="relative w-16 h-8 bg-peach-soft rounded-full p-1 transition-colors duration-300 focus:outline-none"
             >
               <div className={`w-6 h-6 bg-coral-burst rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`}></div>
             </button>
             <span className={`font-heading font-bold flex items-center gap-2 ${isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}>
-              Annual
+              Annual 
               <span className="bg-gold-sunshine/20 text-yellow-600 text-xs px-2 py-0.5 rounded-full">Save up to 18%</span>
             </span>
           </div>
@@ -167,11 +162,11 @@ const PricingPage: React.FC = () => {
         {/* Pricing Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-end">
           {tiers.map((tier, index) => (
-            <div
+            <div 
               key={tier.name}
               className={`relative bg-white rounded-3xl p-8 border-2 transition-all duration-300 flex flex-col h-full
-                ${tier.isPopular
-                  ? 'border-gold-sunshine shadow-glow transform scale-105 z-10'
+                ${tier.isPopular 
+                  ? 'border-gold-sunshine shadow-glow transform scale-105 z-10' 
                   : 'border-peach-soft/50 shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2'
                 }`}
             >
@@ -194,22 +189,22 @@ const PricingPage: React.FC = () => {
                 </span>
                 <span className="text-cocoa-light font-medium">/mo</span>
                 {isAnnual && tier.priceAnnual > 0 && (
-                  <div className="text-xs text-green-500 font-bold mt-1">Billed ${Math.ceil(tier.priceAnnual * 12)}/yr</div>
+                   <div className="text-xs text-green-500 font-bold mt-1">Billed ${Math.ceil(tier.priceAnnual * 12)}/yr</div>
                 )}
               </div>
 
-              <button
+              <button 
                 onClick={() => handleSubscribe(tier)}
                 disabled={processingTier !== null}
                 className={`w-full py-3 rounded-xl font-heading font-bold transition-all mb-8 ${tier.buttonColor} flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed`}
               >
                 {processingTier === tier.name ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
+                   <>
+                     <Loader className="w-4 h-4 animate-spin" />
+                     Processing...
+                   </>
                 ) : (
-                  tier.priceMonthly === 0 ? "Start Creating Free" : "Start 7-Day Free Trial"
+                   tier.priceMonthly === 0 ? "Start Creating Free" : "Start 7-Day Free Trial"
                 )}
               </button>
 
@@ -217,16 +212,16 @@ const PricingPage: React.FC = () => {
                 {tier.features.map((feature, i) => (
                   <div key={i} className="flex items-start gap-3 text-sm text-charcoal-soft font-medium">
                     <div className="mt-0.5 min-w-4 min-h-4 rounded-full bg-mint-breeze flex items-center justify-center">
-                      <Check className="w-2.5 h-2.5 text-green-600" />
+                        <Check className="w-2.5 h-2.5 text-green-600" />
                     </div>
                     {feature}
                   </div>
                 ))}
                 {tier.limitations?.map((limitation, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm text-cocoa-light/70">
-                    <X className="w-4 h-4 mt-0.5" />
-                    {limitation}
-                  </div>
+                   <div key={i} className="flex items-start gap-3 text-sm text-cocoa-light/70">
+                     <X className="w-4 h-4 mt-0.5" />
+                     {limitation}
+                   </div>
                 ))}
               </div>
             </div>
@@ -235,20 +230,20 @@ const PricingPage: React.FC = () => {
 
         {/* Social Proof */}
         <div className="mt-20 text-center bg-white/50 rounded-3xl p-8 border border-peach-soft">
-          <div className="flex justify-center items-center gap-8 mb-6 opacity-70 grayscale hover:grayscale-0 transition-all">
-            {/* Mock Logos */}
-            <div className="font-heading font-bold text-xl">Forbes</div>
-            <div className="font-heading font-bold text-xl">TechCrunch</div>
-            <div className="font-heading font-bold text-xl">Wired</div>
-            <div className="font-heading font-bold text-xl">ProductHunt</div>
-          </div>
-          <p className="font-heading font-bold text-xl text-charcoal-soft italic">
-            "The most intuitive storytelling platform we've ever tested."
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-            <span className="text-sm font-bold text-charcoal-soft">- Sarah J., Children's Author</span>
-          </div>
+            <div className="flex justify-center items-center gap-8 mb-6 opacity-70 grayscale hover:grayscale-0 transition-all">
+               {/* Mock Logos */}
+               <div className="font-heading font-bold text-xl">Forbes</div>
+               <div className="font-heading font-bold text-xl">TechCrunch</div>
+               <div className="font-heading font-bold text-xl">Wired</div>
+               <div className="font-heading font-bold text-xl">ProductHunt</div>
+            </div>
+            <p className="font-heading font-bold text-xl text-charcoal-soft italic">
+                "The most intuitive storytelling platform we've ever tested."
+            </p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+                <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+                <span className="text-sm font-bold text-charcoal-soft">- Sarah J., Children's Author</span>
+            </div>
         </div>
 
       </div>
