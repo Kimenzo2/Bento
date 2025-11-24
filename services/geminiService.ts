@@ -1,145 +1,413 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { BookProject, GenerationSettings, ArtStyle } from "../types";
+import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
+// @ts-ignore
+import Bytez from "bytez.js";
 
 // Declare process for Vite build compatibility
-declare const process: { env: { API_KEY: string } };
+declare const process: { env: { VITE_GEMINI_API_KEY: string, VITE_BYTEZ_API_KEY: string } };
 
-// Initialize Gemini Client
-// Note: process.env.API_KEY is injected by Vite during build.
-// We provide a fallback to empty string to prevent the constructor from throwing immediately 
-// if the key is missing during initialization. The error will occur when making a call instead.
-const apiKey = process.env.API_KEY || "";
-const ai = new GoogleGenAI({ apiKey });
+// Initialize API Keys
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
+const bytezApiKey = import.meta.env.VITE_BYTEZ_API_KEY || process.env.VITE_BYTEZ_API_KEY || "";
 
-const SYSTEM_INSTRUCTION_ARCHITECT = `
-You are the "Story Architect Agent" of the Genesis Ebook System. 
-Your goal is to structure a compelling book based on user input.
-Create a JSON structure containing the title, synopsis, characters, and a breakdown of chapters and pages.
-For each page, provide the narrative text and a highly detailed, cinematic image prompt for the "Visual Synthesis Agent" to use later.
-Ensure the image prompts describe lighting, camera angle, character consistency, and style.
-`;
+if (!apiKey) {
+  console.warn("⚠️ Gemini API Key is MISSING! Please check your .env file.");
+} else {
+  console.log(`✅ Gemini API Key initialized (Length: ${apiKey.length})`);
+}
+
+if (!bytezApiKey) {
+  console.warn("⚠️ Bytez API Key is MISSING! Please check your .env file.");
+} else {
+  console.log(`✅ Bytez API Key initialized (Length: ${bytezApiKey.length})`);
+}
+
+const bytez = new Bytez(bytezApiKey);
+
+// Rate limiter to reduce API calls and token usage
+const rateLimiter = {
+  lastCallTime: 0,
+  minDelay: 2000, // 2 seconds between calls (max 30 requests/min)
+  async throttle() {
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastCallTime;
+    if (timeSinceLastCall < this.minDelay) {
+      const waitTime = this.minDelay - timeSinceLastCall;
+      console.log(`⏱️ Rate limiting: waiting ${waitTime}ms before next API call...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    this.lastCallTime = Date.now();
+  }
+};
+
+// Helper function to call Gemini API directly with fetch
+async function callGeminiAPI(prompt: string, model: string = "gemini-2.0-flash", maxTokens: number = 4096): Promise<string> {
+  if (!apiKey) throw new Error("Gemini API Key is missing");
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: maxTokens,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.candidates || !data.candidates[0]) {
+    throw new Error("No response from Gemini API");
+  }
+
+  return data.candidates[0].content.parts[0].text;
+}
+
+const SYSTEM_INSTRUCTION_ARCHITECT = `You are an AI ebook generation engine for a web/mobile application. Your responses must be valid JSON that the application can parse and render. Generate engaging, age-appropriate stories with consistent formatting for programmatic consumption.
+
+## Response Format Requirements
+
+**CRITICAL: Always respond with valid JSON only. No markdown, no explanations, no preamble.**
+
+## Primary Function
+
+Generate complete ebook data structures from user inputs. Each response must be parseable JSON containing all story content, image prompts, metadata, and interactive elements.
+
+## Input Schema
+
+You will receive requests in this format:
+\`\`\`json
+{
+  "topic": "string - story theme/idea",
+  "characterName": "string (optional) - protagonist name",
+  "characterDescription": "string (optional) - appearance/personality",
+  "existingCharacterId": "string (optional) - for series continuity",
+  "ageGroup": "number - target age (3-18)",
+  "pageCount": "number - desired pages (5-30)",
+  "genre": "string - fantasy/adventure/educational/etc",
+  "artStyle": "string - watercolor/cartoon/realistic/digital/etc",
+  "interactive": "boolean - include decision points",
+  "educational": "boolean - include learning content",
+  "language": "string - en/es/fr/etc (default: en)",
+  "tone": "string - funny/calm/exciting/inspirational"
+}
+\`\`\`
+
+## Output Schema
+
+Respond with this exact JSON structure:
+
+\`\`\`json
+{
+  "bookId": "unique_id_string",
+  "metadata": {
+    "title": "Creative Title",
+    "subtitle": "Optional subtitle",
+    "synopsis": "50-100 word engaging summary",
+    "ageRange": "5-7",
+    "genre": "Adventure",
+    "pageCount": 15,
+    "readingTimeMinutes": 8,
+    "artStyle": "watercolor",
+    "features": ["interactive", "educational"],
+    "language": "en",
+    "contentWarnings": []
+  },
+  "characters": [
+    {
+      "id": "char_001",
+      "name": "Character Name",
+      "role": "protagonist",
+      "description": "Brief personality description",
+      "visualPrompt": "Detailed appearance for image generation consistency: [height, build, hair, eyes, clothing, distinctive features]",
+      "traits": ["brave", "curious"]
+    }
+  ],
+  "pages": [
+    {
+      "pageNumber": 1,
+      "text": "Page text content (age-appropriate length)",
+      "imagePrompt": "Detailed image generation prompt including: scene description, characters present with visual details, art style, mood, composition, lighting, color palette",
+      "narrationNotes": {
+        "tone": "warm",
+        "pacing": "slow",
+        "emotion": "wonder",
+        "soundEffects": ["gentle wind"]
+      },
+      "interactiveElement": {
+        "type": "decision",
+        "question": "What should [character] do?",
+        "options": [
+          {"text": "Go left", "leadsToPage": 2},
+          {"text": "Go right", "leadsToPage": 3}
+        ]
+      },
+      "learningMoment": {
+        "concept": "counting",
+        "content": "Can you count the stars?",
+        "answer": "There are 5 stars"
+      },
+      "vocabularyWords": [
+        {"word": "adventure", "definition": "an exciting experience"}
+      ]
+    }
+  ],
+  "decisionTree": {
+    "paths": [
+      {
+        "pathId": "path_a",
+        "decisions": [{"page": 2, "choice": "left"}],
+        "outcome": "Happy ending A"
+      }
+    ]
+  },
+  "backMatter": {
+    "discussionQuestions": [
+      "What was your favorite part?",
+      "How did the character show bravery?"
+    ],
+    "activities": [
+      "Draw your own version of [character]",
+      "Write about a time you were brave"
+    ],
+    "vocabularyList": [
+      {"word": "brave", "definition": "showing courage"}
+    ]
+  },
+  "seriesInfo": {
+    "potentialSequels": ["Title idea 1", "Title idea 2"],
+    "characterDevelopment": "How character could grow in next book"
+  }
+}
+\`\`\`
+
+## Content Generation Rules
+
+### Story Quality
+- **Beginning**: Hook reader in first 2 pages
+- **Middle**: Build conflict/challenge appropriate to age
+- **End**: Satisfying resolution with character growth
+- **Length per page**: 
+  - Ages 3-5: 1-3 sentences
+  - Ages 6-8: 3-5 sentences  
+  - Ages 9-12: 5-8 sentences
+  - Ages 13+: 8-12 sentences
+
+### Character Consistency
+- Generate detailed \`visualPrompt\` that can be used across all pages
+- Include: age, height, build, hair (color, style, length), eyes (color, shape), skin tone, clothing style, distinctive features (freckles, glasses, etc.)
+- Keep character descriptions identical across pages
+- Reference character by name, not pronouns when possible
+
+### Image Prompts
+Each \`imagePrompt\` must include:
+1. **Scene setting**: Location, time of day, weather
+2. **Characters present**: Use exact visualPrompt descriptions
+3. **Action/emotion**: What's happening, facial expressions
+4. **Art style**: Match requested style consistently
+5. **Composition**: Camera angle, framing
+6. **Mood**: Color palette, lighting, atmosphere
+7. **Details**: Important objects, background elements
+
+**Format**: "A [art style] illustration showing [character with full visual description] [action] in [setting with details]. [Mood/lighting]. [Composition]. [Color palette]."
+
+### Interactive Elements
+When \`interactive: true\`:
+- Include 2-4 decision points throughout story
+- Each option leads to different page number
+- All paths must converge to satisfying endings
+- Track paths in \`decisionTree\`
+- Never create dead ends
+
+### Educational Content
+When \`educational: true\`:
+- Integrate learning naturally into story
+- Age-appropriate concepts (counting, colors, science, emotions, problem-solving)
+- Include vocabulary words with context
+- Add discussion questions
+- Provide extension activities
+
+### Age-Appropriate Content
+- **Ages 3-5**: Simple plots, repetition, basic emotions, familiar settings
+- **Ages 6-8**: Cause-effect, friendship themes, mild challenges, humor
+- **Ages 9-12**: Complex plots, moral lessons, character development, adventure
+- **Ages 13+**: Nuanced themes, identity, relationships, real-world issues
+
+### Cultural Sensitivity
+- Avoid stereotypes
+- Represent diversity naturally
+- Respect cultural contexts if specified
+- Use inclusive language
+- Default to universal themes
+
+## Error Handling
+
+If input is incomplete or unclear:
+\`\`\`json
+{
+  "error": true,
+  "message": "Specific issue with request",
+  "suggestions": ["Suggestion 1", "Suggestion 2"]
+}
+\`\`\`
+
+## Special Feature Flags
+
+### Voice Narration Support
+Always include \`narrationNotes\` for text-to-speech integration:
+- **tone**: emotional quality
+- **pacing**: speed of reading
+- **emotion**: specific feeling
+- **soundEffects**: ambient sounds to add
+
+### Series Continuity
+When \`existingCharacterId\` provided:
+- Use exact character details from previous books
+- Reference past adventures
+- Show character growth
+- Maintain consistent world-building
+
+### Multilingual Support
+When \`language\` is not "en":
+- Generate all text in specified language
+- Keep proper names transliterated appropriately
+- Adjust cultural references
+
+## Optimization Guidelines
+
+- Keep JSON compact but complete
+- Ensure all required fields present
+- Validate page numbers sequential
+- Check all decision points link correctly
+- Verify character IDs match across pages
+- Ensure image prompts reference correct characters`;
+
+// Helper to parse age from audience string
+const parseAge = (audience: string): number => {
+  const match = audience.match(/\d+/);
+  return match ? parseInt(match[0]) : 8; // Default to 8 if no number found
+};
 
 export const generateBookStructure = async (settings: GenerationSettings): Promise<Partial<BookProject>> => {
   if (!apiKey) {
-    throw new Error("API Key is missing. Please configure your environment variables.");
+    throw new Error("Gemini API Key is missing. Please configure your environment variables.");
   }
 
-  const modelId = "gemini-2.5-flash"; // Optimized for text and logic
+  // Apply rate limiting
+  await rateLimiter.throttle();
 
-  let specificInstructions = "";
+  const ageGroup = parseAge(settings.audience);
 
-  if (settings.brandProfile) {
-    specificInstructions += `
-    \n*** BRAND VOICE ENFORCEMENT ***
-    You must strictly adhere to the following brand guidelines:
-    Brand Name: ${settings.brandProfile.name}
-    Tone/Guidelines: ${settings.brandProfile.guidelines}
-    Sample Text (Mimic this style): "${settings.brandProfile.sampleText}"
-    Visual Identity Colors: ${settings.brandProfile.colors.join(", ")} (incorporate these colors into image prompts where appropriate).
-    `;
-  }
+  const inputPayload = {
+    topic: settings.prompt,
+    ageGroup: ageGroup,
+    pageCount: settings.pageCount,
+    genre: "Fiction", // Could be inferred or added to settings
+    artStyle: settings.style,
+    interactive: settings.isBranching,
+    educational: settings.educational || false,
+    language: "en",
+    tone: settings.tone,
+    ...(settings.brandProfile ? {
+      characterDescription: `Brand Character: ${settings.brandProfile.name}. ${settings.brandProfile.guidelines}`
+    } : {})
+  };
 
-  if (settings.isBranching) {
-    specificInstructions += `
-    \n*** CHOOSE YOUR OWN ADVENTURE MODE ***
-    Create a branching narrative. 
-    - Most pages should have 2-3 'choices' that lead to different page numbers.
-    - Ensure the story flows logically based on these choices.
-    - Some pages will be endings.
-    - Map out the page numbers carefully so choices point to valid existing pages.
-    `;
-  } else {
-    specificInstructions += `
-    \n*** LINEAR NARRATIVE ***
-    Create a sequential story from page 1 to ${settings.pageCount}.
-    `;
-  }
+  const prompt = `${SYSTEM_INSTRUCTION_ARCHITECT}
 
-  const prompt = `
-    Create a detailed book plan for:
-    Topic: ${settings.prompt}
-    Style: ${settings.style}
-    Tone: ${settings.tone}
-    Target Audience: ${settings.audience}
-    Approximate Length: ${settings.pageCount} pages total.
-    ${specificInstructions}
-
-    Return a JSON object with:
-    - title
-    - synopsis
-    - characters (array of name, description, visualTraits)
-    - chapters (array of title, pages array)
-    
-    Each page object must have:
-    - pageNumber (Integer)
-    - text (The actual story content for this page)
-    - imagePrompt (A detailed prompt for generating the illustration, include style keywords like ${settings.style})
-    - layoutType (Choose one: 'full-bleed', 'split-horizontal', 'split-vertical', 'text-only')
-    ${settings.isBranching ? "- choices (Array of objects with 'text' and 'targetPageNumber')" : ""}
-  `;
+Generate a book based on this request:
+${JSON.stringify(inputPayload, null, 2)}`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION_ARCHITECT,
-        responseMimeType: "application/json",
-        maxOutputTokens: 8192,
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            synopsis: { type: Type.STRING },
-            characters: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  visualTraits: { type: Type.STRING },
-                }
-              }
-            },
-            chapters: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  pages: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        pageNumber: { type: Type.INTEGER },
-                        text: { type: Type.STRING },
-                        imagePrompt: { type: Type.STRING },
-                        layoutType: { type: Type.STRING },
-                        choices: {
-                          type: Type.ARRAY,
-                          items: {
-                            type: Type.OBJECT,
-                            properties: {
-                              text: { type: Type.STRING },
-                              targetPageNumber: { type: Type.INTEGER }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
+    console.log('🤖 Generating book structure with Gemini API (gemini-2.0-flash)...');
 
-    if (!response.text) throw new Error("No response from Story Architect");
-    return JSON.parse(response.text) as Partial<BookProject>;
+    const text = await callGeminiAPI(prompt, "gemini-2.0-flash", 8192); // Increased token limit for full book
+
+    console.log(`✅ Book structure generated (${text.length} chars)`);
+
+    // Parse JSON response
+    let rawData: any;
+    try {
+      const jsonString = text.replace(/```json\n?|```/g, '').trim();
+      rawData = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.warn("JSON Parse failed, attempting repair...", parseError);
+      const repairedJson = repairJson(text);
+      if (repairedJson) {
+        rawData = JSON.parse(repairedJson);
+      } else {
+        throw parseError;
+      }
+    }
+
+    if (rawData.error) {
+      throw new Error(`Generation Error: ${rawData.message}`);
+    }
+
+    // Map to BookProject structure
+    const project: Partial<BookProject> = {
+      id: rawData.bookId || crypto.randomUUID(),
+      title: rawData.metadata?.title || "Untitled Masterpiece",
+      synopsis: rawData.metadata?.synopsis || "",
+      style: settings.style,
+      tone: settings.tone,
+      targetAudience: settings.audience,
+      isBranching: settings.isBranching,
+      brandProfile: settings.brandProfile,
+      createdAt: new Date(),
+
+      // New Schema Data
+      metadata: rawData.metadata,
+      decisionTree: rawData.decisionTree,
+      backMatter: rawData.backMatter,
+      seriesInfo: rawData.seriesInfo,
+
+      characters: (rawData.characters || []).map((c: any) => ({
+        id: c.id || crypto.randomUUID(),
+        name: c.name,
+        role: c.role,
+        description: c.description,
+        visualTraits: c.visualPrompt, // Map visualPrompt to visualTraits
+        visualPrompt: c.visualPrompt,
+        traits: c.traits
+      })),
+
+      chapters: [{
+        id: crypto.randomUUID(),
+        title: "Story",
+        pages: (rawData.pages || []).map((p: any) => ({
+          id: crypto.randomUUID(),
+          pageNumber: p.pageNumber,
+          text: p.text,
+          imagePrompt: p.imagePrompt,
+          layoutType: 'text-only', // Default, could be inferred
+          narrationNotes: p.narrationNotes,
+          interactiveElement: p.interactiveElement,
+          learningMoment: p.learningMoment,
+          vocabularyWords: p.vocabularyWords,
+          choices: p.interactiveElement?.options?.map((o: any) => ({
+            text: o.text,
+            targetPageNumber: o.leadsToPage
+          })) || []
+        }))
+      }]
+    };
+
+    return project;
+
   } catch (error) {
     console.error("Story Architect failed:", error);
     throw error;
@@ -158,58 +426,49 @@ export const generateStructuredContent = async <T>(
   systemInstruction?: string
 ): Promise<T> => {
   if (!apiKey) {
-    throw new Error("API Key is missing");
+    throw new Error("Gemini API Key is missing");
   }
 
-  const modelId = "gemini-2.5-flash";
+  // Apply rate limiting
+  await rateLimiter.throttle();
 
   try {
-    const config: any = {
-      responseMimeType: "application/json",
-    };
+    const fullPrompt = `${systemInstruction || ''}\n\n${prompt}\n\nReturn VALID JSON only.`;
 
-    if (schema) {
-      config.responseSchema = schema;
-    }
+    console.log('🤖 Generating structured content with Gemini API...');
 
-    if (systemInstruction) {
-      config.systemInstruction = systemInstruction;
-    }
+    const text = await callGeminiAPI(fullPrompt, "gemini-2.0-flash", 2048);
 
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: prompt,
-      config
-    });
-
-    if (!response.text) throw new Error("No response from Gemini");
-    return JSON.parse(response.text) as T;
+    const jsonString = text.replace(/```json\n?|```/g, '').trim();
+    return JSON.parse(jsonString) as T;
   } catch (error) {
     console.error("Structured generation failed:", error);
     throw error;
   }
 };
 
-export const generateIllustration = async (imagePrompt: string, style: string): Promise<string | null> => {
-  if (!apiKey) return null;
-  const modelId = "imagen-3.0-generate-001"; // Imagen 3 for high-quality image generation
+export const generateIllustration = async (imagePrompt: string, style: string, tier: UserTier = UserTier.SPARK): Promise<string | null> => {
+  if (!bytezApiKey) return null;
+
+  const modelId = (tier === UserTier.STUDIO || tier === UserTier.EMPIRE)
+    ? "google/imagen-4.0-ultra-generate-001"
+    : "google/imagen-4.0-generate-001";
+
+  console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier})`);
 
   try {
     const fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, cinematic lighting, 8k resolution.`;
+    const model = bytez.model(modelId);
 
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: fullPrompt,
-    });
+    const { error, output } = await model.run(fullPrompt);
 
-    // Check for inline data (image)
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData && part.inlineData.data) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
+    if (error) {
+      console.error("Bytez generation error:", error);
+      return null;
     }
 
-    return null;
+    console.log("Bytez output:", output);
+    return output;
   } catch (error) {
     console.error("Visual Synthesis Agent failed:", error);
     return null;
@@ -225,10 +484,16 @@ export const generateRefinedImage = async (
     lighting?: string,
     camera?: string,
     characterDescription?: string
-  }
+  },
+  tier: UserTier = UserTier.SPARK
 ): Promise<string | null> => {
-  if (!apiKey) return null;
-  const modelId = "imagen-3.0-generate-001"; // Imagen 3 for refined image generation
+  if (!bytezApiKey) return null;
+
+  const modelId = (tier === UserTier.STUDIO || tier === UserTier.EMPIRE)
+    ? "google/imagen-4.0-ultra-generate-001"
+    : "google/imagen-4.0-generate-001";
+
+  console.log(`🎨 Generating refined image using model: ${modelId} (Tier: ${tier})`);
 
   let styleInstruction = `Style: ${params.styleA}`;
   if (params.styleB && params.mixRatio !== undefined) {
@@ -248,19 +513,46 @@ export const generateRefinedImage = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: fullPrompt,
-    });
+    const model = bytez.model(modelId);
+    const { error, output } = await model.run(fullPrompt);
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData && part.inlineData.data) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
+    if (error) {
+      console.error("Bytez generation error:", error);
+      return null;
     }
-    return null;
+
+    return output;
   } catch (error) {
     console.error("Visual Studio Generation failed:", error);
     return null;
   }
 };
+
+// Helper function to repair truncated JSON
+function repairJson(jsonString: string): string | null {
+  try {
+    // 1. Remove any trailing incomplete string
+    let cleaned = jsonString.replace(/,\s*"[^"]*$/, '');
+
+    // 2. Count braces/brackets to close them
+    let openBraces = (cleaned.match(/{/g) || []).length;
+    let closeBraces = (cleaned.match(/}/g) || []).length;
+    let openBrackets = (cleaned.match(/\[/g) || []).length;
+    let closeBrackets = (cleaned.match(/\]/g) || []).length;
+
+    while (openBraces > closeBraces) {
+      cleaned += "}";
+      closeBraces++;
+    }
+    while (openBrackets > closeBrackets) {
+      cleaned += "]";
+      closeBrackets++;
+    }
+
+    // Verify if it parses now
+    JSON.parse(cleaned);
+    return cleaned;
+  } catch (e) {
+    return null; // Repair failed
+  }
+}

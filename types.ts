@@ -8,7 +8,8 @@ export enum AppMode {
   EXPORT = 'EXPORT',
   SETTINGS = 'SETTINGS',
   PRICING = 'PRICING',
-  GAMIFICATION = 'GAMIFICATION'
+  GAMIFICATION = 'GAMIFICATION',
+  SUCCESS = 'SUCCESS'
 }
 
 export enum ArtStyle {
@@ -61,16 +62,33 @@ export interface GamificationState {
   booksCreatedCount: number;
 }
 
-export interface Choice {
-  text: string;
-  targetPageNumber: number;
+// --- New Schema Interfaces ---
+
+export interface NarrationNotes {
+  tone: string;
+  pacing: string;
+  emotion: string;
+  soundEffects?: string[];
 }
 
-export interface BrandProfile {
-  name: string;
-  guidelines: string;
-  colors: string[];
-  sampleText: string;
+export interface InteractiveElement {
+  type: 'decision' | 'activity';
+  question: string;
+  options: {
+    text: string;
+    leadsToPage: number;
+  }[];
+}
+
+export interface LearningMoment {
+  concept: string;
+  content: string;
+  answer?: string;
+}
+
+export interface VocabularyWord {
+  word: string;
+  definition: string;
 }
 
 export interface Page {
@@ -80,7 +98,15 @@ export interface Page {
   imagePrompt: string;
   imageUrl?: string; // Base64 or URL
   layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only';
-  choices?: Choice[];
+
+  // New fields
+  narrationNotes?: NarrationNotes;
+  interactiveElement?: InteractiveElement;
+  learningMoment?: LearningMoment;
+  vocabularyWords?: VocabularyWord[];
+
+  // Legacy support
+  choices?: { text: string; targetPageNumber: number }[];
 }
 
 export interface Chapter {
@@ -92,9 +118,45 @@ export interface Chapter {
 export interface Character {
   id: string;
   name: string;
+  role?: string; // 'protagonist', etc.
   description: string;
-  visualTraits: string;
+  visualTraits: string; // Mapped from visualPrompt for backward compatibility
+  visualPrompt?: string; // New field
+  traits?: string[];
   imageUrl?: string;
+}
+
+export interface BookMetadata {
+  title: string;
+  subtitle?: string;
+  synopsis: string;
+  ageRange: string;
+  genre: string;
+  pageCount: number;
+  readingTimeMinutes?: number;
+  artStyle: string;
+  features: string[];
+  language: string;
+  contentWarnings?: string[];
+}
+
+export interface DecisionTree {
+  paths: {
+    pathId: string;
+    decisions: { page: number; choice: string }[];
+    outcome: string;
+  }[];
+}
+
+export interface BackMatter {
+  discussionQuestions: string[];
+  activities: string[];
+  vocabularyList: VocabularyWord[];
+}
+
+export interface SeriesInfo {
+  potentialSequels: string[];
+  characterDevelopment: string;
 }
 
 export interface BookProject {
@@ -104,21 +166,40 @@ export interface BookProject {
   style: ArtStyle;
   tone: BookTone;
   targetAudience: string;
-  chapters: Chapter[];
-  characters: Character[];
-  createdAt: Date;
   isBranching: boolean;
   brandProfile?: BrandProfile;
+
+  // Structure
+  chapters: Chapter[]; // Kept for app structure, but might be just one chapter if flat
+  characters: Character[];
+
+  // New Schema Data
+  metadata?: BookMetadata;
+  decisionTree?: DecisionTree;
+  backMatter?: BackMatter;
+  seriesInfo?: SeriesInfo;
+
+  coverImage?: string; // Generated cover image URL
+
+  createdAt: Date;
 }
 
 export interface GenerationSettings {
   prompt: string;
   style: ArtStyle;
   tone: BookTone;
-  pageCount: number; // Rough estimate
+  pageCount: number;
   audience: string;
   isBranching: boolean;
+  educational?: boolean; // New flag
   brandProfile?: BrandProfile;
+}
+
+export interface BrandProfile {
+  name: string;
+  guidelines: string;
+  colors: string[];
+  sampleText: string;
 }
 
 export interface VisualSettings {

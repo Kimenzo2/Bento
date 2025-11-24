@@ -1,0 +1,50 @@
+[
+  {
+    "keyName": "Key 1",
+    "key": "AIzaSyASBU6gbFFAzYcJeTzx2fUIg-Hjzthec40",
+    "model": "gemini-1.5-flash-latest",
+    "status": "FAILED",
+    "statusCode": 404,
+    "error": "models/gemini-1.5-flash-latest is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+  },
+  {
+    "keyName": "Key 1",
+    "key": "AIzaSyASBU6gbFFAzYcJeTzx2fUIg-Hjzthec40",
+    "model": "gemini-1.5-pro-latest",
+    "status": "FAILED",
+    "statusCode": 404,
+    "error": "models/gemini-1.5-pro-latest is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+  },
+  {
+    "keyName": "Key 1",
+    "key": "AIzaSyASBU6gbFFAzYcJeTzx2fUIg-Hjzthec40",
+    "model": "gemini-pro",
+    "status": "FAILED",
+    "statusCode": 404,
+    "error": "models/gemini-pro is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+  },
+  {
+    "keyName": "Key 2",
+    "key": "AIzaSyB5BKaBAsru3etCQZl6Z3V8E5f5lbkHMNw",
+    "model": "gemini-1.5-flash-latest",
+    "status": "FAILED",
+    "statusCode": 404,
+    "error": "models/gemini-1.5-flash-latest is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+  },
+  {
+    "keyName": "Key 2",
+    "key": "AIzaSyB5BKaBAsru3etCQZl6Z3V8E5f5lbkHMNw",
+    "model": "gemini-1.5-pro-latest",
+    "status": "FAILED",
+    "statusCode": 404,
+    "error": "models/gemini-1.5-pro-latest is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+  },
+  {
+    "keyName": "Key 2",
+    "key": "AIzaSyB5BKaBAsru3etCQZl6Z3V8E5f5lbkHMNw",
+    "model": "gemini-pro",
+    "status": "FAILED",
+    "statusCode": 404,
+    "error": "models/gemini-pro is not found for API version v1, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+  }
+]

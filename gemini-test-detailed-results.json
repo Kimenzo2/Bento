@@ -1,0 +1,28 @@
+[
+  {
+    "keyName": "Key 1",
+    "key": "AIzaSyASBU6gbFFAzYcJeTzx2fUIg-Hjzthec40",
+    "statusCode": 404,
+    "success": false,
+    "errorDetails": {
+      "message": "models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "status": "NOT_FOUND",
+      "code": 404,
+      "details": []
+    },
+    "generatedText": null
+  },
+  {
+    "keyName": "Key 2",
+    "key": "AIzaSyB5BKaBAsru3etCQZl6Z3V8E5f5lbkHMNw",
+    "statusCode": 404,
+    "success": false,
+    "errorDetails": {
+      "message": "models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "status": "NOT_FOUND",
+      "code": 404,
+      "details": []
+    },
+    "generatedText": null
+  }
+]

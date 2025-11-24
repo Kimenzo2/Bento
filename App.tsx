@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navigation from './components/Navigation';
 import CreationCanvas from './components/CreationCanvas';
@@ -7,13 +6,20 @@ import VisualStudio from './components/VisualStudio';
 import SettingsPanel from './components/SettingsPanel';
 import PricingPage from './components/PricingPage';
 import GamificationHub from './components/GamificationHub';
-import { AppMode, BookProject, GenerationSettings, GamificationState } from './types';
-import { generateBookStructure } from './services/geminiService';
+import BookSuccessView from './components/BookSuccessView';
+import GenerationTheater from './components/GenerationTheater';
+import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier } from './types';
+import { generateBookStructure, generateIllustration } from './services/geminiService';
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [generationProgress, setGenerationProgress] = useState<number>(0);
+
+  // Mock User Tier State - In a real app, this would come from auth/subscription context
+  const [currentUserTier, setCurrentUserTier] = useState<UserTier>(UserTier.SPARK);
 
   // Mock Gamification State
   const [gamificationState] = useState<GamificationState>({
@@ -37,14 +43,20 @@ const App: React.FC = () => {
 
   const handleGenerateProject = async (settings: GenerationSettings) => {
     setIsGenerating(true);
+    setGenerationProgress(0);
+    setGenerationStatus("Architecting story structure...");
+
     try {
+      setGenerationProgress(5);
       const structure = await generateBookStructure(settings);
 
       if (!structure.chapters || structure.chapters.length === 0 || !structure.chapters[0].pages || structure.chapters[0].pages.length === 0) {
         throw new Error("Generated content is empty. Please try again with a different prompt.");
       }
 
-      const newProject: BookProject = {
+      // 1. Create the base project structure
+      setGenerationProgress(15);
+      let newProject: BookProject = {
         id: crypto.randomUUID(),
         title: structure.title || "Untitled Masterpiece",
         synopsis: structure.synopsis || "",
@@ -53,6 +65,13 @@ const App: React.FC = () => {
         targetAudience: settings.audience,
         isBranching: settings.isBranching,
         brandProfile: settings.brandProfile,
+
+        // New Schema Data
+        metadata: structure.metadata,
+        decisionTree: structure.decisionTree,
+        backMatter: structure.backMatter,
+        seriesInfo: structure.seriesInfo,
+
         chapters: (structure.chapters || []).map(c => ({
           id: crypto.randomUUID(),
           title: c.title || "Chapter",
@@ -62,25 +81,85 @@ const App: React.FC = () => {
             text: p.text,
             imagePrompt: p.imagePrompt,
             layoutType: p.layoutType || 'text-only',
-            choices: p.choices || []
+            choices: p.choices || [],
+            // Map new page fields
+            narrationNotes: p.narrationNotes,
+            interactiveElement: p.interactiveElement,
+            learningMoment: p.learningMoment,
+            vocabularyWords: p.vocabularyWords
           }))
         })),
         characters: (structure.characters || []).map((c: any) => ({
           id: crypto.randomUUID(),
           name: c.name,
           description: c.description,
-          visualTraits: c.visualTraits
+          visualTraits: c.visualTraits,
+          visualPrompt: c.visualPrompt,
+          traits: c.traits
         })),
         createdAt: new Date()
       };
 
+      // 2. Generate Illustrations for ALL pages
+      const totalPages = newProject.chapters.flatMap(c => c.pages).length;
+      let processedPages = 0;
+
+      for (const chapter of newProject.chapters) {
+        for (const page of chapter.pages) {
+          processedPages++;
+          const pageProgress = 20 + ((processedPages / totalPages) * 60); // 20-80%
+          setGenerationProgress(pageProgress);
+          setGenerationStatus(`Painting page ${processedPages} of ${totalPages}...`);
+
+          if (page.imagePrompt) {
+            let attempts = 0;
+            let success = false;
+            while (attempts < 3 && !success) {
+              try {
+                // Add a small delay to prevent rate limiting
+                if (processedPages > 1) await new Promise(r => setTimeout(r, 1000));
+
+                const imageUrl = await generateIllustration(page.imagePrompt, settings.style);
+                if (imageUrl) {
+                  page.imageUrl = imageUrl;
+                  success = true;
+                }
+              } catch (err) {
+                attempts++;
+                console.warn(`Failed to generate image for page ${page.pageNumber} (Attempt ${attempts}/3)`, err);
+                if (attempts < 3) await new Promise(r => setTimeout(r, 2000)); // Wait longer before retry
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Generate Cover Image
+      setGenerationProgress(85);
+      setGenerationStatus("Designing the perfect cover...");
+      try {
+        const coverPrompt = `Book cover for a story titled "${newProject.title}". Style: ${newProject.style}. Synopsis: ${newProject.synopsis}. High quality, visually striking, title text integrated if possible.`;
+        const coverUrl = await generateIllustration(coverPrompt, settings.style);
+        if (coverUrl) {
+          newProject.coverImage = coverUrl;
+        }
+      } catch (err) {
+        console.warn("Failed to generate cover image", err);
+      }
+
+      setGenerationProgress(100);
+      setGenerationStatus("Complete!");
+      await new Promise(r => setTimeout(r, 1000)); // Show 100% briefly
+
       setCurrentProject(newProject);
-      setCurrentMode(AppMode.EDITOR);
+      setCurrentMode(AppMode.SUCCESS); // Switch to Success View
     } catch (error) {
       console.error("Generation failed", error);
-      alert("Failed to generate project. Please check your API key or try again.");
+      alert(`Failed to generate project: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsGenerating(false);
+      setGenerationStatus("");
+      setGenerationProgress(0);
     }
   };
 
@@ -92,14 +171,24 @@ const App: React.FC = () => {
           <CreationCanvas
             onGenerate={handleGenerateProject}
             isGenerating={isGenerating}
+            generationStatus={generationStatus}
+          />
+        );
+      case AppMode.SUCCESS:
+        if (!currentProject) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
+        return (
+          <BookSuccessView
+            project={currentProject}
+            onNavigate={setCurrentMode}
           />
         );
       case AppMode.EDITOR:
-        if (!currentProject) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} />;
+        if (!currentProject) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
         return (
           <SmartEditor
             project={currentProject}
             onUpdateProject={setCurrentProject}
+            userTier={currentUserTier}
           />
         );
       case AppMode.VISUAL_STUDIO:
@@ -108,7 +197,7 @@ const App: React.FC = () => {
         );
       case AppMode.SETTINGS:
         return (
-          <SettingsPanel />
+          <SettingsPanel onNavigate={setCurrentMode} />
         );
       case AppMode.PRICING:
         return (
@@ -137,7 +226,7 @@ const App: React.FC = () => {
           </div>
         );
       default:
-        return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} />;
+        return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
     }
   };
 
@@ -147,6 +236,14 @@ const App: React.FC = () => {
       <main className="pt-[80px] relative transition-all duration-300">
         {renderContent()}
       </main>
+
+      {/* Magical Loading Theater */}
+      {isGenerating && (
+        <GenerationTheater
+          progress={generationProgress}
+          status={generationStatus}
+        />
+      )}
     </div>
   );
 };

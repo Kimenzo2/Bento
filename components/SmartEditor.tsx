@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BookProject, Page } from '../types';
+import { BookProject, Page, UserTier } from '../types';
 import {
     ChevronLeft,
     ChevronRight,
@@ -19,9 +19,10 @@ import { generateIllustration } from '../services/geminiService';
 interface SmartEditorProps {
     project: BookProject;
     onUpdateProject: (project: BookProject) => void;
+    userTier?: UserTier;
 }
 
-const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) => {
+const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK }) => {
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
@@ -175,7 +176,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject }) =
             </div>
 
             {/* Right Panel: Preview */}
-            <div className={`w-full md:w-[60%] bg-peach-soft/20 items-center justify-center p-4 md:p-12 relative overflow-hidden ${mobileView === 'edit' ? 'hidden md:flex' : 'flex h-full'}`}>
+            <div className={`w-full md:w-[60%] bg-peach-soft/20 items-center justify-center p-4 md:p-8 pt-12 md:pt-16 relative overflow-hidden ${mobileView === 'edit' ? 'hidden md:flex' : 'flex h-full'}`}>
                 <div className="absolute inset-0 pointer-events-none opacity-30" style={{ backgroundImage: "radial-gradient(#FF9B71 1px, transparent 1px)", backgroundSize: "24px 24px" }}></div>
 
                 {/* Book Page Container */}
