@@ -22,7 +22,7 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'ai' | 'notifications' | 'privacy' | 'subscriptions'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,7 +154,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
         <div className="w-full md:w-64 space-y-2">
           <TabButton id="profile" icon={User} label="Profile" />
           <TabButton id="subscriptions" icon={CreditCard} label="Subscriptions" />
-          <TabButton id="ai" icon={Cpu} label="AI Config" />
           <TabButton id="notifications" icon={Bell} label="Notifications" />
           <TabButton id="privacy" icon={Shield} label="Privacy" />
         </div>

@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, GraduationCap, GitBranch } from 'lucide-react';
-import { ArtStyle, BookTone, GenerationSettings, BrandProfile } from '../types';
+import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook } from '../types';
+import { getAllBooks, deleteBook } from '../services/storageService';
+import SavedBookCard from './SavedBookCard';
 
 interface CreationCanvasProps {
     onGenerate: (settings: GenerationSettings) => void;
     isGenerating: boolean;
     generationStatus?: string;
+    onEditBook?: (book: SavedBook) => void;
+    onReadBook?: (book: SavedBook) => void;
 }
 
-const CreationCanvas: React.FC<CreationCanvasProps> = ({ onGenerate, isGenerating, generationStatus }) => {
+const CreationCanvas: React.FC<CreationCanvasProps> = ({
+    onGenerate,
+    isGenerating,
+    generationStatus,
+    onEditBook,
+    onReadBook
+}) => {
     const [prompt, setPrompt] = useState('');
     const [style, setStyle] = useState<ArtStyle>(ArtStyle.WATERCOLOR);
     const [tone, setTone] = useState<BookTone>(BookTone.PLAYFUL);
@@ -22,6 +32,37 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({ onGenerate, isGeneratin
     const [brandGuidelines, setBrandGuidelines] = useState('');
     const [brandColors, setBrandColors] = useState('#FF9B71, #FFF4A3');
     const [brandSample, setBrandSample] = useState('');
+
+    // Saved Books
+    const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
+    const [isLoadingBooks, setIsLoadingBooks] = useState(true);
+
+    // Load saved books on mount
+    useEffect(() => {
+        loadSavedBooks();
+    }, []);
+
+    const loadSavedBooks = async () => {
+        setIsLoadingBooks(true);
+        try {
+            const books = await getAllBooks();
+            setSavedBooks(books);
+        } catch (error) {
+            console.error('Failed to load books:', error);
+        } finally {
+            setIsLoadingBooks(false);
+        }
+    };
+
+    const handleDeleteBook = async (id: string) => {
+        try {
+            await deleteBook(id);
+            await loadSavedBooks(); // Refresh the list
+        } catch (error) {
+            console.error('Failed to delete book:', error);
+            alert('Failed to delete book. Please try again.');
+        }
+    };
 
     const styles = Object.values(ArtStyle);
     const tones = Object.values(BookTone);
@@ -69,6 +110,10 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({ onGenerate, isGeneratin
         </button>
     );
 
+    const handleQuickStartClick = (action: () => void) => {
+        action();
+    };
+
     return (
         <div className="w-full flex flex-col items-center pb-32 animate-fadeIn">
 
@@ -90,36 +135,67 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({ onGenerate, isGeneratin
                         title="Children's Story"
                         desc="Create a magical tale with vibrant illustrations and moral lessons."
                         colorClass="from-gold-sunshine to-orange-400"
-                        onClick={() => {
+                        onClick={() => handleQuickStartClick(() => {
                             setPrompt("A magical adventure about a shy dragon who loves to bake cookies.");
                             setAudience("Children 4-6");
                             setStyle(ArtStyle.WATERCOLOR);
-                        }}
+                        })}
                     />
                     <QuickStartCard
                         icon={Rocket}
                         title="Sci-Fi Novel"
                         desc="Build a futuristic world with deep lore and complex characters."
                         colorClass="from-purple-400 to-coral-burst"
-                        onClick={() => {
+                        onClick={() => handleQuickStartClick(() => {
                             setPrompt("A cyberpunk detective solving crimes in a neon-lit underwater city.");
                             setAudience("Young Adult");
                             setStyle(ArtStyle.CYBERPUNK);
                             setTone(BookTone.DRAMATIC);
-                        }}
+                        })}
                     />
                     <QuickStartCard
                         icon={Building2}
                         title="Brand Story"
                         desc="Generate a professional company history or annual report."
                         colorClass="from-mint-breeze to-emerald-400"
-                        onClick={() => {
+                        onClick={() => handleQuickStartClick(() => {
                             setPrompt("Our company journey from a garage startup to a global eco-friendly leader.");
                             setAudience("Stakeholders");
                             setStyle(ArtStyle.CORPORATE);
                             setShowBrandPanel(true);
-                        }}
+                        })}
                     />
+                </div>
+            )}
+
+            {/* Saved Books Section */}
+            {savedBooks.length > 0 && !prompt && (
+                <div className="w-full max-w-6xl px-4 mb-16">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="font-heading font-bold text-3xl text-charcoal-soft">My Saved Books</h2>
+                            <p className="text-cocoa-light text-sm mt-1">{savedBooks.length} {savedBooks.length === 1 ? 'book' : 'books'} saved</p>
+                        </div>
+                    </div>
+
+                    {isLoadingBooks ? (
+                        <div className="text-center py-12">
+                            <div className="inline-block w-8 h-8 border-4 border-coral-burst/30 border-t-coral-burst rounded-full animate-spin"></div>
+                            <p className="text-cocoa-light mt-4">Loading your books...</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {savedBooks.map((book) => (
+                                <SavedBookCard
+                                    key={book.id}
+                                    book={book}
+                                    onEdit={(book) => onEditBook?.(book)}
+                                    onRead={(book) => onReadBook?.(book)}
+                                    onDelete={handleDeleteBook}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -335,7 +411,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({ onGenerate, isGeneratin
                             onClick={handleGenerate}
                             disabled={isGenerating || !prompt.trim()}
                             className={`px-12 py-4 rounded-full font-heading font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-3
-                        ${isGenerating
+                                    ${isGenerating
                                     ? 'bg-cocoa-light cursor-not-allowed text-white opacity-70'
                                     : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:scale-105'
                                 }`}

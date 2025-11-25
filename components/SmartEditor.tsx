@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BookProject, Page, UserTier } from '../types';
 import {
     ChevronLeft,
@@ -12,20 +12,43 @@ import {
     Maximize2,
     ArrowLeft,
     Edit3,
-    Eye
+    Eye,
+    CheckCircle2,
+    AlertCircle,
+    Lightbulb,
+    Sparkles
 } from 'lucide-react';
 import { generateIllustration } from '../services/geminiService';
+import { improveText, checkCharacterConsistency, getWritingSuggestions } from '../services/grokService';
+import { saveBook } from '../services/storageService';
 
 interface SmartEditorProps {
     project: BookProject;
     onUpdateProject: (project: BookProject) => void;
     userTier?: UserTier;
+    onShowUpgrade?: () => void;
+    onSave?: (success: boolean, message: string) => void;
 }
 
-const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK }) => {
+const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK, onShowUpgrade, onSave }) => {
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Feature #1: AI Improve
+    const [isImproving, setIsImproving] = useState(false);
+    const [showImproveOptions, setShowImproveOptions] = useState(false);
+
+    // Feature #2: Character Consistency
+    const [showConsistencyPanel, setShowConsistencyPanel] = useState(false);
+    const [isCheckingConsistency, setIsCheckingConsistency] = useState(false);
+    const [consistencyReport, setConsistencyReport] = useState<any>(null);
+
+    // Feature #3: Writing Suggestions
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+    const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const allPages = project.chapters.flatMap(c => c.pages);
     const activePage = allPages[activePageIndex];
@@ -38,15 +61,118 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
             if (page) page.text = text;
         });
         onUpdateProject(newProject);
+
+        // Feature #3: Trigger suggestions with debounce
+        if (suggestionTimeoutRef.current) {
+            clearTimeout(suggestionTimeoutRef.current);
+        }
+        suggestionTimeoutRef.current = setTimeout(() => {
+            fetchWritingSuggestions(text);
+        }, 2000); // Wait 2s after user stops typing
+    };
+
+    // Feature #1: AI Improve Handler
+    const handleImproveText = async (tone: string) => {
+        setIsImproving(true);
+        setShowImproveOptions(false);
+        try {
+            const improved = await improveText(
+                activePage.text,
+                tone,
+                project.targetAudience || 'children'
+            );
+            handleTextChange(improved);
+        } catch (error) {
+            alert('Failed to improve text. Please try again.');
+        } finally {
+            setIsImproving(false);
+        }
+    };
+
+    // Feature #2: Character Consistency Handler
+    const handleCheckConsistency = async () => {
+        setIsCheckingConsistency(true);
+        try {
+            const report = await checkCharacterConsistency(project);
+            setConsistencyReport(report);
+            setShowConsistencyPanel(true);
+        } catch (error) {
+            alert('Failed to check character consistency. Please try again.');
+        } finally {
+            setIsCheckingConsistency(false);
+        }
+    };
+
+    // Feature #3: Fetch Writing Suggestions
+    const fetchWritingSuggestions = async (text: string) => {
+        if (text.length < 10) {
+            setSuggestions([]);
+            return;
+        }
+        setIsLoadingSuggestions(true);
+        try {
+            const newSuggestions = await getWritingSuggestions(
+                text,
+                `Children's book for ${project.targetAudience}`
+            );
+            setSuggestions(newSuggestions);
+        } catch (error) {
+            console.error('Failed to get suggestions:', error);
+        } finally {
+            setIsLoadingSuggestions(false);
+        }
+    };
+
+    // Apply a suggestion
+    const applySuggestion = (suggestion: any) => {
+        const newText = activePage.text.replace(suggestion.original, suggestion.suggestion);
+        handleTextChange(newText);
+        setSuggestions(suggestions.filter(s => s !== suggestion));
+    };
+
+    // Save Handler
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await saveBook(project);
+            if (onSave) {
+                onSave(true, 'Book saved successfully! ✨');
+            }
+        } catch (error) {
+            console.error('Save failed:', error);
+            if (onSave) {
+                onSave(false, 'Failed to save book. Please try again.');
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleGenerateImage = async () => {
         if (!activePage) return;
+
+        // Check Limits
+        if (userTier === UserTier.SPARK) {
+            const currentCount = project.aiImagesGenerated || 0;
+            if (currentCount >= 5) {
+                if (onShowUpgrade) {
+                    onShowUpgrade();
+                } else {
+                    alert("You've reached the limit of 5 AI illustrations per book on the Spark plan. Upgrade to Creator for unlimited magic!");
+                }
+                return;
+            }
+        }
+
         setIsGeneratingImage(true);
         try {
             const base64Image = await generateIllustration(activePage.imagePrompt, project.style);
             if (base64Image) {
                 const newProject = JSON.parse(JSON.stringify(project)) as BookProject;
+
+                // Increment count
+                newProject.aiImagesGenerated = (newProject.aiImagesGenerated || 0) + 1;
+
                 newProject.chapters.forEach(ch => {
                     const page = ch.pages.find(p => p.pageNumber === activePage.pageNumber);
                     if (page) page.imageUrl = base64Image;
@@ -102,8 +228,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button className="p-2 text-cocoa-light hover:text-coral-burst transition-colors" title="Save">
-                            <Save className="w-5 h-5" />
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="p-2 text-cocoa-light hover:text-coral-burst transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={isSaving ? "Saving..." : "Save"}
+                        >
+                            {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                         </button>
                     </div>
                 </div>
@@ -113,11 +244,42 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
                     {/* Narrative Editor */}
                     <div className="space-y-3">
-                        <label className="font-heading font-bold text-sm text-cocoa-light uppercase tracking-wider flex justify-between">
+                        <label className="font-heading font-bold text-sm text-cocoa-light uppercase tracking-wider flex justify-between items-center">
                             Story Text
-                            <button className="text-coral-burst hover:underline text-xs capitalize flex items-center gap-1">
-                                <Wand className="w-3 h-3" /> AI Improve
-                            </button>
+                            <div className="flex gap-2 items-center">
+                                <button
+                                    onClick={handleCheckConsistency}
+                                    disabled={isCheckingConsistency}
+                                    className="text-purple-600 hover:underline text-xs capitalize flex items-center gap-1 disabled:opacity-50"
+                                    title="Check Character Consistency"
+                                >
+                                    {isCheckingConsistency ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                                    {isCheckingConsistency ? 'Checking...' : 'Check Characters'}
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowImproveOptions(!showImproveOptions)}
+                                        disabled={isImproving}
+                                        className="text-coral-burst hover:underline text-xs capitalize flex items-center gap-1 disabled:opacity-50"
+                                    >
+                                        {isImproving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wand className="w-3 h-3" />}
+                                        {isImproving ? 'Improving...' : 'AI Improve'}
+                                    </button>
+                                    {showImproveOptions && (
+                                        <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-peach-soft p-2 z-50 min-w-[160px]">
+                                            {['more dramatic', 'funnier', 'simpler', 'more descriptive'].map(tone => (
+                                                <button
+                                                    key={tone}
+                                                    onClick={() => handleImproveText(tone)}
+                                                    className="w-full text-left px-3 py-2 text-xs text-charcoal-soft hover:bg-cream-base rounded-lg transition-colors capitalize"
+                                                >
+                                                    {tone}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </label>
                         <textarea
                             className="w-full h-[240px] bg-white border border-peach-soft rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 transition-all resize-none shadow-sm"
@@ -125,7 +287,101 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             onChange={(e) => handleTextChange(e.target.value)}
                             placeholder="Once upon a time..."
                         />
+
+                        {/* Feature #3: Real-Time Suggestions */}
+                        {suggestions.length > 0 && (
+                            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Lightbulb className="w-4 h-4 text-blue-600" />
+                                    <h4 className="font-heading font-bold text-xs text-blue-900 uppercase">Writing Suggestions</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    {suggestions.map((sug, i) => (
+                                        <div key={i} className="bg-white rounded-lg p-3 text-xs">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="font-bold text-charcoal-soft capitalize">{sug.type}</span>
+                                                <button
+                                                    onClick={() => applySuggestion(sug)}
+                                                    className="text-blue-600 hover:underline font-bold"
+                                                >
+                                                    Apply
+                                                </button>
+                                            </div>
+                                            <p className="text-cocoa-light mb-1"><span className="line-through">{sug.original}</span> → <span className="text-green-600 font-medium">{sug.suggestion}</span></p>
+                                            <p className="text-cocoa-light/70 italic">{sug.reason}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {isLoadingSuggestions && (
+                            <div className="flex items-center gap-2 text-xs text-cocoa-light">
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                                Analyzing your writing...
+                            </div>
+                        )}
                     </div>
+
+                    {/* Feature #2: Character Consistency Panel */}
+                    {showConsistencyPanel && consistencyReport && (
+                        <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-purple-600" />
+                                    <h3 className="font-heading font-bold text-sm text-purple-900">Character Consistency Report</h3>
+                                </div>
+                                <button onClick={() => setShowConsistencyPanel(false)} className="text-purple-600 hover:text-purple-800">
+                                    ×
+                                </button>
+                            </div>
+                            <div className="mb-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-heading font-bold text-2xl text-purple-900">{consistencyReport.overallScore}</span>
+                                    <span className="text-xs text-purple-700">/100 Consistency Score</span>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                {consistencyReport.characters.map((char: any, i: number) => (
+                                    <div key={i} className="bg-white rounded-xl p-4">
+                                        <h4 className="font-heading font-bold text-sm text-charcoal-soft mb-2">{char.name}</h4>
+                                        {char.inconsistencies.length > 0 ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertCircle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                                                    <div className="text-xs">
+                                                        <p className="font-bold text-orange-900 mb-1">Issues Found:</p>
+                                                        <ul className="list-disc list-inside text-cocoa-light space-y-1">
+                                                            {char.inconsistencies.map((inc: string, j: number) => (
+                                                                <li key={j}>{inc}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                {char.suggestions.length > 0 && (
+                                                    <div className="flex items-start gap-2">
+                                                        <Lightbulb className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                                        <div className="text-xs">
+                                                            <p className="font-bold text-blue-900 mb-1">Suggestions:</p>
+                                                            <ul className="list-disc list-inside text-cocoa-light space-y-1">
+                                                                {char.suggestions.map((sug: string, j: number) => (
+                                                                    <li key={j}>{sug}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-xs text-green-700">
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                No inconsistencies found!
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* CYOA Choices */}
                     {project.isBranching && activePage.choices && (

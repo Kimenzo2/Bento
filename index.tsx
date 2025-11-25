@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -44,7 +45,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <div className="bg-white p-4 rounded-xl border border-[#FFE4CC] text-left overflow-auto max-w-lg max-h-40 mb-6 w-full shadow-sm text-sm font-mono text-red-500">
             {this.state.error?.message || "Unknown error"}
           </div>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-[#FFD93D] text-[#5A5A5A] rounded-full font-bold shadow-md hover:bg-[#FFE4CC] transition-colors"
           >
@@ -67,7 +68,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

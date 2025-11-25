@@ -1,12 +1,11 @@
-
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  PenTool, 
-  BookOpen, 
-  Image as ImageIcon, 
-  Layout, 
-  Share, 
+import {
+  LayoutDashboard,
+  PenTool,
+  BookOpen,
+  Image as ImageIcon,
+  Layout,
+  Share,
   Settings,
   User,
   Menu,
@@ -15,6 +14,7 @@ import {
   Zap
 } from 'lucide-react';
 import { AppMode } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface NavigationProps {
   currentMode: AppMode;
@@ -22,6 +22,7 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
+  const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
@@ -40,7 +41,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
     <>
       <nav className="fixed top-0 left-0 w-full h-[80px] z-50 px-4 md:px-12 flex items-center justify-between transition-all duration-300
         bg-cream-base/80 backdrop-blur-md border-b border-peach-soft shadow-soft-sm">
-        
+
         {/* Logo */}
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleModeChange(AppMode.DASHBOARD)}>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-glow group-hover:scale-105 transition-transform">
@@ -58,8 +59,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
               key={item.mode}
               onClick={() => handleModeChange(item.mode)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full font-heading font-medium transition-all duration-300 text-sm
-                ${currentMode === item.mode 
-                  ? 'bg-gradient-to-r from-gold-sunshine to-coral-burst text-white shadow-md transform scale-105' 
+                ${currentMode === item.mode
+                  ? 'bg-gradient-to-r from-gold-sunshine to-coral-burst text-white shadow-md transform scale-105'
                   : 'text-cocoa-light hover:text-coral-burst hover:bg-cream-soft'
                 }`}
             >
@@ -71,21 +72,21 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3 md:gap-4">
-          
+
           {/* Level Indicator */}
-          <button 
+          <button
             onClick={() => handleModeChange(AppMode.GAMIFICATION)}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-peach-soft hover:border-gold-sunshine transition-colors cursor-pointer"
           >
             <div className="w-6 h-6 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-xs">3</div>
             <div className="flex flex-col items-start">
-                <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">Lvl</span>
-                <span className="text-xs font-bold text-charcoal-soft leading-none">Rising</span>
+              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">Lvl</span>
+              <span className="text-xs font-bold text-charcoal-soft leading-none">Rising</span>
             </div>
           </button>
 
           {/* Upgrade Button */}
-          <button 
+          <button
             onClick={() => handleModeChange(AppMode.PRICING)}
             className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
           >
@@ -93,18 +94,19 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             Upgrade
           </button>
 
-          <button 
-              onClick={() => handleModeChange(AppMode.SETTINGS)}
-              className="flex items-center gap-2 p-1 pr-1 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group"
+          {/* Auth/Profile Button */}
+          <button
+            onClick={() => handleModeChange(AppMode.AUTH)}
+            className="flex items-center gap-2 p-1 pr-1 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group"
           >
             <div className="w-8 h-8 rounded-full bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform">
               <User className="w-5 h-5" />
             </div>
-            <span className="font-heading font-medium text-charcoal-soft text-sm hidden lg:block">Creator</span>
+            <span className="font-heading font-medium text-charcoal-soft text-sm hidden lg:block">Sign In</span>
           </button>
 
           {/* Mobile Menu Toggle */}
-          <button 
+          <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="lg:hidden p-2 text-charcoal-soft hover:text-coral-burst transition-colors"
           >
@@ -115,27 +117,27 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
       {/* Mobile Navigation Overlay */}
       <div className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 lg:hidden flex flex-col gap-4 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        
+
         <button
-            onClick={() => handleModeChange(AppMode.PRICING)}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-sunshine to-coral-burst text-white rounded-2xl font-heading font-bold text-lg shadow-soft-md mb-4"
+          onClick={() => handleModeChange(AppMode.PRICING)}
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-sunshine to-coral-burst text-white rounded-2xl font-heading font-bold text-lg shadow-soft-md mb-4"
         >
-            <Zap className="w-6 h-6 fill-white" />
-            Upgrade to Premium
+          <Zap className="w-6 h-6 fill-white" />
+          Upgrade to Premium
         </button>
 
         <button
-            onClick={() => handleModeChange(AppMode.GAMIFICATION)}
-            className="w-full flex items-center justify-between px-6 py-4 bg-white border border-peach-soft rounded-2xl"
+          onClick={() => handleModeChange(AppMode.GAMIFICATION)}
+          className="w-full flex items-center justify-between px-6 py-4 bg-white border border-peach-soft rounded-2xl"
         >
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg shadow-sm">3</div>
-                <div className="text-left">
-                    <div className="font-bold text-charcoal-soft">Rising Author</div>
-                    <div className="text-xs text-cocoa-light">1,250 / 2,000 XP</div>
-                </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg shadow-sm">3</div>
+            <div className="text-left">
+              <div className="font-bold text-charcoal-soft">Rising Author</div>
+              <div className="text-xs text-cocoa-light">1,250 / 2,000 XP</div>
             </div>
-            <Trophy className="w-6 h-6 text-gold-sunshine" />
+          </div>
+          <Trophy className="w-6 h-6 text-gold-sunshine" />
         </button>
 
         {menuItems.map((item) => (
@@ -143,8 +145,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             key={item.mode}
             onClick={() => handleModeChange(item.mode)}
             className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-heading font-bold text-lg transition-all
-              ${currentMode === item.mode 
-                ? 'bg-white text-coral-burst shadow-soft-md border border-peach-soft' 
+              ${currentMode === item.mode
+                ? 'bg-white text-coral-burst shadow-soft-md border border-peach-soft'
                 : 'text-cocoa-light hover:bg-white/50'
               }`}
           >

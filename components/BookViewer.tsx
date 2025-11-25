@@ -1,0 +1,149 @@
+import React, { useState } from 'react';
+import { BookProject, Page } from '../types';
+import { X, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+
+interface BookViewerProps {
+    project: BookProject;
+    onClose: () => void;
+}
+
+const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
+    const allPages = project.chapters.flatMap(c => c.pages);
+    const [currentPageIndex, setCurrentPageIndex] = useState(0);
+    const currentPage = allPages[currentPageIndex];
+
+    const goToNextPage = () => {
+        if (currentPageIndex < allPages.length - 1) {
+            setCurrentPageIndex(currentPageIndex + 1);
+        }
+    };
+
+    const goToPrevPage = () => {
+        if (currentPageIndex > 0) {
+            setCurrentPageIndex(currentPageIndex - 1);
+        }
+    };
+
+    const handleChoice = (targetPageNumber: number) => {
+        const targetIndex = allPages.findIndex(p => p.pageNumber === targetPageNumber);
+        if (targetIndex !== -1) {
+            setCurrentPageIndex(targetIndex);
+        }
+    };
+
+    if (!currentPage) {
+        return (
+            <div className="fixed inset-0 bg-charcoal-soft flex items-center justify-center z-50">
+                <p className="text-white text-xl">Loading...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 bg-gradient-to-br from-charcoal-soft via-charcoal-soft to-coral-burst/20 z-50 overflow-hidden">
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 h-16 bg-charcoal-soft/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6 z-10">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                        title="Exit"
+                    >
+                        <X className="w-5 h-5 text-white" />
+                    </button>
+                    <div>
+                        <h1 className="text-white font-heading font-bold text-lg">{project.title}</h1>
+                        <p className="text-white/60 text-xs">Page {currentPage.pageNumber} of {allPages.length}</p>
+                    </div>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm font-medium transition-colors"
+                >
+                    <Home className="w-4 h-4" />
+                    Back to Dashboard
+                </button>
+            </div>
+
+            {/* Book Page Container */}
+            <div className="absolute inset-0 flex items-center justify-center pt-16 pb-20 px-4">
+                <div className="w-full max-w-4xl h-full flex items-center justify-center">
+                    {/* Book Page */}
+                    <div className="w-full max-w-2xl aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn">
+                        {/* Texture Overlay */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none"></div>
+
+                        {/* Image Section */}
+                        {currentPage.imageUrl && (
+                            <div className="relative h-[55%] w-full overflow-hidden">
+                                <img
+                                    src={currentPage.imageUrl}
+                                    alt={`Page ${currentPage.pageNumber}`}
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#FFFCF8] to-transparent"></div>
+                            </div>
+                        )}
+
+                        {/* Text Content */}
+                        <div className={`p-8 md:p-12 ${currentPage.imageUrl ? 'h-[45%]' : 'h-full'} overflow-y-auto flex flex-col`}>
+                            <p className="font-heading text-2xl md:text-3xl text-charcoal-soft leading-relaxed mb-auto">
+                                {currentPage.text}
+                            </p>
+
+                            {/* Interactive Choices */}
+                            {currentPage.choices && currentPage.choices.length > 0 && (
+                                <div className="mt-6 space-y-3">
+                                    {currentPage.choices.map((choice, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleChoice(choice.targetPageNumber)}
+                                            className="w-full py-3 px-6 rounded-xl border-2 border-charcoal-soft/20 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft font-heading font-bold text-sm transition-all flex justify-between items-center group shadow-sm"
+                                        >
+                                            {choice.text}
+                                            <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Page Number */}
+                            <div className="mt-6 text-center">
+                                <span className="font-heading font-bold text-cocoa-light/30 text-sm tracking-widest">
+                                    - {currentPage.pageNumber} -
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Navigation Controls */}
+            <div className="absolute bottom-0 left-0 right-0 h-20 bg-charcoal-soft/90 backdrop-blur-md border-t border-white/10 flex items-center justify-center gap-6 px-6">
+                <button
+                    onClick={goToPrevPage}
+                    disabled={currentPageIndex === 0}
+                    className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded-full text-white font-medium transition-colors"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                    Previous
+                </button>
+
+                <div className="text-white text-sm font-medium">
+                    {currentPageIndex + 1} / {allPages.length}
+                </div>
+
+                <button
+                    onClick={goToNextPage}
+                    disabled={currentPageIndex === allPages.length - 1}
+                    className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded-full text-white font-medium transition-colors"
+                >
+                    Next
+                    <ChevronRight className="w-5 h-5" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default BookViewer;

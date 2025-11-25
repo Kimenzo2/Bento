@@ -3,7 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Check, Star, Zap, Briefcase, Crown, X, Loader } from 'lucide-react';
 import { initializePayment } from '../services/paystackService';
 
-const PricingPage: React.FC = () => {
+import { UserTier } from '../types';
+
+interface PricingPageProps {
+  onUpgrade?: (tier: UserTier) => void;
+}
+
+const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const [isAnnual, setIsAnnual] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("author@genesis.ai");
@@ -22,7 +28,7 @@ const PricingPage: React.FC = () => {
 
   const tiers = [
     {
-      name: "Spark",
+      name: UserTier.SPARK,
       priceMonthly: 0,
       priceAnnual: 0,
       description: "The Hook That Gets You Addicted",
@@ -31,7 +37,7 @@ const PricingPage: React.FC = () => {
       buttonColor: "bg-gray-200 text-charcoal-soft hover:bg-gray-300",
       features: [
         "3 ebooks per month",
-        "Max 12 pages per book",
+        "Max 4 pages per book",
         "5 illustration styles",
         "Standard templates",
         "Community support"
@@ -43,7 +49,7 @@ const PricingPage: React.FC = () => {
       ]
     },
     {
-      name: "Creator",
+      name: UserTier.CREATOR,
       priceMonthly: 19.99,
       priceAnnual: 16.41, // $197/yr
       description: "The Sweet Spot",
@@ -52,8 +58,8 @@ const PricingPage: React.FC = () => {
       buttonColor: "bg-blue-500 text-white hover:bg-blue-600",
       saveLabel: "Save 18%",
       features: [
-        "UNLIMITED ebooks",
-        "Up to 100 pages/book",
+        "30 ebooks per month",
+        "Up to 12 pages/book",
         "NO watermarks",
         "20+ illustration styles",
         "Commercial license",
@@ -62,7 +68,7 @@ const PricingPage: React.FC = () => {
       isPopular: false
     },
     {
-      name: "Studio",
+      name: UserTier.STUDIO,
       priceMonthly: 59.99,
       priceAnnual: 49.92, // $599/yr
       description: "The Professional Choice",
@@ -82,7 +88,7 @@ const PricingPage: React.FC = () => {
       isPopular: true
     },
     {
-      name: "Empire",
+      name: UserTier.EMPIRE,
       priceMonthly: 199.99,
       priceAnnual: 166.58, // $1999/yr
       description: "Best Value for Scale",
@@ -107,6 +113,7 @@ const PricingPage: React.FC = () => {
     if (tier.priceMonthly === 0) {
       // Free tier logic - likely just redirect or do nothing
       alert("You are now on the Free Spark plan!");
+      if (onUpgrade) onUpgrade(UserTier.SPARK);
       return;
     }
 
@@ -124,7 +131,8 @@ const PricingPage: React.FC = () => {
         onSuccess: (transaction) => {
           alert(`Subscription successful! Reference: ${transaction.reference}`);
           setProcessingTier(null);
-          // Here you would typically call your backend to verify transaction and update user role
+          // Update user role
+          if (onUpgrade) onUpgrade(tier.name as UserTier);
         },
         onCancel: () => {
           setProcessingTier(null);

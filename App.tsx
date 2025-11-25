@@ -8,15 +8,36 @@ import PricingPage from './components/PricingPage';
 import GamificationHub from './components/GamificationHub';
 import BookSuccessView from './components/BookSuccessView';
 import GenerationTheater from './components/GenerationTheater';
-import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier } from './types';
+import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier, SavedBook } from './types';
 import { generateBookStructure, generateIllustration } from './services/geminiService';
+import UpgradeModal from './components/UpgradeModal';
+import { ToastContainer, ToastType } from './components/Toast';
+import StorybookViewer from './components/StorybookViewer';
+import { getAllBooks, saveBook } from './services/storageService';
+import { useAuth } from './contexts/AuthContext';
+import AuthPage from './components/AuthPage';
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
+  const [viewingBook, setViewingBook] = useState<BookProject | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const [generationProgress, setGenerationProgress] = useState<number>(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { user, loading } = useAuth();
+
+  // Toast Notifications
+  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
+
+  const addToast = (message: string, type: ToastType) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   // Mock User Tier State - In a real app, this would come from auth/subscription context
   const [currentUserTier, setCurrentUserTier] = useState<UserTier>(UserTier.SPARK);
@@ -163,6 +184,37 @@ const App: React.FC = () => {
     }
   };
 
+  // Handle editing a saved book
+  const handleEditBook = (book: SavedBook) => {
+    setCurrentProject(book.project);
+    setCurrentMode(AppMode.EDITOR);
+  };
+
+  // Handle reading a saved book
+  const handleReadBook = (book: SavedBook) => {
+    setViewingBook(book.project);
+    setCurrentMode(AppMode.VIEWER);
+  };
+
+  const checkTierLimits = (settings: GenerationSettings): boolean => {
+    let maxPages = 4;
+    if (currentUserTier === UserTier.CREATOR) maxPages = 12;
+    if (currentUserTier === UserTier.STUDIO) maxPages = 500;
+    if (currentUserTier === UserTier.EMPIRE) maxPages = 999;
+
+    if (settings.pageCount > maxPages) {
+      setShowUpgradeModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleUpgrade = (newTier: UserTier) => {
+    setCurrentUserTier(newTier);
+    setShowUpgradeModal(false);
+    addToast(`Welcome to the ${newTier} tier! You now have access to expanded features.`, 'success');
+  };
+
   const renderContent = () => {
     switch (currentMode) {
       case AppMode.CREATION:
@@ -172,6 +224,8 @@ const App: React.FC = () => {
             onGenerate={handleGenerateProject}
             isGenerating={isGenerating}
             generationStatus={generationStatus}
+            onEditBook={handleEditBook}
+            onReadBook={handleReadBook}
           />
         );
       case AppMode.SUCCESS:
@@ -189,6 +243,10 @@ const App: React.FC = () => {
             project={currentProject}
             onUpdateProject={setCurrentProject}
             userTier={currentUserTier}
+            onShowUpgrade={() => setShowUpgradeModal(true)}
+            onSave={(success, message) => {
+              addToast(message, success ? 'success' : 'error');
+            }}
           />
         );
       case AppMode.VISUAL_STUDIO:
@@ -201,7 +259,7 @@ const App: React.FC = () => {
         );
       case AppMode.PRICING:
         return (
-          <PricingPage />
+          <PricingPage onUpgrade={handleUpgrade} />
         );
       case AppMode.GAMIFICATION:
         return (
@@ -225,10 +283,35 @@ const App: React.FC = () => {
             </button>
           </div>
         );
+      case AppMode.VIEWER:
+        if (!viewingBook) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} onEditBook={handleEditBook} onReadBook={handleReadBook} />;
+        return (
+          <StorybookViewer
+            project={viewingBook}
+            onClose={() => {
+              setViewingBook(null);
+              setCurrentMode(AppMode.DASHBOARD);
+            }}
+            onEdit={() => {
+              setCurrentProject(viewingBook);
+              setViewingBook(null);
+              setCurrentMode(AppMode.EDITOR);
+            }}
+            onDownload={() => setCurrentMode(AppMode.PRICING)}
+            onShare={() => alert('Share feature coming soon! 🎉')}
+          />
+        );
+      case AppMode.AUTH:
+        return <AuthPage />;
       default:
         return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
     }
   };
+
+  // Auth guard: Show AuthPage if not authenticated
+  if (!user && currentMode !== AppMode.AUTH) {
+    return <AuthPage />;
+  }
 
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
@@ -244,6 +327,18 @@ const App: React.FC = () => {
           status={generationStatus}
         />
       )}
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          setCurrentMode(AppMode.PRICING);
+        }}
+      />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };

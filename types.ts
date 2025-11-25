@@ -9,7 +9,9 @@ export enum AppMode {
   SETTINGS = 'SETTINGS',
   PRICING = 'PRICING',
   GAMIFICATION = 'GAMIFICATION',
-  SUCCESS = 'SUCCESS'
+  SUCCESS = 'SUCCESS',
+  VIEWER = 'VIEWER',
+  AUTH = 'AUTH'
 }
 
 export enum ArtStyle {
@@ -43,6 +45,17 @@ export interface Badge {
   description: string;
   icon: string; // Lucide icon name
   unlocked: boolean;
+}
+
+export interface SavedBook {
+  id: string;
+  title: string;
+  synopsis: string;
+  coverImage?: string;
+  project: BookProject;
+  savedAt: Date;
+  lastModified: Date;
+  user_id?: string; // Optional for now, but needed for Supabase
 }
 
 export interface Challenge {
@@ -180,6 +193,7 @@ export interface BookProject {
   seriesInfo?: SeriesInfo;
 
   coverImage?: string; // Generated cover image URL
+  aiImagesGenerated?: number; // Track AI usage for limits
 
   createdAt: Date;
 }

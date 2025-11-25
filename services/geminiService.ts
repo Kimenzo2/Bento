@@ -3,16 +3,16 @@ import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
 import Bytez from "bytez.js";
 
 // Declare process for Vite build compatibility
-declare const process: { env: { VITE_GEMINI_API_KEY: string, VITE_BYTEZ_API_KEY: string } };
+declare const process: { env: { VITE_GROK_API_KEY: string, VITE_BYTEZ_API_KEY: string } };
 
 // Initialize API Keys
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
+const apiKey = import.meta.env.VITE_GROK_API_KEY || process.env.VITE_GROK_API_KEY || "";
 const bytezApiKey = import.meta.env.VITE_BYTEZ_API_KEY || process.env.VITE_BYTEZ_API_KEY || "";
 
 if (!apiKey) {
-  console.warn("⚠️ Gemini API Key is MISSING! Please check your .env file.");
+  console.warn("⚠️ Grok API Key is MISSING! Please check your .env file.");
 } else {
-  console.log(`✅ Gemini API Key initialized (Length: ${apiKey.length})`);
+  console.log(`✅ Grok API Key initialized (Length: ${apiKey.length})`);
 }
 
 if (!bytezApiKey) {
@@ -26,54 +26,51 @@ const bytez = new Bytez(bytezApiKey);
 // Rate limiter to reduce API calls and token usage
 const rateLimiter = {
   lastCallTime: 0,
-  minDelay: 2000, // 2 seconds between calls (max 30 requests/min)
+  minDelay: 1000, // Reduced delay for Grok
   async throttle() {
     const now = Date.now();
     const timeSinceLastCall = now - this.lastCallTime;
     if (timeSinceLastCall < this.minDelay) {
       const waitTime = this.minDelay - timeSinceLastCall;
-      console.log(`⏱️ Rate limiting: waiting ${waitTime}ms before next API call...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     this.lastCallTime = Date.now();
   }
 };
 
-// Helper function to call Gemini API directly with fetch
-async function callGeminiAPI(prompt: string, model: string = "gemini-2.0-flash", maxTokens: number = 4096): Promise<string> {
-  if (!apiKey) throw new Error("Gemini API Key is missing");
+// Helper function to call Grok API (replacing Gemini)
+async function callGeminiAPI(prompt: string, model: string = "x-ai/grok-4.1-fast:free", maxTokens: number = 4096): Promise<string> {
+  if (!apiKey) throw new Error("Grok API Key is missing");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = "https://openrouter.ai/api/v1/chat/completions";
 
   const response = await fetch(url, {
     method: "POST",
     headers: {
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: maxTokens,
-        responseMimeType: "application/json"
-      }
+      model: "x-ai/grok-4.1-fast:free", // Force Grok model
+      messages: [
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" } // Request JSON mode
     })
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${error}`);
+    throw new Error(`Grok API error: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
 
-  if (!data.candidates || !data.candidates[0]) {
-    throw new Error("No response from Gemini API");
+  if (!data.choices || !data.choices[0]) {
+    throw new Error("No response from Grok API");
   }
 
-  return data.candidates[0].content.parts[0].text;
+  return data.choices[0].message.content;
 }
 
 const SYSTEM_INSTRUCTION_ARCHITECT = `You are an AI ebook generation engine for a web/mobile application. Your responses must be valid JSON that the application can parse and render. Generate engaging, age-appropriate stories with consistent formatting for programmatic consumption.
@@ -303,7 +300,7 @@ const parseAge = (audience: string): number => {
 
 export const generateBookStructure = async (settings: GenerationSettings): Promise<Partial<BookProject>> => {
   if (!apiKey) {
-    throw new Error("Gemini API Key is missing. Please configure your environment variables.");
+    throw new Error("Grok API Key is missing. Please configure your environment variables.");
   }
 
   // Apply rate limiting
@@ -332,9 +329,9 @@ Generate a book based on this request:
 ${JSON.stringify(inputPayload, null, 2)}`;
 
   try {
-    console.log('🤖 Generating book structure with Gemini API (gemini-2.0-flash)...');
+    console.log('🤖 Generating book structure with Grok API...');
 
-    const text = await callGeminiAPI(prompt, "gemini-2.0-flash", 8192); // Increased token limit for full book
+    const text = await callGeminiAPI(prompt, "x-ai/grok-4.1-fast:free", 8192); // Increased token limit for full book
 
     console.log(`✅ Book structure generated (${text.length} chars)`);
 
@@ -426,7 +423,7 @@ export const generateStructuredContent = async <T>(
   systemInstruction?: string
 ): Promise<T> => {
   if (!apiKey) {
-    throw new Error("Gemini API Key is missing");
+    throw new Error("Grok API Key is missing");
   }
 
   // Apply rate limiting
@@ -435,9 +432,9 @@ export const generateStructuredContent = async <T>(
   try {
     const fullPrompt = `${systemInstruction || ''}\n\n${prompt}\n\nReturn VALID JSON only.`;
 
-    console.log('🤖 Generating structured content with Gemini API...');
+    console.log('🤖 Generating structured content with Grok API...');
 
-    const text = await callGeminiAPI(fullPrompt, "gemini-2.0-flash", 2048);
+    const text = await callGeminiAPI(fullPrompt, "x-ai/grok-4.1-fast:free", 2048);
 
     const jsonString = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(jsonString) as T;
