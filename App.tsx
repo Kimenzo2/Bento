@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import CreationCanvas from './components/CreationCanvas';
 import SmartEditor from './components/SmartEditor';
@@ -15,27 +15,6 @@ import UpgradeModal from './components/UpgradeModal';
 import { ToastContainer, ToastType } from './components/Toast';
 import StorybookViewer from './components/StorybookViewer';
 import { getAllBooks, saveBook } from './services/storageService';
-import { useAuth } from './contexts/AuthContext';
-import AuthPage from './components/AuthPage';
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-cream-base">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coral-burst"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to={`/auth/login?returnTo=${encodeURIComponent(location.pathname)}`} replace />;
-  }
-
-  return <>{children}</>;
-};
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
@@ -45,7 +24,6 @@ const App: React.FC = () => {
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const { user, loading } = useAuth();
 
   // Toast Notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
@@ -329,42 +307,32 @@ const App: React.FC = () => {
 
 
   return (
-    <Routes>
-      <Route path="/auth/login" element={<AuthPage />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
-              <Navigation currentMode={currentMode} setMode={setCurrentMode} />
-              <main className="pt-[80px] relative transition-all duration-300">
-                {renderContent()}
-              </main>
+    <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
+      <Navigation currentMode={currentMode} setMode={setCurrentMode} />
+      <main className="pt-[80px] relative transition-all duration-300">
+        {renderContent()}
+      </main>
 
-              {/* Magical Loading Theater */}
-              {isGenerating && (
-                <GenerationTheater
-                  progress={generationProgress}
-                  status={generationStatus}
-                />
-              )}
-              {/* Upgrade Modal */}
-              <UpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                onUpgrade={() => {
-                  setShowUpgradeModal(false);
-                  setCurrentMode(AppMode.PRICING);
-                }}
-              />
-
-              {/* Toast Notifications */}
-              <ToastContainer toasts={toasts} removeToast={removeToast} />
-            </div>
-          </ProtectedRoute>
-        }
+      {/* Magical Loading Theater */}
+      {isGenerating && (
+        <GenerationTheater
+          progress={generationProgress}
+          status={generationStatus}
+        />
+      )}
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          setCurrentMode(AppMode.PRICING);
+        }}
       />
-    </Routes>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+    </div>
   );
 };
 
