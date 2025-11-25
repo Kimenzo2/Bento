@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, Loader2, Sparkles, Cloud, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const AuthPage: React.FC = () => {
-    const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+    const { user, loading: authLoading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const returnTo = searchParams.get('returnTo') || '/';
     const [isLoading, setIsLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(true);
     const [email, setEmail] = useState('');
@@ -11,14 +15,19 @@ const AuthPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // If user is logged in, App.tsx will handle the redirect via renderContent()
-    // No need for manual redirect here
+    // Redirect if already logged in
+    React.useEffect(() => {
+        if (!authLoading && user) {
+            // Use replace: true to prevent going back to login page
+            navigate(returnTo, { replace: true });
+        }
+    }, [user, authLoading, returnTo, navigate]);
 
     const handleGoogleLogin = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const { error } = await signInWithGoogle();
+            const { error } = await signInWithGoogle(returnTo);
             if (error) throw error;
         } catch (error: any) {
             console.error('Error logging in with Google:', error);
