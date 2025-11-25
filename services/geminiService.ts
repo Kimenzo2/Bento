@@ -2,12 +2,9 @@ import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
 // @ts-ignore
 import Bytez from "bytez.js";
 
-// Declare process for Vite build compatibility
-declare const process: { env: { VITE_GROK_API_KEY: string, VITE_BYTEZ_API_KEY: string } };
-
 // Initialize API Keys
-const apiKey = import.meta.env.VITE_GROK_API_KEY || process.env.VITE_GROK_API_KEY || "";
-const bytezApiKey = import.meta.env.VITE_BYTEZ_API_KEY || process.env.VITE_BYTEZ_API_KEY || "";
+const apiKey = import.meta.env.VITE_GROK_API_KEY || "";
+const bytezApiKey = import.meta.env.VITE_BYTEZ_API_KEY || "";
 
 if (!apiKey) {
   console.warn("⚠️ Grok API Key is MISSING! Please check your .env file.");

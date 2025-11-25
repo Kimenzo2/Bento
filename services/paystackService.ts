@@ -62,8 +62,8 @@ export const initializePayment = async ({
     return;
   }
   // Get Paystack public key from environment
-  // Support both VITE_ prefix (standard) and process.env polyfill (legacy)
-  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY;
+  // Get Paystack public key from environment
+  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
   if (!publicKey) {
     const errorMessage = 'Paystack Public Key not found. Please configure VITE_PAYSTACK_PUBLIC_KEY in your .env file.';
