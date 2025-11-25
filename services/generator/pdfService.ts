@@ -119,6 +119,20 @@ export const exportToPDF = async (
                 pageHeight - opts.margins.bottom + 10,
                 { align: 'center' }
             );
+
+            // Add watermark if enabled
+            if (opts.includeWatermark) {
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150); // Gray color
+                const watermarkText = opts.watermarkText || 'Created with Genesis - Upgrade to remove';
+                doc.text(
+                    watermarkText,
+                    pageWidth - opts.margins.right,
+                    pageHeight - opts.margins.bottom + 10,
+                    { align: 'right' }
+                );
+                doc.setTextColor(0, 0, 0); // Reset to black
+            }
         }
     }
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, GraduationCap, GitBranch } from 'lucide-react';
-import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook } from '../types';
+import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook, UserTier } from '../types';
 import { getAllBooks, deleteBook } from '../services/storageService';
 import SavedBookCard from './SavedBookCard';
+import { getAvailableStyles, canUseStyle } from '../services/tierLimits';
 
 interface CreationCanvasProps {
     onGenerate: (settings: GenerationSettings) => void;
@@ -10,6 +11,7 @@ interface CreationCanvasProps {
     generationStatus?: string;
     onEditBook?: (book: SavedBook) => void;
     onReadBook?: (book: SavedBook) => void;
+    userTier?: UserTier;
 }
 
 const CreationCanvas: React.FC<CreationCanvasProps> = ({
@@ -17,7 +19,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     isGenerating,
     generationStatus,
     onEditBook,
-    onReadBook
+    onReadBook,
+    userTier = UserTier.SPARK
 }) => {
     const [prompt, setPrompt] = useState('');
     const [style, setStyle] = useState<ArtStyle>(ArtStyle.WATERCOLOR);
@@ -64,7 +67,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         }
     };
 
-    const styles = Object.values(ArtStyle);
+    const allStyles = Object.values(ArtStyle);
+    const availableStyles = getAvailableStyles(userTier);
     const tones = Object.values(BookTone);
 
     const handleGenerate = () => {
@@ -242,10 +246,25 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             <div className="relative">
                                 <select
                                     value={style}
-                                    onChange={(e) => setStyle(e.target.value as ArtStyle)}
+                                    onChange={(e) => {
+                                        const selectedStyle = e.target.value as ArtStyle;
+                                        if (canUseStyle(userTier, selectedStyle)) {
+                                            setStyle(selectedStyle);
+                                        } else {
+                                            alert(`This style is locked. Upgrade to ${userTier === UserTier.SPARK ? 'Creator' : 'Studio'} to unlock all styles!`);
+                                        }
+                                    }}
                                     className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor-pointer hover:border-coral-burst/50 transition-colors"
                                 >
-                                    {styles.map(s => <option key={s} value={s}>{s}</option>)}
+                                    {allStyles.map(s => (
+                                        <option
+                                            key={s}
+                                            value={s}
+                                            disabled={!canUseStyle(userTier, s)}
+                                        >
+                                            {s} {!canUseStyle(userTier, s) ? '🔒' : ''}
+                                        </option>
+                                    ))}
                                 </select>
                                 <Palette className="absolute right-4 top-1/2 -translate-y-1/2 text-coral-burst w-5 h-5 pointer-events-none" />
                             </div>

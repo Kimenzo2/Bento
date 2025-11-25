@@ -38,13 +38,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         processOAuthHash();
 
         // Listen for changes on auth state (logged in, signed out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            if (data && data.subscription) {
+                data.subscription.unsubscribe();
+            }
+        };
     }, []);
 
     const signInWithGoogle = async (returnTo: string = '/') => {

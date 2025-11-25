@@ -15,6 +15,8 @@ import UpgradeModal from './components/UpgradeModal';
 import { ToastContainer, ToastType } from './components/Toast';
 import StorybookViewer from './components/StorybookViewer';
 import { getAllBooks, saveBook } from './services/storageService';
+import AuthModal from './components/AuthModal';
+import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
@@ -24,6 +26,7 @@ const App: React.FC = () => {
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Toast Notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
@@ -61,6 +64,10 @@ const App: React.FC = () => {
   });
 
   const handleGenerateProject = async (settings: GenerationSettings) => {
+    if (!checkTierLimits(settings)) {
+      return;
+    }
+
     setIsGenerating(true);
     setGenerationProgress(0);
     setGenerationStatus("Architecting story structure...");
@@ -170,6 +177,9 @@ const App: React.FC = () => {
       setGenerationStatus("Complete!");
       await new Promise(r => setTimeout(r, 1000)); // Show 100% briefly
 
+      // Increment monthly ebook count
+      incrementEbookCount();
+
       setCurrentProject(newProject);
       setCurrentMode(AppMode.SUCCESS); // Switch to Success View
     } catch (error) {
@@ -195,15 +205,22 @@ const App: React.FC = () => {
   };
 
   const checkTierLimits = (settings: GenerationSettings): boolean => {
-    let maxPages = 4;
-    if (currentUserTier === UserTier.CREATOR) maxPages = 12;
-    if (currentUserTier === UserTier.STUDIO) maxPages = 500;
-    if (currentUserTier === UserTier.EMPIRE) maxPages = 999;
-
-    if (settings.pageCount > maxPages) {
+    // Check monthly ebook limit
+    const ebooksThisMonth = getEbooksCreatedThisMonth();
+    if (!canCreateEbook(currentUserTier, ebooksThisMonth)) {
       setShowUpgradeModal(true);
+      addToast(`You've reached your monthly limit. Upgrade to create more ebooks!`, 'error');
       return false;
     }
+
+    // Check page count limit
+    const maxPages = getMaxPages(currentUserTier);
+    if (settings.pageCount > maxPages) {
+      setShowUpgradeModal(true);
+      addToast(`Your tier allows up to ${maxPages} pages per book. Upgrade for more!`, 'error');
+      return false;
+    }
+
     return true;
   };
 
@@ -224,6 +241,7 @@ const App: React.FC = () => {
             generationStatus={generationStatus}
             onEditBook={handleEditBook}
             onReadBook={handleReadBook}
+            userTier={currentUserTier}
           />
         );
       case AppMode.SUCCESS:
@@ -308,7 +326,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
-      <Navigation currentMode={currentMode} setMode={setCurrentMode} />
+      <Navigation currentMode={currentMode} setMode={setCurrentMode} onSignIn={() => setShowAuthModal(true)} />
       <main className="pt-[80px] relative transition-all duration-300">
         {renderContent()}
       </main>
@@ -328,6 +346,12 @@ const App: React.FC = () => {
           setShowUpgradeModal(false);
           setCurrentMode(AppMode.PRICING);
         }}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
 
       {/* Toast Notifications */}

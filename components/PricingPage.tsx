@@ -153,11 +153,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   return (
     <div className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn">
 
-      {/* Urgency Banner */}
-      <div className="w-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white text-center py-3 font-heading font-bold text-sm shadow-md sticky top-[80px] z-40">
-        🎉 FOUNDING MEMBER SPECIAL: Lock in 50% OFF forever! 847 spots left. <span className="underline cursor-pointer ml-2">Claim Now</span>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 pt-12">
 
         {/* Header */}
