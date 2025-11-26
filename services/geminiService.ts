@@ -2,23 +2,105 @@ import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
 // @ts-ignore
 import Bytez from "bytez.js";
 
-// Initialize API Keys
-const apiKey = import.meta.env.VITE_GROK_API_KEY || "";
-const bytezApiKey = import.meta.env.VITE_BYTEZ_API_KEY || "";
+// Load all available Grok API keys (supports up to 3 keys)
+const grokApiKeys = [
+  import.meta.env.VITE_GROK_API_KEY_1,
+  import.meta.env.VITE_GROK_API_KEY_2,
+  import.meta.env.VITE_GROK_API_KEY_3,
+].filter(key => key && key.length > 0);
 
-if (!apiKey) {
-  console.warn("⚠️ Grok API Key is MISSING! Please check your .env file.");
+let currentGrokKeyIndex = 0;
+
+if (grokApiKeys.length === 0) {
+  console.warn("⚠️ No Grok API Keys found! Please check your .env file.");
 } else {
-  console.log(`✅ Grok API Key initialized (Length: ${apiKey.length})`);
+  console.log(`✅ Loaded ${grokApiKeys.length} Grok API key(s)`);
 }
 
-if (!bytezApiKey) {
-  console.warn("⚠️ Bytez API Key is MISSING! Please check your .env file.");
-} else {
-  console.log(`✅ Bytez API Key initialized (Length: ${bytezApiKey.length})`);
+// Function to get next available Grok key (rotates through keys)
+function getNextGrokKey(): string | null {
+  if (grokApiKeys.length === 0) return null;
+  const key = grokApiKeys[currentGrokKeyIndex];
+  currentGrokKeyIndex = (currentGrokKeyIndex + 1) % grokApiKeys.length;
+  return key;
 }
 
-const bytez = new Bytez(bytezApiKey);
+// Load all available Bytez API keys (supports up to 11 keys)
+const bytezApiKeys = [
+  import.meta.env.VITE_BYTEZ_API_KEY_1,
+  import.meta.env.VITE_BYTEZ_API_KEY_2,
+  import.meta.env.VITE_BYTEZ_API_KEY_3,
+  import.meta.env.VITE_BYTEZ_API_KEY_4,
+  import.meta.env.VITE_BYTEZ_API_KEY_5,
+  import.meta.env.VITE_BYTEZ_API_KEY_6,
+  import.meta.env.VITE_BYTEZ_API_KEY_7,
+  import.meta.env.VITE_BYTEZ_API_KEY_8,
+  import.meta.env.VITE_BYTEZ_API_KEY_9,
+  import.meta.env.VITE_BYTEZ_API_KEY_10,
+  import.meta.env.VITE_BYTEZ_API_KEY_11,
+].filter(key => key && key.length > 0);
+
+let currentKeyIndex = 0;
+
+if (bytezApiKeys.length === 0) {
+  console.warn("⚠️ No Bytez API Keys found! Please check your .env file.");
+} else {
+  console.log(`✅ Loaded ${bytezApiKeys.length} Bytez API key(s)`);
+}
+
+// Function to get next available key (rotates through keys)
+function getNextBytezKey(): string | null {
+  if (bytezApiKeys.length === 0) return null;
+  const key = bytezApiKeys[currentKeyIndex];
+  currentKeyIndex = (currentKeyIndex + 1) % bytezApiKeys.length;
+  return key;
+}
+
+// Function to retry operation with next key on failure
+async function retryWithNextKey<T>(
+  operation: (sdk: Bytez) => Promise<T>,
+  maxRetries: number = bytezApiKeys.length
+): Promise<T> {
+  let lastError: any;
+
+  for (let i = 0; i < maxRetries; i++) {
+    const key = getNextBytezKey();
+    if (!key) throw new Error("No Bytez API keys available");
+
+    try {
+      const sdk = new Bytez(key);
+      const result = await operation(sdk);
+
+      if (i > 0) {
+        console.log(`✅ Succeeded with key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)}`);
+      }
+
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`⚠️ Key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)} failed, trying next...`);
+
+      // If it's not a quota/rate limit error, don't retry
+      if (!error?.error?.code || ![429, 403, 500].includes(error.error.code)) {
+        throw error;
+      }
+    }
+  }
+
+  console.error("❌ All Bytez API keys exhausted");
+  throw lastError;
+}
+
+// Helper function to get model ID based on tier
+function getModelId(tier: UserTier): string {
+  // Ultra model only for paid tiers
+  if (tier === UserTier.STUDIO || tier === UserTier.EMPIRE) {
+    return "google/imagen-4.0-ultra-generate-001";
+  }
+
+  // Standard model for free tier (Spark)
+  return "google/imagen-4.0-generate-001";
+}
 
 // Rate limiter to reduce API calls and token usage
 const rateLimiter = {
@@ -35,39 +117,69 @@ const rateLimiter = {
   }
 };
 
-// Helper function to call Grok API (replacing Gemini)
+// Helper function to call Grok API with automatic key rotation
 async function callGeminiAPI(prompt: string, model: string = "x-ai/grok-4.1-fast:free", maxTokens: number = 4096): Promise<string> {
-  if (!apiKey) throw new Error("Grok API Key is missing");
-
   const url = "https://openrouter.ai/api/v1/chat/completions";
+  let lastError: any;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "x-ai/grok-4.1-fast:free", // Force Grok model
-      messages: [
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" } // Request JSON mode
-    })
-  });
+  // Try each available Grok key
+  for (let i = 0; i < grokApiKeys.length; i++) {
+    const apiKey = getNextGrokKey();
+    if (!apiKey) throw new Error("No Grok API keys available");
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Grok API error: ${response.status} - ${error}`);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "x-ai/grok-4.1-fast:free",
+          messages: [
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: maxTokens
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        const errorObj = { status: response.status, message: error };
+
+        // Retry on quota/rate limit errors
+        if ([429, 403, 500].includes(response.status)) {
+          lastError = errorObj;
+          console.warn(`⚠️ Grok key #${(currentGrokKeyIndex === 0 ? grokApiKeys.length : currentGrokKeyIndex)} failed, trying next...`);
+          continue;
+        }
+
+        throw new Error(`Grok API error: ${response.status} - ${error}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.choices || !data.choices[0]) {
+        throw new Error("No response from Grok API");
+      }
+
+      if (i > 0) {
+        console.log(`✅ Succeeded with Grok key #${(currentGrokKeyIndex === 0 ? grokApiKeys.length : currentGrokKeyIndex)}`);
+      }
+
+      return data.choices[0].message.content;
+    } catch (error: any) {
+      // If it's not a retryable error, throw immediately
+      if (!lastError) {
+        throw error;
+      }
+      lastError = error;
+    }
   }
 
-  const data = await response.json();
-
-  if (!data.choices || !data.choices[0]) {
-    throw new Error("No response from Grok API");
-  }
-
-  return data.choices[0].message.content;
+  console.error("❌ All Grok API keys exhausted");
+  throw lastError || new Error("All Grok API keys failed");
 }
 
 const SYSTEM_INSTRUCTION_ARCHITECT = `You are an AI ebook generation engine for a web/mobile application. Your responses must be valid JSON that the application can parse and render. Generate engaging, age-appropriate stories with consistent formatting for programmatic consumption.
@@ -296,7 +408,7 @@ const parseAge = (audience: string): number => {
 };
 
 export const generateBookStructure = async (settings: GenerationSettings): Promise<Partial<BookProject>> => {
-  if (!apiKey) {
+  if (grokApiKeys.length === 0) {
     throw new Error("Grok API Key is missing. Please configure your environment variables.");
   }
 
@@ -419,7 +531,7 @@ export const generateStructuredContent = async <T>(
   schema?: any,
   systemInstruction?: string
 ): Promise<T> => {
-  if (!apiKey) {
+  if (grokApiKeys.length === 0) {
     throw new Error("Grok API Key is missing");
   }
 
@@ -442,29 +554,28 @@ export const generateStructuredContent = async <T>(
 };
 
 export const generateIllustration = async (imagePrompt: string, style: string, tier: UserTier = UserTier.SPARK): Promise<string | null> => {
-  if (!bytezApiKey) return null;
-
-  const modelId = (tier === UserTier.STUDIO || tier === UserTier.EMPIRE)
-    ? "google/imagen-4.0-ultra-generate-001"
-    : "google/imagen-4.0-generate-001";
+  const modelId = getModelId(tier);
 
   console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier})`);
 
   try {
     const fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, cinematic lighting, 8k resolution.`;
-    const model = bytez.model(modelId);
 
-    const { error, output } = await model.run(fullPrompt);
+    const output = await retryWithNextKey(async (sdk) => {
+      const model = sdk.model(modelId);
+      const { error, output } = await model.run(fullPrompt);
 
-    if (error) {
-      console.error("Bytez generation error:", error);
-      return null;
-    }
+      if (error) {
+        throw { error }; // Will trigger retry with next key
+      }
 
-    console.log("Bytez output:", output);
+      return output;
+    });
+
+    console.log("✅ Bytez generation successful");
     return output;
   } catch (error) {
-    console.error("Visual Synthesis Agent failed:", error);
+    console.error("❌ All Bytez keys exhausted:", error);
     return null;
   }
 };
@@ -481,11 +592,7 @@ export const generateRefinedImage = async (
   },
   tier: UserTier = UserTier.SPARK
 ): Promise<string | null> => {
-  if (!bytezApiKey) return null;
-
-  const modelId = (tier === UserTier.STUDIO || tier === UserTier.EMPIRE)
-    ? "google/imagen-4.0-ultra-generate-001"
-    : "google/imagen-4.0-generate-001";
+  const modelId = getModelId(tier);
 
   console.log(`🎨 Generating refined image using model: ${modelId} (Tier: ${tier})`);
 
@@ -507,17 +614,21 @@ export const generateRefinedImage = async (
   `;
 
   try {
-    const model = bytez.model(modelId);
-    const { error, output } = await model.run(fullPrompt);
+    const output = await retryWithNextKey(async (sdk) => {
+      const model = sdk.model(modelId);
+      const { error, output } = await model.run(fullPrompt);
 
-    if (error) {
-      console.error("Bytez generation error:", error);
-      return null;
-    }
+      if (error) {
+        throw { error }; // Will trigger retry with next key
+      }
 
+      return output;
+    });
+
+    console.log("✅ Bytez generation successful");
     return output;
   } catch (error) {
-    console.error("Visual Studio Generation failed:", error);
+    console.error("❌ All Bytez keys exhausted:", error);
     return null;
   }
 };

@@ -1,0 +1,8 @@
+// Find line 55 in geminiService.ts which currently reads:
+//       response_format: { type: "json_object" } // Request JSON mode
+//
+// Change it to:
+//       response_format: { type: "json_object" }, // Request JSON mode
+//       max_tokens: maxTokens // Pass the token limit to prevent truncation
+//
+// This adds the max_tokens parameter to the API request so Grok doesn't truncate the response.

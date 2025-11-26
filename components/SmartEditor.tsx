@@ -28,9 +28,10 @@ interface SmartEditorProps {
     userTier?: UserTier;
     onShowUpgrade?: () => void;
     onSave?: (success: boolean, message: string) => void;
+    onBack?: () => void;
 }
 
-const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK, onShowUpgrade, onSave }) => {
+const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK, onShowUpgrade, onSave, onBack }) => {
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
@@ -218,13 +219,24 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
             <div className={`w-full md:w-[40%] flex-col border-r border-peach-soft/50 bg-cream-soft ${mobileView === 'preview' ? 'hidden md:flex' : 'flex h-full'}`}>
 
                 {/* Header */}
-                <div className="h-20 px-8 flex items-center justify-between border-b border-peach-soft/30 shrink-0">
-                    <div className="overflow-hidden">
-                        <h2 className="font-heading font-bold text-xl text-charcoal-soft truncate max-w-[200px]">{project.title}</h2>
-                        <div className="flex items-center gap-2 text-xs text-cocoa-light mt-1">
-                            <span className="font-bold text-coral-burst">Page {activePage.pageNumber}</span>
-                            <span>of {totalPages}</span>
-                            {project.isBranching && <span className="bg-gold-sunshine/20 text-yellow-600 px-1.5 rounded">Interactive</span>}
+                <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-peach-soft/30 shrink-0 gap-4">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        {onBack && (
+                            <button
+                                onClick={onBack}
+                                className="p-2 -ml-2 rounded-full hover:bg-white/50 text-cocoa-light hover:text-coral-burst transition-colors shrink-0"
+                                aria-label="Go back"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                        )}
+                        <div className="overflow-hidden">
+                            <h2 className="font-heading font-bold text-xl text-charcoal-soft truncate max-w-[200px]">{project.title}</h2>
+                            <div className="flex items-center gap-2 text-xs text-cocoa-light mt-1">
+                                <span className="font-bold text-coral-burst">Page {activePage.pageNumber}</span>
+                                <span>of {totalPages}</span>
+                                {project.isBranching && <span className="bg-gold-sunshine/20 text-yellow-600 px-1.5 rounded">Interactive</span>}
+                            </div>
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -241,8 +253,6 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
                 {/* Content Area */}
                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
-
-                    {/* Narrative Editor */}
                     <div className="space-y-3">
                         <label className="font-heading font-bold text-sm text-cocoa-light uppercase tracking-wider flex justify-between items-center">
                             Story Text
@@ -501,7 +511,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                 </div>
 
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -21,7 +21,10 @@ export enum ArtStyle {
   CORPORATE = 'Corporate Minimalist',
   CYBERPUNK = 'Cyberpunk Neon',
   VINTAGE = 'Vintage Illustration',
-  PAPER_CUTOUT = 'Paper Cutout Art'
+  PAPER_CUTOUT = 'Paper Cutout Art',
+  FLAT_DESIGN = 'Flat Design',
+  INFOGRAPHIC = 'Modern Infographic',
+  BLUEPRINT = 'Technical Blueprint'
 }
 
 export enum BookTone {

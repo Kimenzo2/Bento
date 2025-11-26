@@ -40,7 +40,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, onSignIn 
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full h-[80px] z-50 px-4 md:px-12 flex items-center justify-between transition-all duration-300
+      <nav className="fixed top-0 left-0 w-full h-[80px] z-[60] px-4 md:px-12 flex items-center justify-between transition-all duration-300
         bg-cream-base/80 backdrop-blur-md border-b border-peach-soft shadow-soft-sm">
 
         {/* Logo */}
@@ -109,7 +109,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, onSignIn 
                 )}
               </div>
               <span className="font-heading font-medium text-charcoal-soft text-sm hidden lg:block">
-                {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Profile'}
+                Creator
               </span>
             </button>
           ) : (

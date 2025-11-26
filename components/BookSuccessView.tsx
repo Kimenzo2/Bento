@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AppMode, BookProject } from '../types';
-import { Eye, Edit3, Download, Share2, Sparkles, Gift, PartyPopper } from 'lucide-react';
+import { AppMode, BookProject, UserTier } from '../types';
+import { Eye, Edit3, Download, Share2, Sparkles, Gift, PartyPopper, ShieldCheck } from 'lucide-react';
 import StorybookViewer from './StorybookViewer';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
+import { hasWatermark, hasCommercialLicense } from '../services/tierLimits';
+import { exportToPDF } from '../services/generator/pdfService';
 
 interface BookSuccessViewProps {
     project: BookProject;
     onNavigate: (mode: AppMode) => void;
+    userTier: UserTier;
 }
 
-const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate }) => {
+const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, userTier }) => {
     const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [confetti, setConfetti] = useState<Particle[]>([]);
 
@@ -34,9 +37,22 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate }
         return () => clearInterval(interval);
     }, []);
 
-    const handleDownload = () => {
-        alert('PDF Export is a premium feature! Upgrade to unlock.');
-        onNavigate(AppMode.PRICING);
+    const handleDownload = async () => {
+        const needsWatermark = hasWatermark(userTier);
+
+        try {
+            await exportToPDF(project, {
+                includeWatermark: needsWatermark,
+                watermarkText: 'Created with Genesis - Upgrade to remove'
+            });
+
+            if (needsWatermark) {
+                alert('Downloaded with watermark. Upgrade to Creator tier for watermark-free exports!');
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export PDF. Please try again.');
+        }
     };
 
     const handleShare = () => {
@@ -181,13 +197,19 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate }
                                     </p>
 
                                     <div className="space-y-2 mb-6">
-                                        <div className="flex items-center gap-2 text-sm">
+                                        <div className="flex items-center gap-2 text-sm flex-wrap">
                                             <span className="px-3 py-1 bg-coral-burst/10 text-coral-burst rounded-full font-heading font-bold">
                                                 {project.style}
                                             </span>
                                             <span className="px-3 py-1 bg-mint-breeze/30 text-emerald-700 rounded-full font-heading font-bold">
                                                 {project.tone}
                                             </span>
+                                            {hasCommercialLicense(userTier) && (
+                                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-heading font-bold flex items-center gap-1">
+                                                    <ShieldCheck className="w-3 h-3" />
+                                                    Commercial License
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-sm text-cocoa-light font-body">
                                             📖 {project.chapters.flatMap(c => c.pages).length} pages • 👥 {project.targetAudience}

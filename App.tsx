@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Navigation from './components/Navigation';
 import CreationCanvas from './components/CreationCanvas';
 import SmartEditor from './components/SmartEditor';
@@ -18,7 +19,12 @@ import { getAllBooks, saveBook } from './services/storageService';
 import AuthModal from './components/AuthModal';
 import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
 
+import { useGoogleOneTap } from './hooks/useGoogleOneTap';
+
 const App: React.FC = () => {
+  // Initialize Google One Tap for seamless authentication
+  useGoogleOneTap();
+
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
   const [viewingBook, setViewingBook] = useState<BookProject | null>(null);
@@ -126,43 +132,41 @@ const App: React.FC = () => {
         createdAt: new Date()
       };
 
-      // 2. Generate Illustrations for ALL pages
-      const totalPages = newProject.chapters.flatMap(c => c.pages).length;
-      let processedPages = 0;
+      // 2. Generate Illustrations for ALL pages (Parallelized)
+      const allPages = newProject.chapters.flatMap(c => c.pages);
+      const totalPages = allPages.length;
+      let processedCount = 0;
 
-      for (const chapter of newProject.chapters) {
-        for (const page of chapter.pages) {
-          processedPages++;
-          const pageProgress = 20 + ((processedPages / totalPages) * 60); // 20-80%
-          setGenerationProgress(pageProgress);
-          setGenerationStatus(`Painting page ${processedPages} of ${totalPages}...`);
+      const generatePageImage = async (page: any) => {
+        if (!page.imagePrompt) return;
 
-          if (page.imagePrompt) {
-            let attempts = 0;
-            let success = false;
-            while (attempts < 3 && !success) {
-              try {
-                // Add a small delay to prevent rate limiting
-                if (processedPages > 1) await new Promise(r => setTimeout(r, 1000));
-
-                const imageUrl = await generateIllustration(page.imagePrompt, settings.style);
-                if (imageUrl) {
-                  page.imageUrl = imageUrl;
-                  success = true;
-                }
-              } catch (err) {
-                attempts++;
-                console.warn(`Failed to generate image for page ${page.pageNumber} (Attempt ${attempts}/3)`, err);
-                if (attempts < 3) await new Promise(r => setTimeout(r, 2000)); // Wait longer before retry
-              }
+        let attempts = 0;
+        let success = false;
+        while (attempts < 3 && !success) {
+          try {
+            const imageUrl = await generateIllustration(page.imagePrompt, settings.style);
+            if (imageUrl) {
+              page.imageUrl = imageUrl;
+              success = true;
             }
+          } catch (err) {
+            attempts++;
+            console.warn(`Failed to generate image for page ${page.pageNumber}`, err);
+            if (attempts < 3) await new Promise(r => setTimeout(r, 2000));
           }
         }
+
+        processedCount++;
+        const pageProgress = 20 + ((processedCount / totalPages) * 60); // 20-80%
+        setGenerationProgress(pageProgress);
+        setGenerationStatus(`Painting page ${processedCount} of ${totalPages}...`);
+      };
+
+      // Process sequentially (one by one) as requested
+      for (const page of allPages) {
+        await generatePageImage(page);
       }
 
-      // 3. Generate Cover Image
-      setGenerationProgress(85);
-      setGenerationStatus("Designing the perfect cover...");
       try {
         const coverPrompt = `Book cover for a story titled "${newProject.title}". Style: ${newProject.style}. Synopsis: ${newProject.synopsis}. High quality, visually striking, title text integrated if possible.`;
         const coverUrl = await generateIllustration(coverPrompt, settings.style);
@@ -250,6 +254,7 @@ const App: React.FC = () => {
           <BookSuccessView
             project={currentProject}
             onNavigate={setCurrentMode}
+            userTier={currentUserTier}
           />
         );
       case AppMode.EDITOR:
@@ -263,25 +268,17 @@ const App: React.FC = () => {
             onSave={(success, message) => {
               addToast(message, success ? 'success' : 'error');
             }}
+            onBack={() => setCurrentMode(AppMode.DASHBOARD)}
           />
         );
       case AppMode.VISUAL_STUDIO:
         return (
-          <VisualStudio project={currentProject} />
+          <VisualStudio
+            project={currentProject}
+            onBack={() => setCurrentMode(AppMode.DASHBOARD)}
+          />
         );
       case AppMode.SETTINGS:
-        return (
-          <SettingsPanel onNavigate={setCurrentMode} />
-        );
-      case AppMode.PRICING:
-        return (
-          <PricingPage onUpgrade={handleUpgrade} />
-        );
-      case AppMode.GAMIFICATION:
-        return (
-          <GamificationHub gameState={gamificationState} setMode={setCurrentMode} />
-        );
-      case AppMode.EXPORT:
         return (
           <div className="flex flex-col items-center justify-center h-[80vh] text-center p-8 animate-fadeIn">
             <div className="w-24 h-24 bg-peach-soft rounded-full flex items-center justify-center mb-6 shadow-glow">
@@ -316,6 +313,14 @@ const App: React.FC = () => {
             onDownload={() => setCurrentMode(AppMode.PRICING)}
             onShare={() => alert('Share feature coming soon! 🎉')}
           />
+        );
+      case AppMode.PRICING:
+        return (
+          <PricingPage onUpgrade={handleUpgrade} />
+        );
+      case AppMode.GAMIFICATION:
+        return (
+          <GamificationHub gameState={gamificationState} setMode={setCurrentMode} />
         );
       default:
         return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
@@ -356,6 +361,8 @@ const App: React.FC = () => {
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      <Analytics />
     </div>
   );
 };

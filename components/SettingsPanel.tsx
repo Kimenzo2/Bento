@@ -13,7 +13,8 @@ import {
   CheckCircle,
   Image as ImageIcon,
   Calendar,
-  Download
+  Download,
+  ArrowLeft
 } from 'lucide-react';
 import { AppMode } from '../types';
 
@@ -143,9 +144,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      <div className="mb-10">
-        <h1 className="font-heading font-bold text-4xl text-charcoal-soft mb-2">Settings</h1>
-        <p className="text-cocoa-light font-body">Manage your profile, preferences, and system configuration.</p>
+      <div className="mb-10 flex items-center gap-4">
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate(AppMode.DASHBOARD)}
+            className="p-2 -ml-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        )}
+        <div>
+          <h1 className="font-heading font-bold text-4xl text-charcoal-soft mb-2">Settings</h1>
+          <p className="text-cocoa-light font-body">Manage your profile, preferences, and system configuration.</p>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
