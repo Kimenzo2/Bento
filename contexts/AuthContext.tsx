@@ -7,6 +7,7 @@ interface AuthContextType {
     session: Session | null;
     loading: boolean;
     signInWithGoogle: (returnTo?: string) => Promise<{ error: any }>;
+    signInWithIdToken: (token: string) => Promise<{ data: any; error: any }>;
     signInWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
     signUpWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
     signOut: () => Promise<{ error: any }>;
@@ -33,6 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
+
+            // Cleanup URL hash if it contains auth tokens
+            if (hash && hash.includes('access_token')) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
         };
 
         processOAuthHash();
@@ -77,6 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { data, error };
     };
 
+    const signInWithIdToken = async (token: string) => {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: token,
+        });
+        return { data, error };
+    };
+
     const signOut = async () => {
         const { error } = await supabase.auth.signOut();
         return { error };
@@ -87,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         loading,
         signInWithGoogle,
+        signInWithIdToken,
         signInWithEmail,
         signUpWithEmail,
         signOut

@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
  * FedCM is enabled for production and disabled for localhost
  */
 export const useGoogleOneTap = () => {
-    const { user, signInWithGoogle, loading } = useAuth();
+    const { user, signInWithGoogle, signInWithIdToken, loading } = useAuth();
 
     useEffect(() => {
         // Only show if user is not authenticated and auth is done loading
@@ -85,7 +85,8 @@ export const useGoogleOneTap = () => {
     const handleCredentialResponse = async (response: any) => {
         try {
             console.log('Google One Tap credential received');
-            await signInWithGoogle();
+            const { error } = await signInWithIdToken(response.credential);
+            if (error) throw error;
         } catch (error) {
             console.error('Google One Tap sign-in error:', error);
         }
