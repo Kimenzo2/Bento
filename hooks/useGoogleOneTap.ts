@@ -38,8 +38,16 @@ export const useGoogleOneTap = () => {
         script.onload = () => {
             // Initialize Google One Tap
             if (window.google) {
+                const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+                console.log('[GoogleOneTap] Initializing with Client ID:', clientId ? `${clientId.substring(0, 10)}...` : 'UNDEFINED');
+
+                if (!clientId) {
+                    console.error('[GoogleOneTap] MISSING VITE_GOOGLE_CLIENT_ID in .env file');
+                    return;
+                }
+
                 window.google.accounts.id.initialize({
-                    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                    client_id: clientId,
                     callback: handleCredentialResponse,
                     auto_select: true, // Auto-select if user previously signed in
                     cancel_on_tap_outside: true, // Allow clicking outside to close

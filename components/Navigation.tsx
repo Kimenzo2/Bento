@@ -41,7 +41,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, onSignIn 
   return (
     <>
       <nav className="fixed top-0 left-0 w-full h-[80px] z-[60] px-4 md:px-12 flex items-center justify-between transition-all duration-300
-        bg-cream-base/80 backdrop-blur-md border-b border-peach-soft shadow-soft-sm">
+        bg-cream-base/80 backdrop-blur-md border-b border-peach-soft shadow-soft-sm rounded-b-3xl">
 
         {/* Logo */}
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleModeChange(AppMode.DASHBOARD)}>
