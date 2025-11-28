@@ -22,7 +22,6 @@ import {
     LogOut
 } from 'lucide-react';
 import { generateRefinedImage } from '../services/geminiService';
-import MessagesWidget from './MessagesWidget';
 
 interface VisualStudioProps {
     project: BookProject | null;
@@ -644,11 +643,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack }) => {
                 </div>
 
             </div>
-            {/* Floating Messages Widget - Always visible */}
-            <MessagesWidget
-                onCollaborationStart={handleCollaborationStart}
-                onUserTyping={(isTyping) => { }}
-            />
         </div>
     );
 };

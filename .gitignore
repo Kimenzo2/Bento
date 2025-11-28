@@ -17,6 +17,7 @@ dist-ssr
 .env.local
 .env.*.local
 .env.txt
+.env.example
 
 # Editor directories and files
 .vscode/*
@@ -38,3 +39,44 @@ fix-max-tokens.*
 
 # Misc
 FIX_INSTRUCTIONS.txt
+
+# Database & Migration Files (keep schema templates, ignore applied migrations)
+fix_*.sql
+supabase_gamification_migration.sql
+
+# Sensitive Configuration Files
+PAYSTACK_PLAN_CODES.txt
+metadata.json
+
+# Documentation (keep in repo but can be regenerated)
+# SUPABASE_AUTH_TROUBLESHOOTING.md
+# SUPABASE_SETUP.md
+
+# Build artifacts
+*.tsbuildinfo
+
+# OS Files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Coverage
+coverage/
+*.lcov
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel
+.vercel

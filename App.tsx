@@ -17,7 +17,8 @@ import { ToastContainer, ToastType } from './components/Toast';
 import StorybookViewer from './components/StorybookViewer';
 import { getAllBooks, saveBook } from './services/storageService';
 import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
-
+import { getUserProfile, incrementBooksCreated, addXP, UserProfile } from './services/profileService';
+import { supabase } from './services/supabaseClient';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
 
 const App: React.FC = () => {
@@ -32,6 +33,10 @@ const App: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  // User Profile State - Fetched from Supabase
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
   // Toast Notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
 
@@ -44,28 +49,52 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Mock User Tier State - In a real app, this would come from auth/subscription context
-  const [currentUserTier, setCurrentUserTier] = useState<UserTier>(UserTier.SPARK);
+  // Fetch user profile on mount
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      setIsLoadingProfile(true);
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+      setIsLoadingProfile(false);
+    };
 
-  // Mock Gamification State
-  const [gamificationState] = useState<GamificationState>({
-    level: 3,
-    levelTitle: "Rising Author",
-    currentXP: 1250,
-    nextLevelXP: 2000,
-    booksCreatedCount: 7,
+    fetchProfile();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        const profile = await getUserProfile();
+        setUserProfile(profile);
+      } else if (event === 'SIGNED_OUT') {
+        setUserProfile(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Derive current tier and gamification state from profile
+  const currentUserTier = userProfile?.user_tier || UserTier.SPARK;
+  const gamificationState: GamificationState = userProfile?.gamification_data || {
+    level: 1,
+    levelTitle: "Novice Author",
+    currentXP: 0,
+    nextLevelXP: 100,
+    booksCreatedCount: 0,
     badges: [
-      { id: '1', name: "First Spark", description: "Created your first book", icon: "rocket", unlocked: true },
-      { id: '2', name: "Style Explorer", description: "Tried 3 different styles", icon: "palette", unlocked: true },
-      { id: '3', name: "Wordsmith", description: "Wrote 5,000 words", icon: "feather", unlocked: true },
+      { id: '1', name: "First Spark", description: "Create your first book", icon: "rocket", unlocked: false },
+      { id: '2', name: "Style Explorer", description: "Try 3 different styles", icon: "palette", unlocked: false },
+      { id: '3', name: "Wordsmith", description: "Write 5,000 words", icon: "feather", unlocked: false },
       { id: '4', name: "Bestseller", description: "Get 1,000 views", icon: "diamond", unlocked: false }
     ],
     dailyChallenges: [
       { id: 'c1', title: "Create a Children's Book", xpReward: 50, completed: false },
-      { id: 'c2', title: "Try the 'Cyberpunk' Style", xpReward: 75, completed: true },
+      { id: 'c2', title: "Try a new Art Style", xpReward: 75, completed: false },
       { id: 'c3', title: "Share a book", xpReward: 100, completed: false }
     ]
-  });
+  };
 
   const handleGenerateProject = async (settings: GenerationSettings) => {
     if (!checkTierLimits(settings)) {
@@ -226,8 +255,14 @@ const App: React.FC = () => {
     return true;
   };
 
-  const handleUpgrade = (newTier: UserTier) => {
-    setCurrentUserTier(newTier);
+  const handleUpgrade = async (newTier: UserTier) => {
+    const { updateUserTier } = await import('./services/profileService');
+    await updateUserTier(newTier);
+
+    // Refresh profile to get updated tier
+    const profile = await getUserProfile();
+    setUserProfile(profile);
+
     setShowUpgradeModal(false);
     addToast(`Welcome to the ${newTier} tier! You now have access to expanded features.`, 'success');
   };
