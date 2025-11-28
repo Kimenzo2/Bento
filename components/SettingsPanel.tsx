@@ -16,11 +16,12 @@ import {
   Download,
   ArrowLeft
 } from 'lucide-react';
-import { AppMode } from '../types';
+import { AppMode, UserTier } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
+  userTier?: UserTier;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
