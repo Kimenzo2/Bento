@@ -19,10 +19,9 @@ import { useAuth } from '../contexts/AuthContext';
 interface NavigationProps {
   currentMode: AppMode;
   setMode: (mode: AppMode) => void;
-  onSignIn: () => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, onSignIn }) => {
+const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -95,34 +94,27 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, onSignIn 
             Upgrade
           </button>
 
-          {/* Auth/Profile Button */}
-          {user ? (
-            <button
-              onClick={() => handleModeChange(AppMode.SETTINGS)}
-              className="flex items-center gap-2 p-1 pr-1 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group"
-            >
-              <div className="w-8 h-8 rounded-full bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform overflow-hidden">
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-5 h-5" />
-                )}
-              </div>
-              <span className="font-heading font-medium text-charcoal-soft text-sm hidden lg:block">
-                Creator
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={onSignIn}
-              className="flex items-center gap-2 p-1 pr-1 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group"
-            >
-              <div className="w-8 h-8 rounded-full bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform">
+          {/* Creator Button - Always visible */}
+          <button
+            onClick={() => {
+              console.log('Creator button clicked');
+              console.log('User:', user);
+              console.log('Navigating to SETTINGS');
+              handleModeChange(AppMode.SETTINGS);
+            }}
+            className="flex items-center gap-2 p-1 pr-1 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-full bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform overflow-hidden">
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
                 <User className="w-5 h-5" />
-              </div>
-              <span className="font-heading font-medium text-charcoal-soft text-sm hidden lg:block">Sign In</span>
-            </button>
-          )}
+              )}
+            </div>
+            <span className="font-heading font-medium text-charcoal-soft text-sm hidden lg:block">
+              Creator
+            </span>
+          </button>
 
           {/* Mobile Menu Toggle */}
           <button

@@ -11,7 +11,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-charcoal-soft/60 backdrop-blur-sm transition-opacity"
@@ -19,7 +19,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
             ></div>
 
             {/* Modal Content */}
-            <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-100 animate-slideUp">
+            <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
 
                 {/* Close Button */}
                 <button

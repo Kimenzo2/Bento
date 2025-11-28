@@ -16,7 +16,6 @@ import UpgradeModal from './components/UpgradeModal';
 import { ToastContainer, ToastType } from './components/Toast';
 import StorybookViewer from './components/StorybookViewer';
 import { getAllBooks, saveBook } from './services/storageService';
-import AuthModal from './components/AuthModal';
 import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
 
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
@@ -32,7 +31,6 @@ const App: React.FC = () => {
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Toast Notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
@@ -280,21 +278,10 @@ const App: React.FC = () => {
         );
       case AppMode.SETTINGS:
         return (
-          <div className="flex flex-col items-center justify-center h-[80vh] text-center p-8 animate-fadeIn">
-            <div className="w-24 h-24 bg-peach-soft rounded-full flex items-center justify-center mb-6 shadow-glow">
-              <span className="text-4xl">📤</span>
-            </div>
-            <h2 className="text-3xl font-heading font-bold text-charcoal-soft mb-2">Export Nexus</h2>
-            <p className="text-cocoa-light max-w-md font-body">
-              Your masterpiece is almost ready for the world. Upgrade to Creator tier to remove watermarks and unlock ePub export.
-            </p>
-            <button
-              onClick={() => setCurrentMode(AppMode.PRICING)}
-              className="mt-6 px-8 py-3 bg-coral-burst text-white rounded-full font-bold shadow-soft-md hover:scale-105 transition-transform"
-            >
-              Unlock Premium Exports
-            </button>
-          </div>
+          <SettingsPanel
+            onNavigate={setCurrentMode}
+            userTier={currentUserTier}
+          />
         );
       case AppMode.VIEWER:
         if (!viewingBook) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} onEditBook={handleEditBook} onReadBook={handleReadBook} />;
@@ -331,7 +318,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
-      <Navigation currentMode={currentMode} setMode={setCurrentMode} onSignIn={() => setShowAuthModal(true)} />
+      <Navigation currentMode={currentMode} setMode={setCurrentMode} />
       <main className="pt-[80px] relative transition-all duration-300">
         {renderContent()}
       </main>
@@ -351,12 +338,6 @@ const App: React.FC = () => {
           setShowUpgradeModal(false);
           setCurrentMode(AppMode.PRICING);
         }}
-      />
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
       />
 
       {/* Toast Notifications */}

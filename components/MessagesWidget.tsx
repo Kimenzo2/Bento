@@ -285,7 +285,7 @@ const MessagesWidget: React.FC<MessagesWidgetProps> = ({ onCollaborationStart, o
 
     // Standard floating widget
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none max-h-[calc(100vh-120px)]">
+        <div className="fixed bottom-4 md:bottom-6 right-4 md:right-6 left-4 md:left-auto z-50 flex flex-col items-end pointer-events-none max-h-[calc(100vh-100px)] md:max-h-[calc(100vh-120px)]">
             {/* Chat Window - Only visible when group chat is enabled */}
             {isGroupChatEnabled && (
                 <div
@@ -297,7 +297,7 @@ const MessagesWidget: React.FC<MessagesWidgetProps> = ({ onCollaborationStart, o
                         overflow-hidden 
                         transition-all duration-300 ease-in-out origin-bottom-right
                         mb-4 flex flex-col
-                        ${isOpen ? 'w-[380px] h-[550px] max-h-[calc(100vh-140px)] opacity-100 scale-100' : 'w-[380px] h-0 opacity-0 scale-95'}
+                        ${isOpen ? 'w-full md:w-[380px] h-[calc(100vh-120px)] md:h-[550px] md:max-h-[calc(100vh-140px)] opacity-100 scale-100' : 'w-full md:w-[380px] h-0 opacity-0 scale-95'}
                     `}
                 >
                     {/* Header */}
