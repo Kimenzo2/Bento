@@ -24,6 +24,7 @@ import {
 import { generateRefinedImage } from '../services/geminiService';
 import MessagesWidget from './MessagesWidget';
 import ChatWidget from './ChatWidget';
+import ChatPanel from './ChatPanel';
 import MobileBottomNav from './MobileBottomNav';
 import { UserProfile } from '../services/profileService';
 
@@ -740,9 +741,12 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         </button>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <ChatWidget
+                        <ChatPanel
                             userProfile={userProfile}
+                            onClose={() => setIsChatOpen(false)}
+                            onUnreadCountChange={setUnreadCount}
                             onCollaborativeTrigger={handleCollaborativeTrigger}
+                            isMobile={true}
                         />
                     </div>
                 </div>
