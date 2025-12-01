@@ -1,8 +1,6 @@
 import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
 // @ts-ignore
-// @ts-ignore
-// import Bytez from "bytez.js";
-const Bytez: any = class { constructor(key: string) { } model(id: string) { return { run: async () => ({ output: "mock" }) } } };
+import Bytez from "bytez.js";
 
 // Load all available Grok API keys (supports up to 3 keys)
 const grokApiKeys = [

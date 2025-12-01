@@ -77,7 +77,8 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
 
                     <button
                         onClick={handlePrint}
-                        className="hidden sm:flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-peach-soft rounded-lg text-xs sm:text-sm font-bold text-charcoal-soft hover:border-coral-burst transition-colors shadow-sm active:scale-95 min-h-[44px]"
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-peach-soft rounded-lg text-xs sm:text-sm font-bold text-charcoal-soft hover:border-coral-burst transition-colors shadow-sm active:scale-95 min-h-[44px]"
+                        title="Print"
                     >
                         <Printer className="w-4 h-4" />
                         <span className="hidden md:inline">Print</span>
