@@ -59,17 +59,26 @@ export const InfographicService = {
             .replace('{SEQUENCE}', 'Numbered 1-N');
 
         try {
+            console.log('🎨 Calling generateIllustration with style:', request.style);
             // Call the real Image Generation API
             const imageUrl = await generateIllustration(prompt, request.style);
 
             if (!imageUrl) {
+                console.error('❌ generateIllustration returned null');
+                console.log('Prompt used (first 200 chars):', prompt.substring(0, 200) + '...');
                 console.warn('Image generation returned null, using placeholder');
                 return 'https://via.placeholder.com/1200x1600?text=Image+Generation+Failed';
             }
 
+            console.log('✅ Image generated successfully:', imageUrl.substring(0, 100) + '...');
             return imageUrl;
         } catch (error) {
-            console.error('Error generating image:', error);
+            console.error('💥 Error generating image:', error);
+            // Log more details
+            if (error instanceof Error) {
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+            }
             return 'https://via.placeholder.com/1200x1600?text=Image+Generation+Error';
         }
     },
@@ -104,15 +113,29 @@ export const InfographicService = {
                     definition: 'Definition placeholder'
                 },
                 // Map structured content based on type
-                steps: content.main_points.map((p: any) => ({
+                // Map structured content based on type
+                steps: request.type === InfographicType.PROCESS ? content.main_points.map((p: any) => ({
                     order: p.point_number,
                     title: p.heading,
                     description: p.content,
                     icon: p.visual_suggestion
-                })),
-                comparisonPoints: [], // TODO: Map if type is Comparison
-                stats: [], // TODO: Map if type is Statistical
-                timelineEvents: [] // TODO: Map if type is Timeline
+                })) : [],
+                comparisonPoints: request.type === InfographicType.COMPARISON ? content.main_points.map((p: any) => ({
+                    itemA: p.heading.split(' vs ')[0] || 'Item A',
+                    itemB: p.heading.split(' vs ')[1] || 'Item B',
+                    category: p.content, // Fixed: was 'attribute', renderer expects 'category'
+                    winner: 'DRAW' // AI would need to determine this, defaulting to DRAW
+                })) : [],
+                stats: request.type === InfographicType.STATISTICAL ? content.main_points.map((p: any) => ({
+                    label: p.heading,
+                    value: p.content.match(/\d+%?/) ? p.content.match(/\d+%?/)[0] : '50%', // Extract number or default
+                    description: p.content
+                })) : [],
+                timelineEvents: request.type === InfographicType.TIMELINE ? content.main_points.map((p: any) => ({
+                    date: p.heading.match(/\d{4}/) ? p.heading.match(/\d{4}/)[0] : `Step ${p.point_number}`, // Fixed: was 'year', renderer expects 'date'
+                    title: p.heading.replace(/\d{4}/, '').trim(),
+                    description: p.content
+                })) : []
             },
             createdAt: new Date()
         };

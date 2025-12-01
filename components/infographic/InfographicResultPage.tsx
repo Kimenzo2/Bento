@@ -76,15 +76,23 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onC
                             <RefreshCw className="w-5 h-5" />
                         </button>
 
+                        <button
+                            onClick={handlePrint}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-cocoa-light hover:text-charcoal-soft"
+                            title="Print"
+                        >
+                            <Printer className="w-5 h-5" />
+                        </button>
+
                         <div className="h-8 w-px bg-peach-soft mx-1 hidden sm:block"></div>
 
                         <button
                             onClick={() => handleExport('png')}
                             disabled={isExporting}
-                            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-peach-soft text-charcoal-soft rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-peach-soft text-charcoal-soft rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all active:scale-95"
                         >
                             <FileImage className="w-4 h-4" />
-                            PNG
+                            <span className="hidden sm:inline">PNG</span>
                         </button>
 
                         <button
@@ -93,7 +101,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onC
                             className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
                         >
                             <FileText className="w-4 h-4" />
-                            <span className="hidden sm:inline">Download PDF</span>
+                            <span className="hidden sm:inline">PDF</span>
                             <span className="sm:hidden">Save</span>
                         </button>
                     </div>

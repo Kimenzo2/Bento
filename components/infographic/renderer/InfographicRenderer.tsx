@@ -30,11 +30,10 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
     return (
         <div
             id="infographic-canvas"
-            className="bg-white shadow-xl transition-transform duration-200 origin-center w-full max-w-[800px] mx-auto overflow-hidden relative"
+            className="bg-white shadow-xl transition-transform duration-200 origin-center w-full max-w-[800px] mx-auto relative"
             style={{
                 height: 'auto',
                 minHeight: '800px',
-                aspectRatio: '3/4',
                 transform: `scale(${scale})`,
                 backgroundImage: 'linear-gradient(to bottom right, #ffffff, #f8f9fa)'
             }}

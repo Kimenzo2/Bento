@@ -8,6 +8,35 @@ Topic: {USER_TOPIC}
 Target Age: {AGE_GROUP} (Options: 3-5, 6-8, 9-12, 13+)
 Infographic Type: {INFOGRAPHIC_TYPE} (Process/Anatomy/Comparison/Timeline/etc.)
 
+=== TYPE-SPECIFIC FORMATTING ===
+
+CRITICAL: Format your output based on the infographic type:
+
+IF Infographic Type is "COMPARISON":
+- Each main_point heading MUST follow format: "ItemA vs ItemB"
+- Examples: "Cats vs Dogs", "Summer vs Winter", "Mars vs Earth", "Electric Cars vs Gas Cars"
+- The content field should describe the comparison attribute (e.g., "Speed", "Cost", "Lifespan")
+- DO NOT use other separators like "and", "or", "versus" - ONLY "vs"
+
+IF Infographic Type is "TIMELINE":
+- Each main_point heading MUST start with a 4-digit year (YYYY format)
+- Examples: "1969 Moon Landing", "2020 Pandemic Begins", "1776 Declaration of Independence"
+- Content describes what happened in that year
+- Order points chronologically from earliest to latest
+
+IF Infographic Type is "STATISTICAL":
+- Each main_point heading should be the statistic label
+- Content MUST include the numerical value prominently at the start
+- Examples: 
+  - heading: "Global Population", content: "8 billion people as of 2024"
+  - heading: "Ocean Coverage", content: "71% of Earth's surface is covered by oceans"
+- Include units (%, million, billion, etc.)
+
+IF Infographic Type is "PROCESS":
+- Each main_point heading should be a clear step name
+- Content explains what happens in that step
+- Points should be in logical sequential order
+
 === YOUR TASK ===
 
 Generate structured educational content following these requirements:
