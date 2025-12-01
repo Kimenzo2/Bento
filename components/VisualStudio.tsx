@@ -24,6 +24,7 @@ import {
 import { generateRefinedImage } from '../services/geminiService';
 import MessagesWidget from './MessagesWidget';
 import ChatWidget from './ChatWidget';
+import MobileBottomNav from './MobileBottomNav';
 import { UserProfile } from '../services/profileService';
 
 interface VisualStudioProps {
@@ -39,21 +40,28 @@ interface Collaborator {
     status: 'idle' | 'typing' | 'generating' | 'done';
     image?: string;
     prompt?: string;
+    likes?: number;
+    likedByUser?: boolean;
 }
 
 const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfile }) => {
     const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // Mobile state
+    const [mobileActiveTab, setMobileActiveTab] = useState<'character' | 'scene' | 'style' | 'chat'>('character');
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
     // Collaborative Mode State
     const [isCollaborativeMode, setIsCollaborativeMode] = useState(false);
     const [isMenuExpanded, setIsMenuExpanded] = useState(false);
     const [expandedVisual, setExpandedVisual] = useState<Collaborator | 'current' | null>(null);
     const [collaborators, setCollaborators] = useState<Collaborator[]>([
-        { id: 'u1', name: 'Sarah Art', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', status: 'idle' },
-        { id: 'u2', name: 'Alex Dev', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', status: 'idle' },
-        { id: 'u3', name: 'Maya Writer', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maya', status: 'idle' },
-        { id: 'u4', name: 'Jordan', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan', status: 'idle' }
+        { id: 'u1', name: 'Sarah Art', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', status: 'idle', likes: 0, likedByUser: false },
+        { id: 'u2', name: 'Alex Dev', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', status: 'idle', likes: 0, likedByUser: false },
+        { id: 'u3', name: 'Maya Writer', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maya', status: 'idle', likes: 0, likedByUser: false },
+        { id: 'u4', name: 'Jordan', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan', status: 'idle', likes: 0, likedByUser: false }
     ]);
 
     const [settings, setSettings] = useState<VisualSettings>({
@@ -195,8 +203,35 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
         }, 3000);
     };
 
+    // Handle liking a collaborator's image
+    const handleLike = (userId: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent opening the expanded view
+        setCollaborators(prev => prev.map(user => {
+            if (user.id === userId) {
+                const isLiked = user.likedByUser;
+                return {
+                    ...user,
+                    likes: (user.likes || 0) + (isLiked ? -1 : 1),
+                    likedByUser: !isLiked
+                };
+            }
+            return user;
+        }));
+    };
+
+    // Mobile tab handler
+    const handleMobileTabChange = (tab: 'character' | 'scene' | 'style' | 'chat') => {
+        setMobileActiveTab(tab);
+        if (tab === 'chat') {
+            setIsChatOpen(true);
+        } else {
+            setIsChatOpen(false);
+            setActiveTab(tab as 'character' | 'scene' | 'style');
+        }
+    };
+
     return (
-        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen flex flex-col p-0' : 'max-w-[1800px] p-6 pb-24'}`}>
+        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen flex flex-col p-0' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
 
             {/* Header */}
             <div className={`relative text-center ${isCollaborativeMode ? 'py-4 px-6 bg-white border-b border-gray-200' : 'mb-6'}`}>
@@ -232,12 +267,13 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 )}
             </div>
 
-            <div className={`flex flex-col lg:flex-row gap-4 md:gap-6 ${isCollaborativeMode ? 'flex-1 overflow-hidden' : 'min-h-[600px] h-[calc(100vh-140px)]'}`}>
+            <div className={`flex flex-col-reverse lg:flex-row gap-4 md:gap-6 ${isCollaborativeMode ? 'flex-1 overflow-hidden' : 'min-h-[600px] h-[calc(100vh-140px)]'}`}>
 
-                {/* Control Panel / Vertical Menu */}
+                {/* Control Panel / Vertical Menu - Hidden on Mobile (except collaborative mode) */}
                 <div
                     className={`
                         bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20
+                        ${isCollaborativeMode ? '' : 'block'}
                         ${isCollaborativeMode
                             ? isMenuExpanded
                                 ? 'w-full lg:w-80 xl:w-96 p-4 md:p-6 h-full'
@@ -560,6 +596,24 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                         </div>
                                                     )}
                                                 </div>
+                                                {/* Like Button - Only show when image is done */}
+                                                {user.status === 'done' && user.image && (
+                                                    <div className="absolute bottom-2 right-2 z-10">
+                                                        <button
+                                                            onClick={(e) => handleLike(user.id, e)}
+                                                            className={`flex items-center gap-1 px-2 py-1 rounded-full shadow-md transition-all ${user.likedByUser
+                                                                ? 'bg-red-500 text-white'
+                                                                : 'bg-white text-gray-600 hover:bg-red-50'
+                                                                }`}
+                                                            title={user.likedByUser ? 'Unlike' : 'Like'}
+                                                        >
+                                                            <span className="text-sm">{user.likedByUser ? '❤️' : '🤍'}</span>
+                                                            {(user.likes || 0) > 0 && (
+                                                                <span className="text-xs font-bold">{user.likes}</span>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -665,13 +719,41 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
             </div>
 
-            {/* Chat Widget - Reddit Style */}
-            <div className="fixed bottom-0 right-4 z-50">
+            {/* Chat Widget - Hidden on Mobile, Visible on Desktop */}
+            <div className="hidden md:block fixed bottom-0 right-4 z-50">
                 <ChatWidget
                     userProfile={userProfile}
                     onCollaborativeTrigger={handleCollaborativeTrigger}
                 />
             </div>
+
+            {/* Mobile Chat Overlay */}
+            {isChatOpen && (
+                <div className="fixed inset-0 bg-white z-[60] md:hidden flex flex-col">
+                    <div className="flex items-center justify-between p-4 border-b-2 border-charcoal-soft">
+                        <h2 className="font-heading font-bold text-xl text-charcoal-soft">Chat</h2>
+                        <button
+                            onClick={() => setIsChatOpen(false)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                            <X size={24} className="text-charcoal-soft" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <ChatWidget
+                            userProfile={userProfile}
+                            onCollaborativeTrigger={handleCollaborativeTrigger}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Mobile Bottom Navigation */}
+            <MobileBottomNav
+                activeTab={mobileActiveTab}
+                onTabChange={handleMobileTabChange}
+                unreadCount={unreadCount}
+            />
         </div>
     );
 };

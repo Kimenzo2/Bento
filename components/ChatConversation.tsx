@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, Smile, MoreVertical, ChevronRight } from 'lucide-react';
 import { chatService, ChatMessage as ChatMessageType } from '../services/chatService';
 import { UserProfile } from '../services/profileService';
+import EmojiPicker from './EmojiPicker';
 
 interface ChatConversationProps {
     threadId: string;
@@ -23,6 +24,7 @@ const ChatConversation: React.FC<ChatConversationProps> = ({
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [threadName, setThreadName] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const channelRef = useRef<any>(null);
 
@@ -83,21 +85,47 @@ const ChatConversation: React.FC<ChatConversationProps> = ({
 
         if (!inputValue.trim() || sending) return;
 
+        const messageContent = inputValue.trim();
+
         // Check for collaborative mode trigger
-        const lowerMessage = inputValue.toLowerCase();
+        const lowerMessage = messageContent.toLowerCase();
         if ((lowerMessage.includes("let's") || lowerMessage.includes("lets")) && onCollaborativeTrigger) {
             onCollaborativeTrigger();
         }
 
+        // Optimistically add message to UI
+        const optimisticMessage: ChatMessageType = {
+            id: `temp-${Date.now()}`,
+            content: messageContent,
+            user_id: userProfile?.id || '',
+            room_id: threadId,
+            type: 'text',
+            created_at: new Date().toISOString(),
+            user: {
+                display_name: userProfile?.full_name || userProfile?.email || 'You',
+                avatar_url: userProfile?.avatar_url || ''
+            }
+        };
+
+        setMessages(prev => [...prev, optimisticMessage]);
+        setInputValue('');
         setSending(true);
+
         try {
-            await chatService.sendMessage(threadId, inputValue.trim());
-            setInputValue('');
+            await chatService.sendMessage(threadId, messageContent);
         } catch (error) {
             console.error('Error sending message:', error);
+            // Remove optimistic message on error
+            setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+            // Restore input value
+            setInputValue(messageContent);
         } finally {
             setSending(false);
         }
+    };
+
+    const handleEmojiSelect = (emoji: string) => {
+        setInputValue(prev => prev + emoji);
     };
 
     // Helper function to render avatar
@@ -143,6 +171,22 @@ const ChatConversation: React.FC<ChatConversationProps> = ({
 
             {/* Input Area */}
             <form onSubmit={handleSendMessage} className="chat-input-area">
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Add emoji"
+                    >
+                        <Smile size={20} className="text-gray-500" />
+                    </button>
+                    {showEmojiPicker && (
+                        <EmojiPicker
+                            onEmojiSelect={handleEmojiSelect}
+                            onClose={() => setShowEmojiPicker(false)}
+                        />
+                    )}
+                </div>
                 <input
                     type="text"
                     value={inputValue}

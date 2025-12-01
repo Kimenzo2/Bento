@@ -20,6 +20,7 @@ import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxP
 import { getUserProfile, incrementBooksCreated, addXP, UserProfile } from './services/profileService';
 import { supabase } from './services/supabaseClient';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
+import InstallPWA from './components/InstallPWA';
 
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
@@ -380,6 +381,9 @@ const App: React.FC = () => {
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
       <Analytics />
+
+      {/* PWA Install Prompt */}
+      <InstallPWA />
     </div>
   );
 };

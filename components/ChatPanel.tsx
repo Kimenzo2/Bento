@@ -89,8 +89,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ userProfile, onClose, onUnreadCou
                         <button className="chat-new-msg-btn">
                             New message
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-                            <X size={20} />
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 hover:border-gray-300"
+                            title="Collapse chat"
+                        >
+                            <X size={20} className="text-gray-600" />
                         </button>
                     </div>
                 </div>
