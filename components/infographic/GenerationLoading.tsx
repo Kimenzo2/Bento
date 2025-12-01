@@ -44,8 +44,7 @@ const GenerationLoading: React.FC<GenerationLoadingProps> = ({ topic }) => {
             <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-6 sm:mb-8">
                 <div className="absolute inset-0 border-4 border-peach-soft rounded-full opacity-30"></div>
                 <div
-                    className="absolute inset-0 border-4 border-coral-burst rounded-full border-t-transparent animate-spin"
-                    style={{ animationDuration: '1.5s' }}
+                    className="absolute inset-0 border-4 border-coral-burst rounded-full border-t-transparent animate-spin [animation-duration:1.5s]"
                 ></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-gold-sunshine animate-pulse" />
@@ -59,10 +58,9 @@ const GenerationLoading: React.FC<GenerationLoadingProps> = ({ topic }) => {
             <div className="w-full max-w-md bg-peach-soft/30 rounded-full h-2 mb-6 sm:mb-8 overflow-hidden">
                 <div
                     className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine transition-all duration-300 ease-out"
-                    style={{ width: `${progress}%` }}
+                    style={{ width: `${progress}%` } as React.CSSProperties}
                 ></div>
             </div>
-
             {/* Fun Fact Card */}
             <div className="bg-white border border-mint-breeze rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-soft-md animate-slideUp">
                 <div className="flex items-start gap-3">

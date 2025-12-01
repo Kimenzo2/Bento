@@ -117,6 +117,8 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onC
                         <button
                             onClick={() => setZoom(z => Math.min(z + 0.1, 2))}
                             className="p-2 hover:bg-gray-50 rounded-lg transition-colors active:scale-95"
+                            title="Zoom in"
+                            aria-label="Zoom in"
                         >
                             <ZoomIn className="w-5 h-5 text-charcoal-soft" />
                         </button>
@@ -126,6 +128,8 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onC
                         <button
                             onClick={() => setZoom(z => Math.max(z - 0.1, 0.5))}
                             className="p-2 hover:bg-gray-50 rounded-lg transition-colors active:scale-95"
+                            title="Zoom out"
+                            aria-label="Zoom out"
                         >
                             <ZoomOut className="w-5 h-5 text-charcoal-soft" />
                         </button>

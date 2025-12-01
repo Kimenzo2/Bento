@@ -130,8 +130,14 @@ class ChatService {
                 presence: {
                     key: roomId,
                 },
+                broadcast: {
+                    self: false, // Don't receive our own broadcasts
+                },
             },
         });
+
+        // Cache for user profiles to avoid repeated fetches
+        const userCache = new Map<string, { display_name: string; avatar_url: string }>();
 
         channel
             // Listen for new messages
@@ -146,9 +152,32 @@ class ChatService {
                 async (payload: RealtimePostgresChangesPayload<ChatMessage>) => {
                     const newRecord = payload.new as ChatMessage;
 
-                    // Fetch user details for the new message if needed
-                    // For now, we'll construct the message with available data
-                    // The UI can handle missing user details or we can rely on presence/cache
+                    // Try to get user details from cache or fetch
+                    let userDetails = userCache.get(newRecord.user_id);
+                    
+                    if (!userDetails) {
+                        // Try to get from presence state first
+                        const presenceState = channel.presenceState();
+                        Object.values(presenceState).forEach((presences: any) => {
+                            presences.forEach((p: any) => {
+                                if (p.user_id === newRecord.user_id) {
+                                    userDetails = {
+                                        display_name: p.display_name,
+                                        avatar_url: p.avatar_url
+                                    };
+                                    userCache.set(newRecord.user_id, userDetails!);
+                                }
+                            });
+                        });
+                    }
+                    
+                    // If still not found, use default
+                    if (!userDetails) {
+                        userDetails = {
+                            display_name: 'User',
+                            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.user_id}`
+                        };
+                    }
 
                     const msg: ChatMessage = {
                         id: newRecord.id,
@@ -237,9 +266,12 @@ class ChatService {
     /**
      * Add emoji reaction to a message
      */
-    async addReaction(messageId: string, emoji: string): Promise<void> {
+    async addReaction(messageId: string, emoji: string): Promise<boolean> {
         const user = await supabase.auth.getUser();
-        if (!user.data.user) return;
+        if (!user.data.user) {
+            console.warn('Cannot add reaction: User not authenticated');
+            return false;
+        }
 
         const { error } = await supabase
             .from('message_reactions')
@@ -251,15 +283,20 @@ class ChatService {
 
         if (error) {
             console.error('Error adding reaction:', error);
+            return false;
         }
+        return true;
     }
 
     /**
      * Remove emoji reaction from a message
      */
-    async removeReaction(messageId: string, emoji: string): Promise<void> {
+    async removeReaction(messageId: string, emoji: string): Promise<boolean> {
         const user = await supabase.auth.getUser();
-        if (!user.data.user) return;
+        if (!user.data.user) {
+            console.warn('Cannot remove reaction: User not authenticated');
+            return false;
+        }
 
         const { error } = await supabase
             .from('message_reactions')
@@ -270,7 +307,9 @@ class ChatService {
 
         if (error) {
             console.error('Error removing reaction:', error);
+            return false;
         }
+        return true;
     }
 
     /**

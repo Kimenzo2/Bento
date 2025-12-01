@@ -4,6 +4,18 @@ const GROK_API_KEY = import.meta.env.VITE_GROK_API_KEY;
 const GROK_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const GROK_MODEL = 'x-ai/grok-4.1-fast:free';
 
+// Validate API key at module load
+if (!GROK_API_KEY) {
+    console.warn('⚠️ VITE_GROK_API_KEY is not configured. AI features will not work.');
+}
+
+/**
+ * Check if the Grok API is available
+ */
+export const isGrokAvailable = (): boolean => {
+    return Boolean(GROK_API_KEY && GROK_API_KEY.length > 0);
+};
+
 interface GrokMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -19,6 +31,10 @@ export async function improveText(
     tone: string,
     targetAudience: string
 ): Promise<string> {
+    if (!GROK_API_KEY) {
+        throw new Error('Grok API key is not configured. Please add VITE_GROK_API_KEY to your environment.');
+    }
+
     try {
         const messages: GrokMessage[] = [
             {
@@ -73,6 +89,10 @@ export async function checkCharacterConsistency(project: BookProject): Promise<{
     }>;
     overallScore: number;
 }> {
+    if (!GROK_API_KEY) {
+        throw new Error('Grok API key is not configured. Please add VITE_GROK_API_KEY to your environment.');
+    }
+
     try {
         // Collect all text from the book
         const allPages = project.chapters.flatMap(ch => ch.pages);
@@ -157,6 +177,12 @@ export async function getWritingSuggestions(
     suggestion: string;
     reason: string;
 }>> {
+    // Return empty array if API is not available (graceful degradation)
+    if (!GROK_API_KEY) {
+        console.warn('Grok API key not configured - writing suggestions disabled');
+        return [];
+    }
+
     try {
         if (!text || text.length < 10) {
             return []; // Don't suggest for very short text

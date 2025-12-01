@@ -49,6 +49,36 @@ export default defineConfig(({ mode }) => {
     build: {
       commonjsOptions: {
         include: [/bytez\.js/, /node_modules/]
+      },
+      // Production optimizations
+      target: 'es2020',
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: mode === 'production',
+          drop_debugger: mode === 'production',
+          pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
+        }
+      },
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split vendor chunks for better caching
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-ui': ['lucide-react', 'framer-motion'],
+          }
+        }
+      },
+      // Generate source maps for error tracking
+      sourcemap: mode === 'production' ? 'hidden' : true,
+      // Increase chunk size warning limit
+      chunkSizeWarningLimit: 1000,
+    },
+    // Performance optimizations
+    server: {
+      hmr: {
+        overlay: true
       }
     }
   }

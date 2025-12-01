@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BookProject, Page, UserTier } from '../types';
 import {
     ChevronLeft,
@@ -50,6 +50,15 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Cleanup suggestion timeout on unmount to prevent memory leak
+    useEffect(() => {
+        return () => {
+            if (suggestionTimeoutRef.current) {
+                clearTimeout(suggestionTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const allPages = project.chapters.flatMap(c => c.pages);
     const activePage = allPages[activePageIndex];
@@ -501,11 +510,21 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
                 {/* Floating Action Bar */}
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full shadow-soft-lg px-6 py-3 flex items-center gap-6 border border-white z-30">
-                    <button onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))} className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors">
+                    <button 
+                        onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))} 
+                        className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors"
+                        aria-label="Previous page"
+                        title="Previous page"
+                    >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <span className="font-heading font-bold text-charcoal-soft text-sm whitespace-nowrap">Preview Mode</span>
-                    <button onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))} className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors">
+                    <button 
+                        onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))} 
+                        className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors"
+                        aria-label="Next page"
+                        title="Next page"
+                    >
                         <ChevronRight className="w-5 h-5" />
                     </button>
                 </div>

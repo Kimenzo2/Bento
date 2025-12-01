@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Sparkles, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { InfographicData, GenerationRequest, AgeGroup, InfographicType, InfographicStyle, GuideCharacter } from '../../types/infographic';
 import TopicInputStep from './TopicInputStep.tsx';
 import CustomizationStep from './CustomizationStep.tsx';
@@ -22,21 +22,38 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
         includeInteractive: true
     });
     const [generatedData, setGeneratedData] = useState<InfographicData | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleNext = () => setStep(prev => prev + 1);
     const handleBack = () => setStep(prev => prev - 1);
 
     const handleGenerate = async () => {
+        // Validate topic before proceeding
+        if (!request.topic || request.topic.trim().length < 3) {
+            setError('Please enter a topic with at least 3 characters');
+            return;
+        }
+        
+        setError(null);
         setStep(3); // Loading state
+        
         try {
+            console.log('🚀 Starting infographic generation for topic:', request.topic);
             const data = await InfographicService.generate(request);
+            
+            // Validate generated data
+            if (!data || !data.title || !data.content) {
+                throw new Error('Generated data is incomplete');
+            }
+            
+            console.log('✅ Infographic generated successfully:', data.title);
             setGeneratedData(data);
             setStep(4); // Preview state
         } catch (error) {
-            console.error("Generation failed:", error);
+            console.error("❌ Generation failed:", error);
             setStep(2);
-            // In a real app, we'd show a toast or error message here
-            alert("Failed to generate infographic. Please try again.");
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            setError(`Failed to generate infographic: ${errorMessage}. Please try again.`);
         }
     };
 
@@ -60,6 +77,22 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
                     ))}
                 </div>
             </div>
+
+            {/* Error Banner */}
+            {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-fadeIn">
+                    <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-red-700 font-medium text-sm">{error}</p>
+                        <button 
+                            onClick={() => setError(null)}
+                            className="text-red-500 text-xs mt-1 hover:underline"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Content */}
             <div className="min-h-[400px]">
@@ -85,7 +118,10 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
                     <InfographicResultPage
                         data={generatedData}
                         onClose={onClose}
-                        onRegenerate={() => setStep(1)}
+                        onRegenerate={() => {
+                            setGeneratedData(null);
+                            setStep(1);
+                        }}
                     />
                 )}
             </div>

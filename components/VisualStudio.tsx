@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArtStyle, BookProject, VisualSettings } from '../types';
 import {
     Wand2,
@@ -19,7 +19,20 @@ import {
     Maximize2,
     Minimize2,
     X,
-    LogOut
+    LogOut,
+    Share2,
+    Trophy,
+    Zap,
+    MessageCircle,
+    Activity,
+    GitFork,
+    Eye,
+    Radio,
+    Video,
+    GitBranch,
+    Bell,
+    BarChart2,
+    History
 } from 'lucide-react';
 import { generateRefinedImage } from '../services/geminiService';
 import MessagesWidget from './MessagesWidget';
@@ -27,6 +40,27 @@ import ChatWidget from './ChatWidget';
 import ChatPanel from './ChatPanel';
 import MobileBottomNav from './MobileBottomNav';
 import { UserProfile } from '../services/profileService';
+import {
+    ReactionBar,
+    PresenceIndicator,
+    ActivityFeed,
+    SharedVisualCard,
+    ChallengeCard,
+    NotificationCenter,
+    BroadcastStudio,
+    InsightsDashboard,
+    FamilyTreeViewer
+} from './collaboration';
+import { collaborationService } from '../services/collaborationService';
+import type {
+    SharedVisual,
+    PresenceUser,
+    Activity as ActivityType,
+    Challenge,
+    Reaction,
+    ReactionType
+} from '../types/collaboration';
+import type { VisualVersion } from '../types/advanced';
 
 interface VisualStudioProps {
     project: BookProject | null;
@@ -45,16 +79,91 @@ interface Collaborator {
     likedByUser?: boolean;
 }
 
+// View tabs for collaborative mode
+type CollabView = 'gallery' | 'activity' | 'challenges' | 'broadcast' | 'insights';
+
 const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfile }) => {
     const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Collaboration state
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [collabView, setCollabView] = useState<CollabView>('gallery');
+    const [sharedVisuals, setSharedVisuals] = useState<SharedVisual[]>([]);
+    const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
+    const [activities, setActivities] = useState<ActivityType[]>([]);
+    const [challenges, setChallenges] = useState<Challenge[]>([]);
+    const [selectedVisual, setSelectedVisual] = useState<SharedVisual | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareCaption, setShareCaption] = useState('');
+    const [shareVisibility, setShareVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
+    const channelRef = useRef<ReturnType<typeof collaborationService.subscribeToSession> | null>(null);
+
+    // Advanced features state
+    const [showBroadcastStudio, setShowBroadcastStudio] = useState(false);
+    const [showInsightsDashboard, setShowInsightsDashboard] = useState(false);
+    const [showFamilyTree, setShowFamilyTree] = useState(false);
+    const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+    const [selectedVisualForHistory, setSelectedVisualForHistory] = useState<string | null>(null);
+    const notificationBtnRef = useRef<HTMLButtonElement>(null);
+
+    // Real-time connection status
+    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+    const [isLoadingData, setIsLoadingData] = useState(false);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectAttemptsRef = useRef(0);
+    const MAX_RECONNECT_ATTEMPTS = 5;
+
+    // Default characters to use when project has none
+    const defaultCharacters = [
+        {
+            id: 'default-1',
+            name: 'Luna',
+            role: 'protagonist',
+            description: 'A curious young girl with bright eyes and a sense of adventure',
+            visualTraits: 'Young girl, 8 years old, brown hair in pigtails, green eyes, freckles, wearing a blue dress with white polka dots',
+            traits: ['curious', 'brave', 'kind']
+        },
+        {
+            id: 'default-2',
+            name: 'Max',
+            role: 'sidekick',
+            description: 'A playful golden retriever puppy who loves to explore',
+            visualTraits: 'Golden retriever puppy, fluffy golden fur, floppy ears, brown eyes, red collar with a star tag',
+            traits: ['loyal', 'playful', 'energetic']
+        },
+        {
+            id: 'default-3',
+            name: 'Professor Owl',
+            role: 'mentor',
+            description: 'A wise old owl who guides the heroes on their journey',
+            visualTraits: 'Great horned owl, gray and brown feathers, large amber eyes, wearing small round spectacles',
+            traits: ['wise', 'patient', 'mysterious']
+        },
+        {
+            id: 'default-4',
+            name: 'Spark',
+            role: 'companion',
+            description: 'A magical firefly that glows different colors based on mood',
+            visualTraits: 'Tiny firefly, iridescent wings, glowing yellow-green light, friendly expression',
+            traits: ['cheerful', 'helpful', 'magical']
+        }
+    ];
+
+    // Use project characters if available, otherwise use defaults
+    const availableCharacters = (project?.characters && project.characters.length > 0)
+        ? project.characters
+        : defaultCharacters;
 
     // Mobile state
     const [mobileActiveTab, setMobileActiveTab] = useState<'character' | 'scene' | 'style' | 'chat'>('character');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Collaborative Mode State
+    // View Mode State
+    const [viewMode, setViewMode] = useState<'individual' | 'collaborative'>('individual');
+
+    // Collaborative Mode State (Synced with viewMode)
     const [isCollaborativeMode, setIsCollaborativeMode] = useState(false);
     const [isMenuExpanded, setIsMenuExpanded] = useState(false);
     const [expandedVisual, setExpandedVisual] = useState<Collaborator | 'current' | null>(null);
@@ -65,9 +174,14 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
         { id: 'u4', name: 'Jordan', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan', status: 'idle', likes: 0, likedByUser: false }
     ]);
 
+    // Sync isCollaborativeMode with viewMode
+    useEffect(() => {
+        setIsCollaborativeMode(viewMode === 'collaborative');
+    }, [viewMode]);
+
     const [settings, setSettings] = useState<VisualSettings>({
         activeTab: 'character',
-        selectedCharacterId: project?.characters?.[0]?.id || null,
+        selectedCharacterId: availableCharacters[0]?.id || null,
         expression: 'Neutral',
         pose: 'Standing',
         costume: 'Default Outfit',
@@ -94,18 +208,314 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     const expressions = ['Neutral', 'Happy', 'Sad', 'Angry', 'Surprised', 'Determined', 'Fearful', 'Mischievous'];
     const poses = ['Standing', 'Sitting', 'Running', 'Jumping', 'Thinking', 'Fighting Stance', 'Dancing', 'Floating'];
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // COLLABORATION EFFECTS - Production-Ready Real-time
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Initialize collaboration session when entering collaborative mode
+    useEffect(() => {
+        if (isCollaborativeMode && userProfile) {
+            setConnectionStatus('connecting');
+            reconnectAttemptsRef.current = 0;
+            initializeCollabSession();
+        }
+        
+        return () => {
+            // Cleanup on unmount or mode change
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            if (channelRef.current && sessionId) {
+                collaborationService.unsubscribeFromSession(sessionId);
+                channelRef.current = null;
+            }
+            setConnectionStatus('disconnected');
+        };
+    }, [isCollaborativeMode, userProfile?.id]);
+
+    // Fetch shared visuals and challenges when session changes
+    useEffect(() => {
+        if (sessionId && connectionStatus === 'connected') {
+            loadSharedVisuals();
+            loadChallenges();
+            loadActivities();
+        }
+    }, [sessionId, connectionStatus]);
+
+    // Periodic refresh for live data (every 30 seconds)
+    useEffect(() => {
+        if (!sessionId || !isCollaborativeMode || connectionStatus !== 'connected') return;
+        
+        const interval = setInterval(() => {
+            loadSharedVisuals();
+            loadChallenges();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [sessionId, isCollaborativeMode, connectionStatus]);
+
+    // Update user presence status when generating
+    useEffect(() => {
+        if (sessionId && userProfile && connectionStatus === 'connected') {
+            collaborationService.updateStatus(isGenerating ? 'generating' : 'idle');
+        }
+    }, [isGenerating, sessionId, userProfile?.id, connectionStatus]);
+
+    const initializeCollabSession = async () => {
+        if (!userProfile) return;
+        
+        try {
+            setConnectionStatus('connecting');
+            // Use project ID or create a default session
+            const projectSessionId = project?.id || 'visual-studio-global';
+            setSessionId(projectSessionId);
+
+            // Join the session first
+            await collaborationService.joinSession(projectSessionId);
+
+            // Subscribe to real-time updates
+            const channel = collaborationService.subscribeToSession(projectSessionId, {
+                onVisualAdded: (visual: SharedVisual) => {
+                    setSharedVisuals(prev => {
+                        // Avoid duplicates
+                        if (prev.some(v => v.id === visual.id)) return prev;
+                        return [visual, ...prev];
+                    });
+                    // Show toast for new visuals from others
+                    if (visual.user_id !== userProfile.id) {
+                        showToast(`🎨 ${visual.user?.full_name || 'Someone'} shared a new creation!`);
+                    }
+                },
+                onVisualUpdated: (visual) => {
+                    setSharedVisuals(prev => prev.map(v => v.id === visual.id ? visual : v));
+                },
+                onReactionAdded: (reaction) => {
+                    setSharedVisuals(prev => prev.map(v => {
+                        if (v.id === reaction.visual_id) {
+                            const existingReactions = v.reactions || [];
+                            // Avoid duplicate reactions
+                            if (existingReactions.some(r => r.id === reaction.id)) return v;
+                            return { ...v, reactions: [...existingReactions, reaction] };
+                        }
+                        return v;
+                    }));
+                },
+                onReactionRemoved: (reaction) => {
+                    setSharedVisuals(prev => prev.map(v => {
+                        if (v.id === reaction.visual_id) {
+                            return {
+                                ...v,
+                                reactions: (v.reactions || []).filter(r => r.id !== reaction.id)
+                            };
+                        }
+                        return v;
+                    }));
+                },
+                onActivityAdded: (activity) => {
+                    setActivities(prev => {
+                        // Avoid duplicates
+                        if (prev.some(a => a.id === activity.id)) return prev;
+                        return [activity, ...prev].slice(0, 50);
+                    });
+                },
+                onPresenceChange: (users) => {
+                    setPresenceUsers(users);
+                },
+                onTyping: (userId, isTyping) => {
+                    // Update presence with typing status
+                    setPresenceUsers(prev => prev.map(u => 
+                        u.user_id === userId 
+                            ? { ...u, status: isTyping ? 'typing' : 'idle' } 
+                            : u
+                    ));
+                }
+            });
+
+            channelRef.current = channel;
+            
+            // Mark as connected successfully
+            setConnectionStatus('connected');
+            reconnectAttemptsRef.current = 0;
+            showToast('✅ Connected to collaboration studio!');
+        } catch (error) {
+            console.error('Failed to initialize collaboration session:', error);
+            setConnectionStatus('disconnected');
+            handleReconnect();
+        }
+    };
+
+    const loadSharedVisuals = async () => {
+        if (!sessionId) return;
+        setIsLoadingData(true);
+        try {
+            const result = await collaborationService.getSharedVisuals({ sessionId });
+            setSharedVisuals(result.data);
+        } catch (error) {
+            console.error('Error loading shared visuals:', error);
+            showToast('⚠️ Failed to load gallery. Pull to refresh.');
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
+    const loadActivities = async () => {
+        if (!sessionId) return;
+        try {
+            const result = await collaborationService.getActivities({ 
+                scope: 'session', 
+                sessionId, 
+                limit: 50 
+            });
+            setActivities(result);
+        } catch (error) {
+            console.error('Error loading activities:', error);
+        }
+    };
+
+    const loadChallenges = async () => {
+        try {
+            const activeChallenges = await collaborationService.getActiveChallenges();
+            setChallenges(activeChallenges);
+        } catch (error) {
+            console.error('Error loading challenges:', error);
+        }
+    };
+
+    // Manual refresh function for gallery
+    const handleRefreshGallery = async () => {
+        if (connectionStatus === 'error') {
+            // Reset reconnection attempts and try again
+            reconnectAttemptsRef.current = 0;
+            await initializeCollabSession();
+        } else {
+            showToast('🔄 Refreshing...');
+            await Promise.all([
+                loadSharedVisuals(),
+                loadActivities(),
+                loadChallenges()
+            ]);
+            showToast('✅ Gallery updated!');
+        }
+    };
+
+    // Reconnect handler with exponential backoff
+    const handleReconnect = () => {
+        if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+            setConnectionStatus('error');
+            showToast('❌ Unable to reconnect. Please refresh the page.');
+            return;
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        reconnectAttemptsRef.current++;
+        
+        setConnectionStatus('connecting');
+        showToast(`🔄 Reconnecting... (Attempt ${reconnectAttemptsRef.current})`);
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+            initializeCollabSession();
+        }, delay);
+    };
+
+    // Share current visual to the gallery
+    const handleShareVisual = async () => {
+        if (!settings.generatedImage || !sessionId) return;
+
+        try {
+            const result = await collaborationService.shareVisual({
+                session_id: sessionId,
+                image_url: settings.generatedImage,
+                prompt: settings.prompt,
+                visibility: shareVisibility,
+                settings: {
+                    styleA: settings.styleA,
+                    styleB: settings.styleB,
+                    mixRatio: settings.mixRatio,
+                    lighting: settings.lighting,
+                    cameraAngle: settings.cameraAngle,
+                    expression: settings.expression,
+                    pose: settings.pose,
+                    costume: settings.costume,
+                    characterId: settings.selectedCharacterId || undefined,
+                    characterName: availableCharacters.find(c => c.id === settings.selectedCharacterId)?.name
+                }
+            });
+
+            if (result.success && result.data) {
+                setSharedVisuals(prev => [result.data!, ...prev]);
+                setShowShareModal(false);
+                setShareCaption('');
+
+                // Show success toast
+                showToast('🎨 Visual shared with the community!');
+            }
+        } catch (error) {
+            console.error('Failed to share visual:', error);
+        }
+    };
+
+    // Handle remixing a visual
+    const handleRemixVisual = async (visual: SharedVisual) => {
+        // Load the original settings into the editor
+        if (visual.settings) {
+            setSettings(prev => ({
+                ...prev,
+                prompt: visual.prompt || prev.prompt,
+                styleA: (visual.settings?.styleA as ArtStyle) || prev.styleA,
+                styleB: (visual.settings?.styleB as ArtStyle) || prev.styleB,
+                mixRatio: visual.settings?.mixRatio ?? prev.mixRatio,
+                lighting: visual.settings?.lighting || prev.lighting,
+                cameraAngle: visual.settings?.cameraAngle || prev.cameraAngle,
+                expression: visual.settings?.expression || prev.expression,
+                pose: visual.settings?.pose || prev.pose,
+                costume: visual.settings?.costume || prev.costume
+            }));
+        }
+
+        // Switch to individual mode to edit
+        setViewMode('individual');
+        showToast(`🔄 Remixing ${visual.user?.display_name || visual.user?.full_name || 'Anonymous'}'s creation!`);
+    };
+
+    // Handle reactions on visuals
+    const handleReaction = async (visualId: string, reactionType: ReactionType) => {
+        await collaborationService.addReaction(visualId, reactionType);
+    };
+
+    const handleRemoveReaction = async (visualId: string, reactionType: ReactionType) => {
+        await collaborationService.removeReaction(visualId, reactionType);
+    };
+
+    // Simple toast notification
+    const showToast = (message: string) => {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-24 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-full shadow-lg z-[100] animate-bounce font-heading font-bold text-lg';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.5s';
+            toast.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(toast), 500);
+        }, 3000);
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GENERATION HANDLERS
+    // ─────────────────────────────────────────────────────────────────────────
+
     const handleGenerate = async () => {
-        console.log("🎨 Render Scene clicked! Starting generation...");
         setIsGenerating(true);
 
         let promptToUse = settings.prompt;
         let charDesc = "";
 
         // Add character context if available
-        if (activeTab === 'character' && settings.selectedCharacterId && project) {
-            const char = project.characters.find(c => c.id === settings.selectedCharacterId);
+        if (activeTab === 'character' && settings.selectedCharacterId) {
+            const char = availableCharacters.find(c => c.id === settings.selectedCharacterId);
             if (char) {
-                charDesc = `${char.name}: ${char.description}. Visual traits: ${char.visualTraits}. Wearing ${settings.costume}. Expression: ${settings.expression}. Pose: ${settings.pose}.`;
+                const visualDescription = char.visualTraits || (char as any).visualPrompt || '';
+                charDesc = `${char.name}: ${char.description}. Visual traits: ${visualDescription}. Wearing ${settings.costume}. Expression: ${settings.expression}. Pose: ${settings.pose}.`;
                 promptToUse = `Full body character design sheet of ${char.name}`;
             }
         } else if (activeTab === 'scene') {
@@ -147,12 +557,10 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        console.log('✅ Asset saved successfully');
     };
 
     const handleCollaborationStart = () => {
-        setIsCollaborativeMode(true);
+        setViewMode('collaborative');
         setIsMenuExpanded(true);
 
         // Simulate other users starting to work
@@ -182,7 +590,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     };
 
     const handleExitCollaboration = () => {
-        setIsCollaborativeMode(false);
+        setViewMode('individual');
         setCollaborators(prev => prev.map(c => ({ ...c, status: 'idle', image: undefined })));
         setExpandedVisual(null);
     };
@@ -232,337 +640,544 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     };
 
     return (
-        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen flex flex-col p-0' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
+        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen flex flex-col' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
 
-            {/* Header */}
-            <div className={`relative text-center ${isCollaborativeMode ? 'py-4 px-6 bg-white border-b border-gray-200' : 'mb-6'}`}>
+            {/* Header with Mode Switcher */}
+            <div className={`relative text-center mb-6 ${isCollaborativeMode ? 'px-4 md:px-8 pt-4' : 'px-12 md:px-20'}`}>
                 {onBack && (
                     <button
                         onClick={onBack}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors"
+                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors z-10"
                         aria-label="Go back"
                     >
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                 )}
-                <h1 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft mb-2 flex items-center justify-center gap-3">
-                    <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-gold-sunshine" />
-                    Visual Studio
-                    {isCollaborativeMode && <span className="text-xs md:text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 md:px-3 py-1 rounded-full ml-2">Collaborative</span>}
-                </h1>
-                {!isCollaborativeMode && (
-                    <p className="text-cocoa-light font-body text-sm md:text-base">
-                        Fine-tune characters, compose scenes, and experiment with style alchemy.
-                    </p>
-                )}
 
-                {/* Exit Collaborative Mode Button */}
-                {isCollaborativeMode && (
+                {/* Right Side Actions - Notifications, Go Live, Insights */}
+                <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2 z-10">
+                    {/* Notification Bell Button */}
                     <button
-                        onClick={handleExitCollaboration}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors font-bold text-sm"
+                        ref={notificationBtnRef}
+                        onClick={() => userProfile && setShowNotificationCenter(!showNotificationCenter)}
+                        className={`relative p-2 rounded-xl transition-all shadow-sm border border-gray-200 ${userProfile ? 'bg-white/80 hover:bg-white text-gray-600 hover:text-coral-burst' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                        title={userProfile ? "Notifications" : "Login to access notifications"}
                     >
-                        <LogOut className="w-4 h-4" />
-                        <span className="hidden sm:inline">Exit Mode</span>
+                        <Bell className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
-                )}
+
+                    {/* Go Live Button - Only in collaborative mode */}
+                    {viewMode === 'collaborative' && (
+                        <button
+                            onClick={() => userProfile && setShowBroadcastStudio(true)}
+                            className={`flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 rounded-xl font-bold text-xs md:text-sm transition-transform shadow-lg ${userProfile ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:scale-105' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            disabled={!userProfile}
+                        >
+                            <Radio className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
+                            <span className="hidden sm:inline">Live</span>
+                        </button>
+                    )}
+
+                    {/* Creative Insights Button - Only in collaborative mode */}
+                    {viewMode === 'collaborative' && (
+                        <button
+                            onClick={() => userProfile && setShowInsightsDashboard(true)}
+                            className={`p-1.5 md:p-2 rounded-xl transition-transform shadow-lg ${userProfile ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:scale-105' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            title={userProfile ? "Creative Insights" : "Login to view insights"}
+                            disabled={!userProfile}
+                        >
+                            <BarChart2 className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Mode Switcher */}
+                <div className="inline-flex bg-cream-soft p-1.5 rounded-2xl border border-peach-soft/50 shadow-sm">
+                    <button
+                        onClick={() => setViewMode('individual')}
+                        className={`px-6 py-2.5 rounded-xl font-heading font-bold text-sm flex items-center gap-2 transition-all ${viewMode === 'individual'
+                            ? 'bg-white text-coral-burst shadow-sm'
+                            : 'text-cocoa-light hover:text-charcoal-soft'
+                            }`}
+                    >
+                        <Wand2 className="w-4 h-4" />
+                        Individual
+                    </button>
+                    <button
+                        onClick={() => setViewMode('collaborative')}
+                        className={`px-6 py-2.5 rounded-xl font-heading font-bold text-sm flex items-center gap-2 transition-all ${viewMode === 'collaborative'
+                            ? 'bg-white text-purple-500 shadow-sm'
+                            : 'text-cocoa-light hover:text-charcoal-soft'
+                            }`}
+                    >
+                        <Users className="w-4 h-4" />
+                        Collaborative
+                        {/* Connection Status Indicator */}
+                        {viewMode === 'collaborative' && (
+                            <span 
+                                className={`w-2 h-2 rounded-full ml-1 ${
+                                    connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' :
+                                    connectionStatus === 'connecting' ? 'bg-yellow-400 animate-ping' :
+                                    connectionStatus === 'error' ? 'bg-red-500' :
+                                    'bg-gray-400'
+                                }`}
+                                title={connectionStatus === 'connected' ? 'Live - Real-time sync active' : 
+                                       connectionStatus === 'connecting' ? 'Connecting...' :
+                                       connectionStatus === 'error' ? 'Connection failed - Click to retry' :
+                                       'Disconnected'}
+                            />
+                        )}
+                    </button>
+                </div>
+
+                <p className="text-cocoa-light font-body text-sm mt-3">
+                    {viewMode === 'individual'
+                        ? 'Fine-tune characters, compose scenes, and experiment with style alchemy.'
+                        : (
+                            <>
+                                Explore community creations, join challenges, and remix visuals.
+                                {connectionStatus === 'connected' && (
+                                    <span className="ml-2 text-green-600 font-semibold">
+                                        🟢 Live
+                                    </span>
+                                )}
+                                {connectionStatus === 'connecting' && (
+                                    <span className="ml-2 text-yellow-600 font-semibold animate-pulse">
+                                        ⏳ Connecting...
+                                    </span>
+                                )}
+                                {connectionStatus === 'error' && (
+                                    <button 
+                                        onClick={initializeCollabSession}
+                                        className="ml-2 text-red-600 font-semibold hover:underline"
+                                    >
+                                        ⚠️ Connection lost - Click to retry
+                                    </button>
+                                )}
+                            </>
+                        )}
+                </p>
             </div>
 
             <div className={`flex flex-col-reverse lg:flex-row gap-4 md:gap-6 ${isCollaborativeMode ? 'flex-1 overflow-hidden' : 'min-h-[600px] h-[calc(100vh-140px)]'}`}>
 
-                {/* Control Panel / Vertical Menu - Hidden on Mobile (except collaborative mode) */}
-                <div
-                    className={`
+                {/* Control Panel / Vertical Menu - Only visible in Individual Mode */}
+                {viewMode === 'individual' && (
+                    <div
+                        className={`
                         bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20
-                        ${isCollaborativeMode ? '' : 'block'}
-                        ${isCollaborativeMode
-                            ? isMenuExpanded
-                                ? 'w-full lg:w-80 xl:w-96 p-4 md:p-6 h-full'
-                                : 'w-16 md:w-20 flex flex-col items-center p-3 h-full'
-                            : 'w-full lg:w-1/3 p-4 md:p-6 h-full'}
+                        w-full lg:w-1/3 p-4 md:p-6 h-full
                     `}
-                >
-                    {isCollaborativeMode && !isMenuExpanded ? (
-                        // Collapsed Vertical Menu
-                        <div className="flex flex-col gap-4 md:gap-6 items-center mt-4">
-                            <button onClick={() => setIsMenuExpanded(true)} className="p-2 rounded-full hover:bg-gray-100 mb-4">
-                                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-500" />
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('character')}
-                                className={`p-2.5 md:p-3 rounded-xl transition-all ${activeTab === 'character' ? 'bg-coral-burst text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
-                                title="Character"
-                            >
-                                <Users className="w-5 h-5 md:w-6 md:h-6" />
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('scene')}
-                                className={`p-2.5 md:p-3 rounded-xl transition-all ${activeTab === 'scene' ? 'bg-coral-burst text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
-                                title="Scene"
-                            >
-                                <Camera className="w-5 h-5 md:w-6 md:h-6" />
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('style')}
-                                className={`p-2.5 md:p-3 rounded-xl transition-all ${activeTab === 'style' ? 'bg-coral-burst text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
-                                title="Style"
-                            >
-                                <Palette className="w-5 h-5 md:w-6 md:h-6" />
-                            </button>
-                        </div>
-                    ) : (
-                        // Full Control Panel
-                        <>
-                            {isCollaborativeMode && (
-                                <button onClick={() => setIsMenuExpanded(false)} className="mb-4 p-2 rounded-full hover:bg-gray-100 self-start">
-                                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-500" />
+                    >
+                        {/* Tabs */}
+                        <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
+                            {['character', 'scene', 'style'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => {
+                                        setActiveTab(tab as any);
+                                        setSettings({ ...settings, generatedImage: null });
+                                    }}
+                                    className={`flex-1 py-2 md:py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm capitalize transition-all
+                            ${activeTab === tab ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light hover:text-charcoal-soft'}`}
+                                >
+                                    {tab}
                                 </button>
-                            )}
+                            ))}
+                        </div>
 
-                            {/* Tabs */}
-                            <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
-                                {['character', 'scene', 'style'].map((tab) => (
-                                    <button
-                                        key={tab}
-                                        onClick={() => {
-                                            setActiveTab(tab as any);
-                                            setSettings({ ...settings, generatedImage: null });
-                                        }}
-                                        className={`flex-1 py-2 md:py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm capitalize transition-all
-                                ${activeTab === tab ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light hover:text-charcoal-soft'}`}
+                        {/* Tab Content: Character */}
+                        {activeTab === 'character' && (
+                            <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                        <Users className="w-4 h-4" /> Character
+                                    </label>
+                                    <select
+                                        value={settings.selectedCharacterId || ''}
+                                        onChange={(e) => setSettings({ ...settings, selectedCharacterId: e.target.value })}
+                                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
+                                        title="Select character"
+                                        aria-label="Character"
                                     >
-                                        {tab}
-                                    </button>
-                                ))}
+                                        {availableCharacters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                    {/* Show character description */}
+                                    {settings.selectedCharacterId && (
+                                        <div className="p-3 bg-cream-base/50 rounded-xl text-xs text-cocoa-light">
+                                            {availableCharacters.find(c => c.id === settings.selectedCharacterId)?.description || 'Select a character to see details'}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase">Expression</label>
+                                        <select
+                                            value={settings.expression}
+                                            onChange={(e) => setSettings({ ...settings, expression: e.target.value })}
+                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                            title="Select expression"
+                                            aria-label="Expression"
+                                        >
+                                            {expressions.map(e => <option key={e} value={e}>{e}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase">Pose</label>
+                                        <select
+                                            value={settings.pose}
+                                            onChange={(e) => setSettings({ ...settings, pose: e.target.value })}
+                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                            title="Select pose"
+                                            aria-label="Pose"
+                                        >
+                                            {poses.map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-cocoa-light uppercase">Costume Details</label>
+                                    <input
+                                        type="text"
+                                        value={settings.costume}
+                                        onChange={(e) => setSettings({ ...settings, costume: e.target.value })}
+                                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
+                                        placeholder="e.g. Red superhero cape"
+                                    />
+                                </div>
                             </div>
+                        )}
 
-                            {/* Tab Content: Character */}
-                            {activeTab === 'character' && (
-                                <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                            <Users className="w-4 h-4" /> Character
-                                        </label>
-                                        {project?.characters.length ? (
-                                            <select
-                                                value={settings.selectedCharacterId || ''}
-                                                onChange={(e) => setSettings({ ...settings, selectedCharacterId: e.target.value })}
-                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
-                                            >
-                                                {project.characters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                            </select>
-                                        ) : (
-                                            <div className="p-3 bg-yellow-butter/20 rounded-xl text-sm text-cocoa-light italic">
-                                                No characters found in current project.
-                                            </div>
-                                        )}
-                                    </div>
+                        {/* Tab Content: Scene */}
+                        {activeTab === 'scene' && (
+                            <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                        <Lightbulb className="w-4 h-4" /> Lighting Style
+                                    </label>
+                                    <div className="grid grid-cols-1 gap-3 md:gap-4">
+                                        <select
+                                            value={settings.lighting}
+                                            onChange={(e) => setSettings({ ...settings, lighting: e.target.value })}
+                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm font-body"
+                                            title="Select lighting style"
+                                            aria-label="Lighting style"
+                                        >
+                                            {Object.entries(lightingGroups).map(([group, options]) => (
+                                                <optgroup key={group} label={group}>
+                                                    {options.map(l => <option key={l} value={l}>{l}</option>)}
+                                                </optgroup>
+                                            ))}
+                                        </select>
 
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-cocoa-light uppercase">Expression</label>
+                                            <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                                <Camera className="w-4 h-4" /> Camera Angle
+                                            </label>
                                             <select
-                                                value={settings.expression}
-                                                onChange={(e) => setSettings({ ...settings, expression: e.target.value })}
+                                                value={settings.cameraAngle}
+                                                onChange={(e) => setSettings({ ...settings, cameraAngle: e.target.value })}
                                                 className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                                title="Select camera angle"
+                                                aria-label="Camera angle"
                                             >
-                                                {expressions.map(e => <option key={e} value={e}>{e}</option>)}
+                                                {cameraOptions.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-cocoa-light uppercase">Pose</label>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-cocoa-light uppercase">Scene Description</label>
+                                    <textarea
+                                        value={settings.prompt}
+                                        onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
+                                        className="w-full h-24 md:h-32 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
+                                        placeholder="Describe the setting, props, and atmosphere..."
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tab Content: Style Alchemy */}
+                        {activeTab === 'style' && (
+                            <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                        <Palette className="w-4 h-4" /> Style Alchemy
+                                    </label>
+                                    <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
+                                        <div>
+                                            <div className="text-xs text-cocoa-light mb-1">Primary Style ({(settings.mixRatio)}%)</div>
                                             <select
-                                                value={settings.pose}
-                                                onChange={(e) => setSettings({ ...settings, pose: e.target.value })}
-                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                                value={settings.styleA}
+                                                onChange={(e) => setSettings({ ...settings, styleA: e.target.value as ArtStyle })}
+                                                className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
+                                                title="Select primary style"
+                                                aria-label="Primary style"
                                             >
-                                                {poses.map(p => <option key={p} value={p}>{p}</option>)}
+                                                {styles.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         </div>
-                                    </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase">Costume Details</label>
-                                        <input
-                                            type="text"
-                                            value={settings.costume}
-                                            onChange={(e) => setSettings({ ...settings, costume: e.target.value })}
-                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
-                                            placeholder="e.g. Red superhero cape"
-                                        />
-                                    </div>
-                                </div>
-                            )}
+                                        <div className="flex items-center gap-3">
+                                            <Sliders className="text-coral-burst w-4 h-4" />
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={settings.mixRatio}
+                                                onChange={(e) => setSettings({ ...settings, mixRatio: parseInt(e.target.value) })}
+                                                title={`Mix ratio: ${settings.mixRatio}%`}
+                                                aria-label="Style mix ratio"
+                                                className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
+                                            />
+                                        </div>
 
-                            {/* Tab Content: Scene */}
-                            {activeTab === 'scene' && (
-                                <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                            <Lightbulb className="w-4 h-4" /> Lighting Style
-                                        </label>
-                                        <div className="grid grid-cols-1 gap-3 md:gap-4">
+                                        <div>
+                                            <div className="text-xs text-cocoa-light mb-1">Secondary Style ({100 - settings.mixRatio}%)</div>
                                             <select
-                                                value={settings.lighting}
-                                                onChange={(e) => setSettings({ ...settings, lighting: e.target.value })}
-                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm font-body"
+                                                value={settings.styleB}
+                                                onChange={(e) => setSettings({ ...settings, styleB: e.target.value as ArtStyle })}
+                                                className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
+                                                title="Select secondary style"
+                                                aria-label="Secondary style"
                                             >
-                                                {Object.entries(lightingGroups).map(([group, options]) => (
-                                                    <optgroup key={group} label={group}>
-                                                        {options.map(l => <option key={l} value={l}>{l}</option>)}
-                                                    </optgroup>
-                                                ))}
+                                                {styles.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
-
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                                    <Camera className="w-4 h-4" /> Camera Angle
-                                                </label>
-                                                <select
-                                                    value={settings.cameraAngle}
-                                                    onChange={(e) => setSettings({ ...settings, cameraAngle: e.target.value })}
-                                                    className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
-                                                >
-                                                    {cameraOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
-                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase">Scene Description</label>
-                                        <textarea
-                                            value={settings.prompt}
-                                            onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
-                                            className="w-full h-24 md:h-32 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
-                                            placeholder="Describe the setting, props, and atmosphere..."
-                                        />
-                                    </div>
                                 </div>
-                            )}
-
-                            {/* Tab Content: Style Alchemy */}
-                            {activeTab === 'style' && (
-                                <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                            <Palette className="w-4 h-4" /> Style Alchemy
-                                        </label>
-                                        <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
-                                            <div>
-                                                <div className="text-xs text-cocoa-light mb-1">Primary Style ({(settings.mixRatio)}%)</div>
-                                                <select
-                                                    value={settings.styleA}
-                                                    onChange={(e) => setSettings({ ...settings, styleA: e.target.value as ArtStyle })}
-                                                    className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
-                                                >
-                                                    {styles.map(s => <option key={s} value={s}>{s}</option>)}
-                                                </select>
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                                <Sliders className="text-coral-burst w-4 h-4" />
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="100"
-                                                    value={settings.mixRatio}
-                                                    onChange={(e) => setSettings({ ...settings, mixRatio: parseInt(e.target.value) })}
-                                                    className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <div className="text-xs text-cocoa-light mb-1">Secondary Style ({100 - settings.mixRatio}%)</div>
-                                                <select
-                                                    value={settings.styleB}
-                                                    onChange={(e) => setSettings({ ...settings, styleB: e.target.value as ArtStyle })}
-                                                    className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
-                                                >
-                                                    {styles.map(s => <option key={s} value={s}>{s}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase">Test Prompt</label>
-                                        <textarea
-                                            value={settings.prompt}
-                                            onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
-                                            className="w-full h-20 md:h-24 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
-                                            placeholder="A landscape with a castle..."
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-cocoa-light uppercase">Test Prompt</label>
+                                    <textarea
+                                        value={settings.prompt}
+                                        onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
+                                        className="w-full h-20 md:h-24 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
+                                        placeholder="A landscape with a castle..."
+                                    />
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            <button
-                                onClick={handleGenerate}
-                                disabled={isGenerating}
-                                className={`w-full mt-4 py-3 md:py-4 rounded-xl font-heading font-bold text-sm md:text-base text-white shadow-lg transition-all flex items-center justify-center gap-2
+                        <button
+                            onClick={handleGenerate}
+                            disabled={isGenerating}
+                            className={`w-full mt-4 py-3 md:py-4 rounded-xl font-heading font-bold text-sm md:text-base text-white shadow-lg transition-all flex items-center justify-center gap-2
                         ${isGenerating ? 'bg-cocoa-light cursor-not-allowed' : 'bg-gradient-to-r from-coral-burst to-gold-sunshine hover:scale-[1.02]'}`}
-                            >
-                                {isGenerating ? <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Wand2 className="w-4 h-4 md:w-5 md:h-5" />}
-                                {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
-                            </button>
-                        </>
-                    )}
-                </div>
+                        >
+                            {isGenerating ? <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Wand2 className="w-4 h-4 md:w-5 md:h-5" />}
+                            {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
+                        </button>
+                    </div>
+                )}
 
-                {/* Preview Area / Collaborative Grid */}
-                <div className={`
+            {/* Preview Area / Collaborative Grid */}
+            <div className={`
                     rounded-3xl overflow-hidden relative
                     ${isCollaborativeMode
-                        ? 'flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col'
-                        : 'w-full lg:w-2/3 bg-cream-base border-2 border-dashed border-peach-soft flex items-center justify-center group h-full min-h-[400px] md:min-h-[500px]'}
+                    ? 'flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col'
+                    : 'w-full lg:w-2/3 bg-cream-base border-2 border-dashed border-peach-soft flex items-center justify-center group h-full min-h-[400px] md:min-h-[500px]'}
                 `}>
-                    {isCollaborativeMode ? (
-                        <div className="w-full h-full flex flex-col overflow-hidden">
-                            {/* Collaborative Box Header */}
-                            <div className="flex items-center justify-between p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
+                {isCollaborativeMode ? (
+                    <div className="w-full h-full flex flex-col overflow-hidden">
+                        {/* Collaborative Box Header with Presence */}
+                        <div className="flex items-center justify-between p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
+                            <div className="flex items-center gap-4">
                                 <h2 className="font-heading font-bold text-base md:text-xl text-charcoal-soft flex items-center gap-2">
                                     <Users className="w-4 h-4 md:w-5 md:h-5 text-coral-burst" />
-                                    <span className="hidden sm:inline">Team Workspace</span>
-                                    <span className="sm:hidden">Team</span>
+                                    <span className="hidden sm:inline">Creative Hub</span>
+                                    <span className="sm:hidden">Hub</span>
                                 </h2>
-                                <span className="text-[10px] md:text-xs font-bold text-cocoa-light bg-white px-2 md:px-3 py-1 rounded-full shadow-sm">
-                                    {collaborators.filter(c => c.status !== 'idle').length + (isGenerating ? 1 : 0)} Active
-                                </span>
+
+                                {/* Presence Indicator */}
+                                <PresenceIndicator
+                                    users={presenceUsers}
+                                    maxVisible={5}
+                                    showStatus={true}
+                                />
                             </div>
 
-                            {/* Main Content Area with Grid */}
-                            <div className="flex-1 flex flex-col overflow-hidden relative">
-                                {/* Grid Container */}
+                            {/* View Tabs */}
+                            <div className="flex items-center gap-1 bg-white/80 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setCollabView('gallery')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'gallery'
+                                        ? 'bg-coral-burst text-white'
+                                        : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span className="hidden md:inline">Gallery</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('activity')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'activity'
+                                        ? 'bg-purple-500 text-white'
+                                        : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <Activity className="w-3.5 h-3.5" />
+                                    <span className="hidden md:inline">Activity</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('challenges')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'challenges'
+                                        ? 'bg-gold-sunshine text-white'
+                                        : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <Trophy className="w-3.5 h-3.5" />
+                                    <span className="hidden md:inline">Challenges</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('broadcast')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'broadcast'
+                                        ? 'bg-red-500 text-white'
+                                        : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <Radio className="w-3.5 h-3.5" />
+                                    <span className="hidden md:inline">Live</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('insights')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'insights'
+                                        ? 'bg-indigo-500 text-white'
+                                        : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                >
+                                    <BarChart2 className="w-3.5 h-3.5" />
+                                    <span className="hidden md:inline">Insights</span>
+                                </button>
+
+                                {/* Refresh Button */}
+                                <button
+                                    onClick={handleRefreshGallery}
+                                    disabled={isLoadingData}
+                                    className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                        connectionStatus === 'error' 
+                                            ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                    }`}
+                                    title={connectionStatus === 'error' ? 'Click to reconnect' : 'Refresh gallery'}
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingData ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Main Content Area */}
+                        <div className="flex-1 flex flex-col overflow-hidden relative">
+                            {/* Gallery View */}
+                            {collabView === 'gallery' && (
                                 <div className="flex-1 p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 pb-24">
-                                        {/* Current User Slot */}
+                                        {/* Current User Creation Card */}
                                         <div
-                                            className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all cursor-pointer group"
-                                            onClick={() => settings.generatedImage && setExpandedVisual('current')}
+                                            className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
                                         >
-                                            <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[10px] md:text-xs">YOU</div>
-                                                <span className="font-bold text-xs md:text-sm text-charcoal-soft">You</span>
-                                                {isGenerating && <span className="text-[10px] md:text-xs text-coral-burst animate-pulse ml-auto">Generating...</span>}
-                                                {settings.generatedImage && <Maximize2 className="w-3 h-3 md:w-4 md:h-4 text-gray-400 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />}
+                                            <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[10px] md:text-xs">YOU</div>
+                                                    <span className="font-bold text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    {settings.generatedImage && (
+                                                        <>
+                                                            {/* Version History Button */}
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Use session ID or a placeholder for current user's visual history
+                                                                    if (sessionId) {
+                                                                        setSelectedVisualForHistory(sessionId);
+                                                                        setShowFamilyTree(true);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 transition-colors"
+                                                                title="Version History"
+                                                            >
+                                                                <History className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setShowShareModal(true)}
+                                                                className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                                                            >
+                                                                <Share2 className="w-3 h-3" />
+                                                                Share
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative">
+                                            <div
+                                                className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative cursor-pointer"
+                                                onClick={() => settings.generatedImage && setExpandedVisual('current')}
+                                            >
                                                 {settings.generatedImage ? (
-                                                    <img src={settings.generatedImage} alt="Your work" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                    <>
+                                                        <img src={settings.generatedImage} alt="Your work" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                                            <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                                                        </div>
+                                                    </>
                                                 ) : (
                                                     <div className="text-center p-4">
                                                         {isGenerating ? (
-                                                            <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-coral-burst animate-spin mx-auto" />
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-coral-burst animate-spin" />
+                                                                <span className="text-xs text-coral-burst animate-pulse">Creating magic...</span>
+                                                            </div>
                                                         ) : (
-                                                            <span className="text-gray-400 text-xs md:text-sm">Your canvas</span>
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <Wand2 className="w-8 h-8 text-gray-300" />
+                                                                <span className="text-gray-400 text-xs md:text-sm">Generate something amazing!</span>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 )}
                                             </div>
+                                            {isGenerating && (
+                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
+                                                    <div className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine animate-pulse" style={{ width: '60%' }} />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Collaborator Slots */}
-                                        {collaborators.map(user => (
+                                        {/* Shared Visuals from Community */}
+                                        {isLoadingData && sharedVisuals.length === 0 && (
+                                            // Loading skeleton placeholders
+                                            Array.from({ length: 6 }).map((_, idx) => (
+                                                <div key={`skeleton-${idx}`} className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] animate-pulse">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
+                                                        <div className="h-3 w-20 bg-gray-200 rounded" />
+                                                    </div>
+                                                    <div className="flex-1 bg-gray-100 rounded-xl" />
+                                                    <div className="flex gap-2 mt-2">
+                                                        <div className="h-6 w-16 bg-gray-200 rounded-full" />
+                                                        <div className="h-6 w-16 bg-gray-200 rounded-full" />
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                        {sharedVisuals.map(visual => (
+                                            <SharedVisualCard
+                                                key={visual.id}
+                                                visual={visual}
+                                                onRemix={() => handleRemixVisual(visual)}
+                                                onExpand={() => setSelectedVisual(visual)}
+                                                onViewLineage={() => {
+                                                    setSelectedVisualForHistory(visual.id);
+                                                    setShowFamilyTree(true);
+                                                }}
+                                            />
+                                        ))}
+
+                                        {/* Legacy Collaborator Slots (for demo/fallback) */}
+                                        {sharedVisuals.length === 0 && collaborators.map(user => (
                                             <div
                                                 key={user.id}
                                                 className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
@@ -573,7 +1188,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                     <span className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{user.name}</span>
                                                     {user.status === 'typing' && <span className="text-[10px] md:text-xs text-gray-400 animate-pulse ml-auto">Typing...</span>}
                                                     {user.status === 'generating' && <span className="text-[10px] md:text-xs text-purple-500 animate-pulse ml-auto">Gen...</span>}
-                                                    {user.status === 'done' && <Maximize2 className="w-3 h-3 md:w-4 md:h-4 text-gray-400 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />}
                                                 </div>
                                                 <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative">
                                                     {user.status === 'done' && user.image ? (
@@ -597,7 +1211,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                         </div>
                                                     )}
                                                 </div>
-                                                {/* Like Button - Only show when image is done */}
+                                                {/* Like Button */}
                                                 {user.status === 'done' && user.image && (
                                                     <div className="absolute bottom-2 right-2 z-10">
                                                         <button
@@ -606,7 +1220,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                                 ? 'bg-red-500 text-white'
                                                                 : 'bg-white text-gray-600 hover:bg-red-50'
                                                                 }`}
-                                                            title={user.likedByUser ? 'Unlike' : 'Like'}
                                                         >
                                                             <span className="text-sm">{user.likedByUser ? '❤️' : '🤍'}</span>
                                                             {(user.likes || 0) > 0 && (
@@ -619,104 +1232,250 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                         ))}
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* Expanded Visual Modal */}
-                            {expandedVisual && (
-                                <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-fadeIn p-4 md:p-6 rounded-3xl">
-                                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                                        <div className="flex items-center gap-2 md:gap-3">
-                                            <button
-                                                onClick={() => setExpandedVisual(null)}
-                                                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-all mr-2 group z-50"
-                                                title="Go Back"
-                                            >
-                                                <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-charcoal-soft group-hover:-translate-x-1 transition-transform" />
-                                                <span className="font-bold text-charcoal-soft text-xs md:text-sm">Back</span>
-                                            </button>
-                                            {expandedVisual === 'current' ? (
-                                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-xs md:text-base">YOU</div>
-                                            ) : (
-                                                <img src={expandedVisual.avatar} alt="User" className="w-8 h-8 md:w-10 md:h-10 rounded-full" />
-                                            )}
-                                            <div>
-                                                <h3 className="font-heading font-bold text-base md:text-xl text-charcoal-soft">
-                                                    {expandedVisual === 'current' ? 'Your Creation' : `${expandedVisual.name}'s Creation`}
-                                                </h3>
-                                                <p className="text-xs md:text-sm text-cocoa-light">Full View</p>
-                                            </div>
+                            {/* Activity View */}
+                            {collabView === 'activity' && (
+                                <div className="flex-1 overflow-hidden">
+                                    <ActivityFeed
+                                        sessionId={sessionId || undefined}
+                                        scope="session"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Challenges View */}
+                            {collabView === 'challenges' && (
+                                <div className="flex-1 p-4 md:p-6 bg-gradient-to-br from-amber-50 to-orange-50 overflow-y-auto">
+                                    <div className="max-w-4xl mx-auto space-y-6">
+                                        <div className="text-center mb-8">
+                                            <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
+                                                🏆 Daily Challenges
+                                            </h3>
+                                            <p className="text-cocoa-light">
+                                                Compete, create, and climb the leaderboard!
+                                            </p>
                                         </div>
-                                        <button
-                                            onClick={() => setExpandedVisual(null)}
-                                            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                                        >
-                                            <X className="w-5 h-5 md:w-6 md:h-6 text-charcoal-soft" />
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden shadow-inner p-2 md:p-4">
-                                        <img
-                                            src={expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!}
-                                            alt="Full view"
-                                            className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
-                                        />
-                                    </div>
-                                    <div className="mt-4 flex justify-end flex-shrink-0">
-                                        <button
-                                            onClick={() => {
-                                                const imgUrl = expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!;
-                                                const link = document.createElement('a');
-                                                link.href = imgUrl;
-                                                link.download = `genesis-collab-${Date.now()}.png`;
-                                                document.body.appendChild(link);
-                                                link.click();
-                                                document.body.removeChild(link);
-                                            }}
-                                            className="bg-charcoal-soft text-white px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base flex items-center gap-2 hover:bg-coral-burst transition-colors shadow-lg"
-                                        >
-                                            <Download className="w-4 h-4 md:w-5 md:h-5" /> Download
-                                        </button>
+
+                                        {challenges.length > 0 ? (
+                                            <div className="grid gap-6">
+                                                {challenges.map(challenge => (
+                                                    <ChallengeCard
+                                                        key={challenge.id}
+                                                        challenge={challenge}
+                                                        onJoin={() => {
+                                                            if (settings.generatedImage) {
+                                                                showToast('📸 Opening submission...');
+                                                            } else {
+                                                                showToast('Generate an image first!');
+                                                            }
+                                                        }}
+                                                        onViewDetails={() => {
+                                                            // View challenge details
+                                                        }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-12">
+                                                <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                                <p className="text-gray-500 font-bold">No active challenges</p>
+                                                <p className="text-gray-400 text-sm mt-2">Check back soon for new creative challenges!</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
+
+                            {/* Broadcast View */}
+                            {collabView === 'broadcast' && userProfile && (
+                                <div className="flex-1 overflow-hidden">
+                                    <BroadcastStudio
+                                        onClose={() => setCollabView('gallery')}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Insights View */}
+                            {collabView === 'insights' && userProfile && (
+                                <div className="flex-1 overflow-hidden">
+                                    <InsightsDashboard 
+                                        userId={userProfile.id}
+                                        isOpen={true}
+                                        onClose={() => setCollabView('gallery')}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Share Modal */}
+                        {showShareModal && settings.generatedImage && (
+                            <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2">
+                                            <Share2 className="w-5 h-5 text-coral-burst" />
+                                            Share Creation
+                                        </h3>
+                                        <button
+                                            onClick={() => setShowShareModal(false)}
+                                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                            title="Close"
+                                            aria-label="Close share modal"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    {/* Preview */}
+                                    <div className="rounded-xl overflow-hidden mb-4 bg-gray-100">
+                                        <img
+                                            src={settings.generatedImage}
+                                            alt="Preview"
+                                            className="w-full h-48 object-cover"
+                                        />
+                                    </div>
+
+                                    {/* Caption */}
+                                    <div className="mb-4">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Caption</label>
+                                        <textarea
+                                            value={shareCaption}
+                                            onChange={(e) => setShareCaption(e.target.value)}
+                                            placeholder="Add a caption to your creation..."
+                                            className="w-full h-20 bg-cream-base border border-peach-soft rounded-xl p-3 text-sm resize-none focus:border-coral-burst outline-none"
+                                        />
+                                    </div>
+
+                                    {/* Visibility */}
+                                    <div className="mb-6">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Visibility</label>
+                                        <div className="flex gap-2">
+                                            {(['public', 'unlisted', 'private'] as const).map(v => (
+                                                <button
+                                                    key={v}
+                                                    onClick={() => setShareVisibility(v)}
+                                                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all ${shareVisibility === v
+                                                        ? 'bg-coral-burst text-white'
+                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {v}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Share Button */}
+                                    <button
+                                        onClick={handleShareVisual}
+                                        className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                                    >
+                                        <Sparkles className="w-4 h-4" />
+                                        Share with Community
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Expanded Visual Modal */}
+                        {expandedVisual && (
+                            <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-fadeIn p-4 md:p-6 rounded-3xl">
+                                <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <button
+                                            onClick={() => setExpandedVisual(null)}
+                                            className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-all mr-2 group z-50"
+                                            title="Go Back"
+                                        >
+                                            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-charcoal-soft group-hover:-translate-x-1 transition-transform" />
+                                            <span className="font-bold text-charcoal-soft text-xs md:text-sm">Back</span>
+                                        </button>
+                                        {expandedVisual === 'current' ? (
+                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-xs md:text-base">YOU</div>
+                                        ) : (
+                                            <img src={expandedVisual.avatar} alt="User" className="w-8 h-8 md:w-10 md:h-10 rounded-full" />
+                                        )}
+                                        <div>
+                                            <h3 className="font-heading font-bold text-base md:text-xl text-charcoal-soft">
+                                                {expandedVisual === 'current' ? 'Your Creation' : `${expandedVisual.name}'s Creation`}
+                                            </h3>
+                                            <p className="text-xs md:text-sm text-cocoa-light">Full View</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setExpandedVisual(null)}
+                                        className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                        title="Close"
+                                        aria-label="Close full view"
+                                    >
+                                        <X className="w-5 h-5 md:w-6 md:h-6 text-charcoal-soft" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden shadow-inner p-2 md:p-4">
+                                    <img
+                                        src={expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!}
+                                        alt="Full view"
+                                        className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+                                    />
+                                </div>
+                                <div className="mt-4 flex justify-end flex-shrink-0">
+                                    <button
+                                        onClick={() => {
+                                            const imgUrl = expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!;
+                                            const link = document.createElement('a');
+                                            link.href = imgUrl;
+                                            link.download = `genesis-collab-${Date.now()}.png`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                        }}
+                                        className="bg-charcoal-soft text-white px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base flex items-center gap-2 hover:bg-coral-burst transition-colors shadow-lg"
+                                    >
+                                        <Download className="w-4 h-4 md:w-5 md:h-5" /> Download
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    // Standard Single User Preview
+                    settings.generatedImage ? (
+                        <div className="relative w-full h-full flex items-center justify-center p-4">
+                            <img
+                                src={settings.generatedImage}
+                                alt="Generated Visual"
+                                className="max-h-full max-w-full rounded-lg shadow-2xl object-contain"
+                            />
+                            <button
+                                onClick={handleSaveAsset}
+                                className="absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-white text-charcoal-soft px-3 md:px-4 py-2 rounded-full shadow-lg font-heading font-bold text-xs md:text-sm flex items-center gap-2 hover:text-coral-burst transition-colors"
+                            >
+                                <Download className="w-3 h-3 md:w-4 md:h-4" /> Save
+                            </button>
                         </div>
                     ) : (
-                        // Standard Single User Preview
-                        settings.generatedImage ? (
-                            <div className="relative w-full h-full flex items-center justify-center p-4">
-                                <img
-                                    src={settings.generatedImage}
-                                    alt="Generated Visual"
-                                    className="max-h-full max-w-full rounded-lg shadow-2xl object-contain"
-                                />
-                                <button
-                                    onClick={handleSaveAsset}
-                                    className="absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-white text-charcoal-soft px-3 md:px-4 py-2 rounded-full shadow-lg font-heading font-bold text-xs md:text-sm flex items-center gap-2 hover:text-coral-burst transition-colors"
-                                >
-                                    <Download className="w-3 h-3 md:w-4 md:h-4" /> Save
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="text-center text-cocoa-light/50 p-4">
-                                {isGenerating ? (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-peach-soft border-t-coral-burst rounded-full animate-spin"></div>
-                                        <span className="font-heading font-bold text-base md:text-lg animate-pulse">Rendering...</span>
+                        <div className="text-center text-cocoa-light/50 p-4">
+                            {isGenerating ? (
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-peach-soft border-t-coral-burst rounded-full animate-spin"></div>
+                                    <span className="font-heading font-bold text-base md:text-lg animate-pulse">Rendering...</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-peach-soft/30 flex items-center justify-center mx-auto mb-4">
+                                        {activeTab === 'character' && <Users className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
+                                        {activeTab === 'scene' && <Camera className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
+                                        {activeTab === 'style' && <Palette className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-peach-soft/30 flex items-center justify-center mx-auto mb-4">
-                                            {activeTab === 'character' && <Users className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                            {activeTab === 'scene' && <Camera className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                            {activeTab === 'style' && <Palette className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                        </div>
-                                        <p className="font-heading font-bold text-lg md:text-xl">Ready to Create</p>
-                                        <p className="text-xs md:text-sm mt-2 max-w-xs mx-auto">Adjust settings and click generate</p>
-                                    </>
-                                )}
-                            </div>
-                        )
-                    )}
-                </div>
+                                    <p className="font-heading font-bold text-lg md:text-xl">Ready to Create</p>
+                                    <p className="text-xs md:text-sm mt-2 max-w-xs mx-auto">Adjust settings and click generate</p>
+                                </>
+                            )}
+                        </div>
+                    )
+                )}
+            </div>
 
             </div>
 
@@ -736,6 +1495,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         <button
                             onClick={() => setIsChatOpen(false)}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Close chat"
+                            aria-label="Close chat"
                         >
                             <X size={24} className="text-charcoal-soft" />
                         </button>
@@ -750,6 +1511,59 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         />
                     </div>
                 </div>
+            )}
+
+            {/* Notification Center Modal */}
+            {showNotificationCenter && userProfile && (
+                <NotificationCenter
+                    isOpen={showNotificationCenter}
+                    onClose={() => setShowNotificationCenter(false)}
+                    anchorRef={notificationBtnRef}
+                />
+            )}
+
+            {/* Broadcast Studio Modal */}
+            {showBroadcastStudio && userProfile && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-fadeIn">
+                        <BroadcastStudio
+                            onClose={() => setShowBroadcastStudio(false)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Insights Dashboard Modal */}
+            {showInsightsDashboard && userProfile && (
+                <InsightsDashboard 
+                    userId={userProfile.id}
+                    isOpen={showInsightsDashboard}
+                    onClose={() => setShowInsightsDashboard(false)}
+                />
+            )}
+
+            {/* Family Tree (Version History) Modal */}
+            {showFamilyTree && selectedVisualForHistory && (
+                <FamilyTreeViewer
+                    visualId={selectedVisualForHistory}
+                    isOpen={showFamilyTree}
+                    onClose={() => {
+                        setShowFamilyTree(false);
+                        setSelectedVisualForHistory(null);
+                    }}
+                    onRestoreVersion={(version: VisualVersion) => {
+                        // Handle version restore - apply the visual data
+                        console.log('Restoring version:', version);
+                        setShowFamilyTree(false);
+                        setSelectedVisualForHistory(null);
+                    }}
+                    onForkVersion={(version: VisualVersion) => {
+                        // Handle forking - create a new branch from this version
+                        console.log('Forking from version:', version);
+                        setShowFamilyTree(false);
+                        setSelectedVisualForHistory(null);
+                    }}
+                />
             )}
 
             {/* Mobile Bottom Navigation */}

@@ -68,7 +68,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentPageIndex]);
+    }, [currentPageIndex, onClose]);
 
     const nextPage = () => {
         if (currentPageIndex < totalPages - 1) {

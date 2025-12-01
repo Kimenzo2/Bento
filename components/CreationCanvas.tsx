@@ -303,6 +303,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                                 }
                                             }}
                                             className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor:pointer hover:border-coral-burst/50 transition-colors"
+                                            title="Select visual style"
+                                            aria-label="Visual style"
                                         >
                                             {allStyles.map(s => (
                                                 <option
@@ -326,6 +328,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                             value={tone}
                                             onChange={(e) => setTone(e.target.value as BookTone)}
                                             className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor:pointer hover:border-coral-burst/50 transition-colors"
+                                            title="Select narrative tone"
+                                            aria-label="Narrative tone"
                                         >
                                             {tones.map(t => <option key={t} value={t}>{t}</option>)}
                                         </select>
@@ -341,6 +345,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                             value={audience}
                                             onChange={(e) => setAudience(e.target.value)}
                                             className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor:pointer hover:border-coral-burst/50 transition-colors"
+                                            title="Select target audience"
+                                            aria-label="Target audience"
                                         >
                                             <option>Toddlers 1-3</option>
                                             <option>Children 4-6</option>
@@ -366,6 +372,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                             value={pageCount}
                                             onChange={(e) => setPageCount(parseInt(e.target.value))}
                                             className="w-full accent-coral-burst h-2 bg-peach-soft rounded-lg appearance-none cursor-pointer"
+                                            title={`Page count: ${pageCount}`}
+                                            aria-label="Page count"
                                         />
                                     </div>
                                 </div>

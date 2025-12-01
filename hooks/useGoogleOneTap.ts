@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -13,7 +13,18 @@ import { useAuth } from '../contexts/AuthContext';
  * FedCM is enabled for production and disabled for localhost
  */
 export const useGoogleOneTap = () => {
-    const { user, signInWithGoogle, signInWithIdToken, loading } = useAuth();
+    const { user, signInWithIdToken, loading } = useAuth();
+
+    // Define callback with useCallback to maintain stable reference
+    const handleCredentialResponse = useCallback(async (response: any) => {
+        try {
+            console.log('Google One Tap credential received');
+            const { error } = await signInWithIdToken(response.credential);
+            if (error) throw error;
+        } catch (error) {
+            console.error('Google One Tap sign-in error:', error);
+        }
+    }, [signInWithIdToken]);
 
     useEffect(() => {
         // Only show if user is not authenticated and auth is done loading
@@ -80,17 +91,7 @@ export const useGoogleOneTap = () => {
                 document.body.removeChild(script);
             }
         };
-    }, [user, loading]);
-
-    const handleCredentialResponse = async (response: any) => {
-        try {
-            console.log('Google One Tap credential received');
-            const { error } = await signInWithIdToken(response.credential);
-            if (error) throw error;
-        } catch (error) {
-            console.error('Google One Tap sign-in error:', error);
-        }
-    };
+    }, [user, loading, handleCredentialResponse]);
 };
 
 // Type declaration for Google One Tap

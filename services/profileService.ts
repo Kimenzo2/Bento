@@ -190,20 +190,37 @@ export const completeChallenge = async (challengeId: string): Promise<boolean> =
         const profile = await getUserProfile();
         if (!profile) return false;
 
-        const challenges = profile.gamification_data.dailyChallenges.map(challenge =>
-            challenge.id === challengeId ? { ...challenge, completed: true } : challenge
+        // Find the challenge first to get XP reward
+        const challenge = profile.gamification_data.dailyChallenges.find(c => c.id === challengeId);
+        if (!challenge) {
+            console.warn(`Challenge with id ${challengeId} not found`);
+            return false;
+        }
+
+        // Skip if already completed
+        if (challenge.completed) {
+            console.warn(`Challenge ${challengeId} is already completed`);
+            return true;
+        }
+
+        // Award XP first (this updates the profile)
+        if (challenge.xpReward > 0) {
+            await addXP(challenge.xpReward);
+        }
+
+        // Fetch the updated profile after XP was added
+        const updatedProfile = await getUserProfile();
+        if (!updatedProfile) return false;
+
+        // Now update the challenge completion status
+        const challenges = updatedProfile.gamification_data.dailyChallenges.map(c =>
+            c.id === challengeId ? { ...c, completed: true } : c
         );
 
         const updatedGamification: GamificationState = {
-            ...profile.gamification_data,
+            ...updatedProfile.gamification_data,
             dailyChallenges: challenges
         };
-
-        // Award XP for completing the challenge
-        const challenge = profile.gamification_data.dailyChallenges.find(c => c.id === challengeId);
-        if (challenge) {
-            await addXP(challenge.xpReward);
-        }
 
         return await updateGamificationData(updatedGamification);
     } catch (error) {

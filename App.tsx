@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
+import ErrorBoundary from './components/ErrorBoundary';
 import Navigation from './components/Navigation';
 import CreationCanvas from './components/CreationCanvas';
 import SmartEditor from './components/SmartEditor';
@@ -388,4 +389,11 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+// Wrap App with ErrorBoundary for production stability
+const AppWithErrorBoundary: React.FC = () => (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
+export default AppWithErrorBoundary;

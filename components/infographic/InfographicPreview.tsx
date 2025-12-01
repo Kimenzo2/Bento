@@ -114,12 +114,16 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
                     <button
                         onClick={() => setZoom(z => Math.min(z + 0.1, 2))}
                         className="p-2 hover:bg-gray-100 rounded transition-colors active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="Zoom in"
+                        aria-label="Zoom in"
                     >
                         <ZoomIn className="w-4 h-4 text-charcoal-soft" />
                     </button>
                     <button
                         onClick={() => setZoom(z => Math.max(z - 0.1, 0.5))}
                         className="p-2 hover:bg-gray-100 rounded transition-colors active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="Zoom out"
+                        aria-label="Zoom out"
                     >
                         <ZoomOut className="w-4 h-4 text-charcoal-soft" />
                     </button>
