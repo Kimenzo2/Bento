@@ -260,7 +260,7 @@ CREATE POLICY "Only admins can create challenges"
     ON public.challenges FOR INSERT
     WITH CHECK (
         EXISTS (
-            SELECT 1 FROM public.profiles 
+            SELECT 1 FROM auth.users 
             WHERE id = auth.uid() 
             AND (raw_user_meta_data->>'is_admin')::boolean = true
         )

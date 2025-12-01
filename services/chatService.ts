@@ -6,8 +6,12 @@ export interface ChatMessage {
     room_id: string;
     user_id: string;
     content: string;
-    type: 'text' | 'system' | 'action';
+    type: 'text' | 'system' | 'action' | 'visual_share' | 'reply';
     action_data?: any;
+    reply_to?: string;
+    reply_preview?: string;
+    edited?: boolean;
+    edited_at?: string;
     created_at: string;
     user?: {
         display_name: string;
@@ -105,6 +109,151 @@ class ChatService {
 
         if (error) {
             console.error('Error sending message:', error);
+            return null;
+        }
+
+        return data;
+    }
+
+    /**
+     * Send a reply message
+     */
+    async sendReply(roomId: string, content: string, replyToId: string, replyPreview: string): Promise<ChatMessage | null> {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) return null;
+
+        const { data, error } = await supabase
+            .from('messages')
+            .insert({
+                room_id: roomId,
+                user_id: user.data.user.id,
+                content,
+                type: 'reply',
+                reply_to: replyToId,
+                reply_preview: replyPreview
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error sending reply:', error);
+            return null;
+        }
+
+        return data;
+    }
+
+    /**
+     * Edit a message
+     */
+    async editMessage(messageId: string, newContent: string): Promise<boolean> {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) return false;
+
+        const { error } = await supabase
+            .from('messages')
+            .update({ 
+                content: newContent, 
+                edited: true,
+                edited_at: new Date().toISOString()
+            })
+            .eq('id', messageId)
+            .eq('user_id', user.data.user.id); // Only allow editing own messages
+
+        if (error) {
+            console.error('Error editing message:', error);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Delete a message
+     */
+    async deleteMessage(messageId: string): Promise<boolean> {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) return false;
+
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .eq('id', messageId)
+            .eq('user_id', user.data.user.id); // Only allow deleting own messages
+
+        if (error) {
+            console.error('Error deleting message:', error);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Send a Visual Studio event as a system message
+     */
+    async sendVisualStudioEvent(
+        roomId: string, 
+        eventType: 'visual_shared' | 'user_joined' | 'collab_started' | 'creation_liked',
+        eventData?: { imageUrl?: string; caption?: string; userName?: string }
+    ): Promise<ChatMessage | null> {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) return null;
+
+        const eventMessages = {
+            visual_shared: `🎨 ${eventData?.userName || 'Someone'} shared a new creation${eventData?.caption ? `: "${eventData.caption}"` : ''}`,
+            user_joined: `👋 ${eventData?.userName || 'Someone'} joined the collaborative session`,
+            collab_started: `✨ ${eventData?.userName || 'Someone'} started a new collaborative session`,
+            creation_liked: `❤️ ${eventData?.userName || 'Someone'} liked a creation`
+        };
+
+        const { data, error } = await supabase
+            .from('messages')
+            .insert({
+                room_id: roomId,
+                user_id: user.data.user.id,
+                content: eventMessages[eventType],
+                type: 'system',
+                action_data: { type: eventType, ...eventData }
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error sending VS event:', error);
+            return null;
+        }
+
+        return data;
+    }
+
+    /**
+     * Share a visual creation to chat
+     */
+    async shareVisualToChat(roomId: string, imageUrl: string, caption?: string): Promise<ChatMessage | null> {
+        const user = await supabase.auth.getUser();
+        if (!user.data.user) return null;
+
+        const displayName = user.data.user.user_metadata?.display_name || 'Someone';
+        
+        const { data, error } = await supabase
+            .from('messages')
+            .insert({
+                room_id: roomId,
+                user_id: user.data.user.id,
+                content: caption || 'Shared a creation',
+                type: 'visual_share',
+                action_data: { 
+                    imageUrl, 
+                    caption,
+                    sharedBy: displayName
+                }
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error sharing visual:', error);
             return null;
         }
 

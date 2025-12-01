@@ -234,14 +234,14 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-soft-lg border border-white overflow-hidden">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-soft-lg border border-white overflow-hidden h-full flex flex-col">
             {showHeader && (
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <h3 className="font-heading font-bold text-charcoal-soft flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-coral-burst" />
+                <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 flex-shrink-0">
+                    <h3 className="font-heading font-bold text-sm sm:text-base text-charcoal-soft flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-coral-burst" />
                         Activity
                     </h3>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-[10px] sm:text-xs text-gray-400">
                         {scope === 'session' ? 'This session' : 'Global'}
                     </span>
                 </div>
@@ -249,18 +249,18 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
             <div
                 ref={feedRef}
-                className="overflow-y-auto"
-                style={{ maxHeight }}
+                className="overflow-y-auto flex-1 scroll-container pb-32 sm:pb-0"
+                style={{ maxHeight: maxHeight !== '400px' ? maxHeight : undefined }}
             >
                 {isLoading ? (
                     <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 text-coral-burst animate-spin" />
+                        <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-coral-burst animate-spin" />
                     </div>
                 ) : activities.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                        <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No activity yet</p>
-                        <p className="text-xs">Be the first to create something!</p>
+                    <div className="text-center py-6 sm:py-8 text-gray-400">
+                        <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs sm:text-sm">No activity yet</p>
+                        <p className="text-[10px] sm:text-xs">Be the first to create something!</p>
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-50">
@@ -268,11 +268,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                             <div
                                 key={activity.id}
                                 className={`
-                                    flex items-start gap-3 px-4 py-3 
-                                    hover:bg-gray-50 transition-colors cursor-pointer
+                                    flex items-start gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 
+                                    hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer
                                     animate-fadeIn
                                 `}
-                                style={{ animationDelay: `${index * 50}ms` }}
+                                style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
                                 onClick={() => onActivityClick?.(activity)}
                             >
                                 {/* User avatar */}
@@ -280,12 +280,12 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                                     <img
                                         src={activity.user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`}
                                         alt={activity.user?.full_name || 'User'}
-                                        className="w-8 h-8 rounded-full object-cover"
+                                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
                                     />
                                     {/* Activity type icon */}
                                     <span className={`
-                                        absolute -bottom-1 -right-1 
-                                        w-5 h-5 rounded-full 
+                                        absolute -bottom-0.5 -right-0.5 
+                                        w-4 h-4 sm:w-5 sm:h-5 rounded-full 
                                         flex items-center justify-center
                                         ring-2 ring-white
                                         ${getActivityColor(activity.type)}
@@ -296,10 +296,10 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-charcoal-soft">
+                                    <p className="text-xs sm:text-sm text-charcoal-soft line-clamp-2">
                                         {getActivityText(activity)}
                                     </p>
-                                    <p className="text-xs text-gray-400 mt-0.5">
+                                    <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
                                         {formatTimeAgo(activity.created_at)}
                                     </p>
                                 </div>
@@ -309,7 +309,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                                     <img
                                         src={activity.visual.thumbnail_url || activity.visual.image_url}
                                         alt="Visual"
-                                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0"
                                     />
                                 )}
                             </div>
@@ -320,7 +320,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                             <button
                                 onClick={() => loadActivities(true)}
                                 disabled={isLoadingMore}
-                                className="w-full py-3 text-center text-sm text-coral-burst hover:bg-coral-burst/5 transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-3 text-center text-xs sm:text-sm text-coral-burst hover:bg-coral-burst/5 active:bg-coral-burst/10 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
                             >
                                 {isLoadingMore ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -359,15 +359,15 @@ export const ActivityNotification: React.FC<ActivityNotificationProps> = ({
     }, [onDismiss]);
 
     return (
-        <div className="fixed bottom-24 left-4 z-50 animate-slideUp">
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-3 flex items-center gap-3 max-w-[300px]">
+        <div className="fixed bottom-28 sm:bottom-24 left-2 sm:left-4 right-2 sm:right-auto z-50 animate-slideUp" style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
+            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-[300px]">
                 <img
                     src={activity.user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`}
                     alt=""
-                    className="w-8 h-8 rounded-full"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm text-charcoal-soft truncate">
+                    <p className="text-xs sm:text-sm text-charcoal-soft truncate">
                         <strong>{activity.user?.full_name || 'Someone'}</strong>{' '}
                         {activity.type === 'visual_created' && 'created a new visual'}
                         {activity.type === 'reaction_added' && 'reacted to a visual'}
@@ -378,7 +378,7 @@ export const ActivityNotification: React.FC<ActivityNotificationProps> = ({
                     <img
                         src={activity.visual.thumbnail_url || activity.visual.image_url}
                         alt=""
-                        className="w-8 h-8 rounded-lg object-cover"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover flex-shrink-0"
                     />
                 )}
             </div>

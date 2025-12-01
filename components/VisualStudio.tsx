@@ -52,6 +52,7 @@ import {
     FamilyTreeViewer
 } from './collaboration';
 import { collaborationService } from '../services/collaborationService';
+import { chatService } from '../services/chatService';
 import type {
     SharedVisual,
     PresenceUser,
@@ -337,6 +338,17 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             setConnectionStatus('connected');
             reconnectAttemptsRef.current = 0;
             showToast('✅ Connected to collaboration studio!');
+            
+            // Send join event to chat
+            try {
+                await chatService.sendVisualStudioEvent(
+                    'vs-activity',
+                    'user_joined',
+                    { userName: userProfile?.full_name || userProfile?.email || 'Someone' }
+                );
+            } catch (chatError) {
+                console.warn('Failed to send chat join event:', chatError);
+            }
         } catch (error) {
             console.error('Failed to initialize collaboration session:', error);
             setConnectionStatus('disconnected');
@@ -445,6 +457,22 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 setSharedVisuals(prev => [result.data!, ...prev]);
                 setShowShareModal(false);
                 setShareCaption('');
+
+                // Send event to chat (Visual Studio activity channel)
+                try {
+                    await chatService.sendVisualStudioEvent(
+                        'vs-activity',
+                        'visual_shared',
+                        {
+                            imageUrl: settings.generatedImage,
+                            caption: shareCaption || settings.prompt,
+                            userName: userProfile?.full_name || userProfile?.email || 'Someone'
+                        }
+                    );
+                } catch (chatError) {
+                    // Don't fail the share if chat notification fails
+                    console.warn('Failed to send chat event:', chatError);
+                }
 
                 // Show success toast
                 showToast('🎨 Visual shared with the community!');
@@ -640,49 +668,49 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     };
 
     return (
-        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen flex flex-col' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
+        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen h-[100dvh] flex flex-col overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
 
             {/* Header with Mode Switcher */}
-            <div className={`relative text-center mb-6 ${isCollaborativeMode ? 'px-4 md:px-8 pt-4' : 'px-12 md:px-20'}`}>
+            <div className={`relative text-center mb-4 md:mb-6 flex-shrink-0 ${isCollaborativeMode ? 'px-2 sm:px-4 md:px-8 pt-2 md:pt-4' : 'px-10 sm:px-12 md:px-20'}`}>
                 {onBack && (
                     <button
                         onClick={onBack}
-                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors z-10"
+                        className="absolute left-1 md:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         aria-label="Go back"
                     >
-                        <ArrowLeft className="w-6 h-6" />
+                        <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                 )}
 
                 {/* Right Side Actions - Notifications, Go Live, Insights */}
-                <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2 z-10">
+                <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
                     {/* Notification Bell Button */}
                     <button
                         ref={notificationBtnRef}
                         onClick={() => userProfile && setShowNotificationCenter(!showNotificationCenter)}
-                        className={`relative p-2 rounded-xl transition-all shadow-sm border border-gray-200 ${userProfile ? 'bg-white/80 hover:bg-white text-gray-600 hover:text-coral-burst' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                        className={`relative p-2 rounded-xl transition-all shadow-sm border border-gray-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${userProfile ? 'bg-white/80 hover:bg-white text-gray-600 hover:text-coral-burst' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                         title={userProfile ? "Notifications" : "Login to access notifications"}
                     >
                         <Bell className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
 
-                    {/* Go Live Button - Only in collaborative mode */}
+                    {/* Go Live Button - Only in collaborative mode, hide on very small screens */}
                     {viewMode === 'collaborative' && (
                         <button
                             onClick={() => userProfile && setShowBroadcastStudio(true)}
-                            className={`flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 rounded-xl font-bold text-xs md:text-sm transition-transform shadow-lg ${userProfile ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:scale-105' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            className={`hidden xs:flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-transform shadow-lg min-h-[44px] ${userProfile ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                             disabled={!userProfile}
                         >
-                            <Radio className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
+                            <Radio className="w-4 h-4 animate-pulse" />
                             <span className="hidden sm:inline">Live</span>
                         </button>
                     )}
 
-                    {/* Creative Insights Button - Only in collaborative mode */}
+                    {/* Creative Insights Button - Only in collaborative mode, hide on very small screens */}
                     {viewMode === 'collaborative' && (
                         <button
                             onClick={() => userProfile && setShowInsightsDashboard(true)}
-                            className={`p-1.5 md:p-2 rounded-xl transition-transform shadow-lg ${userProfile ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:scale-105' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            className={`hidden xs:flex p-2 rounded-xl transition-transform shadow-lg min-h-[44px] min-w-[44px] items-center justify-center ${userProfile ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                             title={userProfile ? "Creative Insights" : "Login to view insights"}
                             disabled={!userProfile}
                         >
@@ -691,31 +719,33 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                     )}
                 </div>
 
-                {/* Mode Switcher */}
-                <div className="inline-flex bg-cream-soft p-1.5 rounded-2xl border border-peach-soft/50 shadow-sm">
+                {/* Mode Switcher - Mobile optimized */}
+                <div className="inline-flex bg-cream-soft p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-peach-soft/50 shadow-sm">
                     <button
                         onClick={() => setViewMode('individual')}
-                        className={`px-6 py-2.5 rounded-xl font-heading font-bold text-sm flex items-center gap-2 transition-all ${viewMode === 'individual'
+                        className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center gap-1.5 md:gap-2 transition-all min-h-[40px] ${viewMode === 'individual'
                             ? 'bg-white text-coral-burst shadow-sm'
                             : 'text-cocoa-light hover:text-charcoal-soft'
                             }`}
                     >
-                        <Wand2 className="w-4 h-4" />
-                        Individual
+                        <Wand2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                        <span className="hidden xs:inline">Individual</span>
+                        <span className="xs:hidden">Solo</span>
                     </button>
                     <button
                         onClick={() => setViewMode('collaborative')}
-                        className={`px-6 py-2.5 rounded-xl font-heading font-bold text-sm flex items-center gap-2 transition-all ${viewMode === 'collaborative'
+                        className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center gap-1.5 md:gap-2 transition-all min-h-[40px] ${viewMode === 'collaborative'
                             ? 'bg-white text-purple-500 shadow-sm'
                             : 'text-cocoa-light hover:text-charcoal-soft'
                             }`}
                     >
-                        <Users className="w-4 h-4" />
-                        Collaborative
+                        <Users className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                        <span className="hidden xs:inline">Collaborative</span>
+                        <span className="xs:hidden">Collab</span>
                         {/* Connection Status Indicator */}
                         {viewMode === 'collaborative' && (
                             <span 
-                                className={`w-2 h-2 rounded-full ml-1 ${
+                                className={`w-2 h-2 rounded-full ${
                                     connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' :
                                     connectionStatus === 'connecting' ? 'bg-yellow-400 animate-ping' :
                                     connectionStatus === 'error' ? 'bg-red-500' :
@@ -730,12 +760,13 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                     </button>
                 </div>
 
-                <p className="text-cocoa-light font-body text-sm mt-3">
+                <p className="text-cocoa-light font-body text-xs sm:text-sm mt-2 md:mt-3 px-2 line-clamp-2">
                     {viewMode === 'individual'
                         ? 'Fine-tune characters, compose scenes, and experiment with style alchemy.'
                         : (
                             <>
-                                Explore community creations, join challenges, and remix visuals.
+                                <span className="hidden sm:inline">Explore community creations, join challenges, and remix visuals.</span>
+                                <span className="sm:hidden">Explore & remix community art.</span>
                                 {connectionStatus === 'connected' && (
                                     <span className="ml-2 text-green-600 font-semibold">
                                         🟢 Live
@@ -983,28 +1014,60 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 `}>
                 {isCollaborativeMode ? (
                     <div className="w-full h-full flex flex-col overflow-hidden">
-                        {/* Collaborative Box Header with Presence */}
-                        <div className="flex items-center justify-between p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
-                            <div className="flex items-center gap-4">
-                                <h2 className="font-heading font-bold text-base md:text-xl text-charcoal-soft flex items-center gap-2">
+                        {/* Collaborative Box Header with Presence - Mobile Optimized */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 gap-2 sm:gap-0">
+                            {/* Top Row - Title, Presence, Refresh */}
+                            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+                                <h2 className="font-heading font-bold text-sm sm:text-base md:text-xl text-charcoal-soft flex items-center gap-1.5 sm:gap-2">
                                     <Users className="w-4 h-4 md:w-5 md:h-5 text-coral-burst" />
                                     <span className="hidden sm:inline">Creative Hub</span>
                                     <span className="sm:hidden">Hub</span>
                                 </h2>
 
-                                {/* Presence Indicator */}
-                                <PresenceIndicator
-                                    users={presenceUsers}
-                                    maxVisible={5}
-                                    showStatus={true}
-                                />
+                                {/* Presence Indicator - Compact on mobile */}
+                                <div className="hidden xs:block">
+                                    <PresenceIndicator
+                                        users={presenceUsers}
+                                        maxVisible={3}
+                                        showStatus={false}
+                                    />
+                                </div>
+                                
+                                {/* Mobile-only presence count */}
+                                <div className="xs:hidden flex items-center gap-1 text-xs text-gray-500 bg-white/60 px-2 py-1 rounded-full">
+                                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                                    {presenceUsers.length}
+                                </div>
+
+                                {/* Desktop Presence */}
+                                <div className="hidden sm:block">
+                                    <PresenceIndicator
+                                        users={presenceUsers}
+                                        maxVisible={5}
+                                        showStatus={true}
+                                    />
+                                </div>
+                                
+                                {/* Mobile Refresh Button */}
+                                <button
+                                    onClick={handleRefreshGallery}
+                                    disabled={isLoadingData}
+                                    className={`sm:hidden p-2 rounded-lg transition-all min-h-[36px] min-w-[36px] flex items-center justify-center ${
+                                        connectionStatus === 'error' 
+                                            ? 'bg-red-100 text-red-600' 
+                                            : 'bg-white/80 text-gray-500'
+                                    }`}
+                                    title={connectionStatus === 'error' ? 'Click to reconnect' : 'Refresh gallery'}
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                                </button>
                             </div>
 
-                            {/* View Tabs */}
-                            <div className="flex items-center gap-1 bg-white/80 p-1 rounded-xl">
+                            {/* View Tabs - Desktop (hidden on mobile, shown in floating bar) */}
+                            <div className="hidden sm:flex items-center gap-1 bg-white/80 p-1 rounded-xl overflow-x-auto scrollbar-hide">
                                 <button
                                     onClick={() => setCollabView('gallery')}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'gallery'
+                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'gallery'
                                         ? 'bg-coral-burst text-white'
                                         : 'text-gray-500 hover:bg-gray-100'
                                         }`}
@@ -1014,7 +1077,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                 </button>
                                 <button
                                     onClick={() => setCollabView('activity')}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'activity'
+                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'activity'
                                         ? 'bg-purple-500 text-white'
                                         : 'text-gray-500 hover:bg-gray-100'
                                         }`}
@@ -1024,7 +1087,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                 </button>
                                 <button
                                     onClick={() => setCollabView('challenges')}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'challenges'
+                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'challenges'
                                         ? 'bg-gold-sunshine text-white'
                                         : 'text-gray-500 hover:bg-gray-100'
                                         }`}
@@ -1034,7 +1097,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                 </button>
                                 <button
                                     onClick={() => setCollabView('broadcast')}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'broadcast'
+                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'broadcast'
                                         ? 'bg-red-500 text-white'
                                         : 'text-gray-500 hover:bg-gray-100'
                                         }`}
@@ -1044,7 +1107,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                 </button>
                                 <button
                                     onClick={() => setCollabView('insights')}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${collabView === 'insights'
+                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'insights'
                                         ? 'bg-indigo-500 text-white'
                                         : 'text-gray-500 hover:bg-gray-100'
                                         }`}
@@ -1053,11 +1116,11 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                     <span className="hidden md:inline">Insights</span>
                                 </button>
 
-                                {/* Refresh Button */}
+                                {/* Refresh Button - Desktop */}
                                 <button
                                     onClick={handleRefreshGallery}
                                     disabled={isLoadingData}
-                                    className={`ml-auto px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                    className={`ml-1 px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 min-h-[36px] ${
                                         connectionStatus === 'error' 
                                             ? 'bg-red-100 text-red-600 hover:bg-red-200' 
                                             : 'text-gray-500 hover:bg-gray-100'
@@ -1067,22 +1130,77 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                     <RefreshCw className={`w-3.5 h-3.5 ${isLoadingData ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
+
+                            {/* Mobile Floating Tab Bar - Positioned above bottom nav */}
+                            <div className="sm:hidden collab-mobile-tabs">
+                                <button
+                                    onClick={() => setCollabView('gallery')}
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'gallery'
+                                        ? 'bg-coral-burst text-white shadow-md'
+                                        : 'text-gray-500 active:bg-gray-100'
+                                        }`}
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    <span className="text-[9px] font-bold">Gallery</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('activity')}
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'activity'
+                                        ? 'bg-purple-500 text-white shadow-md'
+                                        : 'text-gray-500 active:bg-gray-100'
+                                        }`}
+                                >
+                                    <Activity className="w-4 h-4" />
+                                    <span className="text-[9px] font-bold">Activity</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('challenges')}
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'challenges'
+                                        ? 'bg-gold-sunshine text-white shadow-md'
+                                        : 'text-gray-500 active:bg-gray-100'
+                                        }`}
+                                >
+                                    <Trophy className="w-4 h-4" />
+                                    <span className="text-[9px] font-bold">Challenges</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('broadcast')}
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'broadcast'
+                                        ? 'bg-red-500 text-white shadow-md'
+                                        : 'text-gray-500 active:bg-gray-100'
+                                        }`}
+                                >
+                                    <Radio className="w-4 h-4" />
+                                    <span className="text-[9px] font-bold">Live</span>
+                                </button>
+                                <button
+                                    onClick={() => setCollabView('insights')}
+                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'insights'
+                                        ? 'bg-indigo-500 text-white shadow-md'
+                                        : 'text-gray-500 active:bg-gray-100'
+                                        }`}
+                                >
+                                    <BarChart2 className="w-4 h-4" />
+                                    <span className="text-[9px] font-bold">Insights</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Main Content Area */}
                         <div className="flex-1 flex flex-col overflow-hidden relative">
                             {/* Gallery View */}
                             {collabView === 'gallery' && (
-                                <div className="flex-1 p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 pb-24">
+                                <div className="flex-1 p-2 sm:p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto scroll-container">
+                                    {/* Mobile: Extra padding for floating tabs and bottom nav */}
+                                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-36 sm:pb-24">
                                         {/* Current User Creation Card */}
                                         <div
-                                            className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
+                                            className="bg-white rounded-xl sm:rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[240px] xs:h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
                                         >
                                             <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[10px] md:text-xs">YOU</div>
-                                                    <span className="font-bold text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
+                                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[9px] sm:text-[10px] md:text-xs">YOU</div>
+                                                    <span className="font-bold text-[10px] sm:text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     {settings.generatedImage && (
@@ -1096,17 +1214,17 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                                         setShowFamilyTree(true);
                                                                     }
                                                                 }}
-                                                                className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 transition-colors"
+                                                                className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 active:scale-95 transition-all min-h-[32px] min-w-[32px] flex items-center justify-center"
                                                                 title="Version History"
                                                             >
-                                                                <History className="w-3.5 h-3.5" />
+                                                                <History className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                             </button>
                                                             <button
                                                                 onClick={() => setShowShareModal(true)}
-                                                                className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                                                                className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-[10px] sm:text-xs font-bold hover:scale-105 active:scale-95 transition-transform min-h-[28px]"
                                                             >
-                                                                <Share2 className="w-3 h-3" />
-                                                                Share
+                                                                <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                                <span className="hidden xs:inline">Share</span>
                                                             </button>
                                                         </>
                                                     )}
@@ -1246,19 +1364,19 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
                             {/* Challenges View */}
                             {collabView === 'challenges' && (
-                                <div className="flex-1 p-4 md:p-6 bg-gradient-to-br from-amber-50 to-orange-50 overflow-y-auto">
-                                    <div className="max-w-4xl mx-auto space-y-6">
-                                        <div className="text-center mb-8">
-                                            <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
+                                <div className="flex-1 p-2 sm:p-4 md:p-6 bg-gradient-to-br from-amber-50 to-orange-50 overflow-y-auto scroll-container pb-36 sm:pb-24">
+                                    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+                                        <div className="text-center mb-4 md:mb-8">
+                                            <h3 className="font-heading font-bold text-lg sm:text-xl md:text-2xl text-charcoal-soft mb-1 md:mb-2">
                                                 🏆 Daily Challenges
                                             </h3>
-                                            <p className="text-cocoa-light">
+                                            <p className="text-cocoa-light text-xs sm:text-sm md:text-base">
                                                 Compete, create, and climb the leaderboard!
                                             </p>
                                         </div>
 
                                         {challenges.length > 0 ? (
-                                            <div className="grid gap-6">
+                                            <div className="grid gap-3 md:gap-6">
                                                 {challenges.map(challenge => (
                                                     <ChallengeCard
                                                         key={challenge.id}
@@ -1277,9 +1395,9 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="text-center py-12">
-                                                <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                                <p className="text-gray-500 font-bold">No active challenges</p>
+                                            <div className="text-center py-8 md:py-12">
+                                                <Trophy className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-3 md:mb-4" />
+                                                <p className="text-gray-500 font-bold text-sm md:text-base">No active challenges</p>
                                                 <p className="text-gray-400 text-sm mt-2">Check back soon for new creative challenges!</p>
                                             </div>
                                         )}
@@ -1308,18 +1426,18 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                             )}
                         </div>
 
-                        {/* Share Modal */}
+                        {/* Share Modal - Mobile Optimized */}
                         {showShareModal && settings.generatedImage && (
-                            <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2">
-                                            <Share2 className="w-5 h-5 text-coral-burst" />
+                            <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                                <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 animate-fadeIn max-h-[90vh] overflow-y-auto" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                                        <h3 className="font-heading font-bold text-lg sm:text-xl text-charcoal-soft flex items-center gap-2">
+                                            <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-coral-burst" />
                                             Share Creation
                                         </h3>
                                         <button
                                             onClick={() => setShowShareModal(false)}
-                                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                            className="p-2 hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                                             title="Close"
                                             aria-label="Close share modal"
                                         >
@@ -1328,27 +1446,28 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                     </div>
 
                                     {/* Preview */}
-                                    <div className="rounded-xl overflow-hidden mb-4 bg-gray-100">
+                                    <div className="rounded-xl overflow-hidden mb-3 sm:mb-4 bg-gray-100">
                                         <img
                                             src={settings.generatedImage}
                                             alt="Preview"
-                                            className="w-full h-48 object-cover"
+                                            className="w-full h-36 sm:h-48 object-cover"
                                         />
                                     </div>
 
                                     {/* Caption */}
-                                    <div className="mb-4">
+                                    <div className="mb-3 sm:mb-4">
                                         <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Caption</label>
                                         <textarea
                                             value={shareCaption}
                                             onChange={(e) => setShareCaption(e.target.value)}
                                             placeholder="Add a caption to your creation..."
-                                            className="w-full h-20 bg-cream-base border border-peach-soft rounded-xl p-3 text-sm resize-none focus:border-coral-burst outline-none"
+                                            className="w-full h-16 sm:h-20 bg-cream-base border border-peach-soft rounded-xl p-3 text-sm resize-none focus:border-coral-burst outline-none"
+                                            style={{ fontSize: '16px' }} /* Prevent iOS zoom */
                                         />
                                     </div>
 
                                     {/* Visibility */}
-                                    <div className="mb-6">
+                                    <div className="mb-4 sm:mb-6">
                                         <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Visibility</label>
                                         <div className="flex gap-2">
                                             {(['public', 'unlisted', 'private'] as const).map(v => (
@@ -1369,7 +1488,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                     {/* Share Button */}
                                     <button
                                         onClick={handleShareVisual}
-                                        className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                                        className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px]"
                                     >
                                         <Sparkles className="w-4 h-4" />
                                         Share with Community
@@ -1378,34 +1497,34 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                             </div>
                         )}
 
-                        {/* Expanded Visual Modal */}
+                        {/* Expanded Visual Modal - Mobile Optimized */}
                         {expandedVisual && (
-                            <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-fadeIn p-4 md:p-6 rounded-3xl">
-                                <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                                    <div className="flex items-center gap-2 md:gap-3">
+                            <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-fadeIn p-2 sm:p-4 md:p-6 rounded-2xl sm:rounded-3xl">
+                                <div className="flex items-center justify-between mb-3 sm:mb-4 flex-shrink-0">
+                                    <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => setExpandedVisual(null)}
-                                            className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-all mr-2 group z-50"
+                                            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all mr-1 sm:mr-2 group z-50 min-h-[40px]"
                                             title="Go Back"
                                         >
                                             <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-charcoal-soft group-hover:-translate-x-1 transition-transform" />
-                                            <span className="font-bold text-charcoal-soft text-xs md:text-sm">Back</span>
+                                            <span className="font-bold text-charcoal-soft text-xs md:text-sm hidden xs:inline">Back</span>
                                         </button>
                                         {expandedVisual === 'current' ? (
-                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-xs md:text-base">YOU</div>
+                                            <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[10px] sm:text-xs md:text-base">YOU</div>
                                         ) : (
-                                            <img src={expandedVisual.avatar} alt="User" className="w-8 h-8 md:w-10 md:h-10 rounded-full" />
+                                            <img src={expandedVisual.avatar} alt="User" className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full" />
                                         )}
                                         <div>
-                                            <h3 className="font-heading font-bold text-base md:text-xl text-charcoal-soft">
+                                            <h3 className="font-heading font-bold text-sm sm:text-base md:text-xl text-charcoal-soft line-clamp-1">
                                                 {expandedVisual === 'current' ? 'Your Creation' : `${expandedVisual.name}'s Creation`}
                                             </h3>
-                                            <p className="text-xs md:text-sm text-cocoa-light">Full View</p>
+                                            <p className="text-[10px] sm:text-xs md:text-sm text-cocoa-light">Full View</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setExpandedVisual(null)}
-                                        className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                                        className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
                                         title="Close"
                                         aria-label="Close full view"
                                     >
@@ -1484,6 +1603,11 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 <ChatWidget
                     userProfile={userProfile}
                     onCollaborativeTrigger={handleCollaborativeTrigger}
+                    activeCollaborators={presenceUsers.map(u => ({
+                        id: u.user_id,
+                        name: u.display_name || 'Anonymous',
+                        avatar: u.avatar_url
+                    }))}
                 />
             </div>
 
@@ -1508,6 +1632,11 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                             onUnreadCountChange={setUnreadCount}
                             onCollaborativeTrigger={handleCollaborativeTrigger}
                             isMobile={true}
+                            activeCollaborators={presenceUsers.map(u => ({
+                                id: u.user_id,
+                                name: u.display_name || 'Anonymous',
+                                avatar: u.avatar_url
+                            }))}
                         />
                     </div>
                 </div>
