@@ -17,24 +17,51 @@ export const useGoogleOneTap = () => {
 
     // Define callback with useCallback to maintain stable reference
     const handleCredentialResponse = useCallback(async (response: any) => {
+        console.log('[GoogleOneTap] Credential received, processing...');
+        
+        if (!response?.credential) {
+            console.error('[GoogleOneTap] No credential in response:', response);
+            return;
+        }
+
         try {
-            console.log('Google One Tap credential received');
-            const { error } = await signInWithIdToken(response.credential);
-            if (error) throw error;
+            console.log('[GoogleOneTap] Calling signInWithIdToken...');
+            const { data, error } = await signInWithIdToken(response.credential);
+            
+            if (error) {
+                console.error('[GoogleOneTap] Sign-in error:', error);
+                // Show user-friendly error
+                alert(`Sign-in failed: ${error.message || 'Unknown error'}`);
+                return;
+            }
+            
+            if (data?.user) {
+                console.log('[GoogleOneTap] Sign-in successful! User:', data.user.email);
+            } else {
+                console.warn('[GoogleOneTap] Sign-in completed but no user data returned');
+            }
         } catch (error) {
-            console.error('Google One Tap sign-in error:', error);
+            console.error('[GoogleOneTap] Exception during sign-in:', error);
         }
     }, [signInWithIdToken]);
 
     useEffect(() => {
         // Only show if user is not authenticated and auth is done loading
-        if (loading || user) {
-            // If user is authenticated or loading, ensure any existing prompt is closed
+        if (loading) {
+            console.log('[GoogleOneTap] Auth still loading, waiting...');
+            return;
+        }
+        
+        if (user) {
+            console.log('[GoogleOneTap] User already authenticated, skipping prompt');
+            // If user is authenticated, ensure any existing prompt is closed
             if (window.google?.accounts?.id) {
                 window.google.accounts.id.cancel();
             }
             return;
         }
+
+        console.log('[GoogleOneTap] No user, preparing to show prompt...');
 
         // Determine if we're on localhost
         const isLocalhost = window.location.hostname === 'localhost' ||
@@ -50,34 +77,55 @@ export const useGoogleOneTap = () => {
             // Initialize Google One Tap
             if (window.google) {
                 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-                console.log('[GoogleOneTap] Initializing with Client ID:', clientId ? `${clientId.substring(0, 10)}...` : 'UNDEFINED');
+                console.log('[GoogleOneTap] Initializing with Client ID:', clientId ? `${clientId.substring(0, 20)}...` : 'UNDEFINED');
 
                 if (!clientId) {
                     console.error('[GoogleOneTap] MISSING VITE_GOOGLE_CLIENT_ID in .env file');
                     return;
                 }
 
-                window.google.accounts.id.initialize({
-                    client_id: clientId,
-                    callback: handleCredentialResponse,
-                    auto_select: true, // Auto-select if user previously signed in
-                    cancel_on_tap_outside: true, // Allow clicking outside to close
-                    // Enable FedCM for production, disable for localhost
-                    use_fedcm_for_prompt: !isLocalhost,
-                });
+                try {
+                    window.google.accounts.id.initialize({
+                        client_id: clientId,
+                        callback: handleCredentialResponse,
+                        auto_select: true, // Auto-select if user previously signed in
+                        cancel_on_tap_outside: true, // Allow clicking outside to close
+                        // Enable FedCM for production, disable for localhost
+                        use_fedcm_for_prompt: !isLocalhost,
+                    });
 
-                // Display the One Tap prompt
-                // Note: With FedCM, we can't use isDisplayed(), isNotDisplayed(), or getNotDisplayedReason()
-                window.google.accounts.id.prompt((notification: any) => {
-                    // Only log skip moments, not display moments (FedCM doesn't provide display info)
-                    if (notification.isSkippedMoment && notification.isSkippedMoment()) {
-                        console.log('Google One Tap skipped');
-                    }
-                    if (notification.isDismissedMoment && notification.isDismissedMoment()) {
-                        console.log('Google One Tap dismissed by user');
-                    }
-                });
+                    console.log('[GoogleOneTap] Initialized, showing prompt...');
+
+                    // Display the One Tap prompt
+                    window.google.accounts.id.prompt((notification: any) => {
+                        console.log('[GoogleOneTap] Prompt notification received');
+                        
+                        if (notification.isDisplayed && notification.isDisplayed()) {
+                            console.log('[GoogleOneTap] Prompt is displayed');
+                        }
+                        if (notification.isNotDisplayed && notification.isNotDisplayed()) {
+                            const reason = notification.getNotDisplayedReason?.() || 'unknown';
+                            console.log('[GoogleOneTap] Prompt not displayed, reason:', reason);
+                        }
+                        if (notification.isSkippedMoment && notification.isSkippedMoment()) {
+                            const reason = notification.getSkippedReason?.() || 'unknown';
+                            console.log('[GoogleOneTap] Prompt skipped, reason:', reason);
+                        }
+                        if (notification.isDismissedMoment && notification.isDismissedMoment()) {
+                            const reason = notification.getDismissedReason?.() || 'unknown';
+                            console.log('[GoogleOneTap] Prompt dismissed, reason:', reason);
+                        }
+                    });
+                } catch (initError) {
+                    console.error('[GoogleOneTap] Initialization error:', initError);
+                }
+            } else {
+                console.error('[GoogleOneTap] Google script loaded but window.google is undefined');
             }
+        };
+
+        script.onerror = (error) => {
+            console.error('[GoogleOneTap] Failed to load Google script:', error);
         };
 
         document.body.appendChild(script);

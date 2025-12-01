@@ -20,6 +20,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
             getSession: async () => ({ data: { session: null }, error: new Error("Supabase not configured") }),
             onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
             signInWithOAuth: async () => ({ error: new Error("Supabase not configured") }),
+            signInWithIdToken: async () => ({ data: null, error: new Error("Supabase not configured") }),
             signInWithPassword: async () => ({ data: null, error: new Error("Supabase not configured") }),
             signUp: async () => ({ data: null, error: new Error("Supabase not configured") }),
             signOut: async () => ({ error: new Error("Supabase not configured") }),
@@ -33,14 +34,27 @@ if (!supabaseUrl || !supabaseAnonKey) {
                     data: null, error: new Error("Supabase not configured")
                 }),
                 data: null, error: new Error("Supabase not configured")
-            })
+            }),
+            insert: () => ({
+                select: () => ({
+                    single: async () => ({ data: null, error: new Error("Supabase not configured") }),
+                }),
+            }),
+            update: () => ({
+                eq: () => ({ data: null, error: new Error("Supabase not configured") }),
+            }),
         }),
         storage: {
             from: () => ({
                 upload: async () => ({ data: null, error: new Error("Supabase not configured") }),
                 getPublicUrl: () => ({ data: { publicUrl: "" } })
             })
-        }
+        },
+        channel: () => ({
+            on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
+            subscribe: () => ({ unsubscribe: () => {} }),
+            unsubscribe: () => {},
+        }),
     } as any;
 } else {
     client = createClient(

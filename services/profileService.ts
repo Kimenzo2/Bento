@@ -13,6 +13,96 @@ export interface UserProfile {
 }
 
 /**
+ * Default gamification state for new users
+ */
+const defaultGamificationData: GamificationState = {
+    level: 1,
+    levelTitle: "Novice Author",
+    currentXP: 0,
+    nextLevelXP: 100,
+    booksCreatedCount: 0,
+    badges: [
+        { id: '1', name: "First Spark", description: "Create your first book", icon: "rocket", unlocked: false },
+        { id: '2', name: "Style Explorer", description: "Try 3 different styles", icon: "palette", unlocked: false },
+        { id: '3', name: "Wordsmith", description: "Write 5,000 words", icon: "feather", unlocked: false },
+        { id: '4', name: "Bestseller", description: "Get 1,000 views", icon: "diamond", unlocked: false }
+    ],
+    dailyChallenges: [
+        { id: 'c1', title: "Create a Children's Book", xpReward: 50, completed: false },
+        { id: 'c2', title: "Try a new Art Style", xpReward: 75, completed: false },
+        { id: 'c3', title: "Share a book", xpReward: 100, completed: false }
+    ]
+};
+
+/**
+ * Ensure user profile exists, create if not
+ */
+export const ensureUserProfile = async (): Promise<UserProfile | null> => {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+            console.log('[ProfileService] No authenticated user');
+            return null;
+        }
+
+        console.log('[ProfileService] Ensuring profile exists for:', user.email);
+
+        // First, try to get existing profile
+        const { data: existingProfile, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (existingProfile) {
+            console.log('[ProfileService] Profile exists:', existingProfile.email);
+            return existingProfile as UserProfile;
+        }
+
+        // Profile doesn't exist, create it
+        console.log('[ProfileService] Creating new profile for:', user.email);
+        
+        const newProfile = {
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+            user_tier: UserTier.SPARK,
+            gamification_data: defaultGamificationData,
+        };
+
+        const { data: createdProfile, error: insertError } = await supabase
+            .from('profiles')
+            .insert(newProfile)
+            .select()
+            .single();
+
+        if (insertError) {
+            console.error('[ProfileService] Error creating profile:', insertError);
+            
+            // If it's a duplicate key error, the trigger already created it
+            if (insertError.code === '23505') {
+                console.log('[ProfileService] Profile was created by trigger, fetching...');
+                const { data: triggerProfile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                return triggerProfile as UserProfile;
+            }
+            return null;
+        }
+
+        console.log('[ProfileService] Profile created successfully');
+        return createdProfile as UserProfile;
+    } catch (error) {
+        console.error('[ProfileService] Error in ensureUserProfile:', error);
+        return null;
+    }
+};
+
+/**
  * Fetch the current user's profile from Supabase
  */
 export const getUserProfile = async (): Promise<UserProfile | null> => {
@@ -20,24 +110,32 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-            console.log('No authenticated user');
+            console.log('[ProfileService] No authenticated user');
             return null;
         }
+
+        console.log('[ProfileService] Fetching profile for:', user.email);
 
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (error) {
-            console.error('Error fetching user profile:', error);
+            console.error('[ProfileService] Error fetching profile:', error);
             return null;
         }
 
+        if (!data) {
+            console.log('[ProfileService] Profile not found, creating...');
+            return await ensureUserProfile();
+        }
+
+        console.log('[ProfileService] Profile found:', data.email);
         return data as UserProfile;
     } catch (error) {
-        console.error('Error in getUserProfile:', error);
+        console.error('[ProfileService] Error in getUserProfile:', error);
         return null;
     }
 };

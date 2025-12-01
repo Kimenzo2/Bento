@@ -54,8 +54,10 @@ const App: React.FC = () => {
   // Fetch user profile on mount
   React.useEffect(() => {
     const fetchProfile = async () => {
+      console.log('[App] Fetching user profile...');
       setIsLoadingProfile(true);
       const profile = await getUserProfile();
+      console.log('[App] Profile fetched:', profile ? `${profile.email}` : 'No profile');
       setUserProfile(profile);
       setIsLoadingProfile(false);
     };
@@ -64,10 +66,29 @@ const App: React.FC = () => {
 
     // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      console.log('[App] Auth state changed:', event, session?.user?.email || 'No user');
+      
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const profile = await getUserProfile();
-        setUserProfile(profile);
+        // Small delay to allow profile trigger to complete for new users
+        setTimeout(async () => {
+          console.log('[App] Fetching profile after sign-in...');
+          const profile = await getUserProfile();
+          console.log('[App] Profile after sign-in:', profile ? `${profile.email}` : 'No profile (may be new user)');
+          
+          if (!profile && session?.user) {
+            // Profile might not exist yet for new users, retry after a moment
+            console.log('[App] Profile not found, retrying in 1s...');
+            setTimeout(async () => {
+              const retryProfile = await getUserProfile();
+              console.log('[App] Retry profile result:', retryProfile ? `${retryProfile.email}` : 'Still no profile');
+              setUserProfile(retryProfile);
+            }, 1000);
+          } else {
+            setUserProfile(profile);
+          }
+        }, 500);
       } else if (event === 'SIGNED_OUT') {
+        console.log('[App] User signed out, clearing profile');
         setUserProfile(null);
       }
     });
