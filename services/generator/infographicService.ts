@@ -82,14 +82,6 @@ export const InfographicService = {
         const content = await InfographicService.generateContent(request);
 
         // 2. Generate Image (Now using real API)
-        // Note: In the future, we might want to store this URL or upload it to storage
-        // For now, we'll use the returned URL directly (assuming it's a valid public URL or base64)
-        // If generateIllustration returns base64, we might want to handle that.
-        // But for now, let's assume it returns a URL or we handle it in the renderer.
-        // Actually, let's comment this out for now to save credits while testing the FLOW, 
-        // unless the user explicitly wants to burn credits.
-        // The user asked "What do you mean we dont have a live image generation API connected?", implying they WANT it connected.
-        // So I will uncomment it.
         const imageUrl = await InfographicService.generateImage(content, request);
 
         // 3. Map to InfographicData
@@ -102,6 +94,7 @@ export const InfographicService = {
             style: request.style,
             guideCharacter: request.guideCharacter,
             colors: ['#FF6B6B', '#4ECDC4', '#FFE66D'], // Extract from content.color_coding_suggestions if possible
+            imageUrl: imageUrl,
             content: {
                 intro: content.core_concept,
                 mainPoints: content.main_points.map((p: any) => p.heading),

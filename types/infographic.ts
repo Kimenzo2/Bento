@@ -57,6 +57,7 @@ export interface InfographicData {
     style: InfographicStyle;
     guideCharacter: GuideCharacter;
     colors: string[];
+    imageUrl?: string;
     content: {
         intro: string;
         mainPoints: string[];

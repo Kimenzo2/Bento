@@ -309,6 +309,7 @@ const App: React.FC = () => {
           <VisualStudio
             project={currentProject}
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
+            userProfile={userProfile}
           />
         );
       case AppMode.SETTINGS:

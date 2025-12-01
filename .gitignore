@@ -42,7 +42,13 @@ FIX_INSTRUCTIONS.txt
 
 # Database & Migration Files (keep schema templates, ignore applied migrations)
 fix_*.sql
-supabase_gamification_migration.sql
+supabase_*.sql
+
+# General temporary files
+*.bak
+*.old
+*.tmp
+*.temp
 
 # Sensitive Configuration Files
 PAYSTACK_PLAN_CODES.txt

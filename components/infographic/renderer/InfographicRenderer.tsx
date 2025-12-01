@@ -48,6 +48,22 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
                 <p className="text-cocoa-light max-w-lg mx-auto text-sm">{data.content.intro}</p>
             </div>
 
+            {/* Generated Visual */}
+            {data.imageUrl && (
+                <div className="w-full px-8 mb-8 flex justify-center">
+                    <div className="relative rounded-2xl overflow-hidden shadow-lg border-4 border-white transform hover:scale-[1.02] transition-transform duration-500">
+                        <img
+                            src={data.imageUrl}
+                            alt={data.title}
+                            className="w-full max-w-md h-auto object-cover"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* Main Content Area */}
             <div className="flex-1 relative">
                 {renderContent()}

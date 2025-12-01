@@ -22,10 +22,14 @@ import {
     LogOut
 } from 'lucide-react';
 import { generateRefinedImage } from '../services/geminiService';
+import MessagesWidget from './MessagesWidget';
+import ChatWidget from './ChatWidget';
+import { UserProfile } from '../services/profileService';
 
 interface VisualStudioProps {
     project: BookProject | null;
     onBack?: () => void;
+    userProfile: UserProfile | null;
 }
 
 interface Collaborator {
@@ -37,7 +41,7 @@ interface Collaborator {
     prompt?: string;
 }
 
-const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack }) => {
+const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfile }) => {
     const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -172,6 +176,23 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack }) => {
         setIsCollaborativeMode(false);
         setCollaborators(prev => prev.map(c => ({ ...c, status: 'idle', image: undefined })));
         setExpandedVisual(null);
+    };
+
+    const handleCollaborativeTrigger = () => {
+        // Activate collaborative mode
+        handleCollaborationStart();
+
+        // Show "Yay let's do it!" confirmation
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-24 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-full shadow-lg z-[100] animate-bounce font-heading font-bold text-lg';
+        toast.textContent = '🎉 Yay let\'s do it!';
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.5s';
+            toast.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(toast), 500);
+        }, 3000);
     };
 
     return (
@@ -642,6 +663,14 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack }) => {
                     )}
                 </div>
 
+            </div>
+
+            {/* Chat Widget - Reddit Style */}
+            <div className="fixed bottom-0 right-4 z-50">
+                <ChatWidget
+                    userProfile={userProfile}
+                    onCollaborativeTrigger={handleCollaborativeTrigger}
+                />
             </div>
         </div>
     );

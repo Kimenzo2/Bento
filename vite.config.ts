@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => {
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
-
+    optimizeDeps: {
+      include: ['bytez.js']
+    },
+    build: {
+      commonjsOptions: {
+        include: [/bytez\.js/, /node_modules/]
+      }
+    }
   }
 })

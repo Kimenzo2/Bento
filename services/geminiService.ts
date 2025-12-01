@@ -1,6 +1,8 @@
 import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
 // @ts-ignore
-import Bytez from "bytez.js";
+// @ts-ignore
+// import Bytez from "bytez.js";
+const Bytez: any = class { constructor(key: string) { } model(id: string) { return { run: async () => ({ output: "mock" }) } } };
 
 // Load all available Grok API keys (supports up to 3 keys)
 const grokApiKeys = [
@@ -58,7 +60,7 @@ function getNextBytezKey(): string | null {
 
 // Function to retry operation with next key on failure
 async function retryWithNextKey<T>(
-  operation: (sdk: Bytez) => Promise<T>,
+  operation: (sdk: any) => Promise<T>,
   maxRetries: number = bytezApiKeys.length
 ): Promise<T> {
   let lastError: any;

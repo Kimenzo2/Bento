@@ -105,7 +105,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             onClick={onClick}
             className="bg-white p-8 rounded-3xl shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft relative overflow-hidden"
         >
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-10 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700`}></div>
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-25 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700`}></div>
             <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white shadow-md mb-6 group-hover:rotate-12 transition-transform`}>
                 <Icon className="w-8 h-8" />
             </div>
@@ -124,6 +124,23 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
     return (
         <div className="w-full flex flex-col items-center pb-32 animate-fadeIn">
+
+            {/* Aesthetic Mascots - Visible on large screens */}
+            <div className="hidden 2xl:block fixed left-10 top-1/2 -translate-y-1/2 w-72 pointer-events-none z-0 opacity-90 hover:opacity-100 transition-opacity duration-500">
+                <img
+                    src="/assets/mascot-creative.png"
+                    alt="Creative Mascot"
+                    className="w-full h-auto drop-shadow-xl animate-float"
+                />
+            </div>
+            <div className="hidden 2xl:block fixed right-10 top-1/2 -translate-y-1/2 w-72 pointer-events-none z-0 opacity-90 hover:opacity-100 transition-opacity duration-500">
+                <img
+                    src="/assets/mascot-analytical.png"
+                    alt="Analytical Mascot"
+                    className="w-full h-auto drop-shadow-xl animate-float"
+                    style={{ animationDelay: '2s' }}
+                />
+            </div>
 
             {/* Hero Header */}
             <div className="text-center space-y-4 mb-12 mt-8 md:mt-16">
@@ -208,8 +225,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             )}
 
             {/* Main Wizard Card */}
-            <div className="w-full max-w-4xl px-4">
-                <div className="bg-white rounded-[32px] shadow-soft-lg p-8 md:p-12 border border-white/50 relative overflow-hidden">
+            <div className="w-full max-w-4xl px-2 sm:px-4">
+                <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-soft-lg p-6 sm:p-8 md:p-12 border border-white/50 relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
 
                     {/* Loading Overlay */}
                     {isGenerating && (
