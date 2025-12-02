@@ -1,10 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket } from 'lucide-react';
 import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook, UserTier } from '../types';
 import { getAllBooks, deleteBook } from '../services/storageService';
 import SavedBookCard from './SavedBookCard';
 import { getAvailableStyles, canUseStyle } from '../services/tierLimits';
 import InfographicWizard from './infographic/InfographicWizard';
+
+// ===== OPTIMIZED MASCOT COMPONENT =====
+interface MascotProps {
+    src: string;
+    alt: string;
+    position: 'header-left' | 'header-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-right';
+    delay?: string;
+}
+
+const Mascot = memo(({ src, alt, position, delay = '0s' }: MascotProps) => {
+    const positionClasses = useMemo(() => {
+        const positions = {
+            'header-left': 'hidden lg:block absolute left-4 xl:left-12 top-8 w-28 xl:w-36',
+            'header-right': 'hidden lg:block absolute right-4 xl:right-12 top-8 w-28 xl:w-36',
+            'middle-left': 'hidden xl:block absolute left-4 2xl:left-16 top-[65%] w-32 2xl:w-44',
+            'middle-right': 'hidden xl:block absolute right-4 2xl:right-16 top-[65%] w-32 2xl:w-44',
+            'bottom-left': 'hidden xl:block absolute left-8 2xl:left-20 bottom-20 w-28 2xl:w-36',
+            'bottom-right': 'hidden xl:block absolute right-8 2xl:right-20 bottom-20 w-28 2xl:w-36',
+        };
+        return positions[position];
+    }, [position]);
+
+    return (
+        <div className={`${positionClasses} pointer-events-none z-10 opacity-90 hover:opacity-100 transition-all duration-500 hover:scale-105`}>
+            <img
+                src={src}
+                alt={alt}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-auto drop-shadow-xl animate-float"
+                style={{ animationDelay: delay }}
+            />
+        </div>
+    );
+});
+
+Mascot.displayName = 'Mascot';
 
 interface CreationCanvasProps {
     onGenerate: (settings: GenerationSettings) => void;
@@ -46,7 +83,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         loadSavedBooks();
     }, []);
 
-    const loadSavedBooks = async () => {
+    const loadSavedBooks = useCallback(async () => {
         setIsLoadingBooks(true);
         try {
             const books = await getAllBooks();
@@ -56,9 +93,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         } finally {
             setIsLoadingBooks(false);
         }
-    };
+    }, []);
 
-    const handleDeleteBook = async (id: string) => {
+    const handleDeleteBook = useCallback(async (id: string) => {
         try {
             await deleteBook(id);
             await loadSavedBooks(); // Refresh the list
@@ -66,13 +103,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             console.error('Failed to delete book:', error);
             alert('Failed to delete book. Please try again.');
         }
-    };
+    }, [loadSavedBooks]);
 
-    const allStyles = Object.values(ArtStyle);
-    const availableStyles = getAvailableStyles(userTier);
-    const tones = Object.values(BookTone);
+    // Memoize expensive computations
+    const allStyles = useMemo(() => Object.values(ArtStyle), []);
+    const availableStyles = useMemo(() => getAvailableStyles(userTier), [userTier]);
+    const tones = useMemo(() => Object.values(BookTone), []);
 
-    const handleGenerate = () => {
+    const handleGenerate = useCallback(() => {
         if (!prompt.trim()) return;
 
         let brandProfile: BrandProfile | undefined = undefined;
@@ -95,12 +133,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             educational,
             brandProfile
         });
-    };
+    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, onGenerate]);
 
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
-    // Quick Start Card Component
-    const QuickStartCard = ({ icon: Icon, title, desc, colorClass, onClick }: any) => (
+    // Memoized Quick Start Card Component
+    const QuickStartCard = useMemo(() => memo(({ icon: Icon, title, desc, colorClass, onClick }: any) => (
         <button
             onClick={onClick}
             className="bg-white p-8 rounded-3xl shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft relative overflow-hidden"
@@ -115,32 +153,23 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 Start Creating <ChevronRight className="w-4 h-4" />
             </div>
         </button>
-    );
+    )), []);
 
-    const handleQuickStartClick = (action: () => void) => {
+    const handleQuickStartClick = useCallback((action: () => void) => {
         setCreationMode('book');
         action();
-    };
+    }, []);
 
     return (
-        <div className="w-full flex flex-col items-center pb-32 animate-fadeIn">
+        <div className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
 
-            {/* Aesthetic Mascots - Visible on large screens */}
-            <div className="hidden 2xl:block fixed left-10 top-1/2 -translate-y-1/2 w-72 pointer-events-none z-0 opacity-90 hover:opacity-100 transition-opacity duration-500">
-                <img
-                    src="/assets/mascot-creative.png"
-                    alt="Creative Mascot"
-                    className="w-full h-auto drop-shadow-xl animate-float"
-                />
-            </div>
-            <div className="hidden 2xl:block fixed right-10 top-1/2 -translate-y-1/2 w-72 pointer-events-none z-0 opacity-90 hover:opacity-100 transition-opacity duration-500">
-                <img
-                    src="/assets/mascot-analytical.png"
-                    alt="Analytical Mascot"
-                    className="w-full h-auto drop-shadow-xl animate-float"
-                    style={{ animationDelay: '2s' }}
-                />
-            </div>
+            {/* ===== OPTIMIZED MASCOTS ===== */}
+            <Mascot src="/assets/mascots/joy-musician.png" alt="Joy the Musician" position="header-left" />
+            <Mascot src="/assets/mascots/zara-scientist.png" alt="Zara the Scientist" position="header-right" delay="1s" />
+            <Mascot src="/assets/mascots/wise-sage.png" alt="Wise Sage" position="middle-left" delay="0.5s" />
+            <Mascot src="/assets/mascots/explorer-boy.png" alt="Explorer Boy" position="middle-right" delay="1.5s" />
+            <Mascot src="/assets/mascots/wise-owl.png" alt="Wise Owl" position="bottom-left" delay="2s" />
+            <Mascot src="/assets/mascots/magic-dragon.png" alt="Magic Dragon" position="bottom-right" delay="2.5s" />
 
             {/* Hero Header */}
             <div className="text-center space-y-4 mb-12 mt-8 md:mt-16">

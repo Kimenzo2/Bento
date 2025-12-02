@@ -16,6 +16,9 @@ import { generateBookStructure, generateIllustration } from './services/geminiSe
 import UpgradeModal from './components/UpgradeModal';
 import { ToastContainer, ToastType } from './components/Toast';
 import StorybookViewer from './components/StorybookViewer';
+import { CurriculumBuilder } from './components/CurriculumBuilder';
+import CurriculumViewer from './components/CurriculumViewer';
+import { CurriculumEbook } from './types/curriculum';
 import { getAllBooks, saveBook } from './services/storageService';
 import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
 import { getUserProfile, incrementBooksCreated, addXP, UserProfile } from './services/profileService';
@@ -34,6 +37,9 @@ const App: React.FC = () => {
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Curriculum State
+  const [currentCurriculumEbook, setCurrentCurriculumEbook] = useState<CurriculumEbook | null>(null);
 
   // User Profile State - Fetched from Supabase
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -367,6 +373,29 @@ const App: React.FC = () => {
       case AppMode.GAMIFICATION:
         return (
           <GamificationHub gameState={gamificationState} setMode={setCurrentMode} />
+        );
+      case AppMode.CURRICULUM:
+        return (
+          <CurriculumBuilder
+            onEbookGenerated={(ebook: CurriculumEbook) => {
+              setCurrentCurriculumEbook(ebook);
+              setCurrentMode(AppMode.CURRICULUM_VIEWER);
+            }}
+            onClose={() => setCurrentMode(AppMode.DASHBOARD)}
+            userTier={currentUserTier}
+          />
+        );
+      case AppMode.CURRICULUM_VIEWER:
+        if (!currentCurriculumEbook) return <CurriculumBuilder onEbookGenerated={(ebook: CurriculumEbook) => { setCurrentCurriculumEbook(ebook); setCurrentMode(AppMode.CURRICULUM_VIEWER); }} onClose={() => setCurrentMode(AppMode.DASHBOARD)} userTier={currentUserTier} />;
+        return (
+          <CurriculumViewer
+            ebook={currentCurriculumEbook}
+            onClose={() => {
+              setCurrentCurriculumEbook(null);
+              setCurrentMode(AppMode.DASHBOARD);
+            }}
+            onEdit={() => setCurrentMode(AppMode.CURRICULUM)}
+          />
         );
       default:
         return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;

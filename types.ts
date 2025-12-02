@@ -11,7 +11,9 @@ export enum AppMode {
   GAMIFICATION = 'GAMIFICATION',
   SUCCESS = 'SUCCESS',
   VIEWER = 'VIEWER',
-  AUTH = 'AUTH'
+  AUTH = 'AUTH',
+  CURRICULUM = 'CURRICULUM',
+  CURRICULUM_VIEWER = 'CURRICULUM_VIEWER'
 }
 
 export enum ArtStyle {

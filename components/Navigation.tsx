@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   Trophy,
-  Zap
+  Zap,
+  GraduationCap
 } from 'lucide-react';
 import { AppMode } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +29,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
   const menuItems = [
     { mode: AppMode.DASHBOARD, icon: LayoutDashboard, label: 'Home' },
     { mode: AppMode.CREATION, icon: PenTool, label: 'Create' },
+    { mode: AppMode.CURRICULUM, icon: GraduationCap, label: 'Curriculum' },
     { mode: AppMode.EDITOR, icon: BookOpen, label: 'Editor' },
     { mode: AppMode.VISUAL_STUDIO, icon: ImageIcon, label: 'Visual Studio' },
   ];
