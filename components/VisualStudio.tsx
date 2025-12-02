@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArtStyle, BookProject, VisualSettings } from '../types';
+import { ArtStyle, BookProject, VisualSettings, Character } from '../types';
 import {
     Wand2,
     Users,
@@ -112,42 +112,88 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
     const [isLoadingData, setIsLoadingData] = useState(false);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const reconnectAttemptsRef = useRef(0);
+    const reconnectAttemptsRef = useRef<number>(0);
     const MAX_RECONNECT_ATTEMPTS = 5;
-
-    // Default characters to use when project has none
-    const defaultCharacters = [
+    const defaultCharacters: Character[] = [
         {
-            id: 'default-1',
-            name: 'Luna',
-            role: 'protagonist',
-            description: 'A curious young girl with bright eyes and a sense of adventure',
-            visualTraits: 'Young girl, 8 years old, brown hair in pigtails, green eyes, freckles, wearing a blue dress with white polka dots',
-            traits: ['curious', 'brave', 'kind']
+            id: 'c1',
+            name: 'Ada Lovelace',
+            description: 'The first computer programmer, known for her work on Charles Babbage\'s proposed mechanical general-purpose computer, the Analytical Engine.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Ada_Lovelace_portrait.jpg/417px-Ada_Lovelace_portrait.jpg',
+            visualTraits: 'Victorian era dress, dark hair in buns, poised and intellectual expression',
+            traits: ['intellectual', 'visionary', 'pioneer']
         },
         {
-            id: 'default-2',
-            name: 'Max',
-            role: 'sidekick',
-            description: 'A playful golden retriever puppy who loves to explore',
-            visualTraits: 'Golden retriever puppy, fluffy golden fur, floppy ears, brown eyes, red collar with a star tag',
-            traits: ['loyal', 'playful', 'energetic']
+            id: 'c2',
+            name: 'Albert Einstein',
+            description: 'Theoretical physicist who developed the theory of relativity, one of the two pillars of modern physics.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Einstein_1921_by_F_Schmutzer_-_restoration.jpg/330px-Einstein_1921_by_F_Schmutzer_-_restoration.jpg',
+            visualTraits: 'Wild white hair, mustache, thoughtful expression, suit and tie',
+            traits: ['genius', 'eccentric', 'peaceful']
         },
         {
-            id: 'default-3',
-            name: 'Professor Owl',
-            role: 'mentor',
-            description: 'A wise old owl who guides the heroes on their journey',
-            visualTraits: 'Great horned owl, gray and brown feathers, large amber eyes, wearing small round spectacles',
-            traits: ['wise', 'patient', 'mysterious']
+            id: 'c3',
+            name: 'Charles Darwin',
+            description: 'Naturalist, geologist and biologist, best known for his contributions to the science of evolution.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Charles_Darwin_seated_crop.jpg/330px-Charles_Darwin_seated_crop.jpg',
+            visualTraits: 'Long white beard, balding, elderly, wearing a heavy coat',
+            traits: ['observant', 'patient', 'revolutionary']
         },
         {
-            id: 'default-4',
-            name: 'Spark',
-            role: 'companion',
-            description: 'A magical firefly that glows different colors based on mood',
-            visualTraits: 'Tiny firefly, iridescent wings, glowing yellow-green light, friendly expression',
-            traits: ['cheerful', 'helpful', 'magical']
+            id: 'c4',
+            name: 'Florence Nightingale',
+            description: 'Social reformer, statistician and the founder of modern nursing.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Florence_Nightingale_CDV_by_H_Lenthall.jpg/330px-Florence_Nightingale_CDV_by_H_Lenthall.jpg',
+            visualTraits: 'Victorian nurse uniform, cap, carrying a lamp, compassionate expression',
+            traits: ['compassionate', 'dedicated', 'pioneer']
+        },
+        {
+            id: 'c5',
+            name: 'Galileo Galilei',
+            description: 'Astronomer, physicist and engineer, sometimes described as a polymath.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg/330px-Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg',
+            visualTraits: 'Renaissance robes, beard, holding a telescope, looking at the stars',
+            traits: ['curious', 'defiant', 'scientific']
+        },
+        {
+            id: 'c6',
+            name: 'Isaac Newton',
+            description: 'Mathematician, physicist, astronomer, alchemist, theologian, and author.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/GodfreyKneller-IsaacNewton-1689.jpg/330px-GodfreyKneller-IsaacNewton-1689.jpg',
+            visualTraits: 'Long wig, velvet coat, holding a prism or apple, serious expression',
+            traits: ['logical', 'obsessive', 'brilliant']
+        },
+        {
+            id: 'c7',
+            name: 'Leonardo da Vinci',
+            description: 'Polymath of the High Renaissance who was active as a painter, draughtsman, engineer, scientist, theorist, sculptor, and architect.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg/330px-Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg',
+            visualTraits: 'Long beard, long hair, renaissance artist cap, holding a sketchbook',
+            traits: ['creative', 'inventive', 'visionary']
+        },
+        {
+            id: 'c8',
+            name: 'Marie Curie',
+            description: 'Physicist and chemist who conducted pioneering research on radioactivity.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Marie_Curie_c._1920s.jpg/330px-Marie_Curie_c._1920s.jpg',
+            visualTraits: 'Simple black dress, messy hair from lab work, holding a test tube',
+            traits: ['determined', 'brilliant', 'selfless']
+        },
+        {
+            id: 'c9',
+            name: 'Nikola Tesla',
+            description: 'Inventor, electrical engineer, mechanical engineer, and futurist.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/N.Tesla.JPG/330px-N.Tesla.JPG',
+            visualTraits: 'Sharp suit, mustache, intense gaze, surrounded by electrical sparks',
+            traits: ['futuristic', 'eccentric', 'inventive']
+        },
+        {
+            id: 'c10',
+            name: 'Rosalind Franklin',
+            description: 'Chemist and X-ray crystallographer whose work was central to the understanding of the molecular structures of DNA.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/en/9/97/Rosalind_Franklin.jpg',
+            visualTraits: 'Lab coat, short hair, looking through a microscope, focused expression',
+            traits: ['meticulous', 'brilliant', 'unsung']
         }
     ];
 
@@ -220,7 +266,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             reconnectAttemptsRef.current = 0;
             initializeCollabSession();
         }
-        
+
         return () => {
             // Cleanup on unmount or mode change
             if (reconnectTimeoutRef.current) {
@@ -246,7 +292,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     // Periodic refresh for live data (every 30 seconds)
     useEffect(() => {
         if (!sessionId || !isCollaborativeMode || connectionStatus !== 'connected') return;
-        
+
         const interval = setInterval(() => {
             loadSharedVisuals();
             loadChallenges();
@@ -264,7 +310,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
     const initializeCollabSession = async () => {
         if (!userProfile) return;
-        
+
         try {
             setConnectionStatus('connecting');
             // Use project ID or create a default session
@@ -324,21 +370,21 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 },
                 onTyping: (userId, isTyping) => {
                     // Update presence with typing status
-                    setPresenceUsers(prev => prev.map(u => 
-                        u.user_id === userId 
-                            ? { ...u, status: isTyping ? 'typing' : 'idle' } 
+                    setPresenceUsers(prev => prev.map(u =>
+                        u.user_id === userId
+                            ? { ...u, status: isTyping ? 'typing' : 'idle' }
                             : u
                     ));
                 }
             });
 
             channelRef.current = channel;
-            
+
             // Mark as connected successfully
             setConnectionStatus('connected');
             reconnectAttemptsRef.current = 0;
             showToast('✅ Connected to collaboration studio!');
-            
+
             // Send join event to chat
             try {
                 await chatService.sendVisualStudioEvent(
@@ -373,10 +419,10 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     const loadActivities = async () => {
         if (!sessionId) return;
         try {
-            const result = await collaborationService.getActivities({ 
-                scope: 'session', 
-                sessionId, 
-                limit: 50 
+            const result = await collaborationService.getActivities({
+                scope: 'session',
+                sessionId,
+                limit: 50
             });
             setActivities(result);
         } catch (error) {
@@ -420,7 +466,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
         reconnectAttemptsRef.current++;
-        
+
         setConnectionStatus('connecting');
         showToast(`🔄 Reconnecting... (Attempt ${reconnectAttemptsRef.current})`);
 
@@ -744,17 +790,16 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         <span className="xs:hidden">Collab</span>
                         {/* Connection Status Indicator */}
                         {viewMode === 'collaborative' && (
-                            <span 
-                                className={`w-2 h-2 rounded-full ${
-                                    connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' :
+                            <span
+                                className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' :
                                     connectionStatus === 'connecting' ? 'bg-yellow-400 animate-ping' :
-                                    connectionStatus === 'error' ? 'bg-red-500' :
-                                    'bg-gray-400'
-                                }`}
-                                title={connectionStatus === 'connected' ? 'Live - Real-time sync active' : 
-                                       connectionStatus === 'connecting' ? 'Connecting...' :
-                                       connectionStatus === 'error' ? 'Connection failed - Click to retry' :
-                                       'Disconnected'}
+                                        connectionStatus === 'error' ? 'bg-red-500' :
+                                            'bg-gray-400'
+                                    }`}
+                                title={connectionStatus === 'connected' ? 'Live - Real-time sync active' :
+                                    connectionStatus === 'connecting' ? 'Connecting...' :
+                                        connectionStatus === 'error' ? 'Connection failed - Click to retry' :
+                                            'Disconnected'}
                             />
                         )}
                     </button>
@@ -778,7 +823,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                     </span>
                                 )}
                                 {connectionStatus === 'error' && (
-                                    <button 
+                                    <button
                                         onClick={initializeCollabSession}
                                         className="ml-2 text-red-600 font-semibold hover:underline"
                                     >
@@ -800,6 +845,32 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         w-full lg:w-1/3 p-4 md:p-6 h-full
                     `}
                     >
+                        {/* Selected Character Image Display */}
+                        {activeTab === 'character' && settings.selectedCharacterId && (
+                            <div className="flex justify-center mb-6 animate-fadeIn">
+                                {(() => {
+                                    const char = availableCharacters.find(c => c.id === settings.selectedCharacterId);
+                                    if (char && char.imageUrl) {
+                                        return (
+                                            <div className="relative group">
+                                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
+                                                    <img
+                                                        src={char.imageUrl}
+                                                        alt={char.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-coral-burst text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
+                                                    {char.name}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+                            </div>
+                        )}
+
                         {/* Tabs */}
                         <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
                             {['character', 'scene', 'style'].map((tab) => (
@@ -1005,596 +1076,594 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                     </div>
                 )}
 
-            {/* Preview Area / Collaborative Grid */}
-            <div className={`
+                {/* Preview Area / Collaborative Grid */}
+                <div className={`
                     rounded-3xl overflow-hidden relative
                     ${isCollaborativeMode
-                    ? 'flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col'
-                    : 'w-full lg:w-2/3 bg-cream-base border-2 border-dashed border-peach-soft flex items-center justify-center group h-full min-h-[400px] md:min-h-[500px]'}
+                        ? 'flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col'
+                        : 'w-full lg:w-2/3 bg-cream-base border-2 border-dashed border-peach-soft flex items-center justify-center group h-full min-h-[400px] md:min-h-[500px]'}
                 `}>
-                {isCollaborativeMode ? (
-                    <div className="w-full h-full flex flex-col overflow-hidden">
-                        {/* Collaborative Box Header with Presence - Mobile Optimized */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 gap-2 sm:gap-0">
-                            {/* Top Row - Title, Presence, Refresh */}
-                            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
-                                <h2 className="font-heading font-bold text-sm sm:text-base md:text-xl text-charcoal-soft flex items-center gap-1.5 sm:gap-2">
-                                    <Users className="w-4 h-4 md:w-5 md:h-5 text-coral-burst" />
-                                    <span className="hidden sm:inline">Creative Hub</span>
-                                    <span className="sm:hidden">Hub</span>
-                                </h2>
+                    {isCollaborativeMode ? (
+                        <div className="w-full h-full flex flex-col overflow-hidden">
+                            {/* Collaborative Box Header with Presence - Mobile Optimized */}
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 gap-2 sm:gap-0">
+                                {/* Top Row - Title, Presence, Refresh */}
+                                <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+                                    <h2 className="font-heading font-bold text-sm sm:text-base md:text-xl text-charcoal-soft flex items-center gap-1.5 sm:gap-2">
+                                        <Users className="w-4 h-4 md:w-5 md:h-5 text-coral-burst" />
+                                        <span className="hidden sm:inline">Creative Hub</span>
+                                        <span className="sm:hidden">Hub</span>
+                                    </h2>
 
-                                {/* Presence Indicator - Compact on mobile */}
-                                <div className="hidden xs:block">
-                                    <PresenceIndicator
-                                        users={presenceUsers}
-                                        maxVisible={3}
-                                        showStatus={false}
-                                    />
-                                </div>
-                                
-                                {/* Mobile-only presence count */}
-                                <div className="xs:hidden flex items-center gap-1 text-xs text-gray-500 bg-white/60 px-2 py-1 rounded-full">
-                                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                    {presenceUsers.length}
-                                </div>
+                                    {/* Presence Indicator - Compact on mobile */}
+                                    <div className="hidden xs:block">
+                                        <PresenceIndicator
+                                            users={presenceUsers}
+                                            maxVisible={3}
+                                            showStatus={false}
+                                        />
+                                    </div>
 
-                                {/* Desktop Presence */}
-                                <div className="hidden sm:block">
-                                    <PresenceIndicator
-                                        users={presenceUsers}
-                                        maxVisible={5}
-                                        showStatus={true}
-                                    />
-                                </div>
-                                
-                                {/* Mobile Refresh Button */}
-                                <button
-                                    onClick={handleRefreshGallery}
-                                    disabled={isLoadingData}
-                                    className={`sm:hidden p-2 rounded-lg transition-all min-h-[36px] min-w-[36px] flex items-center justify-center ${
-                                        connectionStatus === 'error' 
-                                            ? 'bg-red-100 text-red-600' 
+                                    {/* Mobile-only presence count */}
+                                    <div className="xs:hidden flex items-center gap-1 text-xs text-gray-500 bg-white/60 px-2 py-1 rounded-full">
+                                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                                        {presenceUsers.length}
+                                    </div>
+
+                                    {/* Desktop Presence */}
+                                    <div className="hidden sm:block">
+                                        <PresenceIndicator
+                                            users={presenceUsers}
+                                            maxVisible={5}
+                                            showStatus={true}
+                                        />
+                                    </div>
+
+                                    {/* Mobile Refresh Button */}
+                                    <button
+                                        onClick={handleRefreshGallery}
+                                        disabled={isLoadingData}
+                                        className={`sm:hidden p-2 rounded-lg transition-all min-h-[36px] min-w-[36px] flex items-center justify-center ${connectionStatus === 'error'
+                                            ? 'bg-red-100 text-red-600'
                                             : 'bg-white/80 text-gray-500'
-                                    }`}
-                                    title={connectionStatus === 'error' ? 'Click to reconnect' : 'Refresh gallery'}
-                                >
-                                    <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
-                                </button>
-                            </div>
+                                            }`}
+                                        title={connectionStatus === 'error' ? 'Click to reconnect' : 'Refresh gallery'}
+                                    >
+                                        <RefreshCw className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
 
-                            {/* View Tabs - Desktop (hidden on mobile, shown in floating bar) */}
-                            <div className="hidden sm:flex items-center gap-1 bg-white/80 p-1 rounded-xl overflow-x-auto scrollbar-hide">
-                                <button
-                                    onClick={() => setCollabView('gallery')}
-                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'gallery'
-                                        ? 'bg-coral-burst text-white'
-                                        : 'text-gray-500 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span className="hidden md:inline">Gallery</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('activity')}
-                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'activity'
-                                        ? 'bg-purple-500 text-white'
-                                        : 'text-gray-500 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Activity className="w-3.5 h-3.5" />
-                                    <span className="hidden md:inline">Activity</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('challenges')}
-                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'challenges'
-                                        ? 'bg-gold-sunshine text-white'
-                                        : 'text-gray-500 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Trophy className="w-3.5 h-3.5" />
-                                    <span className="hidden md:inline">Challenges</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('broadcast')}
-                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'broadcast'
-                                        ? 'bg-red-500 text-white'
-                                        : 'text-gray-500 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Radio className="w-3.5 h-3.5" />
-                                    <span className="hidden md:inline">Live</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('insights')}
-                                    className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'insights'
-                                        ? 'bg-indigo-500 text-white'
-                                        : 'text-gray-500 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <BarChart2 className="w-3.5 h-3.5" />
-                                    <span className="hidden md:inline">Insights</span>
-                                </button>
-
-                                {/* Refresh Button - Desktop */}
-                                <button
-                                    onClick={handleRefreshGallery}
-                                    disabled={isLoadingData}
-                                    className={`ml-1 px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 min-h-[36px] ${
-                                        connectionStatus === 'error' 
-                                            ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                                {/* View Tabs - Desktop (hidden on mobile, shown in floating bar) */}
+                                <div className="hidden sm:flex items-center gap-1 bg-white/80 p-1 rounded-xl overflow-x-auto scrollbar-hide">
+                                    <button
+                                        onClick={() => setCollabView('gallery')}
+                                        className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'gallery'
+                                            ? 'bg-coral-burst text-white'
                                             : 'text-gray-500 hover:bg-gray-100'
-                                    }`}
-                                    title={connectionStatus === 'error' ? 'Click to reconnect' : 'Refresh gallery'}
-                                >
-                                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingData ? 'animate-spin' : ''}`} />
-                                </button>
+                                            }`}
+                                    >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        <span className="hidden md:inline">Gallery</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('activity')}
+                                        className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'activity'
+                                            ? 'bg-purple-500 text-white'
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Activity className="w-3.5 h-3.5" />
+                                        <span className="hidden md:inline">Activity</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('challenges')}
+                                        className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'challenges'
+                                            ? 'bg-gold-sunshine text-white'
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Trophy className="w-3.5 h-3.5" />
+                                        <span className="hidden md:inline">Challenges</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('broadcast')}
+                                        className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'broadcast'
+                                            ? 'bg-red-500 text-white'
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Radio className="w-3.5 h-3.5" />
+                                        <span className="hidden md:inline">Live</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('insights')}
+                                        className={`px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 whitespace-nowrap min-h-[36px] ${collabView === 'insights'
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        <BarChart2 className="w-3.5 h-3.5" />
+                                        <span className="hidden md:inline">Insights</span>
+                                    </button>
+
+                                    {/* Refresh Button - Desktop */}
+                                    <button
+                                        onClick={handleRefreshGallery}
+                                        disabled={isLoadingData}
+                                        className={`ml-1 px-2 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 md:gap-1.5 min-h-[36px] ${connectionStatus === 'error'
+                                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                            : 'text-gray-500 hover:bg-gray-100'
+                                            }`}
+                                        title={connectionStatus === 'error' ? 'Click to reconnect' : 'Refresh gallery'}
+                                    >
+                                        <RefreshCw className={`w-3.5 h-3.5 ${isLoadingData ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
+
+                                {/* Mobile Floating Tab Bar - Positioned above bottom nav */}
+                                <div className="sm:hidden collab-mobile-tabs">
+                                    <button
+                                        onClick={() => setCollabView('gallery')}
+                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'gallery'
+                                            ? 'bg-coral-burst text-white shadow-md'
+                                            : 'text-gray-500 active:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        <span className="text-[9px] font-bold">Gallery</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('activity')}
+                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'activity'
+                                            ? 'bg-purple-500 text-white shadow-md'
+                                            : 'text-gray-500 active:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Activity className="w-4 h-4" />
+                                        <span className="text-[9px] font-bold">Activity</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('challenges')}
+                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'challenges'
+                                            ? 'bg-gold-sunshine text-white shadow-md'
+                                            : 'text-gray-500 active:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Trophy className="w-4 h-4" />
+                                        <span className="text-[9px] font-bold">Challenges</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('broadcast')}
+                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'broadcast'
+                                            ? 'bg-red-500 text-white shadow-md'
+                                            : 'text-gray-500 active:bg-gray-100'
+                                            }`}
+                                    >
+                                        <Radio className="w-4 h-4" />
+                                        <span className="text-[9px] font-bold">Live</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setCollabView('insights')}
+                                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'insights'
+                                            ? 'bg-indigo-500 text-white shadow-md'
+                                            : 'text-gray-500 active:bg-gray-100'
+                                            }`}
+                                    >
+                                        <BarChart2 className="w-4 h-4" />
+                                        <span className="text-[9px] font-bold">Insights</span>
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Mobile Floating Tab Bar - Positioned above bottom nav */}
-                            <div className="sm:hidden collab-mobile-tabs">
-                                <button
-                                    onClick={() => setCollabView('gallery')}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'gallery'
-                                        ? 'bg-coral-burst text-white shadow-md'
-                                        : 'text-gray-500 active:bg-gray-100'
-                                        }`}
-                                >
-                                    <Eye className="w-4 h-4" />
-                                    <span className="text-[9px] font-bold">Gallery</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('activity')}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'activity'
-                                        ? 'bg-purple-500 text-white shadow-md'
-                                        : 'text-gray-500 active:bg-gray-100'
-                                        }`}
-                                >
-                                    <Activity className="w-4 h-4" />
-                                    <span className="text-[9px] font-bold">Activity</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('challenges')}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'challenges'
-                                        ? 'bg-gold-sunshine text-white shadow-md'
-                                        : 'text-gray-500 active:bg-gray-100'
-                                        }`}
-                                >
-                                    <Trophy className="w-4 h-4" />
-                                    <span className="text-[9px] font-bold">Challenges</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('broadcast')}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'broadcast'
-                                        ? 'bg-red-500 text-white shadow-md'
-                                        : 'text-gray-500 active:bg-gray-100'
-                                        }`}
-                                >
-                                    <Radio className="w-4 h-4" />
-                                    <span className="text-[9px] font-bold">Live</span>
-                                </button>
-                                <button
-                                    onClick={() => setCollabView('insights')}
-                                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-lg transition-all min-h-[44px] ${collabView === 'insights'
-                                        ? 'bg-indigo-500 text-white shadow-md'
-                                        : 'text-gray-500 active:bg-gray-100'
-                                        }`}
-                                >
-                                    <BarChart2 className="w-4 h-4" />
-                                    <span className="text-[9px] font-bold">Insights</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Main Content Area */}
-                        <div className="flex-1 flex flex-col overflow-hidden relative">
-                            {/* Gallery View */}
-                            {collabView === 'gallery' && (
-                                <div className="flex-1 p-2 sm:p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto scroll-container">
-                                    {/* Mobile: Extra padding for floating tabs and bottom nav */}
-                                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-36 sm:pb-24">
-                                        {/* Current User Creation Card */}
-                                        <div
-                                            className="bg-white rounded-xl sm:rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[240px] xs:h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
-                                        >
-                                            <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                                                <div className="flex items-center gap-1.5 sm:gap-2">
-                                                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[9px] sm:text-[10px] md:text-xs">YOU</div>
-                                                    <span className="font-bold text-[10px] sm:text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
+                            {/* Main Content Area */}
+                            <div className="flex-1 flex flex-col overflow-hidden relative">
+                                {/* Gallery View */}
+                                {collabView === 'gallery' && (
+                                    <div className="flex-1 p-2 sm:p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto scroll-container">
+                                        {/* Mobile: Extra padding for floating tabs and bottom nav */}
+                                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-36 sm:pb-24">
+                                            {/* Current User Creation Card */}
+                                            <div
+                                                className="bg-white rounded-xl sm:rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[240px] xs:h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
+                                            >
+                                                <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[9px] sm:text-[10px] md:text-xs">YOU</div>
+                                                        <span className="font-bold text-[10px] sm:text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        {settings.generatedImage && (
+                                                            <>
+                                                                {/* Version History Button */}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // Use session ID or a placeholder for current user's visual history
+                                                                        if (sessionId) {
+                                                                            setSelectedVisualForHistory(sessionId);
+                                                                            setShowFamilyTree(true);
+                                                                        }
+                                                                    }}
+                                                                    className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 active:scale-95 transition-all min-h-[32px] min-w-[32px] flex items-center justify-center"
+                                                                    title="Version History"
+                                                                >
+                                                                    <History className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setShowShareModal(true)}
+                                                                    className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-[10px] sm:text-xs font-bold hover:scale-105 active:scale-95 transition-transform min-h-[28px]"
+                                                                >
+                                                                    <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                                    <span className="hidden xs:inline">Share</span>
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    {settings.generatedImage && (
+                                                <div
+                                                    className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative cursor-pointer"
+                                                    onClick={() => settings.generatedImage && setExpandedVisual('current')}
+                                                >
+                                                    {settings.generatedImage ? (
                                                         <>
-                                                            {/* Version History Button */}
-                                                            <button
-                                                                onClick={() => {
-                                                                    // Use session ID or a placeholder for current user's visual history
-                                                                    if (sessionId) {
-                                                                        setSelectedVisualForHistory(sessionId);
-                                                                        setShowFamilyTree(true);
-                                                                    }
-                                                                }}
-                                                                className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 active:scale-95 transition-all min-h-[32px] min-w-[32px] flex items-center justify-center"
-                                                                title="Version History"
-                                                            >
-                                                                <History className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setShowShareModal(true)}
-                                                                className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-[10px] sm:text-xs font-bold hover:scale-105 active:scale-95 transition-transform min-h-[28px]"
-                                                            >
-                                                                <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                                                <span className="hidden xs:inline">Share</span>
-                                                            </button>
+                                                            <img src={settings.generatedImage} alt="Your work" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                                                <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                                                            </div>
                                                         </>
+                                                    ) : (
+                                                        <div className="text-center p-4">
+                                                            {isGenerating ? (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-coral-burst animate-spin" />
+                                                                    <span className="text-xs text-coral-burst animate-pulse">Creating magic...</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <Wand2 className="w-8 h-8 text-gray-300" />
+                                                                    <span className="text-gray-400 text-xs md:text-sm">Generate something amazing!</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
+                                                {isGenerating && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
+                                                        <div className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine animate-pulse" style={{ width: '60%' }} />
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div
-                                                className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative cursor-pointer"
-                                                onClick={() => settings.generatedImage && setExpandedVisual('current')}
-                                            >
-                                                {settings.generatedImage ? (
-                                                    <>
-                                                        <img src={settings.generatedImage} alt="Your work" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                            <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+
+                                            {/* Shared Visuals from Community */}
+                                            {isLoadingData && sharedVisuals.length === 0 && (
+                                                // Loading skeleton placeholders
+                                                Array.from({ length: 6 }).map((_, idx) => (
+                                                    <div key={`skeleton-${idx}`} className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] animate-pulse">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
+                                                            <div className="h-3 w-20 bg-gray-200 rounded" />
                                                         </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="text-center p-4">
-                                                        {isGenerating ? (
-                                                            <div className="flex flex-col items-center gap-2">
-                                                                <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-coral-burst animate-spin" />
-                                                                <span className="text-xs text-coral-burst animate-pulse">Creating magic...</span>
-                                                            </div>
+                                                        <div className="flex-1 bg-gray-100 rounded-xl" />
+                                                        <div className="flex gap-2 mt-2">
+                                                            <div className="h-6 w-16 bg-gray-200 rounded-full" />
+                                                            <div className="h-6 w-16 bg-gray-200 rounded-full" />
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                            {sharedVisuals.map(visual => (
+                                                <SharedVisualCard
+                                                    key={visual.id}
+                                                    visual={visual}
+                                                    onRemix={() => handleRemixVisual(visual)}
+                                                    onExpand={() => setSelectedVisual(visual)}
+                                                    onViewLineage={() => {
+                                                        setSelectedVisualForHistory(visual.id);
+                                                        setShowFamilyTree(true);
+                                                    }}
+                                                />
+                                            ))}
+
+                                            {/* Legacy Collaborator Slots (for demo/fallback) */}
+                                            {sharedVisuals.length === 0 && collaborators.map(user => (
+                                                <div
+                                                    key={user.id}
+                                                    className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+                                                    onClick={() => user.status === 'done' && user.image && setExpandedVisual(user)}
+                                                >
+                                                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                                                        <img src={user.avatar} alt={user.name} className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
+                                                        <span className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{user.name}</span>
+                                                        {user.status === 'typing' && <span className="text-[10px] md:text-xs text-gray-400 animate-pulse ml-auto">Typing...</span>}
+                                                        {user.status === 'generating' && <span className="text-[10px] md:text-xs text-purple-500 animate-pulse ml-auto">Gen...</span>}
+                                                    </div>
+                                                    <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative">
+                                                        {user.status === 'done' && user.image ? (
+                                                            <img src={user.image} alt={`${user.name}'s work`} className="w-full h-full object-cover animate-fadeIn transition-transform duration-500 group-hover:scale-105" />
                                                         ) : (
-                                                            <div className="flex flex-col items-center gap-2">
-                                                                <Wand2 className="w-8 h-8 text-gray-300" />
-                                                                <span className="text-gray-400 text-xs md:text-sm">Generate something amazing!</span>
+                                                            <div className="text-center p-2 md:p-4">
+                                                                {user.status === 'generating' ? (
+                                                                    <div className="flex flex-col items-center gap-2">
+                                                                        <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-purple-500 animate-spin" />
+                                                                        <span className="text-[10px] md:text-xs text-purple-500">Creating...</span>
+                                                                    </div>
+                                                                ) : user.status === 'typing' ? (
+                                                                    <div className="flex gap-1">
+                                                                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                                                                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+                                                                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-300 text-xs md:text-sm">Waiting...</span>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
-                                                )}
-                                            </div>
-                                            {isGenerating && (
-                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-                                                    <div className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine animate-pulse" style={{ width: '60%' }} />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Shared Visuals from Community */}
-                                        {isLoadingData && sharedVisuals.length === 0 && (
-                                            // Loading skeleton placeholders
-                                            Array.from({ length: 6 }).map((_, idx) => (
-                                                <div key={`skeleton-${idx}`} className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] animate-pulse">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
-                                                        <div className="h-3 w-20 bg-gray-200 rounded" />
-                                                    </div>
-                                                    <div className="flex-1 bg-gray-100 rounded-xl" />
-                                                    <div className="flex gap-2 mt-2">
-                                                        <div className="h-6 w-16 bg-gray-200 rounded-full" />
-                                                        <div className="h-6 w-16 bg-gray-200 rounded-full" />
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                        {sharedVisuals.map(visual => (
-                                            <SharedVisualCard
-                                                key={visual.id}
-                                                visual={visual}
-                                                onRemix={() => handleRemixVisual(visual)}
-                                                onExpand={() => setSelectedVisual(visual)}
-                                                onViewLineage={() => {
-                                                    setSelectedVisualForHistory(visual.id);
-                                                    setShowFamilyTree(true);
-                                                }}
-                                            />
-                                        ))}
-
-                                        {/* Legacy Collaborator Slots (for demo/fallback) */}
-                                        {sharedVisuals.length === 0 && collaborators.map(user => (
-                                            <div
-                                                key={user.id}
-                                                className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
-                                                onClick={() => user.status === 'done' && user.image && setExpandedVisual(user)}
-                                            >
-                                                <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                                                    <img src={user.avatar} alt={user.name} className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
-                                                    <span className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{user.name}</span>
-                                                    {user.status === 'typing' && <span className="text-[10px] md:text-xs text-gray-400 animate-pulse ml-auto">Typing...</span>}
-                                                    {user.status === 'generating' && <span className="text-[10px] md:text-xs text-purple-500 animate-pulse ml-auto">Gen...</span>}
-                                                </div>
-                                                <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative">
-                                                    {user.status === 'done' && user.image ? (
-                                                        <img src={user.image} alt={`${user.name}'s work`} className="w-full h-full object-cover animate-fadeIn transition-transform duration-500 group-hover:scale-105" />
-                                                    ) : (
-                                                        <div className="text-center p-2 md:p-4">
-                                                            {user.status === 'generating' ? (
-                                                                <div className="flex flex-col items-center gap-2">
-                                                                    <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-purple-500 animate-spin" />
-                                                                    <span className="text-[10px] md:text-xs text-purple-500">Creating...</span>
-                                                                </div>
-                                                            ) : user.status === 'typing' ? (
-                                                                <div className="flex gap-1">
-                                                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                                                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
-                                                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-300 text-xs md:text-sm">Waiting...</span>
-                                                            )}
+                                                    {/* Like Button */}
+                                                    {user.status === 'done' && user.image && (
+                                                        <div className="absolute bottom-2 right-2 z-10">
+                                                            <button
+                                                                onClick={(e) => handleLike(user.id, e)}
+                                                                className={`flex items-center gap-1 px-2 py-1 rounded-full shadow-md transition-all ${user.likedByUser
+                                                                    ? 'bg-red-500 text-white'
+                                                                    : 'bg-white text-gray-600 hover:bg-red-50'
+                                                                    }`}
+                                                            >
+                                                                <span className="text-sm">{user.likedByUser ? '❤️' : '🤍'}</span>
+                                                                {(user.likes || 0) > 0 && (
+                                                                    <span className="text-xs font-bold">{user.likes}</span>
+                                                                )}
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>
-                                                {/* Like Button */}
-                                                {user.status === 'done' && user.image && (
-                                                    <div className="absolute bottom-2 right-2 z-10">
-                                                        <button
-                                                            onClick={(e) => handleLike(user.id, e)}
-                                                            className={`flex items-center gap-1 px-2 py-1 rounded-full shadow-md transition-all ${user.likedByUser
-                                                                ? 'bg-red-500 text-white'
-                                                                : 'bg-white text-gray-600 hover:bg-red-50'
-                                                                }`}
-                                                        >
-                                                            <span className="text-sm">{user.likedByUser ? '❤️' : '🤍'}</span>
-                                                            {(user.likes || 0) > 0 && (
-                                                                <span className="text-xs font-bold">{user.likes}</span>
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Activity View */}
-                            {collabView === 'activity' && (
-                                <div className="flex-1 overflow-hidden">
-                                    <ActivityFeed
-                                        sessionId={sessionId || undefined}
-                                        scope="session"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Challenges View */}
-                            {collabView === 'challenges' && (
-                                <div className="flex-1 p-2 sm:p-4 md:p-6 bg-gradient-to-br from-amber-50 to-orange-50 overflow-y-auto scroll-container pb-36 sm:pb-24">
-                                    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
-                                        <div className="text-center mb-4 md:mb-8">
-                                            <h3 className="font-heading font-bold text-lg sm:text-xl md:text-2xl text-charcoal-soft mb-1 md:mb-2">
-                                                🏆 Daily Challenges
-                                            </h3>
-                                            <p className="text-cocoa-light text-xs sm:text-sm md:text-base">
-                                                Compete, create, and climb the leaderboard!
-                                            </p>
-                                        </div>
-
-                                        {challenges.length > 0 ? (
-                                            <div className="grid gap-3 md:gap-6">
-                                                {challenges.map(challenge => (
-                                                    <ChallengeCard
-                                                        key={challenge.id}
-                                                        challenge={challenge}
-                                                        onJoin={() => {
-                                                            if (settings.generatedImage) {
-                                                                showToast('📸 Opening submission...');
-                                                            } else {
-                                                                showToast('Generate an image first!');
-                                                            }
-                                                        }}
-                                                        onViewDetails={() => {
-                                                            // View challenge details
-                                                        }}
-                                                    />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-8 md:py-12">
-                                                <Trophy className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-3 md:mb-4" />
-                                                <p className="text-gray-500 font-bold text-sm md:text-base">No active challenges</p>
-                                                <p className="text-gray-400 text-sm mt-2">Check back soon for new creative challenges!</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Broadcast View */}
-                            {collabView === 'broadcast' && userProfile && (
-                                <div className="flex-1 overflow-hidden">
-                                    <BroadcastStudio
-                                        onClose={() => setCollabView('gallery')}
-                                    />
-                                </div>
-                            )}
-
-                            {/* Insights View */}
-                            {collabView === 'insights' && userProfile && (
-                                <div className="flex-1 overflow-hidden">
-                                    <InsightsDashboard 
-                                        userId={userProfile.id}
-                                        isOpen={true}
-                                        onClose={() => setCollabView('gallery')}
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Share Modal - Mobile Optimized */}
-                        {showShareModal && settings.generatedImage && (
-                            <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-                                <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 animate-fadeIn max-h-[90vh] overflow-y-auto" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-                                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                                        <h3 className="font-heading font-bold text-lg sm:text-xl text-charcoal-soft flex items-center gap-2">
-                                            <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-coral-burst" />
-                                            Share Creation
-                                        </h3>
-                                        <button
-                                            onClick={() => setShowShareModal(false)}
-                                            className="p-2 hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                                            title="Close"
-                                            aria-label="Close share modal"
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </button>
-                                    </div>
-
-                                    {/* Preview */}
-                                    <div className="rounded-xl overflow-hidden mb-3 sm:mb-4 bg-gray-100">
-                                        <img
-                                            src={settings.generatedImage}
-                                            alt="Preview"
-                                            className="w-full h-36 sm:h-48 object-cover"
-                                        />
-                                    </div>
-
-                                    {/* Caption */}
-                                    <div className="mb-3 sm:mb-4">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Caption</label>
-                                        <textarea
-                                            value={shareCaption}
-                                            onChange={(e) => setShareCaption(e.target.value)}
-                                            placeholder="Add a caption to your creation..."
-                                            className="w-full h-16 sm:h-20 bg-cream-base border border-peach-soft rounded-xl p-3 text-sm resize-none focus:border-coral-burst outline-none"
-                                            style={{ fontSize: '16px' }} /* Prevent iOS zoom */
-                                        />
-                                    </div>
-
-                                    {/* Visibility */}
-                                    <div className="mb-4 sm:mb-6">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Visibility</label>
-                                        <div className="flex gap-2">
-                                            {(['public', 'unlisted', 'private'] as const).map(v => (
-                                                <button
-                                                    key={v}
-                                                    onClick={() => setShareVisibility(v)}
-                                                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all ${shareVisibility === v
-                                                        ? 'bg-coral-burst text-white'
-                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                                        }`}
-                                                >
-                                                    {v}
-                                                </button>
                                             ))}
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Share Button */}
-                                    <button
-                                        onClick={handleShareVisual}
-                                        className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px]"
-                                    >
-                                        <Sparkles className="w-4 h-4" />
-                                        Share with Community
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                                {/* Activity View */}
+                                {collabView === 'activity' && (
+                                    <div className="flex-1 overflow-hidden">
+                                        <ActivityFeed
+                                            sessionId={sessionId || undefined}
+                                            scope="session"
+                                        />
+                                    </div>
+                                )}
 
-                        {/* Expanded Visual Modal - Mobile Optimized */}
-                        {expandedVisual && (
-                            <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-fadeIn p-2 sm:p-4 md:p-6 rounded-2xl sm:rounded-3xl">
-                                <div className="flex items-center justify-between mb-3 sm:mb-4 flex-shrink-0">
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setExpandedVisual(null)}
-                                            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all mr-1 sm:mr-2 group z-50 min-h-[40px]"
-                                            title="Go Back"
-                                        >
-                                            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-charcoal-soft group-hover:-translate-x-1 transition-transform" />
-                                            <span className="font-bold text-charcoal-soft text-xs md:text-sm hidden xs:inline">Back</span>
-                                        </button>
-                                        {expandedVisual === 'current' ? (
-                                            <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[10px] sm:text-xs md:text-base">YOU</div>
-                                        ) : (
-                                            <img src={expandedVisual.avatar} alt="User" className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full" />
-                                        )}
-                                        <div>
-                                            <h3 className="font-heading font-bold text-sm sm:text-base md:text-xl text-charcoal-soft line-clamp-1">
-                                                {expandedVisual === 'current' ? 'Your Creation' : `${expandedVisual.name}'s Creation`}
-                                            </h3>
-                                            <p className="text-[10px] sm:text-xs md:text-sm text-cocoa-light">Full View</p>
+                                {/* Challenges View */}
+                                {collabView === 'challenges' && (
+                                    <div className="flex-1 p-2 sm:p-4 md:p-6 bg-gradient-to-br from-amber-50 to-orange-50 overflow-y-auto scroll-container pb-36 sm:pb-24">
+                                        <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+                                            <div className="text-center mb-4 md:mb-8">
+                                                <h3 className="font-heading font-bold text-lg sm:text-xl md:text-2xl text-charcoal-soft mb-1 md:mb-2">
+                                                    🏆 Daily Challenges
+                                                </h3>
+                                                <p className="text-cocoa-light text-xs sm:text-sm md:text-base">
+                                                    Compete, create, and climb the leaderboard!
+                                                </p>
+                                            </div>
+
+                                            {challenges.length > 0 ? (
+                                                <div className="grid gap-3 md:gap-6">
+                                                    {challenges.map(challenge => (
+                                                        <ChallengeCard
+                                                            key={challenge.id}
+                                                            challenge={challenge}
+                                                            onJoin={() => {
+                                                                if (settings.generatedImage) {
+                                                                    showToast('📸 Opening submission...');
+                                                                } else {
+                                                                    showToast('Generate an image first!');
+                                                                }
+                                                            }}
+                                                            onViewDetails={() => {
+                                                                // View challenge details
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 md:py-12">
+                                                    <Trophy className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-3 md:mb-4" />
+                                                    <p className="text-gray-500 font-bold text-sm md:text-base">No active challenges</p>
+                                                    <p className="text-gray-400 text-sm mt-2">Check back soon for new creative challenges!</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => setExpandedVisual(null)}
-                                        className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-                                        title="Close"
-                                        aria-label="Close full view"
-                                    >
-                                        <X className="w-5 h-5 md:w-6 md:h-6 text-charcoal-soft" />
-                                    </button>
-                                </div>
-                                <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden shadow-inner p-2 md:p-4">
-                                    <img
-                                        src={expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!}
-                                        alt="Full view"
-                                        className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
-                                    />
-                                </div>
-                                <div className="mt-4 flex justify-end flex-shrink-0">
-                                    <button
-                                        onClick={() => {
-                                            const imgUrl = expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!;
-                                            const link = document.createElement('a');
-                                            link.href = imgUrl;
-                                            link.download = `genesis-collab-${Date.now()}.png`;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                        }}
-                                        className="bg-charcoal-soft text-white px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base flex items-center gap-2 hover:bg-coral-burst transition-colors shadow-lg"
-                                    >
-                                        <Download className="w-4 h-4 md:w-5 md:h-5" /> Download
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    // Standard Single User Preview
-                    settings.generatedImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center p-4">
-                            <img
-                                src={settings.generatedImage}
-                                alt="Generated Visual"
-                                className="max-h-full max-w-full rounded-lg shadow-2xl object-contain"
-                            />
-                            <button
-                                onClick={handleSaveAsset}
-                                className="absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-white text-charcoal-soft px-3 md:px-4 py-2 rounded-full shadow-lg font-heading font-bold text-xs md:text-sm flex items-center gap-2 hover:text-coral-burst transition-colors"
-                            >
-                                <Download className="w-3 h-3 md:w-4 md:h-4" /> Save
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="text-center text-cocoa-light/50 p-4">
-                            {isGenerating ? (
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-peach-soft border-t-coral-burst rounded-full animate-spin"></div>
-                                    <span className="font-heading font-bold text-base md:text-lg animate-pulse">Rendering...</span>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-peach-soft/30 flex items-center justify-center mx-auto mb-4">
-                                        {activeTab === 'character' && <Users className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                        {activeTab === 'scene' && <Camera className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                        {activeTab === 'style' && <Palette className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
+                                )}
+
+                                {/* Broadcast View */}
+                                {collabView === 'broadcast' && userProfile && (
+                                    <div className="flex-1 overflow-hidden">
+                                        <BroadcastStudio
+                                            onClose={() => setCollabView('gallery')}
+                                        />
                                     </div>
-                                    <p className="font-heading font-bold text-lg md:text-xl">Ready to Create</p>
-                                    <p className="text-xs md:text-sm mt-2 max-w-xs mx-auto">Adjust settings and click generate</p>
-                                </>
+                                )}
+
+                                {/* Insights View */}
+                                {collabView === 'insights' && userProfile && (
+                                    <div className="flex-1 overflow-hidden">
+                                        <InsightsDashboard
+                                            userId={userProfile.id}
+                                            isOpen={true}
+                                            onClose={() => setCollabView('gallery')}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Share Modal - Mobile Optimized */}
+                            {showShareModal && settings.generatedImage && (
+                                <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                                    <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 animate-fadeIn max-h-[90vh] overflow-y-auto" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                                        <div className="flex items-center justify-between mb-3 sm:mb-4">
+                                            <h3 className="font-heading font-bold text-lg sm:text-xl text-charcoal-soft flex items-center gap-2">
+                                                <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-coral-burst" />
+                                                Share Creation
+                                            </h3>
+                                            <button
+                                                onClick={() => setShowShareModal(false)}
+                                                className="p-2 hover:bg-gray-100 active:bg-gray-200 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                                title="Close"
+                                                aria-label="Close share modal"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+
+                                        {/* Preview */}
+                                        <div className="rounded-xl overflow-hidden mb-3 sm:mb-4 bg-gray-100">
+                                            <img
+                                                src={settings.generatedImage}
+                                                alt="Preview"
+                                                className="w-full h-36 sm:h-48 object-cover"
+                                            />
+                                        </div>
+
+                                        {/* Caption */}
+                                        <div className="mb-3 sm:mb-4">
+                                            <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Caption</label>
+                                            <textarea
+                                                value={shareCaption}
+                                                onChange={(e) => setShareCaption(e.target.value)}
+                                                placeholder="Add a caption to your creation..."
+                                                className="w-full h-16 sm:h-20 bg-cream-base border border-peach-soft rounded-xl p-3 text-sm resize-none focus:border-coral-burst outline-none"
+                                                style={{ fontSize: '16px' }} /* Prevent iOS zoom */
+                                            />
+                                        </div>
+
+                                        {/* Visibility */}
+                                        <div className="mb-4 sm:mb-6">
+                                            <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">Visibility</label>
+                                            <div className="flex gap-2">
+                                                {(['public', 'unlisted', 'private'] as const).map(v => (
+                                                    <button
+                                                        key={v}
+                                                        onClick={() => setShareVisibility(v)}
+                                                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold capitalize transition-all ${shareVisibility === v
+                                                            ? 'bg-coral-burst text-white'
+                                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                            }`}
+                                                    >
+                                                        {v}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Share Button */}
+                                        <button
+                                            onClick={handleShareVisual}
+                                            className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px]"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                            Share with Community
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Expanded Visual Modal - Mobile Optimized */}
+                            {expandedVisual && (
+                                <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col animate-fadeIn p-2 sm:p-4 md:p-6 rounded-2xl sm:rounded-3xl">
+                                    <div className="flex items-center justify-between mb-3 sm:mb-4 flex-shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setExpandedVisual(null)}
+                                                className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all mr-1 sm:mr-2 group z-50 min-h-[40px]"
+                                                title="Go Back"
+                                            >
+                                                <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-charcoal-soft group-hover:-translate-x-1 transition-transform" />
+                                                <span className="font-bold text-charcoal-soft text-xs md:text-sm hidden xs:inline">Back</span>
+                                            </button>
+                                            {expandedVisual === 'current' ? (
+                                                <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[10px] sm:text-xs md:text-base">YOU</div>
+                                            ) : (
+                                                <img src={expandedVisual.avatar} alt="User" className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full" />
+                                            )}
+                                            <div>
+                                                <h3 className="font-heading font-bold text-sm sm:text-base md:text-xl text-charcoal-soft line-clamp-1">
+                                                    {expandedVisual === 'current' ? 'Your Creation' : `${expandedVisual.name}'s Creation`}
+                                                </h3>
+                                                <p className="text-[10px] sm:text-xs md:text-sm text-cocoa-light">Full View</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setExpandedVisual(null)}
+                                            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+                                            title="Close"
+                                            aria-label="Close full view"
+                                        >
+                                            <X className="w-5 h-5 md:w-6 md:h-6 text-charcoal-soft" />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden shadow-inner p-2 md:p-4">
+                                        <img
+                                            src={expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!}
+                                            alt="Full view"
+                                            className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+                                        />
+                                    </div>
+                                    <div className="mt-4 flex justify-end flex-shrink-0">
+                                        <button
+                                            onClick={() => {
+                                                const imgUrl = expandedVisual === 'current' ? settings.generatedImage! : (expandedVisual as Collaborator).image!;
+                                                const link = document.createElement('a');
+                                                link.href = imgUrl;
+                                                link.download = `genesis-collab-${Date.now()}.png`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                            }}
+                                            className="bg-charcoal-soft text-white px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-sm md:text-base flex items-center gap-2 hover:bg-coral-burst transition-colors shadow-lg"
+                                        >
+                                            <Download className="w-4 h-4 md:w-5 md:h-5" /> Download
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    )
-                )}
-            </div>
+                    ) : (
+                        // Standard Single User Preview
+                        settings.generatedImage ? (
+                            <div className="relative w-full h-full flex items-center justify-center p-4">
+                                <img
+                                    src={settings.generatedImage}
+                                    alt="Generated Visual"
+                                    className="max-h-full max-w-full rounded-lg shadow-2xl object-contain"
+                                />
+                                <button
+                                    onClick={handleSaveAsset}
+                                    className="absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-white text-charcoal-soft px-3 md:px-4 py-2 rounded-full shadow-lg font-heading font-bold text-xs md:text-sm flex items-center gap-2 hover:text-coral-burst transition-colors"
+                                >
+                                    <Download className="w-3 h-3 md:w-4 md:h-4" /> Save
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center text-cocoa-light/50 p-4">
+                                {isGenerating ? (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-peach-soft border-t-coral-burst rounded-full animate-spin"></div>
+                                        <span className="font-heading font-bold text-base md:text-lg animate-pulse">Rendering...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-peach-soft/30 flex items-center justify-center mx-auto mb-4">
+                                            {activeTab === 'character' && <Users className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
+                                            {activeTab === 'scene' && <Camera className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
+                                            {activeTab === 'style' && <Palette className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
+                                        </div>
+                                        <p className="font-heading font-bold text-lg md:text-xl">Ready to Create</p>
+                                        <p className="text-xs md:text-sm mt-2 max-w-xs mx-auto">Adjust settings and click generate</p>
+                                    </>
+                                )}
+                            </div>
+                        )
+                    )}
+                </div>
 
             </div>
 
@@ -1612,88 +1681,98 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             </div>
 
             {/* Mobile Chat Overlay */}
-            {isChatOpen && (
-                <div className="fixed inset-0 bg-white z-[60] md:hidden flex flex-col">
-                    <div className="flex items-center justify-between p-4 border-b-2 border-charcoal-soft">
-                        <h2 className="font-heading font-bold text-xl text-charcoal-soft">Chat</h2>
-                        <button
-                            onClick={() => setIsChatOpen(false)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Close chat"
-                            aria-label="Close chat"
-                        >
-                            <X size={24} className="text-charcoal-soft" />
-                        </button>
+            {
+                isChatOpen && (
+                    <div className="fixed inset-0 bg-white z-[60] md:hidden flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b-2 border-charcoal-soft">
+                            <h2 className="font-heading font-bold text-xl text-charcoal-soft">Chat</h2>
+                            <button
+                                onClick={() => setIsChatOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Close chat"
+                                aria-label="Close chat"
+                            >
+                                <X size={24} className="text-charcoal-soft" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                            <ChatPanel
+                                userProfile={userProfile}
+                                onClose={() => setIsChatOpen(false)}
+                                onUnreadCountChange={setUnreadCount}
+                                onCollaborativeTrigger={handleCollaborativeTrigger}
+                                isMobile={true}
+                                activeCollaborators={presenceUsers.map(u => ({
+                                    id: u.user_id,
+                                    name: u.display_name || 'Anonymous',
+                                    avatar: u.avatar_url
+                                }))}
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                        <ChatPanel
-                            userProfile={userProfile}
-                            onClose={() => setIsChatOpen(false)}
-                            onUnreadCountChange={setUnreadCount}
-                            onCollaborativeTrigger={handleCollaborativeTrigger}
-                            isMobile={true}
-                            activeCollaborators={presenceUsers.map(u => ({
-                                id: u.user_id,
-                                name: u.display_name || 'Anonymous',
-                                avatar: u.avatar_url
-                            }))}
-                        />
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Notification Center Modal */}
-            {showNotificationCenter && userProfile && (
-                <NotificationCenter
-                    isOpen={showNotificationCenter}
-                    onClose={() => setShowNotificationCenter(false)}
-                    anchorRef={notificationBtnRef}
-                />
-            )}
+            {
+                showNotificationCenter && userProfile && (
+                    <NotificationCenter
+                        isOpen={showNotificationCenter}
+                        onClose={() => setShowNotificationCenter(false)}
+                        anchorRef={notificationBtnRef}
+                    />
+                )
+            }
 
             {/* Broadcast Studio Modal */}
-            {showBroadcastStudio && userProfile && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-fadeIn">
-                        <BroadcastStudio
-                            onClose={() => setShowBroadcastStudio(false)}
-                        />
+            {
+                showBroadcastStudio && userProfile && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-fadeIn">
+                            <BroadcastStudio
+                                onClose={() => setShowBroadcastStudio(false)}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Insights Dashboard Modal */}
-            {showInsightsDashboard && userProfile && (
-                <InsightsDashboard 
-                    userId={userProfile.id}
-                    isOpen={showInsightsDashboard}
-                    onClose={() => setShowInsightsDashboard(false)}
-                />
-            )}
+            {
+                showInsightsDashboard && userProfile && (
+                    <InsightsDashboard
+                        userId={userProfile.id}
+                        isOpen={showInsightsDashboard}
+                        onClose={() => setShowInsightsDashboard(false)}
+                    />
+                )
+            }
 
             {/* Family Tree (Version History) Modal */}
-            {showFamilyTree && selectedVisualForHistory && (
-                <FamilyTreeViewer
-                    visualId={selectedVisualForHistory}
-                    isOpen={showFamilyTree}
-                    onClose={() => {
-                        setShowFamilyTree(false);
-                        setSelectedVisualForHistory(null);
-                    }}
-                    onRestoreVersion={(version: VisualVersion) => {
-                        // Handle version restore - apply the visual data
-                        console.log('Restoring version:', version);
-                        setShowFamilyTree(false);
-                        setSelectedVisualForHistory(null);
-                    }}
-                    onForkVersion={(version: VisualVersion) => {
-                        // Handle forking - create a new branch from this version
-                        console.log('Forking from version:', version);
-                        setShowFamilyTree(false);
-                        setSelectedVisualForHistory(null);
-                    }}
-                />
-            )}
+            {
+                showFamilyTree && selectedVisualForHistory && (
+                    <FamilyTreeViewer
+                        visualId={selectedVisualForHistory}
+                        isOpen={showFamilyTree}
+                        onClose={() => {
+                            setShowFamilyTree(false);
+                            setSelectedVisualForHistory(null);
+                        }}
+                        onRestoreVersion={(version: VisualVersion) => {
+                            // Handle version restore - apply the visual data
+                            console.log('Restoring version:', version);
+                            setShowFamilyTree(false);
+                            setSelectedVisualForHistory(null);
+                        }}
+                        onForkVersion={(version: VisualVersion) => {
+                            // Handle forking - create a new branch from this version
+                            console.log('Forking from version:', version);
+                            setShowFamilyTree(false);
+                            setSelectedVisualForHistory(null);
+                        }}
+                    />
+                )
+            }
 
             {/* Mobile Bottom Navigation */}
             <MobileBottomNav
@@ -1701,7 +1780,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 onTabChange={handleMobileTabChange}
                 unreadCount={unreadCount}
             />
-        </div>
+        </div >
     );
 };
 
