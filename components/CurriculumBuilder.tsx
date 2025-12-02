@@ -229,84 +229,90 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
     <div className="min-h-screen bg-gradient-to-br from-cream-base via-cream-soft to-peach-soft/20 pb-24 md:pb-8">
       <div className="w-full h-full">
         {/* Main Card */}
-        <div className="bg-white overflow-hidden border-b border-peach-soft/50 font-body min-h-screen">
+        <div className="overflow-hidden font-body min-h-screen relative">
+
           {/* Header */}
-          <div className="border-b border-peach-soft/30 bg-cream-base">
-            <div className="max-w-5xl mx-auto flex items-center justify-between p-4 md:p-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-heading font-bold text-charcoal-soft flex items-center gap-2 md:gap-3">
-                  <span className="text-2xl md:text-3xl">📚</span>
-                  Curriculum Builder
-                </h2>
-                <p className="text-cocoa-light text-xs md:text-sm mt-1 font-medium">
-                  Create standards-aligned educational content
-                </p>
+          <div className="relative z-10 border-b border-peach-soft/30">
+            <div className="bg-white/80">
+              <div className="max-w-4xl mx-auto flex items-center justify-between p-4 md:p-6">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-heading font-bold text-charcoal-soft flex items-center gap-2 md:gap-3">
+                    <span className="text-2xl md:text-3xl">📚</span>
+                    Curriculum Builder
+                  </h2>
+                  <p className="text-cocoa-dark text-xs md:text-sm mt-1 font-medium">
+                    Create standards-aligned educational content
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-xl bg-cream-base hover:bg-peach-soft/30 transition-colors text-cocoa-light hover:text-coral-burst"
+                >
+                  <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl hover:bg-cream-soft transition-colors text-cocoa-light hover:text-coral-burst"
-              >
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="bg-cream-base">
-            <div className="max-w-5xl mx-auto flex px-4 md:px-6 pt-3 md:pt-4">
-              <div className="flex bg-cream-soft p-1 rounded-t-2xl border-t border-x border-peach-soft/50 gap-0.5 md:gap-1 w-full overflow-x-auto">
-              {[
-                { id: 'basics', label: 'Basics', icon: '📝' },
-                { id: 'standards', label: 'Standards', icon: '📋' },
-                { id: 'students', label: 'Students', icon: '👨‍🎓' },
-                { id: 'options', label: 'Options', icon: '⚙️' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 min-w-0 px-2 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-heading font-bold rounded-xl transition-all whitespace-nowrap ${activeTab === tab.id
-                    ? 'bg-white text-coral-burst shadow-sm'
-                    : 'text-cocoa-light hover:text-charcoal-soft hover:bg-white/50'
-                    }`}
-                >
-                  <span className="mr-1 md:mr-2">{tab.icon}</span>
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              ))}
+          <div className="relative z-10">
+            <div className="backdrop-blur-md bg-white/50">
+              <div className="max-w-4xl mx-auto flex px-4 md:px-6 pt-3 md:pt-4">
+                <div className="flex bg-white/60 backdrop-blur-sm p-1 rounded-t-2xl border-t border-x border-white/50 gap-0.5 md:gap-1 w-full overflow-x-auto shadow-sm">
+                  {[
+                    { id: 'basics', label: 'Basics', icon: '📝' },
+                    { id: 'standards', label: 'Standards', icon: '📋' },
+                    { id: 'students', label: 'Students', icon: '👨‍🎓' },
+                    { id: 'options', label: 'Options', icon: '⚙️' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex-1 min-w-0 px-2 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-heading font-bold rounded-xl transition-all whitespace-nowrap ${activeTab === tab.id
+                        ? 'bg-white text-coral-burst shadow-sm'
+                        : 'text-cocoa-dark hover:text-charcoal-soft hover:bg-white/70'
+                        }`}
+                    >
+                      <span className="mr-1 md:mr-2">{tab.icon}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="bg-white">
-            <div className="max-w-5xl mx-auto p-4 md:p-6">
+          {/* Content - Glassmorphism Card */}
+          <div className="relative z-10 pt-2">
+            <div className="max-w-4xl mx-auto px-4 md:px-6 pb-6">
+              <div className="backdrop-blur-xl bg-white/80 rounded-2xl shadow-xl border border-white/50 p-4 md:p-6">
             {/* Basics Tab */}
             {activeTab === 'basics' && (
               <div className="space-y-5 md:space-y-6">
-              {/* Framework Selection */}
+              {/* Framework Selection - Compact Icons */}
               <div>
-                <label className="block text-sm font-bold text-cocoa-dark mb-2 uppercase tracking-wide">
+                <label className="block text-sm font-bold text-cocoa-dark mb-3 uppercase tracking-wide">
                   Standards Framework
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
                   {(['CCSS', 'NGSS', 'SEL', 'State'] as StandardsFramework[]).map(fw => (
                     <button
                       key={fw}
                       onClick={() => setFramework(fw)}
-                      className={`p-3 rounded-xl border-2 transition-all ${framework === fw
-                        ? 'border-coral-burst bg-coral-light/20 text-coral-burst'
-                        : 'border-peach-soft/50 bg-cream-base text-cocoa-light hover:border-coral-light hover:text-charcoal-soft'
+                      className={`flex flex-col items-center p-3 w-20 h-20 rounded-2xl border-2 transition-all shadow-sm hover:shadow-md ${framework === fw
+                        ? 'border-coral-burst bg-gradient-to-br from-coral-light/30 to-coral-burst/10 text-coral-burst scale-105'
+                        : 'border-peach-soft/50 bg-white/80 text-cocoa-light hover:border-coral-light hover:text-charcoal-soft'
                         }`}
                     >
-                      <div className="text-lg mb-1">
+                      <div className="text-2xl mb-1">
                         {fw === 'CCSS' && '📖'}
                         {fw === 'NGSS' && '🔬'}
                         {fw === 'SEL' && '💜'}
                         {fw === 'State' && '🏛️'}
                       </div>
-                      <div className="text-sm font-bold">{fw}</div>
+                      <div className="text-xs font-bold">{fw}</div>
                     </button>
                   ))}
                 </div>
@@ -320,7 +326,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                 <select
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
-                  className="w-full bg-cream-base border border-peach-soft rounded-xl px-4 py-3 text-charcoal-soft focus:border-coral-burst focus:ring-1 focus:ring-coral-burst outline-none transition-colors"
+                  className="w-full max-w-md bg-white/80 border border-peach-soft/50 rounded-xl px-4 py-3 text-charcoal-soft focus:border-coral-burst focus:ring-1 focus:ring-coral-burst outline-none transition-colors shadow-sm"
                 >
                   {SUBJECTS_BY_FRAMEWORK[framework].map(s => (
                     <option key={s} value={s}>{s}</option>
@@ -334,20 +340,22 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                   Grade Level: {gradeLevel === 0 ? 'Kindergarten' : `Grade ${gradeLevel}`}
                   <span className="text-coral-burst ml-2">({gradeBand})</span>
                 </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="12"
-                  value={gradeLevel}
-                  onChange={e => setGradeLevel(parseInt(e.target.value))}
-                  className="w-full accent-coral-burst"
-                />
-                <div className="flex justify-between text-xs text-cocoa-light mt-1 font-medium">
-                  <span>K</span>
-                  <span>3</span>
-                  <span>6</span>
-                  <span>9</span>
-                  <span>12</span>
+                <div className="max-w-md">
+                  <input
+                    type="range"
+                    min="0"
+                    max="12"
+                    value={gradeLevel}
+                    onChange={e => setGradeLevel(parseInt(e.target.value))}
+                    className="w-full accent-coral-burst"
+                  />
+                  <div className="flex justify-between text-xs text-cocoa-light mt-1 font-medium">
+                    <span>K</span>
+                    <span>3</span>
+                    <span>6</span>
+                    <span>9</span>
+                    <span>12</span>
+                  </div>
                 </div>
               </div>
 
@@ -360,30 +368,30 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
                   placeholder="e.g., Understanding fractions through a pizza party adventure..."
-                  className="w-full bg-cream-base border border-peach-soft rounded-xl px-4 py-3 text-charcoal-soft placeholder-cocoa-light/50 focus:border-coral-burst focus:ring-1 focus:ring-coral-burst outline-none resize-none transition-colors"
+                  className="w-full max-w-xl bg-white/80 border border-peach-soft/50 rounded-xl px-4 py-3 text-charcoal-soft placeholder-cocoa-light/50 focus:border-coral-burst focus:ring-1 focus:ring-coral-burst outline-none resize-none transition-colors shadow-sm"
                   rows={3}
                 />
               </div>
 
-              {/* Pedagogical Approach */}
+              {/* Pedagogical Approach - Compact Cards */}
               <div>
-                <label className="block text-sm font-bold text-cocoa-dark mb-2 uppercase tracking-wide">
+                <label className="block text-sm font-bold text-cocoa-dark mb-3 uppercase tracking-wide">
                   Pedagogical Approach
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex flex-wrap gap-2">
                   {PEDAGOGICAL_APPROACHES.map(approach => (
                     <button
                       key={approach.value}
                       onClick={() => setPedagogicalApproach(approach.value)}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${pedagogicalApproach === approach.value
-                        ? 'border-coral-burst bg-coral-light/20'
-                        : 'border-peach-soft/50 bg-cream-base hover:border-coral-light'
+                      className={`px-4 py-2.5 rounded-xl border-2 text-left transition-all shadow-sm hover:shadow-md ${pedagogicalApproach === approach.value
+                        ? 'border-coral-burst bg-gradient-to-br from-coral-light/30 to-coral-burst/10 scale-[1.02]'
+                        : 'border-peach-soft/50 bg-white/80 hover:border-coral-light'
                         }`}
                     >
                       <div className={`font-bold text-sm ${pedagogicalApproach === approach.value ? 'text-coral-burst' : 'text-charcoal-soft'}`}>
                         {approach.label}
                       </div>
-                      <div className="text-xs text-cocoa-light mt-1">{approach.description}</div>
+                      <div className="text-[10px] text-cocoa-light mt-0.5 max-w-[180px]">{approach.description}</div>
                     </button>
                   ))}
                 </div>
@@ -394,19 +402,21 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                 <label className="block text-sm font-bold text-cocoa-dark mb-2 uppercase tracking-wide">
                   Number of Pages: {pageCount}
                 </label>
-                <input
-                  type="range"
-                  min="5"
-                  max="20"
-                  value={pageCount}
-                  onChange={e => setPageCount(parseInt(e.target.value))}
-                  className="w-full accent-coral-burst"
-                />
-                <div className="flex justify-between text-xs text-cocoa-light mt-1 font-medium">
-                  <span>5 (Short)</span>
-                  <span>10</span>
-                  <span>15</span>
-                  <span>20 (Long)</span>
+                <div className="max-w-md">
+                  <input
+                    type="range"
+                    min="5"
+                    max="20"
+                    value={pageCount}
+                    onChange={e => setPageCount(parseInt(e.target.value))}
+                    className="w-full accent-coral-burst"
+                  />
+                  <div className="flex justify-between text-xs text-cocoa-light mt-1 font-medium">
+                    <span>5 (Short)</span>
+                    <span>10</span>
+                    <span>15</span>
+                    <span>20 (Long)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -415,7 +425,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
           {/* Standards Tab */}
           {activeTab === 'standards' && (
             <div className="space-y-4 md:space-y-6">
-              <div className="bg-cream-soft rounded-xl p-3 md:p-4 border border-peach-soft/50">
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-peach-soft/30">
                 <p className="text-cocoa-dark text-xs md:text-sm font-medium">
                   Select the standards your curriculum should address. The AI will align all content
                   and assessments to these standards.
@@ -766,7 +776,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                 <select
                   value={language}
                   onChange={e => setLanguage(e.target.value)}
-                  className="w-full bg-cream-base border border-peach-soft rounded-xl px-4 py-3 text-charcoal-soft focus:border-coral-burst outline-none transition-colors"
+                  className="w-full max-w-md bg-white/80 border border-peach-soft/50 rounded-xl px-4 py-3 text-charcoal-soft focus:border-coral-burst outline-none transition-colors shadow-sm"
                 >
                   <option value="en">English</option>
                   <option value="es">Spanish</option>
@@ -779,44 +789,47 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
           )}
           </div>
           </div>
+          </div>
 
-          {/* Footer / Generate Button */}
-          <div className="border-t border-peach-soft/30 bg-cream-base">
-            <div className="max-w-5xl mx-auto p-4 md:p-6">
-            {/* Error Display */}
-            {error && (
-              <div className="mb-4 p-3 md:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs md:text-sm font-medium">
-                {error}
-              </div>
-            )}
-
-            {/* Generation Progress */}
-            {isGenerating && (
-              <div className="mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="animate-spin w-5 h-5 border-2 border-coral-burst border-t-transparent rounded-full" />
-                  <span className="text-cocoa-dark text-xs md:text-sm font-bold">{generationStage}</span>
+          {/* Footer / Generate Button - Glassmorphism */}
+          <div className="relative z-10 mt-4">
+            <div className="max-w-4xl mx-auto px-4 md:px-6 pb-6">
+              <div className="backdrop-blur-xl bg-gradient-to-r from-gold-sunshine/90 to-coral-burst/90 rounded-2xl shadow-xl border border-white/30 p-4">
+              {/* Error Display */}
+              {error && (
+                <div className="mb-4 p-3 md:p-4 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-xl text-red-600 text-xs md:text-sm font-medium">
+                  {error}
                 </div>
-                <div className="h-2 bg-cream-soft rounded-full overflow-hidden border border-peach-soft/30">
-                  <div
-                    className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine transition-all duration-500"
-                    style={{ width: `${generationProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className={`w-full py-3 md:py-4 rounded-xl font-heading font-bold text-base md:text-lg shadow-lg transition-all flex items-center justify-center gap-2
-                ${isGenerating
-                  ? 'bg-cocoa-light cursor-not-allowed text-white'
-                  : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:scale-[1.02] hover:shadow-xl active:scale-100'
-                }`}
-            >
-              {isGenerating ? 'Generating Curriculum...' : '✨ Generate Curriculum Ebook'}
-            </button>
+              {/* Generation Progress */}
+              {isGenerating && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                    <span className="text-white text-xs md:text-sm font-bold">{generationStage}</span>
+                  </div>
+                  <div className="h-2 bg-white/30 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-white transition-all duration-500"
+                      style={{ width: `${generationProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className={`w-full py-3 md:py-4 rounded-xl font-heading font-bold text-base md:text-lg shadow-lg transition-all flex items-center justify-center gap-2
+                  ${isGenerating
+                    ? 'bg-white/50 cursor-not-allowed text-cocoa-light'
+                    : 'bg-white text-coral-burst hover:scale-[1.02] hover:shadow-xl active:scale-100'
+                  }`}
+              >
+                {isGenerating ? 'Generating Curriculum...' : '✨ Generate Curriculum Ebook'}
+              </button>
+              </div>
             </div>
           </div>
         </div>

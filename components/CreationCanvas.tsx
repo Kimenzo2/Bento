@@ -137,8 +137,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
-    // Memoized Quick Start Card Component
-    const QuickStartCard = useMemo(() => memo(({ icon: Icon, title, desc, colorClass, onClick }: any) => (
+    // Quick Start Card Component
+    const QuickStartCard = ({ icon: Icon, title, desc, colorClass, onClick }: any) => (
         <button
             onClick={onClick}
             className="bg-white p-8 rounded-3xl shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft relative overflow-hidden"
@@ -153,7 +153,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 Start Creating <ChevronRight className="w-4 h-4" />
             </div>
         </button>
-    )), []);
+    );
 
     const handleQuickStartClick = useCallback((action: () => void) => {
         setCreationMode('book');

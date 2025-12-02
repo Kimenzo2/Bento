@@ -35,16 +35,22 @@ export const createParticle = (
 const getParticleColor = (type: Particle['type']): string => {
     switch (type) {
         case 'sparkle':
-            return '#FFD93D'; // gold-sunshine
+            return 'var(--color-accent-end)'; // gold-sunshine
         case 'star':
-            return '#FF9B71'; // coral-burst
+            return 'var(--color-primary-end)'; // coral-burst
         case 'bubble':
-            return '#D4F4DD'; // mint-breeze
+            return 'var(--color-text-light)'; // mint-breeze replacement
         case 'confetti':
-            const colors = ['#FFD93D', '#FF9B71', '#D4F4DD', '#FFE4CC', '#FFF4A3'];
+            const colors = [
+                'var(--color-accent-end)',
+                'var(--color-primary-end)',
+                'var(--color-text-light)',
+                'var(--color-border)',
+                'var(--color-accent-start)'
+            ];
             return colors[Math.floor(Math.random() * colors.length)];
         default:
-            return '#FFD93D';
+            return 'var(--color-accent-end)';
     }
 };
 

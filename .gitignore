@@ -17,7 +17,8 @@ dist-ssr
 .env.local
 .env.*.local
 .env.txt
-.env.example
+# Keep .env.example for documentation (it's committed)
+!.env.example
 
 # Editor directories and files
 .vscode/*

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AppMode, UserTier } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import ThemeSelector from './settings/ThemeSelector';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
@@ -26,7 +27,7 @@ interface SettingsPanelProps {
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -172,6 +173,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
         <div className="w-full md:w-64">
           <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
             <TabButton id="profile" icon={User} label="Profile" />
+            <TabButton id="themes" icon={ImageIcon} label="Themes" />
             <TabButton id="subscriptions" icon={CreditCard} label="Subscriptions" />
             <TabButton id="notifications" icon={Bell} label="Notifications" />
             <TabButton id="privacy" icon={Shield} label="Privacy" />
@@ -319,6 +321,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
                   </button>
                 </div>
               </div>
+            )}
+
+            {activeTab === 'themes' && (
+              <ThemeSelector />
             )}
 
             {activeTab === 'subscriptions' && (

@@ -1259,9 +1259,11 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                             <div className="flex-1 flex flex-col overflow-hidden relative">
                                 {/* Gallery View */}
                                 {collabView === 'gallery' && (
-                                    <div className="flex-1 p-2 sm:p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto scroll-container">
+                                    <div className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto scroll-container">
+                                        {/* Content Grid */}
+                                        <div className="p-2 sm:p-3 md:p-6">
                                         {/* Mobile: Extra padding for floating tabs and bottom nav */}
-                                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-36 sm:pb-24">
+                                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-4">
                                             {/* Current User Creation Card */}
                                             <div
                                                 className="bg-white rounded-xl sm:rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[240px] xs:h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
@@ -1417,6 +1419,20 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                                     )}
                                                 </div>
                                             ))}
+                                        </div>
+                                        </div>
+                                        
+                                        {/* Collaboration Illustration - Scrolls with content, touches bottom */}
+                                        <div className="w-full flex-shrink-0">
+                                            <img 
+                                                src="/assets/mascots/8k_3d_pixar_202512022106.jpeg"
+                                                alt="Collaborate in Real-Time"
+                                                className="w-full h-auto object-cover object-center"
+                                                style={{
+                                                    display: 'block'
+                                                }}
+                                                loading="lazy"
+                                            />
                                         </div>
                                     </div>
                                 )}

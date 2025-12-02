@@ -25,6 +25,7 @@ import { getUserProfile, incrementBooksCreated, addXP, UserProfile } from './ser
 import { supabase } from './services/supabaseClient';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
 import InstallPWA from './components/InstallPWA';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
@@ -73,14 +74,14 @@ const App: React.FC = () => {
     // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log('[App] Auth state changed:', event, session?.user?.email || 'No user');
-      
+
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Small delay to allow profile trigger to complete for new users
         setTimeout(async () => {
           console.log('[App] Fetching profile after sign-in...');
           const profile = await getUserProfile();
           console.log('[App] Profile after sign-in:', profile ? `${profile.email}` : 'No profile (may be new user)');
-          
+
           if (!profile && session?.user) {
             // Profile might not exist yet for new users, retry after a moment
             console.log('[App] Profile not found, retrying in 1s...');
@@ -442,7 +443,9 @@ const App: React.FC = () => {
 // Wrap App with ErrorBoundary for production stability
 const AppWithErrorBoundary: React.FC = () => (
   <ErrorBoundary>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </ErrorBoundary>
 );
 

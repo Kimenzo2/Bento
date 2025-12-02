@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Check, Star, Zap, Briefcase, Crown, X, Loader } from 'lucide-react';
 import { initializePayment } from '../services/paystackService';
@@ -253,22 +252,30 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
           ))}
         </div>
 
-        {/* Social Proof */}
-        <div className="mt-20 text-center bg-white/50 rounded-3xl p-8 border border-peach-soft">
-          <div className="flex justify-center items-center gap-8 mb-6 opacity-70 grayscale hover:grayscale-0 transition-all">
-            {/* Mock Logos */}
-            <div className="font-heading font-bold text-xl">Forbes</div>
-            <div className="font-heading font-bold text-xl">TechCrunch</div>
-            <div className="font-heading font-bold text-xl">Wired</div>
-            <div className="font-heading font-bold text-xl">ProductHunt</div>
-          </div>
-          <p className="font-heading font-bold text-xl text-charcoal-soft italic">
-            "The most intuitive storytelling platform we've ever tested."
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-            <span className="text-sm font-bold text-charcoal-soft">- Sarah J., Children's Author</span>
-          </div>
+      </div>
+      
+      {/* Bottom Illustration with Fade Up Effect */}
+      <div className="relative w-full mt-16 overflow-hidden">
+        {/* Gradient fade overlay - fades upward */}
+        <div 
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(255,248,231,1) 0%, rgba(255,248,231,0.8) 15%, rgba(255,248,231,0) 40%)'
+          }}
+        />
+        
+        {/* Illustration container */}
+        <div className="relative w-full flex justify-center items-end">
+          <img 
+            src="/assets/mascots/8k_3d_pixar_202512022053.jpeg"
+            alt="Genesis Community"
+            className="w-full max-w-7xl h-auto object-contain object-bottom"
+            style={{
+              maxHeight: '400px',
+              minHeight: '200px'
+            }}
+            loading="lazy"
+          />
         </div>
       </div>
     </div>

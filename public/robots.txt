@@ -1,0 +1,9 @@
+# Genesis Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://genesis.app/sitemap.xml
+
+# Disallow admin/api routes
+Disallow: /api/
