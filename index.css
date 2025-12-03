@@ -8,12 +8,22 @@
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-left: env(safe-area-inset-left, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+    /* Default Fonts (will be overridden by FontContext) */
+    --font-heading: 'Fredoka', sans-serif;
+    --font-body: 'Manrope', sans-serif;
+}
+
+/* FOUT Prevention */
+.fonts-loading {
+    opacity: 0.98;
+    transition: opacity 0.15s ease-in-out;
 }
 
 body {
     background-color: var(--color-background, #FFF8E7);
     color: var(--color-text, #5A5A5A);
-    font-family: 'Manrope', sans-serif;
+    font-family: var(--font-body);
     overflow-x: hidden;
     /* iOS smooth scrolling */
     -webkit-overflow-scrolling: touch;

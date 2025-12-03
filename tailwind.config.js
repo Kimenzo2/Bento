@@ -20,8 +20,8 @@ export default {
         },
         extend: {
             fontFamily: {
-                heading: ['Fredoka', 'sans-serif'],
-                body: ['Manrope', 'sans-serif'],
+                heading: ['var(--font-heading)', 'sans-serif'],
+                body: ['var(--font-body)', 'sans-serif'],
             },
             colors: {
                 cream: {

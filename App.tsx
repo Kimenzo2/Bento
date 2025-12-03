@@ -26,6 +26,7 @@ import { supabase } from './services/supabaseClient';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
 import InstallPWA from './components/InstallPWA';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { FontProvider } from './src/contexts/FontContext';
 
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
@@ -347,6 +348,7 @@ const App: React.FC = () => {
           <SettingsPanel
             onNavigate={setCurrentMode}
             userTier={currentUserTier}
+            onViewBook={handleReadBook}
           />
         );
       case AppMode.VIEWER:
@@ -444,7 +446,9 @@ const App: React.FC = () => {
 const AppWithErrorBoundary: React.FC = () => (
   <ErrorBoundary>
     <ThemeProvider>
-      <App />
+      <FontProvider>
+        <App />
+      </FontProvider>
     </ThemeProvider>
   </ErrorBoundary>
 );

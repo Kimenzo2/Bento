@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { InfographicData, GenerationRequest, AgeGroup, InfographicType, InfographicStyle, GuideCharacter } from '../../types/infographic';
 import TopicInputStep from './TopicInputStep.tsx';
@@ -114,17 +115,20 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
                 {step === 3 && (
                     <GenerationLoading topic={request.topic} />
                 )}
-                {step === 4 && generatedData && (
-                    <InfographicResultPage
-                        data={generatedData}
-                        onClose={onClose}
-                        onRegenerate={() => {
-                            setGeneratedData(null);
-                            setStep(1);
-                        }}
-                    />
-                )}
             </div>
+
+            {/* Render InfographicResultPage in a Portal so it escapes overflow:hidden containers */}
+            {step === 4 && generatedData && createPortal(
+                <InfographicResultPage
+                    data={generatedData}
+                    onClose={onClose}
+                    onRegenerate={() => {
+                        setGeneratedData(null);
+                        setStep(1);
+                    }}
+                />,
+                document.body
+            )}
         </>
     );
 };

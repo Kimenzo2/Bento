@@ -5,6 +5,7 @@ import { getAllBooks, deleteBook } from '../services/storageService';
 import SavedBookCard from './SavedBookCard';
 import { getAvailableStyles, canUseStyle } from '../services/tierLimits';
 import InfographicWizard from './infographic/InfographicWizard';
+import { getDefaultArtStyle } from '../hooks/useUserSettings';
 
 // ===== OPTIMIZED MASCOT COMPONENT =====
 interface MascotProps {
@@ -61,7 +62,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     userTier = UserTier.SPARK
 }) => {
     const [prompt, setPrompt] = useState('');
-    const [style, setStyle] = useState<ArtStyle>(ArtStyle.WATERCOLOR);
+    const [style, setStyle] = useState<ArtStyle>(() => {
+        // Initialize with user's preferred art style from settings
+        const savedStyle = getDefaultArtStyle();
+        return savedStyle && Object.values(ArtStyle).includes(savedStyle as ArtStyle) 
+            ? (savedStyle as ArtStyle) 
+            : ArtStyle.WATERCOLOR;
+    });
     const [tone, setTone] = useState<BookTone>(BookTone.PLAYFUL);
     const [audience, setAudience] = useState('Children 4-6');
     const [pageCount, setPageCount] = useState(10);
@@ -182,7 +189,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             </div>
 
             {/* Quick Starts */}
-            {!prompt && creationMode === 'book' && (
+            {!prompt && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full px-4 mb-16">
                     <QuickStartCard
                         icon={Star}
@@ -223,7 +230,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             )}
 
             {/* Saved Books Section */}
-            {savedBooks.length > 0 && !prompt && creationMode === 'book' && (
+            {savedBooks.length > 0 && !prompt && (
                 <div className="w-full max-w-6xl px-4 mb-16">
                     <div className="flex items-center justify-between mb-6">
                         <div>

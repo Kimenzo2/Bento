@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Download, Share2, Printer, RefreshCw, ZoomIn, ZoomOut, FileImage, FileText, Sparkles } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Printer, RefreshCw, ZoomIn, ZoomOut, FileImage, FileText, Sparkles, Bookmark, Check } from 'lucide-react';
 import { InfographicData } from '../../types/infographic';
 import InfographicRenderer from './renderer/InfographicRenderer';
 import { exportToPNG, exportToPDF, printElement } from './exportService';
+import { saveInfographic } from '../../services/libraryService';
 
 interface InfographicResultPageProps {
     data: InfographicData;
@@ -13,6 +14,8 @@ interface InfographicResultPageProps {
 const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onClose, onRegenerate }) => {
     const [zoom, setZoom] = useState(1);
     const [isExporting, setIsExporting] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
 
     const handleExport = async (type: 'png' | 'pdf') => {
         setIsExporting(true);
@@ -43,6 +46,23 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onC
         }, 100);
     };
 
+    const handleSave = async () => {
+        if (isSaved) return;
+        
+        setIsSaving(true);
+        try {
+            await saveInfographic(data);
+            setIsSaved(true);
+            // Reset saved state after 3 seconds to allow re-saving if modified
+            setTimeout(() => setIsSaved(false), 5000);
+        } catch (error) {
+            console.error('Failed to save infographic:', error);
+            alert('Failed to save infographic. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 bg-cream-base overflow-y-auto animate-slideUp">
             {/* Sticky Header */}
@@ -68,6 +88,28 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({ data, onC
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3">
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95 ${
+                                isSaved 
+                                    ? 'bg-green-500 text-white' 
+                                    : 'bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50 hover:border-coral-burst'
+                            }`}
+                            title={isSaved ? 'Saved to Library' : 'Save to Library'}
+                        >
+                            {isSaving ? (
+                                <div className="w-4 h-4 border-2 border-coral-burst/30 border-t-coral-burst rounded-full animate-spin" />
+                            ) : isSaved ? (
+                                <Check className="w-4 h-4" />
+                            ) : (
+                                <Bookmark className="w-4 h-4" />
+                            )}
+                            <span className="hidden sm:inline">{isSaved ? 'Saved!' : 'Save'}</span>
+                        </button>
+
+                        <div className="h-8 w-px bg-peach-soft mx-1 hidden sm:block"></div>
+
                         <button
                             onClick={onRegenerate}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-cocoa-light hover:text-coral-burst"

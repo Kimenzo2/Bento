@@ -14,20 +14,25 @@ import {
   Image as ImageIcon,
   Calendar,
   Download,
-  ArrowLeft
+  ArrowLeft,
+  FolderOpen,
+  Type
 } from 'lucide-react';
-import { AppMode, UserTier } from '../types';
+import { AppMode, UserTier, SavedBook } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeSelector from './settings/ThemeSelector';
+import LibraryPanel from './settings/LibraryPanel';
+import FontSelector from './settings/FontSelector';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
   userTier?: UserTier;
+  onViewBook?: (book: SavedBook) => void;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +61,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
         displayName: '',
         email: '',
         bio: 'I love creating magical stories for children...',
-        defaultStyle: 'Pixar 3D',
+        defaultStyle: 'Watercolor',
         temperature: 0.7,
         emailUpdates: true,
         marketingEmails: false,
@@ -68,7 +73,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
         displayName: '',
         email: '',
         bio: 'I love creating magical stories for children...',
-        defaultStyle: 'Pixar 3D',
+        defaultStyle: 'Watercolor',
         temperature: 0.7,
         emailUpdates: true,
         marketingEmails: false,
@@ -82,23 +87,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
   useEffect(() => {
     if (user) {
       // Get user's display name from metadata or email
-      const displayName = user.user_metadata?.full_name || 
-                          user.user_metadata?.name || 
-                          user.email?.split('@')[0] || 
-                          'Creative Author';
-      
+      const displayName = user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split('@')[0] ||
+        'Creative Author';
+
       // Get user's avatar from metadata
-      const userAvatar = user.user_metadata?.avatar_url || 
-                         user.user_metadata?.picture || 
-                         null;
-      
+      const userAvatar = user.user_metadata?.avatar_url ||
+        user.user_metadata?.picture ||
+        null;
+
       // Update form data with user info (preserve other saved settings)
       setFormData((prev: any) => ({
         ...prev,
         displayName: prev.displayName || displayName,
         email: user.email || prev.email,
       }));
-      
+
       // Update avatar if user has one and we don't have a custom one saved
       if (userAvatar && !localStorage.getItem('genesis_avatar')) {
         setAvatarPreview(userAvatar);
@@ -206,7 +211,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
         <div className="w-full md:w-64">
           <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
             <TabButton id="profile" icon={User} label="Profile" />
+            <TabButton id="library" icon={FolderOpen} label="My Library" />
             <TabButton id="themes" icon={ImageIcon} label="Themes" />
+            <TabButton id="typography" icon={Type} label="Typography" />
             <TabButton id="subscriptions" icon={CreditCard} label="Subscriptions" />
             <TabButton id="notifications" icon={Bell} label="Notifications" />
             <TabButton id="privacy" icon={Shield} label="Privacy" />
@@ -286,10 +293,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
                     onChange={(e) => handleChange('defaultStyle', e.target.value)}
                     className="w-full bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all cursor-pointer"
                   >
-                    <option>Pixar 3D</option>
-                    <option>Watercolor</option>
-                    <option>Cyberpunk</option>
-                    <option>Manga</option>
+                    <option value="Watercolor">Watercolor</option>
+                    <option value="3D Render (Pixar Style)">3D Render (Pixar Style)</option>
+                    <option value="Japanese Manga">Japanese Manga</option>
+                    <option value="Corporate Minimalist">Corporate Minimalist</option>
+                    <option value="Cyberpunk Neon">Cyberpunk Neon</option>
+                    <option value="Vintage Illustration">Vintage Illustration</option>
+                    <option value="Paper Cutout Art">Paper Cutout Art</option>
+                    <option value="Flat Design">Flat Design</option>
+                    <option value="Modern Infographic">Modern Infographic</option>
+                    <option value="Technical Blueprint">Technical Blueprint</option>
                   </select>
                 </div>
                 <div className="space-y-4">
@@ -358,6 +371,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
 
             {activeTab === 'themes' && (
               <ThemeSelector />
+            )}
+
+            {activeTab === 'typography' && (
+              <FontSelector />
+            )}
+
+            {activeTab === 'library' && (
+              <LibraryPanel onViewBook={onViewBook} />
             )}
 
             {activeTab === 'subscriptions' && (
