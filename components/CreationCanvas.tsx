@@ -65,8 +65,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [style, setStyle] = useState<ArtStyle>(() => {
         // Initialize with user's preferred art style from settings
         const savedStyle = getDefaultArtStyle();
-        return savedStyle && Object.values(ArtStyle).includes(savedStyle as ArtStyle) 
-            ? (savedStyle as ArtStyle) 
+        return savedStyle && Object.values(ArtStyle).includes(savedStyle as ArtStyle)
+            ? (savedStyle as ArtStyle)
             : ArtStyle.WATERCOLOR;
     });
     const [tone, setTone] = useState<BookTone>(BookTone.PLAYFUL);
@@ -80,6 +80,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [brandGuidelines, setBrandGuidelines] = useState('');
     const [brandColors, setBrandColors] = useState('#FF9B71, #FFF4A3');
     const [brandSample, setBrandSample] = useState('');
+
+    // Learning Goals State
+    const [learningSubject, setLearningSubject] = useState('Math');
+    const [learningObjectives, setLearningObjectives] = useState('');
+    const [integrationMode, setIntegrationMode] = useState<'integrated' | 'after-chapter' | 'dedicated-section'>('integrated');
+    const [learningDifficulty, setLearningDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
 
     // Saved Books
     const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
@@ -138,9 +144,15 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             pageCount,
             isBranching,
             educational,
+            learningConfig: educational ? {
+                subject: learningSubject,
+                objectives: learningObjectives,
+                integrationMode,
+                difficulty: learningDifficulty
+            } : undefined,
             brandProfile
         });
-    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, onGenerate]);
+    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, learningSubject, learningObjectives, integrationMode, learningDifficulty, onGenerate]);
 
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
@@ -511,6 +523,77 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                                 className="w-full bg-white border border-mint-breeze rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-mint-breeze font-serif italic"
                                                 placeholder="Paste existing text to match tone..."
                                             />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Educational Panel Expansion */}
+                            {educational && (
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 mb-10 animate-fadeIn">
+                                    <div className="flex items-center gap-2 text-blue-600 mb-6">
+                                        <Leaf className="w-5 h-5" />
+                                        <h3 className="font-heading font-bold text-lg">Learning Goals</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Subject</label>
+                                            <select
+                                                value={learningSubject}
+                                                onChange={(e) => setLearningSubject(e.target.value)}
+                                                className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                            >
+                                                <option value="Math">Math</option>
+                                                <option value="Science">Science</option>
+                                                <option value="Language Arts">Language Arts</option>
+                                                <option value="Social Studies">Social Studies</option>
+                                                <option value="SEL">Social-Emotional Learning</option>
+                                                <option value="History">History</option>
+                                                <option value="Geography">Geography</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Difficulty</label>
+                                            <select
+                                                value={learningDifficulty}
+                                                onChange={(e) => setLearningDifficulty(e.target.value as any)}
+                                                className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                            >
+                                                <option value="beginner">Beginner</option>
+                                                <option value="intermediate">Intermediate</option>
+                                                <option value="advanced">Advanced</option>
+                                            </select>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Learning Objectives</label>
+                                            <textarea
+                                                value={learningObjectives}
+                                                onChange={(e) => setLearningObjectives(e.target.value)}
+                                                className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                placeholder="e.g., Counting to 10, Understanding Photosynthesis, Managing Anger..."
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Integration Mode</label>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {[
+                                                    { id: 'integrated', label: 'Integrated', desc: 'Woven into story' },
+                                                    { id: 'after-chapter', label: 'After Chapter', desc: 'Review at end' },
+                                                    { id: 'dedicated-section', label: 'Dedicated', desc: 'Separate section' }
+                                                ].map((mode) => (
+                                                    <button
+                                                        key={mode.id}
+                                                        onClick={() => setIntegrationMode(mode.id as any)}
+                                                        className={`p-3 rounded-xl border-2 text-left transition-all ${integrationMode === mode.id
+                                                            ? 'border-blue-400 bg-blue-100'
+                                                            : 'border-blue-100 bg-white hover:border-blue-300'
+                                                            }`}
+                                                    >
+                                                        <div className={`font-bold text-sm ${integrationMode === mode.id ? 'text-blue-700' : 'text-charcoal-soft'}`}>{mode.label}</div>
+                                                        <div className="text-xs text-cocoa-light">{mode.desc}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

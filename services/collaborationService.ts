@@ -27,6 +27,15 @@ import {
     ServiceResult,
     REACTION_EMOJIS,
 } from '../types/collaboration';
+import { LRUCache, throttle, deduplicateRequest } from './performanceOptimizations';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERFORMANCE: Caches and limits for scalability
+// ─────────────────────────────────────────────────────────────────────────────
+const visualCache = new LRUCache<string, SharedVisual[]>(100); // Cache visual queries
+const sessionCache = new LRUCache<string, CollaborationSession[]>(50); // Cache sessions
+const MAX_CHANNELS_PER_USER = 3; // Limit concurrent channel subscriptions
+const PRESENCE_THROTTLE_MS = 2000; // Throttle presence updates
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COLLABORATION SERVICE CLASS
@@ -36,6 +45,7 @@ class CollaborationService {
     private channels: Map<string, RealtimeChannel> = new Map();
     private presenceState: Map<string, PresenceUser> = new Map();
     private currentSessionId: string | null = null;
+    private channelOrder: string[] = []; // PERFORMANCE: Track channel access order for LRU eviction
 
     // ─────────────────────────────────────────────────────────────────────────
     // SESSION MANAGEMENT
@@ -127,27 +137,41 @@ class CollaborationService {
 
     /**
      * Get active sessions
+     * PERFORMANCE: Cached and deduplicated
      */
     async getActiveSessions(): Promise<CollaborationSession[]> {
-        const { data, error } = await supabase
-            .from('collaboration_sessions')
-            .select(`
-                *,
-                participants:session_participants(
-                    user_id,
-                    status,
-                    profile:profiles(id, full_name, avatar_url)
-                )
-            `)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
+        const cacheKey = 'active_sessions';
+        
+        return deduplicateRequest(cacheKey, async () => {
+            // Check cache first
+            const cached = sessionCache.get(cacheKey);
+            if (cached) {
+                return cached;
+            }
+            
+            const { data, error } = await supabase
+                .from('collaboration_sessions')
+                .select(`
+                    *,
+                    participants:session_participants(
+                        user_id,
+                        status,
+                        profile:profiles(id, full_name, avatar_url)
+                    )
+                `)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error('Error fetching sessions:', error);
-            return [];
-        }
+            if (error) {
+                console.error('Error fetching sessions:', error);
+                return [];
+            }
 
-        return data || [];
+            const sessions = data || [];
+            // Cache for 30 seconds
+            sessionCache.set(cacheKey, sessions);
+            return sessions;
+        }, 3000); // 3 second deduplication window
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -672,6 +696,20 @@ class CollaborationService {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
+     * PERFORMANCE: Evict oldest channel if limit reached
+     */
+    private evictOldestChannel(): void {
+        if (this.channels.size >= MAX_CHANNELS_PER_USER && this.channelOrder.length > 0) {
+            const oldestSessionId = this.channelOrder.shift();
+            if (oldestSessionId && this.channels.has(oldestSessionId)) {
+                console.log(`⚡ Evicting oldest channel: ${oldestSessionId}`);
+                this.channels.get(oldestSessionId)?.unsubscribe();
+                this.channels.delete(oldestSessionId);
+            }
+        }
+    }
+
+    /**
      * Subscribe to session updates (visuals, reactions, activities, presence)
      */
     subscribeToSession(
@@ -689,6 +727,11 @@ class CollaborationService {
         // Clean up existing channel
         if (this.channels.has(sessionId)) {
             this.channels.get(sessionId)?.unsubscribe();
+            // Update order (move to end as most recently used)
+            this.channelOrder = this.channelOrder.filter(id => id !== sessionId);
+        } else {
+            // PERFORMANCE: Evict oldest if at limit
+            this.evictOldestChannel();
         }
 
         const channel = supabase.channel(`session:${sessionId}`, {
@@ -798,6 +841,8 @@ class CollaborationService {
         });
 
         this.channels.set(sessionId, channel);
+        // PERFORMANCE: Track access order for LRU eviction
+        this.channelOrder.push(sessionId);
         return channel;
     }
 
@@ -821,8 +866,9 @@ class CollaborationService {
 
     /**
      * Broadcast cursor position
+     * PERFORMANCE: Throttled to prevent flooding
      */
-    broadcastCursor(sessionId: string, x: number, y: number): void {
+    private _doBroadcastCursor = (sessionId: string, x: number, y: number): void => {
         const channel = this.channels.get(sessionId);
         if (!channel) return;
 
@@ -835,6 +881,13 @@ class CollaborationService {
                 });
             }
         });
+    };
+
+    // PERFORMANCE: Throttle cursor broadcasts to max 20/second
+    private _throttledCursor = throttle(this._doBroadcastCursor.bind(this), 50);
+
+    broadcastCursor(sessionId: string, x: number, y: number): void {
+        this._throttledCursor(sessionId, x, y);
     }
 
     /**

@@ -36,8 +36,7 @@ import {
 } from 'lucide-react';
 import { generateRefinedImage } from '../services/geminiService';
 import MessagesWidget from './MessagesWidget';
-import ChatWidget from './ChatWidget';
-import ChatPanel from './ChatPanel';
+import { ChatContainer } from './ChatInterface';
 import MobileBottomNav from './MobileBottomNav';
 import { UserProfile } from '../services/profileService';
 import {
@@ -550,6 +549,9 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     const [mobileActiveTab, setMobileActiveTab] = useState<'character' | 'scene' | 'style' | 'chat'>('character');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    // Desktop chat panel state
+    const [isDesktopChatOpen, setIsDesktopChatOpen] = useState(false);
 
     // View Mode State
     const [viewMode, setViewMode] = useState<'individual' | 'collaborative'>('individual');
@@ -1064,7 +1066,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     };
 
     return (
-        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-screen h-[100dvh] flex flex-col overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
+        <div className={`w-full mx-auto animate-fadeIn ${isCollaborativeMode ? 'h-[100dvh] flex flex-col overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
 
             {/* Header with Mode Switcher */}
             <div className={`relative text-center mb-4 md:mb-6 flex-shrink-0 ${isCollaborativeMode ? 'px-2 sm:px-4 md:px-8 pt-2 md:pt-4' : 'px-10 sm:px-12 md:px-20'}`}>
@@ -1185,257 +1187,348 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 </p>
             </div>
 
-            <div className={`flex flex-col-reverse lg:flex-row gap-4 md:gap-6 ${isCollaborativeMode ? 'flex-1 overflow-hidden' : 'min-h-[600px] h-[calc(100vh-140px)]'}`}>
+            <div className={`flex flex-col gap-4 md:gap-6 ${isCollaborativeMode ? 'flex-1 overflow-hidden' : 'min-h-[600px]'}`}>
 
-                {/* Control Panel / Vertical Menu - Only visible in Individual Mode */}
+                {/* Top Section: Control Panel + Chat Panel Side by Side - Only in Individual Mode */}
                 {viewMode === 'individual' && (
-                    <div
-                        className={`
-                        bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20
-                        w-full lg:w-1/3 p-4 md:p-6 h-full
-                    `}
-                    >
-                        {/* Selected Character Image Display */}
-                        {activeTab === 'character' && settings.selectedCharacterId && (
-                            <div className="flex justify-center mb-6 animate-fadeIn">
-                                {(() => {
-                                    const char = availableCharacters.find(c => c.id === settings.selectedCharacterId);
-                                    if (char && char.imageUrl) {
-                                        return (
-                                            <div className="relative group">
-                                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
-                                                    <img
-                                                        src={char.imageUrl}
-                                                        alt={char.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
+                    <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
+                        {/* Control Panel - Left Side (40%) */}
+                        <div
+                            className="bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-[500px] lg:max-h-[600px] panel-breathing"
+                        >
+                            {/* Selected Character Image Display */}
+                            {activeTab === 'character' && settings.selectedCharacterId && (
+                                <div className="flex justify-center mb-6 animate-fadeIn">
+                                    {(() => {
+                                        const char = availableCharacters.find(c => c.id === settings.selectedCharacterId);
+                                        if (char && char.imageUrl) {
+                                            return (
+                                                <div className="relative group">
+                                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
+                                                        <img
+                                                            src={char.imageUrl}
+                                                            alt={char.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-coral-burst text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
+                                                        {char.name}
+                                                    </div>
                                                 </div>
-                                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-coral-burst text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                                                    {char.name}
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                })()}
-                            </div>
-                        )}
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
+                            )}
 
-                        {/* Tabs */}
-                        <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
-                            {['character', 'scene', 'style'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => {
-                                        setActiveTab(tab as any);
-                                        setSettings({ ...settings, generatedImage: null });
-                                    }}
-                                    className={`flex-1 py-2 md:py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm capitalize transition-all
-                            ${activeTab === tab ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light hover:text-charcoal-soft'}`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
+                            {/* Tabs */}
+                            <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
+                                {['character', 'scene', 'style'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => {
+                                            setActiveTab(tab as any);
+                                            setSettings({ ...settings, generatedImage: null });
+                                        }}
+                                        className={`flex-1 py-2 md:py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm capitalize transition-all
+                                ${activeTab === tab ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light hover:text-charcoal-soft'}`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Tab Content: Character */}
+                            {activeTab === 'character' && (
+                                <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                            <Users className="w-4 h-4" /> Character
+                                        </label>
+                                        <select
+                                            value={settings.selectedCharacterId || ''}
+                                            onChange={(e) => setSettings({ ...settings, selectedCharacterId: e.target.value })}
+                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
+                                            title="Select character"
+                                            aria-label="Character"
+                                        >
+                                            {availableCharacters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        {/* Show character description */}
+                                        {settings.selectedCharacterId && (
+                                            <div className="p-3 bg-cream-base/50 rounded-xl text-xs text-cocoa-light">
+                                                {availableCharacters.find(c => c.id === settings.selectedCharacterId)?.description || 'Select a character to see details'}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-cocoa-light uppercase">Expression</label>
+                                            <select
+                                                value={settings.expression}
+                                                onChange={(e) => setSettings({ ...settings, expression: e.target.value })}
+                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                                title="Select expression"
+                                                aria-label="Expression"
+                                            >
+                                                {expressions.map(e => <option key={e} value={e}>{e}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-cocoa-light uppercase">Pose</label>
+                                            <select
+                                                value={settings.pose}
+                                                onChange={(e) => setSettings({ ...settings, pose: e.target.value })}
+                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                                title="Select pose"
+                                                aria-label="Pose"
+                                            >
+                                                {poses.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase">Costume Details</label>
+                                        <input
+                                            type="text"
+                                            value={settings.costume}
+                                            onChange={(e) => setSettings({ ...settings, costume: e.target.value })}
+                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
+                                            placeholder="e.g. Red superhero cape"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Tab Content: Scene */}
+                            {activeTab === 'scene' && (
+                                <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                            <Lightbulb className="w-4 h-4" /> Lighting Style
+                                        </label>
+                                        <div className="grid grid-cols-1 gap-3 md:gap-4">
+                                            <select
+                                                value={settings.lighting}
+                                                onChange={(e) => setSettings({ ...settings, lighting: e.target.value })}
+                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm font-body"
+                                                title="Select lighting style"
+                                                aria-label="Lighting style"
+                                            >
+                                                {Object.entries(lightingGroups).map(([group, options]) => (
+                                                    <optgroup key={group} label={group}>
+                                                        {options.map(l => <option key={l} value={l}>{l}</option>)}
+                                                    </optgroup>
+                                                ))}
+                                            </select>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                                    <Camera className="w-4 h-4" /> Camera Angle
+                                                </label>
+                                                <select
+                                                    value={settings.cameraAngle}
+                                                    onChange={(e) => setSettings({ ...settings, cameraAngle: e.target.value })}
+                                                    className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
+                                                    title="Select camera angle"
+                                                    aria-label="Camera angle"
+                                                >
+                                                    {cameraOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase">Scene Description</label>
+                                        <textarea
+                                            value={settings.prompt}
+                                            onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
+                                            className="w-full h-24 md:h-32 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
+                                            placeholder="Describe the setting, props, and atmosphere..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Tab Content: Style Alchemy */}
+                            {activeTab === 'style' && (
+                                <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                                            <Palette className="w-4 h-4" /> Style Alchemy
+                                        </label>
+                                        <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
+                                            <div>
+                                                <div className="text-xs text-cocoa-light mb-1">Primary Style ({(settings.mixRatio)}%)</div>
+                                                <select
+                                                    value={settings.styleA}
+                                                    onChange={(e) => setSettings({ ...settings, styleA: e.target.value as ArtStyle })}
+                                                    className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
+                                                    title="Select primary style"
+                                                    aria-label="Primary style"
+                                                >
+                                                    {styles.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </select>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                <Sliders className="text-coral-burst w-4 h-4" />
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="100"
+                                                    value={settings.mixRatio}
+                                                    onChange={(e) => setSettings({ ...settings, mixRatio: parseInt(e.target.value) })}
+                                                    title={`Mix ratio: ${settings.mixRatio}%`}
+                                                    aria-label="Style mix ratio"
+                                                    className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="text-xs text-cocoa-light mb-1">Secondary Style ({100 - settings.mixRatio}%)</div>
+                                                <select
+                                                    value={settings.styleB}
+                                                    onChange={(e) => setSettings({ ...settings, styleB: e.target.value as ArtStyle })}
+                                                    className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
+                                                    title="Select secondary style"
+                                                    aria-label="Secondary style"
+                                                >
+                                                    {styles.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-cocoa-light uppercase">Test Prompt</label>
+                                        <textarea
+                                            value={settings.prompt}
+                                            onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
+                                            className="w-full h-20 md:h-24 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
+                                            placeholder="A landscape with a castle..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleGenerate}
+                                disabled={isGenerating}
+                                className={`w-full mt-4 py-3 md:py-4 rounded-xl font-heading font-bold text-sm md:text-base text-white shadow-lg transition-all flex items-center justify-center gap-2
+                            ${isGenerating ? 'bg-cocoa-light cursor-not-allowed' : 'bg-gradient-to-r from-coral-burst to-gold-sunshine hover:scale-[1.02]'}`}
+                            >
+                                {isGenerating ? <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Wand2 className="w-4 h-4 md:w-5 md:h-5" />}
+                                {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
+                            </button>
                         </div>
 
-                        {/* Tab Content: Character */}
-                        {activeTab === 'character' && (
-                            <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                        <Users className="w-4 h-4" /> Character
-                                    </label>
-                                    <select
-                                        value={settings.selectedCharacterId || ''}
-                                        onChange={(e) => setSettings({ ...settings, selectedCharacterId: e.target.value })}
-                                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
-                                        title="Select character"
-                                        aria-label="Character"
-                                    >
-                                        {availableCharacters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                    {/* Show character description */}
-                                    {settings.selectedCharacterId && (
-                                        <div className="p-3 bg-cream-base/50 rounded-xl text-xs text-cocoa-light">
-                                            {availableCharacters.find(c => c.id === settings.selectedCharacterId)?.description || 'Select a character to see details'}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase">Expression</label>
-                                        <select
-                                            value={settings.expression}
-                                            onChange={(e) => setSettings({ ...settings, expression: e.target.value })}
-                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
-                                            title="Select expression"
-                                            aria-label="Expression"
-                                        >
-                                            {expressions.map(e => <option key={e} value={e}>{e}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase">Pose</label>
-                                        <select
-                                            value={settings.pose}
-                                            onChange={(e) => setSettings({ ...settings, pose: e.target.value })}
-                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
-                                            title="Select pose"
-                                            aria-label="Pose"
-                                        >
-                                            {poses.map(p => <option key={p} value={p}>{p}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-cocoa-light uppercase">Costume Details</label>
-                                    <input
-                                        type="text"
-                                        value={settings.costume}
-                                        onChange={(e) => setSettings({ ...settings, costume: e.target.value })}
-                                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none"
-                                        placeholder="e.g. Red superhero cape"
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Tab Content: Scene */}
-                        {activeTab === 'scene' && (
-                            <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                        <Lightbulb className="w-4 h-4" /> Lighting Style
-                                    </label>
-                                    <div className="grid grid-cols-1 gap-3 md:gap-4">
-                                        <select
-                                            value={settings.lighting}
-                                            onChange={(e) => setSettings({ ...settings, lighting: e.target.value })}
-                                            className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm font-body"
-                                            title="Select lighting style"
-                                            aria-label="Lighting style"
-                                        >
-                                            {Object.entries(lightingGroups).map(([group, options]) => (
-                                                <optgroup key={group} label={group}>
-                                                    {options.map(l => <option key={l} value={l}>{l}</option>)}
-                                                </optgroup>
-                                            ))}
-                                        </select>
-
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                                <Camera className="w-4 h-4" /> Camera Angle
-                                            </label>
-                                            <select
-                                                value={settings.cameraAngle}
-                                                onChange={(e) => setSettings({ ...settings, cameraAngle: e.target.value })}
-                                                className="w-full bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 text-xs md:text-sm"
-                                                title="Select camera angle"
-                                                aria-label="Camera angle"
-                                            >
-                                                {cameraOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-cocoa-light uppercase">Scene Description</label>
-                                    <textarea
-                                        value={settings.prompt}
-                                        onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
-                                        className="w-full h-24 md:h-32 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
-                                        placeholder="Describe the setting, props, and atmosphere..."
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Tab Content: Style Alchemy */}
-                        {activeTab === 'style' && (
-                            <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
-                                        <Palette className="w-4 h-4" /> Style Alchemy
-                                    </label>
-                                    <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
-                                        <div>
-                                            <div className="text-xs text-cocoa-light mb-1">Primary Style ({(settings.mixRatio)}%)</div>
-                                            <select
-                                                value={settings.styleA}
-                                                onChange={(e) => setSettings({ ...settings, styleA: e.target.value as ArtStyle })}
-                                                className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
-                                                title="Select primary style"
-                                                aria-label="Primary style"
-                                            >
-                                                {styles.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <Sliders className="text-coral-burst w-4 h-4" />
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="100"
-                                                value={settings.mixRatio}
-                                                onChange={(e) => setSettings({ ...settings, mixRatio: parseInt(e.target.value) })}
-                                                title={`Mix ratio: ${settings.mixRatio}%`}
-                                                aria-label="Style mix ratio"
-                                                className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <div className="text-xs text-cocoa-light mb-1">Secondary Style ({100 - settings.mixRatio}%)</div>
-                                            <select
-                                                value={settings.styleB}
-                                                onChange={(e) => setSettings({ ...settings, styleB: e.target.value as ArtStyle })}
-                                                className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
-                                                title="Select secondary style"
-                                                aria-label="Secondary style"
-                                            >
-                                                {styles.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-cocoa-light uppercase">Test Prompt</label>
-                                    <textarea
-                                        value={settings.prompt}
-                                        onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
-                                        className="w-full h-20 md:h-24 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
-                                        placeholder="A landscape with a castle..."
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            onClick={handleGenerate}
-                            disabled={isGenerating}
-                            className={`w-full mt-4 py-3 md:py-4 rounded-xl font-heading font-bold text-sm md:text-base text-white shadow-lg transition-all flex items-center justify-center gap-2
-                        ${isGenerating ? 'bg-cocoa-light cursor-not-allowed' : 'bg-gradient-to-r from-coral-burst to-gold-sunshine hover:scale-[1.02]'}`}
-                        >
-                            {isGenerating ? <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Wand2 className="w-4 h-4 md:w-5 md:h-5" />}
-                            {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
-                        </button>
+                        {/* Chat Panel - Right Side (60% on Desktop), Hidden on Mobile (Use Mobile Bottom Nav) */}
+                        <div className="hidden lg:block w-full lg:w-3/5 h-[400px] lg:h-[600px] rounded-3xl overflow-hidden shadow-soft-lg border border-peach-soft/30 chat-panel-breathing">
+                            <ChatContainer
+                                projectName={project?.title || 'Genesis'}
+                                userProfile={userProfile ? {
+                                    id: userProfile.id,
+                                    displayName: userProfile.full_name || userProfile.email || 'User',
+                                    avatarUrl: userProfile.avatar_url || undefined,
+                                } : null}
+                                className="h-full"
+                            />
+                        </div>
                     </div>
                 )}
 
-                {/* Preview Area / Collaborative Grid */}
-                <div className={`
-                    rounded-3xl overflow-hidden relative
-                    ${isCollaborativeMode
-                        ? 'flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col'
-                        : 'w-full lg:w-2/3 bg-cream-base border-2 border-dashed border-peach-soft flex items-center justify-center group h-full min-h-[400px] md:min-h-[500px]'}
-                `}>
-                    {isCollaborativeMode ? (
-                        <div className="w-full h-full flex flex-col overflow-hidden">
-                            {/* Collaborative Box Header with Presence - Mobile Optimized */}
+                {/* Mobile Chat Panel - Full Screen Overlay (Individual Mode) */}
+                {viewMode === 'individual' && isChatOpen && (
+                    <div className="lg:hidden fixed inset-0 z-[60] bg-white">
+                        <ChatContainer
+                            projectName={project?.title || 'Genesis'}
+                            userProfile={userProfile ? {
+                                id: userProfile.id,
+                                displayName: userProfile.full_name || userProfile.email || 'User',
+                                avatarUrl: userProfile.avatar_url || undefined,
+                            } : null}
+                            onClose={() => setIsChatOpen(false)}
+                            className="h-full"
+                        />
+                    </div>
+                )}
+
+                {/* Generated Image Canvas - Below Control & Chat Panels (Individual Mode) */}
+                {viewMode === 'individual' && (
+                    <div className="w-full bg-white rounded-3xl shadow-soft-lg border border-peach-soft/50 overflow-hidden">
+                        <div className="p-4 border-b border-peach-soft/30 flex items-center justify-between">
+                            <h3 className="font-heading font-bold text-charcoal-soft flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-coral-burst" />
+                                Generated Creation
+                            </h3>
+                            {settings.generatedImage && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowShareModal(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-bold hover:scale-105 active:scale-95 transition-transform"
+                                    >
+                                        <Share2 className="w-3.5 h-3.5" />
+                                        Share
+                                    </button>
+                                    <button
+                                        onClick={handleSaveAsset}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-burst text-white rounded-lg text-xs font-bold hover:scale-105 active:scale-95 transition-transform"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        Download
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-6 min-h-[400px] md:min-h-[500px] bg-gradient-to-br from-cream-base to-cream-soft flex items-center justify-center">
+                            {settings.generatedImage ? (
+                                <div className="relative group max-w-full max-h-[500px]">
+                                    <img
+                                        src={settings.generatedImage}
+                                        alt="Generated visual"
+                                        className="max-w-full max-h-[500px] object-contain rounded-2xl shadow-2xl border-4 border-white"
+                                    />
+                                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    {isGenerating ? (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="relative">
+                                                <div className="w-20 h-20 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine animate-spin" style={{ animationDuration: '2s' }} />
+                                                <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center">
+                                                    <Wand2 className="w-8 h-8 text-coral-burst animate-pulse" />
+                                                </div>
+                                            </div>
+                                            <p className="text-coral-burst font-heading font-bold text-lg animate-pulse">Creating magic...</p>
+                                            <p className="text-cocoa-light text-sm">Your masterpiece is being crafted</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-cream-soft to-peach-soft flex items-center justify-center">
+                                                <Wand2 className="w-10 h-10 text-coral-burst/50" />
+                                            </div>
+                                            <div>
+                                                <p className="text-charcoal-soft font-heading font-bold text-lg">Ready to Create</p>
+                                                <p className="text-cocoa-light text-sm mt-1">Configure your settings above and click Generate</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Collaborative Mode Content - Preview Area / Collaborative Grid */}
+                {isCollaborativeMode && (
+                <div className="flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col rounded-3xl overflow-hidden relative">
+                    <div className="w-full h-full flex flex-col overflow-hidden">
+                        {/* Collaborative Box Header with Presence - Mobile Optimized */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 gap-2 sm:gap-0">
                                 {/* Top Row - Title, Presence, Refresh */}
                                 <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
@@ -1992,92 +2085,64 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                 </div>
                             )}
                         </div>
-                    ) : (
-                        // Standard Single User Preview
-                        settings.generatedImage ? (
-                            <div className="relative w-full h-full flex items-center justify-center p-4">
-                                <img
-                                    src={settings.generatedImage}
-                                    alt="Generated Visual"
-                                    className="max-h-full max-w-full rounded-lg shadow-2xl object-contain"
-                                />
-                                <button
-                                    onClick={handleSaveAsset}
-                                    className="absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-white text-charcoal-soft px-3 md:px-4 py-2 rounded-full shadow-lg font-heading font-bold text-xs md:text-sm flex items-center gap-2 hover:text-coral-burst transition-colors"
-                                >
-                                    <Download className="w-3 h-3 md:w-4 md:h-4" /> Save
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="text-center text-cocoa-light/50 p-4">
-                                {isGenerating ? (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-peach-soft border-t-coral-burst rounded-full animate-spin"></div>
-                                        <span className="font-heading font-bold text-base md:text-lg animate-pulse">Rendering...</span>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-peach-soft/30 flex items-center justify-center mx-auto mb-4">
-                                            {activeTab === 'character' && <Users className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                            {activeTab === 'scene' && <Camera className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                            {activeTab === 'style' && <Palette className="w-8 h-8 md:w-10 md:h-10 opacity-50" />}
-                                        </div>
-                                        <p className="font-heading font-bold text-lg md:text-xl">Ready to Create</p>
-                                        <p className="text-xs md:text-sm mt-2 max-w-xs mx-auto">Adjust settings and click generate</p>
-                                    </>
-                                )}
-                            </div>
-                        )
-                    )}
-                </div>
-
-            </div>
-
-            {/* Chat Widget - Hidden on Mobile, Visible on Desktop */}
-            <div className="hidden md:block fixed bottom-0 right-4 z-50">
-                <ChatWidget
-                    userProfile={userProfile}
-                    onCollaborativeTrigger={handleCollaborativeTrigger}
-                    activeCollaborators={presenceUsers.map(u => ({
-                        id: u.user_id,
-                        name: u.display_name || 'Anonymous',
-                        avatar: u.avatar_url
-                    }))}
-                />
-            </div>
-
-            {/* Mobile Chat Overlay */}
-            {
-                isChatOpen && (
-                    <div className="fixed inset-0 bg-white z-[60] md:hidden flex flex-col">
-                        <div className="flex items-center justify-between p-4 border-b-2 border-charcoal-soft">
-                            <h2 className="font-heading font-bold text-xl text-charcoal-soft">Chat</h2>
-                            <button
-                                onClick={() => setIsChatOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                title="Close chat"
-                                aria-label="Close chat"
-                            >
-                                <X size={24} className="text-charcoal-soft" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                            <ChatPanel
-                                userProfile={userProfile}
-                                onClose={() => setIsChatOpen(false)}
-                                onUnreadCountChange={setUnreadCount}
-                                onCollaborativeTrigger={handleCollaborativeTrigger}
-                                isMobile={true}
-                                activeCollaborators={presenceUsers.map(u => ({
-                                    id: u.user_id,
-                                    name: u.display_name || 'Anonymous',
-                                    avatar: u.avatar_url
-                                }))}
-                            />
-                        </div>
                     </div>
-                )
-            }
+                )}
+
+            </div>
+
+            {/* Desktop Chat Toggle Button - Hidden since chat is now embedded in individual mode */}
+            {/* This button can be used for collaborative mode if chat overlay is needed */}
+            {isCollaborativeMode && (
+            <button
+                onClick={() => setIsDesktopChatOpen(!isDesktopChatOpen)}
+                className={`hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-2 px-4 py-3 font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all ${
+                    isDesktopChatOpen 
+                        ? 'bg-gray-700 text-white hover:bg-gray-800' 
+                        : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:scale-105'
+                }`}
+                title={isDesktopChatOpen ? "Close Chat" : "Open Chat"}
+            >
+                {isDesktopChatOpen ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+                <span>{isDesktopChatOpen ? 'Close' : 'Chat'}</span>
+                {!isDesktopChatOpen && unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                )}
+            </button>
+            )}
+
+            {/* Desktop Chat Slide-in Panel - Only for Collaborative Mode */}
+            {isCollaborativeMode && isDesktopChatOpen && (
+                <div className="hidden lg:block fixed top-0 right-0 h-full w-[420px] xl:w-[480px] z-50 shadow-2xl animate-slideInRight">
+                    <ChatContainer
+                        projectName={project?.title || 'Genesis'}
+                        userProfile={userProfile ? {
+                            id: userProfile.id,
+                            displayName: userProfile.full_name || userProfile.email || 'User',
+                            avatarUrl: userProfile.avatar_url || undefined,
+                        } : null}
+                        onClose={() => setIsDesktopChatOpen(false)}
+                        className="h-full rounded-l-2xl"
+                    />
+                </div>
+            )}
+
+            {/* Mobile Chat Overlay - Only for Collaborative Mode */}
+            {isCollaborativeMode && isChatOpen && (
+                <div className="fixed inset-0 z-[60] lg:hidden">
+                    <ChatContainer
+                        projectName={project?.title || 'Genesis'}
+                        userProfile={userProfile ? {
+                            id: userProfile.id,
+                            displayName: userProfile.full_name || userProfile.email || 'User',
+                            avatarUrl: userProfile.avatar_url || undefined,
+                        } : null}
+                        onClose={() => setIsChatOpen(false)}
+                        className="h-full"
+                    />
+                </div>
+            )}
 
             {/* Notification Center Modal */}
             {

@@ -25,6 +25,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     const [particles, setParticles] = useState<Particle[]>([]);
     const [direction, setDirection] = useState(1);
     const [isMobile, setIsMobile] = useState(false);
+    const [learningMode, setLearningMode] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Detect mobile/tablet
@@ -181,7 +182,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         const sentences = text.split(/(?<=[.!?])\s+/);
         const paragraphs: string[] = [];
         let currentParagraph = '';
-        
+
         sentences.forEach((sentence, idx) => {
             currentParagraph += sentence + ' ';
             // Create paragraph every 2-3 sentences for readability
@@ -190,7 +191,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 currentParagraph = '';
             }
         });
-        
+
         return paragraphs.filter(p => p.length > 0);
     };
 
@@ -208,7 +209,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    
+
                     <div className="flex-1 text-center px-4">
                         <h1 className="text-amber-400 font-bold text-sm truncate flex items-center justify-center gap-2">
                             <Sparkles className="w-4 h-4 text-amber-300" />
@@ -219,11 +220,10 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     <div className="flex items-center gap-1">
                         <button
                             onClick={(e) => { e.stopPropagation(); toggleSpeech(); }}
-                            className={`p-2 rounded-full transition-all touch-manipulation ${
-                                isSpeaking 
-                                    ? 'bg-amber-500 text-white' 
-                                    : 'text-white/60 hover:text-white'
-                            }`}
+                            className={`p-2 rounded-full transition-all touch-manipulation ${isSpeaking
+                                ? 'bg-amber-500 text-white'
+                                : 'text-white/60 hover:text-white'
+                                }`}
                         >
                             <Volume2 className="w-5 h-5" />
                         </button>
@@ -237,7 +237,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 </div>
 
                 {/* Scrollable Content */}
-                <div 
+                <div
                     ref={scrollContainerRef}
                     className="flex-1 overflow-y-auto overscroll-contain"
                     style={{ WebkitOverflowScrolling: 'touch' }}
@@ -284,7 +284,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {/* Image overlay gradient */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e] via-transparent to-transparent opacity-40" />
                                 </div>
@@ -293,7 +293,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                             {/* Story Text Content */}
                             <div className="px-5 space-y-4">
                                 {getTextParagraphs(currentPage.text).map((paragraph, idx) => (
-                                    <p 
+                                    <p
                                         key={idx}
                                         className="text-gray-200 text-base xs:text-lg leading-relaxed font-serif"
                                         style={{ textAlign: 'justify', hyphens: 'auto' }}
@@ -324,11 +324,10 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         <button
                             onClick={prevPage}
                             disabled={currentPageIndex === 0}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation min-h-[44px] ${
-                                currentPageIndex === 0
-                                    ? 'text-gray-600 cursor-not-allowed'
-                                    : 'bg-white/10 text-white hover:bg-white/20 active:scale-95'
-                            }`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation min-h-[44px] ${currentPageIndex === 0
+                                ? 'text-gray-600 cursor-not-allowed'
+                                : 'bg-white/10 text-white hover:bg-white/20 active:scale-95'
+                                }`}
                         >
                             <ChevronLeft className="w-5 h-5" />
                             <span className="text-sm font-medium hidden xs:inline">Previous</span>
@@ -341,11 +340,10 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                                     <button
                                         key={idx}
                                         onClick={() => setCurrentPageIndex(idx)}
-                                        className={`h-2 rounded-full transition-all touch-manipulation ${
-                                            idx === currentPageIndex
-                                                ? 'w-6 bg-amber-400'
-                                                : 'w-2 bg-white/30 hover:bg-white/50'
-                                        }`}
+                                        className={`h-2 rounded-full transition-all touch-manipulation ${idx === currentPageIndex
+                                            ? 'w-6 bg-amber-400'
+                                            : 'w-2 bg-white/30 hover:bg-white/50'
+                                            }`}
                                     />
                                 ))}
                                 {totalPages > 5 && (
@@ -363,11 +361,10 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         <button
                             onClick={nextPage}
                             disabled={currentPageIndex === totalPages - 1}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation min-h-[44px] ${
-                                currentPageIndex === totalPages - 1
-                                    ? 'text-gray-600 cursor-not-allowed'
-                                    : 'bg-amber-500 text-white hover:bg-amber-400 active:scale-95'
-                            }`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation min-h-[44px] ${currentPageIndex === totalPages - 1
+                                ? 'text-gray-600 cursor-not-allowed'
+                                : 'bg-amber-500 text-white hover:bg-amber-400 active:scale-95'
+                                }`}
                         >
                             <span className="text-sm font-medium hidden xs:inline">Next</span>
                             <ChevronRight className="w-5 h-5" />
@@ -486,7 +483,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         animate={{ opacity: 1, rotateY: 0 }}
                         exit={{ opacity: 0, rotateY: direction > 0 ? -30 : 30 }}
                         transition={{ duration: 0.8, ease: 'easeInOut' }}
-                        className="w-1/2 h-full relative overflow-hidden bg-cream-base"
+                        className={`w-1/2 h-full relative overflow-hidden bg-cream-base ${currentPage.layoutType === 'learning-only' ? 'hidden' : ''}`}
                         style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
                     >
                         {currentPage.imageUrl ? (
@@ -517,13 +514,59 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
                         transition={{ duration: 0.6, ease: 'easeOut' }}
-                        className="w-1/2 h-full p-8 md:p-16 flex flex-col justify-center bg-white relative"
+                        className={`w-1/2 h-full p-8 md:p-16 flex flex-col justify-center bg-white relative ${currentPage.layoutType === 'learning-only' ? 'w-full items-center text-center bg-blue-50' : ''
+                            }`}
                     >
-                        <div className="prose prose-lg max-w-none">
-                            <p className="font-serif text-xl md:text-2xl leading-relaxed text-charcoal-soft">
-                                {currentPage.text}
-                            </p>
-                        </div>
+                        {currentPage.layoutType !== 'learning-only' && (
+                            <div className="prose prose-lg max-w-none">
+                                <p className="font-serif text-xl md:text-2xl leading-relaxed text-charcoal-soft">
+                                    {currentPage.text}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Special Layout for Learning Only */}
+                        {currentPage.layoutType === 'learning-only' && (
+                            <div className="flex flex-col items-center max-w-2xl">
+                                <div className="w-32 h-32 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center overflow-hidden mb-6">
+                                    {project.characters.find(c => c.role === 'mentor')?.visualPrompt ? (
+                                        <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${project.characters.find(c => c.role === 'mentor')?.name}`} alt="Mentor" className="w-full h-full" />
+                                    ) : (
+                                        <Sparkles className="w-16 h-16 text-blue-500" />
+                                    )}
+                                </div>
+                                <h3 className="font-heading font-bold text-3xl text-blue-600 mb-4">
+                                    {project.characters.find(c => c.role === 'mentor')?.name || "Learning Time!"}
+                                </h3>
+                                <p className="text-xl text-charcoal-soft mb-8">
+                                    {currentPage.learningContent?.mentorDialogue}
+                                </p>
+                                {currentPage.learningContent?.quiz && (
+                                    <div className="w-full bg-white rounded-2xl p-6 shadow-soft-lg text-left">
+                                        <p className="font-bold text-blue-800 text-lg mb-4">
+                                            {currentPage.learningContent.quiz.question}
+                                        </p>
+                                        <div className="space-y-3">
+                                            {currentPage.learningContent.quiz.options.map((option, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        if (option === currentPage.learningContent?.quiz?.correctAnswer) {
+                                                            alert(currentPage.learningContent?.quiz?.explanation);
+                                                        } else {
+                                                            alert("Try again!");
+                                                        }
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 bg-blue-50 rounded-xl text-base text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
+                                                >
+                                                    {option}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Audio Control */}
                         <motion.button
@@ -588,6 +631,81 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                 </motion.button>
             </div>
+
+            {/* Learning Mode Toggle */}
+            {project.learningConfig && (
+                <div className="absolute top-24 right-6 z-20">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setLearningMode(!learningMode)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-soft-lg transition-all ${learningMode
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white/90 text-blue-500 hover:bg-white'
+                            }`}
+                    >
+                        <BookOpen className="w-4 h-4" />
+                        <span className="font-heading font-bold text-sm">Learning Mode</span>
+                    </motion.button>
+                </div>
+            )}
+
+            {/* Mentor Overlay */}
+            <AnimatePresence>
+                {learningMode && currentPage.learningContent && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 50, scale: 0.9 }}
+                        className="absolute bottom-24 right-8 max-w-sm z-30 pointer-events-none"
+                    >
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 border-4 border-blue-200 relative pointer-events-auto">
+                            {/* Mentor Avatar (Placeholder or from character list) */}
+                            <div className="absolute -top-12 -left-8 w-20 h-20 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
+                                {project.characters.find(c => c.role === 'mentor')?.visualPrompt ? (
+                                    <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${project.characters.find(c => c.role === 'mentor')?.name}`} alt="Mentor" className="w-full h-full" />
+                                ) : (
+                                    <Sparkles className="w-10 h-10 text-blue-500" />
+                                )}
+                            </div>
+
+                            <div className="ml-8">
+                                <h4 className="font-heading font-bold text-blue-600 text-sm mb-1">
+                                    {project.characters.find(c => c.role === 'mentor')?.name || "Learning Guide"}
+                                </h4>
+                                <p className="text-charcoal-soft text-sm leading-relaxed mb-4">
+                                    {currentPage.learningContent.mentorDialogue}
+                                </p>
+
+                                {currentPage.learningContent.quiz && (
+                                    <div className="bg-blue-50 rounded-xl p-4">
+                                        <p className="font-bold text-blue-800 text-sm mb-3">
+                                            {currentPage.learningContent.quiz.question}
+                                        </p>
+                                        <div className="space-y-2">
+                                            {currentPage.learningContent.quiz.options.map((option, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        if (option === currentPage.learningContent?.quiz?.correctAnswer) {
+                                                            alert(currentPage.learningContent?.quiz?.explanation);
+                                                        } else {
+                                                            alert("Try again!");
+                                                        }
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
+                                                >
+                                                    {option}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
         </div>
     );

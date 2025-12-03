@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { LRUCache, debounce, globalConnectionManager } from './performanceOptimizations';
 
 export interface ChatMessage {
     id: string;
@@ -35,8 +36,18 @@ export interface PresenceState {
     typing?: boolean;
 }
 
+// PERFORMANCE: Global user profile cache to prevent N+1 queries
+const userProfileCache = new LRUCache<string, { display_name: string; avatar_url: string }>(500);
+
+// PERFORMANCE: Message cache per room
+const messageCache = new LRUCache<string, ChatMessage[]>(20);
+
+// PERFORMANCE: Limit max connections per user
+const MAX_ROOM_SUBSCRIPTIONS = 5;
+
 class ChatService {
     private channels: Map<string, RealtimeChannel> = new Map();
+    private subscriptionOrder: string[] = []; // Track subscription order for LRU eviction
 
     /**
      * Get the default global chat room or create it if it doesn't exist

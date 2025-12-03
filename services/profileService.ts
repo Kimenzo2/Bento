@@ -1,5 +1,11 @@
 import { supabase } from './supabaseClient';
 import { UserTier, GamificationState } from '../types';
+import { LRUCache, deduplicateRequest } from './performanceOptimizations';
+
+// PERFORMANCE: Profile cache to prevent repeated DB calls
+const profileCache = new LRUCache<string, UserProfile>(500);
+const PROFILE_CACHE_TTL = 30000; // 30 seconds
+const profileCacheTimestamps = new Map<string, number>();
 
 export interface UserProfile {
     id: string;
@@ -104,6 +110,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
 
 /**
  * Fetch the current user's profile from Supabase
+ * PERFORMANCE: Cached and deduplicated for scalability
  */
 export const getUserProfile = async (): Promise<UserProfile | null> => {
     try {
@@ -114,30 +121,54 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
             return null;
         }
 
-        console.log('[ProfileService] Fetching profile for:', user.email);
-
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        if (error) {
-            console.error('[ProfileService] Error fetching profile:', error);
-            return null;
+        // PERFORMANCE: Check cache first
+        const cachedProfile = profileCache.get(user.id);
+        const cacheTimestamp = profileCacheTimestamps.get(user.id);
+        if (cachedProfile && cacheTimestamp && Date.now() - cacheTimestamp < PROFILE_CACHE_TTL) {
+            return cachedProfile;
         }
 
-        if (!data) {
-            console.log('[ProfileService] Profile not found, creating...');
-            return await ensureUserProfile();
-        }
+        // PERFORMANCE: Deduplicate concurrent requests for same user
+        return deduplicateRequest(`profile:${user.id}`, async () => {
+            console.log('[ProfileService] Fetching profile for:', user.email);
 
-        console.log('[ProfileService] Profile found:', data.email);
-        return data as UserProfile;
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            if (error) {
+                console.error('[ProfileService] Error fetching profile:', error);
+                return null;
+            }
+
+            if (!data) {
+                console.log('[ProfileService] Profile not found, creating...');
+                return await ensureUserProfile();
+            }
+
+            console.log('[ProfileService] Profile found:', data.email);
+            const profile = data as UserProfile;
+            
+            // PERFORMANCE: Cache the result
+            profileCache.set(user.id, profile);
+            profileCacheTimestamps.set(user.id, Date.now());
+            
+            return profile;
+        }, 5000); // 5 second deduplication window
     } catch (error) {
         console.error('[ProfileService] Error in getUserProfile:', error);
         return null;
     }
+};
+
+/**
+ * PERFORMANCE: Clear profile cache after updates
+ */
+export const invalidateProfileCache = (userId: string): void => {
+    profileCache.delete(userId);
+    profileCacheTimestamps.delete(userId);
 };
 
 /**
@@ -159,6 +190,8 @@ export const updateUserTier = async (tier: UserTier): Promise<boolean> => {
             return false;
         }
 
+        // PERFORMANCE: Invalidate cache after update
+        invalidateProfileCache(user.id);
         return true;
     } catch (error) {
         console.error('Error in updateUserTier:', error);
@@ -185,6 +218,8 @@ export const updateGamificationData = async (gamificationData: GamificationState
             return false;
         }
 
+        // PERFORMANCE: Invalidate cache after update
+        invalidateProfileCache(user.id);
         return true;
     } catch (error) {
         console.error('Error in updateGamificationData:', error);

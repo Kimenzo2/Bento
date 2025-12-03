@@ -1,8 +1,15 @@
 import { BookProject, SavedBook } from '../types';
 import { supabase } from './supabaseClient';
 import { booksApi } from './api/books';
+import { LRUCache, deduplicateRequest } from './performanceOptimizations';
 
 const STORAGE_KEY = 'genesis_saved_books';
+
+// PERFORMANCE: Cache for books to reduce localStorage/DB reads
+const booksCache = new LRUCache<string, SavedBook[]>(10);
+const singleBookCache = new LRUCache<string, BookProject>(50);
+const CACHE_KEY_ALL_BOOKS = 'all_books';
+let cacheInvalidated = true; // Flag to invalidate cache on save/delete
 
 /**
  * Save a book to Supabase (if logged in) or localStorage
@@ -45,15 +52,29 @@ export const saveBook = async (project: BookProject): Promise<void> => {
         console.error('Failed to save book:', error);
         throw new Error('Failed to save book');
     }
+    
+    // PERFORMANCE: Invalidate cache after save
+    cacheInvalidated = true;
+    booksCache.delete(CACHE_KEY_ALL_BOOKS);
 };
 
 /**
  * Load a specific book by ID
  */
 export const loadBook = async (id: string): Promise<BookProject | null> => {
+    // PERFORMANCE: Check single book cache first
+    const cachedBook = singleBookCache.get(id);
+    if (cachedBook) {
+        return cachedBook;
+    }
+
     try {
         const books = await getAllBooks();
         const savedBook = books.find(b => b.id === id);
+        if (savedBook?.project) {
+            // Cache the loaded book
+            singleBookCache.set(id, savedBook.project);
+        }
         return savedBook ? savedBook.project : null;
     } catch (error) {
         console.error('Failed to load book:', error);
@@ -67,30 +88,47 @@ export const loadBook = async (id: string): Promise<BookProject | null> => {
  * Let's just show remote if logged in, local if not.
  */
 export const getAllBooks = async (forceLocal: boolean = false): Promise<SavedBook[]> => {
-    try {
-        if (!forceLocal) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                return await booksApi.getUserBooks(session.user.id);
-            }
+    // PERFORMANCE: Use deduplication to prevent concurrent identical requests
+    return deduplicateRequest('getAllBooks:' + forceLocal, async () => {
+        // PERFORMANCE: Return cached books if available and not invalidated
+        if (!cacheInvalidated && booksCache.has(CACHE_KEY_ALL_BOOKS)) {
+            return booksCache.get(CACHE_KEY_ALL_BOOKS)!;
         }
 
-        // Fallback to LocalStorage
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) return [];
+        try {
+            if (!forceLocal) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    const books = await booksApi.getUserBooks(session.user.id);
+                    // Cache the result
+                    booksCache.set(CACHE_KEY_ALL_BOOKS, books);
+                    cacheInvalidated = false;
+                    return books;
+                }
+            }
 
-        const books = JSON.parse(stored);
+            // Fallback to LocalStorage
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) return [];
 
-        // Convert date strings back to Date objects
-        return books.map((book: any) => ({
-            ...book,
-            savedAt: new Date(book.savedAt),
-            lastModified: new Date(book.lastModified)
-        }));
-    } catch (error) {
-        console.error('Failed to load books:', error);
-        return [];
-    }
+            const parsedBooks = JSON.parse(stored);
+
+            // Convert date strings back to Date objects
+            const books = parsedBooks.map((book: any) => ({
+                ...book,
+                savedAt: new Date(book.savedAt),
+                lastModified: new Date(book.lastModified)
+            }));
+            
+            // Cache local books too
+            booksCache.set(CACHE_KEY_ALL_BOOKS, books);
+            cacheInvalidated = false;
+            return books;
+        } catch (error) {
+            console.error('Failed to load books:', error);
+            return [];
+        }
+    }, 5000); // 5 second deduplication window
 };
 
 /**
@@ -109,6 +147,11 @@ export const deleteBook = async (id: string): Promise<void> => {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
             console.log('✅ Book deleted from LocalStorage:', id);
         }
+        
+        // PERFORMANCE: Invalidate cache after delete
+        cacheInvalidated = true;
+        booksCache.delete(CACHE_KEY_ALL_BOOKS);
+        singleBookCache.delete(id);
     } catch (error) {
         console.error('Failed to delete book:', error);
         throw new Error('Failed to delete book');
@@ -128,5 +171,9 @@ export const getBookCount = async (): Promise<number> => {
  */
 export const clearAllBooks = async (): Promise<void> => {
     localStorage.removeItem(STORAGE_KEY);
+    // PERFORMANCE: Clear caches
+    booksCache.clear();
+    singleBookCache.clear();
+    cacheInvalidated = true;
     console.log('✅ All books cleared');
 };

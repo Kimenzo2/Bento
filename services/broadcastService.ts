@@ -18,6 +18,19 @@ import {
     MentorRelationship,
     BROADCAST_TIER_LIMITS
 } from '../types/advanced';
+import { LRUCache, BatchProcessor, debounce, throttle } from './performanceOptimizations';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERFORMANCE: Constants and caches
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_BROADCAST_CONNECTIONS = 10; // Max broadcasts a user can subscribe to
+const ACTION_BUFFER_SIZE = 50; // Max actions before forced flush
+const ACTION_FLUSH_INTERVAL_MS = 100; // Flush actions every 100ms
+
+// Cache for broadcast session data
+const broadcastCache = new LRUCache<string, BroadcastSession>(100);
+const viewerCountCache = new LRUCache<string, number>(200);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BROADCAST SERVICE CLASS
@@ -28,6 +41,15 @@ class BroadcastService {
     private currentSessionId: string | null = null;
     private actionBuffer: BroadcastAction[] = [];
     private flushTimeout: ReturnType<typeof setTimeout> | null = null;
+    private subscriptionOrder: string[] = []; // Track for LRU eviction
+
+    // PERFORMANCE: Throttled viewer count update
+    private throttledViewerUpdate = throttle(async (sessionId: string, count: number) => {
+        await supabase
+            .from('broadcast_sessions')
+            .update({ viewer_count: count })
+            .eq('id', sessionId);
+    }, 5000); // Update at most every 5 seconds
 
     // ─────────────────────────────────────────────────────────────────────────
     // SESSION MANAGEMENT

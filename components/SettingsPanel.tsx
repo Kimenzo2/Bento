@@ -16,13 +16,15 @@ import {
   Download,
   ArrowLeft,
   FolderOpen,
-  Type
+  Type,
+  Globe
 } from 'lucide-react';
 import { AppMode, UserTier, SavedBook } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeSelector from './settings/ThemeSelector';
 import LibraryPanel from './settings/LibraryPanel';
 import FontSelector from './settings/FontSelector';
+import { LanguageSelector } from './settings/LanguageSelector';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
@@ -32,7 +34,7 @@ interface SettingsPanelProps {
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography' | 'language'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -214,6 +216,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook })
             <TabButton id="library" icon={FolderOpen} label="My Library" />
             <TabButton id="themes" icon={ImageIcon} label="Themes" />
             <TabButton id="typography" icon={Type} label="Typography" />
+            <TabButton id="language" icon={Globe} label="Language" />
             <TabButton id="subscriptions" icon={CreditCard} label="Subscriptions" />
             <TabButton id="notifications" icon={Bell} label="Notifications" />
             <TabButton id="privacy" icon={Shield} label="Privacy" />
@@ -375,6 +378,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook })
 
             {activeTab === 'typography' && (
               <FontSelector />
+            )}
+
+            {activeTab === 'language' && (
+              <LanguageSelector />
             )}
 
             {activeTab === 'library' && (

@@ -83,9 +83,55 @@ This error occurs when Supabase email authentication is not properly configured.
 
 ---
 
+## Issue #3: Google One Tap "Invalid API key" Error (401)
+
+This error occurs when using Google One Tap (`signInWithIdToken`) and the Google Client ID is not configured in Supabase.
+
+### Error Message:
+```
+POST https://xxxxx.supabase.co/auth/v1/token?grant_type=id_token 401
+Sign-in failed: Invalid API key
+```
+
+### Root Cause:
+Google One Tap uses `signInWithIdToken()` which requires Supabase to validate the Google ID token. This is **different** from standard OAuth flow and requires a specific configuration.
+
+### Steps to Fix:
+
+1. **Get your Google Web Client ID**
+   - Go to: https://console.cloud.google.com/apis/credentials
+   - Find your **OAuth 2.0 Client ID** (Web application type)
+   - Copy the **Client ID** (looks like `123456789-xxxxx.apps.googleusercontent.com`)
+
+2. **Configure Supabase**
+   - Go to: **Supabase Dashboard** → **Authentication** → **Providers** → **Google**
+   - Scroll down to the **"Client IDs"** field (this is DIFFERENT from OAuth Client ID/Secret!)
+   - Paste your Google Web Client ID there
+   - Click **Save**
+
+3. **Configure Environment Variable**
+   - Add to your `.env` file:
+     ```
+     VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+     ```
+   - Add to **Vercel** → **Settings** → **Environment Variables** (for production)
+
+4. **Important Notes**:
+   - The "Client IDs" field in Supabase is specifically for native/One Tap sign-in
+   - You can have multiple Client IDs (comma-separated) for different platforms
+   - The OAuth Client ID/Secret fields are for the traditional redirect-based OAuth flow
+
+5. **Restart your development server** after changing `.env`
+
+---
+
 ## Common Errors and Solutions
 
-### "Invalid API key"
+### "Invalid API key" on Google One Tap
+- **Cause**: Google Client ID not configured in Supabase "Client IDs" field
+- **Fix**: See Issue #3 above - add your Google Web Client ID to Supabase → Authentication → Providers → Google → "Client IDs" field
+
+### "Invalid API key" on Email Sign-In
 - **Cause**: Email auth not enabled in Supabase
 - **Fix**: Enable Email provider in Authentication → Providers
 

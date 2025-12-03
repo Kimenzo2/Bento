@@ -11,9 +11,7 @@ export enum AppMode {
   GAMIFICATION = 'GAMIFICATION',
   SUCCESS = 'SUCCESS',
   VIEWER = 'VIEWER',
-  AUTH = 'AUTH',
-  CURRICULUM = 'CURRICULUM',
-  CURRICULUM_VIEWER = 'CURRICULUM_VIEWER'
+  AUTH = 'AUTH'
 }
 
 export enum ArtStyle {
@@ -115,12 +113,25 @@ export interface Page {
   text: string;
   imagePrompt: string;
   imageUrl?: string; // Base64 or URL
-  layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only';
+  layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only' | 'learning-break' | 'learning-only';
 
   // New fields
   narrationNotes?: NarrationNotes;
   interactiveElement?: InteractiveElement;
-  learningMoment?: LearningMoment;
+
+  // Enhanced Learning Content
+  learningContent?: {
+    topic: string;
+    mentorDialogue: string; // What the character mentor says
+    quiz?: {
+      question: string;
+      options: string[];
+      correctAnswer: string; // The actual text of the correct answer
+      explanation: string;
+    };
+  };
+
+  learningMoment?: LearningMoment; // Keeping for backward compatibility or simple moments
   vocabularyWords?: VocabularyWord[];
 
   // Legacy support
@@ -196,11 +207,19 @@ export interface BookProject {
   decisionTree?: DecisionTree;
   backMatter?: BackMatter;
   seriesInfo?: SeriesInfo;
+  learningConfig?: LearningConfig;
 
   coverImage?: string; // Generated cover image URL
   aiImagesGenerated?: number; // Track AI usage for limits
 
   createdAt: Date;
+}
+
+export interface LearningConfig {
+  subject: string;
+  objectives: string;
+  integrationMode: 'integrated' | 'after-chapter' | 'dedicated-section';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
 }
 
 export interface GenerationSettings {
@@ -210,7 +229,8 @@ export interface GenerationSettings {
   pageCount: number;
   audience: string;
   isBranching: boolean;
-  educational?: boolean; // New flag
+  educational?: boolean;
+  learningConfig?: LearningConfig; // New field
   brandProfile?: BrandProfile;
 }
 

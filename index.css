@@ -140,6 +140,85 @@ body {
     padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom));
 }
 
+/* Full screen mobile overlay for chat */
+.mobile-chat-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: white;
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+}
+
+/* Mobile content area adjustments */
+@media (max-width: 768px) {
+    /* Ensure modals are properly positioned */
+    .modal-mobile-fullscreen {
+        position: fixed;
+        inset: 0;
+        border-radius: 0;
+        max-height: none;
+    }
+    
+    /* Hide desktop-only elements */
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* Full width containers on mobile */
+    .mobile-full-width {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    /* Bottom sheet modal style */
+    .mobile-bottom-sheet {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 1.5rem 1.5rem 0 0;
+        max-height: 90vh;
+        animation: slideUpFromBottom 0.3s ease-out;
+    }
+    
+    @keyframes slideUpFromBottom {
+        from {
+            transform: translateY(100%);
+        }
+        to {
+            transform: translateY(0);
+        }
+    }
+    
+    /* iOS keyboard handling */
+    .keyboard-aware {
+        transition: transform 0.3s ease;
+    }
+    
+    /* Prevent body scroll when modal is open */
+    body.modal-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+}
+
+/* Landscape mobile adjustments */
+@media (max-width: 896px) and (orientation: landscape) {
+    .mobile-bottom-nav {
+        padding-bottom: var(--safe-area-inset-bottom);
+    }
+    
+    .landscape-hide {
+        display: none;
+    }
+}
+
 /* Collaborative mode mobile tab bar */
 .collab-mobile-tabs {
     position: fixed;
@@ -161,4 +240,20 @@ body {
 /* Prevent content from being hidden behind mobile navs */
 .mobile-content-padding {
     padding-bottom: calc(8rem + var(--safe-area-inset-bottom));
+}
+
+/* Slide-in animation for chat panel */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slideInRight {
+    animation: slideInRight 0.3s ease-out forwards;
 }

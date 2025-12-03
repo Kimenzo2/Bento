@@ -1,6 +1,14 @@
 import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
 // @ts-ignore
 import Bytez from "bytez.js";
+import {
+  RequestQueue,
+  LRUCache,
+  retryWithBackoff,
+  deduplicateRequest,
+  getCachedImageUrl,
+  setCachedImageUrl
+} from './performanceOptimizations';
 
 // Load all available Grok API keys (supports up to 3 keys)
 const grokApiKeys = [
@@ -102,18 +110,78 @@ function getModelId(tier: UserTier): string {
   return "google/imagen-4.0-generate-001";
 }
 
-// Rate limiter to reduce API calls and token usage
-const rateLimiter = {
-  lastCallTime: 0,
-  minDelay: 1000, // Reduced delay for Grok
-  async throttle() {
+// ============================================================================
+// PERFORMANCE: Advanced rate limiting with token bucket algorithm
+// ============================================================================
+
+class TokenBucketRateLimiter {
+  private tokens: number;
+  private readonly maxTokens: number;
+  private readonly refillRate: number; // tokens per second
+  private lastRefillTime: number;
+  private readonly minDelayMs: number;
+  private lastCallTime: number = 0;
+
+  constructor(maxTokens: number = 10, refillRate: number = 2, minDelayMs: number = 500) {
+    this.tokens = maxTokens;
+    this.maxTokens = maxTokens;
+    this.refillRate = refillRate;
+    this.minDelayMs = minDelayMs;
+    this.lastRefillTime = Date.now();
+  }
+
+  private refill(): void {
+    const now = Date.now();
+    const timePassed = (now - this.lastRefillTime) / 1000;
+    this.tokens = Math.min(this.maxTokens, this.tokens + timePassed * this.refillRate);
+    this.lastRefillTime = now;
+  }
+
+  async acquire(): Promise<void> {
+    this.refill();
+
+    // Enforce minimum delay between calls
     const now = Date.now();
     const timeSinceLastCall = now - this.lastCallTime;
-    if (timeSinceLastCall < this.minDelay) {
-      const waitTime = this.minDelay - timeSinceLastCall;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+    if (timeSinceLastCall < this.minDelayMs) {
+      await new Promise(r => setTimeout(r, this.minDelayMs - timeSinceLastCall));
     }
+
+    if (this.tokens < 1) {
+      const waitTime = ((1 - this.tokens) / this.refillRate) * 1000;
+      console.log(`[RateLimiter] Waiting ${Math.round(waitTime)}ms for token`);
+      await new Promise(r => setTimeout(r, waitTime));
+      this.refill();
+    }
+
+    this.tokens -= 1;
     this.lastCallTime = Date.now();
+  }
+
+  get availableTokens(): number {
+    this.refill();
+    return Math.floor(this.tokens);
+  }
+}
+
+// PERFORMANCE: Request queues to prevent API overload
+const grokRequestQueue = new RequestQueue(3, 500); // 3 concurrent, 500ms delay
+const bytezRequestQueue = new RequestQueue(2, 1000); // 2 concurrent, 1s delay
+
+// PERFORMANCE: Response cache to avoid duplicate requests
+const bookStructureCache = new LRUCache<string, Partial<BookProject>>(50);
+const imagePromptCache = new LRUCache<string, string>(200);
+
+// Rate limiters for each API
+const grokRateLimiter = new TokenBucketRateLimiter(10, 2, 500);
+const bytezRateLimiter = new TokenBucketRateLimiter(5, 1, 1000);
+
+// Legacy rate limiter for backwards compatibility
+const rateLimiter = {
+  lastCallTime: 0,
+  minDelay: 1000,
+  async throttle() {
+    await grokRateLimiter.acquire();
   }
 };
 
@@ -207,6 +275,12 @@ You will receive requests in this format:
   "artStyle": "string - watercolor/cartoon/realistic/digital/etc",
   "interactive": "boolean - include decision points",
   "educational": "boolean - include learning content",
+  "learningConfig": {
+    "subject": "string - e.g. Math, Science",
+    "objectives": "string - specific learning goals",
+    "integrationMode": "integrated | after-chapter | dedicated-section",
+    "difficulty": "beginner | intermediate | advanced"
+  },
   "language": "string - en/es/fr/etc (default: en)",
   "tone": "string - funny/calm/exciting/inspirational"
 }
@@ -230,7 +304,13 @@ Respond with this exact JSON structure:
     "artStyle": "watercolor",
     "features": ["interactive", "educational"],
     "language": "en",
-    "contentWarnings": []
+    "contentWarnings": [],
+    "learningConfig": {
+       "subject": "Math",
+       "objectives": "Counting to 10",
+       "integrationMode": "integrated",
+       "difficulty": "beginner"
+    }
   },
   "characters": [
     {
@@ -240,12 +320,21 @@ Respond with this exact JSON structure:
       "description": "Brief personality description",
       "visualPrompt": "Detailed appearance for image generation consistency: [height, build, hair, eyes, clothing, distinctive features]",
       "traits": ["brave", "curious"]
+    },
+    {
+       "id": "mentor_001",
+       "name": "Professor Hoot",
+       "role": "mentor",
+       "description": "Wise owl who explains concepts",
+       "visualPrompt": "A wise old owl wearing glasses and a graduation cap...",
+       "traits": ["wise", "patient"]
     }
   ],
   "pages": [
     {
       "pageNumber": 1,
       "text": "Page text content (age-appropriate length)",
+      "layoutType": "split-horizontal",
       "imagePrompt": "Detailed image generation prompt including: scene description, characters present with visual details, art style, mood, composition, lighting, color palette",
       "narrationNotes": {
         "tone": "warm",
@@ -261,10 +350,15 @@ Respond with this exact JSON structure:
           {"text": "Go right", "leadsToPage": 3}
         ]
       },
-      "learningMoment": {
-        "concept": "counting",
-        "content": "Can you count the stars?",
-        "answer": "There are 5 stars"
+      "learningContent": {
+        "topic": "Counting",
+        "mentorDialogue": "Look at the stars! Can you count them with me?",
+        "quiz": {
+            "question": "How many stars are in the sky?",
+            "options": ["3", "5", "10"],
+            "correctAnswer": "5",
+            "explanation": "Great job! There are exactly 5 stars twinkling above."
+        }
       },
       "vocabularyWords": [
         {"word": "adventure", "definition": "an exciting experience"}
@@ -340,11 +434,30 @@ When \`interactive: true\`:
 
 ### Educational Content
 When \`educational: true\`:
-- Integrate learning naturally into story
-- Age-appropriate concepts (counting, colors, science, emotions, problem-solving)
-- Include vocabulary words with context
-- Add discussion questions
-- Provide extension activities
+- **Mentor Character**: Create a specific "mentor" character (e.g., a wise animal, a robot, a teacher) who appears in the \`learningContent\` to explain concepts.
+- **Integration Modes (CRITICAL)**:
+    - **IF \`integrationMode\` is "integrated"**:
+        - Weave learning moments directly into the narrative action.
+        - The mentor interacts with the protagonist *during* the story.
+        - \`learningContent\` can appear on ANY page.
+        - \`layoutType\` should remain standard (e.g., 'split-horizontal').
+    - **IF \`integrationMode\` is "after-chapter"**:
+        - Narrative pages (telling the story) MUST NOT have \`learningContent\`.
+        - You MUST insert a dedicated "Review Page" after every 3-4 narrative pages or at the end of a chapter.
+        - This Review Page must have \`layoutType: "learning-break"\`.
+        - This Review Page must contain the \`learningContent\` (mentor dialogue + quiz) and minimal narrative text.
+    - **IF \`integrationMode\` is "dedicated-section"**:
+        - The entire story (Chapters 1 to N-1) MUST NOT have \`learningContent\`.
+        - You MUST create a final Chapter titled "Learning Section".
+        - All pages in this final chapter must have \`layoutType: "learning-only"\`.
+        - These pages contain all the educational material, quizzes, and mentor explanations.
+
+- **Learning Content**: Populate the \`learningContent\` field for pages where a learning moment occurs.
+    - \`mentorDialogue\`: What the mentor says to the reader/protagonist.
+    - \`quiz\`: A simple multiple-choice question to reinforce the concept.
+- **Objectives**: Ensure the story directly addresses the \`learningConfig.objectives\`.
+- **Difficulty**: Adjust vocabulary and concept complexity based on \`learningConfig.difficulty\`.
+- **Vocabulary**: Include definitions for difficult words.
 
 ### Age-Appropriate Content
 - **Ages 3-5**: Simple plots, repetition, basic emotions, familiar settings
@@ -425,6 +538,7 @@ export const generateBookStructure = async (settings: GenerationSettings): Promi
     artStyle: settings.style,
     interactive: settings.isBranching,
     educational: settings.educational || false,
+    learningConfig: settings.learningConfig,
     language: "en",
     tone: settings.tone,
     ...(settings.brandProfile ? {
@@ -499,10 +613,11 @@ ${JSON.stringify(inputPayload, null, 2)}`;
           pageNumber: p.pageNumber,
           text: p.text,
           imagePrompt: p.imagePrompt,
-          layoutType: 'text-only', // Default, could be inferred
+          layoutType: p.layoutType || 'text-only', // Use AI generated layout or default
           narrationNotes: p.narrationNotes,
           interactiveElement: p.interactiveElement,
           learningMoment: p.learningMoment,
+          learningContent: p.learningContent, // Map new field
           vocabularyWords: p.vocabularyWords,
           choices: p.interactiveElement?.options?.map((o: any) => ({
             text: o.text,
@@ -554,30 +669,67 @@ export const generateStructuredContent = async <T>(
 };
 
 export const generateIllustration = async (imagePrompt: string, style: string, tier: UserTier = UserTier.SPARK): Promise<string | null> => {
-  const modelId = getModelId(tier);
+  // PERFORMANCE: Create cache key from prompt + style + tier
+  const cacheKey = `${style}:${tier}:${imagePrompt.substring(0, 100)}`;
 
-  console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier})`);
-
-  try {
-    const fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, cinematic lighting, 8k resolution.`;
-
-    const output = await retryWithNextKey(async (sdk) => {
-      const model = sdk.model(modelId);
-      const { error, output } = await model.run(fullPrompt);
-
-      if (error) {
-        throw { error }; // Will trigger retry with next key
-      }
-
-      return output;
-    });
-
-    console.log("✅ Bytez generation successful");
-    return output;
-  } catch (error) {
-    console.error("❌ All Bytez keys exhausted:", error);
-    return null;
+  // PERFORMANCE: Check cache first
+  const cachedUrl = getCachedImageUrl(cacheKey);
+  if (cachedUrl) {
+    console.log('📦 Using cached illustration');
+    return cachedUrl;
   }
+
+  // PERFORMANCE: Deduplicate identical concurrent requests
+  return deduplicateRequest(cacheKey, async () => {
+    const modelId = getModelId(tier);
+    console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier})`);
+
+    // PERFORMANCE: Use request queue to limit concurrent API calls
+    return bytezRequestQueue.add(async () => {
+      // PERFORMANCE: Apply rate limiting
+      await bytezRateLimiter.acquire();
+
+      try {
+        const fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, cinematic lighting, 8k resolution.`;
+
+        const output = await retryWithBackoff(
+          async () => {
+            return retryWithNextKey(async (sdk) => {
+              const model = sdk.model(modelId);
+              const { error, output } = await model.run(fullPrompt);
+
+              if (error) {
+                throw { error };
+              }
+
+              return output;
+            });
+          },
+          {
+            maxRetries: 2,
+            initialDelayMs: 2000,
+            maxDelayMs: 10000,
+            retryCondition: (error) => {
+              // Only retry on rate limit or server errors
+              const code = error?.error?.code || error?.status;
+              return [429, 500, 502, 503].includes(code);
+            }
+          }
+        );
+
+        // PERFORMANCE: Cache successful result
+        if (output) {
+          setCachedImageUrl(cacheKey, output);
+        }
+
+        console.log("✅ Bytez generation successful");
+        return output;
+      } catch (error) {
+        console.error("❌ All Bytez keys exhausted:", error);
+        return null;
+      }
+    });
+  }, 10000); // 10 second deduplication window
 };
 
 export const generateRefinedImage = async (
