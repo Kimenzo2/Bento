@@ -172,7 +172,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               title={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
               aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
               role="switch"
-              aria-checked={isAnnual ? "true" : "false"}
+              aria-checked={isAnnual}
             >
               <div className={`w-6 h-6 bg-coral-burst rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`}></div>
             </button>

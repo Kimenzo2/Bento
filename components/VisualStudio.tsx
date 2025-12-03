@@ -115,6 +115,267 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     const reconnectAttemptsRef = useRef<number>(0);
     const MAX_RECONNECT_ATTEMPTS = 5;
     const defaultCharacters: Character[] = [
+        // === FANTASY & MYTHOLOGY ===
+        {
+            id: 'f1',
+            name: 'Luna the Moon Fairy',
+            description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna&backgroundColor=c0aede',
+            visualTraits: 'Translucent wings, silver hair, glowing aura, wearing a dress made of flower petals',
+            traits: ['magical', 'gentle', 'wise']
+        },
+        {
+            id: 'f2',
+            name: 'Blaze the Dragon',
+            description: 'A friendly young dragon learning to control his fire breath while making friends.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Blaze&backgroundColor=ffdfbf',
+            visualTraits: 'Red and orange scales, small wings, big curious eyes, puffs of smoke from nostrils',
+            traits: ['playful', 'clumsy', 'brave']
+        },
+        {
+            id: 'f3',
+            name: 'Princess Aurora',
+            description: 'A brave princess who prefers adventures over balls, skilled with a sword.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aurora&backgroundColor=ffd5dc',
+            visualTraits: 'Golden crown, flowing purple gown, determined expression, carrying a small sword',
+            traits: ['courageous', 'kind', 'adventurous']
+        },
+        {
+            id: 'f4',
+            name: 'Merlin the Wizard',
+            description: 'An ancient wizard with knowledge of all magical arts and a fondness for riddles.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Merlin&backgroundColor=d1d4f9',
+            visualTraits: 'Long white beard, pointed hat with stars, blue robes, holding a magical staff',
+            traits: ['mysterious', 'wise', 'playful']
+        },
+        {
+            id: 'f5',
+            name: 'Elara the Elf',
+            description: 'A woodland elf who protects the ancient forest and speaks to animals.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara&backgroundColor=c1e1c1',
+            visualTraits: 'Pointed ears, green tunic, bow and arrows, leafy crown, graceful movements',
+            traits: ['nature-loving', 'agile', 'protective']
+        },
+        {
+            id: 'f6',
+            name: 'Captain Silverhook',
+            description: 'A reformed pirate who now searches for treasure to give to orphanages.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Silverhook&backgroundColor=b4d7e8',
+            visualTraits: 'Tricorn hat, eye patch, silver hook hand, weathered coat, friendly smile',
+            traits: ['reformed', 'generous', 'adventurous']
+        },
+        {
+            id: 'f7',
+            name: 'Stella Starweaver',
+            description: 'A young witch learning spells at the Academy of Magical Arts.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Stella&backgroundColor=e0b0ff',
+            visualTraits: 'Purple witch hat, star-patterned robes, wand with sparkles, black cat companion',
+            traits: ['studious', 'mischievous', 'talented']
+        },
+        {
+            id: 'f8',
+            name: 'Sir Gallant the Knight',
+            description: 'A noble knight sworn to protect the realm and help those in need.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gallant&backgroundColor=c0c0c0',
+            visualTraits: 'Shining armor, red cape, sword and shield, noble steed nearby',
+            traits: ['honorable', 'brave', 'loyal']
+        },
+        // === ANIMALS & NATURE ===
+        {
+            id: 'a1',
+            name: 'Oliver the Owl',
+            description: 'A wise old owl who runs the forest library and loves sharing stories.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver&backgroundColor=d2b48c',
+            visualTraits: 'Big round glasses, brown feathers, holding a book, perched on a branch',
+            traits: ['wise', 'patient', 'scholarly']
+        },
+        {
+            id: 'a2',
+            name: 'Ruby the Fox',
+            description: 'A clever and curious fox who loves solving mysteries in the meadow.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ruby&backgroundColor=ff8c00',
+            visualTraits: 'Orange fur with white chest, bushy tail, bright curious eyes, detective hat',
+            traits: ['clever', 'curious', 'quick']
+        },
+        {
+            id: 'a3',
+            name: 'Max the Bear Cub',
+            description: 'A fluffy bear cub learning about the forest from his grandmother.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=MaxBear&backgroundColor=8b4513',
+            visualTraits: 'Brown fluffy fur, small round ears, holding honey pot, innocent expression',
+            traits: ['curious', 'hungry', 'cuddly']
+        },
+        {
+            id: 'a4',
+            name: 'Coral the Mermaid',
+            description: 'A young mermaid who dreams of exploring the world above the waves.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Coral&backgroundColor=40e0d0',
+            visualTraits: 'Colorful fish tail, seashell accessories, flowing underwater hair, pearl necklace',
+            traits: ['dreamy', 'curious', 'musical']
+        },
+        {
+            id: 'a5',
+            name: 'Tilly the Turtle',
+            description: 'An ancient sea turtle who has traveled all the oceans and shares her wisdom.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tilly&backgroundColor=2e8b57',
+            visualTraits: 'Old wise eyes, patterned shell, gentle smile, swimming through coral',
+            traits: ['patient', 'wise', 'traveled']
+        },
+        {
+            id: 'a6',
+            name: 'Pip the Penguin',
+            description: 'A young penguin who dreams of flying and tries creative ways to soar.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pip&backgroundColor=87ceeb',
+            visualTraits: 'Black and white feathers, orange beak, tiny wings spread wide, hopeful eyes',
+            traits: ['determined', 'creative', 'optimistic']
+        },
+        {
+            id: 'a7',
+            name: 'Honey the Bee',
+            description: 'A hardworking bee who teaches others about teamwork and the importance of nature.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Honey&backgroundColor=ffd700',
+            visualTraits: 'Yellow and black stripes, translucent wings, carrying pollen, buzzing happily',
+            traits: ['hardworking', 'friendly', 'industrious']
+        },
+        {
+            id: 'a8',
+            name: 'Leo the Lion Cub',
+            description: 'The young prince of the savanna learning to be a fair and kind leader.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=LeoLion&backgroundColor=daa520',
+            visualTraits: 'Golden fur, small mane beginning to grow, playful stance, crown of flowers',
+            traits: ['playful', 'learning', 'noble']
+        },
+        // === EVERYDAY HEROES ===
+        {
+            id: 'h1',
+            name: 'Dr. Maya Chen',
+            description: 'A kind pediatrician who makes hospital visits fun for kids.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DrMaya&backgroundColor=e6f2ff',
+            visualTraits: 'White coat, stethoscope, warm smile, colorful bandages, teddy bear in pocket',
+            traits: ['caring', 'gentle', 'professional']
+        },
+        {
+            id: 'h2',
+            name: 'Firefighter Sam',
+            description: 'A brave firefighter who rescues people and teaches fire safety.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=FireSam&backgroundColor=ff6b6b',
+            visualTraits: 'Yellow helmet, fireproof jacket, holding a hose, dalmatian dog companion',
+            traits: ['brave', 'strong', 'helpful']
+        },
+        {
+            id: 'h3',
+            name: 'Chef Rosa',
+            description: 'A passionate chef who creates magical dishes that bring people together.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ChefRosa&backgroundColor=fff0f5',
+            visualTraits: 'Chef hat, apron with stains, wooden spoon, surrounded by delicious food',
+            traits: ['creative', 'warm', 'talented']
+        },
+        {
+            id: 'h4',
+            name: 'Officer Jordan',
+            description: 'A community police officer who helps neighbors and organizes local events.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=OfficerJ&backgroundColor=4169e1',
+            visualTraits: 'Blue uniform, friendly badge, bicycle, waving to neighbors',
+            traits: ['friendly', 'helpful', 'fair']
+        },
+        {
+            id: 'h5',
+            name: 'Teacher Ms. Kim',
+            description: 'An inspiring teacher who makes learning an adventure for her students.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=MsKim&backgroundColor=98fb98',
+            visualTraits: 'Colorful cardigan, glasses, holding books, classroom behind her',
+            traits: ['inspiring', 'patient', 'creative']
+        },
+        {
+            id: 'h6',
+            name: 'Astronaut Alex',
+            description: 'A space explorer who discovers new planets and tells stories from the stars.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AstroAlex&backgroundColor=191970',
+            visualTraits: 'White spacesuit, helmet under arm, floating in zero gravity, Earth visible behind',
+            traits: ['adventurous', 'scientific', 'brave']
+        },
+        {
+            id: 'h7',
+            name: 'Vet Dr. Patel',
+            description: 'A caring veterinarian who heals animals and teaches kids to care for pets.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DrPatel&backgroundColor=dda0dd',
+            visualTraits: 'Green scrubs, stethoscope, holding a kitten, surrounded by animals',
+            traits: ['gentle', 'caring', 'knowledgeable']
+        },
+        {
+            id: 'h8',
+            name: 'Builder Bob',
+            description: 'A skilled builder who constructs homes and teaches kids about construction.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=BuilderBob&backgroundColor=f4a460',
+            visualTraits: 'Hard hat, tool belt, blueprints, building a treehouse',
+            traits: ['skilled', 'patient', 'creative']
+        },
+        // === KIDS & ADVENTURES ===
+        {
+            id: 'k1',
+            name: 'Zara the Explorer',
+            description: 'A young adventurer who discovers hidden treasures in her backyard.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ZaraExp&backgroundColor=87ceeb',
+            visualTraits: 'Explorer hat, backpack, magnifying glass, muddy boots, excited expression',
+            traits: ['curious', 'brave', 'imaginative']
+        },
+        {
+            id: 'k2',
+            name: 'Marcus the Inventor',
+            description: 'A young genius who builds gadgets from recycled materials.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus&backgroundColor=add8e6',
+            visualTraits: 'Safety goggles, messy hair, holding tools, surrounded by inventions',
+            traits: ['inventive', 'clever', 'resourceful']
+        },
+        {
+            id: 'k3',
+            name: 'Sophie the Artist',
+            description: 'A creative girl who sees art in everything and paints the world brighter.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie&backgroundColor=ffc0cb',
+            visualTraits: 'Paint-stained clothes, beret, holding paintbrush, rainbow palette',
+            traits: ['creative', 'colorful', 'expressive']
+        },
+        {
+            id: 'k4',
+            name: 'Tyler the Athlete',
+            description: 'A sporty kid who believes in teamwork and fair play.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tyler&backgroundColor=90ee90',
+            visualTraits: 'Sports jersey, sneakers, holding a soccer ball, determined expression',
+            traits: ['athletic', 'team-player', 'energetic']
+        },
+        {
+            id: 'k5',
+            name: 'Lily the Bookworm',
+            description: 'A quiet girl who travels to magical worlds through the pages of books.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lily&backgroundColor=dda0dd',
+            visualTraits: 'Round glasses, cozy sweater, stack of books, reading in a treehouse',
+            traits: ['imaginative', 'thoughtful', 'curious']
+        },
+        {
+            id: 'k6',
+            name: 'Danny the Drummer',
+            description: 'A musical boy who finds rhythm in everything and starts a neighborhood band.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Danny&backgroundColor=ffa07a',
+            visualTraits: 'Headphones around neck, drumsticks in hand, tapping on everything',
+            traits: ['musical', 'energetic', 'rhythmic']
+        },
+        {
+            id: 'k7',
+            name: 'Emma the Gardener',
+            description: 'A nature-loving girl who grows magical plants in her secret garden.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma&backgroundColor=98fb98',
+            visualTraits: 'Sun hat, gardening gloves, watering can, surrounded by colorful flowers',
+            traits: ['nurturing', 'patient', 'green-thumbed']
+        },
+        {
+            id: 'k8',
+            name: 'Jake the Skateboarder',
+            description: 'A cool kid who does tricks at the skate park and helps beginners learn.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jake&backgroundColor=dda0dd',
+            visualTraits: 'Helmet, knee pads, skateboard, mid-trick pose, confident smile',
+            traits: ['cool', 'helpful', 'daring']
+        },
+        // === SCIENTISTS & INVENTORS (Historical) ===
         {
             id: 'c1',
             name: 'Ada Lovelace',
@@ -133,46 +394,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
         },
         {
             id: 'c3',
-            name: 'Charles Darwin',
-            description: 'Naturalist, geologist and biologist, best known for his contributions to the science of evolution.',
-            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Charles_Darwin_seated_crop.jpg/330px-Charles_Darwin_seated_crop.jpg',
-            visualTraits: 'Long white beard, balding, elderly, wearing a heavy coat',
-            traits: ['observant', 'patient', 'revolutionary']
-        },
-        {
-            id: 'c4',
-            name: 'Florence Nightingale',
-            description: 'Social reformer, statistician and the founder of modern nursing.',
-            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Florence_Nightingale_CDV_by_H_Lenthall.jpg/330px-Florence_Nightingale_CDV_by_H_Lenthall.jpg',
-            visualTraits: 'Victorian nurse uniform, cap, carrying a lamp, compassionate expression',
-            traits: ['compassionate', 'dedicated', 'pioneer']
-        },
-        {
-            id: 'c5',
-            name: 'Galileo Galilei',
-            description: 'Astronomer, physicist and engineer, sometimes described as a polymath.',
-            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg/330px-Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg',
-            visualTraits: 'Renaissance robes, beard, holding a telescope, looking at the stars',
-            traits: ['curious', 'defiant', 'scientific']
-        },
-        {
-            id: 'c6',
-            name: 'Isaac Newton',
-            description: 'Mathematician, physicist, astronomer, alchemist, theologian, and author.',
-            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/GodfreyKneller-IsaacNewton-1689.jpg/330px-GodfreyKneller-IsaacNewton-1689.jpg',
-            visualTraits: 'Long wig, velvet coat, holding a prism or apple, serious expression',
-            traits: ['logical', 'obsessive', 'brilliant']
-        },
-        {
-            id: 'c7',
-            name: 'Leonardo da Vinci',
-            description: 'Polymath of the High Renaissance who was active as a painter, draughtsman, engineer, scientist, theorist, sculptor, and architect.',
-            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg/330px-Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg',
-            visualTraits: 'Long beard, long hair, renaissance artist cap, holding a sketchbook',
-            traits: ['creative', 'inventive', 'visionary']
-        },
-        {
-            id: 'c8',
             name: 'Marie Curie',
             description: 'Physicist and chemist who conducted pioneering research on radioactivity.',
             imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Marie_Curie_c._1920s.jpg/330px-Marie_Curie_c._1920s.jpg',
@@ -180,7 +401,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             traits: ['determined', 'brilliant', 'selfless']
         },
         {
-            id: 'c9',
+            id: 'c4',
             name: 'Nikola Tesla',
             description: 'Inventor, electrical engineer, mechanical engineer, and futurist.',
             imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/N.Tesla.JPG/330px-N.Tesla.JPG',
@@ -188,12 +409,135 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             traits: ['futuristic', 'eccentric', 'inventive']
         },
         {
-            id: 'c10',
-            name: 'Rosalind Franklin',
-            description: 'Chemist and X-ray crystallographer whose work was central to the understanding of the molecular structures of DNA.',
-            imageUrl: 'https://upload.wikimedia.org/wikipedia/en/9/97/Rosalind_Franklin.jpg',
-            visualTraits: 'Lab coat, short hair, looking through a microscope, focused expression',
-            traits: ['meticulous', 'brilliant', 'unsung']
+            id: 'c5',
+            name: 'Leonardo da Vinci',
+            description: 'Polymath of the High Renaissance who was active as a painter, draughtsman, engineer, scientist, theorist, sculptor, and architect.',
+            imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg/330px-Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg',
+            visualTraits: 'Long beard, long hair, renaissance artist cap, holding a sketchbook',
+            traits: ['creative', 'inventive', 'visionary']
+        },
+        // === CULTURAL HEROES ===
+        {
+            id: 'cu1',
+            name: 'Anansi the Spider',
+            description: 'The clever trickster from West African folklore who uses wit to outsmart stronger foes.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anansi&backgroundColor=8b4513',
+            visualTraits: 'Spider form with human features, wearing traditional kente cloth patterns',
+            traits: ['clever', 'mischievous', 'wise']
+        },
+        {
+            id: 'cu2',
+            name: 'Mulan the Warrior',
+            description: 'A brave young woman who disguises herself as a soldier to protect her family.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mulan&backgroundColor=dc143c',
+            visualTraits: 'Warrior armor, sword, determined expression, hair tied back',
+            traits: ['brave', 'loyal', 'determined']
+        },
+        {
+            id: 'cu3',
+            name: 'Krishna the Divine Child',
+            description: 'The playful divine child known for his mischief and wisdom.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Krishna&backgroundColor=4169e1',
+            visualTraits: 'Blue skin, peacock feather crown, flute in hand, playful smile',
+            traits: ['playful', 'wise', 'divine']
+        },
+        {
+            id: 'cu4',
+            name: 'Amaterasu the Sun Goddess',
+            description: 'The radiant goddess of the sun who brings light and warmth to the world.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amaterasu&backgroundColor=ffd700',
+            visualTraits: 'Flowing white robes, golden crown, radiant light surrounding her',
+            traits: ['radiant', 'benevolent', 'powerful']
+        },
+        {
+            id: 'cu5',
+            name: 'Coyote the Trickster',
+            description: 'The clever trickster from Native American stories who teaches through mistakes.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Coyote&backgroundColor=d2b48c',
+            visualTraits: 'Coyote form, mischievous eyes, desert background, holding stolen fire',
+            traits: ['tricky', 'teaching', 'clever']
+        },
+        // === ROBOTS & FUTURISTIC ===
+        {
+            id: 'r1',
+            name: 'BOLT the Helper Robot',
+            description: 'A friendly robot assistant who learns about human emotions and friendship.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=BOLT&backgroundColor=c0c0c0',
+            visualTraits: 'Shiny metal body, LED screen face with expressions, wheels, extendable arms',
+            traits: ['helpful', 'learning', 'loyal']
+        },
+        {
+            id: 'r2',
+            name: 'Nova the Space Girl',
+            description: 'A girl from the year 3000 who travels through time to learn about history.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nova&backgroundColor=9370db',
+            visualTraits: 'Futuristic jumpsuit, holographic gadgets, hover boots, time watch',
+            traits: ['curious', 'tech-savvy', 'adventurous']
+        },
+        {
+            id: 'r3',
+            name: 'Circuit the AI',
+            description: 'An artificial intelligence learning what it means to be creative and kind.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Circuit&backgroundColor=00ffff',
+            visualTraits: 'Holographic form, digital patterns, floating in cyberspace, friendly glow',
+            traits: ['logical', 'curious', 'evolving']
+        },
+        {
+            id: 'r4',
+            name: 'Cosmo the Space Dog',
+            description: 'A super-intelligent dog with a spacesuit who explores the galaxy.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Cosmo&backgroundColor=191970',
+            visualTraits: 'Small spacesuit, helmet with visor, floating in space, wagging tail',
+            traits: ['loyal', 'brave', 'intelligent']
+        },
+        // === MAGICAL CREATURES ===
+        {
+            id: 'm1',
+            name: 'Phoenix Flame',
+            description: 'A majestic firebird who teaches about renewal and second chances.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Phoenix&backgroundColor=ff4500',
+            visualTraits: 'Fiery feathers of red and gold, trailing flames, glowing eyes, powerful wings',
+            traits: ['renewal', 'powerful', 'wise']
+        },
+        {
+            id: 'm2',
+            name: 'Frost the Ice Sprite',
+            description: 'A mischievous ice sprite who paints frost patterns on windows.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Frost&backgroundColor=e0ffff',
+            visualTraits: 'Crystalline body, icy blue glow, snowflake patterns, playful expression',
+            traits: ['playful', 'artistic', 'cold']
+        },
+        {
+            id: 'm3',
+            name: 'Mossy the Forest Guardian',
+            description: 'An ancient tree spirit who protects the oldest trees in the forest.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mossy&backgroundColor=228b22',
+            visualTraits: 'Tree bark skin, moss hair, glowing green eyes, leaves growing from body',
+            traits: ['ancient', 'protective', 'wise']
+        },
+        {
+            id: 'm4',
+            name: 'Shimmer the Unicorn',
+            description: 'A magical unicorn whose horn grants wishes to those with pure hearts.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Shimmer&backgroundColor=fff0f5',
+            visualTraits: 'White coat with rainbow mane, spiral horn, sparkling hooves, gentle eyes',
+            traits: ['magical', 'pure', 'gentle']
+        },
+        {
+            id: 'm5',
+            name: 'Shadow the Night Cat',
+            description: 'A mysterious cat who guides lost travelers through the darkness.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Shadow&backgroundColor=2f4f4f',
+            visualTraits: 'Pure black fur, glowing yellow eyes, stars in fur, silent movement',
+            traits: ['mysterious', 'helpful', 'silent']
+        },
+        {
+            id: 'm6',
+            name: 'Bubbles the Water Spirit',
+            description: 'A playful water spirit who creates fountains and helps drought-stricken lands.',
+            imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bubbles&backgroundColor=00bfff',
+            visualTraits: 'Transparent blue form, made of flowing water, fish swimming inside, joyful',
+            traits: ['playful', 'life-giving', 'fluid']
         }
     ];
 
@@ -477,13 +821,17 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
     // Share current visual to the gallery
     const handleShareVisual = async () => {
-        if (!settings.generatedImage || !sessionId) return;
+        if (!settings.generatedImage) {
+            showToast('❌ No image to share. Generate an image first!');
+            return;
+        }
 
         try {
+            // Share to the gallery - session_id is optional
             const result = await collaborationService.shareVisual({
-                session_id: sessionId,
+                session_id: sessionId || undefined, // Make session optional
                 image_url: settings.generatedImage,
-                prompt: settings.prompt,
+                prompt: shareCaption || settings.prompt || 'A creative visual',
                 visibility: shareVisibility,
                 settings: {
                     styleA: settings.styleA,
@@ -504,17 +852,16 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 setShowShareModal(false);
                 setShareCaption('');
 
-                // Send event to chat (Visual Studio activity channel)
+                // Send event to global chat room
                 try {
-                    await chatService.sendVisualStudioEvent(
-                        'vs-activity',
-                        'visual_shared',
-                        {
-                            imageUrl: settings.generatedImage,
-                            caption: shareCaption || settings.prompt,
-                            userName: userProfile?.full_name || userProfile?.email || 'Someone'
-                        }
-                    );
+                    const globalRoom = await chatService.getGlobalRoom();
+                    if (globalRoom) {
+                        await chatService.shareVisualToChat(
+                            globalRoom.id,
+                            settings.generatedImage,
+                            shareCaption || settings.prompt
+                        );
+                    }
                 } catch (chatError) {
                     // Don't fail the share if chat notification fails
                     console.warn('Failed to send chat event:', chatError);
@@ -522,9 +869,12 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
                 // Show success toast
                 showToast('🎨 Visual shared with the community!');
+            } else {
+                showToast('❌ Failed to share: ' + (result.error || 'Unknown error'));
             }
         } catch (error) {
             console.error('Failed to share visual:', error);
+            showToast('❌ Failed to share visual. Please try again.');
         }
     };
 

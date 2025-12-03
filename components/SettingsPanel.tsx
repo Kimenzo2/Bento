@@ -34,10 +34,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
 
   const memberSince = user?.created_at ? new Date(user.created_at).getFullYear() : new Date().getFullYear();
 
-  // Initialize avatar from localStorage
+  // Initialize avatar from localStorage or user's avatar
   const [avatarPreview, setAvatarPreview] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('genesis_avatar');
+      // Try localStorage first, then fall back to user's avatar
+      return localStorage.getItem('genesis_avatar') || null;
     } catch (e) {
       return null;
     }
@@ -47,9 +48,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
   const [formData, setFormData] = useState(() => {
     try {
       const saved = localStorage.getItem('genesis_settings');
-      return saved ? JSON.parse(saved) : {
-        displayName: 'Creative Author',
-        email: 'author@genesis.ai',
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      // Return defaults - will be updated by useEffect when user loads
+      return {
+        displayName: '',
+        email: '',
         bio: 'I love creating magical stories for children...',
         defaultStyle: 'Pixar 3D',
         temperature: 0.7,
@@ -60,8 +65,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
       };
     } catch (e) {
       return {
-        displayName: 'Creative Author',
-        email: 'author@genesis.ai',
+        displayName: '',
+        email: '',
         bio: 'I love creating magical stories for children...',
         defaultStyle: 'Pixar 3D',
         temperature: 0.7,
@@ -72,6 +77,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate }) => {
       };
     }
   });
+
+  // Sync form data with user when user changes (e.g., after login)
+  useEffect(() => {
+    if (user) {
+      // Get user's display name from metadata or email
+      const displayName = user.user_metadata?.full_name || 
+                          user.user_metadata?.name || 
+                          user.email?.split('@')[0] || 
+                          'Creative Author';
+      
+      // Get user's avatar from metadata
+      const userAvatar = user.user_metadata?.avatar_url || 
+                         user.user_metadata?.picture || 
+                         null;
+      
+      // Update form data with user info (preserve other saved settings)
+      setFormData((prev: any) => ({
+        ...prev,
+        displayName: prev.displayName || displayName,
+        email: user.email || prev.email,
+      }));
+      
+      // Update avatar if user has one and we don't have a custom one saved
+      if (userAvatar && !localStorage.getItem('genesis_avatar')) {
+        setAvatarPreview(userAvatar);
+      }
+    }
+  }, [user]);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
