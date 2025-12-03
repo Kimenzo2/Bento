@@ -248,11 +248,12 @@ class RealtimeChatService {
                 .from('chat_channel_members')
                 .select('channel_id, unread_count, mention_count')
                 .eq('user_id', this.currentUserId)
-                .in('channel_id', data.map(c => c.id));
+                .in('channel_id', data.map((c: ChatChannel) => c.id));
 
             if (memberData) {
-                const countsMap = new Map(memberData.map(m => [m.channel_id, m]));
-                data.forEach(channel => {
+                type MemberCount = { channel_id: string; unread_count: number; mention_count: number };
+                const countsMap = new Map<string, MemberCount>(memberData.map((m: MemberCount) => [m.channel_id, m]));
+                data.forEach((channel: ChatChannel) => {
                     const counts = countsMap.get(channel.id);
                     if (counts) {
                         channel.unread_count = counts.unread_count;
@@ -376,7 +377,7 @@ class RealtimeChatService {
         }
 
         // Process reactions to group by emoji
-        return (data || []).map(msg => ({
+        return (data || []).map((msg: any) => ({
             ...msg,
             user: msg.user ? {
                 id: msg.user.id,
@@ -554,7 +555,7 @@ class RealtimeChatService {
             .gt('expires_at', new Date().toISOString())
             .neq('user_id', this.currentUserId);
 
-        return (data || []).map(t => ({
+        return (data || []).map((t: any) => ({
             ...t,
             user: t.user ? {
                 id: t.user.id,
@@ -608,7 +609,7 @@ class RealtimeChatService {
 
         const { data } = await query;
 
-        return (data || []).map(p => ({
+        return (data || []).map((p: any) => ({
             id: p.user?.id || p.user_id,
             display_name: p.user?.display_name || p.user?.full_name || 'Anonymous',
             avatar_url: p.user?.avatar_url || null,
@@ -735,7 +736,7 @@ class RealtimeChatService {
                     schema: 'public',
                     table: 'chat_message_reactions',
                 },
-                async (payload) => {
+                async (payload: RealtimePostgresChangesPayload<any>) => {
                     if (callbacks.onReaction) {
                         const messageId = (payload.new as any)?.message_id || (payload.old as any)?.message_id;
                         if (messageId) {
@@ -847,7 +848,7 @@ class RealtimeChatService {
 
         const { data } = await dbQuery;
 
-        return (data || []).map(msg => ({
+        return (data || []).map((msg: any) => ({
             ...msg,
             user: msg.user ? {
                 id: msg.user.id,
