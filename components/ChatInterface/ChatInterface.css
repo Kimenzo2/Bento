@@ -528,6 +528,7 @@
 .chat-sidebar-header {
     padding: 16px;
     border-bottom: 1px solid var(--chat-border-primary);
+    position: relative;
 }
 
 .chat-project-title {
@@ -2337,11 +2338,17 @@
     }
 
     .chat-members-sidebar {
-        display: none;
+        display: none !important;
     }
     
     .chat-canvas-description {
         display: none;
+    }
+    
+    /* Ensure main canvas takes remaining space */
+    .chat-canvas {
+        flex: 1;
+        min-width: 0;
     }
 }
 
@@ -2360,16 +2367,22 @@
         padding-bottom: calc(var(--safe-area-bottom) + var(--mobile-bottom-nav-height));
         padding-left: var(--safe-area-left);
         padding-right: var(--safe-area-right);
+        flex-direction: column;
     }
     
     /* Disable decorative animations on mobile for performance */
     .chat-ambient-particles,
     .sparkle-container,
     .chat-interface::before {
-        display: none;
+        display: none !important;
     }
     
-    /* Sidebar becomes slide-over drawer */
+    /* CRITICAL: Hide members sidebar completely on mobile - it's in the left sidebar now */
+    .chat-members-sidebar {
+        display: none !important;
+    }
+    
+    /* Sidebar becomes slide-over drawer - default hidden */
     .chat-sidebar {
         position: fixed;
         left: 0;
@@ -2385,6 +2398,8 @@
         border-right: 1px solid var(--chat-border-primary);
         padding-top: var(--safe-area-top);
         padding-bottom: var(--safe-area-bottom);
+        display: flex;
+        flex-direction: column;
     }
 
     .chat-sidebar.open {
@@ -2399,14 +2414,18 @@
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
         z-index: 99;
-        opacity: 0;
-        pointer-events: none;
+        opacity: 1;
+        pointer-events: auto;
         transition: opacity 0.3s ease;
     }
     
-    .chat-sidebar-backdrop.visible {
-        opacity: 1;
-        pointer-events: auto;
+    /* Main chat canvas should take full width */
+    .chat-canvas {
+        flex: 1;
+        width: 100%;
+        min-width: 0;
+        position: relative;
+        z-index: 1;
     }
 
     /* Mobile-optimized header */
@@ -2440,6 +2459,26 @@
         min-width: 40px;
         min-height: 40px;
         -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Mobile hamburger menu button */
+    .chat-mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 10px;
+        background: var(--chat-bg-hover);
+        color: var(--chat-text-primary);
+        margin-right: 8px;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .chat-mobile-menu-btn:active {
+        background: var(--chat-bg-active);
+        transform: scale(0.95);
     }
     
     /* Mobile-optimized message list */

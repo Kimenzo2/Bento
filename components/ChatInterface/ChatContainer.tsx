@@ -351,6 +351,23 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         userId: useRealtime && propUserProfile?.id ? propUserProfile.id : null,
     });
 
+    // Check if we're on mobile
+    const [isMobile, setIsMobile] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth < 768;
+        }
+        return false;
+    });
+
+    // Update mobile state on resize
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Local state (used when not in realtime mode, or as fallback)
     const [localCategories, setLocalCategories] = useState<ChannelCategory[]>(mockCategories);
     const [localActiveChannel, setLocalActiveChannel] = useState<Channel | null>(mockCategories[0].channels[1]);
@@ -359,7 +376,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const [isThreadOpen, setIsThreadOpen] = useState(false);
     const [activeThread, setActiveThread] = useState<Message | null>(null);
     const [isMembersOpen, setIsMembersOpen] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    // Sidebar closed by default on mobile, open on desktop
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth >= 768;
+        }
+        return true;
+    });
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [localTypingUsers, setLocalTypingUsers] = useState<User[]>([]);
@@ -430,7 +453,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
         setIsThreadOpen(false);
         setActiveThread(null);
-    }, [useRealtime, realtimeChat]);
+        // Close sidebar on mobile after selecting a channel
+        if (isMobile) {
+            setIsSidebarOpen(false);
+        }
+    }, [useRealtime, realtimeChat, isMobile]);
 
     const handleCategoryToggle = useCallback((categoryId: string) => {
         if (useRealtime && realtimeChat.isConnected) {
@@ -640,11 +667,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 ))}
             </div>
 
-            {/* Mobile Sidebar Backdrop */}
+            {/* Mobile Sidebar Backdrop - only show on mobile when sidebar is open */}
             <AnimatePresence>
-                {isSidebarOpen && (
+                {isSidebarOpen && isMobile && (
                     <motion.div
-                        className="chat-sidebar-backdrop md:hidden"
+                        className="chat-sidebar-backdrop"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -653,18 +680,27 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 )}
             </AnimatePresence>
 
-            {/* Sidebar */}
-            <AnimatePresence mode="wait">
-                {isSidebarOpen && (
-                    <motion.div
-                        className={`chat-sidebar glass-panel ${isSidebarOpen ? 'open' : ''}`}
-                        initial={{ x: -280, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -280, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    >
+            {/* Sidebar - Always visible on desktop, slide-in drawer on mobile */}
+            {(isSidebarOpen || !isMobile) && (
+                <motion.div
+                    className={`chat-sidebar glass-panel ${isSidebarOpen ? 'open' : ''}`}
+                    initial={isMobile ? { x: -280, opacity: 0 } : false}
+                    animate={isMobile ? { x: 0, opacity: 1 } : {}}
+                    exit={isMobile ? { x: -280, opacity: 0 } : {}}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                >
                         {/* Sidebar Header */}
                         <div className="chat-sidebar-header">
+                            {/* Mobile close button */}
+                            {isMobile && (
+                                <button
+                                    onClick={() => setIsSidebarOpen(false)}
+                                    className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)] transition-colors"
+                                    aria-label="Close sidebar"
+                                >
+                                    <X size={20} />
+                                </button>
+                            )}
                             <div className="chat-project-title">
                                 <div className="chat-project-icon">
                                     {projectIcon || projectName.charAt(0)}
@@ -673,7 +709,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                     <h2>{projectName}</h2>
                                     <span>Project Chat</span>
                                 </div>
-                                <ChevronDown size={16} className="text-gray-400" />
+                                <ChevronDown size={16} className="text-gray-400 hidden md:block" />
                             </div>
 
                             {/* Search */}
@@ -833,22 +869,23 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         </div>
                     </motion.div>
                 )}
-            </AnimatePresence>
 
             {/* Main Chat Canvas */}
             <div className="chat-canvas glass-panel">
                 {/* Canvas Header */}
                 <div className="chat-canvas-header">
                     <div className="chat-canvas-title">
-                        {/* Mobile Menu Button */}
-                        <button
-                            className="md:hidden chat-action-btn mr-1"
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            title="Open menu"
-                            aria-label="Open sidebar menu"
-                        >
-                            <Menu size={20} />
-                        </button>
+                        {/* Mobile Menu Button - Only show on mobile */}
+                        {isMobile && (
+                            <button
+                                className="chat-mobile-menu-btn"
+                                onClick={() => setIsSidebarOpen(true)}
+                                title="Open menu"
+                                aria-label="Open sidebar menu"
+                            >
+                                <Menu size={22} />
+                            </button>
+                        )}
                         {activeChannel?.type === 'text' && <Hash size={20} className="text-[var(--chat-text-muted)]" />}
                         {activeChannel?.type === 'voice' && <Volume2 size={20} className="text-[var(--chat-mint-breeze)]" />}
                         {activeChannel?.type === 'ai-assistant' && <Sparkles size={20} className="text-[var(--chat-coral-burst)]" />}
