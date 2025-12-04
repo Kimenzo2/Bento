@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, Settings, Bell, Users, Hash, Volume2, Sparkles,
     ChevronDown, ChevronRight, Plus, Pin, MoreHorizontal,
-    X, MessageSquare, Command, Moon, Sun, Wifi, WifiOff, Menu
+    X, MessageSquare, Command, Moon, Sun, Wifi, WifiOff, Menu,
+    LogOut, User as UserIcon, CreditCard, HelpCircle, Check, BellRing, BellOff
 } from 'lucide-react';
 import { Channel, ChannelCategory, Message, User, chatAnimations } from './types';
 import ChannelList from './ChannelList';
@@ -28,6 +29,8 @@ interface ChatContainerProps {
     className?: string;
     /** Enable real-time Supabase connection. If false, uses mock data. */
     useRealtime?: boolean;
+    /** Callback when user clicks on a profile - navigates to their profile page */
+    onUserProfileClick?: (userId: string) => void;
 }
 
 // Mock data for demonstration
@@ -341,10 +344,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     className = '',
     useRealtime = false,
     projectId,
+    onUserProfileClick,
 }) => {
     // Use provided user profile or default guest user
     const userProfile = propUserProfile || DEFAULT_GUEST_USER;
-    
+
     // Realtime hook - only active when useRealtime is true and user is authenticated
     const realtimeChat = useRealtimeChat({
         projectId: projectId,
@@ -383,33 +387,47 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
         return true;
     });
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true); // Dark theme as default
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [localTypingUsers, setLocalTypingUsers] = useState<User[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
+    const [newChannelName, setNewChannelName] = useState('');
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+
+    // Mock notifications data
+    const [notifications, setNotifications] = useState([
+        { id: '1', type: 'mention', message: 'Sarah mentioned you in #general', time: '2m ago', read: false, userId: 'user-2' },
+        { id: '2', type: 'reply', message: 'Alex replied to your message', time: '15m ago', read: false, userId: 'user-1' },
+        { id: '3', type: 'system', message: 'Welcome to Genesis Chat!', time: '1h ago', read: true, userId: null },
+    ]);
+
+    const unreadNotifications = notifications.filter(n => !n.read).length;
 
     // Derived state - use realtime data when available, otherwise fallback to mock/local
     const categories = useRealtime && realtimeChat.isConnected ? realtimeChat.categories : localCategories;
-    const setCategories = useRealtime && realtimeChat.isConnected 
-        ? () => {} // Categories are managed by realtime 
+    const setCategories = useRealtime && realtimeChat.isConnected
+        ? () => { } // Categories are managed by realtime 
         : setLocalCategories;
-    
-    const activeChannel = useRealtime && realtimeChat.isConnected 
-        ? realtimeChat.currentChannel 
+
+    const activeChannel = useRealtime && realtimeChat.isConnected
+        ? realtimeChat.currentChannel
         : localActiveChannel;
-    
-    const messages = useRealtime && realtimeChat.isConnected 
-        ? realtimeChat.messages 
+
+    const messages = useRealtime && realtimeChat.isConnected
+        ? realtimeChat.messages
         : localMessages;
-    const setMessages = useRealtime && realtimeChat.isConnected 
-        ? () => {} // Messages are managed by realtime 
+    const setMessages = useRealtime && realtimeChat.isConnected
+        ? () => { } // Messages are managed by realtime 
         : setLocalMessages;
-    
-    const typingUsers = useRealtime && realtimeChat.isConnected 
-        ? realtimeChat.typingUsers 
+
+    const typingUsers = useRealtime && realtimeChat.isConnected
+        ? realtimeChat.typingUsers
         : localTypingUsers;
-    const setTypingUsers = useRealtime && realtimeChat.isConnected 
-        ? () => {} 
+    const setTypingUsers = useRealtime && realtimeChat.isConnected
+        ? () => { }
         : setLocalTypingUsers;
 
     // Refs
@@ -472,7 +490,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     }, [useRealtime, realtimeChat]);
 
     const handleSendMessage = useCallback(async (content: string, attachments?: File[]) => {
-        if (!activeChannel) return;
+        console.log('[Chat] handleSendMessage called:', { content, activeChannel: activeChannel?.name, useRealtime, isConnected: realtimeChat?.isConnected });
+        if (!activeChannel) {
+            console.warn('[Chat] No active channel, cannot send message');
+            return;
+        }
 
         if (useRealtime && realtimeChat.isConnected) {
             // Use realtime service
@@ -552,10 +574,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                             model: 'Genesis Pro',
                             tokens: 89,
                         },
-                };
-                setLocalMessages(prev => [...prev, aiResponse]);
-            }, 2000);
-        }
+                    };
+                    setLocalMessages(prev => [...prev, aiResponse]);
+                }, 2000);
+            }
         }
     }, [activeChannel, userProfile, replyingTo, useRealtime, realtimeChat]);
 
@@ -613,6 +635,35 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         setReplyingTo(message);
     }, []);
 
+    // Handle creating a new channel
+    const handleCreateChannel = useCallback((categoryId: string, channelName: string, channelType: 'text' | 'voice') => {
+        const newChannel: Channel = {
+            id: `ch-${Date.now()}`,
+            name: channelName,
+            type: channelType,
+            unreadCount: 0,
+            mentionCount: 0,
+            isPinned: false,
+            isMuted: false,
+            isLocked: false,
+            createdAt: new Date(),
+            description: `A new ${channelType} channel`,
+        };
+
+        setLocalCategories(prev =>
+            prev.map(cat =>
+                cat.id === categoryId
+                    ? { ...cat, channels: [...cat.channels, newChannel] }
+                    : cat
+            )
+        );
+
+        // Automatically select the new channel
+        if (!useRealtime) {
+            setLocalActiveChannel(newChannel);
+        }
+    }, [useRealtime]);
+
     // Handle typing indicator
     const handleTypingStart = useCallback(() => {
         if (useRealtime && realtimeChat.isConnected) {
@@ -635,7 +686,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const onlineMembers = useRealtime && realtimeChat.isConnected
         ? realtimeChat.onlineMembers
         : mockOnlineUsers;
-    
+
     const offlineMembers = useRealtime && realtimeChat.isConnected
         ? realtimeChat.offlineMembers
         : mockOfflineUsers;
@@ -648,8 +699,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             {/* Premium ambient particles background - Hidden on mobile */}
             <div className="chat-ambient-particles hidden md:block">
                 {[...Array(8)].map((_, i) => (
-                    <div 
-                        key={i} 
+                    <div
+                        key={i}
                         className={`chat-particle chat-particle--${['coral', 'gold', 'mint'][i % 3]}`}
                         style={{
                             top: `${10 + (i * 12)}%`,
@@ -689,19 +740,25 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     exit={isMobile ? { x: -280, opacity: 0 } : {}}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
-                        {/* Sidebar Header */}
-                        <div className="chat-sidebar-header">
-                            {/* Mobile close button */}
-                            {isMobile && (
-                                <button
-                                    onClick={() => setIsSidebarOpen(false)}
-                                    className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)] transition-colors"
-                                    aria-label="Close sidebar"
-                                >
-                                    <X size={20} />
-                                </button>
-                            )}
-                            <div className="chat-project-title">
+                    {/* Sidebar Header */}
+                    <div className="chat-sidebar-header">
+                        {/* Mobile close button */}
+                        {isMobile && (
+                            <button
+                                onClick={() => setIsSidebarOpen(false)}
+                                className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)] transition-colors"
+                                aria-label="Close sidebar"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
+
+                        {/* Project Dropdown - Interactive */}
+                        <div className="relative">
+                            <button
+                                className="chat-project-title w-full hover:bg-[var(--chat-bg-hover)] transition-colors rounded-xl"
+                                onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                            >
                                 <div className="chat-project-icon">
                                     {projectIcon || projectName.charAt(0)}
                                 </div>
@@ -709,166 +766,246 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                     <h2>{projectName}</h2>
                                     <span>Project Chat</span>
                                 </div>
-                                <ChevronDown size={16} className="text-gray-400 hidden md:block" />
-                            </div>
-
-                            {/* Search */}
-                            <div className="chat-search">
-                                <Search size={16} className="chat-search-icon" />
-                                <input
-                                    type="text"
-                                    className="chat-search-input"
-                                    placeholder="Search..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onClick={() => setIsSearchOpen(true)}
-                                    readOnly
+                                <ChevronDown
+                                    size={16}
+                                    className={`text-gray-400 hidden md:block transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`}
                                 />
-                                <div className="chat-search-kbd">
-                                    <kbd>⌘</kbd>
-                                    <kbd>K</kbd>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Channel List */}
-                        <ChannelList
-                            categories={categories}
-                            activeChannel={activeChannel}
-                            onChannelSelect={handleChannelSelect}
-                            onCategoryToggle={handleCategoryToggle}
-                            searchQuery={searchQuery}
-                        />
-
-                        {/* Members Section Toggle in Sidebar */}
-                        <div className="px-2 py-2 border-t border-[var(--chat-border-primary)]">
-                            <button
-                                onClick={() => setIsMembersOpen(!isMembersOpen)}
-                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
-                                    isMembersOpen 
-                                        ? 'bg-[var(--chat-coral-burst)] text-white' 
-                                        : 'hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)]'
-                                }`}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Users size={18} />
-                                    <span className="font-medium text-sm">Members</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                        isMembersOpen 
-                                            ? 'bg-white/20 text-white' 
-                                            : 'bg-green-500/20 text-green-600'
-                                    }`}>
-                                        {onlineMembers.length} online
-                                    </span>
-                                    <ChevronRight 
-                                        size={16} 
-                                        className={`transition-transform ${isMembersOpen ? 'rotate-90' : ''}`}
-                                    />
-                                </div>
                             </button>
 
-                            {/* Inline Members List */}
+                            {/* Project Dropdown Menu */}
                             <AnimatePresence>
-                                {isMembersOpen && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="pt-2 space-y-1 max-h-[200px] overflow-y-auto scroll-container">
-                                            {/* Online Users */}
-                                            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--chat-text-muted)]">
-                                                Online — {onlineMembers.length}
-                                            </div>
-                                            {onlineMembers.map((user: User) => (
-                                                <div 
-                                                    key={user.id}
-                                                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors"
+                                {isProjectDropdownOpen && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setIsProjectDropdownOpen(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute left-0 right-0 top-full mt-2 z-50 bg-[var(--chat-bg-secondary)] border border-[var(--chat-border-primary)] rounded-xl shadow-xl overflow-hidden"
+                                        >
+                                            <div className="p-2">
+                                                <button
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
+                                                    onClick={() => {
+                                                        setIsProjectDropdownOpen(false);
+                                                        // Handle invite action
+                                                    }}
                                                 >
-                                                    <div className="relative">
-                                                        <img 
-                                                            src={user.avatarUrl} 
-                                                            alt={user.displayName}
-                                                            className="w-7 h-7 rounded-full"
-                                                        />
-                                                        <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--chat-bg-primary)] ${
-                                                            user.status === 'online' ? 'bg-green-500' :
-                                                            user.status === 'away' ? 'bg-yellow-500' :
-                                                            user.status === 'dnd' ? 'bg-red-500' : 'bg-gray-400'
-                                                        }`} />
-                                                    </div>
-                                                    <span className="text-sm text-[var(--chat-text-primary)] truncate flex-1">
-                                                        {user.displayName}
-                                                    </span>
-                                                    {user.id === 'ai-genesis' && (
-                                                        <Sparkles size={12} className="text-[var(--chat-coral-burst)]" />
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            {/* Offline Users */}
-                                            {offlineMembers.length > 0 && (
-                                                <>
-                                                    <div className="px-2 py-1 mt-2 text-[10px] font-bold uppercase tracking-wider text-[var(--chat-text-muted)]">
-                                                        Offline — {offlineMembers.length}
-                                                    </div>
-                                                    {offlineMembers.map((user: User) => (
-                                                        <div 
-                                                            key={user.id}
-                                                            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors opacity-60"
-                                                        >
-                                                            <div className="relative">
-                                                                <img 
-                                                                    src={user.avatarUrl} 
-                                                                    alt={user.displayName}
-                                                                    className="w-7 h-7 rounded-full grayscale"
-                                                                />
-                                                                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--chat-bg-primary)] bg-gray-400" />
-                                                            </div>
-                                                            <span className="text-sm text-[var(--chat-text-secondary)] truncate flex-1">
-                                                                {user.displayName}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </>
-                                            )}
-                                        </div>
-                                    </motion.div>
+                                                    <Users size={18} className="text-[var(--chat-text-muted)]" />
+                                                    <span className="text-sm">Invite People</span>
+                                                </button>
+                                                <button
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
+                                                    onClick={() => {
+                                                        setIsProjectDropdownOpen(false);
+                                                        // Handle settings action
+                                                    }}
+                                                >
+                                                    <Settings size={18} className="text-[var(--chat-text-muted)]" />
+                                                    <span className="text-sm">Project Settings</span>
+                                                </button>
+                                                <div className="border-t border-[var(--chat-border-primary)] my-2" />
+                                                <button
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
+                                                    onClick={() => {
+                                                        setIsCreateChannelOpen(true);
+                                                        setIsProjectDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    <Plus size={18} className="text-[var(--chat-mint-breeze)]" />
+                                                    <span className="text-sm">Create Channel</span>
+                                                </button>
+                                                <button
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
+                                                    onClick={() => {
+                                                        setIsProjectDropdownOpen(false);
+                                                        // Handle create category
+                                                    }}
+                                                >
+                                                    <Hash size={18} className="text-[var(--chat-gold-sunshine)]" />
+                                                    <span className="text-sm">Create Category</span>
+                                                </button>
+                                                <div className="border-t border-[var(--chat-border-primary)] my-2" />
+                                                <button
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
+                                                    onClick={() => {
+                                                        setIsProjectDropdownOpen(false);
+                                                        onClose?.();
+                                                    }}
+                                                >
+                                                    <LogOut size={18} />
+                                                    <span className="text-sm">Leave Project</span>
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </>
                                 )}
                             </AnimatePresence>
                         </div>
 
-                        {/* Sidebar Footer - User */}
-                        <div className="p-3 border-t border-[var(--chat-border-primary)]">
-                            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors">
-                                <div className="relative">
-                                    <img
-                                        src={userProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.id}`}
-                                        alt={userProfile?.displayName}
-                                        className="w-9 h-9 rounded-full"
-                                    />
-                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[var(--chat-bg-primary)] rounded-full" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-semibold text-[var(--chat-text-primary)] truncate">
-                                        {userProfile?.displayName || 'Guest'}
-                                    </div>
-                                    <div className="text-xs text-[var(--chat-text-muted)]">Online</div>
-                                </div>
-                                <button
-                                    onClick={() => setIsDarkMode(!isDarkMode)}
-                                    className="p-2 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)] transition-colors"
-                                >
-                                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-                                </button>
+                        {/* Search */}
+                        <div className="chat-search">
+                            <Search size={16} className="chat-search-icon" />
+                            <input
+                                type="text"
+                                className="chat-search-input"
+                                placeholder="Search..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onClick={() => setIsSearchOpen(true)}
+                                readOnly
+                            />
+                            <div className="chat-search-kbd">
+                                <kbd>⌘</kbd>
+                                <kbd>K</kbd>
                             </div>
                         </div>
-                    </motion.div>
-                )}
+                    </div>
+
+                    {/* Channel List */}
+                    <ChannelList
+                        categories={categories}
+                        activeChannel={activeChannel}
+                        onChannelSelect={handleChannelSelect}
+                        onCategoryToggle={handleCategoryToggle}
+                        searchQuery={searchQuery}
+                        onCreateChannel={handleCreateChannel}
+                    />
+
+                    {/* Members Section Toggle in Sidebar */}
+                    <div className="px-2 py-2 border-t border-[var(--chat-border-primary)]">
+                        <button
+                            onClick={() => setIsMembersOpen(!isMembersOpen)}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${isMembersOpen
+                                ? 'bg-[var(--chat-coral-burst)] text-white'
+                                : 'hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)]'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Users size={18} />
+                                <span className="font-medium text-sm">Members</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${isMembersOpen
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-green-500/20 text-green-600'
+                                    }`}>
+                                    {onlineMembers.length} online
+                                </span>
+                                <ChevronRight
+                                    size={16}
+                                    className={`transition-transform ${isMembersOpen ? 'rotate-90' : ''}`}
+                                />
+                            </div>
+                        </button>
+
+                        {/* Inline Members List */}
+                        <AnimatePresence>
+                            {isMembersOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="pt-2 space-y-1 max-h-[200px] overflow-y-auto scroll-container">
+                                        {/* Online Users */}
+                                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--chat-text-muted)]">
+                                            Online — {onlineMembers.length}
+                                        </div>
+                                        {onlineMembers.map((user: User) => (
+                                            <div
+                                                key={user.id}
+                                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors group"
+                                                onClick={() => onUserProfileClick?.(user.id)}
+                                                title={`View ${user.displayName}'s profile`}
+                                            >
+                                                <div className="relative">
+                                                    <img
+                                                        src={user.avatarUrl}
+                                                        alt={user.displayName}
+                                                        className="w-7 h-7 rounded-full group-hover:ring-2 ring-[var(--chat-coral-burst)] transition-all"
+                                                    />
+                                                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--chat-bg-primary)] ${user.status === 'online' ? 'bg-green-500' :
+                                                        user.status === 'away' ? 'bg-yellow-500' :
+                                                            user.status === 'dnd' ? 'bg-red-500' : 'bg-gray-400'
+                                                        }`} />
+                                                </div>
+                                                <span className="text-sm text-[var(--chat-text-primary)] truncate flex-1 group-hover:text-[var(--chat-coral-burst)] transition-colors">
+                                                    {user.displayName}
+                                                </span>
+                                                {user.id === 'ai-genesis' && (
+                                                    <Sparkles size={12} className="text-[var(--chat-coral-burst)]" />
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        {/* Offline Users */}
+                                        {offlineMembers.length > 0 && (
+                                            <>
+                                                <div className="px-2 py-1 mt-2 text-[10px] font-bold uppercase tracking-wider text-[var(--chat-text-muted)]">
+                                                    Offline — {offlineMembers.length}
+                                                </div>
+                                                {offlineMembers.map((user: User) => (
+                                                    <div
+                                                        key={user.id}
+                                                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors opacity-60 hover:opacity-100 group"
+                                                        onClick={() => onUserProfileClick?.(user.id)}
+                                                        title={`View ${user.displayName}'s profile`}
+                                                    >
+                                                        <div className="relative">
+                                                            <img
+                                                                src={user.avatarUrl}
+                                                                alt={user.displayName}
+                                                                className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 group-hover:ring-2 ring-[var(--chat-coral-burst)] transition-all"
+                                                            />
+                                                            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--chat-bg-primary)] bg-gray-400" />
+                                                        </div>
+                                                        <span className="text-sm text-[var(--chat-text-secondary)] truncate flex-1 group-hover:text-[var(--chat-coral-burst)] transition-colors">
+                                                            {user.displayName}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Sidebar Footer - User */}
+                    <div className="p-3 border-t border-[var(--chat-border-primary)]">
+                        <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors">
+                            <div className="relative">
+                                <img
+                                    src={userProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.id}`}
+                                    alt={userProfile?.displayName}
+                                    className="w-9 h-9 rounded-full"
+                                />
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[var(--chat-bg-primary)] rounded-full" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-[var(--chat-text-primary)] truncate">
+                                    {userProfile?.displayName || 'Guest'}
+                                </div>
+                                <div className="text-xs text-[var(--chat-text-muted)]">Online</div>
+                            </div>
+                            <button
+                                onClick={() => setIsDarkMode(!isDarkMode)}
+                                className="p-2 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)] transition-colors"
+                            >
+                                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Main Chat Canvas */}
             <div className="chat-canvas glass-panel">
@@ -895,26 +1032,24 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                 {activeChannel.description}
                             </span>
                         )}
-                        
+
                         {/* Connection Status Indicator */}
                         {useRealtime && (
-                            <div 
-                                className={`ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
-                                    realtimeChat.isConnected 
-                                        ? 'bg-green-500/20 text-green-500' 
-                                        : realtimeChat.error
+                            <div
+                                className={`ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${realtimeChat.isConnected
+                                    ? 'bg-green-500/20 text-green-500'
+                                    : realtimeChat.error
                                         ? 'bg-red-500/20 text-red-500'
                                         : 'bg-yellow-500/20 text-yellow-500'
-                                }`}
+                                    }`}
                                 title={realtimeChat.error || (realtimeChat.isConnected ? 'Connected to realtime' : 'Connecting...')}
                             >
-                                <div className={`w-2 h-2 rounded-full ${
-                                    realtimeChat.isConnected 
-                                        ? 'bg-green-500' 
-                                        : realtimeChat.error
+                                <div className={`w-2 h-2 rounded-full ${realtimeChat.isConnected
+                                    ? 'bg-green-500'
+                                    : realtimeChat.error
                                         ? 'bg-red-500'
                                         : 'bg-yellow-500 animate-pulse'
-                                }`} />
+                                    }`} />
                                 <span className="hidden sm:inline">
                                     {realtimeChat.isConnected ? 'Live' : realtimeChat.error ? 'Error' : 'Connecting'}
                                 </span>
@@ -936,12 +1071,100 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         >
                             <Search size={20} />
                         </button>
-                        <button
-                            className="chat-action-btn"
-                            title="Notifications"
-                        >
-                            <Bell size={20} />
-                        </button>
+
+                        {/* Notifications Bell - Interactive */}
+                        <div className="relative">
+                            <button
+                                className={`chat-action-btn ${isNotificationsOpen ? 'active' : ''}`}
+                                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                                title="Notifications"
+                            >
+                                <Bell size={20} />
+                                {unreadNotifications > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--chat-coral-burst)] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Notifications Dropdown */}
+                            <AnimatePresence>
+                                {isNotificationsOpen && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setIsNotificationsOpen(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 top-full mt-2 z-50 w-80 bg-[var(--chat-bg-secondary)] border border-[var(--chat-border-primary)] rounded-xl shadow-xl overflow-hidden"
+                                        >
+                                            <div className="p-3 border-b border-[var(--chat-border-primary)] flex items-center justify-between">
+                                                <h3 className="font-semibold text-[var(--chat-text-primary)]">Notifications</h3>
+                                                {unreadNotifications > 0 && (
+                                                    <button
+                                                        className="text-xs text-[var(--chat-coral-burst)] hover:underline"
+                                                        onClick={() => {
+                                                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                                                        }}
+                                                    >
+                                                        Mark all as read
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="max-h-80 overflow-y-auto">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-6 text-center text-[var(--chat-text-muted)]">
+                                                        <BellOff size={32} className="mx-auto mb-2 opacity-50" />
+                                                        <p className="text-sm">No notifications</p>
+                                                    </div>
+                                                ) : (
+                                                    notifications.map(notification => (
+                                                        <div
+                                                            key={notification.id}
+                                                            className={`p-3 flex items-start gap-3 hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors border-b border-[var(--chat-border-primary)] last:border-0 ${!notification.read ? 'bg-[var(--chat-coral-burst)]/5' : ''}`}
+                                                            onClick={() => {
+                                                                setNotifications(prev => prev.map(n =>
+                                                                    n.id === notification.id ? { ...n, read: true } : n
+                                                                ));
+                                                                if (notification.userId && onUserProfileClick) {
+                                                                    onUserProfileClick(notification.userId);
+                                                                }
+                                                                setIsNotificationsOpen(false);
+                                                            }}
+                                                        >
+                                                            <div className={`mt-1 ${!notification.read ? 'text-[var(--chat-coral-burst)]' : 'text-[var(--chat-text-muted)]'}`}>
+                                                                {notification.type === 'mention' && <BellRing size={16} />}
+                                                                {notification.type === 'reply' && <MessageSquare size={16} />}
+                                                                {notification.type === 'system' && <Sparkles size={16} />}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-sm ${!notification.read ? 'text-[var(--chat-text-primary)] font-medium' : 'text-[var(--chat-text-secondary)]'}`}>
+                                                                    {notification.message}
+                                                                </p>
+                                                                <p className="text-xs text-[var(--chat-text-muted)] mt-1">{notification.time}</p>
+                                                            </div>
+                                                            {!notification.read && (
+                                                                <div className="w-2 h-2 rounded-full bg-[var(--chat-coral-burst)] mt-2" />
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                            <div className="p-2 border-t border-[var(--chat-border-primary)]">
+                                                <button className="w-full py-2 text-sm text-[var(--chat-text-muted)] hover:text-[var(--chat-text-primary)] transition-colors">
+                                                    View all notifications
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
                         {onClose && (
                             <button className="chat-action-btn" onClick={onClose} title="Close chat" aria-label="Close chat panel">
                                 <X size={20} />
@@ -1022,14 +1245,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                     userName: activeThread.user.displayName,
                                 },
                             };
-                            
+
                             // Update the parent message's thread reply count
-                            setLocalMessages(prev => prev.map(msg => 
-                                msg.id === activeThread.id 
+                            setLocalMessages(prev => prev.map(msg =>
+                                msg.id === activeThread.id
                                     ? { ...msg, threadReplies: (msg.threadReplies || 0) + 1 }
                                     : msg
                             ));
-                            
+
                             // Add the reply to messages
                             setLocalMessages(prev => [...prev, newReply]);
                         }}

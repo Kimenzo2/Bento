@@ -10,33 +10,120 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-        manifest: {
-          name: 'Genesis Visual Studio',
-          short_name: 'Genesis',
-          description: 'AI-powered visual storytelling and collaboration platform',
-          theme_color: '#ffffff',
-          background_color: '#ffffff',
-          display: 'standalone',
-          orientation: 'portrait',
-          icons: [
+        includeAssets: ['favicon.ico', 'genesis-icon.jpg', 'robots.txt'],
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+          runtimeCaching: [
             {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             },
             {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'gstatic-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             },
             {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
+              urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'avatar-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             }
           ]
+        },
+        manifest: {
+          name: 'Genesis - AI Visual Storytelling',
+          short_name: 'Genesis',
+          description: 'AI-powered visual storytelling and collaboration platform. Create stunning ebooks, visual stories, and collaborative art.',
+          theme_color: '#FF9B71',
+          background_color: '#FFF8F3',
+          display: 'standalone',
+          orientation: 'any',
+          scope: '/',
+          start_url: '/',
+          categories: ['education', 'entertainment', 'productivity'],
+          icons: [
+            {
+              src: 'genesis-icon.jpg',
+              sizes: '192x192',
+              type: 'image/jpeg',
+              purpose: 'any'
+            },
+            {
+              src: 'genesis-icon.jpg',
+              sizes: '512x512',
+              type: 'image/jpeg',
+              purpose: 'any'
+            },
+            {
+              src: 'genesis-icon.jpg',
+              sizes: '512x512',
+              type: 'image/jpeg',
+              purpose: 'maskable'
+            }
+          ],
+          screenshots: [
+            {
+              src: 'genesis-icon.jpg',
+              sizes: '512x512',
+              type: 'image/jpeg',
+              form_factor: 'wide',
+              label: 'Genesis Homepage'
+            },
+            {
+              src: 'genesis-icon.jpg',
+              sizes: '512x512',
+              type: 'image/jpeg',
+              form_factor: 'narrow',
+              label: 'Genesis Mobile'
+            }
+          ],
+          shortcuts: [
+            {
+              name: 'Create New Story',
+              short_name: 'Create',
+              description: 'Start creating a new story',
+              url: '/?action=create',
+              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }]
+            },
+            {
+              name: 'Visual Studio',
+              short_name: 'Studio',
+              description: 'Open Visual Studio',
+              url: '/?view=studio',
+              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }]
+            }
+          ]
+        },
+        devOptions: {
+          enabled: true
         }
       })
     ],

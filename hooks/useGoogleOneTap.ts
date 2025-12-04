@@ -31,11 +31,9 @@ export const useGoogleOneTap = () => {
             if (error) {
                 console.error('[GoogleOneTap] Sign-in error:', error);
                 
-                // Provide helpful error messages based on error type
-                let userMessage = 'Sign-in failed. ';
-                
+                // Log the error for debugging but don't show intrusive alerts
+                // Users can still sign in using the regular button
                 if (error.message?.includes('Invalid API key') || error.message?.includes('401')) {
-                    userMessage += 'Google authentication is not configured correctly. Please contact support.';
                     console.error(
                         '[GoogleOneTap] CONFIGURATION ERROR: The Google Client ID is not configured in Supabase.\n' +
                         'To fix this:\n' +
@@ -43,13 +41,8 @@ export const useGoogleOneTap = () => {
                         '2. Add your Google Web Client ID to the "Client IDs" field (NOT the OAuth Client ID/Secret fields)\n' +
                         '3. Make sure VITE_GOOGLE_CLIENT_ID in your .env matches this Client ID'
                     );
-                } else if (error.message?.includes('nonce')) {
-                    userMessage += 'Session verification failed. Please try again.';
-                } else {
-                    userMessage += error.message || 'Unknown error occurred.';
                 }
-                
-                alert(userMessage);
+                // Silently fail - One Tap is optional, users can use regular sign-in
                 return;
             }
             
@@ -60,7 +53,7 @@ export const useGoogleOneTap = () => {
             }
         } catch (error: any) {
             console.error('[GoogleOneTap] Exception during sign-in:', error);
-            alert('An unexpected error occurred during sign-in. Please try again.');
+            // Silently fail - don't interrupt user experience
         }
     }, [signInWithIdToken]);
 

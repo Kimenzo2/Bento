@@ -88,6 +88,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Handle input change
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
+        console.log('[MessageInput] Input changed:', value);
         setContent(value);
 
         // Check for slash commands
@@ -120,7 +121,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         if (showSlashCommands) {
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                setSelectedCommandIndex(prev => 
+                setSelectedCommandIndex(prev =>
                     Math.min(prev + 1, filteredCommands.length - 1)
                 );
             } else if (e.key === 'ArrowUp') {
@@ -155,18 +156,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Insert formatting around selection
     const insertFormatting = (before: string, after: string) => {
         if (!inputRef.current) return;
-        
+
         const start = inputRef.current.selectionStart;
         const end = inputRef.current.selectionEnd;
         const selected = content.substring(start, end);
-        
-        const newContent = 
-            content.substring(0, start) + 
-            before + selected + after + 
+
+        const newContent =
+            content.substring(0, start) +
+            before + selected + after +
             content.substring(end);
-        
+
         setContent(newContent);
-        
+
         // Set cursor position
         setTimeout(() => {
             if (inputRef.current) {
@@ -184,7 +185,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Handle send
     const handleSend = () => {
-        if (!content.trim() && attachments.length === 0) return;
+        console.log('[MessageInput] handleSend called:', { content: content.trim(), hasAttachments: attachments.length > 0, disabled });
+        if (!content.trim() && attachments.length === 0) {
+            console.log('[MessageInput] No content or attachments, not sending');
+            return;
+        }
         onSend(content.trim(), attachments);
         setContent('');
         setAttachments([]);
@@ -228,7 +233,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         const end = inputRef.current.selectionEnd;
         const newContent = content.substring(0, start) + emoji + content.substring(end);
         setContent(newContent);
-        
+
         setTimeout(() => {
             if (inputRef.current) {
                 const newPos = start + emoji.length;
@@ -332,11 +337,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
                         {filteredCommands.map((cmd, index) => (
                             <button
                                 key={cmd.command}
-                                className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${
-                                    index === selectedCommandIndex
-                                        ? 'bg-[var(--chat-bg-hover)]'
-                                        : 'hover:bg-[var(--chat-bg-hover)]'
-                                }`}
+                                className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedCommandIndex
+                                    ? 'bg-[var(--chat-bg-hover)]'
+                                    : 'hover:bg-[var(--chat-bg-hover)]'
+                                    }`}
                                 onClick={() => {
                                     setContent(cmd.command + ' ');
                                     setShowSlashCommands(false);
