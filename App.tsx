@@ -452,6 +452,8 @@ const App: React.FC = () => {
   );
 };
 
+
+
 // Wrap App with ErrorBoundary for production stability
 const AppWithErrorBoundary: React.FC = () => (
   <ErrorBoundary>

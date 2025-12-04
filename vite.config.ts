@@ -63,40 +63,14 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            // Split vendor chunks for better caching
-            if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                return 'vendor-react';
-              }
-              if (id.includes('@supabase')) {
-                return 'vendor-supabase';
-              }
-              if (id.includes('lucide-react') || id.includes('framer-motion')) {
-                return 'vendor-ui';
-              }
-              if (id.includes('jspdf') || id.includes('html2canvas')) {
-                return 'vendor-pdf';
-              }
-              return 'vendor-misc';
-            }
-            // Split large components
-            if (id.includes('/components/')) {
-              if (id.includes('VisualStudio') || id.includes('collaboration')) {
-                return 'feature-visual-studio';
-              }
-              if (id.includes('Curriculum')) {
-                return 'feature-curriculum';
-              }
-              if (id.includes('Creation') || id.includes('Book')) {
-                return 'feature-creation';
-              }
-            }
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-utils': ['@supabase/supabase-js', 'i18next', 'react-i18next', 'framer-motion', 'lucide-react']
           }
         }
       },
       // Generate source maps for error tracking
-      sourcemap: mode === 'production' ? 'hidden' : true,
+      sourcemap: true,
       // Increase chunk size warning limit
       chunkSizeWarningLimit: 1200,
     },

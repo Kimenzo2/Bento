@@ -5,9 +5,33 @@ import { AuthProvider } from './contexts/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 
-// Log app initialization for debugging
-console.log('[Genesis] Application starting...');
-console.log('[Genesis] Environment:', import.meta.env.MODE);
+// Log app initialization for debugging (console.error survives production builds)
+console.error('[Genesis] Application starting - Mode:', import.meta.env.MODE);
+
+// Global error handler to catch unhandled errors
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error('[Genesis] Global error:', { message, source, lineno, colno, error });
+  // Show error on page if root is empty
+  const root = document.getElementById('root');
+  if (root && !root.hasChildNodes()) {
+    root.innerHTML = `
+      <div style="padding: 20px; font-family: sans-serif; background: #FFF8E7; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+        <div style="max-width: 500px; text-align: center;">
+          <h1 style="color: #FF9B71;">Error Loading Genesis</h1>
+          <p style="color: #5A5A5A;">${message}</p>
+          <pre style="background: white; padding: 10px; border-radius: 8px; overflow: auto; text-align: left; font-size: 12px;">${error?.stack || 'No stack trace'}</pre>
+          <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #FFD93D; border: none; border-radius: 20px; cursor: pointer;">Reload</button>
+        </div>
+      </div>
+    `;
+  }
+  return false;
+};
+
+// Handle unhandled promise rejections
+window.onunhandledrejection = function(event) {
+  console.error('[Genesis] Unhandled promise rejection:', event.reason);
+};
 
 interface ErrorBoundaryProps {
   children: ReactNode;
