@@ -185,69 +185,58 @@ const rateLimiter = {
   }
 };
 
-// Helper function to call Grok API with automatic key rotation
-async function callGeminiAPI(prompt: string, model: string = "x-ai/grok-4.1-fast:free", maxTokens: number = 4096): Promise<string> {
-  const url = "https://openrouter.ai/api/v1/chat/completions";
-  let lastError: any;
+// Bytez API key for text generation (Gemini 2.5 Pro)
+const BYTEZ_TEXT_API_KEY = import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
+const GEMINI_TEXT_MODEL = 'google/gemini-2.5-pro';
 
-  // Try each available Grok key
-  for (let i = 0; i < grokApiKeys.length; i++) {
-    const apiKey = getNextGrokKey();
-    if (!apiKey) throw new Error("No Grok API keys available");
+// Helper function to call Bytez API with Gemini 2.5 Pro for text generation
+async function callGeminiAPI(prompt: string, _model: string = GEMINI_TEXT_MODEL, _maxTokens: number = 4096): Promise<string> {
+  try {
+    console.log(`🔄 Calling Bytez API with ${GEMINI_TEXT_MODEL}...`);
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "x-ai/grok-4.1-fast:free",
-          messages: [
-            { role: "user", content: prompt }
-          ],
-          response_format: { type: "json_object" },
-          max_tokens: maxTokens
-        })
-      });
+    const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
+    const model = sdk.model(GEMINI_TEXT_MODEL);
 
-      if (!response.ok) {
-        const error = await response.text();
-        const errorObj = { status: response.status, message: error };
-
-        // Retry on quota/rate limit errors
-        if ([429, 403, 500].includes(response.status)) {
-          lastError = errorObj;
-          console.warn(`⚠️ Grok key #${(currentGrokKeyIndex === 0 ? grokApiKeys.length : currentGrokKeyIndex)} failed, trying next...`);
-          continue;
-        }
-
-        throw new Error(`Grok API error: ${response.status} - ${error}`);
+    const messages = [
+      {
+        role: "user",
+        content: `You are a JSON generator. Always respond with valid JSON only. No markdown code blocks, no explanations, just pure JSON.\n\n${prompt}\n\nRespond with valid JSON only.`
       }
+    ];
 
-      const data = await response.json();
+    const { error, output } = await model.run(messages);
 
-      if (!data.choices || !data.choices[0]) {
-        throw new Error("No response from Grok API");
-      }
-
-      if (i > 0) {
-        console.log(`✅ Succeeded with Grok key #${(currentGrokKeyIndex === 0 ? grokApiKeys.length : currentGrokKeyIndex)}`);
-      }
-
-      return data.choices[0].message.content;
-    } catch (error: any) {
-      // If it's not a retryable error, throw immediately
-      if (!lastError) {
-        throw error;
-      }
-      lastError = error;
+    if (error) {
+      console.error('❌ Bytez API error:', error);
+      throw new Error(`Bytez API error: ${JSON.stringify(error)}`);
     }
-  }
 
-  console.error("❌ All Grok API keys exhausted");
-  throw lastError || new Error("All Grok API keys failed");
+    if (!output) {
+      console.error('❌ No output from Bytez API');
+      throw new Error('No output received from Bytez API');
+    }
+
+    console.log('✅ Bytez API response received');
+
+    // Handle different output formats
+    let content: string;
+    if (typeof output === 'string') {
+      content = output;
+    } else if (output.content) {
+      content = output.content;
+    } else if (output.message?.content) {
+      content = output.message.content;
+    } else if (Array.isArray(output) && output[0]?.content) {
+      content = output[0].content;
+    } else {
+      content = JSON.stringify(output);
+    }
+
+    return content;
+  } catch (error: any) {
+    console.error('❌ Bytez API call failed:', error);
+    throw error;
+  }
 }
 
 const SYSTEM_INSTRUCTION_ARCHITECT = `You are an AI ebook generation engine for a web/mobile application. Your responses must be valid JSON that the application can parse and render. Generate engaging, age-appropriate stories with consistent formatting for programmatic consumption.
@@ -546,7 +535,59 @@ export const generateBookStructure = async (settings: GenerationSettings): Promi
     } : {})
   };
 
+  // Build educational instructions if needed
+  let educationalInstructions = '';
+  if (settings.educational && settings.learningConfig) {
+    const mode = settings.learningConfig.integrationMode;
+    educationalInstructions = `
+
+## CRITICAL EDUCATIONAL REQUIREMENTS
+
+This is an EDUCATIONAL book. You MUST include learning content based on these settings:
+- Subject: ${settings.learningConfig.subject}
+- Learning Objectives: ${settings.learningConfig.objectives}
+- Difficulty: ${settings.learningConfig.difficulty}
+- Integration Mode: ${mode}
+
+${mode === 'integrated' ? `
+### INTEGRATED MODE INSTRUCTIONS:
+- Weave learning moments DIRECTLY into the story narrative on EVERY page
+- Each page MUST have a "learningContent" field with:
+  - "topic": The specific concept being taught
+  - "mentorDialogue": A character explaining the concept naturally within the story
+  - "quiz": A question related to the concept with options and correct answer
+- The mentor character should appear throughout the story teaching concepts
+- Learning should feel natural, not forced
+` : ''}
+
+${mode === 'after-chapter' ? `
+### AFTER-CHAPTER MODE INSTRUCTIONS:
+- Tell the story normally for 3-4 pages
+- After every 3-4 story pages, INSERT a dedicated "Review Page"
+- Review pages MUST have:
+  - "layoutType": "learning-break"
+  - "text": A brief review introduction
+  - "learningContent": Full learning content with mentorDialogue and quiz
+- Create at least 2-3 review pages throughout the book
+` : ''}
+
+${mode === 'dedicated-section' ? `
+### DEDICATED SECTION MODE INSTRUCTIONS:
+- First, create the full story WITHOUT any learningContent (Chapters 1 to N-1)
+- THEN create a FINAL chapter titled "Learning Section" or "What We Learned"
+- This final chapter MUST contain 2-4 pages with:
+  - "layoutType": "learning-only"
+  - "learningContent" with comprehensive mentorDialogue and quiz for each concept
+  - Review of all the learning objectives from the story
+- The final chapter should reference story events while teaching
+` : ''}
+
+IMPORTANT: You MUST include the learningContent field with mentorDialogue and quiz on the appropriate pages based on the integration mode above.
+`;
+  }
+
   const prompt = `${SYSTEM_INSTRUCTION_ARCHITECT}
+${educationalInstructions}
 
 Generate a book based on this request:
 ${JSON.stringify(inputPayload, null, 2)}`;
@@ -554,7 +595,7 @@ ${JSON.stringify(inputPayload, null, 2)}`;
   try {
     console.log('🤖 Generating book structure with Grok API...');
 
-    const text = await callGeminiAPI(prompt, "x-ai/grok-4.1-fast:free", 8192); // Increased token limit for full book
+    const text = await callGeminiAPI(prompt, "google/gemini-2.0-flash-exp:free", 8192); // Increased token limit for full book
 
     console.log(`✅ Book structure generated (${text.length} chars)`);
 
@@ -658,7 +699,7 @@ export const generateStructuredContent = async <T>(
 
     console.log('🤖 Generating structured content with Grok API...');
 
-    const text = await callGeminiAPI(fullPrompt, "x-ai/grok-4.1-fast:free", 2048);
+    const text = await callGeminiAPI(fullPrompt, "google/gemini-2.0-flash-exp:free", 2048);
 
     const jsonString = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(jsonString) as T;
@@ -758,11 +799,18 @@ export const generateRefinedImage = async (
   if (params.camera) composition += ` Camera Angle: ${params.camera}.`;
 
   const fullPrompt = `
+    Create a high-quality, gallery-worthy masterpiece.
     ${styleInstruction}
     ${composition}
     Subject: ${prompt}.
     ${params.characterDescription ? `Character Details: ${params.characterDescription}` : ''}
-    High quality, detailed, cinematic composition, 8k resolution.
+    
+    CRITICAL QUALITY INSTRUCTIONS:
+    - Ultra-detailed, 8k resolution, cinematic lighting, photorealistic textures (unless style specifies otherwise).
+    - Wide-angle composition suitable for a large gallery display.
+    - Depth of field, volumetric lighting, and rich colors.
+    - No artifacts, no blurring, perfect anatomy and proportions.
+    - Make it look like a top-tier production still from a movie or high-end game.
   `;
 
   try {

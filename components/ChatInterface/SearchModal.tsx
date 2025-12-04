@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, X, Hash, User, Calendar, Paperclip, Link2,
@@ -167,7 +168,8 @@ const SearchModal: React.FC<SearchModalProps> = ({ onClose, onSelectResult }) =>
         setActiveFilters(activeFilters.filter(f => f.label !== filter.label));
     };
 
-    return (
+    // Use portal to render outside any overflow:hidden containers
+    return createPortal(
         <motion.div
             className="chat-search-modal"
             initial={{ opacity: 0 }}
@@ -339,7 +341,8 @@ const SearchModal: React.FC<SearchModalProps> = ({ onClose, onSelectResult }) =>
                     </div>
                 </div>
             </motion.div>
-        </motion.div>
+        </motion.div>,
+        document.body
     );
 };
 

@@ -25,23 +25,15 @@ import {
 } from '../types/curriculum';
 import { UserTier } from '../types';
 
-// OpenRouter API configuration for curriculum generation
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// @ts-ignore
+import Bytez from 'bytez.js';
 
-// Load Grok API keys
-const grokApiKeys = [
-  import.meta.env.VITE_GROK_API_KEY_1,
-  import.meta.env.VITE_GROK_API_KEY_2,
-  import.meta.env.VITE_GROK_API_KEY_3,
-].filter((key: string | undefined) => key && key.length > 0);
+// Bytez API configuration for curriculum generation (Gemini 2.5 Pro)
+const BYTEZ_TEXT_API_KEY = import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
+const GEMINI_TEXT_MODEL = 'google/gemini-2.5-pro';
 
-let currentGrokKeyIndex = 0;
-
-function getNextGrokKey(): string | null {
-  if (grokApiKeys.length === 0) return null;
-  const key = grokApiKeys[currentGrokKeyIndex];
-  currentGrokKeyIndex = (currentGrokKeyIndex + 1) % grokApiKeys.length;
-  return key;
+if (BYTEZ_TEXT_API_KEY) {
+  console.log('✅ Curriculum Service: Bytez API configured with Gemini 2.5 Pro');
 }
 
 /**
@@ -362,63 +354,58 @@ All content must include:
 Remember: Generate ONLY valid JSON. The response must be parseable by JSON.parse() directly.`;
 
 /**
- * Call the AI API to generate curriculum content
+ * Call the AI API to generate curriculum content using Bytez with Gemini 2.5 Pro
  */
 async function callCurriculumAPI(
   prompt: string,
-  maxTokens: number = 16384
+  _maxTokens: number = 16384
 ): Promise<string> {
-  let lastError: Error | null = null;
-
-  for (let i = 0; i < grokApiKeys.length; i++) {
-    const apiKey = getNextGrokKey();
-    if (!apiKey) throw new Error("No API keys available for curriculum generation");
-
-    try {
-      const response = await fetch(OPENROUTER_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": window.location.origin,
-          "X-Title": "Genesis Curriculum Engine"
-        },
-        body: JSON.stringify({
-          model: "x-ai/grok-4.1-fast:free",
-          messages: [
-            { role: "system", content: CURRICULUM_SYSTEM_PROMPT },
-            { role: "user", content: prompt }
-          ],
-          response_format: { type: "json_object" },
-          max_tokens: maxTokens,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        if ([429, 403, 500].includes(response.status)) {
-          lastError = new Error(`API error: ${response.status}`);
-          console.warn(`⚠️ Curriculum API key #${i + 1} failed, trying next...`);
-          continue;
-        }
-        throw new Error(`Curriculum API error: ${response.status} - ${error}`);
+  try {
+    console.log(`🔄 Curriculum: Calling Bytez API with ${GEMINI_TEXT_MODEL}...`);
+    
+    const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
+    const model = sdk.model(GEMINI_TEXT_MODEL);
+    
+    const messages = [
+      { 
+        role: "user", 
+        content: CURRICULUM_SYSTEM_PROMPT + "\n\nAlways respond with valid JSON only. No markdown code blocks.\n\n" + prompt + "\n\nRespond with valid JSON only."
       }
-
-      const data = await response.json();
-      if (!data.choices || !data.choices[0]) {
-        throw new Error("No response from curriculum API");
-      }
-
-      console.log(`✅ Curriculum generated with API key #${i + 1}`);
-      return data.choices[0].message.content;
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`⚠️ Curriculum generation attempt ${i + 1} failed:`, error);
+    ];
+    
+    const { error, output } = await model.run(messages);
+    
+    if (error) {
+      console.error('❌ Curriculum Bytez API error:', error);
+      throw new Error(`Curriculum API error: ${JSON.stringify(error)}`);
     }
+    
+    if (!output) {
+      console.error('❌ No output from curriculum API');
+      throw new Error('No output received from curriculum API');
+    }
+    
+    console.log('✅ Curriculum generated successfully');
+    
+    // Handle different output formats
+    let content: string;
+    if (typeof output === 'string') {
+      content = output;
+    } else if (output.content) {
+      content = output.content;
+    } else if (output.message?.content) {
+      content = output.message.content;
+    } else if (Array.isArray(output) && output[0]?.content) {
+      content = output[0].content;
+    } else {
+      content = JSON.stringify(output);
+    }
+    
+    return content;
+  } catch (error) {
+    console.error('❌ Curriculum generation failed:', error);
+    throw error;
   }
-
-  throw lastError || new Error("All API keys failed for curriculum generation");
 }
 
 /**

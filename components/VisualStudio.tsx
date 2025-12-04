@@ -6,7 +6,7 @@ import {
     Camera,
     Palette,
     Sparkles,
-    Download,
+    Bookmark,
     RefreshCw,
     Sliders,
     Sun,
@@ -32,7 +32,8 @@ import {
     GitBranch,
     Bell,
     BarChart2,
-    History
+    History,
+    Download
 } from 'lucide-react';
 import { generateRefinedImage } from '../services/geminiService';
 import MessagesWidget from './MessagesWidget';
@@ -967,22 +968,74 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
         }
     };
 
-    const handleSaveAsset = () => {
-        if (!settings.generatedImage) return;
+    const handleSaveToLibrary = async () => {
+        if (!settings.generatedImage) {
+            showToast('❌ No image to save. Generate an image first!');
+            return;
+        }
 
-        // Create a temporary link element to trigger download
-        const link = document.createElement('a');
-        link.href = settings.generatedImage;
+        try {
+            // Generate metadata for the saved image
+            const timestamp = new Date().toISOString();
+            const tabName = activeTab === 'character' ? 'character' : activeTab === 'scene' ? 'scene' : 'style-mix';
+            const imageId = `genesis-${tabName}-${Date.now()}`;
 
-        // Generate filename based on active tab and timestamp
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-        const tabName = activeTab === 'character' ? 'character' : activeTab === 'scene' ? 'scene' : 'style-mix';
-        link.download = `genesis-${tabName}-${timestamp}.png`;
+            // Create the saved image object
+            const savedImage = {
+                id: imageId,
+                imageUrl: settings.generatedImage,
+                prompt: settings.prompt,
+                type: tabName,
+                settings: {
+                    styleA: settings.styleA,
+                    styleB: settings.styleB,
+                    mixRatio: settings.mixRatio,
+                    lighting: settings.lighting,
+                    cameraAngle: settings.cameraAngle,
+                    expression: settings.expression,
+                    pose: settings.pose,
+                    costume: settings.costume,
+                    characterId: settings.selectedCharacterId || undefined
+                },
+                savedAt: timestamp,
+                characterName: settings.selectedCharacterId
+                    ? availableCharacters.find(c => c.id === settings.selectedCharacterId)?.name
+                    : undefined
+            };
 
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            // Save to localStorage (Library)
+            const LIBRARY_KEY = 'genesis_visual_library';
+            const existingLibrary = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]');
+            existingLibrary.unshift(savedImage);
+            // Keep only the latest 100 images
+            if (existingLibrary.length > 100) {
+                existingLibrary.pop();
+            }
+            localStorage.setItem(LIBRARY_KEY, JSON.stringify(existingLibrary));
+
+            // Also share to collaborative gallery
+            try {
+                const result = await collaborationService.shareVisual({
+                    session_id: sessionId || undefined,
+                    image_url: settings.generatedImage,
+                    prompt: settings.prompt || 'A creative visual',
+                    visibility: 'public',
+                    settings: savedImage.settings
+                });
+
+                if (result.success && result.data) {
+                    setSharedVisuals(prev => [result.data!, ...prev]);
+                }
+            } catch (shareError) {
+                // Don't fail the save if sharing fails
+                console.warn('Failed to share to gallery:', shareError);
+            }
+
+            showToast('✅ Saved to your library and shared to gallery!');
+        } catch (error) {
+            console.error('Failed to save image:', error);
+            showToast('❌ Failed to save image. Please try again.');
+        }
     };
 
     const handleCollaborationStart = () => {
@@ -1194,34 +1247,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                     <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
                         {/* Control Panel - Left Side (40%) */}
                         <div
-                            className="bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-[500px] lg:max-h-[600px] panel-breathing"
+                            className="bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-[500px] lg:max-h-[680px] panel-breathing"
                         >
-                            {/* Selected Character Image Display */}
-                            {activeTab === 'character' && settings.selectedCharacterId && (
-                                <div className="flex justify-center mb-6 animate-fadeIn">
-                                    {(() => {
-                                        const char = availableCharacters.find(c => c.id === settings.selectedCharacterId);
-                                        if (char && char.imageUrl) {
-                                            return (
-                                                <div className="relative group">
-                                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
-                                                        <img
-                                                            src={char.imageUrl}
-                                                            alt={char.name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-coral-burst text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                                                        {char.name}
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                            )}
-
                             {/* Tabs */}
                             <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
                                 {['character', 'scene', 'style'].map((tab) => (
@@ -1427,7 +1454,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         </div>
 
                         {/* Chat Panel - Right Side (60% on Desktop), Hidden on Mobile (Use Mobile Bottom Nav) */}
-                        <div className="hidden lg:block w-full lg:w-3/5 h-[400px] lg:h-[600px] rounded-3xl overflow-hidden shadow-soft-lg border border-peach-soft/30 chat-panel-breathing">
+                        <div className="hidden lg:block w-full lg:w-3/5 h-[400px] lg:h-[680px] rounded-3xl overflow-hidden shadow-soft-lg border border-peach-soft/30 chat-panel-breathing">
                             <ChatContainer
                                 projectName={project?.title || 'Genesis'}
                                 userProfile={userProfile ? {
@@ -1475,24 +1502,24 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                         Share
                                     </button>
                                     <button
-                                        onClick={handleSaveAsset}
+                                        onClick={handleSaveToLibrary}
                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-burst text-white rounded-lg text-xs font-bold hover:scale-105 active:scale-95 transition-transform"
                                     >
-                                        <Download className="w-3.5 h-3.5" />
-                                        Download
+                                        <Bookmark className="w-3.5 h-3.5" />
+                                        Save
                                     </button>
                                 </div>
                             )}
                         </div>
-                        <div className="p-6 min-h-[400px] md:min-h-[500px] bg-gradient-to-br from-cream-base to-cream-soft flex items-center justify-center">
+                        <div className="p-6 min-h-[600px] md:min-h-[800px] bg-gradient-to-br from-cream-base to-cream-soft flex items-center justify-center">
                             {settings.generatedImage ? (
-                                <div className="relative group max-w-full max-h-[500px]">
+                                <div className="relative group w-full h-full flex items-center justify-center">
                                     <img
                                         src={settings.generatedImage}
                                         alt="Generated visual"
-                                        className="max-w-full max-h-[500px] object-contain rounded-2xl shadow-2xl border-4 border-white"
+                                        className="max-w-full max-h-[800px] object-contain rounded-2xl shadow-2xl border-4 border-white"
                                     />
-                                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                                 </div>
                             ) : (
                                 <div className="text-center">
@@ -1526,9 +1553,9 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
 
                 {/* Collaborative Mode Content - Preview Area / Collaborative Grid */}
                 {isCollaborativeMode && (
-                <div className="flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col rounded-3xl overflow-hidden relative">
-                    <div className="w-full h-full flex flex-col overflow-hidden">
-                        {/* Collaborative Box Header with Presence - Mobile Optimized */}
+                    <div className="flex-1 bg-white border-4 border-gray-200 shadow-2xl flex flex-col rounded-3xl overflow-hidden relative">
+                        <div className="w-full h-full flex flex-col overflow-hidden">
+                            {/* Collaborative Box Header with Presence - Mobile Optimized */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 gap-2 sm:gap-0">
                                 {/* Top Row - Title, Presence, Refresh */}
                                 <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
@@ -1705,169 +1732,169 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                     <div className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto scroll-container">
                                         {/* Content Grid */}
                                         <div className="p-2 sm:p-3 md:p-6">
-                                        {/* Mobile: Extra padding for floating tabs and bottom nav */}
-                                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-4">
-                                            {/* Current User Creation Card */}
-                                            <div
-                                                className="bg-white rounded-xl sm:rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[240px] xs:h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
-                                            >
-                                                <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                                                    <div className="flex items-center gap-1.5 sm:gap-2">
-                                                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[9px] sm:text-[10px] md:text-xs">YOU</div>
-                                                        <span className="font-bold text-[10px] sm:text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
+                                            {/* Mobile: Extra padding for floating tabs and bottom nav */}
+                                            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6 pb-4">
+                                                {/* Current User Creation Card */}
+                                                <div
+                                                    className="bg-white rounded-xl sm:rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[240px] xs:h-[260px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden border-2 border-coral-burst/50 hover:shadow-xl transition-all group"
+                                                >
+                                                    <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                                                        <div className="flex items-center gap-1.5 sm:gap-2">
+                                                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-coral-burst flex items-center justify-center text-white font-bold text-[9px] sm:text-[10px] md:text-xs">YOU</div>
+                                                            <span className="font-bold text-[10px] sm:text-xs md:text-sm text-charcoal-soft">Your Canvas</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            {settings.generatedImage && (
+                                                                <>
+                                                                    {/* Version History Button */}
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            // Use session ID or a placeholder for current user's visual history
+                                                                            if (sessionId) {
+                                                                                setSelectedVisualForHistory(sessionId);
+                                                                                setShowFamilyTree(true);
+                                                                            }
+                                                                        }}
+                                                                        className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 active:scale-95 transition-all min-h-[32px] min-w-[32px] flex items-center justify-center"
+                                                                        title="Version History"
+                                                                    >
+                                                                        <History className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setShowShareModal(true)}
+                                                                        className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-[10px] sm:text-xs font-bold hover:scale-105 active:scale-95 transition-transform min-h-[28px]"
+                                                                    >
+                                                                        <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                                        <span className="hidden xs:inline">Share</span>
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1">
-                                                        {settings.generatedImage && (
+                                                    <div
+                                                        className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative cursor-pointer"
+                                                        onClick={() => settings.generatedImage && setExpandedVisual('current')}
+                                                    >
+                                                        {settings.generatedImage ? (
                                                             <>
-                                                                {/* Version History Button */}
-                                                                <button
-                                                                    onClick={() => {
-                                                                        // Use session ID or a placeholder for current user's visual history
-                                                                        if (sessionId) {
-                                                                            setSelectedVisualForHistory(sessionId);
-                                                                            setShowFamilyTree(true);
-                                                                        }
-                                                                    }}
-                                                                    className="p-1.5 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 active:scale-95 transition-all min-h-[32px] min-w-[32px] flex items-center justify-center"
-                                                                    title="Version History"
-                                                                >
-                                                                    <History className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setShowShareModal(true)}
-                                                                    className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full text-[10px] sm:text-xs font-bold hover:scale-105 active:scale-95 transition-transform min-h-[28px]"
-                                                                >
-                                                                    <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                                                    <span className="hidden xs:inline">Share</span>
-                                                                </button>
+                                                                <img src={settings.generatedImage} alt="Your work" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                                                    <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                                                                </div>
                                                             </>
+                                                        ) : (
+                                                            <div className="text-center p-4">
+                                                                {isGenerating ? (
+                                                                    <div className="flex flex-col items-center gap-2">
+                                                                        <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-coral-burst animate-spin" />
+                                                                        <span className="text-xs text-coral-burst animate-pulse">Creating magic...</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex flex-col items-center gap-2">
+                                                                        <Wand2 className="w-8 h-8 text-gray-300" />
+                                                                        <span className="text-gray-400 text-xs md:text-sm">Generate something amazing!</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
+                                                    {isGenerating && (
+                                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
+                                                            <div className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine animate-pulse" style={{ width: '60%' }} />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div
-                                                    className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative cursor-pointer"
-                                                    onClick={() => settings.generatedImage && setExpandedVisual('current')}
-                                                >
-                                                    {settings.generatedImage ? (
-                                                        <>
-                                                            <img src={settings.generatedImage} alt="Your work" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                                <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+
+                                                {/* Shared Visuals from Community */}
+                                                {isLoadingData && sharedVisuals.length === 0 && (
+                                                    // Loading skeleton placeholders
+                                                    Array.from({ length: 6 }).map((_, idx) => (
+                                                        <div key={`skeleton-${idx}`} className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] animate-pulse">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
+                                                                <div className="h-3 w-20 bg-gray-200 rounded" />
                                                             </div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="text-center p-4">
-                                                            {isGenerating ? (
-                                                                <div className="flex flex-col items-center gap-2">
-                                                                    <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-coral-burst animate-spin" />
-                                                                    <span className="text-xs text-coral-burst animate-pulse">Creating magic...</span>
-                                                                </div>
+                                                            <div className="flex-1 bg-gray-100 rounded-xl" />
+                                                            <div className="flex gap-2 mt-2">
+                                                                <div className="h-6 w-16 bg-gray-200 rounded-full" />
+                                                                <div className="h-6 w-16 bg-gray-200 rounded-full" />
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                                {sharedVisuals.map(visual => (
+                                                    <SharedVisualCard
+                                                        key={visual.id}
+                                                        visual={visual}
+                                                        onRemix={() => handleRemixVisual(visual)}
+                                                        onExpand={() => setSelectedVisual(visual)}
+                                                        onViewLineage={() => {
+                                                            setSelectedVisualForHistory(visual.id);
+                                                            setShowFamilyTree(true);
+                                                        }}
+                                                    />
+                                                ))}
+
+                                                {/* Legacy Collaborator Slots (for demo/fallback) */}
+                                                {sharedVisuals.length === 0 && collaborators.map(user => (
+                                                    <div
+                                                        key={user.id}
+                                                        className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+                                                        onClick={() => user.status === 'done' && user.image && setExpandedVisual(user)}
+                                                    >
+                                                        <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                                                            <img src={user.avatar} alt={user.name} className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
+                                                            <span className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{user.name}</span>
+                                                            {user.status === 'typing' && <span className="text-[10px] md:text-xs text-gray-400 animate-pulse ml-auto">Typing...</span>}
+                                                            {user.status === 'generating' && <span className="text-[10px] md:text-xs text-purple-500 animate-pulse ml-auto">Gen...</span>}
+                                                        </div>
+                                                        <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative">
+                                                            {user.status === 'done' && user.image ? (
+                                                                <img src={user.image} alt={`${user.name}'s work`} className="w-full h-full object-cover animate-fadeIn transition-transform duration-500 group-hover:scale-105" />
                                                             ) : (
-                                                                <div className="flex flex-col items-center gap-2">
-                                                                    <Wand2 className="w-8 h-8 text-gray-300" />
-                                                                    <span className="text-gray-400 text-xs md:text-sm">Generate something amazing!</span>
+                                                                <div className="text-center p-2 md:p-4">
+                                                                    {user.status === 'generating' ? (
+                                                                        <div className="flex flex-col items-center gap-2">
+                                                                            <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-purple-500 animate-spin" />
+                                                                            <span className="text-[10px] md:text-xs text-purple-500">Creating...</span>
+                                                                        </div>
+                                                                    ) : user.status === 'typing' ? (
+                                                                        <div className="flex gap-1">
+                                                                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                                                                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+                                                                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-gray-300 text-xs md:text-sm">Waiting...</span>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                {isGenerating && (
-                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-                                                        <div className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine animate-pulse" style={{ width: '60%' }} />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Shared Visuals from Community */}
-                                            {isLoadingData && sharedVisuals.length === 0 && (
-                                                // Loading skeleton placeholders
-                                                Array.from({ length: 6 }).map((_, idx) => (
-                                                    <div key={`skeleton-${idx}`} className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] animate-pulse">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
-                                                            <div className="h-3 w-20 bg-gray-200 rounded" />
-                                                        </div>
-                                                        <div className="flex-1 bg-gray-100 rounded-xl" />
-                                                        <div className="flex gap-2 mt-2">
-                                                            <div className="h-6 w-16 bg-gray-200 rounded-full" />
-                                                            <div className="h-6 w-16 bg-gray-200 rounded-full" />
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-                                            {sharedVisuals.map(visual => (
-                                                <SharedVisualCard
-                                                    key={visual.id}
-                                                    visual={visual}
-                                                    onRemix={() => handleRemixVisual(visual)}
-                                                    onExpand={() => setSelectedVisual(visual)}
-                                                    onViewLineage={() => {
-                                                        setSelectedVisualForHistory(visual.id);
-                                                        setShowFamilyTree(true);
-                                                    }}
-                                                />
-                                            ))}
-
-                                            {/* Legacy Collaborator Slots (for demo/fallback) */}
-                                            {sharedVisuals.length === 0 && collaborators.map(user => (
-                                                <div
-                                                    key={user.id}
-                                                    className="bg-white rounded-2xl shadow-md p-2 md:p-3 flex flex-col h-[280px] sm:h-[320px] md:h-[380px] lg:h-[420px] relative overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
-                                                    onClick={() => user.status === 'done' && user.image && setExpandedVisual(user)}
-                                                >
-                                                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                                                        <img src={user.avatar} alt={user.name} className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200" />
-                                                        <span className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{user.name}</span>
-                                                        {user.status === 'typing' && <span className="text-[10px] md:text-xs text-gray-400 animate-pulse ml-auto">Typing...</span>}
-                                                        {user.status === 'generating' && <span className="text-[10px] md:text-xs text-purple-500 animate-pulse ml-auto">Gen...</span>}
-                                                    </div>
-                                                    <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden relative">
-                                                        {user.status === 'done' && user.image ? (
-                                                            <img src={user.image} alt={`${user.name}'s work`} className="w-full h-full object-cover animate-fadeIn transition-transform duration-500 group-hover:scale-105" />
-                                                        ) : (
-                                                            <div className="text-center p-2 md:p-4">
-                                                                {user.status === 'generating' ? (
-                                                                    <div className="flex flex-col items-center gap-2">
-                                                                        <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-purple-500 animate-spin" />
-                                                                        <span className="text-[10px] md:text-xs text-purple-500">Creating...</span>
-                                                                    </div>
-                                                                ) : user.status === 'typing' ? (
-                                                                    <div className="flex gap-1">
-                                                                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                                                                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
-                                                                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <span className="text-gray-300 text-xs md:text-sm">Waiting...</span>
-                                                                )}
+                                                        {/* Like Button */}
+                                                        {user.status === 'done' && user.image && (
+                                                            <div className="absolute bottom-2 right-2 z-10">
+                                                                <button
+                                                                    onClick={(e) => handleLike(user.id, e)}
+                                                                    className={`flex items-center gap-1 px-2 py-1 rounded-full shadow-md transition-all ${user.likedByUser
+                                                                        ? 'bg-red-500 text-white'
+                                                                        : 'bg-white text-gray-600 hover:bg-red-50'
+                                                                        }`}
+                                                                >
+                                                                    <span className="text-sm">{user.likedByUser ? '❤️' : '🤍'}</span>
+                                                                    {(user.likes || 0) > 0 && (
+                                                                        <span className="text-xs font-bold">{user.likes}</span>
+                                                                    )}
+                                                                </button>
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {/* Like Button */}
-                                                    {user.status === 'done' && user.image && (
-                                                        <div className="absolute bottom-2 right-2 z-10">
-                                                            <button
-                                                                onClick={(e) => handleLike(user.id, e)}
-                                                                className={`flex items-center gap-1 px-2 py-1 rounded-full shadow-md transition-all ${user.likedByUser
-                                                                    ? 'bg-red-500 text-white'
-                                                                    : 'bg-white text-gray-600 hover:bg-red-50'
-                                                                    }`}
-                                                            >
-                                                                <span className="text-sm">{user.likedByUser ? '❤️' : '🤍'}</span>
-                                                                {(user.likes || 0) > 0 && (
-                                                                    <span className="text-xs font-bold">{user.likes}</span>
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                        </div>
-                                        
+
                                         {/* Collaboration Illustration - Scrolls with content, touches bottom */}
                                         <div className="w-full flex-shrink-0">
-                                            <img 
+                                            <img
                                                 src="/assets/mascots/8k_3d_pixar_202512022106.jpeg"
                                                 alt="Collaborate in Real-Time"
                                                 className="w-full h-auto object-cover object-center"
@@ -2093,23 +2120,22 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             {/* Desktop Chat Toggle Button - Hidden since chat is now embedded in individual mode */}
             {/* This button can be used for collaborative mode if chat overlay is needed */}
             {isCollaborativeMode && (
-            <button
-                onClick={() => setIsDesktopChatOpen(!isDesktopChatOpen)}
-                className={`hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-2 px-4 py-3 font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all ${
-                    isDesktopChatOpen 
-                        ? 'bg-gray-700 text-white hover:bg-gray-800' 
+                <button
+                    onClick={() => setIsDesktopChatOpen(!isDesktopChatOpen)}
+                    className={`hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-2 px-4 py-3 font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all ${isDesktopChatOpen
+                        ? 'bg-gray-700 text-white hover:bg-gray-800'
                         : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:scale-105'
-                }`}
-                title={isDesktopChatOpen ? "Close Chat" : "Open Chat"}
-            >
-                {isDesktopChatOpen ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
-                <span>{isDesktopChatOpen ? 'Close' : 'Chat'}</span>
-                {!isDesktopChatOpen && unreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                )}
-            </button>
+                        }`}
+                    title={isDesktopChatOpen ? "Close Chat" : "Open Chat"}
+                >
+                    {isDesktopChatOpen ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+                    <span>{isDesktopChatOpen ? 'Close' : 'Chat'}</span>
+                    {!isDesktopChatOpen && unreadCount > 0 && (
+                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                </button>
             )}
 
             {/* Desktop Chat Slide-in Panel - Only for Collaborative Mode */}

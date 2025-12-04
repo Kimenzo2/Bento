@@ -301,11 +301,64 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             </div>
                         </label>
                         <textarea
-                            className="w-full h-[240px] bg-white border border-peach-soft rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 transition-all resize-none shadow-sm"
+                            className="w-full h-[200px] bg-white border border-peach-soft rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 transition-all resize-none shadow-sm"
                             value={activePage.text}
                             onChange={(e) => handleTextChange(e.target.value)}
                             placeholder="Once upon a time..."
                         />
+
+                        {/* Learning Content Display */}
+                        {activePage.learningContent && (
+                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 border border-emerald-200 mt-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">🎓</span>
+                                    <h4 className="font-heading font-bold text-sm text-emerald-900 uppercase">Learning Content</h4>
+                                    {activePage.learningContent.topic && (
+                                        <span className="ml-auto px-2 py-1 bg-emerald-200 text-emerald-800 text-xs rounded-full font-medium">
+                                            {activePage.learningContent.topic}
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                {activePage.learningContent.mentorDialogue && (
+                                    <div className="bg-white rounded-xl p-4 mb-3 border border-emerald-100">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-xl">🦉</span>
+                                            <div>
+                                                <p className="text-xs font-bold text-emerald-700 mb-1">Mentor Says:</p>
+                                                <p className="text-sm text-charcoal-soft italic">"{activePage.learningContent.mentorDialogue}"</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {activePage.learningContent.quiz && (
+                                    <div className="bg-white rounded-xl p-4 border border-emerald-100">
+                                        <p className="text-xs font-bold text-emerald-700 mb-2">📝 Quiz Question:</p>
+                                        <p className="text-sm text-charcoal-soft font-medium mb-3">{activePage.learningContent.quiz.question}</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {activePage.learningContent.quiz.options?.map((option: string, idx: number) => (
+                                                <div 
+                                                    key={idx}
+                                                    className={`px-3 py-2 rounded-lg text-xs font-medium ${
+                                                        option === activePage.learningContent?.quiz?.correctAnswer 
+                                                            ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+                                                            : 'bg-gray-100 text-gray-700'
+                                                    }`}
+                                                >
+                                                    {option} {option === activePage.learningContent?.quiz?.correctAnswer && '✓'}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {activePage.learningContent.quiz.explanation && (
+                                            <p className="mt-3 text-xs text-emerald-600 italic">
+                                                💡 {activePage.learningContent.quiz.explanation}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Feature #3: Real-Time Suggestions */}
                         {suggestions.length > 0 && (

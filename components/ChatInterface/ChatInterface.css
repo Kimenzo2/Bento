@@ -1619,6 +1619,7 @@
     background: var(--chat-bg-primary);
     position: relative;
     z-index: 20;
+    flex-shrink: 0;
 }
 
 /* Subtle gradient glow above input */
@@ -1695,6 +1696,8 @@
     border-radius: 20px;
     transition: all 0.25s var(--chat-ease-smooth);
     position: relative;
+    min-width: 0;
+    overflow: visible;
 }
 
 /* Subtle inner glow */
@@ -1792,6 +1795,8 @@
 .chat-input-send {
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1955,7 +1960,7 @@
     background: rgba(0, 0, 0, 0.5);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
-    z-index: 100;
+    z-index: 9999;
 }
 
 .chat-search-modal-content {

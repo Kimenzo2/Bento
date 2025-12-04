@@ -1,25 +1,75 @@
 import { BookProject } from '../types';
+// @ts-ignore
+import Bytez from 'bytez.js';
 
-const GROK_API_KEY = import.meta.env.VITE_GROK_API_KEY;
-const GROK_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-const GROK_MODEL = 'x-ai/grok-4.1-fast:free';
+// Bytez API key for text generation
+const BYTEZ_API_KEY = import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
+const TEXT_MODEL = 'google/gemini-2.5-pro';
 
 // Validate API key at module load
-if (!GROK_API_KEY) {
-    console.warn('⚠️ VITE_GROK_API_KEY is not configured. AI features will not work.');
+if (!BYTEZ_API_KEY) {
+    console.warn('⚠️ VITE_BYTEZ_TEXT_API_KEY is not configured. AI features will not work.');
+} else {
+    console.log('✅ Bytez Text API configured with Gemini 2.5 Pro');
 }
 
 /**
- * Check if the Grok API is available
+ * Check if the Bytez API is available
  */
 export const isGrokAvailable = (): boolean => {
-    return Boolean(GROK_API_KEY && GROK_API_KEY.length > 0);
+    return Boolean(BYTEZ_API_KEY && BYTEZ_API_KEY.length > 0);
 };
 
 interface GrokMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
-    reasoning_details?: any;
+}
+
+/**
+ * Helper function to make API calls using Bytez SDK with Gemini 2.5 Pro
+ */
+async function callAPI(messages: GrokMessage[]): Promise<string> {
+    try {
+        const sdk = new Bytez(BYTEZ_API_KEY);
+        const model = sdk.model(TEXT_MODEL);
+        
+        // Convert messages to the format expected by Bytez
+        const formattedMessages = messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+        }));
+        
+        console.log(`🔄 Calling Bytez API with ${TEXT_MODEL}...`);
+        const { error, output } = await model.run(formattedMessages);
+        
+        if (error) {
+            console.error('❌ Bytez API error:', error);
+            throw new Error(`Bytez API error: ${JSON.stringify(error)}`);
+        }
+        
+        if (!output) {
+            console.error('❌ No output from Bytez API');
+            throw new Error('No output received from Bytez API');
+        }
+        
+        console.log('✅ Bytez API response received');
+        
+        // Handle different output formats
+        if (typeof output === 'string') {
+            return output.trim();
+        } else if (output.content) {
+            return output.content.trim();
+        } else if (output.message?.content) {
+            return output.message.content.trim();
+        } else if (Array.isArray(output) && output[0]?.content) {
+            return output[0].content.trim();
+        }
+        
+        return JSON.stringify(output);
+    } catch (error) {
+        console.error('❌ Bytez API call failed:', error);
+        throw error;
+    }
 }
 
 /**
@@ -31,8 +81,8 @@ export async function improveText(
     tone: string,
     targetAudience: string
 ): Promise<string> {
-    if (!GROK_API_KEY) {
-        throw new Error('Grok API key is not configured. Please add VITE_GROK_API_KEY to your environment.');
+    if (!BYTEZ_API_KEY) {
+        throw new Error('API key is not configured. Please add VITE_BYTEZ_TEXT_API_KEY to your environment.');
     }
 
     try {
@@ -52,25 +102,7 @@ Return ONLY the improved text, no explanations.`
             }
         ];
 
-        const response = await fetch(GROK_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROK_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: GROK_MODEL,
-                messages,
-                reasoning: { enabled: true }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Grok API error: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        return result.choices[0].message.content.trim();
+        return await callAPI(messages);
     } catch (error) {
         console.error('Failed to improve text:', error);
         throw error;
@@ -89,8 +121,8 @@ export async function checkCharacterConsistency(project: BookProject): Promise<{
     }>;
     overallScore: number;
 }> {
-    if (!GROK_API_KEY) {
-        throw new Error('Grok API key is not configured. Please add VITE_GROK_API_KEY to your environment.');
+    if (!BYTEZ_API_KEY) {
+        throw new Error('API key is not configured. Please add VITE_BYTEZ_TEXT_API_KEY to your environment.');
     }
 
     try {
@@ -104,7 +136,7 @@ export async function checkCharacterConsistency(project: BookProject): Promise<{
         const messages: GrokMessage[] = [
             {
                 role: 'system',
-                content: `You are a story consistency analyst. Analyze the book for character consistency issues.`
+                content: `You are a story consistency analyst. Analyze the book for character consistency issues. Always respond with valid JSON only.`
             },
             {
                 role: 'user',
@@ -131,30 +163,12 @@ The overallScore should be 0-100 (100 = perfectly consistent).`
             }
         ];
 
-        const response = await fetch(GROK_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROK_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: GROK_MODEL,
-                messages,
-                reasoning: { enabled: true }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Grok API error: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        const content = result.choices[0].message.content.trim();
+        const content = await callAPI(messages);
 
         // Parse JSON response (remove markdown code blocks if present)
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-            throw new Error('Invalid response format from Grok');
+            throw new Error('Invalid response format');
         }
 
         return JSON.parse(jsonMatch[0]);
@@ -178,8 +192,8 @@ export async function getWritingSuggestions(
     reason: string;
 }>> {
     // Return empty array if API is not available (graceful degradation)
-    if (!GROK_API_KEY) {
-        console.warn('Grok API key not configured - writing suggestions disabled');
+    if (!BYTEZ_API_KEY) {
+        console.warn('API key not configured - writing suggestions disabled');
         return [];
     }
 
@@ -191,7 +205,7 @@ export async function getWritingSuggestions(
         const messages: GrokMessage[] = [
             {
                 role: 'system',
-                content: `You are a writing assistant for children's book authors. Provide helpful, actionable suggestions.`
+                content: `You are a writing assistant for children's book authors. Provide helpful, actionable suggestions. Always respond with valid JSON only.`
             },
             {
                 role: 'user',
@@ -216,25 +230,7 @@ Types can be: "grammar", "style", or "word-choice". Return ONLY the JSON array.`
             }
         ];
 
-        const response = await fetch(GROK_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROK_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: GROK_MODEL,
-                messages,
-                reasoning: { enabled: true }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Grok API error: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        const content = result.choices[0].message.content.trim();
+        const content = await callAPI(messages);
 
         // Parse JSON response
         const jsonMatch = content.match(/\[[\s\S]*\]/);
