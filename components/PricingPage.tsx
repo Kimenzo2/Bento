@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Star, Zap, Briefcase, Crown, X, Loader } from 'lucide-react';
-import { initializePayment } from '../services/paystackService';
+import { initializePayment, initializeApplePayCheckout, isApplePayAvailable } from '../services/paystackService';
 
 import { UserTier } from '../types';
 
@@ -123,25 +123,51 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
     const amountToCharge = isAnnual ? (tier.priceAnnual * 12) : tier.priceMonthly;
 
     try {
-      await initializePayment({
-        email: userEmail, // Using authenticated user's email
-        amount: amountToCharge,
-        currency: "USD", // Using USD for international compatibility
-        onSuccess: (transaction) => {
-          alert(`Subscription successful! Reference: ${transaction.reference}`);
-          setProcessingTier(null);
-          // Update user role
-          if (onUpgrade) onUpgrade(tier.name as UserTier);
-        },
-        onCancel: () => {
-          setProcessingTier(null);
-        },
-        onError: (error) => {
-          console.error("Payment error:", error);
-          alert(`Payment failed: ${error.message}`);
-          setProcessingTier(null);
-        }
-      });
+      // Use Apple Pay checkout on Apple devices for better UX
+      // This shows a pre-checkout modal with Apple Pay button on iOS/Safari
+      if (isApplePayAvailable()) {
+        await initializeApplePayCheckout({
+          email: userEmail,
+          amount: amountToCharge,
+          currency: "USD",
+          metadata: {
+            tier: tier.name,
+            billing_cycle: isAnnual ? 'annual' : 'monthly'
+          },
+          onSuccess: (transaction) => {
+            alert(`Subscription successful! Reference: ${transaction.reference}`);
+            setProcessingTier(null);
+            if (onUpgrade) onUpgrade(tier.name as UserTier);
+          },
+          onCancel: () => {
+            setProcessingTier(null);
+          }
+        });
+      } else {
+        // Fallback to regular Paystack payment for non-Apple devices
+        await initializePayment({
+          email: userEmail,
+          amount: amountToCharge,
+          currency: "USD",
+          metadata: {
+            tier: tier.name,
+            billing_cycle: isAnnual ? 'annual' : 'monthly'
+          },
+          onSuccess: (transaction) => {
+            alert(`Subscription successful! Reference: ${transaction.reference}`);
+            setProcessingTier(null);
+            if (onUpgrade) onUpgrade(tier.name as UserTier);
+          },
+          onCancel: () => {
+            setProcessingTier(null);
+          },
+          onError: (error) => {
+            console.error("Payment error:", error);
+            alert(`Payment failed: ${error.message}`);
+            setProcessingTier(null);
+          }
+        });
+      }
     } catch (error) {
       console.error("Payment initialization failed:", error);
       alert("Unable to start payment processing. Please try again.");
