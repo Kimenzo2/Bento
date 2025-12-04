@@ -5,6 +5,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 
+// Log app initialization for debugging
+console.log('[Genesis] Application starting...');
+console.log('[Genesis] Environment:', import.meta.env.MODE);
+
 interface ErrorBoundaryProps {
   children: ReactNode;
 }

@@ -457,16 +457,14 @@ const App: React.FC = () => {
   );
 };
 
-// Wrap App with ErrorBoundary and Suspense for production stability
+// Wrap App with ErrorBoundary for production stability
 const AppWithErrorBoundary: React.FC = () => (
   <ErrorBoundary>
     <ThemeProvider>
       <FontProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          <LanguageProvider>
-            <App />
-          </LanguageProvider>
-        </Suspense>
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </FontProvider>
     </ThemeProvider>
   </ErrorBoundary>

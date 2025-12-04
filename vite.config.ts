@@ -41,7 +41,8 @@ export default defineConfig(({ mode }) => {
       })
     ],
     esbuild: {
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
+      // Keep console.error and console.warn in production for debugging
+      drop: mode === 'production' ? ['debugger'] : [],
     },
     optimizeDeps: {
       include: ['bytez.js']
@@ -55,7 +56,7 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: mode === 'production',
+          drop_console: false, // Keep console.error and console.warn for debugging
           drop_debugger: mode === 'production',
           pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
         }

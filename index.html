@@ -186,10 +186,33 @@
     .mobile-content-padding {
       padding-bottom: calc(8rem + var(--safe-area-inset-bottom));
     }
+    
+    /* Initial loading state */
+    #root:empty::after {
+      content: "";
+      display: block;
+      width: 48px;
+      height: 48px;
+      margin: 100px auto;
+      border: 4px solid #FFE4CC;
+      border-top-color: #FF9B71;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
 <body>
+  <noscript>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #FFF8E7; font-family: sans-serif;">
+      <h1 style="color: #5A5A5A;">JavaScript Required</h1>
+      <p style="color: #8B7E74;">Please enable JavaScript to use Genesis.</p>
+    </div>
+  </noscript>
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

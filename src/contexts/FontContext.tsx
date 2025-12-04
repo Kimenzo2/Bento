@@ -12,11 +12,32 @@ interface FontContextType {
 
 export const FontContext = createContext<FontContextType | undefined>(undefined);
 
+// Default fallback font pairing in case import fails
+const DEFAULT_FONT_PAIRING: FontPairing = {
+    id: 'default',
+    name: 'Default',
+    description: 'System default fonts',
+    category: 'playful',
+    headingFont: { family: 'system-ui', weights: [400, 700], fallback: 'sans-serif' },
+    bodyFont: { family: 'system-ui', weights: [400, 700], fallback: 'sans-serif' },
+    preview: { headingText: 'Preview', bodyText: 'Preview text' },
+    bestFor: ['General']
+};
+
 export const FontProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    // Initialize from localStorage or default
+    // Initialize from localStorage or default with defensive fallback
     const [activeFontPairing, setActiveFontPairingState] = useState<FontPairing>(() => {
-        const savedId = localStorage.getItem('genesis_font_pairing');
-        return fontPairings.find(p => p.id === savedId) || fontPairings[0];
+        try {
+            if (!fontPairings || fontPairings.length === 0) {
+                console.warn('[FontContext] No font pairings available, using default');
+                return DEFAULT_FONT_PAIRING;
+            }
+            const savedId = localStorage.getItem('genesis_font_pairing');
+            return fontPairings.find(p => p.id === savedId) || fontPairings[0] || DEFAULT_FONT_PAIRING;
+        } catch (error) {
+            console.error('[FontContext] Error initializing font pairing:', error);
+            return DEFAULT_FONT_PAIRING;
+        }
     });
 
     // Use the dynamic loader hook

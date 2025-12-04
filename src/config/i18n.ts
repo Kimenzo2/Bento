@@ -12,8 +12,8 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 import { FALLBACK_LANGUAGE, LANGUAGE_STORAGE_KEY, TRANSLATION_NAMESPACES } from './languages';
 
-// Initialize i18next
-i18n
+// Initialize i18next with error handling
+const initPromise = i18n
   // Load translations from /public/locales
   .use(HttpBackend)
   // Detect user language from localStorage or browser
@@ -85,8 +85,8 @@ i18n
     
     // React-specific options
     react: {
-      // Wait for translations to load before rendering
-      useSuspense: true,
+      // Don't use Suspense - handle loading states manually
+      useSuspense: false,
       // Bind i18n to React
       bindI18n: 'languageChanged loaded',
       // Bind store
@@ -138,7 +138,13 @@ i18n
         console.warn(`[i18n] Missing translation: ${ns}:${key} for languages: ${lngs.join(', ')}`);
       }
     },
+  })
+  .catch((err) => {
+    console.error('[i18n] Initialization failed:', err);
   });
+
+// Export the initialization promise for components that need to wait
+export const i18nReady = initPromise;
 
 // Export the i18n instance
 export default i18n;
