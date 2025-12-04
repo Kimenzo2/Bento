@@ -257,3 +257,12 @@ body {
 .animate-slideInRight {
     animation: slideInRight 0.3s ease-out forwards;
 }
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

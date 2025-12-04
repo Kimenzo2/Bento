@@ -1,15 +1,16 @@
 import React from 'react';
 import { SavedBook } from '../types';
-import { Edit3, Eye, Trash2, Calendar, FileText } from 'lucide-react';
+import { Edit3, Eye, Trash2, Calendar, FileText, Share2 } from 'lucide-react';
 
 interface SavedBookCardProps {
     book: SavedBook;
     onEdit: (book: SavedBook) => void;
     onRead: (book: SavedBook) => void;
     onDelete: (id: string) => void;
+    onShare?: (book: SavedBook) => void;
 }
 
-const SavedBookCard: React.FC<SavedBookCardProps> = ({ book, onEdit, onRead, onDelete }) => {
+const SavedBookCard: React.FC<SavedBookCardProps> = ({ book, onEdit, onRead, onDelete, onShare }) => {
     const formatDate = (date: Date) => {
         return new Intl.DateTimeFormat('en-US', {
             month: 'short',
@@ -52,6 +53,15 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({ book, onEdit, onRead, onD
                     >
                         <Eye className="w-5 h-5 text-blue-600" />
                     </button>
+                    {onShare && (
+                        <button
+                            onClick={() => onShare(book)}
+                            className="p-3 bg-white rounded-full hover:scale-110 transition-transform shadow-lg"
+                            title="Share"
+                        >
+                            <Share2 className="w-5 h-5 text-green-500" />
+                        </button>
+                    )}
                     <button
                         onClick={() => {
                             if (window.confirm(`Delete "${book.title}"? This cannot be undone.`)) {

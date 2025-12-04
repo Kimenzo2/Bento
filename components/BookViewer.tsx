@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { BookProject, Page } from '../types';
-import { X, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { BookProject, Page, SavedBook } from '../types';
+import { X, ChevronLeft, ChevronRight, Home, Share2 } from 'lucide-react';
+import ExportModal from './ExportModal';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
 
 interface BookViewerProps {
     project: BookProject;
@@ -10,6 +12,7 @@ interface BookViewerProps {
 const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
     const allPages = project.chapters.flatMap(c => c.pages);
     const [currentPageIndex, setCurrentPageIndex] = useState(0);
+    const [showExportModal, setShowExportModal] = useState(false);
     const currentPage = allPages[currentPageIndex];
 
     const goToNextPage = () => {
@@ -23,6 +26,11 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             setCurrentPageIndex(currentPageIndex - 1);
         }
     };
+
+    const swipeHandlers = useSwipeGesture({
+        onSwipeLeft: goToNextPage,
+        onSwipeRight: goToPrevPage,
+    });
 
     const handleChoice = (targetPageNumber: number) => {
         const targetIndex = allPages.findIndex(p => p.pageNumber === targetPageNumber);
@@ -56,17 +64,29 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
                         <p className="text-white/60 text-xs hidden sm:block">Page {currentPage.pageNumber} of {allPages.length}</p>
                     </div>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm font-medium transition-colors flex-shrink-0"
-                >
-                    <Home className="w-4 h-4" />
-                    Back to Dashboard
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowExportModal(true)}
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
+                        title="Export Book"
+                    >
+                        <Share2 className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm font-medium transition-colors flex-shrink-0"
+                    >
+                        <Home className="w-4 h-4" />
+                        Back to Dashboard
+                    </button>
+                </div>
             </div>
 
             {/* Book Page Container */}
-            <div className="absolute inset-0 flex items-center justify-center pt-16 pb-20 px-2 sm:px-4">
+            <div 
+                className="absolute inset-0 flex items-center justify-center pt-16 pb-20 px-2 sm:px-4"
+                {...swipeHandlers}
+            >
                 <div className="w-full max-w-4xl h-full flex items-center justify-center">
                     {/* Book Page - Mobile: Full height vertical stack, Desktop: Aspect ratio card */}
                     <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
@@ -144,6 +164,22 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
             </div>
+
+            {showExportModal && (
+                <ExportModal
+                    isOpen={true}
+                    book={{
+                        id: project.id,
+                        title: project.title,
+                        synopsis: project.synopsis || '',
+                        coverImage: project.chapters[0]?.pages[0]?.imageUrl,
+                        project: project,
+                        savedAt: new Date(),
+                        lastModified: new Date(),
+                    }}
+                    onClose={() => setShowExportModal(false)}
+                />
+            )}
         </div>
     );
 };

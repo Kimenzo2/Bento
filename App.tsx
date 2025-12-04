@@ -19,6 +19,11 @@ import { FontProvider } from './src/contexts/FontContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import './src/config/i18n'; // Initialize i18n
 
+// New Global Components
+import WhatsNewModal from './components/WhatsNewModal';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { OfflineIndicator, useNetworkStatus } from './hooks/useNetworkStatus';
+
 // PERFORMANCE: Lazy load heavy components to reduce initial bundle size
 // This is critical for 1M+ users - reduces initial JS payload by ~60%
 const CreationCanvas = lazy(() => import('./components/CreationCanvas'));
@@ -47,7 +52,12 @@ const App: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [forceRenderKey, setForceRenderKey] = useState(0); // Force re-render trigger
 
-
+  // Global Modals State
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  
+  // Network Status
+  const networkStatus = useNetworkStatus();
 
   // User Profile State - Fetched from Supabase
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -448,6 +458,21 @@ const App: React.FC = () => {
 
       {/* PWA Install Prompt */}
       <InstallPWA />
+
+      {/* Global Modals */}
+      <WhatsNewModal 
+        isOpen={showWhatsNew} 
+        onClose={() => setShowWhatsNew(false)} 
+      />
+      <KeyboardShortcutsModal 
+        isOpen={showShortcuts} 
+        onClose={() => setShowShortcuts(false)} 
+      />
+      
+      {/* Network Status Indicator */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <OfflineIndicator />
+      </div>
     </div>
   );
 };

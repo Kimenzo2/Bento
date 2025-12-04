@@ -650,9 +650,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             description: `A new ${channelType} channel`,
         };
 
-        setLocalCategories(prev =>
-            prev.map(cat =>
-                cat.id === categoryId
+        setLocalCategories(prev => 
+            prev.map(cat => 
+                cat.id === categoryId 
                     ? { ...cat, channels: [...cat.channels, newChannel] }
                     : cat
             )
@@ -752,10 +752,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                 <X size={20} />
                             </button>
                         )}
-
+                        
                         {/* Project Dropdown - Interactive */}
                         <div className="relative">
-                            <button
+                            <button 
                                 className="chat-project-title w-full hover:bg-[var(--chat-bg-hover)] transition-colors rounded-xl"
                                 onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                             >
@@ -766,19 +766,19 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                     <h2>{projectName}</h2>
                                     <span>Project Chat</span>
                                 </div>
-                                <ChevronDown
-                                    size={16}
-                                    className={`text-gray-400 hidden md:block transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`}
+                                <ChevronDown 
+                                    size={16} 
+                                    className={`text-gray-400 hidden md:block transition-transform ${isProjectDropdownOpen ? 'rotate-180' : ''}`} 
                                 />
                             </button>
-
+                            
                             {/* Project Dropdown Menu */}
                             <AnimatePresence>
                                 {isProjectDropdownOpen && (
                                     <>
-                                        <div
+                                        <div 
                                             className="fixed inset-0 z-40"
-                                            onClick={() => setIsProjectDropdownOpen(false)}
+                                            onClick={() => setIsProjectDropdownOpen(false)} 
                                         />
                                         <motion.div
                                             initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -788,7 +788,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                             className="absolute left-0 right-0 top-full mt-2 z-50 bg-[var(--chat-bg-secondary)] border border-[var(--chat-border-primary)] rounded-xl shadow-xl overflow-hidden"
                                         >
                                             <div className="p-2">
-                                                <button
+                                                <button 
                                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
                                                     onClick={() => {
                                                         setIsProjectDropdownOpen(false);
@@ -798,7 +798,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                                     <Users size={18} className="text-[var(--chat-text-muted)]" />
                                                     <span className="text-sm">Invite People</span>
                                                 </button>
-                                                <button
+                                                <button 
                                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
                                                     onClick={() => {
                                                         setIsProjectDropdownOpen(false);
@@ -809,7 +809,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                                     <span className="text-sm">Project Settings</span>
                                                 </button>
                                                 <div className="border-t border-[var(--chat-border-primary)] my-2" />
-                                                <button
+                                                <button 
                                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
                                                     onClick={() => {
                                                         setIsCreateChannelOpen(true);
@@ -819,7 +819,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                                     <Plus size={18} className="text-[var(--chat-mint-breeze)]" />
                                                     <span className="text-sm">Create Channel</span>
                                                 </button>
-                                                <button
+                                                <button 
                                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-primary)] transition-colors"
                                                     onClick={() => {
                                                         setIsProjectDropdownOpen(false);
@@ -830,7 +830,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                                     <span className="text-sm">Create Category</span>
                                                 </button>
                                                 <div className="border-t border-[var(--chat-border-primary)] my-2" />
-                                                <button
+                                                <button 
                                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
                                                     onClick={() => {
                                                         setIsProjectDropdownOpen(false);
@@ -881,8 +881,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         <button
                             onClick={() => setIsMembersOpen(!isMembersOpen)}
                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${isMembersOpen
-                                ? 'bg-[var(--chat-coral-burst)] text-white'
-                                : 'hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)]'
+                                    ? 'bg-[var(--chat-coral-burst)] text-white'
+                                    : 'hover:bg-[var(--chat-bg-hover)] text-[var(--chat-text-secondary)]'
                                 }`}
                         >
                             <div className="flex items-center gap-2">
@@ -891,8 +891,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${isMembersOpen
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-green-500/20 text-green-600'
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-green-500/20 text-green-600'
                                     }`}>
                                     {onlineMembers.length} online
                                 </span>
@@ -932,8 +932,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                                         className="w-7 h-7 rounded-full group-hover:ring-2 ring-[var(--chat-coral-burst)] transition-all"
                                                     />
                                                     <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--chat-bg-primary)] ${user.status === 'online' ? 'bg-green-500' :
-                                                        user.status === 'away' ? 'bg-yellow-500' :
-                                                            user.status === 'dnd' ? 'bg-red-500' : 'bg-gray-400'
+                                                            user.status === 'away' ? 'bg-yellow-500' :
+                                                                user.status === 'dnd' ? 'bg-red-500' : 'bg-gray-400'
                                                         }`} />
                                                 </div>
                                                 <span className="text-sm text-[var(--chat-text-primary)] truncate flex-1 group-hover:text-[var(--chat-coral-burst)] transition-colors">
@@ -1037,18 +1037,18 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         {useRealtime && (
                             <div
                                 className={`ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${realtimeChat.isConnected
-                                    ? 'bg-green-500/20 text-green-500'
-                                    : realtimeChat.error
-                                        ? 'bg-red-500/20 text-red-500'
-                                        : 'bg-yellow-500/20 text-yellow-500'
+                                        ? 'bg-green-500/20 text-green-500'
+                                        : realtimeChat.error
+                                            ? 'bg-red-500/20 text-red-500'
+                                            : 'bg-yellow-500/20 text-yellow-500'
                                     }`}
                                 title={realtimeChat.error || (realtimeChat.isConnected ? 'Connected to realtime' : 'Connecting...')}
                             >
                                 <div className={`w-2 h-2 rounded-full ${realtimeChat.isConnected
-                                    ? 'bg-green-500'
-                                    : realtimeChat.error
-                                        ? 'bg-red-500'
-                                        : 'bg-yellow-500 animate-pulse'
+                                        ? 'bg-green-500'
+                                        : realtimeChat.error
+                                            ? 'bg-red-500'
+                                            : 'bg-yellow-500 animate-pulse'
                                     }`} />
                                 <span className="hidden sm:inline">
                                     {realtimeChat.isConnected ? 'Live' : realtimeChat.error ? 'Error' : 'Connecting'}
@@ -1071,7 +1071,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                         >
                             <Search size={20} />
                         </button>
-
+                        
                         {/* Notifications Bell - Interactive */}
                         <div className="relative">
                             <button
@@ -1086,14 +1086,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                     </span>
                                 )}
                             </button>
-
+                            
                             {/* Notifications Dropdown */}
                             <AnimatePresence>
                                 {isNotificationsOpen && (
                                     <>
-                                        <div
+                                        <div 
                                             className="fixed inset-0 z-40"
-                                            onClick={() => setIsNotificationsOpen(false)}
+                                            onClick={() => setIsNotificationsOpen(false)} 
                                         />
                                         <motion.div
                                             initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -1105,7 +1105,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                             <div className="p-3 border-b border-[var(--chat-border-primary)] flex items-center justify-between">
                                                 <h3 className="font-semibold text-[var(--chat-text-primary)]">Notifications</h3>
                                                 {unreadNotifications > 0 && (
-                                                    <button
+                                                    <button 
                                                         className="text-xs text-[var(--chat-coral-burst)] hover:underline"
                                                         onClick={() => {
                                                             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -1123,11 +1123,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                                     </div>
                                                 ) : (
                                                     notifications.map(notification => (
-                                                        <div
+                                                        <div 
                                                             key={notification.id}
                                                             className={`p-3 flex items-start gap-3 hover:bg-[var(--chat-bg-hover)] cursor-pointer transition-colors border-b border-[var(--chat-border-primary)] last:border-0 ${!notification.read ? 'bg-[var(--chat-coral-burst)]/5' : ''}`}
                                                             onClick={() => {
-                                                                setNotifications(prev => prev.map(n =>
+                                                                setNotifications(prev => prev.map(n => 
                                                                     n.id === notification.id ? { ...n, read: true } : n
                                                                 ));
                                                                 if (notification.userId && onUserProfileClick) {
@@ -1164,7 +1164,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                                 )}
                             </AnimatePresence>
                         </div>
-
+                        
                         {onClose && (
                             <button className="chat-action-btn" onClick={onClose} title="Close chat" aria-label="Close chat panel">
                                 <X size={20} />

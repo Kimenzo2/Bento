@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookProject } from '../types';
 import { ChevronLeft, ChevronRight, X, Edit3, Download, Share2, Volume2, Maximize2, Minimize2, Sparkles, BookOpen, ArrowLeft } from 'lucide-react';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
+import ExportModal from './ExportModal';
 
 interface StorybookViewerProps {
     project: BookProject;
@@ -27,6 +28,12 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     const [isMobile, setIsMobile] = useState(false);
     const [learningMode, setLearningMode] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [showExportModal, setShowExportModal] = useState(false);
+
+    const handleShare = () => {
+        setShowExportModal(true);
+        if (onShare) onShare();
+    };
 
     // Detect mobile/tablet
     useEffect(() => {
@@ -206,6 +213,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     <button
                         onClick={onClose}
                         className="flex items-center gap-2 text-white/80 hover:text-white transition-colors p-2 -ml-2 touch-manipulation"
+                        title="Close Viewer"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
@@ -224,12 +232,14 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                                 ? 'bg-amber-500 text-white'
                                 : 'text-white/60 hover:text-white'
                                 }`}
+                            title={isSpeaking ? "Stop Reading" : "Read Aloud"}
                         >
                             <Volume2 className="w-5 h-5" />
                         </button>
                         <button
-                            onClick={onShare}
+                            onClick={handleShare}
                             className="p-2 text-white/60 hover:text-white transition-colors touch-manipulation"
+                            title="Share Story"
                         >
                             <Share2 className="w-5 h-5" />
                         </button>
@@ -328,6 +338,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                                 ? 'text-gray-600 cursor-not-allowed'
                                 : 'bg-white/10 text-white hover:bg-white/20 active:scale-95'
                                 }`}
+                            title="Previous Page"
                         >
                             <ChevronLeft className="w-5 h-5" />
                             <span className="text-sm font-medium hidden xs:inline">Previous</span>
@@ -344,6 +355,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                                             ? 'w-6 bg-amber-400'
                                             : 'w-2 bg-white/30 hover:bg-white/50'
                                             }`}
+                                        title={`Go to page ${idx + 1}`}
                                     />
                                 ))}
                                 {totalPages > 5 && (
@@ -443,7 +455,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={onShare}
+                        onClick={handleShare}
                         className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
                         title="Share"
                     >
@@ -707,6 +719,21 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 )}
             </AnimatePresence>
 
+            {showExportModal && (
+                <ExportModal
+                    isOpen={true}
+                    book={{
+                        id: project.id,
+                        title: project.title,
+                        synopsis: project.synopsis || '',
+                        coverImage: project.chapters[0]?.pages[0]?.imageUrl,
+                        project: project,
+                        savedAt: new Date(),
+                        lastModified: new Date(),
+                    }}
+                    onClose={() => setShowExportModal(false)}
+                />
+            )}
         </div>
     );
 };

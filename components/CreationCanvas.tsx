@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket } from 'lucide-react';
+import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, LayoutTemplate, Grid } from 'lucide-react';
 import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook, UserTier } from '../types';
 import { getAllBooks, deleteBook } from '../services/storageService';
 import SavedBookCard from './SavedBookCard';
 import { getAvailableStyles, canUseStyle } from '../services/tierLimits';
 import InfographicWizard from './infographic/InfographicWizard';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
+
+// New Components
+import TemplateLibrary, { BookTemplate } from './TemplateLibrary';
+import { StylePresetPicker } from './StylePresets';
+import { BookCardSkeleton } from './SkeletonLoaders';
+import { useBulkSelection, BulkActionsBar, DeleteConfirmModal, SelectableCard } from './BulkActions';
+import BookSharingPkg from './BookSharing';
+const { ShareModal } = BookSharingPkg;
 
 // ===== OPTIMIZED MASCOT COMPONENT =====
 interface MascotProps {
@@ -81,6 +89,10 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [brandColors, setBrandColors] = useState('#FF9B71, #FFF4A3');
     const [brandSample, setBrandSample] = useState('');
 
+    // New Feature State
+    const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
+    const [isStylePresetsOpen, setIsStylePresetsOpen] = useState(false);
+
     // Learning Goals State
     const [learningSubject, setLearningSubject] = useState('Math');
     const [learningObjectives, setLearningObjectives] = useState('');
@@ -90,6 +102,23 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     // Saved Books
     const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
     const [isLoadingBooks, setIsLoadingBooks] = useState(true);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [sharingBook, setSharingBook] = useState<SavedBook | null>(null);
+
+    // Bulk Selection
+    const {
+        selectedIds,
+        selectedCount,
+        isSelectionMode,
+        toggle,
+        selectAll,
+        clearSelection,
+        isSelected,
+        enterSelectionMode,
+        hasSelection,
+        isAllSelected
+    } = useBulkSelection(savedBooks);
 
     // Load saved books on mount
     useEffect(() => {
@@ -117,6 +146,35 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             alert('Failed to delete book. Please try again.');
         }
     }, [loadSavedBooks]);
+
+    const handleBulkDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await Promise.all(Array.from(selectedIds).map(id => deleteBook(id)));
+            await loadSavedBooks();
+            clearSelection();
+            setIsDeleteModalOpen(false);
+        } catch (error) {
+            console.error('Failed to delete books:', error);
+            alert('Failed to delete some books.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleTemplateSelect = (template: BookTemplate) => {
+        setPrompt(template.samplePrompt);
+        setPageCount(template.pageCount);
+        // Map template category to audience/tone if needed
+        if (template.category === 'bedtime') {
+            setTone(BookTone.CALM);
+            setAudience('Toddlers 1-3');
+        } else if (template.category === 'adventure') {
+            setTone(BookTone.ADVENTUROUS);
+            setAudience('Children 7-9');
+        }
+        // Could also set structure if we had a way to pass it
+    };
 
     // Memoize expensive computations
     const allStyles = useMemo(() => Object.values(ArtStyle), []);
@@ -249,23 +307,56 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             <h2 className="font-heading font-bold text-3xl text-charcoal-soft">My Saved Books</h2>
                             <p className="text-cocoa-light text-sm mt-1">{savedBooks.length} {savedBooks.length === 1 ? 'book' : 'books'} saved</p>
                         </div>
+                        
+                        {/* Bulk Selection Toggle */}
+                        {!isLoadingBooks && (
+                            <button
+                                onClick={isSelectionMode ? clearSelection : enterSelectionMode}
+                                className={`
+                                    px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2
+                                    ${isSelectionMode 
+                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                                        : 'text-coral-burst hover:bg-coral-burst/10'
+                                    }
+                                `}
+                            >
+                                {isSelectionMode ? (
+                                    <>Cancel Selection</>
+                                ) : (
+                                    <>
+                                        <Grid className="w-4 h-4" />
+                                        Select Books
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
 
                     {isLoadingBooks ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block w-8 h-8 border-4 border-coral-burst/30 border-t-coral-burst rounded-full animate-spin"></div>
-                            <p className="text-cocoa-light mt-4">Loading your books...</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {[1, 2, 3].map(i => (
+                                <BookCardSkeleton key={i} />
+                            ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="flex overflow-x-auto snap-x snap-mandatory pb-4 lg:pb-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-6 no-scrollbar">
                             {savedBooks.map((book) => (
-                                <SavedBookCard
-                                    key={book.id}
-                                    book={book}
-                                    onEdit={(book) => onEditBook?.(book)}
-                                    onRead={(book) => onReadBook?.(book)}
-                                    onDelete={handleDeleteBook}
-                                />
+                                <div key={book.id} className="min-w-[85%] sm:min-w-[350px] lg:min-w-0 snap-center flex-shrink-0 lg:flex-shrink">
+                                    <SelectableCard
+                                        isSelectionMode={isSelectionMode}
+                                        isSelected={isSelected(book.id)}
+                                        onSelect={() => toggle(book.id)}
+                                        onLongPress={enterSelectionMode}
+                                    >
+                                        <SavedBookCard
+                                            book={book}
+                                            onEdit={(book) => !isSelectionMode && onEditBook?.(book)}
+                                            onRead={(book) => !isSelectionMode && onReadBook?.(book)}
+                                            onDelete={handleDeleteBook}
+                                            onShare={(book) => !isSelectionMode && setSharingBook(book)}
+                                        />
+                                    </SelectableCard>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -321,10 +412,19 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         <>
 
                             <div className="mb-10">
-                                <label className="block font-heading font-bold text-lg text-charcoal-soft mb-3 flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-gold-sunshine" />
-                                    Tell us about your book idea
-                                </label>
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="block font-heading font-bold text-lg text-charcoal-soft flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-gold-sunshine" />
+                                        Tell us about your book idea
+                                    </label>
+                                    <button
+                                        onClick={() => setIsTemplateLibraryOpen(true)}
+                                        className="text-sm font-bold text-coral-burst hover:text-coral-burst/80 flex items-center gap-1 transition-colors"
+                                    >
+                                        <LayoutTemplate className="w-4 h-4" />
+                                        Use Template
+                                    </button>
+                                </div>
                                 <textarea
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
@@ -339,33 +439,16 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 {/* Style */}
                                 <div className="space-y-3">
                                     <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide">Visual Style</label>
-                                    <div className="relative">
-                                        <select
-                                            value={style}
-                                            onChange={(e) => {
-                                                const selectedStyle = e.target.value as ArtStyle;
-                                                if (canUseStyle(userTier, selectedStyle)) {
-                                                    setStyle(selectedStyle);
-                                                } else {
-                                                    alert(`This style is locked. Upgrade to ${userTier === UserTier.SPARK ? 'Creator' : 'Studio'} to unlock all styles!`);
-                                                }
-                                            }}
-                                            className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor:pointer hover:border-coral-burst/50 transition-colors"
-                                            title="Select visual style"
-                                            aria-label="Visual style"
-                                        >
-                                            {allStyles.map(s => (
-                                                <option
-                                                    key={s}
-                                                    value={s}
-                                                    disabled={!canUseStyle(userTier, s)}
-                                                >
-                                                    {s} {!canUseStyle(userTier, s) ? '🔒' : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <Palette className="absolute right-4 top-1/2 -translate-y-1/2 text-coral-burst w-5 h-5 pointer-events-none" />
-                                    </div>
+                                    <button
+                                        onClick={() => setIsStylePresetsOpen(true)}
+                                        className="w-full bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst hover:border-coral-burst/50 transition-all text-left flex items-center justify-between group"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Palette className="w-5 h-5 text-coral-burst" />
+                                            {style}
+                                        </span>
+                                        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                                    </button>
                                 </div>
 
                                 {/* Tone */}
@@ -632,6 +715,48 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* Modals */}
+            <TemplateLibrary
+                isOpen={isTemplateLibraryOpen}
+                onClose={() => setIsTemplateLibraryOpen(false)}
+                onSelectTemplate={handleTemplateSelect}
+            />
+
+            <StylePresetPicker
+                isOpen={isStylePresetsOpen}
+                onClose={() => setIsStylePresetsOpen(false)}
+                onSelect={(preset) => {
+                    setStyle(preset.style as ArtStyle);
+                    setIsStylePresetsOpen(false);
+                }}
+            />
+
+            <BulkActionsBar
+                selectedCount={selectedCount}
+                totalCount={savedBooks.length}
+                onSelectAll={selectAll}
+                onClearSelection={clearSelection}
+                onDelete={() => setIsDeleteModalOpen(true)}
+                isAllSelected={isAllSelected}
+                isDeleting={isDeleting}
+            />
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleBulkDelete}
+                count={selectedCount}
+                isDeleting={isDeleting}
+            />
+
+            {sharingBook && (
+                <ShareModal
+                    isOpen={true}
+                    onClose={() => setSharingBook(null)}
+                    book={sharingBook.project}
+                />
+            )}
         </div>
     );
 };

@@ -32,7 +32,9 @@ export enum BookTone {
   SERIOUS = 'Serious',
   INSPIRATIONAL = 'Inspirational',
   EDUCATIONAL = 'Educational',
-  DRAMATIC = 'Dramatic'
+  DRAMATIC = 'Dramatic',
+  CALM = 'Calm',
+  ADVENTUROUS = 'Adventurous'
 }
 
 export enum UserTier {

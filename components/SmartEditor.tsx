@@ -16,11 +16,17 @@ import {
     CheckCircle2,
     AlertCircle,
     Lightbulb,
-    Sparkles
+    Sparkles,
+    Undo,
+    Redo,
+    Cloud,
+    CloudOff
 } from 'lucide-react';
 import { generateIllustration } from '../services/geminiService';
 import { improveText, checkCharacterConsistency, getWritingSuggestions } from '../services/grokService';
 import { saveBook } from '../services/storageService';
+import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useAutoSave } from '../hooks/useAutoSave';
 
 interface SmartEditorProps {
     project: BookProject;
@@ -36,6 +42,27 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Undo/Redo
+    const { state: currentProject, set: setProjectHistory, undo, redo, canUndo, canRedo } = useUndoRedo<BookProject>(project);
+
+    // AutoSave
+    const { state: autoSaveState, save: triggerSave } = useAutoSave({
+        key: `book-${currentProject.id}`,
+        data: currentProject,
+        onSave: async (data) => {
+            await saveBook(data);
+            if (onSave) onSave(true, 'Auto-saved');
+        },
+        interval: 30000, // 30s
+    });
+
+    // Sync parent state when history changes
+    useEffect(() => {
+        if (currentProject !== project) {
+            onUpdateProject(currentProject);
+        }
+    }, [currentProject, onUpdateProject]);
 
     // Feature #1: AI Improve
     const [isImproving, setIsImproving] = useState(false);
@@ -60,17 +87,19 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
         };
     }, []);
 
-    const allPages = project.chapters.flatMap(c => c.pages);
+    const allPages = currentProject.chapters.flatMap(c => c.pages);
     const activePage = allPages[activePageIndex];
     const totalPages = allPages.length;
 
     const handleTextChange = (text: string) => {
-        const newProject = JSON.parse(JSON.stringify(project)) as BookProject;
-        newProject.chapters.forEach(ch => {
-            const page = ch.pages.find(p => p.pageNumber === activePage.pageNumber);
-            if (page) page.text = text;
+        setProjectHistory((prevProject) => {
+            const newProject = JSON.parse(JSON.stringify(prevProject)) as BookProject;
+            newProject.chapters.forEach(ch => {
+                const page = ch.pages.find(p => p.pageNumber === activePage.pageNumber);
+                if (page) page.text = text;
+            });
+            return newProject;
         });
-        onUpdateProject(newProject);
 
         // Feature #3: Trigger suggestions with debounce
         if (suggestionTimeoutRef.current) {
@@ -89,7 +118,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
             const improved = await improveText(
                 activePage.text,
                 tone,
-                project.targetAudience || 'children'
+                currentProject.targetAudience || 'children'
             );
             handleTextChange(improved);
         } catch (error) {
@@ -103,7 +132,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     const handleCheckConsistency = async () => {
         setIsCheckingConsistency(true);
         try {
-            const report = await checkCharacterConsistency(project);
+            const report = await checkCharacterConsistency(currentProject);
             setConsistencyReport(report);
             setShowConsistencyPanel(true);
         } catch (error) {
@@ -123,7 +152,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
         try {
             const newSuggestions = await getWritingSuggestions(
                 text,
-                `Children's book for ${project.targetAudience}`
+                `Children's book for ${currentProject.targetAudience}`
             );
             setSuggestions(newSuggestions);
         } catch (error) {
@@ -144,7 +173,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await saveBook(project);
+            await saveBook(currentProject);
             if (onSave) {
                 onSave(true, 'Book saved successfully! ✨');
             }
@@ -204,10 +233,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     if (!activePage) return <div className="text-center p-20 font-heading text-2xl text-cocoa-light">Loading masterpiece...</div>;
 
     return (
-        <div className="h-[calc(100vh-80px)] w-full flex flex-col md:flex-row overflow-hidden bg-cream-base relative">
+        <div className="h-[calc(100vh-80px)] w-full flex flex-col lg:flex-row overflow-hidden bg-cream-base relative">
 
             {/* Mobile Tab Toggle */}
-            <div className="md:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30 shadow-sm">
+            <div className="lg:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30 shadow-sm">
                 <div className="flex p-1 bg-cream-soft rounded-xl w-full max-w-xs border border-peach-soft/50">
                     <button
                         onClick={() => setMobileView('edit')}
@@ -225,7 +254,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
             </div>
 
             {/* Left Panel: Tools & Text */}
-            <div className={`w-full md:w-[40%] flex-col border-r border-peach-soft/50 bg-cream-soft ${mobileView === 'preview' ? 'hidden md:flex' : 'flex h-full'}`}>
+            <div className={`w-full lg:w-[40%] flex-col border-r border-peach-soft/50 bg-cream-soft ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex h-full'}`}>
 
                 {/* Header */}
                 <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-peach-soft/30 shrink-0 gap-4">
@@ -248,7 +277,39 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             </div>
                         </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {/* Undo/Redo */}
+                        <div className="hidden sm:flex items-center bg-white/50 rounded-lg p-1 mr-2 border border-peach-soft/30">
+                            <button
+                                onClick={undo}
+                                disabled={!canUndo}
+                                className="p-1.5 text-cocoa-light hover:text-coral-burst disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                title="Undo"
+                            >
+                                <Undo className="w-4 h-4" />
+                            </button>
+                            <div className="w-px h-4 bg-peach-soft/50 mx-1" />
+                            <button
+                                onClick={redo}
+                                disabled={!canRedo}
+                                className="p-1.5 text-cocoa-light hover:text-coral-burst disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                title="Redo"
+                            >
+                                <Redo className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* AutoSave Indicator */}
+                        <div className="hidden sm:flex items-center mr-2 text-xs text-cocoa-light/70" title={autoSaveState.lastSaved ? `Last saved: ${autoSaveState.lastSaved.toLocaleTimeString()}` : 'Unsaved changes'}>
+                            {autoSaveState.isSaving ? (
+                                <RefreshCw className="w-3 h-3 animate-spin mr-1" />
+                            ) : autoSaveState.hasUnsavedChanges ? (
+                                <CloudOff className="w-3 h-3 mr-1 text-orange-400" />
+                            ) : (
+                                <Cloud className="w-3 h-3 mr-1 text-green-500" />
+                            )}
+                        </div>
+
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
@@ -504,7 +565,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
             </div>
 
             {/* Right Panel: Preview */}
-            <div className={`w-full md:w-[60%] bg-peach-soft/20 items-center justify-center p-4 md:p-8 pt-12 md:pt-16 relative overflow-hidden ${mobileView === 'edit' ? 'hidden md:flex' : 'flex h-full'}`}>
+            <div className={`w-full lg:w-[60%] bg-peach-soft/20 items-center justify-center p-4 lg:p-8 pt-12 lg:pt-16 relative overflow-hidden ${mobileView === 'edit' ? 'hidden lg:flex' : 'flex h-full'}`}>
                 <div className="absolute inset-0 pointer-events-none opacity-30" style={{ backgroundImage: "radial-gradient(#FF9B71 1px, transparent 1px)", backgroundSize: "24px 24px" }}></div>
 
                 {/* Book Page Container */}
