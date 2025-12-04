@@ -32,12 +32,7 @@ const GenerationTheater = lazy(() => import('./components/GenerationTheater'));
 const StorybookViewer = lazy(() => import('./components/StorybookViewer'));
 
 
-// Loading fallback component
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
-    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
-  </div>
-);
+
 
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
@@ -422,7 +417,7 @@ const App: React.FC = () => {
       <Navigation currentMode={currentMode} setMode={setCurrentMode} />
       <main className="pt-[80px] relative transition-all duration-300">
         {/* PERFORMANCE: Suspense boundary for lazy-loaded components */}
-        <Suspense fallback={<LoadingFallback />}>
+        <Suspense fallback={null}>
           {renderContent()}
         </Suspense>
       </main>
