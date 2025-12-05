@@ -202,7 +202,7 @@ export const storyBibleService = {
      * Analyzes content for age-appropriateness based on target audience.
      * Returns safety warnings if content doesn't match the audience.
      */
-    async analyzeAudienceSafety(text: string, targetAudience: string): Promise<{
+    async analyzeAudienceSafety(project: BookProject): Promise<{
         isAppropriate: boolean;
         warnings: Array<{
             type: 'vocabulary' | 'theme' | 'intensity' | 'content';
@@ -213,6 +213,11 @@ export const storyBibleService = {
         readingLevel: string;
         recommendedAgeRange: string;
     }> {
+        const text = project.chapters
+            .flatMap(c => c.pages.map(p => `Page ${p.pageNumber}: ${p.text}`))
+            .join('\n\n');
+        const targetAudience = project.targetAudience || 'Children';
+
         const messages: GrokMessage[] = [
             {
                 role: 'system',
