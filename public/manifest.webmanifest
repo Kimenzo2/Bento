@@ -1,0 +1,23 @@
+{
+    "name": "Genesis | AI-Powered Visual Storytelling",
+    "short_name": "Genesis",
+    "description": "Create stunning AI-powered ebooks, visual stories, and collaborative art with Genesis.",
+    "theme_color": "#FF9B71",
+    "background_color": "#FFF8E7",
+    "display": "standalone",
+    "orientation": "portrait",
+    "scope": "/",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "/genesis-icon.jpg",
+            "sizes": "192x192",
+            "type": "image/jpeg"
+        },
+        {
+            "src": "/genesis-icon.jpg",
+            "sizes": "512x512",
+            "type": "image/jpeg"
+        }
+    ]
+}
