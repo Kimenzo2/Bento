@@ -8,7 +8,9 @@
 // Load Paystack Inline script from CDN (V2 for Apple Pay support)
 const loadPaystackScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
-    if ((window as any).PaystackPop) {
+    // Check if PaystackPop is already loaded and is the V2 constructor (function)
+    // V1 was an object, V2 is a class constructor
+    if ((window as any).PaystackPop && typeof (window as any).PaystackPop === 'function') {
       resolve(true);
       return;
     }
@@ -97,38 +99,42 @@ export const initializePayment = async ({
       throw new Error('Paystack library not loaded. Please refresh the page.');
     }
 
-    const handler = PaystackPop.setup({
+    const paystack = new PaystackPop();
+
+    const paymentOptions: any = {
       key: publicKey,
       email,
-      amount: Math.round(amount * 100), // Convert to kobo/cents (smallest currency unit)
+      amount: Math.round(amount * 100),
       currency,
       ref: reference || generateReference(),
-      firstname: firstName,
-      lastname: lastName,
-      phone,
       metadata: {
         ...metadata,
         custom_fields: []
       },
-      channels: channels || ['card', 'bank', 'ussd', 'qr', 'bank_transfer'],
-
-      // Success callback - called when payment is successful
-      callback: (response: any) => {
-        console.log('Payment successful:', response);
-        onSuccess(response);
+      onSuccess: (transaction: any) => {
+        console.log('Payment successful:', transaction);
+        onSuccess(transaction);
       },
-
-      // Close callback - called when user closes the payment modal
-      onClose: () => {
+      onCancel: () => {
         console.log('Payment modal closed');
         onCancel();
+      },
+      onError: (error: any) => {
+        console.log('Payment failed:', error);
+        if (onError) onError(error);
       }
-    });
+    };
 
-    handler.openIframe();
+    if (firstName) paymentOptions.firstname = firstName;
+    if (lastName) paymentOptions.lastname = lastName;
+    if (phone) paymentOptions.phone = phone;
+    if (channels) paymentOptions.channels = channels;
+
+    console.log('Initializing Paystack payment with options:', paymentOptions);
+    await paystack.checkout(paymentOptions);
   } catch (error: any) {
     console.error('Failed to initialize Paystack:', error);
-    alert('Unable to start payment. Please try again.');
+    alert(`Unable to start payment. Please try again. Error: ${error.message || error}`);
     onCancel();
   }
 };
@@ -167,7 +173,8 @@ export const resumeTransaction = (
       throw new Error('Paystack library not loaded');
     }
 
-    PaystackPop.resumeTransaction(accessCode);
+    const paystack = new PaystackPop();
+    paystack.resumeTransaction(accessCode);
 
     // Note: resumeTransaction doesn't support callbacks directly
     // You'll need to handle success/failure via webhooks or redirect

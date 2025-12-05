@@ -1,5 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navigation from './components/Navigation';
@@ -35,6 +35,7 @@ const GamificationHub = lazy(() => import('./components/GamificationHub'));
 const BookSuccessView = lazy(() => import('./components/BookSuccessView'));
 const GenerationTheater = lazy(() => import('./components/GenerationTheater'));
 const StorybookViewer = lazy(() => import('./components/StorybookViewer'));
+const SharedBookViewer = lazy(() => import('./components/SharedBookViewer'));
 
 
 
@@ -403,7 +404,10 @@ const App: React.FC = () => {
               setCurrentMode(AppMode.EDITOR);
             }}
             onDownload={() => setCurrentMode(AppMode.PRICING)}
-            onShare={() => alert('Share feature coming soon! 🎉')}
+            onShare={() => {
+              // Handled internally by StorybookViewer
+              console.log('Share triggered');
+            }}
           />
         );
       case AppMode.PRICING:
@@ -420,7 +424,26 @@ const App: React.FC = () => {
     }
   };
 
+  // Get current location to handle /shared routes
+  const location = useLocation();
+  const isSharedRoute = location.pathname.startsWith('/shared/');
 
+  // If it's a shared book route, render the SharedBookViewer
+  if (isSharedRoute) {
+    return (
+      <div className="min-h-screen bg-cream-base">
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin w-8 h-8 border-4 border-coral-burst border-t-transparent rounded-full" />
+          </div>
+        }>
+          <Routes>
+            <Route path="/shared/:shortCode" element={<SharedBookViewer />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">

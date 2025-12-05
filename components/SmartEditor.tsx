@@ -380,7 +380,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                                         </span>
                                     )}
                                 </div>
-                                
+
                                 {activePage.learningContent.mentorDialogue && (
                                     <div className="bg-white rounded-xl p-4 mb-3 border border-emerald-100">
                                         <div className="flex items-start gap-3">
@@ -392,20 +392,19 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 {activePage.learningContent.quiz && (
                                     <div className="bg-white rounded-xl p-4 border border-emerald-100">
                                         <p className="text-xs font-bold text-emerald-700 mb-2">📝 Quiz Question:</p>
                                         <p className="text-sm text-charcoal-soft font-medium mb-3">{activePage.learningContent.quiz.question}</p>
                                         <div className="grid grid-cols-2 gap-2">
                                             {activePage.learningContent.quiz.options?.map((option: string, idx: number) => (
-                                                <div 
+                                                <div
                                                     key={idx}
-                                                    className={`px-3 py-2 rounded-lg text-xs font-medium ${
-                                                        option === activePage.learningContent?.quiz?.correctAnswer 
-                                                            ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+                                                    className={`px-3 py-2 rounded-lg text-xs font-medium ${option === activePage.learningContent?.quiz?.correctAnswer
+                                                            ? 'bg-green-100 text-green-800 border-2 border-green-300'
                                                             : 'bg-gray-100 text-gray-700'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {option} {option === activePage.learningContent?.quiz?.correctAnswer && '✓'}
                                                 </div>
@@ -524,12 +523,21 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             </label>
                             <div className="space-y-3">
                                 {activePage.choices.map((choice, i) => (
-                                    <div key={i} className="flex items-center justify-between bg-cream-base p-3 rounded-xl border border-peach-soft/30">
-                                        <span className="text-charcoal-soft font-medium text-sm truncate flex-1 mr-3">{choice.text}</span>
-                                        <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded-lg whitespace-nowrap">
-                                            Go to pg {choice.targetPageNumber}
+                                    <button
+                                        key={i}
+                                        onClick={() => jumpToPageNumber(choice.targetPageNumber)}
+                                        className="w-full flex items-center justify-between bg-cream-base p-4 rounded-xl border border-peach-soft/30 hover:bg-peach-soft hover:border-coral-burst transition-all group text-left"
+                                    >
+                                        <span className="text-charcoal-soft font-medium text-sm flex-1 mr-3 group-hover:text-charcoal-soft/90 transition-colors">
+                                            {choice.text}
                                         </span>
-                                    </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded-lg whitespace-nowrap group-hover:bg-coral-burst group-hover:text-white transition-colors">
+                                                Go to pg {choice.targetPageNumber}
+                                            </span>
+                                            <ChevronRight className="w-4 h-4 text-coral-burst opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                                        </div>
+                                    </button>
                                 ))}
                             </div>
                         </div>
@@ -624,8 +632,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
                 {/* Floating Action Bar */}
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full shadow-soft-lg px-6 py-3 flex items-center gap-6 border border-white z-30">
-                    <button 
-                        onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))} 
+                    <button
+                        onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))}
                         className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors"
                         aria-label="Previous page"
                         title="Previous page"
@@ -633,8 +641,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <span className="font-heading font-bold text-charcoal-soft text-sm whitespace-nowrap">Preview Mode</span>
-                    <button 
-                        onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))} 
+                    <button
+                        onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))}
                         className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors"
                         aria-label="Next page"
                         title="Next page"

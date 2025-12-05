@@ -7,7 +7,7 @@ interface AuthContextType {
     session: Session | null;
     loading: boolean;
     signInWithGoogle: (returnTo?: string) => Promise<{ error: any }>;
-    signInWithIdToken: (token: string) => Promise<{ data: any; error: any }>;
+    signInWithIdToken: (token: string, nonce?: string | null) => Promise<{ data: any; error: any }>;
     signInWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
     signUpWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
     signOut: () => Promise<{ error: any }>;
@@ -123,30 +123,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { data, error };
     };
 
-    const signInWithIdToken = async (token: string) => {
+    const signInWithIdToken = async (token: string, nonce?: string | null) => {
         console.log('[Auth] Starting Google One Tap sign-in with ID token');
+        console.log('[Auth] Token length:', token?.length);
+        console.log('[Auth] Token preview:', token ? `${token.substring(0, 50)}...` : 'NO TOKEN');
+        console.log('[Auth] Nonce provided:', nonce ? 'yes' : 'no');
+        
         try {
-            const { data, error } = await supabase.auth.signInWithIdToken({
+            console.log('[Auth] Calling supabase.auth.signInWithIdToken...');
+            
+            // Build the request object - only include nonce if provided
+            const requestOptions: { provider: 'google'; token: string; nonce?: string } = {
                 provider: 'google',
                 token: token,
-            });
+            };
+            
+            // IMPORTANT: Only pass nonce if it was used during Google initialization
+            // Supabase will verify that the nonce in the ID token matches this nonce
+            if (nonce) {
+                requestOptions.nonce = nonce;
+                console.log('[Auth] Including nonce in request');
+            }
+            
+            const { data, error } = await supabase.auth.signInWithIdToken(requestOptions);
+            
+            console.log('[Auth] signInWithIdToken response received');
+            console.log('[Auth] Response data:', data ? 'Has data' : 'No data');
+            console.log('[Auth] Response error:', error ? error.message : 'No error');
             
             if (error) {
                 console.error('[Auth] ID token sign-in error:', error);
+                console.error('[Auth] Full error object:', JSON.stringify(error, null, 2));
                 return { data: null, error };
             }
             
             console.log('[Auth] ID token sign-in successful:', data.user?.email);
+            console.log('[Auth] User ID:', data.user?.id);
+            console.log('[Auth] Session exists:', !!data.session);
             
             // Manually update state immediately for faster UI response
             if (data.session) {
+                console.log('[Auth] Setting session and user state...');
                 setSession(data.session);
                 setUser(data.user);
+                console.log('[Auth] State updated successfully');
+            } else {
+                console.warn('[Auth] No session in response despite successful sign-in');
             }
             
             return { data, error: null };
-        } catch (err) {
+        } catch (err: any) {
             console.error('[Auth] ID token sign-in exception:', err);
+            console.error('[Auth] Exception message:', err?.message);
+            console.error('[Auth] Exception stack:', err?.stack);
             return { data: null, error: err };
         }
     };

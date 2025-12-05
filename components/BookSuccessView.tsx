@@ -6,6 +6,7 @@ import StorybookViewer from './StorybookViewer';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
 import { hasWatermark, hasCommercialLicense } from '../services/tierLimits';
 import { exportToPDF } from '../services/generator/pdfService';
+import { ShareModal } from './BookSharing';
 
 interface BookSuccessViewProps {
     project: BookProject;
@@ -15,6 +16,7 @@ interface BookSuccessViewProps {
 
 const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, userTier }) => {
     const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [confetti, setConfetti] = useState<Particle[]>([]);
 
     // Generate celebration confetti on mount
@@ -56,7 +58,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
     };
 
     const handleShare = () => {
-        alert('Share feature coming soon! 🎉');
+        setShowShareModal(true);
     };
 
     if (isViewerOpen) {
@@ -281,6 +283,14 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                     </motion.button>
                 </motion.div>
             </div>
+
+            {showShareModal && (
+                <ShareModal
+                    isOpen={true}
+                    onClose={() => setShowShareModal(false)}
+                    book={project}
+                />
+            )}
         </div>
     );
 };

@@ -4,6 +4,7 @@ import { BookProject } from '../types';
 import { ChevronLeft, ChevronRight, X, Edit3, Download, Share2, Volume2, Maximize2, Minimize2, Sparkles, BookOpen, ArrowLeft } from 'lucide-react';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
 import ExportModal from './ExportModal';
+import { ShareModal } from './BookSharing';
 
 interface StorybookViewerProps {
     project: BookProject;
@@ -29,10 +30,16 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     const [learningMode, setLearningMode] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const handleShare = () => {
-        setShowExportModal(true);
+        setShowShareModal(true);
         if (onShare) onShare();
+    };
+
+    const handleDownload = () => {
+        setShowExportModal(true);
+        if (onDownload) onDownload();
     };
 
     // Detect mobile/tablet
@@ -732,6 +739,14 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         lastModified: new Date(),
                     }}
                     onClose={() => setShowExportModal(false)}
+                />
+            )}
+
+            {showShareModal && (
+                <ShareModal
+                    isOpen={true}
+                    onClose={() => setShowShareModal(false)}
+                    book={project}
                 />
             )}
         </div>
