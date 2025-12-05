@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
     BookOpen, ChevronLeft, ChevronRight, Share2, Download, 
     User, Clock, ArrowLeft, Sparkles, X, Lock, AlertCircle
 } from 'lucide-react';
-import { BookProject } from '../types';
+import { BookProject, Page } from '../types';
 import { shareService, ShareLink, ShareSettings } from '../services/shareService';
 
 interface SharedBookViewerProps {
@@ -188,7 +188,8 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({ shortCode: propShor
 
     if (!book) return null;
 
-    const pages = book.pages || [];
+    // Flatten all pages from all chapters
+    const pages: Page[] = book.chapters?.flatMap(chapter => chapter.pages || []) || [];
     const currentPage = pages[currentPageIndex];
 
     const nextPage = () => {
@@ -288,7 +289,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({ shortCode: propShor
                         <div className="w-full md:w-1/2 h-1/2 md:h-full p-8 md:p-12 overflow-y-auto flex flex-col justify-center">
                             <div className="prose dark:prose-invert max-w-none">
                                 <p className="text-lg md:text-xl leading-relaxed text-gray-800 dark:text-gray-200 font-serif whitespace-pre-wrap">
-                                    {currentPage?.content}
+                                    {currentPage?.text}
                                 </p>
                             </div>
                         </div>
@@ -313,7 +314,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({ shortCode: propShor
 
                         {/* Progress Dots */}
                         <div className="flex gap-2">
-                            {pages.map((_, idx) => (
+                            {pages.map((_: Page, idx: number) => (
                                 <button
                                     key={idx}
                                     onClick={() => setCurrentPageIndex(idx)}
