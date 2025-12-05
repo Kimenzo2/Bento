@@ -48,7 +48,13 @@ export const TIER_LIMITS = {
 
 // Helper Functions
 export const getTierLimits = (tier: UserTier) => {
-    return TIER_LIMITS[tier];
+    // Defensive check - return SPARK limits if tier is invalid
+    const limits = TIER_LIMITS[tier];
+    if (!limits) {
+        console.warn(`[TierLimits] Invalid tier "${tier}", defaulting to SPARK`);
+        return TIER_LIMITS[UserTier.SPARK];
+    }
+    return limits;
 };
 
 export const canCreateEbook = (tier: UserTier, ebooksThisMonth: number): boolean => {

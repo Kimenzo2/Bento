@@ -1,5 +1,33 @@
 # Supabase Authentication Troubleshooting Guide
 
+## Quick Setup Checklist
+
+Before troubleshooting, ensure these are configured in **Supabase Dashboard**:
+
+### 1. URL Configuration (Authentication → URL Configuration)
+- **Site URL**: `http://localhost:5174` (for dev) or your production URL
+- **Redirect URLs** (add ALL of these):
+  - `http://localhost:5173`
+  - `http://localhost:5173/**`
+  - `http://localhost:5174`
+  - `http://localhost:5174/**`
+  - `http://localhost:5175`
+  - `http://localhost:5175/**`
+  - Your production URL (e.g., `https://yourapp.vercel.app`)
+  - `https://yourapp.vercel.app/**`
+
+### 2. Email Provider (Authentication → Providers → Email)
+- ✅ **Enabled**: ON
+- ✅ **Confirm email**: Your preference (ON for production, OFF for testing)
+
+### 3. Google Provider (Authentication → Providers → Google)
+- ✅ **Enabled**: ON
+- ✅ **Client ID**: From Google Cloud Console
+- ✅ **Client Secret**: From Google Cloud Console  
+- ✅ **Client IDs** (for One Tap): Your Google Web Client ID
+
+---
+
 ## Issue #1: "Invalid API key" Error on Email Signup
 
 This error occurs when Supabase email authentication is not properly configured. Here's how to fix it:

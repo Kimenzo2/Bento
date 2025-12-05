@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -7,12 +7,14 @@ import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier, 
 import { generateBookStructure, generateIllustration } from './services/geminiService';
 import UpgradeModal from './components/UpgradeModal';
 import { ToastContainer, ToastType } from './components/Toast';
+import EmailAuthModal from './components/EmailAuthModal';
 
 import { getAllBooks, saveBook } from './services/storageService';
 import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
 import { getUserProfile, incrementBooksCreated, addXP, UserProfile } from './services/profileService';
 import { supabase } from './services/supabaseClient';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
+import { useAuth } from './contexts/AuthContext';
 import InstallPWA from './components/InstallPWA';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FontProvider } from './src/contexts/FontContext';
@@ -43,6 +45,9 @@ const SharedBookViewer = lazy(() => import('./components/SharedBookViewer'));
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
   useGoogleOneTap();
+  
+  // Get auth state
+  const { user, loading: authLoading } = useAuth();
 
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
@@ -52,6 +57,10 @@ const App: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [forceRenderKey, setForceRenderKey] = useState(0); // Force re-render trigger
+  
+  // Email Auth Modal State - Show when user is not authenticated
+  const [showEmailAuthModal, setShowEmailAuthModal] = useState(false);
+  const [hasShownAuthModal, setHasShownAuthModal] = useState(false);
 
   // Global Modals State
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -96,6 +105,30 @@ const App: React.FC = () => {
       window.removeEventListener('languageChanged', handleLanguageChange);
     };
   }, []);
+
+  // Show email auth modal when user is not authenticated (experiment)
+  React.useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    // If user is not authenticated and we haven't shown the modal yet
+    if (!user && !hasShownAuthModal) {
+      // Small delay to let the page render first
+      const timer = setTimeout(() => {
+        console.log('[App] No user detected, showing email auth modal');
+        setShowEmailAuthModal(true);
+        setHasShownAuthModal(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // If user signs in, close the modal
+    if (user && showEmailAuthModal) {
+      console.log('[App] User authenticated, closing auth modal');
+      setShowEmailAuthModal(false);
+    }
+  }, [user, authLoading, hasShownAuthModal, showEmailAuthModal]);
 
   // Fetch user profile on mount
   React.useEffect(() => {
@@ -145,7 +178,11 @@ const App: React.FC = () => {
   }, []);
 
   // Derive current tier and gamification state from profile
-  const currentUserTier = userProfile?.user_tier || UserTier.SPARK;
+  // Ensure the tier is a valid UserTier enum value
+  const rawTier = userProfile?.user_tier;
+  const currentUserTier = rawTier && Object.values(UserTier).includes(rawTier as UserTier) 
+    ? (rawTier as UserTier) 
+    : UserTier.SPARK;
   const gamificationState: GamificationState = userProfile?.gamification_data || {
     level: 1,
     levelTitle: "Novice Author",
@@ -427,6 +464,22 @@ const App: React.FC = () => {
   // Get current location to handle /shared routes
   const location = useLocation();
   const isSharedRoute = location.pathname.startsWith('/shared/');
+  
+  // Check if we're processing an OAuth callback (hash contains access_token or error)
+  const isProcessingAuth = window.location.hash.includes('access_token') || 
+                           window.location.hash.includes('error_description');
+
+  // Show loading screen while processing OAuth callback
+  if (authLoading || isProcessingAuth) {
+    return (
+      <div className="min-h-screen bg-cream-base flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-coral-burst border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-charcoal-soft/70 font-medium">Signing you in...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If it's a shared book route, render the SharedBookViewer
   if (isSharedRoute) {
@@ -490,6 +543,16 @@ const App: React.FC = () => {
       <KeyboardShortcutsModal 
         isOpen={showShortcuts} 
         onClose={() => setShowShortcuts(false)} 
+      />
+      
+      {/* Email Auth Modal - Experiment */}
+      <EmailAuthModal
+        isOpen={showEmailAuthModal}
+        onClose={() => setShowEmailAuthModal(false)}
+        onSuccess={() => {
+          console.log('[App] Email auth successful!');
+          addToast('Welcome to Genesis! 🎉', 'success');
+        }}
       />
       
       {/* Network Status Indicator */}

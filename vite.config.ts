@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true
+        },
         includeAssets: ['favicon.ico', 'genesis-icon.jpg', 'robots.txt'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
@@ -121,9 +124,6 @@ export default defineConfig(({ mode }) => {
               icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }]
             }
           ]
-        },
-        devOptions: {
-          enabled: true
         }
       })
     ],
