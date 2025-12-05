@@ -111,6 +111,8 @@ root.render(
       </RollbarErrorBoundary>
     </RollbarProvider>
   </React.StrictMode>
+);
+
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
