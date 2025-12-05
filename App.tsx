@@ -1,6 +1,7 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navigation from './components/Navigation';
 import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier, SavedBook } from './types';
@@ -45,6 +46,11 @@ const SharedBookViewer = lazy(() => import('./components/SharedBookViewer'));
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
   useGoogleOneTap();
+
+  // Initialize Vercel Speed Insights for performance monitoring
+  useEffect(() => {
+    injectSpeedInsights();
+  }, []);
 
   // Get auth state
   const { user, loading: authLoading } = useAuth();
