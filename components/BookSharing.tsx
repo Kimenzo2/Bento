@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
     Share2, Link, Copy, Check, Twitter, Facebook, Linkedin,
     Mail, MessageCircle, QrCode, Globe, Lock, Eye, EyeOff,
     Download, X, ExternalLink, Users, Clock, Code, Smartphone,
@@ -47,7 +47,7 @@ export function useBookSharing() {
             const shortCode = await shareService.createShareLink(bookId, settings);
             const link = await shareService.getShareLink(bookId);
             if (!link) throw new Error('Failed to retrieve created link');
-            
+
             return {
                 ...link,
                 url: getShareUrl(link.shortCode)
@@ -128,7 +128,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
     const [copiedEmbed, setCopiedEmbed] = useState(false);
     const [activeTab, setActiveTab] = useState<ShareTab>('link');
     const [showAdvanced, setShowAdvanced] = useState(false);
-    
+
     const [shareLink, setShareLink] = useState<ShareLink | null>(null);
     const [settings, setSettings] = useState<ShareSettings>({
         isPublic: true,
@@ -166,25 +166,25 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 
     const handleCreateLink = async () => {
         const finalSettings = { ...settings };
-        
+
         if (passwordInput) {
             finalSettings.password = passwordInput;
             finalSettings.isPublic = false;
         }
-        
+
         if (expirationDays) {
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + expirationDays);
             finalSettings.expiresAt = expiresAt.toISOString();
         }
-        
+
         // Ensure book is saved to Supabase before sharing
         try {
             await saveBook(book);
         } catch (err) {
             console.error('Failed to save book before sharing:', err);
         }
-        
+
         const newShare = await createShareLink(book.id, finalSettings);
         if (newShare) {
             setShareLink(newShare);
@@ -196,7 +196,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
         const updatedSettings = { ...settings, ...newSettings };
         setSettings(updatedSettings);
         await updateShareSettings(shareLink.shortCode, updatedSettings);
-        
+
         // Refresh link data
         const refreshed = await getShareLink(book.id);
         if (refreshed) setShareLink(refreshed);
@@ -221,12 +221,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 
     const handleDownloadQR = async () => {
         if (!shareLink) return;
-        
+
         const qrUrl = generateQRCodeUrl(shareLink.url, 400);
         const response = await fetch(qrUrl);
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `${book.title.replace(/\s+/g, '-')}-qr-code.png`;
@@ -238,10 +238,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 
     const handleShare = (platform: string) => {
         if (!shareLink) return;
-        
+
         const url = encodeURIComponent(shareLink.url);
         const title = encodeURIComponent(`Check out "${book.title}" - Created with Genesis`);
-        
+
         const shareUrls: Record<string, string> = {
             twitter: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
             facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
@@ -332,8 +332,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                     {settings.isPublic ? 'Public' : 'Private'}
                                                 </p>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {settings.isPublic 
-                                                        ? 'Anyone with the link can view' 
+                                                    {settings.isPublic
+                                                        ? 'Anyone with the link can view'
                                                         : 'Only people with password'
                                                     }
                                                 </p>
@@ -343,13 +343,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                             onClick={() => setSettings(s => ({ ...s, isPublic: !s.isPublic }))}
                                             title="Toggle visibility"
                                             className={`
-                                                w-12 h-6 rounded-full transition-colors relative
+                                                w-11 h-6 rounded-full transition-colors relative flex-shrink-0
                                                 ${settings.isPublic ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}
                                             `}
                                         >
                                             <span className={`
                                                 absolute top-1 w-4 h-4 bg-white rounded-full transition-transform
-                                                ${settings.isPublic ? 'translate-x-7' : 'translate-x-1'}
+                                                ${settings.isPublic ? 'translate-x-[1.375rem]' : 'translate-x-1'}
                                             `} />
                                         </button>
                                     </div>
@@ -370,13 +370,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                             onClick={() => setSettings(s => ({ ...s, allowDownload: !s.allowDownload }))}
                                             title="Toggle downloads"
                                             className={`
-                                                w-12 h-6 rounded-full transition-colors relative
+                                                w-11 h-6 rounded-full transition-colors relative flex-shrink-0
                                                 ${settings.allowDownload ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}
                                             `}
                                         >
                                             <span className={`
                                                 absolute top-1 w-4 h-4 bg-white rounded-full transition-transform
-                                                ${settings.allowDownload ? 'translate-x-7' : 'translate-x-1'}
+                                                ${settings.allowDownload ? 'translate-x-[1.375rem]' : 'translate-x-1'}
                                             `} />
                                         </button>
                                     </div>
@@ -432,8 +432,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                             onClick={() => setExpirationDays(days)}
                                                             className={`
                                                                 flex-1 py-2 text-xs rounded-lg transition-colors
-                                                                ${expirationDays === days 
-                                                                    ? 'bg-coral-burst text-white' 
+                                                                ${expirationDays === days
+                                                                    ? 'bg-coral-burst text-white'
                                                                     : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
                                                                 }
                                                             `}
@@ -476,8 +476,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                             onClick={() => setActiveTab(tab.id)}
                                             className={`
                                                 flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors
-                                                ${activeTab === tab.id 
-                                                    ? 'bg-white dark:bg-gray-700 text-coral-burst shadow-sm' 
+                                                ${activeTab === tab.id
+                                                    ? 'bg-white dark:bg-gray-700 text-coral-burst shadow-sm'
                                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                                 }
                                             `}
@@ -512,8 +512,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                     title="Copy link"
                                                     className={`
                                                         p-2 rounded-lg transition-colors
-                                                        ${copied 
-                                                            ? 'bg-green-500 text-white' 
+                                                        ${copied
+                                                            ? 'bg-green-500 text-white'
                                                             : 'bg-coral-burst text-white hover:bg-coral-burst/90'
                                                         }
                                                     `}
@@ -540,18 +540,18 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                     <span className="text-sm text-gray-600 dark:text-gray-400">Public Access</span>
                                                     <button
                                                         onClick={() => handleUpdateSettings({ isPublic: !settings.isPublic })}
-                                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.isPublic ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                        className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${settings.isPublic ? 'bg-green-500' : 'bg-gray-300'}`}
                                                     >
-                                                        <span className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${settings.isPublic ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                        <span className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${settings.isPublic ? 'translate-x-5' : 'translate-x-1'}`} />
                                                     </button>
                                                 </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm text-gray-600 dark:text-gray-400">Allow Downloads</span>
                                                     <button
                                                         onClick={() => handleUpdateSettings({ allowDownload: !settings.allowDownload })}
-                                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.allowDownload ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                                        className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${settings.allowDownload ? 'bg-blue-500' : 'bg-gray-300'}`}
                                                     >
-                                                        <span className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${settings.allowDownload ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                        <span className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${settings.allowDownload ? 'translate-x-5' : 'translate-x-1'}`} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -661,8 +661,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                         title="Copy embed code"
                                                         className={`
                                                             absolute top-2 right-2 p-2 rounded-lg transition-colors
-                                                            ${copiedEmbed 
-                                                                ? 'bg-green-500 text-white' 
+                                                            ${copiedEmbed
+                                                                ? 'bg-green-500 text-white'
                                                                 : 'bg-gray-700 text-white hover:bg-gray-600'
                                                             }
                                                         `}

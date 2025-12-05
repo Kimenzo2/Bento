@@ -397,7 +397,7 @@ const App: React.FC = () => {
           />
         );
       case AppMode.EDITOR:
-        if (!currentProject) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
+      case AppMode.EDITOR:
         return (
           <SmartEditor
             project={currentProject}
@@ -408,6 +408,7 @@ const App: React.FC = () => {
               addToast(message, success ? 'success' : 'error');
             }}
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
+            onNavigateToCreate={() => setCurrentMode(AppMode.CREATION)}
           />
         );
       case AppMode.VISUAL_STUDIO:

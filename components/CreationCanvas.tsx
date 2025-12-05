@@ -218,23 +218,56 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
-    // Quick Start Card Component
-    const QuickStartCard = ({ icon: Icon, title, desc, colorClass, onClick }: any) => (
-        <button
-            onClick={onClick}
-            className="bg-white p-8 rounded-3xl shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft relative overflow-hidden"
-        >
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-25 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700`}></div>
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white shadow-md mb-6 group-hover:rotate-12 transition-transform`}>
-                <Icon className="w-8 h-8" />
-            </div>
-            <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h3>
-            <p className="font-body text-cocoa-light text-sm leading-relaxed mb-6 flex-1">{desc}</p>
-            <div className="flex items-center text-coral-burst font-heading font-bold text-sm group-hover:gap-2 transition-all">
-                Start Creating <ChevronRight className="w-4 h-4" />
-            </div>
-        </button>
-    );
+    // Quick Start Card Component with Vercel-style cursor glow effect
+    const QuickStartCard = ({ icon: Icon, title, desc, colorClass, onClick }: any) => {
+        const cardRef = React.useRef<HTMLButtonElement>(null);
+        const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
+        const [isHovered, setIsHovered] = React.useState(false);
+
+        const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+            if (!cardRef.current) return;
+            const rect = cardRef.current.getBoundingClientRect();
+            setMousePosition({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            });
+        };
+
+        return (
+            <button
+                ref={cardRef}
+                onClick={onClick}
+                onMouseMove={handleMouseMove}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className="relative bg-white p-8 rounded-3xl shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
+            >
+                {/* Cursor Glow Effect - Vercel Marketplace Style */}
+                <div
+                    className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
+                    style={{
+                        opacity: isHovered ? 1 : 0,
+                        background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 155, 113, 0.35), transparent 40%)`,
+                    }}
+                />
+
+                {/* Corner Gradient Decoration */}
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-25 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700 z-0`}></div>
+
+                {/* Card Content */}
+                <div className="relative z-10">
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white shadow-md mb-6 group-hover:rotate-12 transition-transform`}>
+                        <Icon className="w-8 h-8" />
+                    </div>
+                    <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h3>
+                    <p className="font-body text-cocoa-light text-sm leading-relaxed mb-6 flex-1">{desc}</p>
+                    <div className="flex items-center text-coral-burst font-heading font-bold text-sm group-hover:gap-2 transition-all">
+                        Start Creating <ChevronRight className="w-4 h-4" />
+                    </div>
+                </div>
+            </button>
+        );
+    };
 
     const handleQuickStartClick = useCallback((action: () => void) => {
         setCreationMode('book');
@@ -311,15 +344,15 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             <h2 className="font-heading font-bold text-3xl text-charcoal-soft">My Saved Books</h2>
                             <p className="text-cocoa-light text-sm mt-1">{savedBooks.length} {savedBooks.length === 1 ? 'book' : 'books'} saved</p>
                         </div>
-                        
+
                         {/* Bulk Selection Toggle */}
                         {!isLoadingBooks && (
                             <button
                                 onClick={isSelectionMode ? clearSelection : enterSelectionMode}
                                 className={`
                                     px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2
-                                    ${isSelectionMode 
-                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                                    ${isSelectionMode
+                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                         : 'text-coral-burst hover:bg-coral-burst/10'
                                     }
                                 `}
@@ -702,7 +735,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 <MessageCircle className="w-5 h-5" />
                                 Chat to Create
                             </button>
-                            
+
                             {/* Main Generate Button */}
                             <button
                                 onClick={handleGenerate}

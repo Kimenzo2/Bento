@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { BookProject, Page, UserTier } from '../types';
+import { BookProject, Page, UserTier, CharacterPersona, Character, ArtStyle, BookTone } from '../types';
 import {
     ChevronLeft,
     ChevronRight,
@@ -23,7 +23,15 @@ import {
     CloudOff,
     LayoutTemplate,
     Activity,
-    ShieldCheck
+    ShieldCheck,
+    MessageCircle,
+    Globe,
+    PenTool,
+    BookOpen,
+    Users,
+    Compass,
+    Star,
+    Zap
 } from 'lucide-react';
 import { generateIllustration } from '../services/geminiService';
 import { improveText, checkCharacterConsistency, getWritingSuggestions } from '../services/grokService';
@@ -31,54 +39,128 @@ import { storyBibleService, ConsistencyIssue } from '../services/storyBibleServi
 import LivingStoryboard from './LivingStoryboard';
 import EmotionalArc from './EmotionalArc';
 import AudienceSafety from './AudienceSafety';
+import GreenRoom from './GreenRoom';
+import RemixStudio from './RemixStudio';
 import { saveBook } from '../services/storageService';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { StoryBible } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SmartEditorProps {
-    project: BookProject;
+    project: BookProject | null;
     onUpdateProject: (project: BookProject) => void;
     userTier?: UserTier;
     onShowUpgrade?: () => void;
     onSave?: (success: boolean, message: string) => void;
     onBack?: () => void;
+    onNavigateToCreate?: () => void;
 }
 
-const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK, onShowUpgrade, onSave, onBack }) => {
+// Default characters for standalone Green Room access
+const defaultCharacters: Character[] = [
+    {
+        id: 'demo-luna',
+        name: 'Luna the Moon Fairy',
+        description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
+        visualTraits: 'Translucent wings, silver hair, glowing aura, wearing a dress made of flower petals',
+    },
+    {
+        id: 'demo-blaze',
+        name: 'Blaze the Dragon',
+        description: 'A friendly young dragon learning to control his fire breath while making friends.',
+        visualTraits: 'Red and orange scales, small wings, big curious eyes, puffs of smoke from nostrils',
+    },
+    {
+        id: 'demo-aurora',
+        name: 'Princess Aurora',
+        description: 'A brave princess who prefers adventures over balls, skilled with a sword.',
+        visualTraits: 'Golden crown, flowing purple gown, determined expression, carrying a small sword',
+    },
+    {
+        id: 'demo-captain',
+        name: 'Captain Silverhook',
+        description: 'A reformed pirate who now searches for treasure to give to orphanages.',
+        visualTraits: 'Tricorn hat, eye patch, silver hook hand, weathered coat, friendly smile',
+    },
+];
+
+// Demo project for standalone mode
+const createDemoProject = (): BookProject => ({
+    id: 'demo-project',
+    title: 'Creative Hub Demo',
+    synopsis: 'Explore the creative tools without a project',
+    style: ArtStyle.PIXAR_3D,
+    tone: BookTone.PLAYFUL,
+    targetAudience: 'Children (5-8)',
+    isBranching: false,
+    chapters: [{
+        id: 'demo-chapter',
+        title: 'Demo Chapter',
+        pages: [{
+            id: 'demo-page',
+            pageNumber: 1,
+            text: 'Welcome to the Creative Hub! This is a demo space to explore features.',
+            imagePrompt: 'A magical workshop filled with creative tools and sparkling ideas',
+            layoutType: 'text-only'
+        }]
+    }],
+    characters: defaultCharacters,
+    createdAt: new Date()
+});
+
+const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, userTier = UserTier.SPARK, onShowUpgrade, onSave, onBack, onNavigateToCreate }) => {
+    const { userProfile } = useAuth();
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Standalone mode state (when no project)
+    const [showGreenRoomStandalone, setShowGreenRoomStandalone] = useState(false);
+    const [showRemixStudioStandalone, setShowRemixStudioStandalone] = useState(false);
+    const [selectedDemoCharacter, setSelectedDemoCharacter] = useState<Character | null>(null);
+
+    // Use demo project when no project is provided
+    const demoProject = createDemoProject();
+    const workingProject = project || demoProject;
+    const isStandaloneMode = !project;
+
     // Deep Quality State
-    const [storyBible, setStoryBible] = useState<StoryBible | null>(project.storyBible || null);
+    const [storyBible, setStoryBible] = useState<StoryBible | null>(workingProject.storyBible || null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showStoryboard, setShowStoryboard] = useState(false);
     const [showEmotionalArc, setShowEmotionalArc] = useState(false);
     const [showAudienceSafety, setShowAudienceSafety] = useState(false);
     const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
 
-    // Undo/Redo
-    const { state: currentProject, set: setProjectHistory, undo, redo, canUndo, canRedo } = useUndoRedo<BookProject>(project);
+    // Green Room & Remix State
+    const [showGreenRoom, setShowGreenRoom] = useState(false);
+    const [selectedCharacterForInterview, setSelectedCharacterForInterview] = useState<any>(null);
+    const [showRemixStudio, setShowRemixStudio] = useState(false);
 
-    // AutoSave
+    // Undo/Redo
+    const { state: currentProject, set: setProjectHistory, undo, redo, canUndo, canRedo } = useUndoRedo<BookProject>(workingProject);
+
+    // AutoSave (only for real projects)
     const { state: autoSaveState, save: triggerSave } = useAutoSave({
         key: `book-${currentProject.id}`,
         data: currentProject,
         onSave: async (data) => {
-            await saveBook(data);
-            if (onSave) onSave(true, 'Auto-saved');
+            if (!isStandaloneMode) {
+                await saveBook(data);
+                if (onSave) onSave(true, 'Auto-saved');
+            }
         },
         interval: 30000, // 30s
     });
 
-    // Sync parent state when history changes
+    // Sync parent state when history changes (only for real projects)
     useEffect(() => {
-        if (currentProject !== project) {
+        if (!isStandaloneMode && currentProject !== project) {
             onUpdateProject(currentProject);
         }
-    }, [currentProject, onUpdateProject]);
+    }, [currentProject, onUpdateProject, isStandaloneMode]);
 
     // Feature #1: AI Improve
     const [isImproving, setIsImproving] = useState(false);
@@ -334,11 +416,11 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     };
 
     const handleGenerateImage = async () => {
-        if (!activePage) return;
+        if (!activePage || isStandaloneMode) return;
 
         // Check Limits
         if (userTier === UserTier.SPARK) {
-            const currentCount = project.aiImagesGenerated || 0;
+            const currentCount = currentProject.aiImagesGenerated || 0;
             if (currentCount >= 5) {
                 if (onShowUpgrade) {
                     onShowUpgrade();
@@ -351,9 +433,9 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
         setIsGeneratingImage(true);
         try {
-            const base64Image = await generateIllustration(activePage.imagePrompt, project.style);
+            const base64Image = await generateIllustration(activePage.imagePrompt, currentProject.style);
             if (base64Image) {
-                const newProject = JSON.parse(JSON.stringify(project)) as BookProject;
+                const newProject = JSON.parse(JSON.stringify(currentProject)) as BookProject;
 
                 // Increment count
                 newProject.aiImagesGenerated = (newProject.aiImagesGenerated || 0) + 1;
@@ -375,6 +457,187 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
         const idx = allPages.findIndex(p => p.pageNumber === num);
         if (idx !== -1) setActivePageIndex(idx);
     };
+
+    // ============================================
+    // CREATIVE HUB - Standalone Mode (No Project)
+    // ============================================
+    if (isStandaloneMode) {
+        return (
+            <div className="h-[calc(100vh-80px)] w-full overflow-auto bg-gradient-to-br from-cream-base via-peach-soft/20 to-cream-base">
+                {/* Header */}
+                <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-peach-soft/50 px-6 py-4">
+                    <div className="max-w-6xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {onBack && (
+                                <button onClick={onBack} className="p-2 hover:bg-cream-soft rounded-full transition-colors">
+                                    <ArrowLeft className="w-5 h-5 text-charcoal-soft" />
+                                </button>
+                            )}
+                            <div>
+                                <h1 className="font-heading font-bold text-2xl text-charcoal-soft">Creative Hub</h1>
+                                <p className="text-sm text-cocoa-light">Explore creative tools & discover worlds</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="max-w-6xl mx-auto px-6 py-8">
+                    {/* Hero Section */}
+                    <div className="text-center mb-12">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-sunshine/20 to-coral-burst/20 rounded-full text-sm font-bold text-coral-burst mb-4">
+                            <Sparkles className="w-4 h-4" />
+                            Welcome to the Creative Hub
+                        </div>
+                        <h2 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft mb-4">
+                            Your Creative Playground Awaits
+                        </h2>
+                        <p className="text-cocoa-light text-lg max-w-2xl mx-auto">
+                            Interview characters, discover remixable worlds, and unleash your creativity — all without needing a project first.
+                        </p>
+                    </div>
+
+                    {/* Feature Cards Grid */}
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                        {/* Create a Book Card */}
+                        <div className="bg-white rounded-2xl p-6 shadow-soft-lg border border-peach-soft/50 hover:shadow-soft-xl transition-all group">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-coral-burst to-gold-sunshine flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <PenTool className="w-7 h-7 text-white" />
+                            </div>
+                            <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">Create a Book</h3>
+                            <p className="text-cocoa-light text-sm mb-4">
+                                Start your storytelling journey. Generate a complete illustrated book with AI assistance.
+                            </p>
+                            <button 
+                                onClick={onNavigateToCreate}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Zap className="w-4 h-4" />
+                                Start Creating
+                            </button>
+                        </div>
+
+                        {/* Green Room Card */}
+                        <div className="bg-white rounded-2xl p-6 shadow-soft-lg border border-peach-soft/50 hover:shadow-soft-xl transition-all group">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <MessageCircle className="w-7 h-7 text-white" />
+                            </div>
+                            <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">The Green Room</h3>
+                            <p className="text-cocoa-light text-sm mb-4">
+                                Interview characters to discover their personalities, backstories, and hidden depths.
+                            </p>
+                            <button 
+                                onClick={() => setShowGreenRoomStandalone(true)}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Users className="w-4 h-4" />
+                                Enter Green Room
+                            </button>
+                        </div>
+
+                        {/* Remix Studio Card */}
+                        <div className="bg-white rounded-2xl p-6 shadow-soft-lg border border-peach-soft/50 hover:shadow-soft-xl transition-all group">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <GitFork className="w-7 h-7 text-white" />
+                            </div>
+                            <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">Remix Studio</h3>
+                            <p className="text-cocoa-light text-sm mb-4">
+                                Discover and fork magical worlds created by other storytellers. Build upon shared universes.
+                            </p>
+                            <button 
+                                onClick={() => setShowRemixStudioStandalone(true)}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Compass className="w-4 h-4" />
+                                Explore Worlds
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Demo Characters Section */}
+                    <div className="mb-12">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="font-heading font-bold text-xl text-charcoal-soft">Meet Demo Characters</h3>
+                                <p className="text-sm text-cocoa-light">Try interviewing these characters in the Green Room</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {defaultCharacters.map((char) => (
+                                <button
+                                    key={char.id}
+                                    onClick={() => {
+                                        setSelectedDemoCharacter(char);
+                                        setShowGreenRoomStandalone(true);
+                                    }}
+                                    className="bg-white rounded-xl p-4 shadow-soft-md border border-peach-soft/50 hover:shadow-soft-lg hover:border-emerald-300 transition-all group text-left"
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                        <span className="text-white text-xl font-bold">{char.name[0]}</span>
+                                    </div>
+                                    <h4 className="font-heading font-bold text-charcoal-soft text-sm mb-1 truncate">{char.name}</h4>
+                                    <p className="text-xs text-cocoa-light line-clamp-2">{char.description}</p>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Stats/Features Section */}
+                    <div className="bg-gradient-to-r from-charcoal-soft to-charcoal-soft/90 rounded-2xl p-8 text-white">
+                        <div className="grid md:grid-cols-3 gap-6 text-center">
+                            <div>
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                                    <Star className="w-6 h-6 text-gold-sunshine" />
+                                </div>
+                                <div className="font-heading font-bold text-2xl mb-1">AI-Powered</div>
+                                <div className="text-white/70 text-sm">Characters respond with unique personalities</div>
+                            </div>
+                            <div>
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                                    <Globe className="w-6 h-6 text-coral-burst" />
+                                </div>
+                                <div className="font-heading font-bold text-2xl mb-1">Community</div>
+                                <div className="text-white/70 text-sm">Discover worlds from other creators</div>
+                            </div>
+                            <div>
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                                    <BookOpen className="w-6 h-6 text-emerald-400" />
+                                </div>
+                                <div className="font-heading font-bold text-2xl mb-1">Story Bible</div>
+                                <div className="text-white/70 text-sm">Extract facts to enrich your stories</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Green Room Modal for Standalone */}
+                {showGreenRoomStandalone && (
+                    <GreenRoom
+                        isOpen={showGreenRoomStandalone}
+                        onClose={() => {
+                            setShowGreenRoomStandalone(false);
+                            setSelectedDemoCharacter(null);
+                        }}
+                        project={demoProject}
+                        character={selectedDemoCharacter || defaultCharacters[0]}
+                        userId={userProfile?.id}
+                    />
+                )}
+
+                {/* Remix Studio Modal for Standalone */}
+                <RemixStudio
+                    isOpen={showRemixStudioStandalone}
+                    onClose={() => setShowRemixStudioStandalone(false)}
+                    userId={userProfile?.id}
+                    userName={userProfile?.display_name || userProfile?.email}
+                    onForkWorld={(world) => {
+                        console.log('Forked world in standalone mode:', world);
+                        setShowRemixStudioStandalone(false);
+                    }}
+                />
+            </div>
+        );
+    }
 
     if (!activePage) return <div className="text-center p-20 font-heading text-2xl text-cocoa-light">Loading masterpiece...</div>;
 
@@ -487,6 +750,32 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                                 title="Audience Safety"
                             >
                                 <ShieldCheck className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Green Room & Remix Toggles */}
+                        <div className="flex items-center gap-1 border-l border-peach-soft/30 pl-2 ml-2">
+                            <button
+                                onClick={() => {
+                                    // Open Green Room with first character if available
+                                    if (currentProject.characters.length > 0) {
+                                        setSelectedCharacterForInterview(currentProject.characters[0]);
+                                        setShowGreenRoom(true);
+                                    } else {
+                                        alert('Add a character to your story first!');
+                                    }
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${showGreenRoom ? 'bg-emerald-100 text-emerald-600' : 'text-cocoa-light hover:text-emerald-500'}`}
+                                title="Green Room - Interview Characters"
+                            >
+                                <MessageCircle className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setShowRemixStudio(true)}
+                                className={`p-2 rounded-lg transition-colors ${showRemixStudio ? 'bg-indigo-100 text-indigo-600' : 'text-cocoa-light hover:text-indigo-500'}`}
+                                title="Remix Studio - Share & Discover Worlds"
+                            >
+                                <Globe className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
@@ -937,6 +1226,50 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                 </div>
 
             </div>
+
+            {/* Green Room Modal */}
+            {showGreenRoom && selectedCharacterForInterview && (
+                <GreenRoom
+                    isOpen={showGreenRoom}
+                    onClose={() => {
+                        setShowGreenRoom(false);
+                        setSelectedCharacterForInterview(null);
+                    }}
+                    project={currentProject}
+                    character={selectedCharacterForInterview}
+                    onPersonaUpdate={(persona: CharacterPersona) => {
+                        // Update character with extracted facts
+                        const updatedCharacters = currentProject.characters.map(c =>
+                            c.id === selectedCharacterForInterview.id
+                                ? {
+                                    ...c,
+                                    personalityTraits: [...(c.personalityTraits || []), ...persona.personality],
+                                    backstory: persona.background || c.backstory
+                                }
+                                : c
+                        );
+                        setProjectHistory(prev => ({
+                            ...prev,
+                            characters: updatedCharacters
+                        }));
+                    }}
+                    userId={userProfile?.id}
+                />
+            )}
+
+            {/* Remix Studio Modal */}
+            <RemixStudio
+                isOpen={showRemixStudio}
+                onClose={() => setShowRemixStudio(false)}
+                userId={userProfile?.id}
+                userName={userProfile?.display_name || userProfile?.email}
+                currentProject={currentProject}
+                onForkWorld={(world) => {
+                    // Handle forked world - could create a new project based on it
+                    console.log('Forked world:', world);
+                    setShowRemixStudio(false);
+                }}
+            />
         </div >
     );
 };

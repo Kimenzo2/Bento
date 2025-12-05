@@ -259,8 +259,9 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({
                 <div className="flex-1 flex flex-col min-h-0">
                     {!isLive ? (
                         /* Pre-broadcast setup */
-                        <div className="flex-1 flex items-center justify-center p-8">
-                            <div className="max-w-md w-full space-y-6">
+                        <div className="flex-1 overflow-y-auto p-8">
+                            <div className="min-h-full flex items-center justify-center">
+                                <div className="max-w-md w-full space-y-6">
                                 <div className="text-center">
                                     <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                                         <Radio className="w-10 h-10 text-white" />
@@ -381,10 +382,11 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({
                                     Start Broadcasting
                                 </button>
                             </div>
+                            </div>
                         </div>
                     ) : (
                         /* Live broadcast info */
-                        <div className="flex-1 p-6">
+                        <div className="flex-1 overflow-y-auto p-6">
                             <div className="bg-white/5 rounded-2xl p-6 mb-6">
                                 <h3 className="text-xl font-bold text-white mb-2">{session?.title}</h3>
                                 {session?.description && (

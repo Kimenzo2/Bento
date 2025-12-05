@@ -25,32 +25,32 @@ export default {
             },
             colors: {
                 cream: {
-                    base: '#FFF8E7',
-                    soft: '#FFFCF5'
+                    base: 'var(--color-background)',
+                    soft: 'var(--color-background)' // Fallback or same
                 },
                 peach: {
-                    soft: '#FFE4CC',
-                    light: '#FFF0E0'
+                    soft: 'var(--color-border)',
+                    light: 'var(--color-border)' // Fallback
                 },
                 yellow: {
                     butter: '#FFF4A3'
                 },
                 mint: {
-                    breeze: '#D4F4DD'
+                    breeze: '#D4F4DD' // Keep hardcoded for now or add variable later
                 },
                 coral: {
-                    burst: '#FF9B71',
-                    hover: '#E88A60'
+                    burst: 'var(--color-primary-start)',
+                    hover: 'var(--color-primary-end)'
                 },
                 gold: {
-                    sunshine: '#FFD93D'
+                    sunshine: 'var(--color-primary-end)'
                 },
                 charcoal: {
-                    soft: '#5A5A5A'
+                    soft: 'var(--color-text)'
                 },
                 cocoa: {
-                    light: '#8B7E74',
-                    dark: '#6B5E54'
+                    light: 'var(--color-text-light)',
+                    dark: 'var(--color-text)'
                 }
             },
             boxShadow: {

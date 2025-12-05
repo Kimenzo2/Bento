@@ -156,6 +156,13 @@ export interface Character {
   visualPrompt?: string; // New field
   traits?: string[];
   imageUrl?: string;
+  // Extended fields for Green Room
+  personalityTraits?: string[];
+  backstory?: string;
+  appearance?: string;
+  goals?: string[];
+  fears?: string[];
+  quirks?: string[];
 }
 
 export interface BookMetadata {
@@ -414,4 +421,131 @@ export interface UserProfile {
   bio?: string;
   created_at: string;
   updated_at?: string;
+}
+
+// ============================================
+// GREEN ROOM - Character Interview System
+// ============================================
+
+export interface ExtractedFact {
+  id: string;
+  key: string; // e.g., "eye_color", "fear", "motivation"
+  value: string;
+  source: 'interview' | 'manual' | 'inferred';
+  confidence: number; // 0.0 to 1.0
+  extractedAt: number; // Timestamp
+}
+
+export interface CharacterPersona {
+  id: string;
+  name: string;
+  role: 'protagonist' | 'antagonist' | 'supporting' | 'mentor' | 'comic-relief' | 'other';
+  voiceStyle: string; // e.g., "Sarcastic and witty", "Warm and nurturing"
+  background: string;
+  visualDescription: string;
+  personality: string[];
+  quirks: string[];
+  goals: string[];
+  fears: string[];
+  relationships: {
+    characterId: string;
+    characterName: string;
+    type: string; // e.g., "rival", "best friend", "secret admirer"
+  }[];
+  extractedFacts: ExtractedFact[];
+  avatarUrl?: string;
+  createdAt: number;
+  lastInterviewAt?: number;
+}
+
+export interface GreenRoomMessage {
+  id: string;
+  role: 'author' | 'character';
+  content: string;
+  characterId?: string;
+  extractedFacts?: ExtractedFact[];
+  timestamp: number;
+}
+
+export interface GreenRoomSession {
+  id: string;
+  projectId: string;
+  characterId: string;
+  characterName: string;
+  messages: GreenRoomMessage[];
+  status: 'active' | 'paused' | 'completed';
+  totalFactsExtracted: number;
+  startedAt: number;
+  lastActiveAt: number;
+}
+
+// ============================================
+// REMIX STUDIO - World Forking System
+// ============================================
+
+export interface RemixableWorld {
+  id: string;
+  name: string;
+  description: string;
+  coverImage?: string;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatar?: string;
+  
+  // World Content
+  magicSystem?: string;
+  locations: {
+    id: string;
+    name: string;
+    description: string;
+    visualDescription: string;
+  }[];
+  lore: string;
+  rules: string[]; // e.g., "Magic has a cost", "No one can fly"
+  era: string; // e.g., "Medieval", "Futuristic", "Modern"
+  
+  // Sharing Settings
+  isPublic: boolean;
+  allowRemix: boolean;
+  requireCredit: boolean;
+  license: 'open' | 'attribution' | 'non-commercial' | 'restricted';
+  
+  // Stats
+  totalRemixes: number;
+  totalLikes: number;
+  totalViews: number;
+  tags: string[];
+  
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface WorldFork {
+  id: string;
+  parentWorldId: string;
+  parentWorldName: string;
+  originalCreatorId: string;
+  originalCreatorName: string;
+  
+  // The forked version
+  forkedWorldId: string;
+  forkedByUserId: string;
+  forkedByUserName: string;
+  
+  // Lineage
+  generationNumber: number; // 1 = first fork, 2 = fork of a fork, etc.
+  ancestorChain: string[]; // Array of world IDs from root to parent
+  
+  createdAt: number;
+}
+
+export interface RemixCredits {
+  projectId: string;
+  credits: {
+    worldId: string;
+    worldName: string;
+    creatorId: string;
+    creatorName: string;
+    generationNumber: number;
+  }[];
 }

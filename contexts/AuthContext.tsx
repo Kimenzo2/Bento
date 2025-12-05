@@ -2,10 +2,19 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 
+// UserProfile type for convenience
+interface UserProfile {
+    id: string;
+    email: string;
+    display_name?: string;
+    avatar_url?: string;
+}
+
 interface AuthContextType {
     user: User | null;
     session: Session | null;
     loading: boolean;
+    userProfile: UserProfile | null;
     signInWithGoogle: (returnTo?: string) => Promise<{ error: any }>;
     signInWithIdToken: (token: string, nonce?: string | null) => Promise<{ data: any; error: any }>;
     signInWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
@@ -197,6 +206,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         session,
         loading,
+        userProfile: user ? {
+            id: user.id,
+            email: user.email || '',
+            display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture
+        } : null,
         signInWithGoogle,
         signInWithIdToken,
         signInWithEmail,

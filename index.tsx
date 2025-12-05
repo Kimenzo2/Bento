@@ -3,13 +3,15 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
+import { Provider as RollbarProvider, ErrorBoundary as RollbarErrorBoundary } from '@rollbar/react';
+import rollbar, { rollbarConfig } from './config/rollbar';
 import './index.css';
 
 // Log app initialization for debugging (console.error survives production builds)
 console.error('[Genesis] Application starting - Mode:', import.meta.env.MODE);
 
 // Global error handler to catch unhandled errors
-window.onerror = function(message, source, lineno, colno, error) {
+window.onerror = function (message, source, lineno, colno, error) {
   console.error('[Genesis] Global error:', { message, source, lineno, colno, error });
   // Show error on page if root is empty
   const root = document.getElementById('root');
@@ -29,7 +31,7 @@ window.onerror = function(message, source, lineno, colno, error) {
 };
 
 // Handle unhandled promise rejections
-window.onunhandledrejection = function(event) {
+window.onunhandledrejection = function (event) {
   console.error('[Genesis] Unhandled promise rejection:', event.reason);
 };
 
@@ -97,12 +99,16 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </AuthProvider>
-    </ErrorBoundary>
+    <RollbarProvider config={rollbarConfig}>
+      <RollbarErrorBoundary>
+        <ErrorBoundary>
+          <AuthProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </AuthProvider>
+        </ErrorBoundary>
+      </RollbarErrorBoundary>
+    </RollbarProvider>
   </React.StrictMode>
 );
