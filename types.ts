@@ -115,6 +115,7 @@ export interface Page {
   text: string;
   imagePrompt: string;
   imageUrl?: string; // Base64 or URL
+  isImageOutdated?: boolean; // True if text changed significantly since generation
   layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only' | 'learning-break' | 'learning-only';
 
   // New fields
@@ -190,6 +191,63 @@ export interface SeriesInfo {
   characterDevelopment: string;
 }
 
+// --- Deep Quality & Living Storyboard Types ---
+
+export interface StoryEntity {
+  id: string;
+  name: string;
+  type: 'character' | 'location' | 'object';
+  description: string;
+  visualTraits: string;
+  firstAppearancePage: number;
+  occurrences: number[];
+}
+
+export interface StoryBeat {
+  pageNumber: number;
+  summary: string;
+  emotionalTone: string; // e.g., "Tense", "Joyful"
+  sentimentScore: number; // -1.0 to 1.0
+  tensionLevel: number; // 0 to 10
+  charactersPresent: string[]; // IDs
+}
+
+export interface StoryBible {
+  entities: StoryEntity[];
+  beats: StoryBeat[];
+  globalThemes: string[];
+  consistencyIssues: {
+    pageNumber: number;
+    description: string;
+    severity: 'low' | 'medium' | 'high';
+    entityId?: string;
+  }[];
+  audienceSafety?: AudienceSafetyReport;
+  emotionalArc?: {
+    arc: Array<{
+      pageNumber: number;
+      sentiment: number;
+      tension: number;
+      label: string;
+    }>;
+    climaxPage: number;
+    pacing: 'slow' | 'medium' | 'fast' | 'uneven';
+    suggestions: string[];
+  };
+}
+
+export interface AudienceSafetyReport {
+  isAppropriate: boolean;
+  warnings: {
+    type: 'vocabulary' | 'theme' | 'intensity' | 'content';
+    description: string;
+    severity: 'info' | 'warning' | 'critical';
+    suggestion?: string;
+  }[];
+  readingLevel: string;
+  recommendedAgeRange: string;
+}
+
 export interface BookProject {
   id: string;
   title: string;
@@ -198,6 +256,10 @@ export interface BookProject {
   tone: BookTone;
   targetAudience: string;
   isBranching: boolean;
+  
+  // Deep Quality Fields
+  storyBible?: StoryBible;
+  lastBibleUpdate?: number; // Timestamp
   brandProfile?: BrandProfile;
 
   // Structure

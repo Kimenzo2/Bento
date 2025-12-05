@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookProject } from '../types';
-import { ChevronLeft, ChevronRight, X, Edit3, Download, Share2, Volume2, Maximize2, Minimize2, Sparkles, BookOpen, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Edit3, Download, Share2, Volume2, Maximize2, Minimize2, Sparkles, BookOpen, ArrowLeft, VolumeX } from 'lucide-react';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
 import ExportModal from './ExportModal';
 import { ShareModal } from './BookSharing';
+import { useBookSwipeNavigation } from '../hooks/useSwipeGesture';
+import AudioPlayer from './AudioPlayer';
+import { screenReaderAnnounce, keyboardNav } from '../services/accessibilityService';
 
 interface StorybookViewerProps {
     project: BookProject;
@@ -109,16 +112,34 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         return () => clearInterval(animationFrame);
     }, [isMobile]);
 
-    // Handle keyboard navigation
+    // Swipe gesture support for mobile navigation
+    const { swipeRef } = useBookSwipeNavigation(
+        currentPageIndex,
+        totalPages,
+        (page) => {
+            setDirection(page > currentPageIndex ? 1 : -1);
+            setCurrentPageIndex(page);
+            screenReaderAnnounce.pageChange(page + 1, totalPages);
+        }
+    );
+
+    // Audio player state
+    const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+    const pageTexts = allPages.map(p => p.text);
+
+    // Handle keyboard navigation with accessibility
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowRight') nextPage();
-            if (e.key === 'ArrowLeft') prevPage();
+            keyboardNav.handleBookNavigation(e, currentPageIndex, totalPages, (page) => {
+                setDirection(page > currentPageIndex ? 1 : -1);
+                setCurrentPageIndex(page);
+                screenReaderAnnounce.pageChange(page + 1, totalPages);
+            });
             if (e.key === 'Escape') onClose();
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentPageIndex, onClose]);
+    }, [currentPageIndex, totalPages, onClose]);
 
     // Scroll to top when page changes (mobile)
     useEffect(() => {
@@ -250,14 +271,57 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         >
                             <Share2 className="w-5 h-5" />
                         </button>
+                        
+                        {/* Audio Player Toggle */}
+                        <button
+                            onClick={() => setShowAudioPlayer(!showAudioPlayer)}
+                            className={`p-2.5 rounded-xl transition-colors ${
+                                showAudioPlayer 
+                                    ? 'bg-purple-500/30 text-purple-400' 
+                                    : 'bg-white/10 hover:bg-white/20 text-white'
+                            }`}
+                            title={showAudioPlayer ? 'Hide Audio Player' : 'Read Aloud'}
+                        >
+                            {showAudioPlayer ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        </button>
                     </div>
                 </div>
 
-                {/* Scrollable Content */}
+                {/* Audio Player - Collapsible */}
+                <AnimatePresence>
+                    {showAudioPlayer && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden px-4 pb-3"
+                        >
+                            <AudioPlayer
+                                pages={pageTexts}
+                                currentPage={currentPageIndex}
+                                onPageChange={(page) => {
+                                    setDirection(page > currentPageIndex ? 1 : -1);
+                                    setCurrentPageIndex(page);
+                                }}
+                                compact={true}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Scrollable Content with Swipe Support */}
                 <div
-                    ref={scrollContainerRef}
-                    className="flex-1 overflow-y-auto overscroll-contain"
+                    ref={(el) => {
+                        // Combine both refs - use type assertion for the mutable ref
+                        (scrollContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                        if (swipeRef && 'current' in swipeRef) {
+                            (swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                        }
+                    }}
+                    className="flex-1 overflow-y-auto overscroll-contain touch-pan-y"
                     style={{ WebkitOverflowScrolling: 'touch' }}
+                    role="region"
+                    aria-label={`Story content, page ${currentPageIndex + 1} of ${totalPages}`}
                 >
                     <AnimatePresence mode="wait">
                         <motion.div

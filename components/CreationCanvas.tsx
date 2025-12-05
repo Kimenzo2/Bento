@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, LayoutTemplate, Grid } from 'lucide-react';
+import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, LayoutTemplate, Grid, MessageCircle } from 'lucide-react';
 import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook, UserTier } from '../types';
 import { getAllBooks, deleteBook } from '../services/storageService';
 import SavedBookCard from './SavedBookCard';
@@ -14,6 +14,9 @@ import { BookCardSkeleton } from './SkeletonLoaders';
 import { useBulkSelection, BulkActionsBar, DeleteConfirmModal, SelectableCard } from './BulkActions';
 import BookSharingPkg from './BookSharing';
 const { ShareModal } = BookSharingPkg;
+
+// Conversation Mode for natural story creation
+import ConversationMode from './ConversationMode';
 
 // ===== OPTIMIZED MASCOT COMPONENT =====
 interface MascotProps {
@@ -92,6 +95,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     // New Feature State
     const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
     const [isStylePresetsOpen, setIsStylePresetsOpen] = useState(false);
+    const [isConversationModeOpen, setIsConversationModeOpen] = useState(false);
 
     // Learning Goals State
     const [learningSubject, setLearningSubject] = useState('Math');
@@ -687,13 +691,23 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         <InfographicWizard onClose={() => setCreationMode('book')} />
                     )}
 
-                    {/* Action Button - Only show in book mode for now */}
+                    {/* Action Buttons - Only show in book mode for now */}
                     {creationMode === 'book' && (
-                        <div className="flex justify-end mt-10">
+                        <div className="flex flex-col sm:flex-row justify-end gap-3 mt-10">
+                            {/* Conversation Mode Button */}
+                            <button
+                                onClick={() => setIsConversationModeOpen(true)}
+                                className="px-8 py-4 rounded-full font-heading font-bold text-lg transition-all shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center justify-center gap-3 border-2 border-coral-burst text-coral-burst hover:bg-coral-burst/10"
+                            >
+                                <MessageCircle className="w-5 h-5" />
+                                Chat to Create
+                            </button>
+                            
+                            {/* Main Generate Button */}
                             <button
                                 onClick={handleGenerate}
                                 disabled={isGenerating || !prompt.trim()}
-                                className={`px-12 py-4 rounded-full font-heading font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-3
+                                className={`px-12 py-4 rounded-full font-heading font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-3
                                 ${isGenerating
                                         ? 'bg-cocoa-light cursor-not-allowed text-white opacity-70'
                                         : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:scale-105'
@@ -757,6 +771,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     book={sharingBook.project}
                 />
             )}
+
+            {/* Conversation Mode Modal */}
+            <ConversationMode
+                isOpen={isConversationModeOpen}
+                onClose={() => setIsConversationModeOpen(false)}
+                onGenerate={onGenerate}
+            />
         </div>
     );
 };

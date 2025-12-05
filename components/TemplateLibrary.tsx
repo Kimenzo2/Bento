@@ -234,17 +234,17 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                     exit={{ scale: 0.9, opacity: 0 }}
                 >
                     {/* Header */}
-                    <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-gradient-to-br from-coral-burst to-sunset-coral rounded-xl">
                                     <Wand2 className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                    <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
                                         Template Library
                                     </h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                                         Start with a proven story structure
                                     </p>
                                 </div>
@@ -259,7 +259,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                         </div>
 
                         {/* Category filters */}
-                        <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                        <div className="flex gap-2 mt-4 overflow-x-auto pb-2 no-scrollbar">
                             {categories.map((cat) => (
                                 <button
                                     key={cat}
@@ -279,7 +279,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredTemplates.map((template) => (
                                 <motion.div
@@ -357,11 +357,11 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+                                className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0"
                             >
-                                <div className="p-6">
-                                    <div className="flex items-start justify-between gap-6">
-                                        <div className="flex-1">
+                                <div className="p-4 md:p-6">
+                                    <div className="flex flex-col md:flex-row items-start justify-between gap-4 md:gap-6">
+                                        <div className="flex-1 w-full">
                                             <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
                                                 {selectedTemplate.name} Structure
                                             </h3>
@@ -370,7 +370,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                             </p>
                                             
                                             {/* Structure preview */}
-                                            <div className="flex gap-2 overflow-x-auto pb-2">
+                                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                                 {selectedTemplate.structure.slice(0, 6).map((page, i) => (
                                                     <div
                                                         key={i}
@@ -396,7 +396,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
 
                                         <button
                                             onClick={handleUseTemplate}
-                                            className="px-6 py-3 bg-gradient-to-r from-coral-burst to-sunset-coral text-white rounded-xl font-bold flex items-center gap-2 hover:shadow-lg transition-shadow"
+                                            className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-coral-burst to-sunset-coral text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg transition-shadow"
                                         >
                                             Use Template
                                             <ArrowRight className="w-5 h-5" />

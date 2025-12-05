@@ -1,0 +1,70 @@
+{
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "close": "Close",
+        "next": "Next",
+        "previous": "Previous",
+        "back": "Back",
+        "continue": "Continue"
+    },
+    "auth": {
+        "signIn": "Sign In",
+        "signUp": "Sign Up",
+        "signOut": "Sign Out",
+        "email": "Email",
+        "password": "Password",
+        "forgotPassword": "Forgot Password?",
+        "createAccount": "Create Account",
+        "welcomeBack": "Welcome Back!"
+    },
+    "book": {
+        "createNew": "Create New Book",
+        "myBooks": "My Books",
+        "savedBooks": "Saved Books",
+        "title": "Title",
+        "page": "Page",
+        "pageOf": "Page {current} of {total}",
+        "generating": "Generating your book...",
+        "regenerate": "Regenerate",
+        "download": "Download",
+        "share": "Share",
+        "publish": "Publish"
+    },
+    "editor": {
+        "editPage": "Edit Page",
+        "addPage": "Add Page",
+        "deletePage": "Delete Page",
+        "textContent": "Text Content",
+        "imagePrompt": "Image Prompt",
+        "regenerateImage": "Regenerate Image",
+        "saveChanges": "Save Changes",
+        "storyBible": "Story Bible",
+        "consistency": "Consistency Check"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "theme": "Theme",
+        "notifications": "Notifications",
+        "account": "Account",
+        "accessibility": "Accessibility",
+        "reducedMotion": "Reduced Motion",
+        "highContrast": "High Contrast",
+        "fontSize": "Font Size"
+    },
+    "accessibility": {
+        "skipToContent": "Skip to main content",
+        "pageNavigation": "Page navigation",
+        "openMenu": "Open menu",
+        "closeMenu": "Close menu",
+        "loading": "Content is loading",
+        "imageDescription": "Story illustration"
+    }
+}

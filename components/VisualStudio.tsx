@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArtStyle, BookProject, VisualSettings, Character } from '../types';
+import { ArtStyle, BookProject, VisualSettings, Character, AppMode } from '../types';
 import {
     Wand2,
     Users,
@@ -67,6 +67,7 @@ interface VisualStudioProps {
     project: BookProject | null;
     onBack?: () => void;
     userProfile: UserProfile | null;
+    onNavigate?: (mode: AppMode) => void;
 }
 
 interface Collaborator {
@@ -83,7 +84,7 @@ interface Collaborator {
 // View tabs for collaborative mode
 type CollabView = 'gallery' | 'activity' | 'challenges' | 'broadcast' | 'insights';
 
-const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfile }) => {
+const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfile, onNavigate }) => {
     const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -2150,6 +2151,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         } : null}
                         onClose={() => setIsDesktopChatOpen(false)}
                         className="h-full rounded-l-2xl"
+                        onNavigate={onNavigate}
                     />
                 </div>
             )}
@@ -2166,6 +2168,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                         } : null}
                         onClose={() => setIsChatOpen(false)}
                         className="h-full"
+                        onNavigate={onNavigate}
                     />
                 </div>
             )}
@@ -2185,7 +2188,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             {
                 showBroadcastStudio && userProfile && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-fadeIn">
+                        <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden animate-fadeIn flex flex-col">
                             <BroadcastStudio
                                 onClose={() => setShowBroadcastStudio(false)}
                             />

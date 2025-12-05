@@ -20,7 +20,7 @@ export const isGrokAvailable = (): boolean => {
     return Boolean(BYTEZ_API_KEY && BYTEZ_API_KEY.length > 0);
 };
 
-interface GrokMessage {
+export interface GrokMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
 }
@@ -28,7 +28,7 @@ interface GrokMessage {
 /**
  * Helper function to make API calls using Bytez SDK with Gemini 2.5 Pro
  */
-async function callAPI(messages: GrokMessage[]): Promise<string> {
+export async function callAPI(messages: GrokMessage[]): Promise<string> {
     try {
         const sdk = new Bytez(BYTEZ_API_KEY);
         const model = sdk.model(TEXT_MODEL);

@@ -4,6 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import { chatService, ChatMessage as ServiceChatMessage, PresenceState } from '../../services/chatService';
 import { UserProfile } from '../../services/profileService';
 import ChatContainer from './ChatContainer';
+import { AppMode } from '../../types';
 import { Channel, ChannelCategory, Message, User } from './types';
 import './ChatInterface.css';
 
@@ -12,6 +13,7 @@ interface ConnectedChatProps {
     projectName?: string;
     onClose?: () => void;
     className?: string;
+    onNavigate?: (mode: AppMode) => void;
 }
 
 /**
@@ -23,6 +25,7 @@ const ConnectedChat: React.FC<ConnectedChatProps> = ({
     projectName = 'Genesis',
     onClose,
     className = '',
+    onNavigate,
 }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -229,7 +232,7 @@ const ConnectedChat: React.FC<ConnectedChatProps> = ({
                         if (prev.some(u => u.id === userId)) return prev;
                         return [...prev, typingUser];
                     });
-                    
+
                     // Remove after 3 seconds
                     setTimeout(() => {
                         setTypingUsers(prev => prev.filter(u => u.id !== userId));
@@ -322,6 +325,7 @@ const ConnectedChat: React.FC<ConnectedChatProps> = ({
             } : null}
             onClose={onClose}
             className={className}
+            onNavigate={onNavigate}
         />
     );
 };

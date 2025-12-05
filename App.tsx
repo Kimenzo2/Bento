@@ -45,7 +45,7 @@ const SharedBookViewer = lazy(() => import('./components/SharedBookViewer'));
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
   useGoogleOneTap();
-  
+
   // Get auth state
   const { user, loading: authLoading } = useAuth();
 
@@ -57,7 +57,7 @@ const App: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [forceRenderKey, setForceRenderKey] = useState(0); // Force re-render trigger
-  
+
   // Email Auth Modal State - Show when user is not authenticated
   const [showEmailAuthModal, setShowEmailAuthModal] = useState(false);
   const [hasShownAuthModal, setHasShownAuthModal] = useState(false);
@@ -65,7 +65,7 @@ const App: React.FC = () => {
   // Global Modals State
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  
+
   // Network Status
   const networkStatus = useNetworkStatus();
 
@@ -110,7 +110,7 @@ const App: React.FC = () => {
   React.useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) return;
-    
+
     // If user is not authenticated and we haven't shown the modal yet
     if (!user && !hasShownAuthModal) {
       // Small delay to let the page render first
@@ -119,10 +119,10 @@ const App: React.FC = () => {
         setShowEmailAuthModal(true);
         setHasShownAuthModal(true);
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // If user signs in, close the modal
     if (user && showEmailAuthModal) {
       console.log('[App] User authenticated, closing auth modal');
@@ -180,8 +180,8 @@ const App: React.FC = () => {
   // Derive current tier and gamification state from profile
   // Ensure the tier is a valid UserTier enum value
   const rawTier = userProfile?.user_tier;
-  const currentUserTier = rawTier && Object.values(UserTier).includes(rawTier as UserTier) 
-    ? (rawTier as UserTier) 
+  const currentUserTier = rawTier && Object.values(UserTier).includes(rawTier as UserTier)
+    ? (rawTier as UserTier)
     : UserTier.SPARK;
   const gamificationState: GamificationState = userProfile?.gamification_data || {
     level: 1,
@@ -416,6 +416,7 @@ const App: React.FC = () => {
             project={currentProject}
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
             userProfile={userProfile}
+            onNavigate={setCurrentMode}
           />
         );
       case AppMode.SETTINGS:
@@ -464,10 +465,10 @@ const App: React.FC = () => {
   // Get current location to handle /shared routes
   const location = useLocation();
   const isSharedRoute = location.pathname.startsWith('/shared/');
-  
+
   // Check if we're processing an OAuth callback (hash contains access_token or error)
-  const isProcessingAuth = window.location.hash.includes('access_token') || 
-                           window.location.hash.includes('error_description');
+  const isProcessingAuth = window.location.hash.includes('access_token') ||
+    window.location.hash.includes('error_description');
 
   // Show loading screen while processing OAuth callback
   if (authLoading || isProcessingAuth) {
@@ -536,15 +537,15 @@ const App: React.FC = () => {
       <InstallPWA />
 
       {/* Global Modals */}
-      <WhatsNewModal 
-        isOpen={showWhatsNew} 
-        onClose={() => setShowWhatsNew(false)} 
+      <WhatsNewModal
+        isOpen={showWhatsNew}
+        onClose={() => setShowWhatsNew(false)}
       />
-      <KeyboardShortcutsModal 
-        isOpen={showShortcuts} 
-        onClose={() => setShowShortcuts(false)} 
+      <KeyboardShortcutsModal
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
       />
-      
+
       {/* Email Auth Modal - Experiment */}
       <EmailAuthModal
         isOpen={showEmailAuthModal}
@@ -554,7 +555,7 @@ const App: React.FC = () => {
           addToast('Welcome to Genesis! 🎉', 'success');
         }}
       />
-      
+
       {/* Network Status Indicator */}
       <div className="fixed bottom-4 left-4 z-50">
         <OfflineIndicator />

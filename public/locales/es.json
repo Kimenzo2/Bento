@@ -1,0 +1,70 @@
+{
+    "common": {
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "edit": "Editar",
+        "create": "Crear",
+        "loading": "Cargando...",
+        "error": "Error",
+        "success": "Éxito",
+        "close": "Cerrar",
+        "next": "Siguiente",
+        "previous": "Anterior",
+        "back": "Volver",
+        "continue": "Continuar"
+    },
+    "auth": {
+        "signIn": "Iniciar Sesión",
+        "signUp": "Registrarse",
+        "signOut": "Cerrar Sesión",
+        "email": "Correo electrónico",
+        "password": "Contraseña",
+        "forgotPassword": "¿Olvidaste tu contraseña?",
+        "createAccount": "Crear Cuenta",
+        "welcomeBack": "¡Bienvenido de nuevo!"
+    },
+    "book": {
+        "createNew": "Crear Nuevo Libro",
+        "myBooks": "Mis Libros",
+        "savedBooks": "Libros Guardados",
+        "title": "Título",
+        "page": "Página",
+        "pageOf": "Página {current} de {total}",
+        "generating": "Generando tu libro...",
+        "regenerate": "Regenerar",
+        "download": "Descargar",
+        "share": "Compartir",
+        "publish": "Publicar"
+    },
+    "editor": {
+        "editPage": "Editar Página",
+        "addPage": "Añadir Página",
+        "deletePage": "Eliminar Página",
+        "textContent": "Contenido de Texto",
+        "imagePrompt": "Descripción de Imagen",
+        "regenerateImage": "Regenerar Imagen",
+        "saveChanges": "Guardar Cambios",
+        "storyBible": "Biblia de Historia",
+        "consistency": "Verificar Consistencia"
+    },
+    "settings": {
+        "title": "Configuración",
+        "language": "Idioma",
+        "theme": "Tema",
+        "notifications": "Notificaciones",
+        "account": "Cuenta",
+        "accessibility": "Accesibilidad",
+        "reducedMotion": "Reducir Movimiento",
+        "highContrast": "Alto Contraste",
+        "fontSize": "Tamaño de Fuente"
+    },
+    "accessibility": {
+        "skipToContent": "Saltar al contenido principal",
+        "pageNavigation": "Navegación de páginas",
+        "openMenu": "Abrir menú",
+        "closeMenu": "Cerrar menú",
+        "loading": "El contenido se está cargando",
+        "imageDescription": "Ilustración de la historia"
+    }
+}

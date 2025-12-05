@@ -374,23 +374,23 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                 />
 
                 <motion.div
-                    className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden"
+                    className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
                 >
                     {/* Header */}
-                    <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-coral-burst/10 rounded-xl">
                                     <Palette className="w-6 h-6 text-coral-burst" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                    <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
                                         Style Presets
                                     </h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                                         Choose an illustration style for your book
                                     </p>
                                 </div>
@@ -405,7 +405,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
                             {[
                                 { id: 'all', label: 'All Styles', count: presets.length },
                                 { id: 'favorites', label: 'Favorites', count: favorites.length },
@@ -415,7 +415,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`
-                                        px-4 py-2 rounded-xl text-sm font-medium transition-all
+                                        px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
                                         ${activeTab === tab.id
                                             ? 'bg-coral-burst text-white'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -427,7 +427,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                             ))}
                             <button
                                 onClick={() => setIsCreating(true)}
-                                className="ml-auto flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors"
+                                className="ml-auto flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors whitespace-nowrap"
                             >
                                 <Plus className="w-4 h-4" />
                                 Create Style
@@ -436,7 +436,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    <div className="p-4 md:p-6 overflow-y-auto flex-1">
                         {isCreating ? (
                             <div className="max-w-lg mx-auto space-y-4">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create New Style</h3>

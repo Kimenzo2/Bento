@@ -173,7 +173,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="absolute right-0 top-12 w-96 max-h-[600px] bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden"
+                    className="fixed inset-x-4 top-20 bottom-auto max-h-[80vh] md:absolute md:inset-auto md:right-0 md:top-12 md:w-96 md:max-h-[600px] bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
                 >
                     {/* Header */}
                     <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">

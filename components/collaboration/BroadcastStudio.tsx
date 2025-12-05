@@ -254,9 +254,9 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Left panel - Broadcast setup or preview */}
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-h-0">
                     {!isLive ? (
                         /* Pre-broadcast setup */
                         <div className="flex-1 flex items-center justify-center p-8">
@@ -433,7 +433,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({
 
                 {/* Right panel - Chat/Questions/Viewers */}
                 {isLive && (
-                    <div className="w-80 border-l border-white/10 flex flex-col">
+                    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col h-[40%] lg:h-auto">
                         {/* Tabs */}
                         <div className="flex border-b border-white/10">
                             <button

@@ -20,13 +20,21 @@ import {
     Undo,
     Redo,
     Cloud,
-    CloudOff
+    CloudOff,
+    LayoutTemplate,
+    Activity,
+    ShieldCheck
 } from 'lucide-react';
 import { generateIllustration } from '../services/geminiService';
 import { improveText, checkCharacterConsistency, getWritingSuggestions } from '../services/grokService';
+import { storyBibleService, ConsistencyIssue } from '../services/storyBibleService';
+import LivingStoryboard from './LivingStoryboard';
+import EmotionalArc from './EmotionalArc';
+import AudienceSafety from './AudienceSafety';
 import { saveBook } from '../services/storageService';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { StoryBible } from '../types';
 
 interface SmartEditorProps {
     project: BookProject;
@@ -42,6 +50,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Deep Quality State
+    const [storyBible, setStoryBible] = useState<StoryBible | null>(project.storyBible || null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [showStoryboard, setShowStoryboard] = useState(false);
+    const [showEmotionalArc, setShowEmotionalArc] = useState(false);
+    const [showAudienceSafety, setShowAudienceSafety] = useState(false);
+    const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
 
     // Undo/Redo
     const { state: currentProject, set: setProjectHistory, undo, redo, canUndo, canRedo } = useUndoRedo<BookProject>(project);
@@ -87,16 +103,134 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
         };
     }, []);
 
+    const handleAnalyzeStory = async () => {
+        setIsAnalyzing(true);
+        try {
+            const bible = await storyBibleService.analyzeStory(currentProject);
+            setStoryBible(bible);
+            
+            // Update project with new bible
+            setProjectHistory(prev => ({
+                ...prev,
+                storyBible: bible,
+                lastBibleUpdate: Date.now()
+            }));
+            
+            setShowStoryboard(true);
+        } catch (error) {
+            console.error('Failed to analyze story:', error);
+            // Show error toast
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleGenerateStoryboard = async () => {
+        if (!storyBible) return;
+        setIsAnalyzing(true);
+        try {
+            const beats = await storyBibleService.generateLivingStoryboard(currentProject);
+            const updatedBible = { ...storyBible, beats };
+            setStoryBible(updatedBible);
+            setProjectHistory(prev => ({
+                ...prev,
+                storyBible: updatedBible
+            }));
+        } catch (error) {
+            console.error('Failed to generate storyboard:', error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleAnalyzeEmotionalArc = async () => {
+        setIsAnalyzing(true);
+        try {
+            const arcData = await storyBibleService.generateEmotionalArc(currentProject);
+            const updatedBible = { ...storyBible!, emotionalArc: arcData };
+            setStoryBible(updatedBible);
+            setProjectHistory(prev => ({
+                ...prev,
+                storyBible: updatedBible
+            }));
+        } catch (error) {
+            console.error('Failed to analyze emotional arc:', error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleAnalyzeAudienceSafety = async () => {
+        setIsAnalyzing(true);
+        try {
+            const safetyData = await storyBibleService.analyzeAudienceSafety(currentProject);
+            const updatedBible = { ...storyBible!, audienceSafety: safetyData };
+            setStoryBible(updatedBible);
+            setProjectHistory(prev => ({
+                ...prev,
+                storyBible: updatedBible
+            }));
+        } catch (error) {
+            console.error('Failed to analyze audience safety:', error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     const allPages = currentProject.chapters.flatMap(c => c.pages);
     const activePage = allPages[activePageIndex];
     const totalPages = allPages.length;
 
+    // Real-time consistency check (debounced)
+    useEffect(() => {
+        if (!storyBible || !activePage.text) return;
+
+        const timer = setTimeout(async () => {
+            const issues = await storyBibleService.checkConsistency(activePage.text, storyBible, activePage.pageNumber);
+            setConsistencyIssues(issues);
+        }, 2000); // Check 2 seconds after typing stops
+
+        return () => clearTimeout(timer);
+    }, [activePage.text, storyBible]);
+
+    // Helper to detect significant text changes that would invalidate image
+    const detectSignificantChange = useCallback((oldText: string, newText: string): boolean => {
+        // Quick length check - if it's significantly different, it's significant
+        if (Math.abs(oldText.length - newText.length) > oldText.length * 0.3) return true;
+        
+        // Extract key visual words (nouns, adjectives) using simple patterns
+        const visualWords = (text: string) => {
+            const words = text.toLowerCase().match(/\b(red|blue|green|yellow|black|white|pink|purple|orange|big|small|tall|short|young|old|happy|sad|angry|forest|ocean|mountain|castle|house|dog|cat|bird|dragon|princess|knight|wizard|sun|moon|stars|rain|snow|night|day)\b/g) || [];
+            return new Set(words);
+        };
+        
+        const oldWords = visualWords(oldText);
+        const newWords = visualWords(newText);
+        
+        // Check if visual keywords changed
+        const addedWords = [...newWords].filter(w => !oldWords.has(w));
+        const removedWords = [...oldWords].filter(w => !newWords.has(w));
+        
+        return addedWords.length > 0 || removedWords.length > 0;
+    }, []);
+
+    // Track last saved text to detect significant changes
+    const lastSavedTextRef = useRef<string>(activePage.text);
+
     const handleTextChange = (text: string) => {
+        const wasSignificantChange = detectSignificantChange(lastSavedTextRef.current, text);
+        
         setProjectHistory((prevProject) => {
             const newProject = JSON.parse(JSON.stringify(prevProject)) as BookProject;
             newProject.chapters.forEach(ch => {
                 const page = ch.pages.find(p => p.pageNumber === activePage.pageNumber);
-                if (page) page.text = text;
+                if (page) {
+                    page.text = text;
+                    // Mark image as outdated if significant visual change detected
+                    if (wasSignificantChange && page.imageUrl) {
+                        page.isImageOutdated = true;
+                    }
+                }
             });
             return newProject;
         });
@@ -128,13 +262,25 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
         }
     };
 
-    // Feature #2: Character Consistency Handler
+    // Feature #2: Character Consistency Handler (Legacy + Deep Quality)
     const handleCheckConsistency = async () => {
         setIsCheckingConsistency(true);
         try {
-            const report = await checkCharacterConsistency(currentProject);
-            setConsistencyReport(report);
-            setShowConsistencyPanel(true);
+            // If we have a Story Bible, use it for deeper checking
+            if (storyBible) {
+                const issues = await storyBibleService.checkConsistency(activePage.text, storyBible, activePage.pageNumber);
+                setConsistencyIssues(issues);
+                if (issues.length === 0) {
+                    alert('✨ Perfect consistency! No issues found.');
+                } else {
+                    setShowConsistencyPanel(true);
+                }
+            } else {
+                // Fallback to legacy check
+                const report = await checkCharacterConsistency(currentProject);
+                setConsistencyReport(report);
+                setShowConsistencyPanel(true);
+            }
         } catch (error) {
             alert('Failed to check character consistency. Please try again.');
         } finally {
@@ -318,7 +464,98 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                         >
                             {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                         </button>
+                        
+                        {/* Deep Quality Toggles */}
+                        <div className="flex items-center gap-1 border-l border-peach-soft/30 pl-2 ml-2">
+                            <button
+                                onClick={() => setShowStoryboard(!showStoryboard)}
+                                className={`p-2 rounded-lg transition-colors ${showStoryboard ? 'bg-purple-100 text-purple-600' : 'text-cocoa-light hover:text-purple-500'}`}
+                                title="Living Storyboard"
+                            >
+                                <LayoutTemplate className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setShowEmotionalArc(!showEmotionalArc)}
+                                className={`p-2 rounded-lg transition-colors ${showEmotionalArc ? 'bg-blue-100 text-blue-600' : 'text-cocoa-light hover:text-blue-500'}`}
+                                title="Emotional Arc"
+                            >
+                                <Activity className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => setShowAudienceSafety(!showAudienceSafety)}
+                                className={`p-2 rounded-lg transition-colors ${showAudienceSafety ? 'bg-green-100 text-green-600' : 'text-cocoa-light hover:text-green-500'}`}
+                                title="Audience Safety"
+                            >
+                                <ShieldCheck className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
+                </div>
+
+                {/* Deep Quality Panels */}
+                <div className="flex flex-col bg-slate-900/5 backdrop-blur-sm">
+                    {showStoryboard && (
+                        <div className="border-b border-peach-soft/30">
+                            <LivingStoryboard
+                                beats={storyBible?.beats || []}
+                                onBeatClick={(page) => jumpToPageNumber(page)}
+                                onGenerate={storyBible ? handleGenerateStoryboard : handleAnalyzeStory}
+                                isGenerating={isAnalyzing}
+                            />
+                        </div>
+                    )}
+                    
+                    {showEmotionalArc && (
+                        <div className="border-b border-peach-soft/30 p-4">
+                            {storyBible?.emotionalArc ? (
+                                <EmotionalArc
+                                    arc={storyBible.emotionalArc.arc}
+                                    climaxPage={storyBible.emotionalArc.climaxPage}
+                                    pacing={storyBible.emotionalArc.pacing}
+                                    suggestions={storyBible.emotionalArc.suggestions}
+                                    onPageClick={(page) => jumpToPageNumber(page)}
+                                    currentPage={activePage.pageNumber}
+                                />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-cocoa-light mb-4">Visualize the emotional journey of your story.</p>
+                                    <button
+                                        onClick={handleAnalyzeEmotionalArc}
+                                        disabled={isAnalyzing}
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                                    >
+                                        {isAnalyzing ? 'Analyzing...' : 'Generate Emotional Arc'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {showAudienceSafety && (
+                        <div className="border-b border-peach-soft/30 p-4">
+                            {storyBible?.audienceSafety ? (
+                                <AudienceSafety
+                                    isAppropriate={storyBible.audienceSafety.isAppropriate}
+                                    warnings={storyBible.audienceSafety.warnings}
+                                    readingLevel={storyBible.audienceSafety.readingLevel}
+                                    recommendedAgeRange={storyBible.audienceSafety.recommendedAgeRange}
+                                    targetAudience={project.targetAudience}
+                                    isAnalyzing={isAnalyzing}
+                                />
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-cocoa-light mb-4">Check content safety and age appropriateness.</p>
+                                    <button
+                                        onClick={handleAnalyzeAudienceSafety}
+                                        disabled={isAnalyzing}
+                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                                    >
+                                        {isAnalyzing ? 'Analyzing...' : 'Check Safety'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Content Area */}
@@ -362,11 +599,30 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             </div>
                         </label>
                         <textarea
-                            className="w-full h-[200px] bg-white border border-peach-soft rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 transition-all resize-none shadow-sm"
+                            className={`w-full h-[200px] bg-white border rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:ring-4 transition-all resize-none shadow-sm ${
+                                consistencyIssues.length > 0 
+                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' 
+                                    : 'border-peach-soft focus:border-coral-burst focus:ring-coral-burst/10'
+                            }`}
                             value={activePage.text}
                             onChange={(e) => handleTextChange(e.target.value)}
                             placeholder="Once upon a time..."
                         />
+                        
+                        {/* Deep Quality: Real-time Consistency Warning */}
+                        {consistencyIssues.length > 0 && (
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-3 animate-fadeIn">
+                                <div className="flex items-center gap-2 text-red-700 font-bold text-xs mb-1">
+                                    <AlertCircle className="w-4 h-4" />
+                                    Consistency Issue Detected
+                                </div>
+                                <ul className="list-disc list-inside text-xs text-red-600 space-y-1">
+                                    {consistencyIssues.map((issue, i) => (
+                                        <li key={i}>{issue.description}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         {/* Learning Content Display */}
                         {activePage.learningContent && (
@@ -585,7 +841,36 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                     {/* Illustration */}
                     <div className="relative h-[55%] w-full bg-gray-100 overflow-hidden group">
                         {activePage.imageUrl ? (
-                            <img src={activePage.imageUrl} className="w-full h-full object-cover" alt="Scene" />
+                            <>
+                                <img src={activePage.imageUrl} className={`w-full h-full object-cover transition-all ${activePage.isImageOutdated ? 'opacity-60' : ''}`} alt="Scene" />
+                                {/* Text-to-Visual Ripple: Outdated Image Warning */}
+                                {activePage.isImageOutdated && (
+                                    <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
+                                        <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-center shadow-lg">
+                                            <RefreshCw className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                                            <p className="text-sm font-bold text-orange-700">Image may be outdated</p>
+                                            <p className="text-xs text-orange-600 mb-3">Your text has changed significantly</p>
+                                            <button
+                                                onClick={() => {
+                                                    handleGenerateImage();
+                                                    // Clear the outdated flag
+                                                    setProjectHistory(prev => {
+                                                        const newProject = JSON.parse(JSON.stringify(prev)) as BookProject;
+                                                        newProject.chapters.forEach(ch => {
+                                                            const page = ch.pages.find(p => p.pageNumber === activePage.pageNumber);
+                                                            if (page) page.isImageOutdated = false;
+                                                        });
+                                                        return newProject;
+                                                    });
+                                                }}
+                                                className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors"
+                                            >
+                                                Regenerate
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-cream-base/50 text-cocoa-light gap-4">
                                 <ImageIcon className="w-12 h-12 opacity-20" />
