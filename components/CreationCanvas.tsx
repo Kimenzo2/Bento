@@ -219,7 +219,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
     // Quick Start Card Component with Vercel-style cursor glow effect
-    const QuickStartCard = ({ icon: Icon, title, desc, colorClass, onClick }: any) => {
+    const QuickStartCard = ({ icon: Icon, title, desc, colorClass, glowColor = 'rgba(255, 155, 113, 0.35)', onClick }: any) => {
         const cardRef = React.useRef<HTMLButtonElement>(null);
         const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
         const [isHovered, setIsHovered] = React.useState(false);
@@ -247,7 +247,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
                     style={{
                         opacity: isHovered ? 1 : 0,
-                        background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255, 155, 113, 0.35), transparent 40%)`,
+                        background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, ${glowColor}, transparent 40%)`,
                     }}
                 />
 
@@ -303,6 +303,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         title="Children's Story"
                         desc="Create a magical tale with vibrant illustrations and moral lessons."
                         colorClass="from-gold-sunshine to-orange-400"
+                        glowColor="rgba(251, 146, 60, 0.35)"
                         onClick={() => handleQuickStartClick(() => {
                             setPrompt("A magical adventure about a shy dragon who loves to bake cookies.");
                             setAudience("Children 4-6");
@@ -314,6 +315,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         title="Sci-Fi Novel"
                         desc="Build a futuristic world with deep lore and complex characters."
                         colorClass="from-purple-400 to-coral-burst"
+                        glowColor="rgba(147, 51, 234, 0.35)"
                         onClick={() => handleQuickStartClick(() => {
                             setPrompt("A cyberpunk detective solving crimes in a neon-lit underwater city.");
                             setAudience("Young Adult");
@@ -326,6 +328,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         title="Brand Story"
                         desc="Generate a professional company history or annual report."
                         colorClass="from-mint-breeze to-emerald-400"
+                        glowColor="rgba(16, 185, 129, 0.35)"
                         onClick={() => handleQuickStartClick(() => {
                             setPrompt("Our company journey from a garage startup to a global eco-friendly leader.");
                             setAudience("Stakeholders");

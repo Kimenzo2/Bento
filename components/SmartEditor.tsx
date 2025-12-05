@@ -64,24 +64,28 @@ const defaultCharacters: Character[] = [
         name: 'Luna the Moon Fairy',
         description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
         visualTraits: 'Translucent wings, silver hair, glowing aura, wearing a dress made of flower petals',
+        imageUrl: '/assets/characters/Demo Character 1.jpeg'
     },
     {
         id: 'demo-blaze',
         name: 'Blaze the Dragon',
         description: 'A friendly young dragon learning to control his fire breath while making friends.',
         visualTraits: 'Red and orange scales, small wings, big curious eyes, puffs of smoke from nostrils',
+        imageUrl: '/assets/characters/Demo character 2.jpeg'
     },
     {
         id: 'demo-aurora',
         name: 'Princess Aurora',
         description: 'A brave princess who prefers adventures over balls, skilled with a sword.',
         visualTraits: 'Golden crown, flowing purple gown, determined expression, carrying a small sword',
+        imageUrl: '/assets/characters/Demo character 3.jpeg'
     },
     {
         id: 'demo-captain',
         name: 'Captain Silverhook',
         description: 'A reformed pirate who now searches for treasure to give to orphanages.',
         visualTraits: 'Tricorn hat, eye patch, silver hook hand, weathered coat, friendly smile',
+        imageUrl: '/assets/characters/Demo character 4.jpeg'
     },
 ];
 
@@ -190,14 +194,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
         try {
             const bible = await storyBibleService.analyzeStory(currentProject);
             setStoryBible(bible);
-            
+
             // Update project with new bible
             setProjectHistory(prev => ({
                 ...prev,
                 storyBible: bible,
                 lastBibleUpdate: Date.now()
             }));
-            
+
             setShowStoryboard(true);
         } catch (error) {
             console.error('Failed to analyze story:', error);
@@ -279,20 +283,20 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
     const detectSignificantChange = useCallback((oldText: string, newText: string): boolean => {
         // Quick length check - if it's significantly different, it's significant
         if (Math.abs(oldText.length - newText.length) > oldText.length * 0.3) return true;
-        
+
         // Extract key visual words (nouns, adjectives) using simple patterns
         const visualWords = (text: string) => {
             const words = text.toLowerCase().match(/\b(red|blue|green|yellow|black|white|pink|purple|orange|big|small|tall|short|young|old|happy|sad|angry|forest|ocean|mountain|castle|house|dog|cat|bird|dragon|princess|knight|wizard|sun|moon|stars|rain|snow|night|day)\b/g) || [];
             return new Set(words);
         };
-        
+
         const oldWords = visualWords(oldText);
         const newWords = visualWords(newText);
-        
+
         // Check if visual keywords changed
         const addedWords = [...newWords].filter(w => !oldWords.has(w));
         const removedWords = [...oldWords].filter(w => !newWords.has(w));
-        
+
         return addedWords.length > 0 || removedWords.length > 0;
     }, []);
 
@@ -301,7 +305,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
     const handleTextChange = (text: string) => {
         const wasSignificantChange = detectSignificantChange(lastSavedTextRef.current, text);
-        
+
         setProjectHistory((prevProject) => {
             const newProject = JSON.parse(JSON.stringify(prevProject)) as BookProject;
             newProject.chapters.forEach(ch => {
@@ -508,7 +512,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             <p className="text-cocoa-light text-sm mb-4">
                                 Start your storytelling journey. Generate a complete illustrated book with AI assistance.
                             </p>
-                            <button 
+                            <button
                                 onClick={onNavigateToCreate}
                                 className="w-full py-3 px-4 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
                             >
@@ -526,7 +530,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             <p className="text-cocoa-light text-sm mb-4">
                                 Interview characters to discover their personalities, backstories, and hidden depths.
                             </p>
-                            <button 
+                            <button
                                 onClick={() => setShowGreenRoomStandalone(true)}
                                 className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
                             >
@@ -544,7 +548,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             <p className="text-cocoa-light text-sm mb-4">
                                 Discover and fork magical worlds created by other storytellers. Build upon shared universes.
                             </p>
-                            <button 
+                            <button
                                 onClick={() => setShowRemixStudioStandalone(true)}
                                 className="w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
                             >
@@ -572,8 +576,16 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                                     }}
                                     className="bg-white rounded-xl p-4 shadow-soft-md border border-peach-soft/50 hover:shadow-soft-lg hover:border-emerald-300 transition-all group text-left"
                                 >
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                        <span className="text-white text-xl font-bold">{char.name[0]}</span>
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative">
+                                        {char.imageUrl ? (
+                                            <img
+                                                src={char.imageUrl}
+                                                alt={char.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-white text-xl font-bold">{char.name[0]}</span>
+                                        )}
                                     </div>
                                     <h4 className="font-heading font-bold text-charcoal-soft text-sm mb-1 truncate">{char.name}</h4>
                                     <p className="text-xs text-cocoa-light line-clamp-2">{char.description}</p>
@@ -727,7 +739,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                         >
                             {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                         </button>
-                        
+
                         {/* Deep Quality Toggles */}
                         <div className="flex items-center gap-1 border-l border-peach-soft/30 pl-2 ml-2">
                             <button
@@ -793,7 +805,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             />
                         </div>
                     )}
-                    
+
                     {showEmotionalArc && (
                         <div className="border-b border-peach-soft/30 p-4">
                             {storyBible?.emotionalArc ? (
@@ -888,16 +900,15 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             </div>
                         </label>
                         <textarea
-                            className={`w-full h-[200px] bg-white border rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:ring-4 transition-all resize-none shadow-sm ${
-                                consistencyIssues.length > 0 
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' 
+                            className={`w-full h-[200px] bg-white border rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:ring-4 transition-all resize-none shadow-sm ${consistencyIssues.length > 0
+                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10'
                                     : 'border-peach-soft focus:border-coral-burst focus:ring-coral-burst/10'
-                            }`}
+                                }`}
                             value={activePage.text}
                             onChange={(e) => handleTextChange(e.target.value)}
                             placeholder="Once upon a time..."
                         />
-                        
+
                         {/* Deep Quality: Real-time Consistency Warning */}
                         {consistencyIssues.length > 0 && (
                             <div className="bg-red-50 border border-red-200 rounded-xl p-3 animate-fadeIn">
@@ -947,8 +958,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                                                 <div
                                                     key={idx}
                                                     className={`px-3 py-2 rounded-lg text-xs font-medium ${option === activePage.learningContent?.quiz?.correctAnswer
-                                                            ? 'bg-green-100 text-green-800 border-2 border-green-300'
-                                                            : 'bg-gray-100 text-gray-700'
+                                                        ? 'bg-green-100 text-green-800 border-2 border-green-300'
+                                                        : 'bg-gray-100 text-gray-700'
                                                         }`}
                                                 >
                                                     {option} {option === activePage.learningContent?.quiz?.correctAnswer && '✓'}

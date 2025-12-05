@@ -1566,23 +1566,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                                         <span className="sm:hidden">Hub</span>
                                     </h2>
 
-                                    {/* Presence Indicator - Compact on mobile */}
-                                    <div className="hidden xs:block">
-                                        <PresenceIndicator
-                                            users={presenceUsers}
-                                            maxVisible={3}
-                                            showStatus={false}
-                                        />
-                                    </div>
-
-                                    {/* Mobile-only presence count */}
-                                    <div className="xs:hidden flex items-center gap-1 text-xs text-gray-500 bg-white/60 px-2 py-1 rounded-full">
-                                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                        {presenceUsers.length}
-                                    </div>
-
-                                    {/* Desktop Presence */}
-                                    <div className="hidden sm:block">
+                                    {/* Presence Indicator */}
+                                    <div className="flex items-center">
                                         <PresenceIndicator
                                             users={presenceUsers}
                                             maxVisible={5}
