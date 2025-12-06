@@ -344,8 +344,26 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             <Mascot src="/assets/mascots/wise-owl.png" alt="Wise Owl" position="bottom-left" delay="2s" />
             <Mascot src="/assets/mascots/magic-dragon.png" alt="Magic Dragon" position="bottom-right" delay="2.5s" />
 
+            {/* Product Hunt Badge */}
+            <div className="flex justify-center mb-6 mt-4 animate-fadeIn">
+                <a 
+                    href="https://www.producthunt.com/products/genesis-3?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-genesis&#0045;3" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:scale-105 transition-transform duration-200"
+                >
+                    <img 
+                        src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1046861&theme=light&t=1765031302790" 
+                        alt="Genesis - The best AI-powered books with psychology-driven characters | Product Hunt" 
+                        style={{ width: '250px', height: '54px' }} 
+                        width="250" 
+                        height="54" 
+                    />
+                </a>
+            </div>
+
             {/* Hero Header */}
-            <div className="text-center space-y-4 mb-12 mt-8 md:mt-16">
+            <div className="text-center space-y-4 mb-12">
                 <h1 className="font-heading font-bold text-5xl md:text-6xl text-charcoal-soft mb-4">
                     Create Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-coral-burst to-gold-sunshine">Masterpiece</span>
                 </h1>

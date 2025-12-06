@@ -12,11 +12,14 @@ import {
     Map,
     Radio,
     Bell,
-    Download
+    Download,
+    Plus,
+    Edit2
 } from 'lucide-react';
 import { generateRefinedImage } from '../services/geminiService';
 import StoryMap from './StoryMap';
 import MobileBottomNav from './MobileBottomNav';
+import CharacterDepthPanel from './CharacterDepthPanel';
 import { UserProfile } from '../services/profileService';
 import {
     BroadcastStudio,
@@ -39,6 +42,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
     // Advanced features state
     const [showBroadcastStudio, setShowBroadcastStudio] = useState(false);
     const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+    const [showCharacterDepth, setShowCharacterDepth] = useState(false);
+    const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
     const notificationBtnRef = useRef<HTMLButtonElement>(null);
 
     // Settings state
@@ -87,12 +92,53 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                 camera: settings.cameraAngle,
             };
 
-            // We need to get the character description if a character is selected
+            // Build comprehensive character description from depth data
             let finalPrompt = settings.prompt;
             if (settings.selectedCharacterId) {
                  const character = availableCharacters.find(c => c.id === settings.selectedCharacterId);
                  if (character) {
-                     finalPrompt = `${character.name} (${character.role}): ${character.description}. ${settings.expression} expression, ${settings.pose} pose. ${settings.prompt}`;
+                     // Build rich character prompt using depth data
+                     const parts: string[] = [];
+                     
+                     // Basic identity
+                     parts.push(`${character.name}, ${character.role || 'character'}`);
+                     
+                     // Physical appearance (priority for visual generation)
+                     if (character.appearance) {
+                         parts.push(`Appearance: ${character.appearance}`);
+                     } else if (character.visualTraits) {
+                         parts.push(character.visualTraits);
+                     }
+                     
+                     // Expression and pose from settings
+                     parts.push(`${settings.expression} expression, ${settings.pose} pose`);
+                     
+                     // Personality hints for visual interpretation
+                     if (character.psychologicalProfile) {
+                         const profile = character.psychologicalProfile;
+                         if (profile.extraversion > 70) parts.push('confident and outgoing body language');
+                         else if (profile.extraversion < 30) parts.push('reserved and introspective demeanor');
+                         
+                         if (profile.neuroticism > 70) parts.push('tense or anxious posture');
+                         else if (profile.neuroticism < 30) parts.push('calm and relaxed presence');
+                     }
+                     
+                     // Core identity for atmosphere
+                     if (character.coreIdentity?.strength) {
+                         parts.push(`radiating ${character.coreIdentity.strength.toLowerCase()}`);
+                     }
+                     
+                     // Voice/behavior hints for visual tone
+                     if (character.voiceProfile?.tone) {
+                         parts.push(`${character.voiceProfile.tone} demeanor`);
+                     }
+                     
+                     // Add scene context
+                     if (settings.prompt) {
+                         parts.push(`Scene: ${settings.prompt}`);
+                     }
+                     
+                     finalPrompt = parts.join('. ');
                  }
             }
 
@@ -116,6 +162,53 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
             setActiveTab(tab);
         }
     };
+
+    const handleCreateNewCharacter = () => {
+        if (!project || !onUpdateProject) return;
+
+        const newCharacter: Character = {
+            id: `char-${Date.now()}`,
+            name: 'New Character',
+            description: '',
+            visualTraits: '',
+            role: 'character',
+            psychologicalProfile: {
+                openness: 50,
+                conscientiousness: 50,
+                extraversion: 50,
+                agreeableness: 50,
+                neuroticism: 50
+            }
+        };
+
+        const updatedProject = {
+            ...project,
+            characters: [...(project.characters || []), newCharacter]
+        };
+
+        onUpdateProject(updatedProject);
+        setEditingCharacterId(newCharacter.id);
+        setShowCharacterDepth(true);
+    };
+
+    const handleUpdateCharacter = (updatedCharacter: Character) => {
+        if (!project || !onUpdateProject) return;
+
+        const updatedProject = {
+            ...project,
+            characters: project.characters.map(c => 
+                c.id === updatedCharacter.id ? updatedCharacter : c
+            )
+        };
+
+        onUpdateProject(updatedProject);
+        setShowCharacterDepth(false);
+        setEditingCharacterId(null);
+    };
+
+    const editingCharacter = editingCharacterId 
+        ? availableCharacters.find(c => c.id === editingCharacterId)
+        : null;
 
     return (
         <div className={`w-full mx-auto animate-fadeIn ${viewMode === 'storymap' ? 'h-[100dvh] flex flex-col overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}>
@@ -218,31 +311,56 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                             {activeTab === 'character' && (
                                 <div className="space-y-4 md:space-y-6 animate-fadeIn">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-cocoa-light uppercase">Select Character</label>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-bold text-cocoa-light uppercase">Select Character</label>
+                                            <button
+                                                onClick={handleCreateNewCharacter}
+                                                className="flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors text-xs font-bold"
+                                                title="Create new character"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                                New
+                                            </button>
+                                        </div>
                                         <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-[200px] md:max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                             {availableCharacters.map(char => (
                                                 <div
                                                     key={char.id}
-                                                    onClick={() => setSettings({ ...settings, selectedCharacterId: char.id })}
-                                                    className={`p-2 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-2 md:gap-3
+                                                    className={`p-2 rounded-xl border-2 cursor-pointer transition-all relative group
                                             ${settings.selectedCharacterId === char.id
                                                             ? 'border-coral-burst bg-cream-base shadow-sm'
                                                             : 'border-transparent hover:bg-gray-50'}`}
                                                 >
-                                                    <img
-                                                        src={char.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`}
-                                                        alt={char.name}
-                                                        className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white shadow-sm object-cover"
-                                                    />
-                                                    <div className="min-w-0">
-                                                        <div className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{char.name}</div>
-                                                        <div className="text-[10px] md:text-xs text-cocoa-light truncate">{char.role || 'Character'}</div>
+                                                    <div 
+                                                        onClick={() => setSettings({ ...settings, selectedCharacterId: char.id })}
+                                                        className="flex items-center gap-2 md:gap-3"
+                                                    >
+                                                        <img
+                                                            src={char.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`}
+                                                            alt={char.name}
+                                                            className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white shadow-sm object-cover"
+                                                        />
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="font-bold text-xs md:text-sm text-charcoal-soft truncate">{char.name}</div>
+                                                            <div className="text-[10px] md:text-xs text-cocoa-light truncate">{char.role || 'Character'}</div>
+                                                        </div>
                                                     </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingCharacterId(char.id);
+                                                            setShowCharacterDepth(true);
+                                                        }}
+                                                        className="absolute top-1 right-1 p-1 bg-white hover:bg-emerald-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                                        title="Edit character depth"
+                                                    >
+                                                        <Edit2 className="w-3 h-3 text-emerald-600" />
+                                                    </button>
                                                 </div>
                                             ))}
                                             {availableCharacters.length === 0 && (
                                                 <div className="col-span-2 text-center py-8 text-gray-400 text-sm">
-                                                    No characters found. Add some in the Editor!
+                                                    No characters yet. Click "New" to create one!
                                                 </div>
                                             )}
                                         </div>
@@ -517,6 +635,18 @@ const VisualStudio: React.FC<VisualStudioProps> = ({ project, onBack, userProfil
                     </div>
                 )
             }
+
+            {/* Character Depth Panel */}
+            {showCharacterDepth && editingCharacter && (
+                <CharacterDepthPanel
+                    character={editingCharacter}
+                    onUpdateCharacter={handleUpdateCharacter}
+                    onClose={() => {
+                        setShowCharacterDepth(false);
+                        setEditingCharacterId(null);
+                    }}
+                />
+            )}
 
             {/* Mobile Bottom Navigation */}
             <MobileBottomNav
