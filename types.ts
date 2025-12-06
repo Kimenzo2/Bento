@@ -163,6 +163,74 @@ export interface Character {
   goals?: string[];
   fears?: string[];
   quirks?: string[];
+  
+  // ========== DEEP PERSONALITY SYSTEM ==========
+  // Psychological Profile (Big Five / OCEAN Model)
+  psychologicalProfile?: {
+    openness: number;        // 0-100: Creativity, curiosity, openness to new experiences
+    conscientiousness: number; // 0-100: Organization, dependability, self-discipline
+    extraversion: number;    // 0-100: Sociability, assertiveness, positive emotions
+    agreeableness: number;   // 0-100: Cooperation, trust, empathy
+    neuroticism: number;     // 0-100: Emotional instability, anxiety, moodiness
+  };
+  
+  // Core Identity
+  coreIdentity?: {
+    coreBelief: string;           // "The world is fundamentally..." (shapes worldview)
+    greatestDesire: string;       // What they want more than anything
+    greatestFear: string;         // What they avoid at all costs
+    moralCode: string;            // Their personal ethics/values
+    flaw: string;                 // Their tragic flaw or weakness
+    strength: string;             // Their greatest asset
+    lie: string;                  // A false belief they hold about themselves/world
+    truth: string;                // The truth they need to learn
+  };
+  
+  // Backstory & Formative Experiences
+  formativeExperiences?: {
+    childhoodMemory: string;      // Defining childhood moment
+    biggestRegret: string;        // Something they wish they could undo
+    definingMoment: string;       // The event that made them who they are
+    secretShame: string;          // Something they hide from others
+    proudestAchievement: string;  // What they're most proud of
+  };
+  
+  // Relationships & Attachment
+  relationshipStyle?: {
+    attachmentStyle: 'secure' | 'anxious' | 'avoidant' | 'disorganized';
+    trustLevel: 'trusting' | 'cautious' | 'suspicious' | 'paranoid';
+    conflictStyle: 'confrontational' | 'diplomatic' | 'avoidant' | 'passive-aggressive';
+    loveLanguage: 'words' | 'acts' | 'gifts' | 'time' | 'touch';
+  };
+  
+  // Behavioral Patterns
+  behavioralPatterns?: {
+    stressResponse: string;       // How they react under pressure
+    joyTriggers: string[];        // What makes them happy
+    angerTriggers: string[];      // What sets them off
+    copingMechanisms: string[];   // How they deal with problems
+    habits: string[];             // Regular behaviors/routines
+    speechPatterns: string;       // How they talk (formal, slang, poetic, etc.)
+  };
+  
+  // Voice & Mannerisms
+  voiceProfile?: {
+    tone: string;                 // warm, cold, sarcastic, earnest, etc.
+    vocabulary: 'simple' | 'moderate' | 'sophisticated' | 'archaic';
+    catchphrases: string[];       // Things they often say
+    nonverbalTics: string[];      // Gestures, expressions, body language
+    laughStyle: string;           // How they laugh
+  };
+  
+  // Internal Conflicts
+  innerConflicts?: string[];      // The battles they fight within themselves
+  
+  // Character Arc Potential
+  arcPotential?: {
+    startingState: string;        // Who they are at the beginning
+    potentialGrowth: string;      // How they could change
+    endingState: string;          // Who they could become
+  };
 }
 
 export interface BookMetadata {
@@ -263,7 +331,7 @@ export interface BookProject {
   tone: BookTone;
   targetAudience: string;
   isBranching: boolean;
-  
+
   // Deep Quality Fields
   storyBible?: StoryBible;
   lastBibleUpdate?: number; // Timestamp
@@ -301,8 +369,10 @@ export interface GenerationSettings {
   audience: string;
   isBranching: boolean;
   educational?: boolean;
-  learningConfig?: LearningConfig; // New field
+  learningConfig?: LearningConfig;
   brandProfile?: BrandProfile;
+  brandStoryConfig?: BrandStoryConfig; // For professional brand content
+  templateStructure?: any[]; // Optional structure from TemplateLibrary
 }
 
 export interface BrandProfile {
@@ -311,6 +381,89 @@ export interface BrandProfile {
   colors: string[];
   sampleText: string;
 }
+
+// ============================================
+// BRAND STORY & ANNUAL REPORT TYPES
+// ============================================
+
+export type BrandContentType =
+  | 'brand-story'
+  | 'annual-report'
+  | 'company-history'
+  | 'product-launch'
+  | 'investor-pitch';
+
+export type BrandSectionType =
+  | 'cover'
+  | 'ceo-letter'
+  | 'origin-story'
+  | 'mission-values'
+  | 'milestones'
+  | 'achievements'
+  | 'financials'
+  | 'esg'
+  | 'future-outlook'
+  | 'team'
+  | 'testimonials'
+  | 'products-services'
+  | 'market-position'
+  | 'call-to-action';
+
+export interface BrandSection {
+  type: BrandSectionType;
+  title?: string;
+  enabled: boolean;
+  order: number;
+  data?: {
+    // For CEO Letter
+    ceoName?: string;
+    ceoTitle?: string;
+    letterHighlights?: string[];
+
+    // For Financials
+    revenue?: string;
+    growth?: string;
+    keyMetrics?: { label: string; value: string; change?: string }[];
+
+    // For Milestones
+    timeline?: { year: string; event: string }[];
+
+    // For Team
+    executives?: { name: string; role: string; bio?: string }[];
+
+    // For ESG
+    environmental?: string[];
+    social?: string[];
+    governance?: string[];
+
+    // For Testimonials
+    quotes?: { text: string; author: string; company?: string }[];
+
+    // Generic
+    content?: string;
+  };
+}
+
+export interface BrandStoryConfig {
+  contentType: BrandContentType;
+  companyInfo: {
+    name: string;
+    tagline?: string;
+    industry: string;
+    founded?: string;
+    headquarters?: string;
+    employees?: string;
+    website?: string;
+    description: string;
+  };
+  sections: BrandSection[];
+  tone: 'professional' | 'inspiring' | 'conversational' | 'formal' | 'bold';
+  visualStyle: 'corporate-clean' | 'modern-gradient' | 'bold-startup' | 'classic-elegant';
+  colorScheme?: string[]; // Brand colors
+  fiscalYear?: string; // For annual reports
+}
+
+export type BrandTone = 'professional' | 'inspiring' | 'conversational' | 'formal' | 'bold';
 
 export interface VisualSettings {
   activeTab: 'character' | 'scene' | 'style';
@@ -431,7 +584,7 @@ export interface ExtractedFact {
   id: string;
   key: string; // e.g., "eye_color", "fear", "motivation"
   value: string;
-  source: 'interview' | 'manual' | 'inferred';
+  source: 'interview' | 'manual' | 'inferred' | 'profile';
   confidence: number; // 0.0 to 1.0
   extractedAt: number; // Timestamp
 }
@@ -491,7 +644,7 @@ export interface RemixableWorld {
   creatorId: string;
   creatorName: string;
   creatorAvatar?: string;
-  
+
   // World Content
   magicSystem?: string;
   locations: {
@@ -503,19 +656,19 @@ export interface RemixableWorld {
   lore: string;
   rules: string[]; // e.g., "Magic has a cost", "No one can fly"
   era: string; // e.g., "Medieval", "Futuristic", "Modern"
-  
+
   // Sharing Settings
   isPublic: boolean;
   allowRemix: boolean;
   requireCredit: boolean;
   license: 'open' | 'attribution' | 'non-commercial' | 'restricted';
-  
+
   // Stats
   totalRemixes: number;
   totalLikes: number;
   totalViews: number;
   tags: string[];
-  
+
   createdAt: number;
   updatedAt: number;
 }
@@ -526,16 +679,16 @@ export interface WorldFork {
   parentWorldName: string;
   originalCreatorId: string;
   originalCreatorName: string;
-  
+
   // The forked version
   forkedWorldId: string;
   forkedByUserId: string;
   forkedByUserName: string;
-  
+
   // Lineage
   generationNumber: number; // 1 = first fork, 2 = fork of a fork, etc.
   ancestorChain: string[]; // Array of world IDs from root to parent
-  
+
   createdAt: number;
 }
 

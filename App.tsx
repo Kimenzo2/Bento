@@ -5,7 +5,7 @@ import { injectSpeedInsights } from '@vercel/speed-insights';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navigation from './components/Navigation';
 import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier, SavedBook } from './types';
-import { generateBookStructure, generateIllustration } from './services/geminiService';
+import { generateBookStructure, generateIllustration, generateBrandContent } from './services/geminiService';
 import UpgradeModal from './components/UpgradeModal';
 import { ToastContainer, ToastType } from './components/Toast';
 import EmailAuthModal from './components/EmailAuthModal';
@@ -215,11 +215,21 @@ const App: React.FC = () => {
 
     setIsGenerating(true);
     setGenerationProgress(0);
-    setGenerationStatus("Architecting story structure...");
+
+    // Use different generation path for brand content
+    const isBrandContent = settings.brandStoryConfig && settings.brandStoryConfig.companyInfo?.name;
+
+    setGenerationStatus(isBrandContent
+      ? "Creating professional brand content..."
+      : "Architecting story structure...");
 
     try {
       setGenerationProgress(5);
-      const structure = await generateBookStructure(settings);
+
+      // Use brand content generator for professional brand stories/annual reports
+      const structure = isBrandContent
+        ? await generateBrandContent(settings, settings.brandStoryConfig!)
+        : await generateBookStructure(settings);
 
       if (!structure.chapters || structure.chapters.length === 0 || !structure.chapters[0].pages || structure.chapters[0].pages.length === 0) {
         throw new Error("Generated content is empty. Please try again with a different prompt.");
@@ -424,6 +434,7 @@ const App: React.FC = () => {
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
             userProfile={userProfile}
             onNavigate={setCurrentMode}
+            onUpdateProject={setCurrentProject}
           />
         );
       case AppMode.SETTINGS:

@@ -180,7 +180,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                             {[...Array(20)].map((_, i) => (
                                 <motion.div
                                     key={i}
-                                    className="absolute w-1 h-1 bg-emerald-400/30 rounded-full"
+                                    className="absolute w-1 h-1 rounded-full bg-emerald-400/30"
                                     initial={{ 
                                         x: Math.random() * window.innerWidth,
                                         y: Math.random() * window.innerHeight,
@@ -216,23 +216,23 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                             <div className="flex items-center gap-4">
                                 {/* Character Avatar */}
                                 <div className="relative">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden border-2 border-emerald-400/50 shadow-lg shadow-emerald-500/30">
+                                    <div className="flex items-center justify-center overflow-hidden border-2 shadow-lg w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400/50 shadow-emerald-500/30">
                                         {persona?.avatarUrl ? (
-                                            <img src={persona.avatarUrl} alt={persona.name} className="w-full h-full object-cover" />
+                                            <img src={persona.avatarUrl} alt={persona.name} className="object-cover w-full h-full" />
                                         ) : (
-                                            <User className="w-7 h-7 text-white" />
+                                            <User className="text-white w-7 h-7" />
                                         )}
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900 animate-pulse" />
+                                    <div className="absolute w-4 h-4 border-2 rounded-full -bottom-1 -right-1 bg-emerald-500 border-slate-900 animate-pulse" />
                                 </div>
                                 
                                 <div>
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <h2 className="flex items-center gap-2 text-xl font-bold text-white">
                                         <span className="text-emerald-400">The Green Room</span>
                                         <span className="text-white/50">with</span>
                                         <span className="text-white">{persona?.name || character.name}</span>
                                     </h2>
-                                    <p className="text-sm text-emerald-300/60 flex items-center gap-2">
+                                    <p className="flex items-center gap-2 text-sm text-emerald-300/60">
                                         <Sparkles className="w-3 h-3" />
                                         Character Interview Session
                                         {session && (
@@ -270,7 +270,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                 {/* Close */}
                                 <button
                                     onClick={onClose}
-                                    className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                                    className="p-2 transition-colors rounded-lg text-white/40 hover:text-white hover:bg-white/10"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -279,11 +279,11 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     </div>
 
                     {/* Main Content Area */}
-                    <div className="flex-1 flex overflow-hidden">
+                    <div className="flex flex-1 overflow-hidden">
                         {/* Chat Panel */}
-                        <div className="flex-1 flex flex-col min-w-0">
+                        <div className="flex flex-col flex-1 min-w-0">
                             {/* Messages */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
                                 {session?.messages.map((msg, index) => (
                                     <motion.div
                                         key={msg.id}
@@ -307,7 +307,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                                 <motion.div
                                                     initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
-                                                    className="mt-2 flex flex-wrap gap-1"
+                                                    className="flex flex-wrap gap-1 mt-2"
                                                 >
                                                     {msg.extractedFacts.map(fact => (
                                                         <motion.span
@@ -342,14 +342,14 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                         animate={{ opacity: 1, y: 0 }}
                                         className="flex justify-start"
                                     >
-                                        <div className="bg-emerald-800/30 border border-emerald-500/20 rounded-2xl rounded-bl-md px-4 py-3">
+                                        <div className="px-4 py-3 border bg-emerald-800/30 border-emerald-500/20 rounded-2xl rounded-bl-md">
                                             <div className="flex items-center gap-2">
                                                 <div className="flex gap-1">
-                                                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                                                 </div>
-                                                <span className="text-xs text-emerald-400/60 italic">
+                                                <span className="text-xs italic text-emerald-400/60">
                                                     {persona?.name} is thinking...
                                                 </span>
                                             </div>
@@ -371,7 +371,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                     >
                                         <div className="flex items-center gap-2 mb-2">
                                             <Lightbulb className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-xs text-yellow-400/80 font-medium">Suggested Questions</span>
+                                            <span className="text-xs font-medium text-yellow-400/80">Suggested Questions</span>
                                             <button
                                                 onClick={() => setShowSuggestions(false)}
                                                 className="ml-auto text-white/30 hover:text-white/50"
@@ -397,7 +397,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                             {/* Input Area */}
                             <div className="p-4 border-t border-white/10 bg-slate-900/50">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex-1 relative">
+                                    <div className="relative flex-1">
                                         <input
                                             ref={inputRef}
                                             type="text"
@@ -405,7 +405,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                             onChange={(e) => setInputValue(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                                             placeholder={`Ask ${persona?.name || 'the character'} anything...`}
-                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                                            className="w-full px-4 py-3 text-white transition-all border bg-white/5 border-white/10 rounded-xl placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
                                             disabled={isTyping}
                                         />
                                     </div>
@@ -415,7 +415,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleSend}
                                         disabled={!inputValue.trim() || isTyping}
-                                        className="p-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        className="p-3 text-white transition-all shadow-lg bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Send className="w-5 h-5" />
                                     </motion.button>
@@ -424,37 +424,37 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                         </div>
 
                         {/* Right Sidebar - Facts & Info */}
-                        <div className="hidden lg:flex w-80 border-l border-white/10 bg-slate-900/30 flex-col">
+                        <div className="flex-col hidden border-l lg:flex w-80 border-white/10 bg-slate-900/30">
                             {/* Character Card */}
                             <div className="p-4 border-b border-white/10">
-                                <div className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-xl p-4 border border-emerald-500/20">
+                                <div className="p-4 border bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-xl border-emerald-500/20">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden">
+                                        <div className="flex items-center justify-center w-12 h-12 overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
                                             {persona?.avatarUrl ? (
-                                                <img src={persona.avatarUrl} alt={persona.name} className="w-full h-full object-cover" />
+                                                <img src={persona.avatarUrl} alt={persona.name} className="object-cover w-full h-full" />
                                             ) : (
                                                 <User className="w-6 h-6 text-white" />
                                             )}
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-white">{persona?.name}</h3>
-                                            <p className="text-xs text-emerald-400/60 capitalize">{persona?.role || 'Character'}</p>
+                                            <p className="text-xs capitalize text-emerald-400/60">{persona?.role || 'Character'}</p>
                                         </div>
                                     </div>
                                     
                                     {persona?.voiceStyle && (
-                                        <p className="text-xs text-white/50 italic mb-2">
+                                        <p className="mb-2 text-xs italic text-white/50">
                                             "{persona.voiceStyle}"
                                         </p>
                                     )}
                                     
                                     {/* Quick Stats */}
                                     <div className="flex gap-2 mt-3">
-                                        <div className="flex-1 bg-black/20 rounded-lg p-2 text-center">
+                                        <div className="flex-1 p-2 text-center rounded-lg bg-black/20">
                                             <p className="text-lg font-bold text-emerald-400">{persona?.extractedFacts.length || 0}</p>
                                             <p className="text-xs text-white/40">Facts</p>
                                         </div>
-                                        <div className="flex-1 bg-black/20 rounded-lg p-2 text-center">
+                                        <div className="flex-1 p-2 text-center rounded-lg bg-black/20">
                                             <p className="text-lg font-bold text-purple-400">{session?.messages.length || 0}</p>
                                             <p className="text-xs text-white/40">Messages</p>
                                         </div>
@@ -463,9 +463,9 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                             </div>
 
                             {/* Discovered Facts */}
-                            <div className="flex-1 overflow-y-auto p-4">
+                            <div className="flex-1 p-4 overflow-y-auto">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h4 className="text-sm font-medium text-white/80 flex items-center gap-2">
+                                    <h4 className="flex items-center gap-2 text-sm font-medium text-white/80">
                                         <Star className="w-4 h-4 text-yellow-400" />
                                         Discovered Facts
                                     </h4>
@@ -494,7 +494,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                                 <div className="flex items-start gap-2">
                                                     <Tag className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
                                                     <div>
-                                                        <p className="text-xs text-emerald-400/80 font-medium capitalize">
+                                                        <p className="text-xs font-medium capitalize text-emerald-400/80">
                                                             {fact.key.replace(/_/g, ' ')}
                                                         </p>
                                                         <p className="text-sm text-white/80">{fact.value}</p>
@@ -504,8 +504,8 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                         ))}
                                     </div>
                                 ) : showFacts ? (
-                                    <div className="text-center py-8">
-                                        <Sparkles className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                                    <div className="py-8 text-center">
+                                        <Sparkles className="w-8 h-8 mx-auto mb-2 text-white/20" />
                                         <p className="text-sm text-white/40">
                                             Ask questions to discover facts about {persona?.name}
                                         </p>
@@ -515,8 +515,8 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
 
                             {/* Interview Tips */}
                             <div className="p-4 border-t border-white/10">
-                                <div className="bg-purple-900/20 rounded-lg p-3 border border-purple-500/20">
-                                    <h5 className="text-xs font-medium text-purple-300 mb-1 flex items-center gap-1">
+                                <div className="p-3 border rounded-lg bg-purple-900/20 border-purple-500/20">
+                                    <h5 className="flex items-center gap-1 mb-1 text-xs font-medium text-purple-300">
                                         <Lightbulb className="w-3 h-3" />
                                         Interview Tip
                                     </h5>
@@ -534,10 +534,10 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                     initial={{ width: 0, opacity: 0 }}
                                     animate={{ width: 280, opacity: 1 }}
                                     exit={{ width: 0, opacity: 0 }}
-                                    className="border-l border-white/10 bg-slate-900/50 overflow-hidden"
+                                    className="overflow-hidden border-l border-white/10 bg-slate-900/50"
                                 >
                                     <div className="p-4">
-                                        <h4 className="text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
+                                        <h4 className="flex items-center gap-2 mb-3 text-sm font-medium text-white/80">
                                             <History className="w-4 h-4 text-purple-400" />
                                             Previous Sessions
                                         </h4>
@@ -551,7 +551,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                                             setSession(s);
                                                             setShowHistory(false);
                                                         }}
-                                                        className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-left transition-colors"
+                                                        className="w-full p-3 text-left transition-colors rounded-lg bg-white/5 hover:bg-white/10"
                                                     >
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <Clock className="w-3 h-3 text-white/40" />
@@ -569,7 +569,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p className="text-sm text-white/40 text-center py-4">
+                                            <p className="py-4 text-sm text-center text-white/40">
                                                 No previous sessions
                                             </p>
                                         )}
@@ -582,7 +582,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                                 }
                                                 setShowHistory(false);
                                             }}
-                                            className="w-full mt-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-lg text-sm text-emerald-400 flex items-center justify-center gap-2 transition-colors"
+                                            className="flex items-center justify-center w-full gap-2 py-2 mt-4 text-sm transition-colors border rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/30 text-emerald-400"
                                         >
                                             <Plus className="w-4 h-4" />
                                             New Session

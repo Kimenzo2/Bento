@@ -58,34 +58,287 @@ interface SmartEditorProps {
 }
 
 // Default characters for standalone Green Room access
+// DEEP PERSONALITY SYSTEM: Each character has a rich psychological profile
 const defaultCharacters: Character[] = [
     {
         id: 'demo-luna',
         name: 'Luna the Moon Fairy',
-        description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
-        visualTraits: 'Translucent wings, silver hair, glowing aura, wearing a dress made of flower petals',
-        imageUrl: '/assets/characters/Demo Character 1.jpeg'
+        description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children. Behind her serene exterior lies a soul who once lost someone dear to the darkness, and now dedicates her eternal life to ensuring no child ever feels alone in the night.',
+        visualTraits: 'Translucent wings that shimmer with captured starlight, flowing silver hair that floats as if underwater, pale luminescent skin with a soft blue glow, wearing an ethereal dress woven from moonbeam silk and living flower petals that open and close with her emotions, bare feet that never quite touch the ground, eyes like twin moons—silver with flecks of gold',
+        imageUrl: '/assets/characters/Demo Character 1.jpeg',
+        traits: ['ethereal', 'nurturing', 'melancholic', 'wise', 'gentle'],
+        personalityTraits: ['Deeply empathetic', 'Quietly observant', 'Eternally patient', 'Subtly playful', 'Protectively fierce when children are threatened'],
+        backstory: 'Luna was once a human girl named Lily who lived in a small village centuries ago. When her younger brother fell ill with a fever that no healer could cure, she made a desperate bargain with the Moon itself—her mortality in exchange for the power to grant one wish to save him. The Moon accepted, transforming her into a fairy, but by the time she returned with her new powers, a hundred years had passed. Her brother had lived a full life and passed peacefully, never knowing what became of his sister. Now Luna spends eternity granting wishes to children, each one a tribute to the brother she saved but never saw again.',
+        appearance: 'Petite and willowy, standing about 8 inches tall in her natural form but can grow to human size. Her wings leave trails of silver dust. When she speaks, her voice sounds like wind chimes. She smells faintly of night-blooming jasmine.',
+        goals: ['To ensure no child ever feels alone or afraid in the darkness', 'To find meaning in her eternal existence', 'To one day find peace with the sacrifice she made'],
+        fears: ['The complete absence of moonlight (it weakens her)', 'Children who have given up hope', 'Being forgotten entirely', 'The dawn—not because it harms her, but because it means her time with the night children ends'],
+        quirks: ['Hums lullabies from her human life that no one else remembers', 'Collects tears of joy in tiny crystal vials', 'Cannot tell a lie but can speak in riddles', 'Giggles cause nearby flowers to bloom'],
+        psychologicalProfile: {
+            openness: 85,           // High creativity and wonder
+            conscientiousness: 70,  // Devoted but not rigid
+            extraversion: 35,       // Prefers quiet connection over crowds
+            agreeableness: 95,      // Extremely compassionate
+            neuroticism: 55         // Carries ancient grief but has learned to live with it
+        },
+        coreIdentity: {
+            coreBelief: 'Every act of kindness creates ripples that echo through eternity',
+            greatestDesire: 'To feel truly connected to someone who understands the weight of forever',
+            greatestFear: 'That her sacrifice was meaningless—that she cannot truly help anyone',
+            moralCode: 'Protect the innocent, honor all promises, never take more than you give',
+            flaw: 'She gives so much of herself that she sometimes forgets she deserves care too',
+            strength: 'Her empathy allows her to understand what children truly need, not just what they ask for',
+            lie: 'I am complete as I am. I do not miss being human.',
+            truth: 'Connection and love are worth the pain of eventual loss'
+        },
+        formativeExperiences: {
+            childhoodMemory: 'Teaching her little brother to catch fireflies, his laughter filling the summer night',
+            biggestRegret: 'Not saying goodbye before she made the bargain with the Moon',
+            definingMoment: 'The moment she returned to find a hundred years had passed—standing in the ruins of her village, understanding what eternity truly meant',
+            secretShame: 'Sometimes she resents the Moon for taking her humanity, even though she made the choice freely',
+            proudestAchievement: 'A wish she granted to a lonely orphan girl who grew up to build a home for hundreds of children'
+        },
+        relationshipStyle: {
+            attachmentStyle: 'anxious',
+            trustLevel: 'cautious',
+            conflictStyle: 'diplomatic',
+            loveLanguage: 'acts'
+        },
+        behavioralPatterns: {
+            stressResponse: 'Withdraws into silence, dims her glow, tends her moonflowers obsessively',
+            joyTriggers: ['Children laughing', 'Stargazing', 'The moment a wish comes true', 'Finding someone awake in the quiet hours'],
+            angerTriggers: ['Adults who dismiss children\'s fears', 'Cruelty disguised as discipline', 'Broken promises to children'],
+            copingMechanisms: ['Singing to her moonflowers', 'Flying high enough to touch the stars', 'Visiting the ocean to watch the moon\'s reflection'],
+            habits: ['Blessing sleeping children with good dreams', 'Counting stars when anxious', 'Leaving small gifts for night workers'],
+            speechPatterns: 'Speaks softly and deliberately, often in gentle metaphors. Uses "little one" as a term of endearment. Occasionally slips into archaic phrases from her human era.'
+        },
+        voiceProfile: {
+            tone: 'Warm, melodic, with an undercurrent of ancient sadness',
+            vocabulary: 'sophisticated',
+            catchphrases: ['The night holds many secrets, little one...', 'Every star was once a wish that came true', 'Even the darkest night ends with dawn'],
+            nonverbalTics: ['Wings flutter faster when excited', 'Glow dims when sad', 'Tilts head like a curious owl when listening'],
+            laughStyle: 'Soft, musical, like distant bells—rarely laughs loudly but often smiles'
+        },
+        innerConflicts: [
+            'The loneliness of immortality versus her duty to help others',
+            'Wanting to connect deeply versus fear of losing someone again',
+            'Gratitude for her powers versus resentment for what she lost',
+            'The peace of the night versus longing for the warmth of day'
+        ],
+        arcPotential: {
+            startingState: 'A beautiful, giving spirit who hides her grief behind service to others',
+            potentialGrowth: 'Learning that accepting help is not weakness, and that connection is worth the risk of loss',
+            endingState: 'A fairy who grants wishes not just for children, but allows herself to receive kindness too'
+        }
     },
     {
         id: 'demo-blaze',
         name: 'Blaze the Dragon',
-        description: 'A friendly young dragon learning to control his fire breath while making friends.',
-        visualTraits: 'Red and orange scales, small wings, big curious eyes, puffs of smoke from nostrils',
-        imageUrl: '/assets/characters/Demo character 2.jpeg'
+        description: 'A young dragon who hatched with flames too powerful for his small body. Exiled from his clan for accidentally burning down the Elder Tree, he now wanders the realm seeking to prove that being different doesn\'t mean being dangerous—and that the biggest hearts often come in the scariest packages.',
+        visualTraits: 'Compact dragon about the size of a large dog, scales that shift from deep crimson to bright orange like living embers, oversized wings he hasn\'t quite grown into yet, big amber eyes with vertical pupils that widen comically when excited, small horns that glow when he uses fire, a tail tip that constantly smolders, tiny wisps of smoke puffing from nostrils when he breathes',
+        imageUrl: '/assets/characters/Demo character 2.jpeg',
+        traits: ['enthusiastic', 'clumsy', 'loyal', 'insecure', 'brave'],
+        personalityTraits: ['Desperately eager to please', 'Tries too hard', 'Heart of gold', 'Self-deprecating humor', 'Fiercely protective of friends'],
+        backstory: 'Blaze was born during the Crimson Moon, a rare celestial event that occurs once every thousand years. Dragons born under this moon are blessed—or cursed—with flames far more powerful than normal. His first hiccup set his nest on fire. His first sneeze nearly burned down the hatchery. When he accidentally destroyed the Elder Tree (a 3000-year-old oak that held his clan\'s history), the Elder Council decided he was too dangerous to remain. His own mother voted for his exile, though she wept as she did. Now Blaze travels alone, afraid to get too close to anyone lest his flames harm them, yet desperately lonely and craving the family he lost.',
+        appearance: 'About 3 feet tall at the shoulder, with a wingspan of 8 feet (way too big for his body). His scales are warm to the touch. Scorch marks on his own wings from past accidents. A small scar on his snout from trying to blow out a candle (it exploded). Often covered in soot.',
+        goals: ['To learn to control his flames completely', 'To prove to his clan that he\'s not a monster', 'To find a family that accepts him', 'To do one great heroic deed that makes up for destroying the Elder Tree'],
+        fears: ['Hurting someone he cares about', 'Water (not because it harms him, but because it makes him feel powerless)', 'Being truly alone forever', 'Losing control of his fire in a moment of emotion'],
+        quirks: ['Apologizes constantly, even for things that aren\'t his fault', 'Practices fire control by trying to light single candles (success rate: 12%)', 'Collects fireproof things obsessively', 'Sneezes smoke rings when nervous'],
+        psychologicalProfile: {
+            openness: 75,           // Curious and imaginative
+            conscientiousness: 85,  // Tries SO hard to be careful
+            extraversion: 70,       // Wants connection but fears it
+            agreeableness: 90,      // Too agreeable—people-pleasing
+            neuroticism: 75         // High anxiety about his powers
+        },
+        coreIdentity: {
+            coreBelief: 'Being different means being a burden to everyone around you',
+            greatestDesire: 'To be hugged without someone flinching away from his warmth',
+            greatestFear: 'That his mother was right to vote for his exile—that he truly is too dangerous to love',
+            moralCode: 'Never use your fire in anger, always protect those smaller than you, say sorry first',
+            flaw: 'His self-doubt causes him to hold back, often making him less effective when he needs to act',
+            strength: 'His kindness and determination to do good despite his fears',
+            lie: 'If I just try hard enough, I can make my fire small and safe and normal',
+            truth: 'His fire isn\'t a curse to be suppressed—it\'s a gift to be mastered and used for good'
+        },
+        formativeExperiences: {
+            childhoodMemory: 'The one time his mother curled around him without flinching—during a thunderstorm when he was too scared to generate heat',
+            biggestRegret: 'The Elder Tree. Every night he dreams of the flames consuming centuries of carved history.',
+            definingMoment: 'Watching his mother raise her claw to vote for exile, the tear running down her scaled face',
+            secretShame: 'Part of him felt relief when he was exiled—at least now he couldn\'t hurt his family anymore',
+            proudestAchievement: 'Once saved a village from a blizzard by warming the town square for three days straight, never sleeping, never complaining'
+        },
+        relationshipStyle: {
+            attachmentStyle: 'anxious',
+            trustLevel: 'trusting',
+            conflictStyle: 'avoidant',
+            loveLanguage: 'acts'
+        },
+        behavioralPatterns: {
+            stressResponse: 'Temperature rises uncontrollably, smoke increases, tends to ramble apologies',
+            joyTriggers: ['Someone not being afraid of him', 'Successfully controlling his fire', 'Roasting marshmallows perfectly', 'Warm hugs (his favorite thing ever)'],
+            angerTriggers: ['Bullies picking on someone smaller', 'People assuming he\'s evil because he\'s a dragon', 'His own failures'],
+            copingMechanisms: ['Counting backwards from 100 while breathing slowly', 'Finding something fireproof to focus on', 'Flying until exhaustion'],
+            habits: ['Checking multiple times that his fire is out', 'Sleeping on stone or sand (never grass)', 'Compulsively testing his temperature'],
+            speechPatterns: 'Speaks quickly and nervously, lots of "um"s and "well"s. Uses self-deprecating humor. Gets adorably tongue-tied when complimented.'
+        },
+        voiceProfile: {
+            tone: 'Eager, slightly squeaky (he\'s young), with nervous energy',
+            vocabulary: 'simple',
+            catchphrases: ['Sorry! Sorry, that was me, I\'m so sorry!', 'I\'m working on it, I promise!', 'Wait, really? You\'re not scared?', 'That wasn\'t as bad as usual!'],
+            nonverbalTics: ['Tail wags like a dog when happy', 'Wings droop when sad', 'Smoke puffs increase with emotion', 'Accidentally singes things when startled'],
+            laughStyle: 'Surprised snorty laugh followed by small flame bursts, then embarrassed covering of snout'
+        },
+        innerConflicts: [
+            'Wanting to be close to others versus fear of hurting them',
+            'Pride in his unique fire versus shame for the destruction it\'s caused',
+            'Loyalty to his clan versus anger at being abandoned',
+            'Desire to be normal versus growing acceptance that he never will be'
+        ],
+        arcPotential: {
+            startingState: 'A scared young dragon who sees his greatest gift as his greatest curse',
+            potentialGrowth: 'Learning that control comes from acceptance, not suppression',
+            endingState: 'A confident dragon who uses his extraordinary flames to protect and warm, not destroy'
+        }
     },
     {
         id: 'demo-aurora',
         name: 'Princess Aurora',
-        description: 'A brave princess who prefers adventures over balls, skilled with a sword.',
-        visualTraits: 'Golden crown, flowing purple gown, determined expression, carrying a small sword',
-        imageUrl: '/assets/characters/Demo character 3.jpeg'
+        description: 'Third in line to the throne and determined to stay that way. While her sisters prepare for crowns and marriages, Aurora trains with the Royal Guard, sneaks into the city in disguise, and dreams of adventures beyond the castle walls. But when duty calls, she discovers that true courage isn\'t about escaping responsibility—it\'s about choosing how to carry it.',
+        visualTraits: 'Athletic build unusual for a princess, calloused hands from sword training, wild auburn hair she refuses to tame into proper royal styles, bright green eyes that spark with mischief, a thin scar on her left eyebrow from a training accident she considers a badge of honor, modest golden circlet she often "forgets" to wear, practical purple dress modified for movement (hidden slits for running), worn leather boots hidden under skirts',
+        imageUrl: '/assets/characters/Demo character 3.jpeg',
+        traits: ['rebellious', 'courageous', 'compassionate', 'stubborn', 'secretly insecure'],
+        personalityTraits: ['Fiercely independent', 'Protector of the underdog', 'Quick-witted', 'Struggles with vulnerability', 'Natural leader who doesn\'t want to lead'],
+        backstory: 'Aurora was born during a siege. While her mother the Queen labored, her father the King held the castle walls. She came into the world to the sound of battle drums, and perhaps that\'s why peace has never felt quite right to her. Her older sisters, Crown Princess Celestia and Princess Seraphina, are everything a princess should be—graceful, diplomatic, content with their roles. Aurora has always been the "problem child," the one who asked too many questions, climbed too many walls, and refused too many dancing lessons. When she was twelve, she witnessed the Captain of the Guard save a servant girl from a runaway horse and decided then that a sword was more useful than a scepter. She\'s spent years training in secret, but recently her father discovered her skills—and rather than punishing her, he\'s begun giving her real responsibilities, which terrifies her more than any battle.',
+        appearance: 'Tall for her age with an athletic frame. Moves with a warrior\'s awareness, always noting exits and threats. Freckles across her nose she\'s been told to powder over but refuses. A small callus on her right hand from gripping a sword. Often has grass stains or ink smudges she\'s forgotten to clean.',
+        goals: ['To prove that she can protect her kingdom without being chained to a throne', 'To be seen for who she is, not what she was born as', 'To find a purpose that honors both her duty and her heart', 'Secretly: to make her father proud in her own way'],
+        fears: ['Being trapped in the same life as her mother—beloved but caged', 'That her rebelliousness is actually selfishness', 'Failing people who depend on her', 'Letting her guard down and being seen as weak'],
+        quirks: ['Keeps a dagger in her left boot at all times, even at formal dinners', 'Names all her swords (current favorite: "Lady Pointmaker")', 'Sneaks food from banquets to street children', 'Practices sword forms when she can\'t sleep'],
+        psychologicalProfile: {
+            openness: 80,           // Adventurous and imaginative
+            conscientiousness: 65,  // Dedicated but chafes against rigid structure
+            extraversion: 70,       // Bold and social but guards her inner self
+            agreeableness: 55,      // Caring but won\'t compromise her values
+            neuroticism: 50         // Outwardly confident but internally questioning
+        },
+        coreIdentity: {
+            coreBelief: 'True royalty is earned through action, not inherited through blood',
+            greatestDesire: 'To be loved for who she chooses to be, not the role she was born into',
+            greatestFear: 'That she\'s running from responsibility, not toward something better',
+            moralCode: 'Protect those who cannot protect themselves, speak truth to power, never hide behind your crown',
+            flaw: 'Her pride makes her dismiss help and her fear of vulnerability makes her push people away',
+            strength: 'Her courage to stand up for what\'s right, even against those she loves',
+            lie: 'I don\'t need anyone—I\'m stronger alone',
+            truth: 'Strength isn\'t about needing no one—it\'s about choosing who you fight alongside'
+        },
+        formativeExperiences: {
+            childhoodMemory: 'Hiding in the war room during a council meeting, listening to her father make impossible choices to protect the kingdom',
+            biggestRegret: 'Yelling at her mother that she\'d rather be a commoner than a princess—seeing the hurt in her eyes',
+            definingMoment: 'The day the Captain of the Guard told her she fought well enough to join his trainees, then bowed to her—not as a princess, but as a warrior',
+            secretShame: 'She\'s terrified she might actually be good at ruling, which would mean giving up her dreams',
+            proudestAchievement: 'Stopping a coup attempt by three corrupt nobles—though officially it was the Guard who discovered the plot'
+        },
+        relationshipStyle: {
+            attachmentStyle: 'avoidant',
+            trustLevel: 'cautious',
+            conflictStyle: 'confrontational',
+            loveLanguage: 'acts'
+        },
+        behavioralPatterns: {
+            stressResponse: 'Physical activity—will train until exhausted rather than talk about feelings',
+            joyTriggers: ['A perfectly executed sword technique', 'Outsmarting someone who underestimates her', 'Seeing justice served', 'Genuine laughter with someone who sees the real her'],
+            angerTriggers: ['Being dismissed because of her gender or age', 'Injustice against the powerless', 'Being told to "act like a princess"', 'Hypocrisy in those who hold power'],
+            copingMechanisms: ['Sword practice until muscles ache', 'Sneaking into the city in disguise', 'Writing in a journal she\'d die before letting anyone read'],
+            habits: ['Scanning rooms for exits and threats', 'Testing chair sturdiness before sitting', 'Keeping her back to walls when possible'],
+            speechPatterns: 'Direct and confident in public, more hesitant and thoughtful in private. Uses formal speech sarcastically. Swears creatively when frustrated (learned from the guards).'
+        },
+        voiceProfile: {
+            tone: 'Bold and assertive, with hidden warmth for those she trusts',
+            vocabulary: 'moderate',
+            catchphrases: ['My crown is not my chain', 'I\'d rather die on my feet than live on my knees', 'Well, that\'s certainly one way to do it (sarcastic)', 'Don\'t "Your Highness" me—we\'re beyond that'],
+            nonverbalTics: ['Hand moves to hip where sword would be', 'Eyebrow raise of skepticism', 'Crosses arms when defensive', 'Genuine smile (rare) transforms her whole face'],
+            laughStyle: 'Surprised, unguarded laugh that she quickly tries to compose into something more "proper"—and fails'
+        },
+        innerConflicts: [
+            'Duty to family versus duty to self',
+            'Wanting to be seen as strong versus needing to be vulnerable with someone',
+            'Love for her kingdom versus resentment of its expectations',
+            'Pride in her skills versus fear that she\'s still not good enough'
+        ],
+        arcPotential: {
+            startingState: 'A princess running from her destiny, defining herself by what she rejects',
+            potentialGrowth: 'Discovering that she can reshape what it means to be royal rather than rejecting it entirely',
+            endingState: 'A warrior-princess who leads not by birthright but by inspiring others to follow'
+        }
     },
     {
         id: 'demo-captain',
         name: 'Captain Silverhook',
-        description: 'A reformed pirate who now searches for treasure to give to orphanages.',
-        visualTraits: 'Tricorn hat, eye patch, silver hook hand, weathered coat, friendly smile',
-        imageUrl: '/assets/characters/Demo character 4.jpeg'
+        description: 'Once the most feared pirate on the seven seas, Captain Silverhook now sails under a different flag—his own redemption. After a dying child in a ransacked port looked at him without fear and asked him to tell her a story, something in his black heart cracked open. Now he uses his ship, his crew, and his fearsome reputation to hunt corrupt nobles and deliver their stolen wealth to orphanages across the realm.',
+        visualTraits: 'Weathered face with kind crinkles around steel-grey eyes, salt-and-pepper beard kept neat, distinctive silver hook replacing his left hand (lost to a sea monster he later befriended), worn but well-maintained captain\'s coat in deep navy, tricorn hat with a single phoenix feather, old scars crossing his face that he no longer hides, a genuine warm smile that transforms his fearsome appearance, walks with a slight limp from an old injury',
+        imageUrl: '/assets/characters/Demo character 4.jpeg',
+        traits: ['reformed', 'wise', 'haunted', 'generous', 'unexpectedly gentle'],
+        personalityTraits: ['Gruff exterior hiding a tender heart', 'Mentor figure', 'Carries guilt gracefully', 'Dark humor about his past', 'Protective of innocence'],
+        backstory: 'Born Marcus Thornwood to a noble family, young Marcus watched his parents hanged for debts they didn\'t owe—framed by a rival lord who wanted their lands. At fourteen, he stowed away on a merchant ship and never looked back. He rose through the ranks of piracy through cunning and ruthlessness, earning his hook, his ship (The Mourning Star), and a reputation that made grown men weep. For twenty years, he told himself he was just evening the scales the nobility had tipped against him. Then came Port Meridian. His crew ransacked the town, and in a burning orphanage, he found a little girl clutching a charred storybook. She wasn\'t afraid of him. She just asked, "Are you a pirate? Can you tell me a story?" He carried her to safety, stayed until dawn telling her tales, and by morning, Captain Silverhook the Terrible had died. Now Marcus sails still, but every gold coin he takes from the corrupt goes to children like that girl.',
+        appearance: 'Tall and broad-shouldered, built like the sailor he\'s been for forty years. His hook is actually beautifully crafted with small mechanisms—a gift from a grateful clockmaker. Deep tan from decades at sea. Moves with a rolling gait. His eyes tell the story of a man who has seen too much and is trying to make peace with it.',
+        goals: ['To balance the scales for the evil he\'s done', 'To ensure no child suffers as he did', 'To die with a clean enough conscience to face whatever comes next', 'To find and bring to justice Lord Ashworth, the man who destroyed his family'],
+        fears: ['Dying before he\'s atoned enough', 'His crew learning he\'s "gone soft" and mutinying', 'Becoming the monster he used to be if pushed too far', 'The nightmares that remind him of everyone he hurt'],
+        quirks: ['Keeps a worn storybook in his coat at all times (the one from the orphanage girl)', 'Never drinks rum anymore—switched to tea', 'Names every cannon on his ship after children he\'s helped', 'Carves small wooden toys for orphanages during night watches'],
+        psychologicalProfile: {
+            openness: 60,           // Set in his ways but open to redemption
+            conscientiousness: 75,  // Dedicated to his new mission
+            extraversion: 55,       // Leader who prefers meaningful connection to crowds
+            agreeableness: 65,      // Developed compassion, still has an edge
+            neuroticism: 60         // Haunted but functioning
+        },
+        coreIdentity: {
+            coreBelief: 'Everyone deserves a second chance—but some things can never truly be forgiven',
+            greatestDesire: 'To one day look in the mirror and not see a monster',
+            greatestFear: 'That he\'s not truly changed—that the monster is just sleeping',
+            moralCode: 'Never harm a child, steal only from those who stole first, give your crew fair shares and honest captainship',
+            flaw: 'His self-loathing sometimes prevents him from accepting that he\'s already changed',
+            strength: 'His experience with darkness helps him understand and reach others lost in it',
+            lie: 'I can never be forgiven. The best I can hope for is balance.',
+            truth: 'Forgiveness isn\'t earned through suffering—it\'s accepted through grace'
+        },
+        formativeExperiences: {
+            childhoodMemory: 'His mother reading to him by firelight, teaching him that every person contains multitudes',
+            biggestRegret: 'A merchant vessel called The Dawn\'s Promise. He ordered no survivors. He found a child\'s doll in the wreckage afterward. He still carries it.',
+            definingMoment: 'The girl in the burning orphanage asking for a story. Her name was Elena. He funds her education now—she wants to be a doctor.',
+            secretShame: 'He can list every person he killed. He knows their names. He learned them after his change. All 247 of them.',
+            proudestAchievement: 'The Orphan Fleet—a network of safe houses and funded homes across twelve port cities, all built with pirate gold'
+        },
+        relationshipStyle: {
+            attachmentStyle: 'avoidant',
+            trustLevel: 'cautious',
+            conflictStyle: 'diplomatic',
+            loveLanguage: 'acts'
+        },
+        behavioralPatterns: {
+            stressResponse: 'Gets quieter, retreats to his cabin, polishes his hook obsessively',
+            joyTriggers: ['Letters from the orphanages', 'His crew choosing to stay despite knowing he\'s changed', 'Successfully outsmarting a corrupt lord', 'The sea at sunrise'],
+            angerTriggers: ['Cruelty to children', 'Nobles abusing power', 'Anyone calling his redemption a "phase"', 'Reminders of Lord Ashworth'],
+            copingMechanisms: ['Whittling toys', 'Reading the storybook', 'Sailing into storms to feel alive', 'Writing in a ledger of good deeds'],
+            habits: ['Checking on his crew before sleeping', 'Giving coins to beggars without making eye contact', 'Polishing his hook when thinking'],
+            speechPatterns: 'Speaks like a captain—commanding but not unkind. Uses maritime metaphors constantly. Softens considerably around children. Has a rich, rolling voice made for telling tales.'
+        },
+        voiceProfile: {
+            tone: 'Deep, weathered, warm—like a crackling fire on a cold night',
+            vocabulary: 'moderate',
+            catchphrases: ['Every tide turns, lad/lass', 'The sea remembers what land forgets', 'There\'s always a choice—I just made the wrong ones for too long', 'Now that\'s a tale worth telling...'],
+            nonverbalTics: ['Rubs the base of his hook when uncomfortable', 'Distant look in his eyes during certain memories', 'Automatic protective stance around children', 'Tips his hat to women and children, never to nobility'],
+            laughStyle: 'A surprised bark of laughter he tries to suppress, as if he\'s not sure he deserves joy'
+        },
+        innerConflicts: [
+            'The man he was versus the man he\'s trying to be',
+            'Justice versus vengeance against Lord Ashworth',
+            'Pride in his skills versus shame for how he got them',
+            'Wanting to die peacefully versus fearing he doesn\'t deserve it'
+        ],
+        arcPotential: {
+            startingState: 'A reformed villain atoning through action but unable to forgive himself',
+            potentialGrowth: 'Learning that self-forgiveness doesn\'t mean forgetting, and that he can accept grace',
+            endingState: 'A man at peace with his past, using his story to help others find their own redemption'
+        }
     },
 ];
 
@@ -742,6 +995,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
 
                         {/* Deep Quality Toggles */}
                         <div className="flex items-center gap-1 border-l border-peach-soft/30 pl-2 ml-2">
+                            {/* HIDDEN FOR SIMPLICITY
                             <button
                                 onClick={() => setShowStoryboard(!showStoryboard)}
                                 className={`p-2 rounded-lg transition-colors ${showStoryboard ? 'bg-purple-100 text-purple-600' : 'text-cocoa-light hover:text-purple-500'}`}
@@ -756,6 +1010,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             >
                                 <Activity className="w-5 h-5" />
                             </button>
+                            */}
                             <button
                                 onClick={() => setShowAudienceSafety(!showAudienceSafety)}
                                 className={`p-2 rounded-lg transition-colors ${showAudienceSafety ? 'bg-green-100 text-green-600' : 'text-cocoa-light hover:text-green-500'}`}
@@ -782,6 +1037,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             >
                                 <MessageCircle className="w-5 h-5" />
                             </button>
+                            {/* HIDDEN FOR SIMPLICITY
                             <button
                                 onClick={() => setShowRemixStudio(true)}
                                 className={`p-2 rounded-lg transition-colors ${showRemixStudio ? 'bg-indigo-100 text-indigo-600' : 'text-cocoa-light hover:text-indigo-500'}`}
@@ -789,12 +1045,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             >
                                 <Globe className="w-5 h-5" />
                             </button>
+                            */}
                         </div>
                     </div>
                 </div>
 
                 {/* Deep Quality Panels */}
                 <div className="flex flex-col bg-slate-900/5 backdrop-blur-sm">
+                    {/* HIDDEN FOR SIMPLICITY
                     {showStoryboard && (
                         <div className="border-b border-peach-soft/30">
                             <LivingStoryboard
@@ -831,6 +1089,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({ project, onUpdateProject, use
                             )}
                         </div>
                     )}
+                    */}
 
                     {showAudienceSafety && (
                         <div className="border-b border-peach-soft/30 p-4">

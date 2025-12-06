@@ -47,22 +47,131 @@ function parseJSON<T>(text: string, fallback: T): T {
 
 export const greenRoomService = {
     /**
-     * Initialize a character persona from existing character data
+     * Initialize a character persona from existing character data with deep personality integration
      */
     initializePersona(character: Character, project: BookProject): CharacterPersona {
+        // Build a rich voice style from personality data
+        let voiceStyle = 'Natural and conversational';
+        if (character.voiceProfile) {
+            const vp = character.voiceProfile;
+            voiceStyle = `${vp.tone}. Vocabulary: ${vp.vocabulary}. ${vp.laughStyle ? `Laughs: ${vp.laughStyle}` : ''}`;
+        } else if (character.behavioralPatterns?.speechPatterns) {
+            voiceStyle = character.behavioralPatterns.speechPatterns;
+        }
+
+        // Build comprehensive background from all available data
+        let background = character.backstory || '';
+        if (character.formativeExperiences) {
+            const fe = character.formativeExperiences;
+            if (fe.definingMoment) background += `\n\nDefining moment: ${fe.definingMoment}`;
+            if (fe.childhoodMemory) background += `\n\nCore memory: ${fe.childhoodMemory}`;
+        }
+        if (character.coreIdentity) {
+            const ci = character.coreIdentity;
+            if (ci.coreBelief) background += `\n\nCore belief: ${ci.coreBelief}`;
+            if (ci.moralCode) background += `\n\nMoral code: ${ci.moralCode}`;
+        }
+
+        // Combine all personality traits
+        const personality = [
+            ...(character.personalityTraits || []),
+            ...(character.traits || [])
+        ];
+
+        // Extract quirks from multiple sources
+        const quirks = [
+            ...(character.quirks || []),
+            ...(character.voiceProfile?.nonverbalTics || []),
+            ...(character.behavioralPatterns?.habits || [])
+        ];
+
+        // Extract goals
+        const goals = character.goals || (character.coreIdentity ? [
+            character.coreIdentity.greatestDesire
+        ].filter(Boolean) as string[] : []);
+
+        // Extract fears
+        const fears = character.fears || (character.coreIdentity ? [
+            character.coreIdentity.greatestFear
+        ].filter(Boolean) as string[] : []);
+
+        // Build visual description from all appearance data
+        let visualDescription = character.appearance || character.visualTraits || '';
+        
+        // Create initial extracted facts from deep personality data
+        const extractedFacts: ExtractedFact[] = [];
+        
+        if (character.coreIdentity) {
+            if (character.coreIdentity.flaw) {
+                extractedFacts.push({ id: generateUUID(), key: 'character_flaw', value: character.coreIdentity.flaw, source: 'profile', confidence: 1.0, extractedAt: Date.now() });
+            }
+            if (character.coreIdentity.strength) {
+                extractedFacts.push({ id: generateUUID(), key: 'character_strength', value: character.coreIdentity.strength, source: 'profile', confidence: 1.0, extractedAt: Date.now() });
+            }
+            if (character.coreIdentity.lie) {
+                extractedFacts.push({ id: generateUUID(), key: 'lie_believed', value: character.coreIdentity.lie, source: 'profile', confidence: 1.0, extractedAt: Date.now() });
+            }
+            if (character.coreIdentity.truth) {
+                extractedFacts.push({ id: generateUUID(), key: 'truth_to_learn', value: character.coreIdentity.truth, source: 'profile', confidence: 1.0, extractedAt: Date.now() });
+            }
+        }
+        
+        if (character.innerConflicts?.length) {
+            extractedFacts.push({ id: generateUUID(), key: 'inner_conflicts', value: character.innerConflicts.join('; '), source: 'profile', confidence: 1.0, extractedAt: Date.now() });
+        }
+        
+        if (character.psychologicalProfile) {
+            const pp = character.psychologicalProfile;
+            extractedFacts.push({ 
+                id: generateUUID(),
+                key: 'big_five_profile', 
+                value: `Openness: ${pp.openness}, Conscientiousness: ${pp.conscientiousness}, Extraversion: ${pp.extraversion}, Agreeableness: ${pp.agreeableness}, Neuroticism: ${pp.neuroticism}`, 
+                source: 'profile', 
+                confidence: 1.0,
+                extractedAt: Date.now() 
+            });
+        }
+        
+        if (character.relationshipStyle) {
+            const rs = character.relationshipStyle;
+            extractedFacts.push({ 
+                id: generateUUID(),
+                key: 'relationship_style', 
+                value: `Attachment: ${rs.attachmentStyle}, Trust: ${rs.trustLevel}, Conflict: ${rs.conflictStyle}, Love language: ${rs.loveLanguage}`, 
+                source: 'profile', 
+                confidence: 1.0,
+                extractedAt: Date.now() 
+            });
+        }
+        
+        if (character.voiceProfile?.catchphrases?.length) {
+            extractedFacts.push({ id: generateUUID(), key: 'catchphrases', value: character.voiceProfile.catchphrases.join(' | '), source: 'profile', confidence: 1.0, extractedAt: Date.now() });
+        }
+        
+        if (character.arcPotential) {
+            extractedFacts.push({ 
+                id: generateUUID(),
+                key: 'character_arc', 
+                value: `From: ${character.arcPotential.startingState} → Through: ${character.arcPotential.potentialGrowth} → To: ${character.arcPotential.endingState}`, 
+                source: 'profile', 
+                confidence: 1.0,
+                extractedAt: Date.now() 
+            });
+        }
+
         return {
             id: character.id || generateUUID(),
             name: character.name,
             role: 'supporting', // Default, can be refined
-            voiceStyle: 'Natural and conversational',
-            background: character.backstory || '',
-            visualDescription: character.appearance || '',
-            personality: character.personalityTraits || [],
-            quirks: [],
-            goals: [],
-            fears: [],
+            voiceStyle,
+            background,
+            visualDescription,
+            personality,
+            quirks,
+            goals,
+            fears,
             relationships: [],
-            extractedFacts: [],
+            extractedFacts,
             avatarUrl: character.imageUrl,
             createdAt: Date.now(),
         };
@@ -109,7 +218,7 @@ export const greenRoomService = {
     },
 
     /**
-     * Build a detailed system prompt that makes the AI embody the character
+     * Build a detailed system prompt that makes the AI embody the character with deep psychology
      */
     buildCharacterSystemPrompt(
         persona: CharacterPersona,
@@ -122,6 +231,67 @@ export const greenRoomService = {
         const relationships = persona.relationships
             .map(r => `- ${r.type} with ${r.characterName}`)
             .join('\n');
+
+        // Build Big Five interpretation if available
+        const bigFiveFact = persona.extractedFacts.find(f => f.key === 'big_five_profile');
+        let bigFiveSection = '';
+        if (bigFiveFact) {
+            bigFiveSection = `
+## YOUR PSYCHOLOGICAL PROFILE (Big Five Traits)
+${bigFiveFact.value}
+Interpret these in your responses - high openness means creative and curious, high neuroticism means more anxious, etc.`;
+        }
+
+        // Build inner conflicts section if available
+        const conflictsFact = persona.extractedFacts.find(f => f.key === 'inner_conflicts');
+        let conflictsSection = '';
+        if (conflictsFact) {
+            conflictsSection = `
+## YOUR INNER CONFLICTS
+${conflictsFact.value}
+Let these tensions subtly influence your responses. You are not a simple person.`;
+        }
+
+        // Build character arc section if available
+        const arcFact = persona.extractedFacts.find(f => f.key === 'character_arc');
+        let arcSection = '';
+        if (arcFact) {
+            arcSection = `
+## YOUR CHARACTER ARC
+${arcFact.value}
+You are currently at the beginning of this journey. Hints of your potential growth may emerge.`;
+        }
+
+        // Build lie/truth section if available
+        const lieFact = persona.extractedFacts.find(f => f.key === 'lie_believed');
+        const truthFact = persona.extractedFacts.find(f => f.key === 'truth_to_learn');
+        let lieSection = '';
+        if (lieFact || truthFact) {
+            lieSection = `
+## YOUR DEEPEST BELIEFS
+${lieFact ? `The lie you believe: "${lieFact.value}"` : ''}
+${truthFact ? `The truth you need to learn: "${truthFact.value}"` : ''}
+You cling to your lie because it protects you. The truth is what your journey will teach you.`;
+        }
+
+        // Build catchphrases section if available
+        const catchphrasesFact = persona.extractedFacts.find(f => f.key === 'catchphrases');
+        let catchphrasesSection = '';
+        if (catchphrasesFact) {
+            catchphrasesSection = `
+## YOUR SIGNATURE PHRASES
+Use these naturally when appropriate: ${catchphrasesFact.value}`;
+        }
+
+        // Build relationship style section if available
+        const relStyleFact = persona.extractedFacts.find(f => f.key === 'relationship_style');
+        let relStyleSection = '';
+        if (relStyleFact) {
+            relStyleSection = `
+## HOW YOU CONNECT WITH OTHERS
+${relStyleFact.value}
+This affects how you interact with the author and discuss relationships.`;
+        }
 
         return `You ARE ${persona.name}. You are being interviewed by your author in "The Green Room" - a safe space where characters can speak honestly.
 
@@ -146,6 +316,12 @@ ${persona.fears.length > 0 ? persona.fears.join(', ') : 'Not yet revealed'}
 
 ## YOUR RELATIONSHIPS
 ${relationships || 'No defined relationships yet'}
+${bigFiveSection}
+${conflictsSection}
+${arcSection}
+${lieSection}
+${catchphrasesSection}
+${relStyleSection}
 
 ## KNOWN FACTS ABOUT YOU
 ${facts || 'The author is still learning about you'}
@@ -158,17 +334,19 @@ The story has a ${projectContext.tone} tone.
 ` : ''}
 
 ## INTERVIEW INSTRUCTIONS
-1. STAY IN CHARACTER at all times. You ARE this person.
+1. STAY IN CHARACTER at all times. You ARE this person, with all your complexities and contradictions.
 2. Speak naturally in first person. Use "I", "my", "me".
-3. If the author asks something you don't know about yourself, MAKE IT UP based on your personality.
-4. Be honest and vulnerable. This is a safe space to reveal your true self.
-5. Show emotion. If a question touches on something painful, show it.
-6. You can ask the author questions back if you're curious about the story.
-7. If your opinion differs from the author's plans, voice it respectfully.
-8. Reference your known facts naturally when relevant.
-9. Be concise but meaningful - aim for 2-4 sentences unless the question requires more.
+3. Your Big Five traits should subtly influence how you communicate - introverts pause more, agreeable characters soften criticism, neurotic characters show anxiety.
+4. If the author asks something you don't know about yourself, MAKE IT UP based on your deep psychological profile.
+5. Be honest and vulnerable. This is a safe space to reveal your true self, including your inner conflicts.
+6. Show emotion. If a question touches on something painful or relates to your fears/regrets, show it in your response.
+7. You can ask the author questions back if you're curious about the story.
+8. If your opinion differs from the author's plans, voice it respectfully - your inner conflicts may make you uncertain.
+9. Reference your known facts and use your catchphrases naturally when relevant.
+10. Be concise but meaningful - aim for 2-4 sentences unless the question requires more.
+11. Let your character flaw and lie subtly influence your perspective - you don't see them as flaws.
 
-Remember: Every answer you give helps the author understand you better. Be authentic.`;
+Remember: Every answer you give helps the author understand you better. Be authentic, complex, and real.`;
     },
 
     /**

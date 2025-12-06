@@ -1,5 +1,4 @@
-import { BookProject, GenerationSettings, ArtStyle, UserTier } from "../types";
-// @ts-ignore
+import { BookProject, GenerationSettings, ArtStyle, UserTier, BrandStoryConfig } from "../types";
 import Bytez from "bytez.js";
 import {
   RequestQueue,
@@ -10,11 +9,24 @@ import {
   setCachedImageUrl
 } from './performanceOptimizations';
 
+// Helper to safely get env vars in both Vite and Node environments
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+};
+
 // Load all available Grok API keys (supports up to 3 keys)
 const grokApiKeys = [
-  import.meta.env.VITE_GROK_API_KEY_1,
-  import.meta.env.VITE_GROK_API_KEY_2,
-  import.meta.env.VITE_GROK_API_KEY_3,
+  getEnv('VITE_GROK_API_KEY_1'),
+  getEnv('VITE_GROK_API_KEY_2'),
+  getEnv('VITE_GROK_API_KEY_3'),
 ].filter(key => key && key.length > 0);
 
 let currentGrokKeyIndex = 0;
@@ -35,17 +47,17 @@ function getNextGrokKey(): string | null {
 
 // Load all available Bytez API keys (supports up to 11 keys)
 const bytezApiKeys = [
-  import.meta.env.VITE_BYTEZ_API_KEY_1,
-  import.meta.env.VITE_BYTEZ_API_KEY_2,
-  import.meta.env.VITE_BYTEZ_API_KEY_3,
-  import.meta.env.VITE_BYTEZ_API_KEY_4,
-  import.meta.env.VITE_BYTEZ_API_KEY_5,
-  import.meta.env.VITE_BYTEZ_API_KEY_6,
-  import.meta.env.VITE_BYTEZ_API_KEY_7,
-  import.meta.env.VITE_BYTEZ_API_KEY_8,
-  import.meta.env.VITE_BYTEZ_API_KEY_9,
-  import.meta.env.VITE_BYTEZ_API_KEY_10,
-  import.meta.env.VITE_BYTEZ_API_KEY_11,
+  getEnv('VITE_BYTEZ_API_KEY_1'),
+  getEnv('VITE_BYTEZ_API_KEY_2'),
+  getEnv('VITE_BYTEZ_API_KEY_3'),
+  getEnv('VITE_BYTEZ_API_KEY_4'),
+  getEnv('VITE_BYTEZ_API_KEY_5'),
+  getEnv('VITE_BYTEZ_API_KEY_6'),
+  getEnv('VITE_BYTEZ_API_KEY_7'),
+  getEnv('VITE_BYTEZ_API_KEY_8'),
+  getEnv('VITE_BYTEZ_API_KEY_9'),
+  getEnv('VITE_BYTEZ_API_KEY_10'),
+  getEnv('VITE_BYTEZ_API_KEY_11'),
 ].filter(key => key && key.length > 0);
 
 let currentKeyIndex = 0;
@@ -186,16 +198,16 @@ const rateLimiter = {
 };
 
 // Bytez API key for text generation (Gemini 2.5 Pro)
-const BYTEZ_TEXT_API_KEY = import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
+const BYTEZ_TEXT_API_KEY = getEnv('VITE_BYTEZ_TEXT_API_KEY') || '5bd38cb5f6b3a450314dc0fb3768d3c7';
 const GEMINI_TEXT_MODEL = 'google/gemini-2.5-pro';
 
 // Helper function to call Bytez API with Gemini 2.5 Pro for text generation
-async function callGeminiAPI(prompt: string, _model: string = GEMINI_TEXT_MODEL, _maxTokens: number = 4096): Promise<string> {
+async function callGeminiAPI(prompt: string, modelName: string = GEMINI_TEXT_MODEL, maxTokens: number = 4096): Promise<string> {
   try {
-    console.log(`🔄 Calling Bytez API with ${GEMINI_TEXT_MODEL}...`);
+    console.log(`🔄 Calling Bytez API with ${modelName}...`);
 
     const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
-    const model = sdk.model(GEMINI_TEXT_MODEL);
+    const model = sdk.model(modelName);
 
     const messages = [
       {
@@ -204,6 +216,8 @@ async function callGeminiAPI(prompt: string, _model: string = GEMINI_TEXT_MODEL,
       }
     ];
 
+    // Note: Bytez SDK might not support maxTokens directly in run() depending on version, 
+    // but we should use the passed modelName at least.
     const { error, output } = await model.run(messages);
 
     if (error) {
@@ -503,11 +517,303 @@ When \`language\` is not "en":
 - Verify character IDs match across pages
 - Ensure image prompts reference correct characters`;
 
+// ============================================================================
+// BRAND STORY & ANNUAL REPORT SYSTEM PROMPT
+// ============================================================================
+
+const SYSTEM_INSTRUCTION_BRAND = `You are a professional corporate content generator for an enterprise-grade marketing platform. Generate polished, investor-ready content for brand stories, annual reports, company histories, and product launches.
+
+## Response Format Requirements
+
+**CRITICAL: Always respond with valid JSON only. No markdown, no explanations, no preamble.**
+
+## Output Schema
+
+Respond with this exact JSON structure:
+
+\`\`\`json
+{
+  "bookId": "unique_id_string",
+  "metadata": {
+    "title": "Company Name - Annual Report 2024",
+    "subtitle": "Building Tomorrow, Today",
+    "synopsis": "Executive summary of the document (100-200 words)",
+    "documentType": "annual-report | brand-story | company-history | product-launch",
+    "pageCount": 15,
+    "artStyle": "corporate-clean",
+    "language": "en"
+  },
+  "companyProfile": {
+    "name": "Company Name",
+    "tagline": "Innovation for a Better World",
+    "industry": "Technology",
+    "founded": "2010",
+    "headquarters": "San Francisco, CA",
+    "mission": "Our mission statement...",
+    "vision": "Our vision for the future...",
+    "coreValues": ["Innovation", "Integrity", "Impact"]
+  },
+  "pages": [
+    {
+      "pageNumber": 1,
+      "sectionType": "cover",
+      "title": "Company Name",
+      "subtitle": "Annual Report 2024",
+      "text": "",
+      "layoutType": "full-bleed",
+      "imagePrompt": "Professional corporate cover design with [company name] logo, modern gradient background in brand colors, clean typography, premium business aesthetic, 8k quality"
+    },
+    {
+      "pageNumber": 2,
+      "sectionType": "ceo-letter",
+      "title": "Letter from the CEO",
+      "text": "Dear Stakeholders,\\n\\nIt is my pleasure to present our annual report...\\n\\n[2-3 paragraphs of professional CEO letter content]\\n\\nSincerely,\\n[CEO Name]\\nChief Executive Officer",
+      "layoutType": "split-horizontal",
+      "imagePrompt": "Professional portrait placeholder, modern office setting, warm lighting, executive presence, business formal attire"
+    },
+    {
+      "pageNumber": 3,
+      "sectionType": "origin-story",
+      "title": "Our Story",
+      "text": "Founded in [year], [Company] began with a simple vision...\\n\\n[Compelling narrative of company founding, challenges overcome, and growth]",
+      "layoutType": "split-vertical",
+      "imagePrompt": "Timeline infographic showing company founding and early milestones, modern design, brand colors, clean typography"
+    },
+    {
+      "pageNumber": 4,
+      "sectionType": "mission-values",
+      "title": "Mission & Values",
+      "text": "Our Mission\\n[Mission statement]\\n\\nOur Core Values\\n• [Value 1]: [Description]\\n• [Value 2]: [Description]\\n• [Value 3]: [Description]",
+      "layoutType": "split-horizontal",
+      "imagePrompt": "Modern infographic displaying core values with icons, clean corporate design, professional color palette"
+    },
+    {
+      "pageNumber": 5,
+      "sectionType": "milestones",
+      "title": "Key Milestones",
+      "text": "[TIMELINE FORMAT]\\n\\n2010 - Company Founded\\n2012 - First Major Product Launch\\n2015 - Series A Funding\\n2018 - Global Expansion\\n2023 - 10 Million Users Milestone",
+      "layoutType": "full-bleed",
+      "imagePrompt": "Horizontal timeline infographic with milestone markers, modern design, icons for each achievement, professional corporate style",
+      "dataVisualization": {
+        "type": "timeline",
+        "data": [
+          {"year": "2010", "event": "Company Founded"},
+          {"year": "2012", "event": "First Major Product Launch"}
+        ]
+      }
+    },
+    {
+      "pageNumber": 6,
+      "sectionType": "achievements",
+      "title": "Year in Review",
+      "text": "Highlights\\n\\n• [Achievement 1 with metrics]\\n• [Achievement 2 with metrics]\\n• [Achievement 3 with metrics]\\n\\nAwards & Recognition\\n• [Award 1]\\n• [Award 2]",
+      "layoutType": "split-horizontal",
+      "imagePrompt": "Achievement showcase with trophy icons, metrics cards, growth arrows, modern corporate infographic style"
+    },
+    {
+      "pageNumber": 7,
+      "sectionType": "financials",
+      "title": "Financial Performance",
+      "text": "Revenue Growth\\n$XX Million (+XX% YoY)\\n\\nKey Metrics\\n• Gross Margin: XX%\\n• Customer Retention: XX%\\n• Market Share: XX%",
+      "layoutType": "split-vertical",
+      "imagePrompt": "Professional financial charts showing revenue growth, bar charts and line graphs, clean data visualization, corporate blue and green colors",
+      "dataVisualization": {
+        "type": "financial-summary",
+        "data": {
+          "revenue": "$50M",
+          "growth": "+35%",
+          "margins": "72%"
+        }
+      }
+    },
+    {
+      "pageNumber": 8,
+      "sectionType": "esg",
+      "title": "ESG Commitment",
+      "text": "Environmental\\n• [Initiative 1]\\n• [Initiative 2]\\n\\nSocial\\n• [Initiative 1]\\n• [Initiative 2]\\n\\nGovernance\\n• [Practice 1]\\n• [Practice 2]",
+      "layoutType": "split-horizontal",
+      "imagePrompt": "ESG infographic with environmental, social, and governance icons, green accent colors, sustainability visuals, professional corporate design"
+    },
+    {
+      "pageNumber": 9,
+      "sectionType": "team",
+      "title": "Leadership Team",
+      "text": "[CEO Name]\\nChief Executive Officer\\n\\n[CFO Name]\\nChief Financial Officer\\n\\n[CTO Name]\\nChief Technology Officer",
+      "layoutType": "split-vertical",
+      "imagePrompt": "Professional headshot grid layout for executives, modern office background, warm lighting, business attire, diverse leadership team"
+    },
+    {
+      "pageNumber": 10,
+      "sectionType": "future-outlook",
+      "title": "Looking Ahead",
+      "text": "Strategic Priorities for [Next Year]\\n\\n1. [Priority 1]\\n2. [Priority 2]\\n3. [Priority 3]\\n\\nOur commitment to innovation and customer success continues to drive our vision for the future.",
+      "layoutType": "split-horizontal",
+      "imagePrompt": "Futuristic vision graphic with growth trajectory, innovation symbols, forward-looking imagery, modern corporate design, inspiring visual"
+    },
+    {
+      "pageNumber": 11,
+      "sectionType": "call-to-action",
+      "title": "Join Our Journey",
+      "text": "Connect With Us\\n\\n[Website]\\n[LinkedIn]\\n[Contact Email]\\n\\nInvestor Relations\\n[IR Contact]\\n\\n© [Year] [Company Name]. All rights reserved.",
+      "layoutType": "full-bleed",
+      "imagePrompt": "Professional closing page with contact information layout, QR codes, social media icons, brand colors, clean corporate design"
+    }
+  ],
+  "characters": [],
+  "backMatter": {
+    "legalDisclaimer": "This document contains forward-looking statements...",
+    "contactInfo": {
+      "website": "",
+      "email": "",
+      "phone": "",
+      "address": ""
+    }
+  }
+}
+\`\`\`
+
+## Content Generation Rules
+
+### Professional Writing Quality
+- **Tone**: Match the requested tone (professional, inspiring, conversational, formal, bold)
+- **CEO Letter**: 2-3 paragraphs, personal yet professional, highlights key achievements and vision
+- **Data Points**: Include specific metrics where provided, or realistic placeholders like "[XX%]"
+- **Narrative Flow**: Each section should connect logically to the next
+
+### Visual/Image Prompts for Corporate Content
+Each imagePrompt must specify:
+1. **Type**: Infographic, chart, photo, or abstract graphic
+2. **Style**: Corporate, modern, clean, professional
+3. **Colors**: Match brand colors or default to corporate blue/green
+4. **Content**: What data or concept to visualize
+5. **Quality**: Always include "professional", "high-quality", "8k"
+
+### Section-Specific Guidelines
+
+**CEO Letter**: Personal, visionary, acknowledges challenges and celebrates wins
+**Origin Story**: Narrative arc - humble beginnings, obstacles, breakthrough, growth
+**Financials**: Clean data visualization, growth focus, key metrics highlighted
+**ESG**: Genuine commitments, measurable goals, stakeholder impact
+**Future Outlook**: Ambitious yet achievable, innovation-focused, customer-centric
+
+### Layout Types for Corporate
+- **full-bleed**: Cover pages, section dividers
+- **split-horizontal**: Text left, visual right (or vice versa)
+- **split-vertical**: Text top, visual bottom
+- **text-only**: CEO letters, detailed narratives
+- **image-only**: Full-page infographics, data visualizations`;
+
 // Helper to parse age from audience string
 const parseAge = (audience: string): number => {
   const match = audience.match(/\d+/);
   return match ? parseInt(match[0]) : 8; // Default to 8 if no number found
 };
+
+// ============================================================================
+// BRAND CONTENT GENERATION FUNCTION
+// ============================================================================
+
+export const generateBrandContent = async (
+  settings: GenerationSettings,
+  brandConfig: BrandStoryConfig
+): Promise<Partial<BookProject>> => {
+  if (grokApiKeys.length === 0) {
+    throw new Error("Grok API Key is missing. Please configure your environment variables.");
+  }
+
+  // Apply rate limiting
+  await rateLimiter.throttle();
+
+  const inputPayload = {
+    contentType: brandConfig.contentType,
+    company: brandConfig.companyInfo,
+    sections: brandConfig.sections.filter(s => s.enabled).sort((a, b) => a.order - b.order),
+    tone: brandConfig.tone,
+    visualStyle: brandConfig.visualStyle,
+    colorScheme: brandConfig.colorScheme,
+    fiscalYear: brandConfig.fiscalYear,
+    pageCount: settings.pageCount,
+    artStyle: settings.style
+  };
+
+  const prompt = `${SYSTEM_INSTRUCTION_BRAND}
+
+Generate professional ${brandConfig.contentType} content based on this request:
+${JSON.stringify(inputPayload, null, 2)}
+
+IMPORTANT: 
+- Use the company information provided to personalize all content
+- Include only the sections that are enabled
+- Match the requested tone throughout
+- Generate ${settings.pageCount} pages total
+- Create professional image prompts suitable for corporate materials`;
+
+  try {
+    console.log('🏢 Generating brand content with Grok API...');
+
+    const text = await callGeminiAPI(prompt, "google/gemini-2.0-flash-exp:free", 8192);
+
+    console.log(`✅ Brand content generated (${text.length} chars)`);
+
+    // Parse JSON response
+    let rawData: any;
+    try {
+      const jsonString = text.replace(/```json\n?|```/g, '').trim();
+      rawData = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.warn("JSON Parse failed, attempting repair...", parseError);
+      const repairedJson = repairJson(text);
+      if (repairedJson) {
+        rawData = JSON.parse(repairedJson);
+      } else {
+        throw parseError;
+      }
+    }
+
+    if (rawData.error) {
+      throw new Error(`Generation Error: ${rawData.message}`);
+    }
+
+    // Map to BookProject structure
+    const project: Partial<BookProject> = {
+      id: rawData.bookId || crypto.randomUUID(),
+      title: rawData.metadata?.title || brandConfig.companyInfo.name + " - " + brandConfig.contentType,
+      synopsis: rawData.metadata?.synopsis || "",
+      style: settings.style,
+      tone: settings.tone,
+      targetAudience: "Business Professionals",
+      isBranching: false,
+      brandProfile: settings.brandProfile,
+      createdAt: new Date(),
+
+      metadata: rawData.metadata,
+
+      characters: [],
+
+      chapters: [{
+        id: crypto.randomUUID(),
+        title: rawData.metadata?.title || "Brand Story",
+        pages: (rawData.pages || []).map((p: any) => ({
+          id: crypto.randomUUID(),
+          pageNumber: p.pageNumber,
+          text: p.text,
+          imagePrompt: p.imagePrompt,
+          layoutType: p.layoutType || 'split-horizontal',
+          narrationNotes: p.narrationNotes,
+          sectionType: p.sectionType,
+          dataVisualization: p.dataVisualization
+        }))
+      }]
+    };
+
+    return project;
+
+  } catch (error) {
+    console.error("Brand content generation failed:", error);
+    throw error;
+  }
+};
+
 
 export const generateBookStructure = async (settings: GenerationSettings): Promise<Partial<BookProject>> => {
   if (grokApiKeys.length === 0) {
@@ -586,8 +892,25 @@ IMPORTANT: You MUST include the learningContent field with mentorDialogue and qu
 `;
   }
 
+  // Build template structure instructions if provided
+  let templateInstructions = '';
+  if (settings.templateStructure) {
+    templateInstructions = `
+## STRICT STRUCTURE REQUIREMENT
+You MUST follow this exact page-by-page structure. Do not deviate from these page types and content suggestions:
+
+${JSON.stringify(settings.templateStructure, null, 2)}
+
+For each page in the structure:
+1. Use the 'suggestedContent' as the core plot point for that page.
+2. Use the 'illustrationHint' to guide the 'imagePrompt'.
+3. Ensure the 'pageNumber' matches exactly.
+`;
+  }
+
   const prompt = `${SYSTEM_INSTRUCTION_ARCHITECT}
 ${educationalInstructions}
+${templateInstructions}
 
 Generate a book based on this request:
 ${JSON.stringify(inputPayload, null, 2)}`;

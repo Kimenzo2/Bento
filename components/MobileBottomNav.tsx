@@ -20,7 +20,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         { id: 'character' as const, label: 'Character', icon: User },
         { id: 'scene' as const, label: 'Scene', icon: Camera },
         { id: 'style' as const, label: 'Style', icon: Palette },
-        { id: 'chat' as const, label: 'Chat', icon: MessageCircle }
+        // { id: 'chat' as const, label: 'Chat', icon: MessageCircle } // HIDDEN FOR SIMPLICITY
     ];
 
     return (
@@ -73,11 +73,13 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                                     className={`transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-glow' : ''}`}
                                     strokeWidth={isActive ? 2.5 : 2}
                                 />
+                                {/* HIDDEN FOR SIMPLICITY
                                 {tab.id === 'chat' && unreadCount > 0 && (
                                     <span className="absolute -top-1 -right-1.5 bg-coral-burst text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border border-charcoal-soft shadow-sm">
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}
+                                */}
                             </div>
                             <span className={`text-[10px] font-medium transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-70'}`}>
                                 {tab.label}

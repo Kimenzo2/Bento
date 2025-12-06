@@ -38,7 +38,7 @@ export const bookTemplates: BookTemplate[] = [
         pageCount: 10,
         ageRange: '5-8 years',
         popular: true,
-        samplePrompt: 'A brave young explorer discovers a magical map',
+        samplePrompt: 'Create a "Classic Adventure" story about a brave young explorer who discovers a magical map. The tone should be exciting and courageous. The story must follow the Hero\'s Journey archetype: starting in a normal world, receiving a call to adventure, meeting a mentor, facing challenges, and returning home transformed. Focus on themes of bravery, friendship, and discovery.',
         structure: [
             { pageNumber: 1, type: 'cover', suggestedContent: 'Title and hero introduction', illustrationHint: 'Hero standing ready for adventure' },
             { pageNumber: 2, type: 'intro', suggestedContent: 'Meet the hero and their world', illustrationHint: 'Home environment with hints of adventure' },
@@ -61,7 +61,7 @@ export const bookTemplates: BookTemplate[] = [
         pageCount: 8,
         ageRange: '3-6 years',
         popular: true,
-        samplePrompt: 'A little bunny who couldn\'t fall asleep',
+        samplePrompt: 'Write a soothing "Bedtime Story" about a little bunny who couldn\'t fall asleep. The tone must be calm, gentle, and rhythmic, perfect for reading aloud at night. Use soft, sensory details (fluffy clouds, whispering wind, warm blanket). The pacing should slow down gradually page by page to help the child relax.',
         structure: [
             { pageNumber: 1, type: 'cover', suggestedContent: 'Nighttime title scene', illustrationHint: 'Cozy nighttime setting' },
             { pageNumber: 2, type: 'intro', suggestedContent: 'Evening time, getting ready for bed', illustrationHint: 'Twilight, warm colors' },
@@ -82,7 +82,7 @@ export const bookTemplates: BookTemplate[] = [
         pageCount: 12,
         ageRange: '3-5 years',
         new: true,
-        samplePrompt: 'Animals teaching the alphabet',
+        samplePrompt: 'Create an "ABC Learning" book where animals teach the alphabet. The tone should be cheerful, bright, and educational. Each page must focus on specific letters with clear examples (e.g., "A is for Apple"). Use alliteration and simple sentences. The goal is to help children recognize letters and associate them with familiar objects.',
         structure: [
             { pageNumber: 1, type: 'cover', suggestedContent: 'ABC Adventure title', illustrationHint: 'Colorful letters with characters' },
             { pageNumber: 2, type: 'intro', suggestedContent: 'Welcome to alphabet land', illustrationHint: 'Magical learning environment' },
@@ -106,7 +106,7 @@ export const bookTemplates: BookTemplate[] = [
         category: 'fairy-tale',
         pageCount: 12,
         ageRange: '4-8 years',
-        samplePrompt: 'A princess who loved dragons',
+        samplePrompt: 'Write a classic "Fairy Tale" about a princess who loved dragons. Start with "Once upon a time...". The tone should be magical, whimsical, and timeless. Include classic fairy tale elements like a castle, a quest, and a moral lesson about kindness or understanding. The story should show that things aren\'t always what they seem.',
         structure: [
             { pageNumber: 1, type: 'cover', suggestedContent: 'Magical title with castle', illustrationHint: 'Fairytale castle scene' },
             { pageNumber: 2, type: 'intro', suggestedContent: 'Once upon a time...', illustrationHint: 'Kingdom overview' },
@@ -130,7 +130,7 @@ export const bookTemplates: BookTemplate[] = [
         category: 'educational',
         pageCount: 10,
         ageRange: '2-5 years',
-        samplePrompt: 'Counting colorful balloons at a party',
+        samplePrompt: 'Create a "Counting Fun" book about counting colorful balloons at a party. The tone should be energetic and celebratory. Each page must focus on a specific number (1 to 10) with clear, countable objects. Use simple, repetitive text structure (e.g., "One big balloon," "Two red balloons") to help toddlers learn numbers.',
         structure: [
             { pageNumber: 1, type: 'cover', suggestedContent: '123 Counting Adventure', illustrationHint: 'Numbers with characters' },
             { pageNumber: 2, type: 'intro', suggestedContent: 'Let\'s learn to count!', illustrationHint: 'Excited character ready to count' },
@@ -153,7 +153,7 @@ export const bookTemplates: BookTemplate[] = [
         pageCount: 10,
         ageRange: '5-9 years',
         new: true,
-        samplePrompt: 'An astronaut cat exploring the solar system',
+        samplePrompt: 'Write a "Space Adventure" about an astronaut cat exploring the solar system. The tone should be full of wonder and curiosity. Include real space facts (like gravity, stars, planets) woven into the story. The visual style should be vibrant and cosmic. The story should encourage a love for science and exploration.',
         structure: [
             { pageNumber: 1, type: 'cover', suggestedContent: 'Space Adventure title', illustrationHint: 'Rocket ship in space' },
             { pageNumber: 2, type: 'intro', suggestedContent: 'Meet our space explorer', illustrationHint: 'Character with space suit' },

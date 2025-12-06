@@ -92,6 +92,28 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [brandColors, setBrandColors] = useState('#FF9B71, #FFF4A3');
     const [brandSample, setBrandSample] = useState('');
 
+    // Brand Story Configuration
+    const [brandContentType, setBrandContentType] = useState<'brand-story' | 'annual-report' | 'company-history' | 'product-launch' | 'investor-pitch'>('brand-story');
+    const [brandIndustry, setBrandIndustry] = useState('Technology');
+    const [brandFounded, setBrandFounded] = useState('');
+    const [brandHeadquarters, setBrandHeadquarters] = useState('');
+    const [brandDescription, setBrandDescription] = useState('');
+    const [brandTone, setBrandTone] = useState<'professional' | 'inspiring' | 'conversational' | 'formal' | 'bold'>('professional');
+    const [brandFiscalYear, setBrandFiscalYear] = useState(new Date().getFullYear().toString());
+    const [brandSections, setBrandSections] = useState({
+        cover: true,
+        ceoLetter: true,
+        originStory: true,
+        missionValues: true,
+        milestones: true,
+        achievements: true,
+        financials: false,
+        esg: false,
+        team: true,
+        futureOutlook: true,
+        callToAction: true
+    });
+
     // New Feature State
     const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
     const [isStylePresetsOpen, setIsStylePresetsOpen] = useState(false);
@@ -102,6 +124,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [learningObjectives, setLearningObjectives] = useState('');
     const [integrationMode, setIntegrationMode] = useState<'integrated' | 'after-chapter' | 'dedicated-section'>('integrated');
     const [learningDifficulty, setLearningDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+
+    // Template State
+    const [selectedTemplateStructure, setSelectedTemplateStructure] = useState<any[] | undefined>(undefined);
 
     // Saved Books
     const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
@@ -169,6 +194,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const handleTemplateSelect = (template: BookTemplate) => {
         setPrompt(template.samplePrompt);
         setPageCount(template.pageCount);
+        setSelectedTemplateStructure(template.structure);
+
         // Map template category to audience/tone if needed
         if (template.category === 'bedtime') {
             setTone(BookTone.CALM);
@@ -198,6 +225,36 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             };
         }
 
+        // Build brandStoryConfig for professional brand content
+        const brandStoryConfig = showBrandPanel && brandName ? {
+            contentType: brandContentType,
+            companyInfo: {
+                name: brandName,
+                tagline: '',
+                industry: brandIndustry,
+                founded: brandFounded,
+                headquarters: brandHeadquarters,
+                description: brandDescription
+            },
+            sections: [
+                { type: 'cover' as const, enabled: brandSections.cover, order: 1 },
+                { type: 'ceo-letter' as const, enabled: brandSections.ceoLetter, order: 2 },
+                { type: 'origin-story' as const, enabled: brandSections.originStory, order: 3 },
+                { type: 'mission-values' as const, enabled: brandSections.missionValues, order: 4 },
+                { type: 'milestones' as const, enabled: brandSections.milestones, order: 5 },
+                { type: 'achievements' as const, enabled: brandSections.achievements, order: 6 },
+                { type: 'financials' as const, enabled: brandSections.financials, order: 7 },
+                { type: 'esg' as const, enabled: brandSections.esg, order: 8 },
+                { type: 'team' as const, enabled: brandSections.team, order: 9 },
+                { type: 'future-outlook' as const, enabled: brandSections.futureOutlook, order: 10 },
+                { type: 'call-to-action' as const, enabled: brandSections.callToAction, order: 11 }
+            ],
+            tone: brandTone,
+            visualStyle: 'corporate-clean' as const,
+            colorScheme: brandColors.split(',').map(c => c.trim()),
+            fiscalYear: brandFiscalYear
+        } : undefined;
+
         onGenerate({
             prompt,
             style,
@@ -212,9 +269,11 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 integrationMode,
                 difficulty: learningDifficulty
             } : undefined,
-            brandProfile
+            brandProfile,
+            brandStoryConfig,
+            templateStructure: selectedTemplateStructure
         });
-    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, learningSubject, learningObjectives, integrationMode, learningDifficulty, onGenerate]);
+    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, learningSubject, learningObjectives, integrationMode, learningDifficulty, onGenerate, selectedTemplateStructure, brandContentType, brandIndustry, brandFounded, brandHeadquarters, brandDescription, brandTone, brandSections, brandFiscalYear]);
 
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
@@ -603,20 +662,92 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
                             {/* Brand Panel Expansion */}
                             {showBrandPanel && (
-                                <div className="bg-mint-breeze/10 border-2 border-mint-breeze/30 rounded-3xl p-8 mb-10 animate-fadeIn">
-                                    <div className="flex items-center gap-2 text-emerald-600 mb-6">
-                                        <Briefcase className="w-5 h-5" />
-                                        <h3 className="font-heading font-bold text-lg">Brand Intelligence</h3>
+                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl p-8 mb-10 animate-fadeIn">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-2 text-emerald-600">
+                                            <Briefcase className="w-5 h-5" />
+                                            <h3 className="font-heading font-bold text-lg">Professional Brand Content</h3>
+                                        </div>
+                                        <span className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold">
+                                            {brandContentType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </span>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    {/* Content Type Selection */}
+                                    <div className="mb-6">
+                                        <label className="block text-xs font-bold text-cocoa-light uppercase mb-3">Document Type</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                                            {[
+                                                { id: 'brand-story', label: 'Brand Story', icon: '📖' },
+                                                { id: 'annual-report', label: 'Annual Report', icon: '📊' },
+                                                { id: 'company-history', label: 'Company History', icon: '🏛️' },
+                                                { id: 'product-launch', label: 'Product Launch', icon: '🚀' },
+                                                { id: 'investor-pitch', label: 'Investor Pitch', icon: '💼' }
+                                            ].map(type => (
+                                                <button
+                                                    key={type.id}
+                                                    onClick={() => setBrandContentType(type.id as any)}
+                                                    className={`p-3 rounded-xl text-sm font-bold transition-all ${brandContentType === type.id
+                                                        ? 'bg-emerald-500 text-white shadow-lg'
+                                                        : 'bg-white text-charcoal-soft hover:bg-emerald-100'
+                                                        }`}
+                                                >
+                                                    <span className="mr-1">{type.icon}</span> {type.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Company Info Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                         <div>
-                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Brand Name</label>
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Company Name *</label>
                                             <input
                                                 type="text"
                                                 value={brandName}
                                                 onChange={(e) => setBrandName(e.target.value)}
-                                                className="w-full bg-white border border-mint-breeze rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-mint-breeze"
-                                                placeholder="Acme Corp"
+                                                className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                                placeholder="Acme Corporation"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Industry</label>
+                                            <select
+                                                value={brandIndustry}
+                                                onChange={(e) => setBrandIndustry(e.target.value)}
+                                                className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                            >
+                                                <option value="Technology">Technology</option>
+                                                <option value="Healthcare">Healthcare</option>
+                                                <option value="Finance">Finance & Banking</option>
+                                                <option value="Retail">Retail & E-commerce</option>
+                                                <option value="Manufacturing">Manufacturing</option>
+                                                <option value="Education">Education</option>
+                                                <option value="Real Estate">Real Estate</option>
+                                                <option value="Media">Media & Entertainment</option>
+                                                <option value="Energy">Energy & Utilities</option>
+                                                <option value="Non-Profit">Non-Profit</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Founded</label>
+                                            <input
+                                                type="text"
+                                                value={brandFounded}
+                                                onChange={(e) => setBrandFounded(e.target.value)}
+                                                className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                                placeholder="2010"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Headquarters</label>
+                                            <input
+                                                type="text"
+                                                value={brandHeadquarters}
+                                                onChange={(e) => setBrandHeadquarters(e.target.value)}
+                                                className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                                placeholder="San Francisco, CA"
                                             />
                                         </div>
                                         <div>
@@ -625,27 +756,96 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                                 type="text"
                                                 value={brandColors}
                                                 onChange={(e) => setBrandColors(e.target.value)}
-                                                className="w-full bg-white border border-mint-breeze rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-mint-breeze"
-                                                placeholder="#FF9B71, #FFF4A3"
+                                                className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                                placeholder="#FF9B71, #10B981"
                                             />
                                         </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Voice & Guidelines</label>
-                                            <textarea
-                                                value={brandGuidelines}
-                                                onChange={(e) => setBrandGuidelines(e.target.value)}
-                                                className="w-full bg-white border border-mint-breeze rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-mint-breeze"
-                                                placeholder="Professional, witty, empathetic..."
-                                            />
+                                        {brandContentType === 'annual-report' && (
+                                            <div>
+                                                <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Fiscal Year</label>
+                                                <input
+                                                    type="text"
+                                                    value={brandFiscalYear}
+                                                    onChange={(e) => setBrandFiscalYear(e.target.value)}
+                                                    className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                                    placeholder="2024"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Company Description */}
+                                    <div className="mb-6">
+                                        <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Company Description</label>
+                                        <textarea
+                                            value={brandDescription}
+                                            onChange={(e) => setBrandDescription(e.target.value)}
+                                            className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                            placeholder="Describe your company's mission, what you do, and what makes you unique..."
+                                        />
+                                    </div>
+
+                                    {/* Tone Selection */}
+                                    <div className="mb-6">
+                                        <label className="block text-xs font-bold text-cocoa-light uppercase mb-3">Content Tone</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                { id: 'professional', label: 'Professional', desc: 'Business formal' },
+                                                { id: 'inspiring', label: 'Inspiring', desc: 'Visionary & uplifting' },
+                                                { id: 'conversational', label: 'Conversational', desc: 'Friendly & approachable' },
+                                                { id: 'formal', label: 'Formal', desc: 'Corporate & traditional' },
+                                                { id: 'bold', label: 'Bold', desc: 'Confident & disruptive' }
+                                            ].map(tone => (
+                                                <button
+                                                    key={tone.id}
+                                                    onClick={() => setBrandTone(tone.id as any)}
+                                                    className={`px-4 py-2 rounded-full text-sm transition-all ${brandTone === tone.id
+                                                        ? 'bg-emerald-500 text-white'
+                                                        : 'bg-white text-charcoal-soft hover:bg-emerald-100 border border-emerald-200'
+                                                        }`}
+                                                >
+                                                    {tone.label}
+                                                </button>
+                                            ))}
                                         </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">Sample Content</label>
-                                            <textarea
-                                                value={brandSample}
-                                                onChange={(e) => setBrandSample(e.target.value)}
-                                                className="w-full bg-white border border-mint-breeze rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-mint-breeze font-serif italic"
-                                                placeholder="Paste existing text to match tone..."
-                                            />
+                                    </div>
+
+                                    {/* Sections to Include */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-cocoa-light uppercase mb-3">Sections to Include</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {[
+                                                { key: 'cover', label: 'Cover Page' },
+                                                { key: 'ceoLetter', label: 'CEO Letter' },
+                                                { key: 'originStory', label: 'Origin Story' },
+                                                { key: 'missionValues', label: 'Mission & Values' },
+                                                { key: 'milestones', label: 'Key Milestones' },
+                                                { key: 'achievements', label: 'Achievements' },
+                                                { key: 'financials', label: 'Financials' },
+                                                { key: 'esg', label: 'ESG / Sustainability' },
+                                                { key: 'team', label: 'Leadership Team' },
+                                                { key: 'futureOutlook', label: 'Future Outlook' },
+                                                { key: 'callToAction', label: 'Call to Action' }
+                                            ].map(section => (
+                                                <label
+                                                    key={section.key}
+                                                    className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${brandSections[section.key as keyof typeof brandSections]
+                                                        ? 'bg-emerald-100 border-2 border-emerald-400'
+                                                        : 'bg-white border-2 border-gray-200 hover:border-emerald-300'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={brandSections[section.key as keyof typeof brandSections]}
+                                                        onChange={(e) => setBrandSections(prev => ({
+                                                            ...prev,
+                                                            [section.key]: e.target.checked
+                                                        }))}
+                                                        className="w-4 h-4 accent-emerald-500"
+                                                    />
+                                                    <span className="text-sm font-medium text-charcoal-soft">{section.label}</span>
+                                                </label>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
