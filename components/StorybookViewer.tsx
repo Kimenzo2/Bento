@@ -4,9 +4,11 @@ import { BookProject } from '../types';
 import { ChevronLeft, ChevronRight, X, Edit3, Download, Share2, Volume2, Maximize2, Minimize2, Sparkles, BookOpen, ArrowLeft, VolumeX } from 'lucide-react';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
 import ExportModal from './ExportModal';
+import KDPExportModal from './KDPExportModal';
 import { ShareModal } from './BookSharing';
 import { useBookSwipeNavigation } from '../hooks/useSwipeGesture';
 import AudioPlayer from './AudioPlayer';
+import { InteractiveCharacterTutor } from './InteractiveCharacterTutor';
 import { screenReaderAnnounce, keyboardNav } from '../services/accessibilityService';
 
 interface StorybookViewerProps {
@@ -31,8 +33,10 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     const [direction, setDirection] = useState(1);
     const [isMobile, setIsMobile] = useState(false);
     const [learningMode, setLearningMode] = useState(false);
+    const [useVoiceTutor, setUseVoiceTutor] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [showKDPExportModal, setShowKDPExportModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
 
     const handleShare = () => {
@@ -271,15 +275,14 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         >
                             <Share2 className="w-5 h-5" />
                         </button>
-                        
+
                         {/* Audio Player Toggle */}
                         <button
                             onClick={() => setShowAudioPlayer(!showAudioPlayer)}
-                            className={`p-2.5 rounded-xl transition-colors ${
-                                showAudioPlayer 
-                                    ? 'bg-purple-500/30 text-purple-400' 
+                            className={`p-2.5 rounded-xl transition-colors ${showAudioPlayer
+                                    ? 'bg-purple-500/30 text-purple-400'
                                     : 'bg-white/10 hover:bg-white/20 text-white'
-                            }`}
+                                }`}
                             title={showAudioPlayer ? 'Hide Audio Player' : 'Read Aloud'}
                         >
                             {showAudioPlayer ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
@@ -504,40 +507,12 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     <h2 className="text-charcoal-soft font-heading font-bold text-2xl hidden sm:block">{project.title}</h2>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onEdit}
-                        className="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-heading font-bold shadow-soft-lg hover:shadow-soft-xl transition-all"
-                    >
-                        <Edit3 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Edit</span>
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onDownload}
-                        className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
-                        title="Download PDF"
-                    >
-                        <Download className="w-5 h-5" />
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleShare}
-                        className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
-                        title="Share"
-                    >
-                        <Share2 className="w-5 h-5" />
-                    </motion.button>
-                </div>
+
             </div>
 
             {/* Main Book Container with Floating Effect */}
             <motion.div
-                className="relative w-full max-w-6xl aspect-[16/9] bg-white rounded-[32px] overflow-hidden flex border-4 border-white/50"
+                className="relative w-full max-w-6xl aspect-[3/4] sm:aspect-[4/5] lg:aspect-[16/9] bg-white rounded-[24px] lg:rounded-[32px] overflow-hidden flex flex-col lg:flex-row border-4 border-white/50"
                 style={{
                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5)',
                 }}
@@ -566,7 +541,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         animate={{ opacity: 1, rotateY: 0 }}
                         exit={{ opacity: 0, rotateY: direction > 0 ? -30 : 30 }}
                         transition={{ duration: 0.8, ease: 'easeInOut' }}
-                        className={`w-1/2 h-full relative overflow-hidden bg-cream-base ${currentPage.layoutType === 'learning-only' ? 'hidden' : ''}`}
+                        className={`w-full lg:w-1/2 h-[55%] sm:h-[60%] lg:h-full relative overflow-hidden bg-cream-base ${currentPage.layoutType === 'learning-only' ? 'hidden' : ''}`}
                         style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
                     >
                         {currentPage.imageUrl ? (
@@ -597,12 +572,12 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
                         transition={{ duration: 0.6, ease: 'easeOut' }}
-                        className={`w-1/2 h-full p-8 md:p-16 flex flex-col justify-center bg-white relative ${currentPage.layoutType === 'learning-only' ? 'w-full items-center text-center bg-blue-50' : ''
+                        className={`w-full lg:w-1/2 h-full p-6 md:p-12 lg:p-16 flex flex-col justify-center bg-white relative ${currentPage.layoutType === 'learning-only' ? 'w-full items-center text-center bg-blue-50' : ''
                             }`}
                     >
                         {currentPage.layoutType !== 'learning-only' && (
                             <div className="prose prose-lg max-w-none">
-                                <p className="font-serif text-xl md:text-2xl leading-relaxed text-charcoal-soft">
+                                <p className="font-serif text-lg sm:text-xl md:text-2xl leading-relaxed text-charcoal-soft">
                                     {currentPage.text}
                                 </p>
                             </div>
@@ -705,6 +680,47 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         />
                     ))}
                 </div>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onEdit}
+                        className="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-heading font-bold shadow-soft-lg hover:shadow-soft-xl transition-all"
+                    >
+                        <Edit3 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Edit</span>
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onDownload}
+                        className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
+                        title="Download PDF"
+                    >
+                        <Download className="w-5 h-5" />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowKDPExportModal(true)}
+                        className="flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-soft-md hover:shadow-soft-lg transition-all"
+                        title="Export for Amazon KDP"
+                    >
+                        <BookOpen className="w-5 h-5" />
+                        <span className="hidden md:inline">Amazon KDP</span>
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleShare}
+                        className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
+                        title="Share"
+                    >
+                        <Share2 className="w-5 h-5" />
+                    </motion.button>
+                </div>
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -717,7 +733,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
             {/* Learning Mode Toggle */}
             {project.learningConfig && (
-                <div className="absolute top-24 right-6 z-20">
+                <div className="absolute top-24 right-6 max-sm:top-auto max-sm:right-4 max-sm:bottom-24 z-20 flex flex-col gap-3">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -730,39 +746,100 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         <BookOpen className="w-4 h-4" />
                         <span className="font-heading font-bold text-sm">Learning Mode</span>
                     </motion.button>
+                    
+                    {/* Voice Tutor Toggle - Only show when learning mode is active */}
+                    {learningMode && currentPage.learningContent && (
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setUseVoiceTutor(!useVoiceTutor)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-soft-lg transition-all ${useVoiceTutor
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                                : 'bg-white/90 text-green-600 hover:bg-white'
+                                }`}
+                            title="Toggle voice tutoring with animated character"
+                        >
+                            {useVoiceTutor ? <Volume2 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                            <span className="font-heading font-bold text-sm">🎙️ Voice Tutor</span>
+                        </motion.button>
+                    )}
                 </div>
             )}
 
-            {/* Mentor Overlay */}
+            {/* Mentor Overlay - Enhanced with Character Teaching */}
             <AnimatePresence>
-                {learningMode && currentPage.learningContent && (
+                {learningMode && currentPage.learningContent && !useVoiceTutor && (
                     <motion.div
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 50, scale: 0.9 }}
-                        className="absolute bottom-24 right-8 max-w-sm z-30 pointer-events-none"
+                        className="absolute bottom-24 right-8 max-w-md z-30 pointer-events-none"
                     >
-                        <div className="bg-white rounded-3xl shadow-2xl p-6 border-4 border-blue-200 relative pointer-events-auto">
-                            {/* Mentor Avatar (Placeholder or from character list) */}
-                            <div className="absolute -top-12 -left-8 w-20 h-20 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
-                                {project.characters.find(c => c.role === 'mentor')?.visualPrompt ? (
-                                    <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${project.characters.find(c => c.role === 'mentor')?.name}`} alt="Mentor" className="w-full h-full" />
-                                ) : (
-                                    <Sparkles className="w-10 h-10 text-blue-500" />
+                        <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-6 border-4 border-blue-200 relative pointer-events-auto">
+                            {/* Teacher Character Avatar - Use actual character if available */}
+                            {(() => {
+                                // Find the teacher character - first check for one with teacher role, then any mentor
+                                const teacherChar = project.characters.find(c =>
+                                    c.teachingStyle || c.role === 'mentor' || c.role === 'teacher' || c.role === 'guide'
+                                ) || project.characters.find(c => c.role === 'mentor');
+
+                                return (
+                                    <div className="absolute -top-14 -left-6 w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100">
+                                        {teacherChar?.imageUrl ? (
+                                            <img
+                                                src={teacherChar.imageUrl}
+                                                alt={teacherChar.name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${teacherChar.name}`;
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <Sparkles className="w-12 h-12 text-blue-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="ml-14 mt-2">
+                                {/* Teacher Name & Role */}
+                                <div className="mb-3">
+                                    <h4 className="font-heading font-bold text-blue-700 text-lg">
+                                        {project.characters.find(c => c.teachingStyle || c.role === 'mentor')?.name || "Learning Guide"}
+                                    </h4>
+                                    <span className="text-xs text-blue-500 font-medium">
+                                        {project.characters.find(c => c.teachingStyle)?.teachingStyle?.teachingApproach === 'nurturing' && '🌙 Your Gentle Guide'}
+                                        {project.characters.find(c => c.teachingStyle)?.teachingStyle?.teachingApproach === 'playful' && '🔥 Your Exciting Coach'}
+                                        {project.characters.find(c => c.teachingStyle)?.teachingStyle?.teachingApproach === 'socratic' && '⚔️ Your Challenger'}
+                                        {project.characters.find(c => c.teachingStyle)?.teachingStyle?.teachingApproach === 'storytelling' && '⚓ Your Storyteller'}
+                                        {!project.characters.find(c => c.teachingStyle) && '✨ Learning Helper'}
+                                    </span>
+                                </div>
+
+                                {/* Topic Badge */}
+                                {currentPage.learningContent.topic && (
+                                    <div className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold mb-3">
+                                        📚 {currentPage.learningContent.topic}
+                                    </div>
                                 )}
-                            </div>
 
-                            <div className="ml-8">
-                                <h4 className="font-heading font-bold text-blue-600 text-sm mb-1">
-                                    {project.characters.find(c => c.role === 'mentor')?.name || "Learning Guide"}
-                                </h4>
-                                <p className="text-charcoal-soft text-sm leading-relaxed mb-4">
-                                    {currentPage.learningContent.mentorDialogue}
-                                </p>
+                                {/* Mentor Dialogue with character styling */}
+                                <div className="bg-white/80 rounded-2xl p-4 mb-4 border border-blue-100">
+                                    <p className="text-charcoal-soft text-sm leading-relaxed italic">
+                                        "{currentPage.learningContent.mentorDialogue}"
+                                    </p>
+                                </div>
 
+                                {/* Quiz Section */}
                                 {currentPage.learningContent.quiz && (
-                                    <div className="bg-blue-50 rounded-xl p-4">
-                                        <p className="font-bold text-blue-800 text-sm mb-3">
+                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+                                        <p className="font-bold text-blue-800 text-sm mb-3 flex items-center gap-2">
+                                            <span className="text-lg">🤔</span>
                                             {currentPage.learningContent.quiz.question}
                                         </p>
                                         <div className="space-y-2">
@@ -771,23 +848,73 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                                                     key={idx}
                                                     onClick={() => {
                                                         if (option === currentPage.learningContent?.quiz?.correctAnswer) {
-                                                            alert(currentPage.learningContent?.quiz?.explanation);
+                                                            // Show success with character's encouragement style
+                                                            const teacherChar = project.characters.find(c => c.teachingStyle);
+                                                            const celebration = teacherChar?.teachingStyle?.encouragementStyle || "That's correct!";
+                                                            alert(`🎉 ${celebration}\n\n${currentPage.learningContent?.quiz?.explanation}`);
                                                         } else {
-                                                            alert("Try again!");
+                                                            // Show encouragement with character's correction style
+                                                            const teacherChar = project.characters.find(c => c.teachingStyle);
+                                                            const encouragement = teacherChar?.teachingStyle?.correctionStyle || "Try again!";
+                                                            alert(`💪 ${encouragement}`);
                                                         }
                                                     }}
-                                                    className="w-full text-left px-3 py-2 bg-white rounded-lg text-sm text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
+                                                    className="w-full text-left px-4 py-3 bg-white rounded-xl text-sm text-blue-700 hover:bg-blue-100 hover:scale-[1.02] transition-all border border-blue-100 shadow-sm"
                                                 >
-                                                    {option}
+                                                    <span className="font-medium">{String.fromCharCode(65 + idx)}.</span> {option}
                                                 </button>
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Character's signature if available */}
+                                {project.characters.find(c => c.voiceProfile?.catchphrases)?.voiceProfile?.catchphrases?.[0] && (
+                                    <div className="mt-3 text-right">
+                                        <span className="text-xs text-cocoa-light italic">
+                                            "{project.characters.find(c => c.voiceProfile?.catchphrases)?.voiceProfile?.catchphrases?.[0]}"
+                                        </span>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </motion.div>
                 )}
+
+                {/* Interactive Voice Tutor - Talking Tom Style */}
+                {learningMode && currentPage.learningContent && useVoiceTutor && (() => {
+                    const teacherChar = project.characters.find(c =>
+                        c.teachingStyle || c.role === 'mentor' || c.role === 'teacher' || c.role === 'guide'
+                    ) || project.characters.find(c => c.role === 'mentor');
+
+                    return teacherChar ? (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 100 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 100 }}
+                            className="absolute bottom-24 right-8 z-30"
+                        >
+                            <InteractiveCharacterTutor
+                                character={teacherChar}
+                                learningContent={currentPage.learningContent}
+                                onQuizComplete={(isCorrect) => {
+                                    if (isCorrect) {
+                                        console.log('Quiz answered correctly!');
+                                    }
+                                }}
+                                autoStart={true}
+                            />
+                            {/* Toggle back to visual mode */}
+                            <button
+                                onClick={() => setUseVoiceTutor(false)}
+                                className="absolute -top-3 -right-3 w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
+                                title="Switch to visual mode"
+                            >
+                                <VolumeX className="w-4 h-4" />
+                            </button>
+                        </motion.div>
+                    ) : null;
+                })()}
             </AnimatePresence>
 
             {showExportModal && (
@@ -803,6 +930,14 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         lastModified: new Date(),
                     }}
                     onClose={() => setShowExportModal(false)}
+                />
+            )}
+
+            {showKDPExportModal && (
+                <KDPExportModal
+                    project={project}
+                    isOpen={true}
+                    onClose={() => setShowKDPExportModal(false)}
                 />
             )}
 

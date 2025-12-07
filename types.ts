@@ -163,7 +163,7 @@ export interface Character {
   goals?: string[];
   fears?: string[];
   quirks?: string[];
-  
+
   // ========== DEEP PERSONALITY SYSTEM ==========
   // Psychological Profile (Big Five / OCEAN Model)
   psychologicalProfile?: {
@@ -173,7 +173,7 @@ export interface Character {
     agreeableness: number;   // 0-100: Cooperation, trust, empathy
     neuroticism: number;     // 0-100: Emotional instability, anxiety, moodiness
   };
-  
+
   // Core Identity
   coreIdentity?: {
     coreBelief: string;           // "The world is fundamentally..." (shapes worldview)
@@ -185,7 +185,7 @@ export interface Character {
     lie: string;                  // A false belief they hold about themselves/world
     truth: string;                // The truth they need to learn
   };
-  
+
   // Backstory & Formative Experiences
   formativeExperiences?: {
     childhoodMemory: string;      // Defining childhood moment
@@ -194,7 +194,7 @@ export interface Character {
     secretShame: string;          // Something they hide from others
     proudestAchievement: string;  // What they're most proud of
   };
-  
+
   // Relationships & Attachment
   relationshipStyle?: {
     attachmentStyle: 'secure' | 'anxious' | 'avoidant' | 'disorganized';
@@ -202,7 +202,7 @@ export interface Character {
     conflictStyle: 'confrontational' | 'diplomatic' | 'avoidant' | 'passive-aggressive';
     loveLanguage: 'words' | 'acts' | 'gifts' | 'time' | 'touch';
   };
-  
+
   // Behavioral Patterns
   behavioralPatterns?: {
     stressResponse: string;       // How they react under pressure
@@ -212,7 +212,7 @@ export interface Character {
     habits: string[];             // Regular behaviors/routines
     speechPatterns: string;       // How they talk (formal, slang, poetic, etc.)
   };
-  
+
   // Voice & Mannerisms
   voiceProfile?: {
     tone: string;                 // warm, cold, sarcastic, earnest, etc.
@@ -221,15 +221,24 @@ export interface Character {
     nonverbalTics: string[];      // Gestures, expressions, body language
     laughStyle: string;           // How they laugh
   };
-  
+
   // Internal Conflicts
   innerConflicts?: string[];      // The battles they fight within themselves
-  
+
   // Character Arc Potential
   arcPotential?: {
     startingState: string;        // Who they are at the beginning
     potentialGrowth: string;      // How they could change
     endingState: string;          // Who they could become
+  };
+
+  // ========== TEACHING CAPABILITIES ==========
+  teachingStyle?: {
+    subjectsExpertise: string[];  // ['Math', 'Science', 'SEL', 'Reading', 'History']
+    teachingApproach: 'nurturing' | 'challenging' | 'playful' | 'socratic' | 'storytelling';
+    encouragementStyle: string;    // How they praise correct answers
+    correctionStyle: string;       // How they handle mistakes gently
+    exampleStyle: string;          // How they give examples (metaphors, real-world, stories)
   };
 }
 
@@ -359,6 +368,7 @@ export interface LearningConfig {
   objectives: string;
   integrationMode: 'integrated' | 'after-chapter' | 'dedicated-section';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  teacherCharacterId?: string; // ID of the character who will teach
 }
 
 export interface GenerationSettings {
@@ -370,6 +380,7 @@ export interface GenerationSettings {
   isBranching: boolean;
   educational?: boolean;
   learningConfig?: LearningConfig;
+  teacherCharacter?: Character; // Full character object for teaching
   brandProfile?: BrandProfile;
   brandStoryConfig?: BrandStoryConfig; // For professional brand content
   templateStructure?: any[]; // Optional structure from TemplateLibrary

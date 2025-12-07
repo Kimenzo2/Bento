@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AppMode, BookProject, UserTier } from '../types';
-import { Eye, Edit3, Download, Share2, Sparkles, Gift, PartyPopper, ShieldCheck } from 'lucide-react';
+import { Eye, Edit3, Download, Share2, Sparkles, Gift, PartyPopper, ShieldCheck, BookOpen } from 'lucide-react';
 import StorybookViewer from './StorybookViewer';
+import KDPExportModal from './KDPExportModal';
 import { Particle, generateParticles, updateParticle } from '../utils/particles';
 import { hasWatermark, hasCommercialLicense } from '../services/tierLimits';
 import { exportToPDF } from '../services/generator/pdfService';
@@ -17,6 +18,7 @@ interface BookSuccessViewProps {
 const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, userTier }) => {
     const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showKDPExportModal, setShowKDPExportModal] = useState(false);
     const [confetti, setConfetti] = useState<Particle[]>([]);
 
     // Generate celebration confetti on mount
@@ -231,12 +233,13 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                                         Read Your Story
                                     </motion.button>
 
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-4 gap-3">
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => onNavigate(AppMode.EDITOR)}
                                             className="px-4 py-3 bg-white border-2 border-peach-soft text-charcoal-soft rounded-full font-heading font-bold shadow-soft-md hover:border-coral-burst transition-all"
+                                            title="Edit Story"
                                         >
                                             <Edit3 className="w-5 h-5 mx-auto" />
                                         </motion.button>
@@ -245,14 +248,25 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                                             whileTap={{ scale: 0.95 }}
                                             onClick={handleDownload}
                                             className="px-4 py-3 bg-white border-2 border-peach-soft text-charcoal-soft rounded-full font-heading font-bold shadow-soft-md hover:border-coral-burst transition-all"
+                                            title="Download PDF"
                                         >
                                             <Download className="w-5 h-5 mx-auto" />
                                         </motion.button>
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
+                                            onClick={() => setShowKDPExportModal(true)}
+                                            className="px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-heading font-bold shadow-soft-md hover:shadow-soft-lg transition-all"
+                                            title="Export for Amazon KDP"
+                                        >
+                                            <BookOpen className="w-5 h-5 mx-auto" />
+                                        </motion.button>
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
                                             onClick={handleShare}
                                             className="px-4 py-3 bg-white border-2 border-peach-soft text-charcoal-soft rounded-full font-heading font-bold shadow-soft-md hover:border-coral-burst transition-all"
+                                            title="Share Story"
                                         >
                                             <Share2 className="w-5 h-5 mx-auto" />
                                         </motion.button>
@@ -289,6 +303,15 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                     isOpen={true}
                     onClose={() => setShowShareModal(false)}
                     book={project}
+                />
+            )}
+
+            {showKDPExportModal && (
+                <KDPExportModal
+                    project={project}
+                    isOpen={true}
+                    onClose={() => setShowKDPExportModal(false)}
+                    userTier={userTier}
                 />
             )}
         </div>

@@ -17,7 +17,7 @@ import {
     BookProject,
     Character
 } from '../types';
-import { callAPI, GrokMessage } from './grokService';
+import { callGreenRoomAI, generateCharacterResponse, extractFactsFromConversation } from './greenRoomAIService';
 import { supabase } from './supabaseClient';
 
 // Helper to generate UUID v4 (compatible with Supabase UUID columns)
@@ -191,8 +191,8 @@ export const greenRoomService = {
         const systemPrompt = this.buildCharacterSystemPrompt(persona, projectContext);
         
         // Build conversation for context
-        const messages: GrokMessage[] = [
-            { role: 'system', content: systemPrompt },
+        const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+            { role: 'system' as const, content: systemPrompt },
             ...conversationHistory.slice(-10).map(msg => ({
                 role: msg.role === 'author' ? 'user' as const : 'assistant' as const,
                 content: msg.content
@@ -201,7 +201,7 @@ export const greenRoomService = {
         ];
 
         try {
-            const response = await callAPI(messages);
+            const response = await callGreenRoomAI(messages);
             
             // Extract facts from the response
             const extractedFacts = await this.extractFactsFromResponse(
@@ -357,9 +357,9 @@ Remember: Every answer you give helps the author understand you better. Be authe
         authorQuestion: string,
         characterResponse: string
     ): Promise<ExtractedFact[]> {
-        const messages: GrokMessage[] = [
+        const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
             {
-                role: 'system',
+                role: 'system' as const,
                 content: `You are a fact extraction system. Given a character interview exchange, extract any NEW facts revealed about the character.
 
 Return a JSON array of facts:
@@ -389,7 +389,7 @@ Extract any new facts about ${characterName} from this exchange.`
         ];
 
         try {
-            const response = await callAPI(messages);
+            const response = await callGreenRoomAI(messages);
             const facts = parseJSON<any[]>(response, []);
             
             return facts.map((f: any) => ({

@@ -1,4 +1,4 @@
-import { BookProject, GenerationSettings, ArtStyle, UserTier, BrandStoryConfig } from "../types";
+import { BookProject, GenerationSettings, ArtStyle, UserTier, BrandStoryConfig, Character } from "../types";
 import Bytez from "bytez.js";
 import {
   RequestQueue,
@@ -197,14 +197,23 @@ const rateLimiter = {
   }
 };
 
-// Bytez API key for text generation (Gemini 2.5 Pro)
+
+// ============================================================================
+// TEXT GENERATION: Bytez API with Google Gemini 2.5 Pro
+// ============================================================================
+// NOTE: Bytez is used for BOTH:
+//   - Image generation (Imagen 4 family) - uses VITE_BYTEZ_API_KEY_1 to _11
+//   - Text generation (Gemini 2.5 Pro) - uses VITE_BYTEZ_TEXT_API_KEY
+// Grok/OpenRouter is DROPPED. Gemini API keys are for Green Room ONLY.
+// ============================================================================
+
 const BYTEZ_TEXT_API_KEY = getEnv('VITE_BYTEZ_TEXT_API_KEY') || '5bd38cb5f6b3a450314dc0fb3768d3c7';
-const GEMINI_TEXT_MODEL = 'google/gemini-2.5-pro';
+const BYTEZ_TEXT_MODEL = 'google/gemini-2.5-pro';
 
 // Helper function to call Bytez API with Gemini 2.5 Pro for text generation
-async function callGeminiAPI(prompt: string, modelName: string = GEMINI_TEXT_MODEL, maxTokens: number = 4096): Promise<string> {
+async function callGeminiAPI(prompt: string, modelName: string = BYTEZ_TEXT_MODEL, maxTokens: number = 4096): Promise<string> {
   try {
-    console.log(`🔄 Calling Bytez API with ${modelName}...`);
+    console.log(`🔄 Calling Bytez API with ${modelName} for text generation...`);
 
     const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
     const model = sdk.model(modelName);
@@ -216,8 +225,6 @@ async function callGeminiAPI(prompt: string, modelName: string = GEMINI_TEXT_MOD
       }
     ];
 
-    // Note: Bytez SDK might not support maxTokens directly in run() depending on version, 
-    // but we should use the passed modelName at least.
     const { error, output } = await model.run(messages);
 
     if (error) {
@@ -232,7 +239,7 @@ async function callGeminiAPI(prompt: string, modelName: string = GEMINI_TEXT_MOD
 
     console.log('✅ Bytez API response received');
 
-    // Handle different output formats
+    // Handle different output formats from Bytez
     let content: string;
     if (typeof output === 'string') {
       content = output;
@@ -710,6 +717,136 @@ const parseAge = (audience: string): number => {
 };
 
 // ============================================================================
+// CHARACTER TEACHING SYSTEM
+// ============================================================================
+
+/**
+ * Builds a voice prompt from character's deep psychology for AI generation
+ * This transforms character traits into teaching style instructions
+ */
+export const buildCharacterVoicePrompt = (character: Character): string => {
+  const parts: string[] = [];
+
+  // Basic identity
+  parts.push(`Character Name: ${character.name}`);
+  if (character.role) parts.push(`Role: ${character.role}`);
+
+  // Voice profile - most important for dialogue
+  if (character.voiceProfile) {
+    parts.push(`\nVOICE STYLE:`);
+    parts.push(`- Tone: ${character.voiceProfile.tone}`);
+    parts.push(`- Vocabulary Level: ${character.voiceProfile.vocabulary}`);
+    if (character.voiceProfile.catchphrases?.length) {
+      parts.push(`- Signature phrases: "${character.voiceProfile.catchphrases.slice(0, 3).join('", "')}"`);
+    }
+    if (character.voiceProfile.laughStyle) {
+      parts.push(`- When happy: ${character.voiceProfile.laughStyle}`);
+    }
+  }
+
+  // Teaching style if defined
+  if (character.teachingStyle) {
+    parts.push(`\nTEACHING APPROACH:`);
+    parts.push(`- Style: ${character.teachingStyle.teachingApproach}`);
+    if (character.teachingStyle.encouragementStyle) {
+      parts.push(`- When student is correct: ${character.teachingStyle.encouragementStyle}`);
+    }
+    if (character.teachingStyle.correctionStyle) {
+      parts.push(`- When student makes mistakes: ${character.teachingStyle.correctionStyle}`);
+    }
+    if (character.teachingStyle.exampleStyle) {
+      parts.push(`- Gives examples using: ${character.teachingStyle.exampleStyle}`);
+    }
+  }
+
+  // Psychology-based teaching adaptations
+  if (character.psychologicalProfile) {
+    parts.push(`\nPERSONALITY-DRIVEN TEACHING:`);
+    const p = character.psychologicalProfile;
+
+    if (p.agreeableness > 70) {
+      parts.push(`- Very encouraging and supportive, celebrates every attempt`);
+    } else if (p.agreeableness < 40) {
+      parts.push(`- Direct and honest, focuses on improvement`);
+    }
+
+    if (p.openness > 70) {
+      parts.push(`- Uses creative metaphors, analogies, and imaginative examples`);
+    }
+
+    if (p.extraversion > 70) {
+      parts.push(`- Enthusiastic, energetic, uses exclamations`);
+    } else if (p.extraversion < 40) {
+      parts.push(`- Calm, thoughtful, creates intimate one-on-one feeling`);
+    }
+
+    if (p.neuroticism > 60) {
+      parts.push(`- Deeply empathetic, relates to struggles, validates difficulty`);
+    }
+
+    if (p.conscientiousness > 70) {
+      parts.push(`- Structured, step-by-step explanations`);
+    }
+  }
+
+  // Core identity for authenticity
+  if (character.coreIdentity) {
+    parts.push(`\nCORE VALUES IN TEACHING:`);
+    if (character.coreIdentity.coreBelief) {
+      parts.push(`- Worldview: ${character.coreIdentity.coreBelief}`);
+    }
+    if (character.coreIdentity.strength) {
+      parts.push(`- Greatest strength: ${character.coreIdentity.strength}`);
+    }
+  }
+
+  // Behavioral patterns for realistic dialogue
+  if (character.behavioralPatterns) {
+    if (character.behavioralPatterns.speechPatterns) {
+      parts.push(`\nSPEECH PATTERNS: ${character.behavioralPatterns.speechPatterns}`);
+    }
+    if (character.behavioralPatterns.joyTriggers?.length) {
+      parts.push(`- Gets excited about: ${character.behavioralPatterns.joyTriggers.slice(0, 2).join(', ')}`);
+    }
+  }
+
+  // Quirks for character flavor
+  if (character.quirks?.length) {
+    parts.push(`\nCHARACTER QUIRKS (include naturally): ${character.quirks.slice(0, 3).join('; ')}`);
+  }
+
+  return parts.join('\n');
+};
+
+/**
+ * System instruction for AI when generating educational content with character teaching
+ */
+const SYSTEM_INSTRUCTION_TEACHER = `You are generating educational content delivered by a specific character.
+The character should teach concepts IN THEIR UNIQUE VOICE while being embedded naturally in the story.
+
+CRITICAL RULES:
+1. The teaching dialogue must sound like THIS CHARACTER speaking, not a generic teacher
+2. Use their catchphrases, speech patterns, and personality traits
+3. Connect lessons to the character's backstory or experiences when possible
+4. Make complex concepts accessible through the character's unique perspective
+5. Include the character's quirks and mannerisms in how they explain things
+
+OUTPUT FORMAT for learning moments:
+{
+  "mentorDialogue": "The character's teaching speech in their voice (2-4 paragraphs)",
+  "topic": "The learning topic",
+  "keyTakeaway": "One simple sentence summary",
+  "characterAction": "What the character does while teaching (gestures, expressions)",
+  "quiz": {
+    "question": "A fun question in the character's voice",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": "The correct option text",
+    "explanation": "Why this is correct, explained by the character"
+  }
+}`;
+
+
+// ============================================================================
 // BRAND CONTENT GENERATION FUNCTION
 // ============================================================================
 
@@ -717,8 +854,8 @@ export const generateBrandContent = async (
   settings: GenerationSettings,
   brandConfig: BrandStoryConfig
 ): Promise<Partial<BookProject>> => {
-  if (grokApiKeys.length === 0) {
-    throw new Error("Grok API Key is missing. Please configure your environment variables.");
+  if (!BYTEZ_TEXT_API_KEY) {
+    throw new Error("Bytez Text API Key is missing. Please configure VITE_BYTEZ_TEXT_API_KEY.");
   }
 
   // Apply rate limiting
@@ -741,24 +878,24 @@ export const generateBrandContent = async (
 Generate professional ${brandConfig.contentType} content based on this request:
 ${JSON.stringify(inputPayload, null, 2)}
 
-IMPORTANT: 
+IMPORTANT:
 - Use the company information provided to personalize all content
-- Include only the sections that are enabled
-- Match the requested tone throughout
-- Generate ${settings.pageCount} pages total
-- Create professional image prompts suitable for corporate materials`;
+  - Include only the sections that are enabled
+    - Match the requested tone throughout
+      - Generate ${settings.pageCount} pages total
+        - Create professional image prompts suitable for corporate materials`;
 
   try {
-    console.log('🏢 Generating brand content with Grok API...');
+    console.log('🏢 Generating brand content with Bytez API...');
 
-    const text = await callGeminiAPI(prompt, "google/gemini-2.0-flash-exp:free", 8192);
+    const text = await callGeminiAPI(prompt, BYTEZ_TEXT_MODEL, 8192);
 
-    console.log(`✅ Brand content generated (${text.length} chars)`);
+    console.log(`✅ Brand content generated(${text.length} chars)`);
 
     // Parse JSON response
     let rawData: any;
     try {
-      const jsonString = text.replace(/```json\n?|```/g, '').trim();
+      const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
       console.warn("JSON Parse failed, attempting repair...", parseError);
@@ -771,7 +908,7 @@ IMPORTANT:
     }
 
     if (rawData.error) {
-      throw new Error(`Generation Error: ${rawData.message}`);
+      throw new Error(`Generation Error: ${rawData.message} `);
     }
 
     // Map to BookProject structure
@@ -816,8 +953,8 @@ IMPORTANT:
 
 
 export const generateBookStructure = async (settings: GenerationSettings): Promise<Partial<BookProject>> => {
-  if (grokApiKeys.length === 0) {
-    throw new Error("Grok API Key is missing. Please configure your environment variables.");
+  if (!BYTEZ_TEXT_API_KEY) {
+    throw new Error("Bytez Text API Key is missing. Please configure VITE_BYTEZ_TEXT_API_KEY.");
   }
 
   // Apply rate limiting
@@ -837,58 +974,140 @@ export const generateBookStructure = async (settings: GenerationSettings): Promi
     language: "en",
     tone: settings.tone,
     ...(settings.brandProfile ? {
-      characterDescription: `Brand Character: ${settings.brandProfile.name}. ${settings.brandProfile.guidelines}`
+      characterDescription: `Brand Character: ${settings.brandProfile.name}. ${settings.brandProfile.guidelines} `
+    } : {}),
+    ...(settings.teacherCharacter ? {
+      teacherCharacterName: settings.teacherCharacter.name,
+      teacherCharacterRole: 'mentor/guide who teaches throughout the story'
     } : {})
   };
+
+  // Build character teaching voice prompt if teacher is selected
+  let characterTeachingInstructions = '';
+  if (settings.teacherCharacter) {
+    const voicePrompt = buildCharacterVoicePrompt(settings.teacherCharacter);
+    characterTeachingInstructions = `
+
+## CHARACTER TEACHER INSTRUCTIONS
+${SYSTEM_INSTRUCTION_TEACHER}
+
+### YOUR TEACHING CHARACTER:
+${voicePrompt}
+
+### CRITICAL: All mentorDialogue must be written in ${settings.teacherCharacter.name} 's unique voice!
+  - Use their catchphrases and speech patterns
+    - Reflect their personality in how they explain concepts
+      - Include their quirks naturally in teaching moments
+        - Make learning feel like a conversation with this specific character
+
+          `;
+  }
 
   // Build educational instructions if needed
   let educationalInstructions = '';
   if (settings.educational && settings.learningConfig) {
     const mode = settings.learningConfig.integrationMode;
     educationalInstructions = `
+${characterTeachingInstructions}
 
 ## CRITICAL EDUCATIONAL REQUIREMENTS
 
-This is an EDUCATIONAL book. You MUST include learning content based on these settings:
+This is an EDUCATIONAL book.You MUST include learning content based on these settings:
 - Subject: ${settings.learningConfig.subject}
 - Learning Objectives: ${settings.learningConfig.objectives}
 - Difficulty: ${settings.learningConfig.difficulty}
 - Integration Mode: ${mode}
 
 ${mode === 'integrated' ? `
-### INTEGRATED MODE INSTRUCTIONS:
-- Weave learning moments DIRECTLY into the story narrative on EVERY page
-- Each page MUST have a "learningContent" field with:
-  - "topic": The specific concept being taught
-  - "mentorDialogue": A character explaining the concept naturally within the story
-  - "quiz": A question related to the concept with options and correct answer
-- The mentor character should appear throughout the story teaching concepts
-- Learning should feel natural, not forced
-` : ''}
+### ✅ INTEGRATED MODE - WOVEN INTO STORY (SELECTED)
+**CRITICAL**: Learning must be seamlessly woven into the narrative!
+
+REQUIREMENTS:
+1. EVERY story page (1, 2, 3... N) MUST include a "learningContent" object
+2. The mentor character teaches concepts WHILE the story unfolds
+3. Learning happens through dialogue and action, not separate sections
+
+Each page MUST have this structure:
+{
+  "pageNumber": N,
+  "text": "Story narrative where character encounters learning moment",
+  "imagePrompt": "Scene showing both story action AND learning",
+  "learningContent": {
+    "topic": "Specific ${settings.learningConfig?.subject || 'Math'} concept",
+    "mentorDialogue": "Teacher explains naturally in context",
+    "quiz": {
+      "question": "Question about the concept",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "A",
+      "explanation": "Why this is correct"
+    }
+  }
+}
+
+EXAMPLE: If teaching counting, Page 1 shows hero meeting 3 birds while mentor teaches counting!
+` : ''
+      }
 
 ${mode === 'after-chapter' ? `
-### AFTER-CHAPTER MODE INSTRUCTIONS:
-- Tell the story normally for 3-4 pages
-- After every 3-4 story pages, INSERT a dedicated "Review Page"
-- Review pages MUST have:
-  - "layoutType": "learning-break"
-  - "text": A brief review introduction
-  - "learningContent": Full learning content with mentorDialogue and quiz
-- Create at least 2-3 review pages throughout the book
-` : ''}
+### ✅ AFTER-CHAPTER MODE - REVIEW AT END (SELECTED)
+**CRITICAL**: Keep story pure, then review concepts at chapter breaks!
+
+REQUIREMENTS:
+1. Story pages have NO "learningContent" field
+2. After every 3-4 narrative pages, insert ONE "Review Page"
+3. Review pages ARE the only pages with "learningContent"
+
+PATTERN for ${settings.pageCount || 12} pages:
+- Pages 1-3: Pure story (NO learningContent)
+- Page 4: Review Page WITH learningContent + layoutType: "learning-break"
+- Pages 5-7: Pure story (NO learningContent)
+- Page 8: Review Page WITH learningContent + layoutType: "learning-break"
+- Repeat pattern...
+
+Review Page MUST have:
+{
+  "pageNumber": 4,
+  "text": "Let's review what we learned!",
+  "layoutType": "learning-break",
+  "learningContent": {
+    "topic": "Summary of concepts from previous pages",
+    "mentorDialogue": "Full teaching content here",
+    "quiz": { /* complete quiz */ }
+  }
+}
+` : ''
+      }
 
 ${mode === 'dedicated-section' ? `
-### DEDICATED SECTION MODE INSTRUCTIONS:
-- First, create the full story WITHOUT any learningContent (Chapters 1 to N-1)
-- THEN create a FINAL chapter titled "Learning Section" or "What We Learned"
-- This final chapter MUST contain 2-4 pages with:
-  - "layoutType": "learning-only"
-  - "learningContent" with comprehensive mentorDialogue and quiz for each concept
-  - Review of all the learning objectives from the story
-- The final chapter should reference story events while teaching
-` : ''}
+### ✅ DEDICATED SECTION MODE - SEPARATE TEACHING (SELECTED)
+**CRITICAL**: Complete story first, ALL learning at the end!
 
-IMPORTANT: You MUST include the learningContent field with mentorDialogue and quiz on the appropriate pages based on the integration mode above.
+REQUIREMENTS:
+1. Pages 1-${(settings.pageCount || 12) - 3}: Pure story with NO learningContent
+2. Story must be complete and satisfying without any teaching
+3. Final ${Math.min(3, Math.floor((settings.pageCount || 12) * 0.25))} pages: Separate "Learning Section" chapter
+4. ONLY final pages contain learningContent + layoutType: "learning-only"
+
+STRUCTURE:
+**PAGES 1-${(settings.pageCount || 12) - 3}**: Pure narrative, no teaching
+**PAGES ${(settings.pageCount || 12) - 2}-${settings.pageCount || 12}**: Learning Section with:
+{
+  "pageNumber": ${settings.pageCount || 12},
+  "text": "Remember when... Let's learn more!",
+  "layoutType": "learning-only",
+  "learningContent": {
+    "topic": "Concept from story",
+    "mentorDialogue": "Teaching that references story events",
+    "quiz": { /* full quiz */ }
+  }
+}
+` : ''
+      }
+
+⚠️ **VALIDATION BEFORE RETURNING JSON**:
+${mode === 'integrated' ? `✓ ALL pages have learningContent\n✓ Learning woven into narrative` : ''}
+${mode === 'after-chapter' ? `✓ Story pages have NO learningContent\n✓ Review pages every 3-4 pages with layoutType: "learning-break"\n✓ At least ${Math.floor((settings.pageCount || 12) / 4)} review pages` : ''}
+${mode === 'dedicated-section' ? `✓ Pages 1-${(settings.pageCount || 12) - 3} have NO learningContent\n✓ Final ${Math.min(3, Math.floor((settings.pageCount || 12) * 0.25))} pages have layoutType: "learning-only"\n✓ All objectives from "${settings.learningConfig?.objectives || ''}" covered` : ''}
 `;
   }
 
@@ -897,7 +1116,7 @@ IMPORTANT: You MUST include the learningContent field with mentorDialogue and qu
   if (settings.templateStructure) {
     templateInstructions = `
 ## STRICT STRUCTURE REQUIREMENT
-You MUST follow this exact page-by-page structure. Do not deviate from these page types and content suggestions:
+You MUST follow this exact page - by - page structure.Do not deviate from these page types and content suggestions:
 
 ${JSON.stringify(settings.templateStructure, null, 2)}
 
@@ -913,19 +1132,19 @@ ${educationalInstructions}
 ${templateInstructions}
 
 Generate a book based on this request:
-${JSON.stringify(inputPayload, null, 2)}`;
+${JSON.stringify(inputPayload, null, 2)} `;
 
   try {
-    console.log('🤖 Generating book structure with Grok API...');
+    console.log('🤖 Generating book structure with Bytez API...');
 
-    const text = await callGeminiAPI(prompt, "google/gemini-2.0-flash-exp:free", 8192); // Increased token limit for full book
+    const text = await callGeminiAPI(prompt, BYTEZ_TEXT_MODEL, 8192); // Increased token limit for full book
 
-    console.log(`✅ Book structure generated (${text.length} chars)`);
+    console.log(`✅ Book structure generated(${text.length} chars)`);
 
     // Parse JSON response
     let rawData: any;
     try {
-      const jsonString = text.replace(/```json\n?|```/g, '').trim();
+      const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
       console.warn("JSON Parse failed, attempting repair...", parseError);
@@ -938,7 +1157,7 @@ ${JSON.stringify(inputPayload, null, 2)}`;
     }
 
     if (rawData.error) {
-      throw new Error(`Generation Error: ${rawData.message}`);
+      throw new Error(`Generation Error: ${rawData.message} `);
     }
 
     // Map to BookProject structure
@@ -1010,21 +1229,21 @@ export const generateStructuredContent = async <T>(
   schema?: any,
   systemInstruction?: string
 ): Promise<T> => {
-  if (grokApiKeys.length === 0) {
-    throw new Error("Grok API Key is missing");
+  if (!BYTEZ_TEXT_API_KEY) {
+    throw new Error("Bytez Text API Key is missing");
   }
 
   // Apply rate limiting
   await rateLimiter.throttle();
 
   try {
-    const fullPrompt = `${systemInstruction || ''}\n\n${prompt}\n\nReturn VALID JSON only.`;
+    const fullPrompt = `${systemInstruction || ''} \n\n${prompt} \n\nReturn VALID JSON only.`;
 
-    console.log('🤖 Generating structured content with Grok API...');
+    console.log('🤖 Generating structured content with Bytez API...');
 
-    const text = await callGeminiAPI(fullPrompt, "google/gemini-2.0-flash-exp:free", 2048);
+    const text = await callGeminiAPI(fullPrompt, BYTEZ_TEXT_MODEL, 2048);
 
-    const jsonString = text.replace(/```json\n?|```/g, '').trim();
+    const jsonString = extractJson(text);
     return JSON.parse(jsonString) as T;
   } catch (error) {
     console.error("Structured generation failed:", error);
@@ -1034,7 +1253,7 @@ export const generateStructuredContent = async <T>(
 
 export const generateIllustration = async (imagePrompt: string, style: string, tier: UserTier = UserTier.SPARK): Promise<string | null> => {
   // PERFORMANCE: Create cache key from prompt + style + tier
-  const cacheKey = `${style}:${tier}:${imagePrompt.substring(0, 100)}`;
+  const cacheKey = `${style}:${tier}:${imagePrompt.substring(0, 100)} `;
 
   // PERFORMANCE: Check cache first
   const cachedUrl = getCachedImageUrl(cacheKey);
@@ -1112,7 +1331,7 @@ export const generateRefinedImage = async (
 
   console.log(`🎨 Generating refined image using model: ${modelId} (Tier: ${tier})`);
 
-  let styleInstruction = `Style: ${params.styleA}`;
+  let styleInstruction = `Style: ${params.styleA} `;
   if (params.styleB && params.mixRatio !== undefined) {
     styleInstruction = `Visual Style: A blend of ${params.mixRatio}% ${params.styleA} and ${100 - params.mixRatio}% ${params.styleB}.`;
   }
@@ -1122,18 +1341,18 @@ export const generateRefinedImage = async (
   if (params.camera) composition += ` Camera Angle: ${params.camera}.`;
 
   const fullPrompt = `
-    Create a high-quality, gallery-worthy masterpiece.
-    ${styleInstruction}
+    Create a high - quality, gallery - worthy masterpiece.
+  ${styleInstruction}
     ${composition}
-    Subject: ${prompt}.
+Subject: ${prompt}.
     ${params.characterDescription ? `Character Details: ${params.characterDescription}` : ''}
     
     CRITICAL QUALITY INSTRUCTIONS:
-    - Ultra-detailed, 8k resolution, cinematic lighting, photorealistic textures (unless style specifies otherwise).
-    - Wide-angle composition suitable for a large gallery display.
+- Ultra - detailed, 8k resolution, cinematic lighting, photorealistic textures(unless style specifies otherwise).
+    - Wide - angle composition suitable for a large gallery display.
     - Depth of field, volumetric lighting, and rich colors.
     - No artifacts, no blurring, perfect anatomy and proportions.
-    - Make it look like a top-tier production still from a movie or high-end game.
+    - Make it look like a top - tier production still from a movie or high - end game.
   `;
 
   try {
@@ -1155,6 +1374,27 @@ export const generateRefinedImage = async (
     return null;
   }
 };
+
+// Helper to extract JSON from text (ignoring preamble/postamble)
+function extractJson(text: string): string {
+  // 1. Try to find content within ```json ... ``` blocks
+  const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (match) return match[1].trim();
+
+  // 2. Try to find content within generic code blocks
+  const genericMatch = text.match(/```\s*([\s\S]*?)\s*```/);
+  if (genericMatch) return genericMatch[1].trim();
+
+  // 3. Find the first '{' and the last '}'
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+
+  if (start !== -1 && end !== -1 && end > start) {
+    return text.substring(start, end + 1);
+  }
+
+  return text.trim();
+}
 
 // Helper function to repair truncated JSON
 function repairJson(jsonString: string): string | null {

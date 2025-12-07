@@ -401,6 +401,7 @@ const App: React.FC = () => {
             onEditBook={handleEditBook}
             onReadBook={handleReadBook}
             userTier={currentUserTier}
+            shouldFocusCreation={currentMode === AppMode.CREATION}
           />
         );
       case AppMode.SUCCESS:

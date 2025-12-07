@@ -42,8 +42,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full h-[80px] z-[60] px-4 md:px-12 flex items-center justify-between transition-all duration-300
-        bg-cream-base/80 backdrop-blur-md border-b border-peach-soft shadow-soft-sm rounded-b-3xl">
+      <nav
+        className="fixed top-0 left-0 w-full z-[60] px-4 md:px-12 flex items-center justify-between transition-all duration-300
+        bg-cream-base/85 backdrop-blur-md border-b border-peach-soft shadow-soft-sm rounded-b-3xl"
+        style={{ paddingTop: 'calc(0.5rem + var(--safe-area-inset-top))', paddingBottom: '0.5rem' }}
+      >
 
         {/* Logo */}
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleModeChange(AppMode.DASHBOARD)}>
@@ -92,6 +95,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           <button
             onClick={() => handleModeChange(AppMode.PRICING)}
             className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
+            aria-label="Upgrade"
           >
             <Zap className="w-4 h-4 fill-white" />
             Upgrade
@@ -105,7 +109,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
               console.log('Navigating to SETTINGS');
               handleModeChange(AppMode.SETTINGS);
             }}
-            className="flex items-center gap-2 p-1 pr-1 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group cursor-pointer"
+            className="flex items-center gap-2 p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group cursor-pointer min-h-[44px]"
+            aria-label="Account"
           >
             <div className="w-8 h-8 rounded-full bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform overflow-hidden">
               {avatarUrl ? (
@@ -122,7 +127,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 text-charcoal-soft hover:text-coral-burst transition-colors"
+            className="lg:hidden p-2 text-charcoal-soft hover:text-coral-burst transition-colors min-h-[44px]"
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {isMobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
           </button>
@@ -130,11 +136,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
       </nav>
 
       {/* Mobile Navigation Overlay */}
-      <div className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 lg:hidden flex flex-col gap-4 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
         <button
           onClick={() => handleModeChange(AppMode.PRICING)}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-sunshine to-coral-burst text-white rounded-2xl font-heading font-bold text-lg shadow-soft-md mb-4"
+          aria-label="Upgrade to Premium"
         >
           <Zap className="w-6 h-6 fill-white" />
           Upgrade to Premium
@@ -142,7 +149,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
         <button
           onClick={() => handleModeChange(AppMode.GAMIFICATION)}
-          className="w-full flex items-center justify-between px-6 py-4 bg-white border border-peach-soft rounded-2xl"
+          className="w-full flex items-center justify-between px-6 py-4 bg-white border border-peach-soft rounded-2xl min-h-[64px]"
+          aria-label="Open gamification"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg shadow-sm">3</div>
@@ -158,7 +166,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           <button
             key={item.mode}
             onClick={() => handleModeChange(item.mode)}
-            className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-heading font-bold text-lg transition-all
+            className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-heading font-bold text-lg transition-all min-h-[56px]
               ${currentMode === item.mode
                 ? 'bg-white text-coral-burst shadow-soft-md border border-peach-soft'
                 : 'text-cocoa-light hover:bg-white/50'

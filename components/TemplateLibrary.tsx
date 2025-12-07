@@ -234,17 +234,17 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                     exit={{ scale: 0.9, opacity: 0 }}
                 >
                     {/* Header */}
-                    <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <div className="flex-shrink-0 p-4 border-b border-gray-200 md:p-6 dark:border-gray-700">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-gradient-to-br from-coral-burst to-sunset-coral rounded-xl">
                                     <Wand2 className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
+                                    <h2 className="text-lg font-bold text-gray-900 md:text-2xl dark:text-white">
                                         Template Library
                                     </h2>
-                                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                                    <p className="text-xs text-gray-500 md:text-sm dark:text-gray-400">
                                         Start with a proven story structure
                                     </p>
                                 </div>
@@ -252,14 +252,14 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                             <button
                                 onClick={onClose}
                                 title="Close"
-                                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="p-2 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
                             >
                                 <X className="w-6 h-6 text-gray-500" />
                             </button>
                         </div>
 
                         {/* Category filters */}
-                        <div className="flex gap-2 mt-4 overflow-x-auto pb-2 no-scrollbar">
+                        <div className="flex gap-2 pb-2 mt-4 overflow-x-auto no-scrollbar">
                             {categories.map((cat) => (
                                 <button
                                     key={cat}
@@ -279,8 +279,8 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex-1 p-4 overflow-y-auto md:p-6">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {filteredTemplates.map((template) => (
                                 <motion.div
                                     key={template.id}
@@ -296,7 +296,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                     `}
                                 >
                                     {/* Badges */}
-                                    <div className="absolute top-3 right-3 flex gap-2">
+                                    <div className="absolute flex gap-2 top-3 right-3">
                                         {template.popular && (
                                             <span className="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full flex items-center gap-1">
                                                 <Star className="w-3 h-3" /> Popular
@@ -318,10 +318,10 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                     </div>
 
                                     {/* Info */}
-                                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">
+                                    <h3 className="mb-1 font-bold text-gray-900 dark:text-white">
                                         {template.name}
                                     </h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                                    <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
                                         {template.description}
                                     </p>
 
@@ -340,7 +340,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                     {/* Selection indicator */}
                                     {selectedTemplate?.id === template.id && (
                                         <div className="absolute top-4 left-4">
-                                            <div className="w-6 h-6 bg-coral-burst rounded-full flex items-center justify-center">
+                                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-coral-burst">
                                                 <Check className="w-4 h-4 text-white" />
                                             </div>
                                         </div>
@@ -357,26 +357,26 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0"
+                                className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
                             >
                                 <div className="p-4 md:p-6">
-                                    <div className="flex flex-col md:flex-row items-start justify-between gap-4 md:gap-6">
+                                    <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:gap-6">
                                         <div className="flex-1 w-full">
-                                            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
+                                            <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">
                                                 {selectedTemplate.name} Structure
                                             </h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
                                                 Example prompt: "{selectedTemplate.samplePrompt}"
                                             </p>
                                             
                                             {/* Structure preview */}
-                                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                            <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar">
                                                 {selectedTemplate.structure.slice(0, 6).map((page, i) => (
                                                     <div
                                                         key={i}
-                                                        className="flex-shrink-0 w-24 p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                                                        className="flex-shrink-0 w-24 p-2 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700"
                                                     >
-                                                        <div className="text-xs font-bold text-coral-burst mb-1">
+                                                        <div className="mb-1 text-xs font-bold text-coral-burst">
                                                             Page {page.pageNumber}
                                                         </div>
                                                         <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
@@ -385,7 +385,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
                                                     </div>
                                                 ))}
                                                 {selectedTemplate.structure.length > 6 && (
-                                                    <div className="flex-shrink-0 w-24 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                                    <div className="flex items-center justify-center flex-shrink-0 w-24 p-2 bg-gray-100 rounded-lg dark:bg-gray-700">
                                                         <span className="text-xs text-gray-500 dark:text-gray-400">
                                                             +{selectedTemplate.structure.length - 6} more
                                                         </span>
@@ -396,7 +396,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
 
                                         <button
                                             onClick={handleUseTemplate}
-                                            className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-coral-burst to-sunset-coral text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg transition-shadow"
+                                            className="flex items-center justify-center w-full gap-2 px-6 py-3 font-bold text-white transition-shadow md:w-auto bg-gradient-to-r from-coral-burst to-sunset-coral rounded-xl hover:shadow-lg"
                                         >
                                             Use Template
                                             <ArrowRight className="w-5 h-5" />

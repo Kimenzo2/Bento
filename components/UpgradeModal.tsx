@@ -100,7 +100,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
 
                     {/* Footer */}
                     <p className="text-center text-xs text-cocoa-light mt-4">
-                        14-day free trial • Cancel anytime • No hidden fees
+                        Cancel anytime • No hidden fees
                     </p>
                 </div>
             </div>

@@ -24,15 +24,15 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     ];
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden mobile-bottom-nav" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden mobile-bottom-nav" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
             {/* Main Navigation Bar */}
-            <div className="mx-2 mb-1 bg-charcoal-soft/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-1.5 flex items-center justify-between relative overflow-hidden">
+            <div className="mx-2 mb-1 bg-charcoal-soft/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-2 flex items-center justify-between relative overflow-hidden">
                 {/* Optional Mode Toggle Button */}
                 {onModeToggle && (
                     <button
                         onClick={onModeToggle}
                         className={`
-                            flex flex-col items-center justify-center gap-0.5 w-12 h-12 rounded-xl transition-all duration-300
+                            flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all duration-300
                             ${isCollaborativeMode 
                                 ? 'bg-purple-500/20 text-purple-400' 
                                 : 'bg-coral-burst/20 text-coral-burst'
@@ -61,7 +61,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={`
-                                relative flex flex-col items-center justify-center gap-0.5 flex-1 h-12 rounded-xl transition-all duration-300
+                                relative flex flex-col items-center justify-center gap-0.5 flex-1 h-12 rounded-xl transition-all duration-300 min-h-[52px]
                                 ${isActive ? 'bg-white/10 text-gold-sunshine' : 'text-gray-400 active:text-white active:bg-white/5'}
                             `}
                             aria-label={tab.label}

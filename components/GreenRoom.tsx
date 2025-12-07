@@ -116,6 +116,8 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                 }
             );
             
+            console.log('✅ Green Room response received:', newMessage);
+            
             setSession(updatedSession);
             setPersona(updatedPersona);
             
@@ -138,7 +140,20 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                 greenRoomService.saveSession(userId, updatedSession);
             }
         } catch (error) {
-            console.error('Error in Green Room:', error);
+            console.error('❌ Error in Green Room:', error);
+            
+            // Add error message to session
+            const errorMsg: GreenRoomMessage = {
+                id: `error-${Date.now()}`,
+                role: 'character',
+                content: `*${persona?.name || 'The character'} seems distracted...* \n\nI'm having trouble responding right now. Could you try asking again?`,
+                timestamp: Date.now()
+            };
+            
+            setSession(prev => prev ? {
+                ...prev,
+                messages: [...prev.messages, errorMsg]
+            } : null);
         } finally {
             setIsTyping(false);
         }

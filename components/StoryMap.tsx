@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Map, 
-    ChevronRight, 
-    Image as ImageIcon, 
-    Type, 
+import {
+    Map,
+    ChevronRight,
+    Image as ImageIcon,
+    Type,
     ArrowRight,
     Plus,
     X,
@@ -31,7 +31,7 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
     // Calculate grid layout
     // We'll use a simple flow layout: Start -> Middle -> End
     // But visualized as a "Journey Map"
-    
+
     const pages = project.chapters.flatMap(c => c.pages);
 
     // Keyboard shortcuts
@@ -51,7 +51,7 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
 
         // Add a new page to the first chapter (or create one if none exist)
         const updatedProject = { ...project };
-        
+
         if (updatedProject.chapters.length === 0) {
             updatedProject.chapters = [{
                 id: `chapter-${Date.now()}`,
@@ -86,14 +86,14 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
                         <p className="text-slate-400 text-xs">Visualizing {project.title}</p>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                     {/* Zoom Controls */}
                     <div className="flex items-center bg-slate-800 rounded-lg p-1 border border-white/10 gap-1">
-                        <button 
+                        <button
                             onClick={() => setScale(Math.max(0.5, scale - 0.1))}
                             className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
-                            title="Zoom out (-)" 
+                            title="Zoom out (-)"
                         >
                             <ZoomOut className="w-4 h-4" />
                         </button>
@@ -104,7 +104,7 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
                         >
                             {Math.round(scale * 100)}%
                         </button>
-                        <button 
+                        <button
                             onClick={() => setScale(Math.min(2, scale + 0.1))}
                             className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                             title="Zoom in (+)"
@@ -124,8 +124,8 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
                             <span className="hidden md:inline">Edit Pages</span>
                         </button>
                     )}
-                    
-                    <button 
+
+                    <button
                         onClick={onClose}
                         className="p-2 hover:bg-red-500/20 hover:text-red-400 text-slate-400 rounded-full transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                         title="Close (Esc)"
@@ -138,16 +138,16 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
             {/* Canvas Area */}
             <div className="flex-1 overflow-hidden relative bg-[url('/assets/grid-pattern.svg')] bg-repeat opacity-100">
                 {/* Background Grid Effect */}
-                <div className="absolute inset-0 pointer-events-none opacity-[0.03]" 
-                     style={{ 
-                         backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', 
-                         backgroundSize: '24px 24px' 
-                     }} 
+                <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+                    style={{
+                        backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+                        backgroundSize: '24px 24px'
+                    }}
                 />
 
-                <div className="w-full h-full overflow-auto flex items-center justify-center p-20">
-                    <motion.div 
-                        className="flex items-start gap-8"
+                <div className="w-full h-full overflow-auto flex items-center p-20">
+                    <motion.div
+                        className="flex items-start gap-8 min-w-max mx-auto"
                         style={{ scale }}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale }}
@@ -172,9 +172,9 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
                                         setSelectedNode(index);
                                     }}
                                     className={`
-                                        w-64 bg-slate-800 rounded-xl border-2 overflow-hidden cursor-pointer transition-all shadow-xl
-                                        ${selectedNode === index 
-                                            ? 'border-emerald-500 shadow-emerald-500/20 ring-2 ring-emerald-500/30' 
+                                        w-64 bg-slate-800 rounded-xl border-2 overflow-hidden cursor-pointer transition-all shadow-xl flex-shrink-0
+                                        ${selectedNode === index
+                                            ? 'border-emerald-500 shadow-emerald-500/20 ring-2 ring-emerald-500/30'
                                             : 'border-slate-700 hover:border-emerald-500/50 hover:shadow-emerald-500/10'
                                         }
                                     `}
@@ -202,7 +202,7 @@ const StoryMap: React.FC<StoryMapProps> = ({ project, onNavigateToEditor, onClos
                                                 {page.text || <span className="italic text-slate-600">Empty page...</span>}
                                             </p>
                                         </div>
-                                        
+
                                         {/* Tags/Meta */}
                                         <div className="flex items-center justify-between mt-3">
                                             <div className="flex flex-wrap gap-1">

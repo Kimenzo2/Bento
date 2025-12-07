@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, LayoutTemplate, Grid, MessageCircle } from 'lucide-react';
-import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook, UserTier } from '../types';
+import { Sparkles, Wand2, Palette, BookType, Users, Clock, Briefcase, GitFork, ChevronRight, Star, Leaf, Building2, Rocket, LayoutTemplate, Grid, MessageCircle, ArrowLeft } from 'lucide-react';
+import { ArtStyle, BookTone, GenerationSettings, BrandProfile, SavedBook, UserTier, Character } from '../types';
 import { getAllBooks, deleteBook } from '../services/storageService';
 import SavedBookCard from './SavedBookCard';
 import { getAvailableStyles, canUseStyle } from '../services/tierLimits';
@@ -14,6 +14,9 @@ import { BookCardSkeleton } from './SkeletonLoaders';
 import { useBulkSelection, BulkActionsBar, DeleteConfirmModal, SelectableCard } from './BulkActions';
 import BookSharingPkg from './BookSharing';
 const { ShareModal } = BookSharingPkg;
+
+// Teaching Characters Data
+import { TEACHING_CHARACTERS } from '../src/data/teachingCharacters';
 
 // Conversation Mode for natural story creation
 import ConversationMode from './ConversationMode';
@@ -62,6 +65,7 @@ interface CreationCanvasProps {
     onEditBook?: (book: SavedBook) => void;
     onReadBook?: (book: SavedBook) => void;
     userTier?: UserTier;
+    shouldFocusCreation?: boolean;
 }
 
 const CreationCanvas: React.FC<CreationCanvasProps> = ({
@@ -70,8 +74,23 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     generationStatus,
     onEditBook,
     onReadBook,
-    userTier = UserTier.SPARK
+    userTier = UserTier.SPARK,
+    shouldFocusCreation = false
 }) => {
+    const promptSectionRef = React.useRef<HTMLDivElement>(null);
+
+    // Scroll to creation section when shouldFocusCreation becomes true
+    useEffect(() => {
+        if (shouldFocusCreation && promptSectionRef.current) {
+            // Small delay to ensure render is complete
+            setTimeout(() => {
+                promptSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Also ensure we're in book mode if that's what we want
+                setCreationMode('book');
+            }, 100);
+        }
+    }, [shouldFocusCreation]);
+
     const [prompt, setPrompt] = useState('');
     const [style, setStyle] = useState<ArtStyle>(() => {
         // Initialize with user's preferred art style from settings
@@ -124,6 +143,135 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     const [learningObjectives, setLearningObjectives] = useState('');
     const [integrationMode, setIntegrationMode] = useState<'integrated' | 'after-chapter' | 'dedicated-section'>('integrated');
     const [learningDifficulty, setLearningDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+    const [selectedTeacher, setSelectedTeacher] = useState<Character | null>(null);
+
+    // Teaching Characters - Deep psychology profiles for educational guidance
+    const teachingCharacters: Character[] = useMemo(() => {
+        const originals: Character[] = [
+            {
+                id: 'teacher-luna',
+                name: 'Luna the Moon Fairy',
+                role: 'Gentle Guide',
+                description: 'A nurturing fairy who teaches through metaphors and starlight wisdom',
+                visualTraits: 'Translucent wings, silver hair, soft blue glow',
+                imageUrl: '/assets/characters/Demo Character 1.jpeg',
+                traits: ['ethereal', 'nurturing', 'wise', 'gentle'],
+                psychologicalProfile: {
+                    openness: 85,
+                    conscientiousness: 70,
+                    extraversion: 35,
+                    agreeableness: 95,
+                    neuroticism: 55
+                },
+                voiceProfile: {
+                    tone: 'Warm, melodic, with an undercurrent of ancient wisdom',
+                    vocabulary: 'sophisticated',
+                    catchphrases: ['Little one...', 'Every star was once a wish that came true', 'The night holds many secrets...'],
+                    nonverbalTics: ['Wings flutter when excited', 'Glow dims when sad'],
+                    laughStyle: 'Soft, musical, like distant bells'
+                },
+                teachingStyle: {
+                    subjectsExpertise: ['Science', 'Reading', 'SEL', 'Art'],
+                    teachingApproach: 'nurturing',
+                    encouragementStyle: 'Celebrates with gentle warmth: "How beautifully you understood that, little one!"',
+                    correctionStyle: 'Validates effort first: "A wonderful try! Let us explore this together..."',
+                    exampleStyle: 'Nature and celestial metaphors'
+                }
+            },
+            {
+                id: 'teacher-blaze',
+                name: 'Blaze the Dragon',
+                role: 'Enthusiastic Coach',
+                description: 'An eager young dragon who makes learning exciting and celebrates every win',
+                visualTraits: 'Red-orange scales, oversized wings, big amber eyes, smoke puffs',
+                imageUrl: '/assets/characters/Demo character 2.jpeg',
+                traits: ['enthusiastic', 'clumsy', 'loyal', 'brave'],
+                psychologicalProfile: {
+                    openness: 75,
+                    conscientiousness: 85,
+                    extraversion: 70,
+                    agreeableness: 90,
+                    neuroticism: 75
+                },
+                voiceProfile: {
+                    tone: 'Eager, slightly squeaky, with nervous energy',
+                    vocabulary: 'simple',
+                    catchphrases: ['Oh! Oh! I know this one!', 'That wasn\'t as bad as usual!', 'Wait, really? You got it!'],
+                    nonverbalTics: ['Tail wags when happy', 'Smoke puffs increase with emotion'],
+                    laughStyle: 'Surprised snorty laugh with small flame bursts'
+                },
+                teachingStyle: {
+                    subjectsExpertise: ['Math', 'Science', 'Physical Education'],
+                    teachingApproach: 'playful',
+                    encouragementStyle: 'Bursts with joy: "YES! [smoke puff] You did it! I knew you could!"',
+                    correctionStyle: 'Relates to struggles: "That\'s okay! I mess up ALL the time. Let\'s try again!"',
+                    exampleStyle: 'Counting treasure, dragon adventures, real-world scenarios'
+                }
+            },
+            {
+                id: 'teacher-aurora',
+                name: 'Aurora the Princess',
+                role: 'Challenger',
+                description: 'A warrior princess who pushes students to discover their potential',
+                visualTraits: 'Athletic build, wild auburn hair, green eyes, practical dress',
+                imageUrl: '/assets/characters/Demo character 3.jpeg',
+                traits: ['rebellious', 'courageous', 'compassionate', 'stubborn'],
+                psychologicalProfile: {
+                    openness: 80,
+                    conscientiousness: 65,
+                    extraversion: 70,
+                    agreeableness: 55,
+                    neuroticism: 50
+                },
+                voiceProfile: {
+                    tone: 'Bold and assertive, with hidden warmth',
+                    vocabulary: 'moderate',
+                    catchphrases: ['A real challenge? Now we\'re talking!', 'Think about it - what would YOU do?', 'Don\'t give up now!'],
+                    nonverbalTics: ['Eyebrow raise of skepticism', 'Crosses arms when defensive'],
+                    laughStyle: 'Surprised, unguarded laugh'
+                },
+                teachingStyle: {
+                    subjectsExpertise: ['History', 'Reading', 'Leadership', 'Strategy'],
+                    teachingApproach: 'socratic',
+                    encouragementStyle: 'Proud acknowledgment: "See? I knew you had it in you all along."',
+                    correctionStyle: 'Challenges growth: "Not quite - but you\'re closer than you think. What else could it be?"',
+                    exampleStyle: 'Historical examples, strategic thinking, real-life applications'
+                }
+            },
+            {
+                id: 'teacher-silverhook',
+                name: 'Captain Silverhook',
+                role: 'Storyteller Sage',
+                description: 'A reformed pirate who teaches through tales of adventure and hard-won wisdom',
+                visualTraits: 'Silver hook hand, weathered kind face, tricorn hat, warm smile',
+                imageUrl: '/assets/characters/Demo character 4.jpeg',
+                traits: ['reformed', 'wise', 'haunted', 'generous'],
+                psychologicalProfile: {
+                    openness: 60,
+                    conscientiousness: 75,
+                    extraversion: 55,
+                    agreeableness: 65,
+                    neuroticism: 60
+                },
+                voiceProfile: {
+                    tone: 'Deep, weathered, warm—like a crackling fire on a cold night',
+                    vocabulary: 'moderate',
+                    catchphrases: ['Every tide turns, lad/lass', 'Now that\'s a tale worth telling...', 'Let me tell you about a time...'],
+                    nonverbalTics: ['Rubs hook when thinking', 'Tips hat respectfully'],
+                    laughStyle: 'A surprised bark of laughter'
+                },
+                teachingStyle: {
+                    subjectsExpertise: ['Math', 'Geography', 'History', 'Ethics'],
+                    teachingApproach: 'storytelling',
+                    encouragementStyle: 'Warm acknowledgment: "Aye, now you\'re thinking like a true captain!"',
+                    correctionStyle: 'Uses personal experience: "I made that same mistake once, cost me three gold coins. Here\'s what I learned..."',
+                    exampleStyle: 'Pirate adventures, treasure counting, navigation stories'
+                }
+            }
+        ];
+
+        return [...originals, ...TEACHING_CHARACTERS];
+    }, []);
 
     // Template State
     const [selectedTemplateStructure, setSelectedTemplateStructure] = useState<any[] | undefined>(undefined);
@@ -267,13 +415,15 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 subject: learningSubject,
                 objectives: learningObjectives,
                 integrationMode,
-                difficulty: learningDifficulty
+                difficulty: learningDifficulty,
+                teacherCharacterId: selectedTeacher?.id
             } : undefined,
+            teacherCharacter: educational && selectedTeacher ? selectedTeacher : undefined,
             brandProfile,
             brandStoryConfig,
             templateStructure: selectedTemplateStructure
         });
-    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, learningSubject, learningObjectives, integrationMode, learningDifficulty, onGenerate, selectedTemplateStructure, brandContentType, brandIndustry, brandFounded, brandHeadquarters, brandDescription, brandTone, brandSections, brandFiscalYear]);
+    }, [prompt, style, tone, audience, pageCount, isBranching, educational, showBrandPanel, brandName, brandGuidelines, brandColors, brandSample, learningSubject, learningObjectives, integrationMode, learningDifficulty, selectedTeacher, onGenerate, selectedTemplateStructure, brandContentType, brandIndustry, brandFounded, brandHeadquarters, brandDescription, brandTone, brandSections, brandFiscalYear]);
 
     const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
@@ -333,6 +483,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         action();
     }, []);
 
+    const resetForm = useCallback(() => {
+        setPrompt('');
+        setShowBrandPanel(false);
+        setEducational(false);
+        setIsBranching(false);
+        setAudience('Children 4-6');
+    }, []);
+
     return (
         <div className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
 
@@ -346,18 +504,18 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
             {/* Product Hunt Badge */}
             <div className="flex justify-center mb-6 mt-4 animate-fadeIn">
-                <a 
-                    href="https://www.producthunt.com/products/genesis-3?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-genesis&#0045;3" 
-                    target="_blank" 
+                <a
+                    href="https://www.producthunt.com/products/genesis-3?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-genesis&#0045;3"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="hover:scale-105 transition-transform duration-200"
                 >
-                    <img 
-                        src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1046861&theme=light&t=1765031302790" 
-                        alt="Genesis - The best AI-powered books with psychology-driven characters | Product Hunt" 
-                        style={{ width: '250px', height: '54px' }} 
-                        width="250" 
-                        height="54" 
+                    <img
+                        src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1046861&theme=light&t=1765031302790"
+                        alt="Genesis - The best AI-powered books with psychology-driven characters | Product Hunt"
+                        style={{ width: '250px', height: '54px' }}
+                        width="250"
+                        height="54"
                     />
                 </a>
             </div>
@@ -527,8 +685,72 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
                     {creationMode === 'book' ? (
                         <>
+                            {prompt && (
+                                <button
+                                    onClick={resetForm}
+                                    className="mb-6 flex items-center gap-2 text-cocoa-light hover:text-coral-burst transition-colors font-bold group"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-white border border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors shadow-sm">
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </div>
+                                    Back to Home
+                                </button>
+                            )}
 
-                            <div className="mb-10">
+                            {/* Advanced Toggles */}
+                            <div className="flex flex-col md:flex-row gap-4 mb-10">
+                                <button
+                                    onClick={() => setIsBranching(!isBranching)}
+                                    className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${isBranching
+                                        ? 'border-gold-sunshine bg-yellow-butter/20'
+                                        : 'border-peach-soft bg-white hover:border-gold-sunshine/50'
+                                        }`}
+                                >
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isBranching ? 'bg-gold-sunshine text-white' : 'bg-cream-base text-cocoa-light'}`}>
+                                        <GitFork className="w-5 h-5" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-heading font-bold text-charcoal-soft">Interactive Mode</div>
+                                        <div className="text-xs text-cocoa-light">Choose-your-own-adventure</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => setEducational(!educational)}
+                                    className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${educational
+                                        ? 'border-blue-400 bg-blue-50'
+                                        : 'border-peach-soft bg-white hover:border-blue-400/50'
+                                        }`}
+                                >
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${educational ? 'bg-blue-400 text-white' : 'bg-cream-base text-cocoa-light'}`}>
+                                        <Leaf className="w-5 h-5" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-heading font-bold text-charcoal-soft">Educational</div>
+                                        <div className="text-xs text-cocoa-light">Learning & Vocabulary</div>
+                                    </div>
+                                </button>
+
+                                {showBrandPanel && (
+                                    <button
+                                        onClick={() => setShowBrandPanel(!showBrandPanel)}
+                                        className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${showBrandPanel
+                                            ? 'border-mint-breeze bg-mint-breeze/20'
+                                            : 'border-peach-soft bg-white hover:border-mint-breeze/50'
+                                            }`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${showBrandPanel ? 'bg-mint-breeze text-emerald-600' : 'bg-cream-base text-cocoa-light'}`}>
+                                            <Briefcase className="w-5 h-5" />
+                                        </div>
+                                        <div className="text-left">
+                                            <div className="font-heading font-bold text-charcoal-soft">Brand Voice</div>
+                                            <div className="text-xs text-cocoa-light">Custom guidelines & style</div>
+                                        </div>
+                                    </button>
+                                )}
+                            </div>
+
+                            <div ref={promptSectionRef} className="mb-10">
                                 <div className="flex items-center justify-between mb-3">
                                     <label className="block font-heading font-bold text-lg text-charcoal-soft flex items-center gap-2">
                                         <Sparkles className="w-5 h-5 text-gold-sunshine" />
@@ -625,57 +847,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                         />
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Advanced Toggles */}
-                            <div className="flex flex-col md:flex-row gap-4 mb-10">
-                                <button
-                                    onClick={() => setIsBranching(!isBranching)}
-                                    className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${isBranching
-                                        ? 'border-gold-sunshine bg-yellow-butter/20'
-                                        : 'border-peach-soft bg-white hover:border-gold-sunshine/50'
-                                        }`}
-                                >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isBranching ? 'bg-gold-sunshine text-white' : 'bg-cream-base text-cocoa-light'}`}>
-                                        <GitFork className="w-5 h-5" />
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="font-heading font-bold text-charcoal-soft">Interactive Mode</div>
-                                        <div className="text-xs text-cocoa-light">Choose-your-own-adventure</div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => setShowBrandPanel(!showBrandPanel)}
-                                    className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${showBrandPanel
-                                        ? 'border-mint-breeze bg-mint-breeze/20'
-                                        : 'border-peach-soft bg-white hover:border-mint-breeze/50'
-                                        }`}
-                                >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${showBrandPanel ? 'bg-mint-breeze text-emerald-600' : 'bg-cream-base text-cocoa-light'}`}>
-                                        <Briefcase className="w-5 h-5" />
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="font-heading font-bold text-charcoal-soft">Brand Voice</div>
-                                        <div className="text-xs text-cocoa-light">Custom guidelines & style</div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => setEducational(!educational)}
-                                    className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${educational
-                                        ? 'border-blue-400 bg-blue-50'
-                                        : 'border-peach-soft bg-white hover:border-blue-400/50'
-                                        }`}
-                                >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${educational ? 'bg-blue-400 text-white' : 'bg-cream-base text-cocoa-light'}`}>
-                                        <Leaf className="w-5 h-5" />
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="font-heading font-bold text-charcoal-soft">Educational</div>
-                                        <div className="text-xs text-cocoa-light">Learning & Vocabulary</div>
-                                    </div>
-                                </button>
                             </div>
 
                             {/* Brand Panel Expansion */}
@@ -935,6 +1106,109 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                                     </button>
                                                 ))}
                                             </div>
+                                        </div>
+
+                                        {/* Choose Your Guide - Character Teacher Selection */}
+                                        <div className="md:col-span-2 mt-4 pt-4 border-t border-blue-200">
+                                            <label className="block text-xs font-bold text-blue-700 uppercase mb-3 flex items-center gap-2">
+                                                <Users className="w-4 h-4" />
+                                                Choose Your Teaching Guide
+                                            </label>
+                                            <p className="text-sm text-blue-600 mb-4">
+                                                Select a character to guide the learning journey. They'll teach concepts in their unique voice!
+                                            </p>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto p-2 border border-blue-100 rounded-xl bg-white/50">
+                                                {teachingCharacters.map((char) => (
+                                                    <button
+                                                        key={char.id}
+                                                        onClick={() => setSelectedTeacher(selectedTeacher?.id === char.id ? null : char)}
+                                                        className={`relative p-4 rounded-2xl border-2 transition-all text-left group hover:shadow-lg
+                                                                    ${selectedTeacher?.id === char.id
+                                                                ? 'border-blue-500 bg-gradient-to-br from-blue-100 to-purple-100 shadow-md'
+                                                                : 'border-blue-100 bg-white hover:border-blue-300'
+                                                            }`}
+                                                    >
+                                                        {/* Character Image */}
+                                                        <div className="relative mx-auto w-16 h-16 mb-3">
+                                                            <img
+                                                                src={char.imageUrl}
+                                                                alt={char.name}
+                                                                className={`w-16 h-16 rounded-full object-cover border-3 transition-transform group-hover:scale-110
+                                                                            ${selectedTeacher?.id === char.id ? 'border-blue-500' : 'border-white'}`}
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`;
+                                                                }}
+                                                            />
+                                                            {selectedTeacher?.id === char.id && (
+                                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Character Info */}
+                                                        <div className="text-center">
+                                                            <div className={`font-bold text-sm truncate ${selectedTeacher?.id === char.id ? 'text-blue-700' : 'text-charcoal-soft'}`}>
+                                                                {char.name}
+                                                            </div>
+                                                            <div className="text-xs text-cocoa-light">{char.role}</div>
+                                                            {char.teachingStyle && (
+                                                                <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                                                                    {char.teachingStyle.subjectsExpertise.slice(0, 2).map(subject => (
+                                                                        <span
+                                                                            key={subject}
+                                                                            className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full"
+                                                                        >
+                                                                            {subject}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Teaching Style Tooltip on Hover */}
+                                                        <div className="absolute inset-0 bg-gradient-to-b from-blue-600/95 to-purple-600/95 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-center text-white text-center pointer-events-none">
+                                                            <div className="font-bold text-sm mb-1">{char.name}</div>
+                                                            <div className="text-xs opacity-90 mb-2">
+                                                                {char.teachingStyle?.teachingApproach === 'nurturing' && '🌙 Gentle & Patient'}
+                                                                {char.teachingStyle?.teachingApproach === 'playful' && '🔥 Fun & Exciting'}
+                                                                {char.teachingStyle?.teachingApproach === 'socratic' && '⚔️ Challenging'}
+                                                                {char.teachingStyle?.teachingApproach === 'storytelling' && '⚓ Story-Based'}
+                                                            </div>
+                                                            <div className="text-[10px] opacity-75 italic">
+                                                                "{char.voiceProfile?.catchphrases?.[0]}"
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Selected Teacher Preview */}
+                                            {selectedTeacher && (
+                                                <div className="mt-4 p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl border border-blue-200 animate-fadeIn">
+                                                    <div className="flex items-start gap-4">
+                                                        <img
+                                                            src={selectedTeacher.imageUrl}
+                                                            alt={selectedTeacher.name}
+                                                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTeacher.name}`;
+                                                            }}
+                                                        />
+                                                        <div className="flex-1">
+                                                            <div className="font-bold text-blue-800">{selectedTeacher.name} will be your guide!</div>
+                                                            <p className="text-sm text-blue-600 italic mt-1">
+                                                                "{selectedTeacher.voiceProfile?.catchphrases?.[0]}"
+                                                            </p>
+                                                            <div className="text-xs text-cocoa-light mt-2">
+                                                                Teaching style: <span className="font-medium capitalize">{selectedTeacher.teachingStyle?.teachingApproach}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -254,7 +254,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                     Processing...
                   </>
                 ) : (
-                  tier.priceMonthly === 0 ? "Start Creating Free" : "Start 7-Day Free Trial"
+                  tier.priceMonthly === 0 ? "Start Creating Free" : "Upgrade now"
                 )}
               </button>
 
@@ -279,20 +279,20 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
         </div>
 
       </div>
-      
+
       {/* Bottom Illustration with Fade Up Effect */}
       <div className="relative w-full mt-16 overflow-hidden">
         {/* Gradient fade overlay - fades upward */}
-        <div 
+        <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
             background: 'linear-gradient(to bottom, rgba(255,248,231,1) 0%, rgba(255,248,231,0.8) 15%, rgba(255,248,231,0) 40%)'
           }}
         />
-        
+
         {/* Illustration container */}
         <div className="relative w-full flex justify-center items-end">
-          <img 
+          <img
             src="/assets/mascots/8k_3d_pixar_202512022053.jpeg"
             alt="Genesis Community"
             className="w-full max-w-7xl h-auto object-contain object-bottom"
