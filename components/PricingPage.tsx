@@ -34,6 +34,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       icon: Zap,
       color: "bg-gray-100 text-gray-600",
       buttonColor: "bg-gray-200 text-charcoal-soft hover:bg-gray-300",
+      paystackPaymentUrl: null,
+      planCode: null,
       features: [
         "3 ebooks per month",
         "Max 4 pages per book",
@@ -56,6 +58,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       color: "bg-blue-50 text-blue-600",
       buttonColor: "bg-blue-500 text-white hover:bg-blue-600",
       saveLabel: "Save 18%",
+      paystackPaymentUrl: "https://paystack.shop/pay/mfkoveuu1o",
+      planCode: "PLN_zbnzvdqjsdxfcqc",
       features: [
         "30 ebooks per month",
         "Up to 12 pages/book",
@@ -75,6 +79,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       color: "bg-coral-burst/10 text-coral-burst",
       buttonColor: "bg-gradient-to-r from-coral-burst to-gold-sunshine text-white shadow-lg hover:scale-105",
       saveLabel: "Save 17%",
+      paystackPaymentUrl: "https://paystack.shop/pay/akv70alb1x",
+      planCode: "PLN_09zg1ly5kg57niz",
       features: [
         "Everything in Creator",
         "5 team seats",
@@ -95,6 +101,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       color: "bg-purple-50 text-purple-600",
       buttonColor: "bg-charcoal-soft text-white hover:bg-black",
       saveLabel: "Save 17%",
+      paystackPaymentUrl: "https://paystack.shop/pay/uvcz30todn",
+      planCode: "PLN_tv2y349z88b1bd8",
       features: [
         "Everything in Studio",
         "Unlimited team members",
@@ -118,13 +126,62 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
 
     setProcessingTier(tier.name);
 
+    // If Paystack payment page URL is provided, open it in a new window with metadata
+    if (tier.paystackPaymentUrl && tier.planCode) {
+      try {
+        // Get user ID from Supabase auth or localStorage
+        const userId = await getUserId();
+        
+        // Build URL with metadata parameters
+        const paymentUrl = new URL(tier.paystackPaymentUrl);
+        paymentUrl.searchParams.append('email', userEmail);
+        paymentUrl.searchParams.append('metadata[user_id]', userId);
+        paymentUrl.searchParams.append('metadata[plan_code]', tier.planCode);
+        paymentUrl.searchParams.append('metadata[billing_cycle]', isAnnual ? 'annual' : 'monthly');
+        
+        // Open Paystack payment page in new window
+        const paymentWindow = window.open(
+          paymentUrl.toString(),
+          '_blank',
+          'width=600,height=800,scrollbars=yes,resizable=yes'
+        );
+        
+        if (!paymentWindow) {
+          alert('Please allow pop-ups to complete payment');
+          setProcessingTier(null);
+          return;
+        }
+
+        // Poll for payment completion (webhook will update backend)
+        const pollInterval = setInterval(() => {
+          if (paymentWindow.closed) {
+            clearInterval(pollInterval);
+            setProcessingTier(null);
+            // Optionally reload user profile to check if tier was upgraded
+            console.log('Payment window closed');
+          }
+        }, 1000);
+
+        // Clean up after 5 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setProcessingTier(null);
+        }, 300000);
+
+      } catch (error) {
+        console.error('Failed to open payment page:', error);
+        alert('Unable to start payment. Please try again.');
+        setProcessingTier(null);
+      }
+      return;
+    }
+
+    // Fallback to old payment flow if no payment page URL
     // Calculate total amount to charge based on billing cycle
-    // Annual prices in the array are "monthly equivalent", so we multiply by 12 for the actual charge
     const amountToCharge = isAnnual ? (tier.priceAnnual * 12) : tier.priceMonthly;
 
     try {
       // Use Apple Pay checkout on Apple devices for better UX
-      // This shows a pre-checkout modal with Apple Pay button on iOS/Safari
       if (isApplePayAvailable()) {
         await initializeApplePayCheckout({
           email: userEmail,
@@ -172,6 +229,28 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       console.error("Payment initialization failed:", error);
       alert("Unable to start payment processing. Please try again.");
       setProcessingTier(null);
+    }
+  };
+
+  // Helper to get user ID from Supabase or generate one
+  const getUserId = async (): Promise<string> => {
+    try {
+      // Try to get from Supabase auth
+      const { supabase } = await import('../services/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) return user.id;
+      
+      // Fallback: generate/retrieve from localStorage
+      let localUserId = localStorage.getItem('genesis_user_id');
+      if (!localUserId) {
+        localUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('genesis_user_id', localUserId);
+      }
+      return localUserId;
+    } catch (error) {
+      console.error('Failed to get user ID:', error);
+      // Generate temp ID as last resort
+      return `temp_${Date.now()}`;
     }
   };
 
