@@ -401,8 +401,36 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     </AnimatePresence>
                 </div>
 
-                {/* Mobile Bottom Navigation */}
-                <div className="flex-shrink-0 px-4 py-3 bg-[#1a1a2e]/95 backdrop-blur-lg border-t border-white/10 safe-area-bottom">
+                {/* Mobile Bottom Navigation & Actions */}
+                <div className="flex-shrink-0 px-4 py-3 bg-[#1a1a2e]/95 backdrop-blur-lg border-t border-white/10 safe-area-bottom space-y-3">
+                    {/* Action Buttons Row */}
+                    <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1">
+                        <button
+                            onClick={onEdit}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-bold text-sm shadow-lg active:scale-95 transition-transform touch-manipulation whitespace-nowrap"
+                        >
+                            <Edit3 className="w-4 h-4" />
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            onClick={handleDownload}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/20 font-bold text-sm active:scale-95 transition-all touch-manipulation whitespace-nowrap"
+                            title="Save as PDF"
+                        >
+                            <Download className="w-4 h-4" />
+                            <span>Save</span>
+                        </button>
+                        <button
+                            onClick={() => setShowKDPExportModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-sm shadow-md active:scale-95 transition-transform touch-manipulation whitespace-nowrap"
+                            title="Export for Amazon KDP"
+                        >
+                            <BookOpen className="w-4 h-4" />
+                            <span>Amazon</span>
+                        </button>
+                    </div>
+
+                    {/* Navigation Row */}
                     <div className="flex items-center justify-between gap-4">
                         {/* Previous Button */}
                         <button

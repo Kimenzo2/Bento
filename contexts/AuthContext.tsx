@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
+import { sendWelcomeEmail } from '../services/emailService';
 
 // UserProfile type for convenience
 interface UserProfile {
@@ -128,6 +129,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('[Auth] Email sign-up error:', error);
         } else {
             console.log('[Auth] Email sign-up successful');
+            // Send welcome email to new user
+            if (data.user?.email) {
+                const userName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
+                sendWelcomeEmail(data.user.email, userName).catch(err => {
+                    console.error('[Auth] Failed to send welcome email:', err);
+                });
+            }
         }
         return { data, error };
     };

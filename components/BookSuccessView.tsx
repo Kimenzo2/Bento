@@ -8,6 +8,8 @@ import { Particle, generateParticles, updateParticle } from '../utils/particles'
 import { hasWatermark, hasCommercialLicense } from '../services/tierLimits';
 import { exportToPDF } from '../services/generator/pdfService';
 import { ShareModal } from './BookSharing';
+import { useAuth } from '../contexts/AuthContext';
+import { sendBookCompletionEmail } from '../services/emailService';
 
 interface BookSuccessViewProps {
     project: BookProject;
@@ -16,15 +18,24 @@ interface BookSuccessViewProps {
 }
 
 const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, userTier }) => {
+    const { user } = useAuth();
     const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [showKDPExportModal, setShowKDPExportModal] = useState(false);
     const [confetti, setConfetti] = useState<Particle[]>([]);
 
-    // Generate celebration confetti on mount
+    // Generate celebration confetti on mount and send celebration email
     useEffect(() => {
         const particles = generateParticles(50, window.innerWidth / 2, window.innerHeight / 2, 400, 'confetti');
         setConfetti(particles);
+
+        // Send book completion celebration email
+        if (user?.email && project.title) {
+            const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+            sendBookCompletionEmail(user.email, userName, project.title).catch(err => {
+                console.error('[BookSuccess] Failed to send completion email:', err);
+            });
+        }
 
         // Update confetti animation
         const interval = setInterval(() => {
