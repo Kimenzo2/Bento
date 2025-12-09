@@ -119,11 +119,10 @@ const App: React.FC = () => {
 
     // If user is not authenticated and we haven't shown the modal yet
     if (!user && !hasShownAuthModal) {
-
       // Small delay to let the page render first
       const timer = setTimeout(() => {
-        console.log('[App] No user detected, skipping email auth modal (TEMP hidden)');
-        // setShowEmailAuthModal(true); // TEMP: Hidden to rely on Google One Tap
+        console.log('[App] No user detected, showing email auth modal');
+        setShowEmailAuthModal(true);
         setHasShownAuthModal(true);
       }, 1000);
 
@@ -136,6 +135,59 @@ const App: React.FC = () => {
       setShowEmailAuthModal(false);
     }
   }, [user, authLoading, hasShownAuthModal, showEmailAuthModal]);
+
+  // --- Mobile Back Navigation Fix ---
+  // Sync AppMode with URL Hash to support browser Back button
+  React.useEffect(() => {
+    // 1. Listener for Back Button (Hash Change)
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1); // remove #
+
+      // If empty hash, go to dashboard
+      if (!hash) {
+        if (currentMode !== AppMode.DASHBOARD) {
+          setCurrentMode(AppMode.DASHBOARD);
+        }
+        return;
+      }
+
+      // Find matching mode
+      // We assume AppMode values are URL-safe strings or we can map them
+      const targetMode = Object.values(AppMode).find(
+        m => m.toLowerCase().replace(/\s+/g, '-') === hash.toLowerCase()
+      ) as AppMode | undefined;
+
+      if (targetMode && targetMode !== currentMode) {
+        setCurrentMode(targetMode);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Handle initial load hash
+    handleHashChange();
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []); // Run only on mount (and keep currentMode ref fresh via closure if needed, but setState is safe)
+
+  // 2. Push History when Mode Changes
+  React.useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    const modeSlug = currentMode.toLowerCase().replace(/\s+/g, '-');
+    const targetHash = currentMode === AppMode.DASHBOARD ? '' : modeSlug;
+
+    // Only push if the hash is actually different (avoids loop with hashchange)
+    if (hash !== targetHash) {
+      if (currentMode === AppMode.DASHBOARD) {
+        // Clear hash
+        window.history.pushState(null, '', window.location.pathname);
+      } else {
+        // Push new hash
+        window.history.pushState(null, '', `#${targetHash}`);
+      }
+    }
+  }, [currentMode]);
+
 
   // Fetch user profile on mount
   React.useEffect(() => {

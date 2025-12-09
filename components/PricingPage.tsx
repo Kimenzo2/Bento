@@ -309,7 +309,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                 <tier.icon className="w-6 h-6" />
               </div>
 
-              <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">{tier.name}</h3>
+              <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
+                {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}
+              </h3>
               <p className="text-xs font-bold text-cocoa-light uppercase tracking-wider mb-6">{tier.description}</p>
 
               <div className="mb-6">

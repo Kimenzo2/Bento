@@ -882,7 +882,7 @@ class BroadcastService {
      * Check if user can broadcast based on tier
      */
     canBroadcast(userTier: string): boolean {
-        const limits = BROADCAST_TIER_LIMITS[userTier] || BROADCAST_TIER_LIMITS.spark;
+        const limits = BROADCAST_TIER_LIMITS[userTier] || BROADCAST_TIER_LIMITS.SPARK;
         return limits.can_broadcast;
     }
 
@@ -890,7 +890,7 @@ class BroadcastService {
      * Get broadcast limits for tier
      */
     getBroadcastLimits(userTier: string) {
-        return BROADCAST_TIER_LIMITS[userTier] || BROADCAST_TIER_LIMITS.spark;
+        return BROADCAST_TIER_LIMITS[userTier] || BROADCAST_TIER_LIMITS.SPARK;
     }
 }
 

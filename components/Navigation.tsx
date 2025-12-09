@@ -127,11 +127,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             </div>
           </button>
 
-          {/* Upgrade Button - Only show for Spark tier */}
+          {/* Upgrade Button - Always visible for Spark tier */}
           {currentUserTier === UserTier.SPARK && (
             <button
               onClick={() => handleModeChange(AppMode.PRICING)}
-              className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
               aria-label="Upgrade"
             >
               <Zap className="w-4 h-4 fill-white" />

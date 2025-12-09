@@ -38,10 +38,10 @@ export enum BookTone {
 }
 
 export enum UserTier {
-  SPARK = 'Spark',      // Free
-  CREATOR = 'Creator',  // $19.99
-  STUDIO = 'Studio',    // $59.99
-  EMPIRE = 'Empire'     // $199.99
+  SPARK = 'SPARK',      // Free
+  CREATOR = 'CREATOR',  // $19.99
+  STUDIO = 'STUDIO',    // $59.99
+  EMPIRE = 'EMPIRE'     // $199.99
 }
 
 export interface Badge {

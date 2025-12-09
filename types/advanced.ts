@@ -509,28 +509,28 @@ export interface BroadcastTierLimits {
 }
 
 export const BROADCAST_TIER_LIMITS: Record<string, BroadcastTierLimits> = {
-    spark: {
+    SPARK: {
         can_broadcast: false,
         max_monthly_hours: 0,
         max_viewers: 0,
         recording_enabled: false,
         advanced_analytics: false
     },
-    creator: {
+    CREATOR: {
         can_broadcast: true,
         max_monthly_hours: 2,
         max_viewers: 20,
         recording_enabled: false,
         advanced_analytics: false
     },
-    studio: {
+    STUDIO: {
         can_broadcast: true,
         max_monthly_hours: 10,
         max_viewers: 100,
         recording_enabled: true,
         advanced_analytics: false
     },
-    empire: {
+    EMPIRE: {
         can_broadcast: true,
         max_monthly_hours: Infinity,
         max_viewers: Infinity,

@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   FolderOpen,
   Type,
-  Globe
+  Globe,
+  BookOpen
 } from 'lucide-react';
 import { AppMode, UserTier, SavedBook } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -237,6 +238,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
             <TabButton id="subscriptions" icon={CreditCard} label="Subscriptions" />
             <TabButton id="notifications" icon={Bell} label="Notifications" />
             <TabButton id="privacy" icon={Shield} label="Privacy" />
+            
+            <a
+              href="https://genesis-1765265007.documentationai.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-[120px] md:min-w-0 bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft"
+            >
+              <BookOpen className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+              <span className="text-sm md:text-base whitespace-nowrap">Documentation</span>
+            </a>
           </div>
         </div>
 
@@ -282,7 +293,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                             actualUserTier === UserTier.STUDIO ? 'text-coral-burst' :
                             'text-purple-600'
                           }`}>
-                            {actualUserTier}
+                            {actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase()}
                           </span>
                           {' Plan • Member since ' + memberSince}
                         </>
