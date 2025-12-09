@@ -86,7 +86,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
         emailUpdates: true,
         marketingEmails: false,
         publicProfile: true,
-        dataSharing: false
+        dataSharing: false,
+        autoRotate: false
       };
     } catch (e) {
       return {
@@ -98,7 +99,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
         emailUpdates: true,
         marketingEmails: false,
         publicProfile: true,
-        dataSharing: false
+        dataSharing: false,
+        autoRotate: false
       };
     }
   });
@@ -144,6 +146,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
       if (avatarPreview) {
         localStorage.setItem('genesis_avatar', avatarPreview);
       }
+      // Dispatch event for other components to react (e.g. orientation lock)
+      window.dispatchEvent(new Event('genesis-settings-changed'));
     } catch (e) {
       console.error("Failed to save settings to local storage", e);
     }
@@ -184,11 +188,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
     </button>
   );
 
-  const Toggle = ({ label, checked, onChange }: { label: string, checked: boolean, onChange: (val: boolean) => void }) => (
+  const Toggle = ({ label, description, checked, onChange }: { label: string, description?: string, checked: boolean, onChange: (val: boolean) => void }) => (
     <div className="flex items-center justify-between py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group" onClick={() => onChange(!checked)}>
-      <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">{label}</span>
+      <div className="flex flex-col">
+        <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">{label}</span>
+        {description && <span className="text-xs text-gray-500 mt-1">{description}</span>}
+      </div>
       <button
-        className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 relative focus:outline-none ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
+        className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 relative focus:outline-none flex-shrink-0 ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
       >
         <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`}></div>
       </button>
@@ -417,7 +424,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
             )}
 
             {activeTab === 'themes' && (
-              <ThemeSelector />
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">Display Settings</h3>
+                  <Toggle
+                    label="Auto Rotate Screen"
+                    description="Allow the app to rotate when you turn your device. Keep off for vertical-only mode."
+                    checked={formData.autoRotate}
+                    onChange={(val) => handleChange('autoRotate', val)}
+                  />
+                </div>
+                <ThemeSelector />
+              </div>
             )}
 
             {activeTab === 'typography' && (

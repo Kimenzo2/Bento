@@ -113,6 +113,59 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Handle Screen Orientation
+  useEffect(() => {
+    const applyOrientation = async () => {
+      try {
+        const savedSettings = localStorage.getItem('genesis_settings');
+        const settings = savedSettings ? JSON.parse(savedSettings) : {};
+        const autoRotate = settings.autoRotate || false;
+
+        // Check if screen.orientation API is available
+        if (screen.orientation && 'lock' in screen.orientation) {
+          if (autoRotate) {
+            // Allow rotation
+            screen.orientation.unlock();
+            console.log('Screen orientation unlocked');
+          } else {
+            // Force portrait
+            // Note: lock() returns a promise and might fail if not in fullscreen
+            // We catch the error to prevent app crash
+            await (screen.orientation as any).lock('portrait').catch((e: any) => {
+              console.warn('Orientation lock failed (expected if not fullscreen):', e);
+            });
+            console.log('Screen orientation locked to portrait');
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to set screen orientation:', e);
+      }
+    };
+
+    // Apply on mount
+    applyOrientation();
+
+    // Listen for settings changes
+    const handleSettingsChange = () => {
+      applyOrientation();
+    };
+
+    window.addEventListener('genesis-settings-changed', handleSettingsChange);
+    
+    // Also listen for visibility change (e.g. when returning to app)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        applyOrientation();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('genesis-settings-changed', handleSettingsChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   // Show email auth modal when user is not authenticated (experiment)
   React.useEffect(() => {
     // Wait for auth to finish loading
