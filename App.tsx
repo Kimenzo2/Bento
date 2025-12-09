@@ -119,10 +119,11 @@ const App: React.FC = () => {
 
     // If user is not authenticated and we haven't shown the modal yet
     if (!user && !hasShownAuthModal) {
+
       // Small delay to let the page render first
       const timer = setTimeout(() => {
-        console.log('[App] No user detected, showing email auth modal');
-        setShowEmailAuthModal(true);
+        console.log('[App] No user detected, skipping email auth modal (TEMP hidden)');
+        // setShowEmailAuthModal(true); // TEMP: Hidden to rely on Google One Tap
         setHasShownAuthModal(true);
       }, 1000);
 
@@ -195,6 +196,8 @@ const App: React.FC = () => {
     currentXP: 0,
     nextLevelXP: 100,
     booksCreatedCount: 0,
+    currentStreak: 0,
+    lastActivityDate: undefined,
     badges: [
       { id: '1', name: "First Spark", description: "Create your first book", icon: "rocket", unlocked: false },
       { id: '2', name: "Style Explorer", description: "Try 3 different styles", icon: "palette", unlocked: false },

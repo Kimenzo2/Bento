@@ -25,6 +25,7 @@ import ThemeSelector from './settings/ThemeSelector';
 import LibraryPanel from './settings/LibraryPanel';
 import FontSelector from './settings/FontSelector';
 import { LanguageSelector } from './settings/LanguageSelector';
+import { getUserProfile, UserProfile } from '../services/profileService';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
@@ -32,8 +33,24 @@ interface SettingsPanelProps {
   onViewBook?: (book: SavedBook) => void;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, userTier: propsUserTier }) => {
   const { user } = useAuth();
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = React.useState(true);
+
+  // Fetch user profile to get real tier
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      setIsLoadingProfile(true);
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+      setIsLoadingProfile(false);
+    };
+    fetchProfile();
+  }, [user]);
+
+  // Get actual user tier from profile, fallback to props or SPARK
+  const actualUserTier = userProfile?.user_tier || propsUserTier || UserTier.SPARK;
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography' | 'language'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -254,7 +271,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook })
                   </div>
                   <div className="text-center sm:text-left">
                     <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft">{formData.displayName}</h3>
-                    <p className="text-cocoa-light text-sm md:text-base">Pro Plan • Member since {memberSince}</p>
+                    <p className="text-cocoa-light text-sm md:text-base">
+                      {isLoadingProfile ? (
+                        <span className="animate-pulse">Loading...</span>
+                      ) : (
+                        <>
+                          <span className={`font-bold ${
+                            actualUserTier === UserTier.SPARK ? 'text-gray-600' :
+                            actualUserTier === UserTier.CREATOR ? 'text-blue-600' :
+                            actualUserTier === UserTier.STUDIO ? 'text-coral-burst' :
+                            'text-purple-600'
+                          }`}>
+                            {actualUserTier}
+                          </span>
+                          {' Plan • Member since ' + memberSince}
+                        </>
+                      )}
+                    </p>
                     <button onClick={handleAvatarClick} className="mt-2 text-sm font-bold text-coral-burst hover:underline flex items-center gap-1 mx-auto sm:mx-0 touch-manipulation">
                       <ImageIcon className="w-3 h-3" /> Change Avatar
                     </button>

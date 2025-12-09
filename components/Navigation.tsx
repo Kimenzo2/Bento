@@ -14,9 +14,10 @@ import {
   Zap,
   GraduationCap
 } from 'lucide-react';
-import { AppMode } from '../types';
+import { AppMode, UserTier } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../hooks/useUserSettings';
+import { getUserProfile, UserProfile } from '../services/profileService';
 
 interface NavigationProps {
   currentMode: AppMode;
@@ -27,6 +28,34 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
   const { user, signOut } = useAuth();
   const { displayName, avatarUrl } = useUserSettings();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+
+  // Fetch user profile to show real tier
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+    };
+    fetchProfile();
+  }, [user]);
+
+  const currentUserTier = userProfile?.user_tier || UserTier.SPARK;
+  
+  // Get tier display info
+  const getTierBadge = (tier: string) => {
+    switch (tier) {
+      case UserTier.CREATOR:
+        return { color: 'bg-blue-500', label: 'Creator' };
+      case UserTier.STUDIO:
+        return { color: 'bg-gradient-to-r from-coral-burst to-gold-sunshine', label: 'Studio' };
+      case UserTier.EMPIRE:
+        return { color: 'bg-purple-600', label: 'Empire' };
+      default:
+        return { color: 'bg-gray-400', label: 'Spark' };
+    }
+  };
+
+  const tierBadge = getTierBadge(currentUserTier);
 
   const menuItems = [
     { mode: AppMode.DASHBOARD, icon: LayoutDashboard, label: 'Home' },
@@ -50,8 +79,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
         {/* Logo */}
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleModeChange(AppMode.DASHBOARD)}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-glow group-hover:scale-105 transition-transform">
-            <span className="text-white font-heading font-bold text-xl">G</span>
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-glow group-hover:scale-105 transition-transform">
+            <img 
+              src="/genesis-icon.jpg" 
+              alt="Genesis" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft tracking-tight">
             Genesis
@@ -79,27 +112,32 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
         {/* Right Actions */}
         <div className="flex items-center gap-3 md:gap-4">
 
-          {/* Level Indicator */}
+          {/* Tier Badge */}
           <button
             onClick={() => handleModeChange(AppMode.GAMIFICATION)}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-peach-soft hover:border-gold-sunshine transition-colors cursor-pointer"
+            title={`You are on the ${tierBadge.label} plan`}
           >
-            <div className="w-6 h-6 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-xs">3</div>
+            <div className={`w-6 h-6 rounded-full ${tierBadge.color} text-white flex items-center justify-center font-bold text-xs shadow-sm`}>
+              {tierBadge.label.charAt(0)}
+            </div>
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">Lvl</span>
-              <span className="text-xs font-bold text-charcoal-soft leading-none">Rising</span>
+              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">Plan</span>
+              <span className="text-xs font-bold text-charcoal-soft leading-none">{tierBadge.label}</span>
             </div>
           </button>
 
-          {/* Upgrade Button */}
-          <button
-            onClick={() => handleModeChange(AppMode.PRICING)}
-            className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
-            aria-label="Upgrade"
-          >
-            <Zap className="w-4 h-4 fill-white" />
-            Upgrade
-          </button>
+          {/* Upgrade Button - Only show for Spark tier */}
+          {currentUserTier === UserTier.SPARK && (
+            <button
+              onClick={() => handleModeChange(AppMode.PRICING)}
+              className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
+              aria-label="Upgrade"
+            >
+              <Zap className="w-4 h-4 fill-white" />
+              Upgrade
+            </button>
+          )}
 
           {/* Creator Button - Always visible */}
           <button

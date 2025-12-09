@@ -78,6 +78,8 @@ export interface GamificationState {
   badges: Badge[];
   dailyChallenges: Challenge[];
   booksCreatedCount: number;
+  currentStreak?: number; // Optional: Days streak
+  lastActivityDate?: string; // Optional: Last activity timestamp
 }
 
 // --- New Schema Interfaces ---

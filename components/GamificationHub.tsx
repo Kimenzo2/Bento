@@ -57,7 +57,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
             <div className="flex gap-4">
                  <div className="text-center bg-cream-base p-4 rounded-2xl border border-peach-soft min-w-[100px]">
                     <div className="font-heading font-bold text-2xl text-coral-burst flex items-center justify-center gap-1">
-                        <Flame className="w-5 h-5" /> 7
+                        <Flame className="w-5 h-5" /> {gameState.currentStreak || 0}
                     </div>
                     <div className="text-xs font-bold text-cocoa-light uppercase">Day Streak</div>
                  </div>
