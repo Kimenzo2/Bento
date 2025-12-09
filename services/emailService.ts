@@ -27,14 +27,24 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const emailData: any = {
       from: options.from || 'Genesis <onboarding@resend.dev>',
       to: Array.isArray(options.to) ? options.to : [options.to],
       subject: options.subject,
-      html: options.html,
-      text: options.text,
-      replyTo: options.replyTo,
-    });
+    };
+
+    // Add html or text based on what's provided
+    if (options.html) {
+      emailData.html = options.html;
+    }
+    if (options.text) {
+      emailData.text = options.text;
+    }
+    if (options.replyTo) {
+      emailData.replyTo = options.replyTo;
+    }
+
+    const { data, error } = await resend.emails.send(emailData);
 
     if (error) {
       console.error('❌ Failed to send email:', error);
