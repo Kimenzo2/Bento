@@ -525,27 +525,60 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
           </div>
 
           {/* Footer */}
-          <div className="mt-8 md:mt-10 pt-5 md:pt-6 border-t border-peach-soft/50 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4">
-            <button className="flex items-center justify-center md:justify-start gap-2 text-cocoa-light font-bold hover:text-red-500 text-sm px-4 py-3 md:py-2 rounded-lg hover:bg-red-50 transition-colors touch-manipulation">
-              <LogOut className="w-4 h-4" /> Sign Out
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full md:w-auto px-6 md:px-8 py-3.5 md:py-3 bg-coral-burst text-white rounded-full font-heading font-bold shadow-soft-md hover:shadow-soft-lg hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed touch-manipulation"
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </>
-              )}
-            </button>
+          <div className="mt-8 md:mt-10 pt-5 md:pt-6 border-t border-peach-soft/50">
+            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4 mb-4">
+              <button className="flex items-center justify-center md:justify-start gap-2 text-cocoa-light font-bold hover:text-red-500 text-sm px-4 py-3 md:py-2 rounded-lg hover:bg-red-50 transition-colors touch-manipulation">
+                <LogOut className="w-4 h-4" /> Sign Out
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="w-full md:w-auto px-6 md:px-8 py-3.5 md:py-3 bg-coral-burst text-white rounded-full font-heading font-bold shadow-soft-md hover:shadow-soft-lg hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed touch-manipulation"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+            
+            {/* Legal Links */}
+            <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs text-cocoa-light/70 pt-3 border-t border-peach-soft/30">
+              <button 
+                onClick={() => onNavigate?.(AppMode.LEGAL)}
+                className="hover:text-coral-burst transition-colors"
+              >
+                Privacy Policy
+              </button>
+              <span className="text-peach-soft">•</span>
+              <button 
+                onClick={() => onNavigate?.(AppMode.LEGAL)}
+                className="hover:text-coral-burst transition-colors"
+              >
+                Terms of Service
+              </button>
+              <span className="text-peach-soft">•</span>
+              <button 
+                onClick={() => onNavigate?.(AppMode.LEGAL)}
+                className="hover:text-coral-burst transition-colors"
+              >
+                Cookie Policy
+              </button>
+              <span className="text-peach-soft">•</span>
+              <button 
+                onClick={() => onNavigate?.(AppMode.LEGAL)}
+                className="hover:text-coral-burst transition-colors"
+              >
+                Acceptable Use
+              </button>
+            </div>
           </div>
         </div>
       </div>

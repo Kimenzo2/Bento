@@ -614,9 +614,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             ))}
                         </div>
                     ) : (
-                        <div className="flex overflow-x-auto snap-x snap-mandatory pb-4 lg:pb-0 lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-6 no-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
                             {savedBooks.map((book) => (
-                                <div key={book.id} className="min-w-[85%] sm:min-w-[350px] lg:min-w-0 snap-center flex-shrink-0 lg:flex-shrink">
+                                <div key={book.id} className="w-full">
                                     <SelectableCard
                                         isSelectionMode={isSelectionMode}
                                         isSelected={isSelected(book.id)}

@@ -39,6 +39,7 @@ const BookSuccessView = lazy(() => import('./components/BookSuccessView'));
 const GenerationTheater = lazy(() => import('./components/GenerationTheater'));
 const StorybookViewer = lazy(() => import('./components/StorybookViewer'));
 const SharedBookViewer = lazy(() => import('./components/SharedBookViewer'));
+const LegalViewer = lazy(() => import('./components/LegalViewer'));
 
 
 
@@ -499,6 +500,12 @@ const App: React.FC = () => {
             onNavigate={setCurrentMode}
             userTier={currentUserTier}
             onViewBook={handleReadBook}
+          />
+        );
+      case AppMode.LEGAL:
+        return (
+          <LegalViewer
+            onNavigate={setCurrentMode}
           />
         );
       case AppMode.VIEWER:
