@@ -505,7 +505,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
 
             {/* Hero Header */}
-            <div className="text-center space-y-4 mb-12">
+            <div className="text-center space-y-4 mb-12 mt-16">
                 <h1 className="font-heading font-bold text-5xl md:text-6xl text-charcoal-soft mb-4">
                     Create Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-coral-burst to-gold-sunshine">Masterpiece</span>
                 </h1>
