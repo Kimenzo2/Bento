@@ -22,7 +22,11 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({ book, onEdit, onRead, onD
     const pageCount = book.project.chapters.flatMap(c => c.pages).length;
 
     return (
-        <div className="bg-white rounded-2xl overflow-hidden shadow-soft-md hover:shadow-soft-lg transition-all border border-peach-soft/50 group">
+        <div
+            className="bg-white rounded-2xl overflow-hidden shadow-soft-md hover:shadow-soft-lg transition-all duration-300 border border-peach-soft/50 group outline-none focus:ring-2 focus:ring-coral-burst/50"
+            tabIndex={0}
+            role="article"
+        >
             {/* Cover Image */}
             <div className="relative h-48 bg-gradient-to-br from-coral-burst/20 to-gold-sunshine/20 overflow-hidden">
                 {book.coverImage ? (
@@ -37,39 +41,44 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({ book, onEdit, onRead, onD
                     </div>
                 )}
 
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-charcoal-soft/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                {/* Hover Overlay - Action Buttons */}
+                <div className="absolute inset-0 z-20 bg-black/80 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-center justify-center gap-3 backdrop-blur-sm pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
                     <button
                         onClick={() => onEdit(book)}
-                        className="p-3 bg-white rounded-full hover:scale-110 transition-transform shadow-lg"
+                        className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
                         title="Edit"
+                        aria-label="Edit book"
                     >
                         <Edit3 className="w-5 h-5 text-coral-burst" />
                     </button>
                     <button
                         onClick={() => onRead(book)}
-                        className="p-3 bg-white rounded-full hover:scale-110 transition-transform shadow-lg"
+                        className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
                         title="Read"
+                        aria-label="Read book"
                     >
                         <Eye className="w-5 h-5 text-blue-600" />
                     </button>
                     {onShare && (
                         <button
                             onClick={() => onShare(book)}
-                            className="p-3 bg-white rounded-full hover:scale-110 transition-transform shadow-lg"
+                            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
                             title="Share"
+                            aria-label="Share book"
                         >
                             <Share2 className="w-5 h-5 text-green-500" />
                         </button>
                     )}
                     <button
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             if (window.confirm(`Delete "${book.title}"? This cannot be undone.`)) {
                                 onDelete(book.id);
                             }
                         }}
-                        className="p-3 bg-white rounded-full hover:scale-110 transition-transform shadow-lg"
+                        className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
                         title="Delete"
+                        aria-label="Delete book"
                     >
                         <Trash2 className="w-5 h-5 text-red-600" />
                     </button>

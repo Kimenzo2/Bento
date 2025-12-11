@@ -1,3 +1,6 @@
+/* Import Default Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Manrope:wght@200..800&display=swap');
+
 @import "tailwindcss";
 
 /* 
@@ -5,6 +8,10 @@
  * Theme customizations using @theme directive
  */
 @theme {
+  /* Fonts - Bind to CSS variables for dynamic switching */
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+
   /* Colors */
   --color-cream-base: var(--color-background, #FFF8E7);
   --color-cream-soft: var(--color-background, #FFF8E7);
@@ -86,6 +93,27 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+}
+
+/* Global cursor styles for interactive elements */
+button,
+a,
+[role="button"],
+[role="link"],
+.cursor-pointer,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select,
+label[for],
+summary {
+    cursor: pointer !important;
+}
+
+/* Ensure all clickable elements show pointer cursor */
+*[onclick],
+*[data-clickable="true"] {
+    cursor: pointer !important;
 }
 
 /* Apply safe area padding to app container */

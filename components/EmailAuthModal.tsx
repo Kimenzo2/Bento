@@ -59,7 +59,20 @@ const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose, onSucc
 
         } catch (err: any) {
             console.error('[EmailAuth] Error:', err);
-            setError(err.message || 'Something went wrong. Please try again.');
+            // Handle edge case where error is an empty object or has no message
+            let errorMessage = err.message || err.error_description || 'Something went wrong. Please try again.';
+
+            // If the error message renders as "{}", provide a more helpful message
+            if (errorMessage === '{}' || (typeof err === 'object' && Object.keys(err).length === 0)) {
+                errorMessage = 'Unable to send link. Please check your network or try again later.';
+            }
+
+            // Supabase rate limit specific check
+            if (errorMessage.includes('Rate limit') || (err.status === 429)) {
+                errorMessage = 'Too many attempts. Please wait a moment before trying again.';
+            }
+
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
