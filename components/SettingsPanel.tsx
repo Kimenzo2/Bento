@@ -269,7 +269,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-lg text-white relative group overflow-hidden flex-shrink-0">
                     {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover scale-110" />
                     ) : (
                       <User className="w-8 h-8 md:w-10 md:h-10" />
                     )}

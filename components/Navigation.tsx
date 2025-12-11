@@ -150,9 +150,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             className="flex items-center gap-2 p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 transition-colors shadow-soft-sm group cursor-pointer min-h-[44px]"
             aria-label="Account"
           >
-            <div className="w-8 h-8 rounded-full bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform overflow-hidden">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-full scale-110" />
               ) : (
                 <User className="w-5 h-5" />
               )}

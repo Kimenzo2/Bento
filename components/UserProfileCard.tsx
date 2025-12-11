@@ -39,11 +39,13 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
             {/* Avatar and Name */}
             <div className="flex items-start gap-3 mb-3">
                 <div className="relative">
-                    <img
-                        src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
-                        alt={user.display_name || user.email}
-                        className="w-16 h-16 rounded-full"
-                    />
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 dark:bg-[#2D2D2D]">
+                        <img
+                            src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
+                            alt={user.display_name || user.email}
+                            className="w-full h-full object-cover scale-110"
+                        />
+                    </div>
                     {user.status && (
                         <div className={`absolute bottom-0 right-0 w-4 h-4 ${statusColors[user.status]} rounded-full border-2 border-white dark:border-[#1A1A1A]`} />
                     )}
