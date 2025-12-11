@@ -31,7 +31,7 @@ import { useAuth } from '../../contexts/AuthContext';
 interface NotificationCenterProps {
     isOpen: boolean;
     onClose: () => void;
-    anchorRef?: React.RefObject<HTMLElement>;
+    anchorRef?: React.RefObject<HTMLElement | null> | React.RefObject<HTMLButtonElement | null>;
 }
 
 const NotificationCenter: React.FC<NotificationCenterProps> = ({

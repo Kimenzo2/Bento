@@ -9,6 +9,8 @@ export default {
         "./services/**/*.{js,ts,jsx,tsx}",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+    // Tailwind v4 uses CSS-first configuration
+    // Most theme customizations should be in index.css using @theme
     theme: {
         screens: {
             'xs': '475px',
@@ -20,23 +22,23 @@ export default {
         },
         extend: {
             fontFamily: {
-                heading: ['var(--font-heading)', 'sans-serif'],
-                body: ['var(--font-body)', 'sans-serif'],
+                heading: ['var(--font-heading)', 'system-ui', 'sans-serif'],
+                body: ['var(--font-body)', 'system-ui', 'sans-serif'],
             },
             colors: {
                 cream: {
                     base: 'var(--color-background)',
-                    soft: 'var(--color-background)' // Fallback or same
+                    soft: 'var(--color-background)'
                 },
                 peach: {
                     soft: 'var(--color-border)',
-                    light: 'var(--color-border)' // Fallback
+                    light: 'var(--color-border)'
                 },
                 yellow: {
                     butter: '#FFF4A3'
                 },
                 mint: {
-                    breeze: '#D4F4DD' // Keep hardcoded for now or add variable later
+                    breeze: '#D4F4DD'
                 },
                 coral: {
                     burst: 'var(--color-primary-start)',
@@ -68,6 +70,8 @@ export default {
             animation: {
                 'float': 'float 8s ease-in-out infinite',
                 'fadeIn': 'fadeIn 0.5s ease-out',
+                'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
             },
             keyframes: {
                 float: {
@@ -77,9 +81,29 @@ export default {
                 fadeIn: {
                     '0%': { opacity: '0', transform: 'translateY(10px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
+                },
+                'bounce-subtle': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-3px)' },
                 }
+            },
+            // Modern backdrop blur values
+            backdropBlur: {
+                xs: '2px',
+            },
+            // Container queries support
+            containers: {
+                'xs': '20rem',
+                'sm': '24rem',
+                'md': '28rem',
+                'lg': '32rem',
+                'xl': '36rem',
             }
         }
+    },
+    // Enable future CSS features
+    future: {
+        hoverOnlyWhenSupported: true,
     },
     plugins: [],
 }
