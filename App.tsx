@@ -67,7 +67,14 @@ const App: React.FC = () => {
 
   // Email Auth Modal State - Show when user is not authenticated
   const [showEmailAuthModal, setShowEmailAuthModal] = useState(false);
-  const [hasShownAuthModal, setHasShownAuthModal] = useState(false);
+  const [hasShownAuthModal, setHasShownAuthModal] = useState(() => {
+    // Check if we've already shown the modal this session
+    try {
+      return sessionStorage.getItem('genesis_auth_modal_shown') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Global Modals State
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -178,6 +185,12 @@ const App: React.FC = () => {
         console.log('[App] No user detected, showing email auth modal');
         setShowEmailAuthModal(true);
         setHasShownAuthModal(true);
+        // Persist to sessionStorage so it doesn't show again on refresh
+        try {
+          sessionStorage.setItem('genesis_auth_modal_shown', 'true');
+        } catch {
+          // Ignore storage errors
+        }
       }, 1000);
 
       return () => clearTimeout(timer);
