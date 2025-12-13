@@ -18,7 +18,12 @@ import {
   FolderOpen,
   Type,
   Globe,
-  BookOpen
+  BookOpen,
+  Eye,
+  Database,
+  Info,
+  Smartphone,
+  Wrench
 } from 'lucide-react';
 import { AppMode, UserTier, SavedBook } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +31,11 @@ import ThemeSelector from './settings/ThemeSelector';
 import LibraryPanel from './settings/LibraryPanel';
 import FontSelector from './settings/FontSelector';
 import { LanguageSelector } from './settings/LanguageSelector';
+import AccessibilitySettings from './settings/AccessibilitySettings';
+import DataManagement from './settings/DataManagement';
+import AboutSection from './settings/AboutSection';
+import SessionManagement from './settings/SessionManagement';
+import AdvancedSettings from './settings/AdvancedSettings';
 import { getUserProfile, UserProfile } from '../services/profileService';
 
 interface SettingsPanelProps {
@@ -52,7 +62,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
   // Get actual user tier from profile, fallback to props or SPARK
   const actualUserTier = userProfile?.user_tier || propsUserTier || UserTier.SPARK;
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography' | 'language'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography' | 'language' | 'accessibility' | 'data' | 'sessions' | 'advanced' | 'about'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,37 +81,41 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
   // Initialize form data from localStorage or defaults
   const [formData, setFormData] = useState(() => {
+    const defaults = {
+      displayName: '',
+      email: '',
+      bio: 'I love creating magical stories for children...',
+      defaultStyle: 'Watercolor',
+      temperature: 0.7,
+      emailUpdates: true,
+      marketingEmails: false,
+      publicProfile: true,
+      dataSharing: false,
+      autoRotate: false,
+      // Accessibility
+      reducedMotion: false,
+      highContrast: false,
+      screenReaderMode: false,
+      keyboardNavigation: true,
+      fontSize: 'medium',
+      soundEffects: true,
+      // Advanced
+      developerMode: false,
+      debugLogs: false,
+      betaFeatures: false,
+      experimentalUI: false,
+      showPerformanceMetrics: false,
+      autoSave: true
+    };
+    
     try {
       const saved = localStorage.getItem('genesis_settings');
       if (saved) {
-        return JSON.parse(saved);
+        return { ...defaults, ...JSON.parse(saved) };
       }
-      // Return defaults - will be updated by useEffect when user loads
-      return {
-        displayName: '',
-        email: '',
-        bio: 'I love creating magical stories for children...',
-        defaultStyle: 'Watercolor',
-        temperature: 0.7,
-        emailUpdates: true,
-        marketingEmails: false,
-        publicProfile: true,
-        dataSharing: false,
-        autoRotate: false
-      };
+      return defaults;
     } catch (e) {
-      return {
-        displayName: '',
-        email: '',
-        bio: 'I love creating magical stories for children...',
-        defaultStyle: 'Watercolor',
-        temperature: 0.7,
-        emailUpdates: true,
-        marketingEmails: false,
-        publicProfile: true,
-        dataSharing: false,
-        autoRotate: false
-      };
+      return defaults;
     }
   });
 
@@ -242,9 +256,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
             <TabButton id="themes" icon={ImageIcon} label="Themes" />
             <TabButton id="typography" icon={Type} label="Typography" />
             <TabButton id="language" icon={Globe} label="Language" />
+            <TabButton id="accessibility" icon={Eye} label="Accessibility" />
             <TabButton id="subscriptions" icon={CreditCard} label="Subscriptions" />
             <TabButton id="notifications" icon={Bell} label="Notifications" />
             <TabButton id="privacy" icon={Shield} label="Privacy" />
+            <TabButton id="data" icon={Database} label="Data & Export" />
+            <TabButton id="sessions" icon={Smartphone} label="Sessions" />
+            <TabButton id="advanced" icon={Wrench} label="Advanced" />
+            <TabButton id="about" icon={Info} label="About" />
             
             <a
               href="https://genesis-1765265007.documentationai.com/"
@@ -253,7 +272,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
               className="flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-[120px] md:min-w-0 bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft"
             >
               <BookOpen className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-              <span className="text-sm md:text-base whitespace-nowrap">Documentation</span>
+              <span className="text-sm md:text-base whitespace-nowrap">Help Center</span>
             </a>
           </div>
         </div>
@@ -538,6 +557,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeTab === 'accessibility' && (
+              <AccessibilitySettings settings={formData} onUpdate={setFormData} />
+            )}
+
+            {activeTab === 'data' && (
+              <DataManagement onShowSuccess={(msg) => {
+                setShowSuccess(true);
+                setTimeout(() => setShowSuccess(false), 3000);
+              }} />
+            )}
+
+            {activeTab === 'sessions' && (
+              <SessionManagement onShowSuccess={(msg) => {
+                setShowSuccess(true);
+                setTimeout(() => setShowSuccess(false), 3000);
+              }} />
+            )}
+
+            {activeTab === 'advanced' && (
+              <AdvancedSettings settings={formData} onUpdate={setFormData} />
+            )}
+
+            {activeTab === 'about' && (
+              <AboutSection />
             )}
 
           </div>

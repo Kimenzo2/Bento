@@ -351,3 +351,46 @@ summary {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* ===========================
+   Accessibility Features
+   =========================== */
+
+/* Reduced Motion */
+.reduce-motion,
+.reduce-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* High Contrast Mode */
+.high-contrast {
+    filter: contrast(1.2);
+}
+
+.high-contrast button,
+.high-contrast a {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Keyboard Navigation Enhanced */
+.keyboard-nav *:focus {
+    outline: 3px solid #FF9B71 !important;
+    outline-offset: 2px !important;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
