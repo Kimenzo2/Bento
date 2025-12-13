@@ -15,17 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "biome check --write",
-      "biome format --write"
-    ],
-    "*.{json,md,css}": [
-      "biome format --write"
-    ]
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@google/genai": "*",
