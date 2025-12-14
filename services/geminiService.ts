@@ -8,6 +8,14 @@ import {
   getCachedImageUrl,
   setCachedImageUrl
 } from './performanceOptimizations';
+import { 
+  STYLE_PROMPT_TEMPLATES, 
+  TIER_QUALITY_CONFIG, 
+  AGE_CONTENT_MODIFIERS,
+  buildPremiumImagePrompt,
+  buildCharacterConsistencyPrompt,
+  type CharacterReference 
+} from './generator/prompts/premiumPrompts';
 
 // Helper to safely get env vars in both Vite and Node environments
 const getEnv = (key: string) => {
@@ -32,9 +40,9 @@ const grokApiKeys = [
 let currentGrokKeyIndex = 0;
 
 if (grokApiKeys.length === 0) {
-  console.warn("⚠️ No Grok API Keys found! Please check your .env file.");
+  console.warn("⚠️ No Grok API Keys found! Please check your .env file. - geminiService.ts:43");
 } else {
-  console.log(`✅ Loaded ${grokApiKeys.length} Grok API key(s)`);
+  console.log(`✅ Loaded ${grokApiKeys.length} Grok API key(s) - geminiService.ts:45`);
 }
 
 // Function to get next available Grok key (rotates through keys)
@@ -63,9 +71,9 @@ const bytezApiKeys = [
 let currentKeyIndex = 0;
 
 if (bytezApiKeys.length === 0) {
-  console.warn("⚠️ No Bytez API Keys found! Please check your .env file.");
+  console.warn("⚠️ No Bytez API Keys found! Please check your .env file. - geminiService.ts:74");
 } else {
-  console.log(`✅ Loaded ${bytezApiKeys.length} Bytez API key(s)`);
+  console.log(`✅ Loaded ${bytezApiKeys.length} Bytez API key(s) - geminiService.ts:76`);
 }
 
 // Function to get next available key (rotates through keys)
@@ -92,13 +100,13 @@ async function retryWithNextKey<T>(
       const result = await operation(sdk);
 
       if (i > 0) {
-        console.log(`✅ Succeeded with key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)}`);
+        console.log(`✅ Succeeded with key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)} - geminiService.ts:103`);
       }
 
       return result;
     } catch (error: any) {
       lastError = error;
-      console.warn(`⚠️ Key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)} failed, trying next...`);
+      console.warn(`⚠️ Key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)} failed, trying next... - geminiService.ts:109`);
 
       // If it's not a quota/rate limit error, don't retry
       if (!error?.error?.code || ![429, 403, 500].includes(error.error.code)) {
@@ -107,7 +115,7 @@ async function retryWithNextKey<T>(
     }
   }
 
-  console.error("❌ All Bytez API keys exhausted");
+  console.error("❌ All Bytez API keys exhausted - geminiService.ts:118");
   throw lastError;
 }
 
@@ -161,7 +169,7 @@ class TokenBucketRateLimiter {
 
     if (this.tokens < 1) {
       const waitTime = ((1 - this.tokens) / this.refillRate) * 1000;
-      console.log(`[RateLimiter] Waiting ${Math.round(waitTime)}ms for token`);
+      console.log(`[RateLimiter] Waiting ${Math.round(waitTime)}ms for token - geminiService.ts:172`);
       await new Promise(r => setTimeout(r, waitTime));
       this.refill();
     }
@@ -213,7 +221,7 @@ const BYTEZ_TEXT_MODEL = 'google/gemini-2.5-pro';
 // Helper function to call Bytez API with Gemini 2.5 Pro for text generation
 async function callGeminiAPI(prompt: string, modelName: string = BYTEZ_TEXT_MODEL, maxTokens: number = 4096): Promise<string> {
   try {
-    console.log(`🔄 Calling Bytez API with ${modelName} for text generation...`);
+    console.log(`🔄 Calling Bytez API with ${modelName} for text generation... - geminiService.ts:224`);
 
     const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
     const model = sdk.model(modelName);
@@ -228,16 +236,16 @@ async function callGeminiAPI(prompt: string, modelName: string = BYTEZ_TEXT_MODE
     const { error, output } = await model.run(messages);
 
     if (error) {
-      console.error('❌ Bytez API error:', error);
+      console.error('❌ Bytez API error: - geminiService.ts:239', error);
       throw new Error(`Bytez API error: ${JSON.stringify(error)}`);
     }
 
     if (!output) {
-      console.error('❌ No output from Bytez API');
+      console.error('❌ No output from Bytez API - geminiService.ts:244');
       throw new Error('No output received from Bytez API');
     }
 
-    console.log('✅ Bytez API response received');
+    console.log('✅ Bytez API response received - geminiService.ts:248');
 
     // Handle different output formats from Bytez
     let content: string;
@@ -255,7 +263,7 @@ async function callGeminiAPI(prompt: string, modelName: string = BYTEZ_TEXT_MODE
 
     return content;
   } catch (error: any) {
-    console.error('❌ Bytez API call failed:', error);
+    console.error('❌ Bytez API call failed: - geminiService.ts:266', error);
     throw error;
   }
 }
@@ -417,22 +425,113 @@ Respond with this exact JSON structure:
   - Ages 13+: 8-12 sentences
 
 ### Character Consistency
-- Generate detailed \`visualPrompt\` that can be used across all pages
-- Include: age, height, build, hair (color, style, length), eyes (color, shape), skin tone, clothing style, distinctive features (freckles, glasses, etc.)
-- Keep character descriptions identical across pages
-- Reference character by name, not pronouns when possible
+Generate ULTRA-DETAILED \`visualPrompt\` for each character that ensures visual consistency across ALL pages.
+
+**REQUIRED visualPrompt STRUCTURE:**
+\`\`\`
+[Name] - [Age] [gender] [role]:
+PHYSICAL: [height descriptor], [body build], [posture/stance style]
+SKIN: [specific skin tone - e.g., "warm brown", "fair with rosy cheeks", "olive-toned"]
+HAIR: [color], [length - short/medium/long], [style - curly/straight/wavy/braided], [distinctive details]
+EYES: [color], [shape - round/almond/large], [distinctive - long lashes, glasses, etc.]
+FACE: [shape - round/oval/heart], [distinctive features - freckles, dimples, birthmark, etc.]
+CLOTHING: [signature outfit with specific colors], [accessories always worn]
+DISTINCTIVE: [1-3 unique identifying features that make this character instantly recognizable]
+COLOR PALETTE: [3-5 hex codes or color names that define this character's look]
+\`\`\`
+
+**EXAMPLE visualPrompt:**
+"Maya - 8-year-old girl protagonist:
+PHYSICAL: Average height for age, slim athletic build, confident posture
+SKIN: Warm medium brown with subtle freckles across nose
+HAIR: Dark brown, long (past shoulders), curly/coily texture, always with two bright orange hair ties making high pigtails
+EYES: Large expressive dark brown eyes, long lashes, curious sparkle
+FACE: Round friendly face, prominent dimples when smiling, small button nose
+CLOTHING: Signature purple hoodie with star patches, yellow leggings, red high-top sneakers with white laces
+DISTINCTIVE: Orange hair ties, star-patch hoodie, gap in front teeth when smiling
+COLOR PALETTE: Purple #7B68EE, Orange #FF8C42, Yellow #FFD93D, Red #FF6B6B"
+
+**CRITICAL RULES:**
+- Copy the EXACT visualPrompt into every imagePrompt where the character appears
+- Never change hair color, eye color, skin tone, or signature items between pages
+- Reference character by name AND visual description in every scene
+- Distinctive features (glasses, accessories, hair ties) must appear in EVERY image
 
 ### Image Prompts
-Each \`imagePrompt\` must include:
-1. **Scene setting**: Location, time of day, weather
-2. **Characters present**: Use exact visualPrompt descriptions
-3. **Action/emotion**: What's happening, facial expressions
-4. **Art style**: Match requested style consistently
-5. **Composition**: Camera angle, framing
-6. **Mood**: Color palette, lighting, atmosphere
-7. **Details**: Important objects, background elements
+Each \`imagePrompt\` must be a PREMIUM-QUALITY prompt that will generate professional illustrations.
 
-**Format**: "A [art style] illustration showing [character with full visual description] [action] in [setting with details]. [Mood/lighting]. [Composition]. [Color palette]."
+**REQUIRED STRUCTURE FOR EVERY imagePrompt:**
+
+\`\`\`
+[ART STYLE]: [Exact requested style with technical details]
+
+SCENE: [Detailed scene description with setting, time, atmosphere]
+
+CHARACTERS:
+- [Character name]: [FULL visual description from their visualPrompt, including age, height, build, skin tone, hair color/style/length, eye color/shape, distinctive features, exact clothing]
+- Expression: [Current emotion with specific facial details]
+- Pose/Action: [What they're doing]
+
+COMPOSITION:
+- Camera: [eye-level / low angle / high angle / wide shot / medium shot / close-up]
+- Focal Point: [Where the eye should be drawn]
+- Foreground: [Elements in front]
+- Midground: [Main action area]  
+- Background: [Setting elements]
+
+LIGHTING:
+- Type: [natural daylight / golden hour / soft ambient / dramatic / moonlit]
+- Direction: [front / side / rim / overhead]
+- Mood: [warm / cool / neutral]
+
+COLOR PALETTE:
+- Primary: [dominant color]
+- Secondary: [supporting colors]
+- Accents: [highlight colors]
+
+TECHNICAL QUALITY:
+- Ultra-detailed, professional illustration
+- Clear character recognition
+- Age-appropriate for [target age]
+- Print-ready quality
+
+AVOID:
+- Text or words in the image
+- Cropped characters
+- Inconsistent character features
+- Busy backgrounds competing with subjects
+\`\`\`
+
+**EXAMPLE PREMIUM imagePrompt:**
+"STYLE: Watercolor illustration with soft color bleeds, visible paper texture, transparent washes.
+
+SCENE: A magical forest clearing at golden hour, ancient oak trees with glowing fireflies, soft moss-covered ground.
+
+CHARACTERS:
+- Luna: 7-year-old girl with medium build, warm brown skin, curly black shoulder-length hair with small yellow flower accessory, large expressive brown eyes with long lashes, round friendly face with dimples, wearing a bright yellow sundress with daisy pattern and green rain boots.
+- Expression: Wide-eyed wonder, mouth slightly open in amazement, eyebrows raised.
+- Pose: Standing on tiptoes, both hands reaching toward a floating firefly.
+
+COMPOSITION:
+- Camera: Eye-level, medium shot
+- Focal Point: Luna's face and the firefly she's reaching for
+- Foreground: Wildflowers and ferns
+- Midground: Luna in the clearing
+- Background: Towering oak trees with dappled light
+
+LIGHTING:
+- Type: Golden hour sunlight filtering through leaves
+- Direction: Side lighting from left, creating warm rim light
+- Mood: Warm, magical, inviting
+
+COLOR PALETTE:
+- Primary: Warm yellows and soft greens
+- Secondary: Earth browns, sky blues peeking through
+- Accents: Glowing gold firefly lights
+
+TECHNICAL: Ultra-detailed watercolor, visible brushwork, professional children's book quality, age-appropriate for 6-8."
+
+**Format**: Follow the structured format above for EVERY page. This ensures consistent, professional output.
 
 ### Interactive Elements
 When \`interactive: true\`:
@@ -886,11 +985,11 @@ IMPORTANT:
         - Create professional image prompts suitable for corporate materials`;
 
   try {
-    console.log('🏢 Generating brand content with Bytez API...');
+    console.log('🏢 Generating brand content with Bytez API... - geminiService.ts:897');
 
     const text = await callGeminiAPI(prompt, BYTEZ_TEXT_MODEL, 8192);
 
-    console.log(`✅ Brand content generated(${text.length} chars)`);
+    console.log(`✅ Brand content generated(${text.length} chars) - geminiService.ts:901`);
 
     // Parse JSON response
     let rawData: any;
@@ -898,7 +997,7 @@ IMPORTANT:
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn("JSON Parse failed, attempting repair...", parseError);
+      console.warn("JSON Parse failed, attempting repair... - geminiService.ts:909", parseError);
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -946,7 +1045,7 @@ IMPORTANT:
     return project;
 
   } catch (error) {
-    console.error("Brand content generation failed:", error);
+    console.error("Brand content generation failed: - geminiService.ts:957", error);
     throw error;
   }
 };
@@ -1135,11 +1234,11 @@ Generate a book based on this request:
 ${JSON.stringify(inputPayload, null, 2)} `;
 
   try {
-    console.log('🤖 Generating book structure with Bytez API...');
+    console.log('🤖 Generating book structure with Bytez API... - geminiService.ts:1146');
 
     const text = await callGeminiAPI(prompt, BYTEZ_TEXT_MODEL, 8192); // Increased token limit for full book
 
-    console.log(`✅ Book structure generated(${text.length} chars)`);
+    console.log(`✅ Book structure generated(${text.length} chars) - geminiService.ts:1150`);
 
     // Parse JSON response
     let rawData: any;
@@ -1147,7 +1246,7 @@ ${JSON.stringify(inputPayload, null, 2)} `;
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn("JSON Parse failed, attempting repair...", parseError);
+      console.warn("JSON Parse failed, attempting repair... - geminiService.ts:1158", parseError);
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -1213,7 +1312,7 @@ ${JSON.stringify(inputPayload, null, 2)} `;
     return project;
 
   } catch (error) {
-    console.error("Story Architect failed:", error);
+    console.error("Story Architect failed: - geminiService.ts:1224", error);
     throw error;
   }
 };
@@ -1239,33 +1338,47 @@ export const generateStructuredContent = async <T>(
   try {
     const fullPrompt = `${systemInstruction || ''} \n\n${prompt} \n\nReturn VALID JSON only.`;
 
-    console.log('🤖 Generating structured content with Bytez API...');
+    console.log('🤖 Generating structured content with Bytez API... - geminiService.ts:1250');
 
     const text = await callGeminiAPI(fullPrompt, BYTEZ_TEXT_MODEL, 2048);
 
     const jsonString = extractJson(text);
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error("Structured generation failed:", error);
+    console.error("Structured generation failed: - geminiService.ts:1257", error);
     throw error;
   }
 };
 
-export const generateIllustration = async (imagePrompt: string, style: string, tier: UserTier = UserTier.SPARK): Promise<string | null> => {
+export const generateIllustration = async (
+  imagePrompt: string, 
+  style: string, 
+  tier: UserTier = UserTier.SPARK,
+  options?: {
+    ageGroup?: string;
+    characterRef?: CharacterReference;
+    sceneContext?: {
+      timeOfDay?: 'dawn' | 'morning' | 'afternoon' | 'sunset' | 'night';
+      weather?: 'clear' | 'cloudy' | 'rainy' | 'snowy' | 'stormy';
+      mood?: 'peaceful' | 'exciting' | 'mysterious' | 'joyful' | 'dramatic';
+    };
+    usePremiumPrompts?: boolean;
+  }
+): Promise<string | null> => {
   // PERFORMANCE: Create cache key from prompt + style + tier
   const cacheKey = `${style}:${tier}:${imagePrompt.substring(0, 100)} `;
 
   // PERFORMANCE: Check cache first
   const cachedUrl = getCachedImageUrl(cacheKey);
   if (cachedUrl) {
-    console.log('📦 Using cached illustration');
+    console.log('📦 Using cached illustration - geminiService.ts:1269');
     return cachedUrl;
   }
 
   // PERFORMANCE: Deduplicate identical concurrent requests
   return deduplicateRequest(cacheKey, async () => {
     const modelId = getModelId(tier);
-    console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier})`);
+    console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1276`);
 
     // PERFORMANCE: Use request queue to limit concurrent API calls
     return bytezRequestQueue.add(async () => {
@@ -1273,7 +1386,35 @@ export const generateIllustration = async (imagePrompt: string, style: string, t
       await bytezRateLimiter.acquire();
 
       try {
-        const fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, cinematic lighting, 8k resolution.`;
+        // PREMIUM: Use enterprise-grade prompts for paid tiers or when explicitly requested
+        const usePremium = options?.usePremiumPrompts || 
+          tier === UserTier.STUDIO || 
+          tier === UserTier.EMPIRE || 
+          tier === UserTier.CREATOR;
+        
+        let fullPrompt: string;
+        
+        if (usePremium && STYLE_PROMPT_TEMPLATES[style]) {
+          // Use premium prompt builder for professional-grade output
+          fullPrompt = buildPremiumImagePrompt({
+            basePrompt: imagePrompt,
+            style: style,
+            tier: tier.toString(),
+            ageGroup: options?.ageGroup,
+            characterRef: options?.characterRef,
+            sceneContext: options?.sceneContext
+          });
+          console.log('✨ Using premium prompt engineering for', style);
+        } else {
+          // Use improved prompts even for free tier when style is known
+          const styleConfig = STYLE_PROMPT_TEMPLATES[style];
+          if (styleConfig) {
+            fullPrompt = `${styleConfig.prefix}. ${imagePrompt}. ${styleConfig.lighting}. ${styleConfig.quality}. AVOID: ${styleConfig.avoidances}`;
+          } else {
+            // Fallback for unknown styles
+            fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, detailed illustration, professional quality, cinematic lighting.`;
+          }
+        }
 
         const output = await retryWithBackoff(
           async () => {
@@ -1305,10 +1446,10 @@ export const generateIllustration = async (imagePrompt: string, style: string, t
           setCachedImageUrl(cacheKey, output);
         }
 
-        console.log("✅ Bytez generation successful");
+        console.log("✅ Bytez generation successful - geminiService.ts:1316");
         return output;
       } catch (error) {
-        console.error("❌ All Bytez keys exhausted:", error);
+        console.error("❌ All Bytez keys exhausted: - geminiService.ts:1319", error);
         return null;
       }
     });
@@ -1323,37 +1464,84 @@ export const generateRefinedImage = async (
     mixRatio?: number,
     lighting?: string,
     camera?: string,
-    characterDescription?: string
+    characterDescription?: string,
+    ageGroup?: string
   },
   tier: UserTier = UserTier.SPARK
 ): Promise<string | null> => {
   const modelId = getModelId(tier);
+  const qualityConfig = TIER_QUALITY_CONFIG[tier.toString()] || TIER_QUALITY_CONFIG['SPARK'];
 
-  console.log(`🎨 Generating refined image using model: ${modelId} (Tier: ${tier})`);
+  console.log(`🎨 Generating refined image using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1340`);
 
-  let styleInstruction = `Style: ${params.styleA} `;
-  if (params.styleB && params.mixRatio !== undefined) {
-    styleInstruction = `Visual Style: A blend of ${params.mixRatio}% ${params.styleA} and ${100 - params.mixRatio}% ${params.styleB}.`;
+  // Get style configurations
+  const styleAConfig = STYLE_PROMPT_TEMPLATES[params.styleA];
+  const styleBConfig = params.styleB ? STYLE_PROMPT_TEMPLATES[params.styleB] : null;
+
+  let styleInstruction: string;
+  if (styleBConfig && params.mixRatio !== undefined) {
+    // Blend two styles
+    styleInstruction = `
+STYLE BLEND: ${params.mixRatio}% ${params.styleA} + ${100 - params.mixRatio}% ${params.styleB}
+Primary Style (${params.mixRatio}%): ${styleAConfig?.prefix || params.styleA}
+Secondary Style (${100 - params.mixRatio}%): ${styleBConfig?.prefix || params.styleB}
+Blend these aesthetics harmoniously.`;
+  } else if (styleAConfig) {
+    styleInstruction = `
+STYLE: ${styleAConfig.prefix}
+TECHNICAL SPECS: ${styleAConfig.technicalSpecs}`;
+  } else {
+    styleInstruction = `Style: ${params.styleA}`;
   }
 
-  let composition = "";
-  if (params.lighting) composition += ` Lighting: ${params.lighting}.`;
-  if (params.camera) composition += ` Camera Angle: ${params.camera}.`;
+  // Build composition instructions
+  const compositionParts: string[] = [];
+  if (params.lighting) compositionParts.push(`Lighting: ${params.lighting}`);
+  else if (styleAConfig?.lighting) compositionParts.push(`Lighting: ${styleAConfig.lighting}`);
+  if (params.camera) compositionParts.push(`Camera/Composition: ${params.camera}`);
+
+  // Age-appropriate adjustments
+  let ageModifiers = '';
+  if (params.ageGroup && AGE_CONTENT_MODIFIERS[params.ageGroup]) {
+    const ageMod = AGE_CONTENT_MODIFIERS[params.ageGroup];
+    ageModifiers = `
+AGE-APPROPRIATE STYLE: ${ageMod.style}
+COMPLEXITY LEVEL: ${ageMod.complexity}
+MOOD: ${ageMod.mood}`;
+  }
 
   const fullPrompt = `
-    Create a high - quality, gallery - worthy masterpiece.
-  ${styleInstruction}
-    ${composition}
-Subject: ${prompt}.
-    ${params.characterDescription ? `Character Details: ${params.characterDescription}` : ''}
-    
-    CRITICAL QUALITY INSTRUCTIONS:
-- Ultra - detailed, 8k resolution, cinematic lighting, photorealistic textures(unless style specifies otherwise).
-    - Wide - angle composition suitable for a large gallery display.
-    - Depth of field, volumetric lighting, and rich colors.
-    - No artifacts, no blurring, perfect anatomy and proportions.
-    - Make it look like a top - tier production still from a movie or high - end game.
-  `;
+Create a premium, gallery-worthy masterpiece illustration.
+
+${styleInstruction}
+
+SUBJECT: ${prompt}
+
+${params.characterDescription ? `CHARACTER DETAILS (maintain consistency):
+${params.characterDescription}` : ''}
+
+COMPOSITION:
+${compositionParts.join('\n')}
+- Focal point using rule of thirds
+- Clear foreground, midground, background separation
+- Dynamic but balanced composition
+${ageModifiers}
+
+QUALITY REQUIREMENTS:
+${qualityConfig.qualityModifiers.join(', ')}
+${styleAConfig?.quality || 'Professional illustration quality'}
+
+COLOR APPROACH:
+${styleAConfig?.colorApproach || 'Harmonious color palette with strategic accents'}
+
+CRITICAL:
+- No artifacts, no blurring, perfect anatomy and proportions
+- Production-ready quality suitable for publishing
+- Consistent style throughout the entire image
+
+AVOID:
+${styleAConfig?.avoidances || 'No muddy colors, no inconsistent lighting, no anatomical errors'}
+`;
 
   try {
     const output = await retryWithNextKey(async (sdk) => {
@@ -1367,10 +1555,10 @@ Subject: ${prompt}.
       return output;
     });
 
-    console.log("✅ Bytez generation successful");
+    console.log("✅ Bytez generation successful - geminiService.ts:1378");
     return output;
   } catch (error) {
-    console.error("❌ All Bytez keys exhausted:", error);
+    console.error("❌ All Bytez keys exhausted: - geminiService.ts:1381", error);
     return null;
   }
 };

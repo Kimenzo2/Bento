@@ -46,6 +46,8 @@
   "exclude": [
     "node_modules",
     "dist",
-    "dev-dist"
+    "dev-dist",
+    "e2e",
+    "playwright.config.ts"
   ]
 }
