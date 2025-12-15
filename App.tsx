@@ -44,6 +44,9 @@ const LegalViewer = lazy(() => import('./components/LegalViewer'));
 
 
 
+import { OnboardingProvider } from './components/onboarding/OnboardingState';
+import { OnboardingLayout } from './components/onboarding/OnboardingLayout';
+
 const App: React.FC = () => {
   // Initialize Google One Tap for seamless authentication
   useGoogleOneTap();
@@ -55,6 +58,12 @@ const App: React.FC = () => {
 
   // Get auth state
   const { user, loading: authLoading } = useAuth();
+
+  // Onboarding State - MUST be declared before any early returns
+  const [showOnboarding] = useState(() => {
+    // Check if user has completed onboarding
+    return !localStorage.getItem('genesis_onboarding_completed');
+  });
 
   const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
@@ -643,6 +652,15 @@ const App: React.FC = () => {
           </Routes>
         </Suspense>
       </div>
+    );
+  }
+
+  // Show onboarding for new users
+  if (showOnboarding) {
+    return (
+      <OnboardingProvider>
+        <OnboardingLayout />
+      </OnboardingProvider>
     );
   }
 
