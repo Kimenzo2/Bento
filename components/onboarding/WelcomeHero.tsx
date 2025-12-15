@@ -38,9 +38,9 @@ const AmbientOrb = ({ color, size, x, y, blur }: { color: string; size: string; 
 
 // Image paths for themes
 const themeImages = {
-  cosmos: '/images/onboarding/theme-cosmos.png',
-  kingdom: '/images/onboarding/theme-kingdom.png',
-  cell: '/images/onboarding/theme-cell.png',
+  cosmos: '/images/onboarding/Cosmos.png',
+  kingdom: '/images/onboarding/On 4.jpeg',
+  cell: '/images/onboarding/On 5.png',
 };
 
 export const WelcomeHero: React.FC = () => {
@@ -132,7 +132,7 @@ export const WelcomeHero: React.FC = () => {
               className="relative mb-3 md:mb-5 inline-block mx-auto lg:mx-0"
             >
               <img
-                src="/images/onboarding/gen-mascot.png"
+                src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
                 alt="Gen - Your Creative Guide"
                 className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain drop-shadow-2xl rounded-3xl"
               />

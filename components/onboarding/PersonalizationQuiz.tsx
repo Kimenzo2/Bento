@@ -26,13 +26,13 @@ const FloatingBlob = ({ color, size, x, y, delay }: { color: string; size: strin
 
 // Image paths for quiz options
 const quizImages = {
-  kids: '/images/onboarding/intent-kids.png',
-  scifi: '/images/onboarding/intent-scifi.png',
-  brand: '/images/onboarding/intent-brand.png',
-  beginner: '/images/onboarding/skill-beginner.png',
-  pro: '/images/onboarding/skill-pro.png',
-  daily: '/images/onboarding/cadence-daily.png',
-  occasional: '/images/onboarding/cadence-occasional.png',
+  kids: '/images/onboarding/On 13.png',
+  scifi: '/images/onboarding/On 14.png',
+  brand: '/images/onboarding/On 15.png',
+  beginner: '/images/onboarding/On 16.png',
+  pro: '/images/onboarding/On 17.png',
+  daily: '/images/onboarding/On 18.png',
+  occasional: '/images/onboarding/On 19.png',
 };
 
 interface QuizQuestion {

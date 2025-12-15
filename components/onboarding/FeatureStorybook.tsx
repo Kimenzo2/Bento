@@ -5,11 +5,11 @@ import { useOnboarding } from './OnboardingState';
 
 // Image paths for features
 const featureImages = {
-  storytelling: '/images/onboarding/feature-storytelling.png',
-  illustrations: '/images/onboarding/feature-illustrations.png',
-  multimode: '/images/onboarding/feature-multimode.png',
-  editor: '/images/onboarding/feature-editor.png',
-  genMascot: '/images/onboarding/gen-mascot.png',
+  storytelling: '/images/onboarding/On 6.png',
+  illustrations: '/images/onboarding/On 7.png',
+  multimode: '/images/onboarding/On 8.png',
+  editor: '/images/onboarding/On 9.png',
+  genMascot: '/images/onboarding/Style_directive_highend_202512150033.jpeg',
 };
 
 interface Feature {

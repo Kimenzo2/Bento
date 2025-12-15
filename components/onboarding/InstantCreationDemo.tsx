@@ -5,10 +5,10 @@ import { useOnboarding } from './OnboardingState';
 
 // Theme images
 const themeImages = {
-  cosmos: '/images/onboarding/theme-cosmos.png',
-  kingdom: '/images/onboarding/theme-kingdom.png',
-  cell: '/images/onboarding/theme-cell.png',
-  genMascot: '/images/onboarding/gen-mascot.png',
+  cosmos: '/images/onboarding/Cosmos.png',
+  kingdom: '/images/onboarding/On 4.jpeg',
+  cell: '/images/onboarding/On 5.png',
+  genMascot: '/images/onboarding/Style_directive_highend_202512150033.jpeg',
 };
 
 // Theme videos

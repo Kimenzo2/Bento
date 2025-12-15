@@ -5,9 +5,9 @@ import { useOnboarding, type UserRole } from './OnboardingState';
 
 // Image paths for roles
 const roleImages = {
-  mentor: '/images/onboarding/role-mentor.png',
-  explorer: '/images/onboarding/role-explorer.png',
-  guardian: '/images/onboarding/role-guardian.png',
+  mentor: '/images/onboarding/On 10.png',
+  explorer: '/images/onboarding/On 11.png',
+  guardian: '/images/onboarding/On 12.png',
 };
 
 interface RoleOption {
