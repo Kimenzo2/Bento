@@ -91,7 +91,7 @@ export const WelcomeSuccess: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden bg-[#0a0a0f]">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-center p-6 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900" />
       

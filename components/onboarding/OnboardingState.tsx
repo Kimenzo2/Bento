@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-export type OnboardingStep = 'spark' | 'quiz' | 'magic' | 'tour' | 'identity' | 'cliffhanger' | 'welcome';
+export type OnboardingStep = 'spark' | 'quiz' | 'magic' | 'proreveal' | 'pricing' | 'tour' | 'identity' | 'cliffhanger' | 'welcome';
 export type ThemeOption = 'cosmos' | 'kingdom' | 'cell';
 export type UserRole = 'mentor' | 'explorer' | 'guardian';
 

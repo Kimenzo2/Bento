@@ -78,20 +78,16 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
         className="hidden lg:flex flex-col items-center"
       >
         {/* Gen Mascot Image */}
-        <motion.div
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="relative"
-        >
+        <div className="relative">
           <img
             src={featureImages.genMascot}
             alt="Gen - Your Creative Guide"
-            className="w-36 h-36 object-contain drop-shadow-2xl"
+            className="w-36 h-36 object-contain drop-shadow-2xl rounded-3xl"
           />
           
           {/* Glow behind */}
           <div className="absolute inset-0 bg-purple-500/30 blur-3xl -z-10" />
-        </motion.div>
+        </div>
         
         {/* Speech bubble */}
         <motion.div
@@ -161,7 +157,7 @@ export const FeatureStorybook: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-6 overflow-hidden bg-[#0a0a0f]">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-3 py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
       
@@ -194,14 +190,14 @@ export const FeatureStorybook: React.FC = () => {
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-6xl mx-auto">
-        <div className="flex items-center gap-12 lg:gap-20">
-          {/* Gen Mascot - Left side */}
+        <div className="flex items-center gap-6 lg:gap-12">
+          {/* Gen Mascot - Only on large screens */}
           <GenMascot message={currentFeature.mascotMessage} isVisible={true} />
 
-          {/* Main content - Center */}
-          <div className="flex-1">
+          {/* Main content */}
+          <div className="flex-1 w-full">
             {/* Progress indicators */}
-            <div className="flex justify-center gap-2 mb-10">
+            <div className="flex justify-center gap-1.5 md:gap-2 mb-4 md:mb-10">
               {features.map((_, idx) => (
                 <button
                   key={idx}
@@ -221,7 +217,7 @@ export const FeatureStorybook: React.FC = () => {
             </div>
 
             {/* Feature card */}
-            <div className="relative h-[520px] md:h-[480px]">
+            <div className="relative h-auto min-h-[320px] md:min-h-[420px] lg:h-[480px]">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={currentFeature.id}
@@ -233,20 +229,18 @@ export const FeatureStorybook: React.FC = () => {
                   transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute inset-0"
                 >
-                  <div className="h-full bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 md:p-10 flex flex-col items-center text-center">
+                  <div className="h-full bg-white/5 backdrop-blur-2xl rounded-2xl md:rounded-3xl border border-white/10 p-4 md:p-8 lg:p-10 flex flex-col items-center text-center">
                     {/* Feature Image - Large and prominent */}
                     <motion.div
                       initial={{ scale: 0, rotate: -10 }}
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ delay: 0.2, type: "spring", bounce: 0.4 }}
-                      className="relative mb-6"
+                      className="relative mb-3 md:mb-6"
                     >
-                      <motion.img
+                      <img
                         src={currentFeature.image}
                         alt={currentFeature.title}
-                        className="w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="w-24 h-24 md:w-36 md:h-36 lg:w-48 lg:h-48 object-contain drop-shadow-2xl rounded-2xl md:rounded-3xl"
                       />
                       
                       {/* Glow behind image */}
@@ -259,23 +253,23 @@ export const FeatureStorybook: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <p className={`text-sm font-medium mb-2 bg-gradient-to-r ${currentFeature.gradient} bg-clip-text text-transparent`}>
+                      <p className={`text-xs md:text-sm font-medium mb-1 md:mb-2 bg-gradient-to-r ${currentFeature.gradient} bg-clip-text text-transparent`}>
                         {currentFeature.subtitle}
                       </p>
-                      <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 font-heading">
+                      <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4 font-heading">
                         {currentFeature.title}
                       </h2>
-                      <p className="text-white/60 text-lg leading-relaxed max-w-lg mx-auto">
+                      <p className="text-white/60 text-sm md:text-base lg:text-lg leading-relaxed max-w-lg mx-auto">
                         {currentFeature.description}
                       </p>
                     </motion.div>
 
-                    {/* Feature highlights */}
+                    {/* Feature highlights - Hide on mobile */}
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.5 }}
-                      className="mt-auto flex flex-wrap justify-center gap-3"
+                      className="mt-auto hidden md:flex flex-wrap justify-center gap-3"
                     >
                       {['Instant', 'Professional', 'Easy'].map((tag) => (
                         <span
@@ -292,14 +286,14 @@ export const FeatureStorybook: React.FC = () => {
             </div>
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-8">
+            <div className="flex items-center justify-between mt-4 md:mt-8 gap-2">
               {/* Previous */}
               <motion.button
                 onClick={goPrev}
                 disabled={isFirst}
                 whileHover={{ scale: isFirst ? 1 : 1.05 }}
                 whileTap={{ scale: isFirst ? 1 : 0.95 }}
-                className={`flex items-center gap-2 px-5 py-3 rounded-full font-medium transition-all ${
+                className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${
                   isFirst 
                     ? 'text-white/20 cursor-not-allowed' 
                     : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -321,7 +315,7 @@ export const FeatureStorybook: React.FC = () => {
                 onClick={goNext}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="group relative px-8 py-4 rounded-full font-bold text-lg overflow-hidden"
+                className="group relative px-5 py-3 md:px-8 md:py-4 rounded-full font-bold text-sm md:text-lg overflow-hidden"
               >
                 {/* Button gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-r ${currentFeature.gradient}`} />

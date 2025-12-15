@@ -11,6 +11,11 @@ const themeImages = {
   genMascot: '/images/onboarding/gen-mascot.png',
 };
 
+// Theme videos
+const themeVideos = {
+  cell: '/images/onboarding/Cinematic_microscopic_journey_202512151050_ve.mp4',
+};
+
 // Particle explosion effect
 const ParticleExplosion = ({ active }: { active: boolean }) => {
   if (!active) return null;
@@ -96,6 +101,7 @@ export const InstantCreationDemo: React.FC = () => {
           prompt: "Inside the cell, a journey begins...",
           generated: "The mitochondria hummed with ancient energy, powering the cell's impossible machinery. Ribosomes danced along messenger RNA, translating the code of life itself into proteins that would heal, grow, and transform.",
           visualImage: themeImages.cell,
+          visualVideo: themeVideos.cell,
           visualGradient: 'from-emerald-400 via-teal-500 to-cyan-600',
           bgGradient: 'from-slate-900 via-emerald-950 to-slate-900',
           accentColor: 'text-emerald-400',
@@ -128,11 +134,12 @@ export const InstantCreationDemo: React.FC = () => {
   };
 
   const handleContinue = () => {
-    setStep('tour');
+    // Go to Pro reveal moment - psychological peak conversion opportunity
+    setStep('proreveal');
   };
 
   return (
-    <div className={`relative min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden bg-gradient-to-br ${content.bgGradient}`}>
+    <div className={`relative h-full min-h-full flex flex-col items-center justify-start px-3 py-6 md:p-6 overflow-x-hidden overflow-y-auto bg-linear-to-br ${content.bgGradient}`}>
       {/* Ambient effects */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Radial gradient spotlight */}
@@ -166,12 +173,12 @@ export const InstantCreationDemo: React.FC = () => {
           <motion.div
             initial={{ x: 100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="absolute top-24 right-6 z-20"
+            className="absolute top-4 right-3 md:top-24 md:right-6 z-20"
           >
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-400/30">
-              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-              <span className="text-white font-bold">{sparkPoints}</span>
-              <span className="text-white/60 text-sm">Sparks</span>
+            <div className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-400/30">
+              <Star className="w-4 h-4 md:w-5 md:h-5 text-amber-400 fill-amber-400" />
+              <span className="text-white font-bold text-sm md:text-base">{sparkPoints}</span>
+              <span className="text-white/60 text-xs md:text-sm hidden md:inline">Sparks</span>
             </div>
           </motion.div>
         )}
@@ -185,39 +192,39 @@ export const InstantCreationDemo: React.FC = () => {
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0, y: -50, opacity: 0 }}
             transition={{ type: "spring", bounce: 0.5 }}
-            className="absolute top-1/3 z-30 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full shadow-lg shadow-amber-500/30"
+            className="absolute top-1/4 md:top-1/3 z-30 flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full shadow-lg shadow-amber-500/30"
           >
-            <Star className="w-6 h-6 text-white fill-white" />
-            <span className="text-white font-bold text-lg">+25 Spark Points!</span>
+            <Star className="w-5 h-5 md:w-6 md:h-6 text-white fill-white" />
+            <span className="text-white font-bold text-base md:text-lg">+25 Sparks!</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Main content */}
-      <div className="relative z-10 w-full max-w-3xl">
+      <div className="relative z-10 w-full max-w-3xl flex-1 flex flex-col justify-center">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-6 md:mb-12"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
           >
-            <Wand2 className="w-4 h-4 text-amber-400" />
-            <span className="text-white/70 text-sm font-medium">Experience the Magic</span>
+            <Wand2 className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
+            <span className="text-white/70 text-xs md:text-sm font-medium">Experience the Magic</span>
           </motion.div>
           
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-heading">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4 font-heading">
             Watch your words
             <br />
             <span className={content.accentColor}>come alive.</span>
           </h1>
-          <p className="text-white/50 text-lg max-w-md mx-auto">
-            In Genesis, every sentence is a seed. Tap below to plant yours.
+          <p className="text-white/50 text-sm md:text-lg max-w-md mx-auto">
+            Tap below to plant your first seed.
           </p>
         </motion.div>
 
@@ -226,7 +233,7 @@ export const InstantCreationDemo: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className={`relative bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:p-10 ${phase === 'revealed' || phase === 'complete' ? content.glowColor : ''}`}
+          className={`relative bg-white/5 backdrop-blur-xl rounded-2xl md:rounded-3xl border border-white/10 p-4 md:p-8 lg:p-10 ${phase === 'revealed' || phase === 'complete' ? content.glowColor : ''}`}
         >
           {/* Particle explosion container */}
           <div className="absolute inset-0 overflow-hidden rounded-3xl">
@@ -243,7 +250,7 @@ export const InstantCreationDemo: React.FC = () => {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="text-center"
               >
-                <p className="text-2xl md:text-3xl font-serif text-white/80 mb-8 italic">
+                <p className="text-lg md:text-2xl lg:text-3xl font-serif text-white/80 mb-6 md:mb-8 italic">
                   "{content.prompt}"
                 </p>
                 
@@ -251,7 +258,7 @@ export const InstantCreationDemo: React.FC = () => {
                   onClick={handleActivate}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="group relative inline-flex items-center gap-3 px-8 py-4 overflow-hidden rounded-full"
+                  className="group relative inline-flex items-center gap-2 md:gap-3 px-6 py-3 md:px-8 md:py-4 overflow-hidden rounded-full"
                 >
                   {/* Button gradient */}
                   <div className={`absolute inset-0 bg-gradient-to-r ${content.visualGradient}`} />
@@ -262,13 +269,13 @@ export const InstantCreationDemo: React.FC = () => {
                   {/* Glow */}
                   <div className={`absolute inset-0 bg-gradient-to-r ${content.visualGradient} blur-xl opacity-50 group-hover:opacity-70 transition-opacity`} />
                   
-                  <span className="relative flex items-center gap-2 text-white font-bold text-lg">
-                    <Wand2 className="w-5 h-5" />
+                  <span className="relative flex items-center gap-2 text-white font-bold text-base md:text-lg">
+                    <Wand2 className="w-4 h-4 md:w-5 md:h-5" />
                     Tap to Generate
                   </span>
                 </motion.button>
                 
-                <p className="mt-6 text-white/30 text-sm animate-pulse">
+                <p className="mt-4 md:mt-6 text-white/30 text-xs md:text-sm animate-pulse">
                   ✨ One tap. Infinite possibilities.
                 </p>
               </motion.div>
@@ -308,33 +315,37 @@ export const InstantCreationDemo: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                {/* Generated visual */}
+                {/* Generated visual - Video or Image */}
                 <motion.div
                   initial={{ scale: 0, rotate: -10 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", bounce: 0.4 }}
-                  className="flex justify-center mb-8"
+                  className="flex justify-center mb-4 md:mb-8"
                 >
-                  <div className={`p-6 rounded-3xl bg-gradient-to-br ${content.visualGradient} shadow-2xl backdrop-blur-sm`}>
-                    <motion.img 
-                      src={content.visualImage}
-                      alt="Generated visual"
-                      className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-2xl"
-                      animate={{ 
-                        y: [0, -5, 0],
-                        rotate: [0, 2, -2, 0] 
-                      }}
-                      transition={{ 
-                        duration: 3, 
-                        repeat: Infinity, 
-                        ease: "easeInOut" 
-                      }}
-                    />
+                  <div className={`overflow-hidden rounded-2xl md:rounded-3xl ${content.glowColor} shadow-2xl`}>
+                    {content.visualVideo ? (
+                      <video
+                        src={content.visualVideo}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-2xl md:rounded-3xl"
+                      />
+                    ) : (
+                      <div className={`p-4 md:p-6 bg-gradient-to-br ${content.visualGradient}`}>
+                        <img 
+                          src={content.visualImage}
+                          alt="Generated visual"
+                          className="w-16 h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain drop-shadow-2xl rounded-xl md:rounded-3xl"
+                        />
+                      </div>
+                    )}
                   </div>
                 </motion.div>
                 
                 {/* Generated text */}
-                <p className="text-xl md:text-2xl text-white/90 font-serif leading-relaxed text-center mb-8">
+                <p className="text-base md:text-xl lg:text-2xl text-white/90 font-serif leading-relaxed text-center mb-4 md:mb-8">
                   "{content.generated}"
                 </p>
                 
@@ -343,10 +354,10 @@ export const InstantCreationDemo: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="flex items-center justify-center gap-2 text-emerald-400 mb-8"
+                  className="flex items-center justify-center gap-2 text-emerald-400 mb-4 md:mb-8"
                 >
-                  <Sparkles className="w-5 h-5" />
-                  <span className="font-medium">Your first creation is born!</span>
+                  <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="font-medium text-sm md:text-base">Your first creation is born!</span>
                 </motion.div>
               </motion.div>
             )}
@@ -366,7 +377,7 @@ export const InstantCreationDemo: React.FC = () => {
                 onClick={handleContinue}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-3 px-10 py-5 bg-white text-slate-900 rounded-full font-bold text-lg shadow-2xl shadow-white/20 hover:shadow-white/30 transition-all"
+                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-white text-slate-900 rounded-full font-bold text-base md:text-lg shadow-2xl shadow-white/20 hover:shadow-white/30 transition-all"
               >
                 See What Else is Possible
                 <ArrowRight className="w-5 h-5" />

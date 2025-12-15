@@ -69,7 +69,7 @@ export const CreativePersonaQuiz: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden bg-[#0a0a0f]">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-start px-3 py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
       
@@ -97,37 +97,37 @@ export const CreativePersonaQuiz: React.FC = () => {
       />
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-5xl">
+      <div className="relative z-10 w-full max-w-5xl flex-1 flex flex-col justify-center">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-6 md:mb-12"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
           >
-            <Users className="w-4 h-4 text-purple-400" />
-            <span className="text-white/70 text-sm font-medium">Choose Your Path</span>
+            <Users className="w-3 h-3 md:w-4 md:h-4 text-purple-400" />
+            <span className="text-white/70 text-xs md:text-sm font-medium">Choose Your Path</span>
           </motion.div>
           
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-heading">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4 font-heading">
             Who is the captain
             <br />
             <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
               of this voyage?
             </span>
           </h1>
-          <p className="text-white/50 text-lg max-w-md mx-auto">
-            We'll tailor Genesis to match your role and unlock features that matter most to you.
+          <p className="text-white/50 text-sm md:text-lg max-w-md mx-auto px-4">
+            We'll tailor Genesis to match your role.
           </p>
         </motion.div>
 
         {/* Role cards with images */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+        <div className="grid grid-cols-3 gap-2 md:gap-5 mb-6 md:mb-10">
           {roles.map((role, index) => {
             const isSelected = selectedRole === role.id;
             
@@ -140,34 +140,32 @@ export const CreativePersonaQuiz: React.FC = () => {
                 onClick={() => handleRoleSelect(role.id)}
                 disabled={isTransitioning}
                 whileHover={{ y: -5 }}
-                className={`group relative p-6 rounded-2xl text-center transition-all duration-300 ${
+                className={`group relative p-3 md:p-6 rounded-xl md:rounded-2xl text-center transition-all duration-300 ${
                   isSelected 
                     ? `${role.glow} ring-2 ring-white/30` 
                     : 'hover:bg-white/5'
-                }`}
+                } overflow-hidden`}
               >
                 {/* Background */}
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`} />
+                <div className={`absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`} />
                 
                 {/* Glass border */}
-                <div className="absolute inset-0 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10" />
+                <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10" />
                 
                 {/* Shimmer on hover */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 overflow-hidden" />
+                <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 <div className="relative">
-                  {/* Role Image - Large and centered */}
+                  {/* Role Image - Compact on mobile */}
                   <motion.div
-                    className="mb-5 flex justify-center"
-                    animate={isSelected ? { scale: 1.1 } : { scale: 1 }}
+                    className="mb-2 md:mb-5 flex justify-center"
+                    animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <motion.img
+                    <img
                       src={role.image}
                       alt={role.title}
-                      className="w-32 h-32 md:w-36 md:h-36 object-contain drop-shadow-2xl"
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ duration: 0.3 }}
+                      className="w-16 h-16 md:w-28 md:h-28 lg:w-36 lg:h-36 object-contain drop-shadow-2xl rounded-xl md:rounded-3xl"
                     />
                     
                     {/* Glow behind image */}
@@ -175,16 +173,16 @@ export const CreativePersonaQuiz: React.FC = () => {
                   </motion.div>
                   
                   {/* Text */}
-                  <h3 className="text-xl font-bold text-white mb-1">{role.title}</h3>
-                  <p className={`text-sm mb-3 bg-gradient-to-r ${role.gradient} bg-clip-text text-transparent font-medium`}>
+                  <h3 className="text-xs md:text-xl font-bold text-white mb-0 md:mb-1">{role.title}</h3>
+                  <p className={`text-[10px] md:text-sm mb-1 md:mb-3 bg-gradient-to-r ${role.gradient} bg-clip-text text-transparent font-medium hidden md:block`}>
                     {role.subtitle}
                   </p>
-                  <p className="text-white/50 text-sm leading-relaxed">
+                  <p className="text-white/50 text-xs md:text-sm leading-relaxed hidden md:block">
                     {role.description}
                   </p>
                   
                   {/* Selection indicator */}
-                  <div className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                  <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                     isSelected 
                       ? 'border-white bg-white' 
                       : 'border-white/20'
@@ -195,7 +193,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", bounce: 0.5 }}
                       >
-                        <Check className="w-4 h-4 text-slate-900" />
+                        <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-slate-900" />
                       </motion.div>
                     )}
                   </div>
@@ -219,7 +217,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                 disabled={isTransitioning}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="group relative px-10 py-5 rounded-full font-bold text-lg overflow-hidden"
+                className="group relative px-8 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-lg overflow-hidden"
               >
                 {/* Button gradient */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />

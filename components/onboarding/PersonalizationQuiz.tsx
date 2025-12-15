@@ -106,9 +106,9 @@ export const PersonalizationQuiz: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-start px-4 pt-20 pb-10 overflow-hidden">
-      {/* Premium Background */}
-      <div className="absolute inset-0 bg-[#0a0a0f]" />
+    <div className="relative h-full min-h-full flex flex-col items-center px-3 md:px-4 py-6 md:pt-16 md:pb-10 overflow-x-hidden overflow-y-auto">
+      {/* Premium Background - inherits from parent */}
+      <div className="absolute inset-0" />
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20" />
       
       {/* Floating blobs */}
@@ -131,16 +131,23 @@ export const PersonalizationQuiz: React.FC = () => {
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="flex justify-center mb-8"
+          className="flex justify-center mb-4 md:mb-8"
         >
-          <div className="relative w-20 h-20">
+          <div className="relative w-14 h-14 md:w-20 md:h-20">
             {/* Background ring */}
-            <svg className="w-20 h-20 -rotate-90">
+            <svg className="w-14 h-14 md:w-20 md:h-20 -rotate-90">
+              <circle
+                cx="50%"
+                cy="50%"
+                r="24"
+                className="fill-none stroke-white/10 md:hidden"
+                strokeWidth="3"
+              />
               <circle
                 cx="40"
                 cy="40"
                 r="36"
-                className="fill-none stroke-white/10"
+                className="fill-none stroke-white/10 hidden md:block"
                 strokeWidth="4"
               />
               <motion.circle
@@ -193,25 +200,25 @@ export const PersonalizationQuiz: React.FC = () => {
             className={`${isTransitioning ? 'pointer-events-none' : ''}`}
           >
             {/* Header */}
-            <div className="text-center mb-10">
+            <div className="text-center mb-4 md:mb-10">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-6"
+                className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-white/70 text-sm font-medium">Question {currentQuestion + 1} of {questions.length}</span>
+                <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
+                <span className="text-white/70 text-xs md:text-sm font-medium">Question {currentQuestion + 1} of {questions.length}</span>
               </motion.div>
               
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 font-heading">
+              <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-1.5 md:mb-3 font-heading px-2">
                 {question.title}
               </h2>
-              <p className="text-white/50 text-lg">{question.subtitle}</p>
+              <p className="text-white/50 text-sm md:text-lg">{question.subtitle}</p>
             </div>
 
             {/* Options with Images */}
-            <div className={`grid gap-4 ${question.options.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-2.5 md:gap-4 ${question.options.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
               {question.options.map((option, idx) => {
                 const isSelected = currentAnswer === option.value;
                 
@@ -222,7 +229,7 @@ export const PersonalizationQuiz: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + idx * 0.1 }}
                     onClick={() => handleSelect(option.value)}
-                    className={`group relative w-full p-5 rounded-2xl text-left transition-all duration-300 overflow-hidden ${
+                    className={`group relative w-full p-3 md:p-5 rounded-xl md:rounded-2xl text-left transition-all duration-300 overflow-hidden ${
                       isSelected 
                         ? 'ring-2 ring-white/40' 
                         : 'hover:bg-white/5'
@@ -237,7 +244,7 @@ export const PersonalizationQuiz: React.FC = () => {
                     {/* Shimmer on hover */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
-                    <div className="relative flex items-center gap-5">
+                    <div className="relative flex items-center gap-3 md:gap-5">
                       {/* Image */}
                       <motion.div
                         className="flex-shrink-0"
@@ -247,14 +254,14 @@ export const PersonalizationQuiz: React.FC = () => {
                         <img
                           src={option.image}
                           alt={option.label}
-                          className={`w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl ${isSelected ? 'scale-110' : ''} transition-transform duration-300`}
+                          className={`w-14 h-14 md:w-20 md:h-24 object-contain drop-shadow-xl rounded-xl md:rounded-2xl ${isSelected ? 'scale-110' : ''} transition-transform duration-300`}
                         />
                       </motion.div>
                       
                       {/* Text */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-white mb-0.5">{option.label}</h3>
-                        <p className="text-white/50 text-sm">{option.description}</p>
+                        <h3 className="text-sm md:text-lg font-bold text-white mb-0 md:mb-0.5">{option.label}</h3>
+                        <p className="text-white/50 text-xs md:text-sm hidden md:block">{option.description}</p>
                       </div>
                       
                       {/* Selection indicator */}
@@ -288,13 +295,13 @@ export const PersonalizationQuiz: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="mt-10 flex justify-center"
+              className="mt-6 md:mt-10 flex justify-center pb-4"
             >
               <motion.button
                 onClick={handleContinue}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="group relative px-10 py-5 rounded-full font-bold text-lg overflow-hidden"
+                className="group relative px-8 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-lg overflow-hidden"
               >
                 {/* Button gradient background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />

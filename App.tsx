@@ -655,11 +655,13 @@ const App: React.FC = () => {
     );
   }
 
-  // Show onboarding for new users
+  // Show onboarding for new users - renders as fixed fullscreen overlay
   if (showOnboarding) {
     return (
       <OnboardingProvider>
-        <OnboardingLayout />
+        <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-slate-900 via-[#0a0a0f] to-slate-900">
+          <OnboardingLayout />
+        </div>
       </OnboardingProvider>
     );
   }

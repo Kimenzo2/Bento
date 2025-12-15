@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
-import { useOnboarding, type ThemeOption } from './OnboardingState';
+import { type ThemeOption, useOnboarding } from './OnboardingState';
 
 // Floating particle component
 const FloatingParticle = ({ delay, size, x, y, duration }: { delay: number; size: number; x: string; y: string; duration: number }) => (
@@ -18,7 +18,7 @@ const FloatingParticle = ({ delay, size, x, y, duration }: { delay: number; size
       repeat: Infinity,
       repeatDelay: Math.random() * 2
     }}
-    className="absolute rounded-full bg-gradient-to-br from-white/60 to-white/20"
+    className="absolute rounded-full bg-linear-to-br from-white/60 to-white/20"
     style={{ left: x, top: y, width: size, height: size }}
   />
 );
@@ -90,17 +90,13 @@ export const WelcomeHero: React.FC = () => {
   ];
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden bg-[#0a0a0f]">
+    <div className="relative flex flex-col items-center h-full min-h-full px-4 py-4 md:py-6 overflow-x-hidden overflow-y-auto">
       {/* Ambient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
+      <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
       
       {/* Animated grid pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '60px 60px'
-        }}
+      <div
+        className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-size-[60px_60px]"
       />
 
       {/* Ambient orbs */}
@@ -121,148 +117,153 @@ export const WelcomeHero: React.FC = () => {
       ))}
 
       {/* Radial spotlight */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-white/[0.03] to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-white/3 to-transparent pointer-events-none" />
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto text-center">
-        {/* Gen Mascot floating */}
-        <motion.div
-          initial={{ scale: 0, y: 50 }}
-          animate={{ scale: 1, y: 0 }}
-          transition={{ type: "spring", duration: 1.2, bounce: 0.4 }}
-          className="relative mb-6 inline-block"
-        >
-          <motion.img
-            src="/images/onboarding/gen-mascot.png"
-            alt="Gen - Your Creative Guide"
-            className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-2xl"
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          />
-          
-          {/* Sparkle accents */}
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute -top-2 -right-2"
-          >
-            <Sparkles className="w-6 h-6 text-amber-400" />
-          </motion.div>
-        </motion.div>
-
-        {/* Headline */}
-        <AnimatePresence>
-          {showContent && (
+      <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center">
+        <div className="w-full grid gap-4 md:gap-6 lg:gap-10 lg:grid-cols-2 lg:items-center">
+          {/* Left: Hero copy */}
+          <div className="text-center lg:text-left">
+            {/* Gen Mascot */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ scale: 0, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{ type: "spring", duration: 1, bounce: 0.4 }}
+              className="relative mb-3 md:mb-5 inline-block mx-auto lg:mx-0"
             >
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 font-heading tracking-tight">
-                <span className="bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">
-                  Every journey begins
-                </span>
-                <br />
-                <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
-                  with a spark.
-                </span>
-              </h1>
+              <img
+                src="/images/onboarding/gen-mascot.png"
+                alt="Gen - Your Creative Guide"
+                className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain drop-shadow-2xl rounded-3xl"
+              />
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-lg md:text-xl text-white/50 mb-16 max-w-xl mx-auto font-body leading-relaxed"
+              {/* Sparkle accents */}
+              <motion.div
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -top-2 -right-2"
               >
-                Genesis transforms your imagination into living, breathing worlds.
-                <br className="hidden md:block" />
-                <span className="text-white/70">What universe calls to you?</span>
-              </motion.p>
+                <Sparkles className="w-6 h-6 text-amber-400" />
+              </motion.div>
             </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Theme Cards with Images */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 w-full">
-          {cards.map((card, index) => (
-            <motion.button
-              key={card.id}
-              initial={{ opacity: 0, y: 40, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ 
-                delay: 0.5 + (index * 0.15),
-                duration: 0.6,
-                ease: [0.22, 1, 0.36, 1]
-              }}
-              whileHover={{ 
-                scale: 1.03,
-                y: -8,
-                transition: { duration: 0.3 }
-              }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => handleThemeSelect(card.id)}
-              disabled={selectedTheme !== null}
-              className={`group relative overflow-hidden rounded-2xl md:rounded-3xl p-6 md:p-8 text-center transition-all duration-500 ${
-                selectedTheme === card.id 
-                  ? `${card.glow} ring-2 ring-white/30` 
-                  : selectedTheme !== null 
-                    ? 'opacity-30 scale-95' 
-                    : ''
-              }`}
-            >
-              {/* Card Background with gradient */}
-              <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
-              
-              {/* Gradient border glow on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
-              
-              {/* Card border */}
-              <div className="absolute inset-0 rounded-2xl md:rounded-3xl border border-white/10 group-hover:border-white/20 transition-colors" />
-
-              {/* Theme Image */}
-              <div className="relative z-10 mb-4">
-                <motion.img
-                  src={card.image}
-                  alt={card.title}
-                  className="w-36 h-36 md:w-44 md:h-44 mx-auto object-contain drop-shadow-2xl"
-                  whileHover={{ scale: 1.1, rotate: 3 }}
-                  transition={{ duration: 0.3 }}
-                />
-                
-                {/* Glow behind image */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} blur-3xl opacity-30 -z-10`} />
-              </div>
-              
-              {/* Text content */}
-              <div className="relative z-10">
-                <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-heading">{card.title}</h3>
-                <p className="text-sm md:text-base text-white/60 leading-relaxed">{card.desc}</p>
-              </div>
-
-              {/* Floating particle on selection */}
-              {selectedTheme === card.id && (
+            {/* Headline */}
+            <AnimatePresence>
+              {showContent && (
                 <motion.div
-                  initial={{ scale: 0, y: 0 }}
-                  animate={{ scale: [1, 1.5], y: -100, opacity: [1, 0] }}
-                  transition={{ duration: 0.8 }}
-                  className="absolute top-1/2 left-1/2 text-4xl"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  {card.particle}
+                  <h1 className="text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-3 md:mb-5 lg:mb-6 font-heading tracking-tight">
+                    <span className="bg-linear-to-r from-white via-white to-white/60 bg-clip-text text-transparent">
+                      Every journey begins
+                    </span>
+                    <br />
+                    <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+                      with a spark.
+                    </span>
+                  </h1>
+
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-base md:text-lg lg:text-xl text-white/50 mb-4 md:mb-6 lg:mb-0 max-w-xl mx-auto lg:mx-0 font-body leading-relaxed px-2 lg:px-0"
+                  >
+                    Genesis transforms your imagination into living, breathing worlds.
+                    <br className="hidden md:block" />
+                    <span className="text-white/70">What universe calls to you?</span>
+                  </motion.p>
                 </motion.div>
               )}
-            </motion.button>
-          ))}
-        </div>
+            </AnimatePresence>
+          </div>
 
-        {/* Subtle hint */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="mt-10 text-white/30 text-sm"
-        >
-          ✦ Choose your realm to begin the journey ✦
-        </motion.p>
+          {/* Right: Theme cards */}
+          <div className="w-full">
+            <div className="grid grid-cols-3 gap-2 md:gap-5 lg:gap-4 w-full px-1 lg:px-0">
+              {cards.map((card, index) => (
+                <motion.button
+                  key={card.id}
+                  initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    delay: 0.5 + (index * 0.15),
+                    duration: 0.6,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                  whileHover={{
+                    scale: 1.03,
+                    y: -8,
+                    transition: { duration: 0.3 }
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleThemeSelect(card.id)}
+                  disabled={selectedTheme !== null}
+                  className={`group relative overflow-hidden rounded-xl md:rounded-2xl lg:rounded-3xl p-2.5 md:p-6 lg:p-5 text-center transition-all duration-500 ${
+                    selectedTheme === card.id
+                      ? `${card.glow} ring-2 ring-white/30`
+                      : selectedTheme !== null
+                        ? 'opacity-30 scale-95'
+                        : ''
+                  }`}
+                >
+                  {/* Card Background with gradient */}
+                  <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
+
+                  {/* Gradient border glow on hover */}
+                  <div className={`absolute inset-0 bg-linear-to-br ${card.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
+
+                  {/* Card border */}
+                  <div className="absolute inset-0 rounded-2xl md:rounded-3xl border border-white/10 group-hover:border-white/20 transition-colors" />
+
+                  {/* Theme Image */}
+                  <div className="relative z-10 mb-2 md:mb-4">
+                    <motion.img
+                      src={card.image}
+                      alt={card.title}
+                      className="w-14 h-14 md:w-28 md:h-28 lg:w-24 lg:h-24 xl:w-32 xl:h-32 mx-auto object-contain drop-shadow-2xl rounded-xl md:rounded-3xl"
+                      whileHover={{ scale: 1.1, rotate: 3 }}
+                      transition={{ duration: 0.3 }}
+                    />
+
+                    {/* Glow behind image */}
+                    <div className={`absolute inset-0 bg-linear-to-br ${card.gradient} blur-3xl opacity-30 -z-10`} />
+                  </div>
+
+                  {/* Text content */}
+                  <div className="relative z-10">
+                    <h3 className="text-xs md:text-lg lg:text-lg xl:text-2xl font-bold text-white mb-0.5 md:mb-2 font-heading">{card.title}</h3>
+                    <p className="text-[10px] md:text-sm lg:text-sm xl:text-base text-white/60 leading-tight md:leading-relaxed hidden md:block">{card.desc}</p>
+                  </div>
+
+                  {/* Floating particle on selection */}
+                  {selectedTheme === card.id && (
+                    <motion.div
+                      initial={{ scale: 0, y: 0 }}
+                      animate={{ scale: [1, 1.5], y: -100, opacity: [1, 0] }}
+                      transition={{ duration: 0.8 }}
+                      className="absolute top-1/2 left-1/2 text-4xl"
+                    >
+                      {card.particle}
+                    </motion.div>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Subtle hint */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5 }}
+              className="mt-4 md:mt-10 lg:mt-4 text-white/30 text-xs md:text-sm pb-4 text-center"
+            >
+              ✦ Choose your realm to begin ✦
+            </motion.p>
+          </div>
+        </div>
       </div>
     </div>
   );

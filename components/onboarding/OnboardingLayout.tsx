@@ -5,6 +5,8 @@ import { OnboardingHeader } from './OnboardingHeader';
 import { WelcomeHero } from './WelcomeHero';
 import { PersonalizationQuiz } from './PersonalizationQuiz';
 import { InstantCreationDemo } from './InstantCreationDemo';
+import { ProRevealMoment } from './ProRevealMoment';
+import { OnboardingPricing } from './OnboardingPricing';
 import { FeatureStorybook } from './FeatureStorybook';
 import { CreativePersonaQuiz } from './CreativePersonaQuiz';
 import { SaveMasterpieceModal } from './SaveMasterpieceModal';
@@ -13,17 +15,18 @@ import { WelcomeSuccess } from './WelcomeSuccess';
 export const OnboardingLayout: React.FC = () => {
   const { step } = useOnboarding();
 
-  // Most steps use dark theme and handle their own backgrounds
-  const needsScroll = step === 'quiz';
+  // Each onboarding screen controls its own scrolling.
 
   const stepMap: Record<typeof step, number> = {
     spark: 1,
     quiz: 2,
     magic: 3,
-    tour: 4,
-    identity: 5,
-    cliffhanger: 6,
-    welcome: 7,
+    proreveal: 4,
+    pricing: 5,
+    tour: 6,
+    identity: 7,
+    cliffhanger: 8,
+    welcome: 9,
   };
 
   const handleSkip = () => {
@@ -39,6 +42,10 @@ export const OnboardingLayout: React.FC = () => {
       case 'quiz':
         return { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 0.95 } };
       case 'magic':
+        return { initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -30 } };
+      case 'proreveal':
+        return { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } };
+      case 'pricing':
         return { initial: { opacity: 0, y: 30 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -30 } };
       case 'tour':
         return { initial: { opacity: 0, x: 50 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -50 } };
@@ -57,27 +64,27 @@ export const OnboardingLayout: React.FC = () => {
 
   return (
     <div 
-      className={`relative w-full min-h-screen bg-[#0a0a0f] ${
-        needsScroll ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden h-screen'
+      className={`absolute inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-[#0a0a0f] to-slate-900 ${
+        'overflow-hidden'
       }`}
     >
-      {/* Header - shown on all steps except welcome */}
-      {step !== 'welcome' && step !== 'spark' && (
+      {/* Header - shown on all steps except welcome, spark, proreveal and pricing */}
+      {step !== 'welcome' && step !== 'spark' && step !== 'proreveal' && step !== 'pricing' && (
         <OnboardingHeader
           currentStep={stepMap[step]}
-          totalSteps={7}
+          totalSteps={9}
           onSkip={handleSkip}
         />
       )}
 
-      {/* Main content with transitions */}
+      {/* Main content with transitions - all screens fill the container */}
       <AnimatePresence mode="wait">
         {step === 'spark' && (
           <motion.div 
             key="spark" 
             {...transition}
             transition={{ duration: 0.5 }}
-            className="w-full min-h-screen"
+            className="w-full h-full"
           >
             <WelcomeHero />
           </motion.div>
@@ -88,7 +95,7 @@ export const OnboardingLayout: React.FC = () => {
             key="quiz" 
             {...transition}
             transition={{ duration: 0.4 }}
-            className="w-full"
+            className="w-full h-full"
           >
             <PersonalizationQuiz />
           </motion.div>
@@ -99,9 +106,31 @@ export const OnboardingLayout: React.FC = () => {
             key="magic" 
             {...transition}
             transition={{ duration: 0.5 }}
-            className="w-full h-screen"
+            className="w-full h-full"
           >
             <InstantCreationDemo />
+          </motion.div>
+        )}
+        
+        {step === 'proreveal' && (
+          <motion.div 
+            key="proreveal" 
+            {...transition}
+            transition={{ duration: 0.5 }}
+            className="w-full h-full"
+          >
+            <ProRevealMoment />
+          </motion.div>
+        )}
+        
+        {step === 'pricing' && (
+          <motion.div 
+            key="pricing" 
+            {...transition}
+            transition={{ duration: 0.5 }}
+            className="w-full h-full"
+          >
+            <OnboardingPricing />
           </motion.div>
         )}
         
@@ -110,7 +139,7 @@ export const OnboardingLayout: React.FC = () => {
             key="tour" 
             {...transition}
             transition={{ duration: 0.4 }}
-            className="w-full h-screen"
+            className="w-full h-full"
           >
             <FeatureStorybook />
           </motion.div>
@@ -121,7 +150,7 @@ export const OnboardingLayout: React.FC = () => {
             key="identity" 
             {...transition}
             transition={{ duration: 0.4 }}
-            className="w-full h-screen"
+            className="w-full h-full"
           >
             <CreativePersonaQuiz />
           </motion.div>
@@ -132,7 +161,7 @@ export const OnboardingLayout: React.FC = () => {
             key="cliffhanger" 
             {...transition}
             transition={{ duration: 0.5 }}
-            className="w-full h-screen"
+            className="w-full h-full"
           >
             <SaveMasterpieceModal />
           </motion.div>
@@ -143,7 +172,7 @@ export const OnboardingLayout: React.FC = () => {
             key="welcome" 
             {...transition}
             transition={{ duration: 0.6 }}
-            className="w-full min-h-screen"
+            className="w-full h-full"
           >
             <WelcomeSuccess />
           </motion.div>
