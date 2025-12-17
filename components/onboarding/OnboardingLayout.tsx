@@ -1,3 +1,14 @@
+/**
+ * OnboardingLayout - Clean Onboarding UI
+ * 
+ * ARCHITECTURE:
+ * Now that onboarding is properly isolated at the router level (separate from MainApp),
+ * this component can be a clean layout without DOM hacks.
+ * 
+ * The OnboardingApp wrapper handles global style injection.
+ * This component just renders the onboarding flow.
+ */
+
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useOnboarding } from './OnboardingState';
@@ -11,6 +22,7 @@ import { FeatureStorybook } from './FeatureStorybook';
 import { CreativePersonaQuiz } from './CreativePersonaQuiz';
 import { SaveMasterpieceModal } from './SaveMasterpieceModal';
 import { WelcomeSuccess } from './WelcomeSuccess';
+import { OnboardingPreloader } from './OnboardingPreloader';
 
 export const OnboardingLayout: React.FC = () => {
   const { step } = useOnboarding();
@@ -31,7 +43,8 @@ export const OnboardingLayout: React.FC = () => {
 
   const handleSkip = () => {
     localStorage.setItem('genesis_onboarding_completed', 'true');
-    window.location.reload();
+    // Navigate to main app instead of reload
+    window.location.href = '/';
   };
 
   // Step-specific transitions
@@ -62,11 +75,10 @@ export const OnboardingLayout: React.FC = () => {
 
   const transition = getTransition();
 
+  // Clean layout - no portal needed since we're now on a separate route
   return (
-    <div 
-      className={`absolute inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-[#0a0a0f] to-slate-900 ${
-        'overflow-hidden'
-      }`}
+    <div
+      className="w-full h-full min-h-screen bg-gradient-to-br from-slate-900 via-[#0a0a0f] to-slate-900 overflow-hidden"
     >
       {/* Header - shown on all steps except welcome, spark, proreveal and pricing */}
       {step !== 'welcome' && step !== 'spark' && step !== 'proreveal' && step !== 'pricing' && (
@@ -80,8 +92,8 @@ export const OnboardingLayout: React.FC = () => {
       {/* Main content with transitions - all screens fill the container */}
       <AnimatePresence mode="wait">
         {step === 'spark' && (
-          <motion.div 
-            key="spark" 
+          <motion.div
+            key="spark"
             {...transition}
             transition={{ duration: 0.5 }}
             className="w-full h-full"
@@ -89,10 +101,10 @@ export const OnboardingLayout: React.FC = () => {
             <WelcomeHero />
           </motion.div>
         )}
-        
+
         {step === 'quiz' && (
-          <motion.div 
-            key="quiz" 
+          <motion.div
+            key="quiz"
             {...transition}
             transition={{ duration: 0.4 }}
             className="w-full h-full"
@@ -100,10 +112,10 @@ export const OnboardingLayout: React.FC = () => {
             <PersonalizationQuiz />
           </motion.div>
         )}
-        
+
         {step === 'magic' && (
-          <motion.div 
-            key="magic" 
+          <motion.div
+            key="magic"
             {...transition}
             transition={{ duration: 0.5 }}
             className="w-full h-full"
@@ -111,10 +123,10 @@ export const OnboardingLayout: React.FC = () => {
             <InstantCreationDemo />
           </motion.div>
         )}
-        
+
         {step === 'proreveal' && (
-          <motion.div 
-            key="proreveal" 
+          <motion.div
+            key="proreveal"
             {...transition}
             transition={{ duration: 0.5 }}
             className="w-full h-full"
@@ -122,10 +134,10 @@ export const OnboardingLayout: React.FC = () => {
             <ProRevealMoment />
           </motion.div>
         )}
-        
+
         {step === 'pricing' && (
-          <motion.div 
-            key="pricing" 
+          <motion.div
+            key="pricing"
             {...transition}
             transition={{ duration: 0.5 }}
             className="w-full h-full"
@@ -133,10 +145,10 @@ export const OnboardingLayout: React.FC = () => {
             <OnboardingPricing />
           </motion.div>
         )}
-        
+
         {step === 'tour' && (
-          <motion.div 
-            key="tour" 
+          <motion.div
+            key="tour"
             {...transition}
             transition={{ duration: 0.4 }}
             className="w-full h-full"
@@ -144,10 +156,10 @@ export const OnboardingLayout: React.FC = () => {
             <FeatureStorybook />
           </motion.div>
         )}
-        
+
         {step === 'identity' && (
-          <motion.div 
-            key="identity" 
+          <motion.div
+            key="identity"
             {...transition}
             transition={{ duration: 0.4 }}
             className="w-full h-full"
@@ -155,10 +167,10 @@ export const OnboardingLayout: React.FC = () => {
             <CreativePersonaQuiz />
           </motion.div>
         )}
-        
+
         {step === 'cliffhanger' && (
-          <motion.div 
-            key="cliffhanger" 
+          <motion.div
+            key="cliffhanger"
             {...transition}
             transition={{ duration: 0.5 }}
             className="w-full h-full"
@@ -166,10 +178,10 @@ export const OnboardingLayout: React.FC = () => {
             <SaveMasterpieceModal />
           </motion.div>
         )}
-        
+
         {step === 'welcome' && (
-          <motion.div 
-            key="welcome" 
+          <motion.div
+            key="welcome"
             {...transition}
             transition={{ duration: 0.6 }}
             className="w-full h-full"

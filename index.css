@@ -1,5 +1,5 @@
 /* Import Default Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Manrope:wght@200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200..900&family=Manrope:wght@200..800&display=swap');
 
 @import "tailwindcss";
 
@@ -8,53 +8,74 @@
  * Theme customizations using @theme directive
  */
 @theme {
-  /* Fonts - Bind to CSS variables for dynamic switching */
-  --font-heading: var(--font-heading);
-  --font-body: var(--font-body);
+    /* Fonts - Bind to CSS variables for dynamic switching */
+    --font-heading: var(--font-heading);
+    --font-body: var(--font-body);
 
-  /* Colors */
-  --color-cream-base: var(--color-background, #FFF8E7);
-  --color-cream-soft: var(--color-background, #FFF8E7);
-  --color-peach-soft: var(--color-border, #FFE4CC);
-  --color-peach-light: var(--color-border, #FFE4CC);
-  --color-yellow-butter: #FFF4A3;
-  --color-mint-breeze: #D4F4DD;
-  --color-coral-burst: var(--color-primary-start, #FF9B71);
-  --color-coral-hover: var(--color-primary-end, #FFD93D);
-  --color-gold-sunshine: var(--color-primary-end, #FFD93D);
-  --color-charcoal-soft: var(--color-text, #5A5A5A);
-  --color-cocoa-light: var(--color-text-light, #8B8B8B);
-  --color-cocoa-dark: var(--color-text, #5A5A5A);
-  
-  /* Shadows */
-  --shadow-soft-sm: 0 2px 10px rgba(0, 0, 0, 0.06);
-  --shadow-soft-md: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --shadow-soft-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 15px rgba(255, 217, 61, 0.5);
-  
-  /* Border Radius */
-  --radius-pill: 9999px;
-  
-  /* Animations */
-  --animate-float: float 8s ease-in-out infinite;
-  --animate-fade-in: fadeIn 0.5s ease-out;
-  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-bounce-subtle: bounce-subtle 2s ease-in-out infinite;
+    /* Colors */
+    --color-cream-base: var(--color-background, #FFF8E7);
+    --color-cream-soft: var(--color-background, #FFF8E7);
+    --color-peach-soft: var(--color-border, #FFE4CC);
+    --color-peach-light: var(--color-border, #FFE4CC);
+    --color-yellow-butter: #FFF4A3;
+    --color-mint-breeze: #D4F4DD;
+    --color-coral-burst: var(--color-primary-start, #FF9B71);
+    --color-coral-hover: var(--color-primary-end, #FFD93D);
+    --color-gold-sunshine: var(--color-primary-end, #FFD93D);
+    --color-charcoal-soft: var(--color-text, #5A5A5A);
+    --color-cocoa-light: var(--color-text-light, #8B8B8B);
+    --color-cocoa-dark: var(--color-text, #5A5A5A);
+
+    /* Shadows */
+    --shadow-soft-sm: 0 2px 10px rgba(0, 0, 0, 0.06);
+    --shadow-soft-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --shadow-soft-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 15px rgba(255, 217, 61, 0.5);
+
+    /* Border Radius */
+    --radius-pill: 9999px;
+
+    /* Animations */
+    --animate-float: float 8s ease-in-out infinite;
+    --animate-fade-in: fadeIn 0.5s ease-out;
+    --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    --animate-bounce-subtle: bounce-subtle 2s ease-in-out infinite;
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
 @keyframes fadeIn {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes bounce-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
 }
 
 /* iOS Safe Area Insets */
@@ -65,9 +86,9 @@
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
 
     /* Default Fonts (will be overridden by FontContext) */
-    --font-heading: 'Fredoka', system-ui, sans-serif;
+    --font-heading: 'Nunito', system-ui, sans-serif;
     --font-body: 'Manrope', system-ui, sans-serif;
-    
+
     /* Color scheme for modern dark mode support */
     color-scheme: light dark;
 }
@@ -237,6 +258,7 @@ summary {
 
 /* Mobile content area adjustments */
 @media (max-width: 768px) {
+
     /* Ensure modals are properly positioned */
     .modal-mobile-fullscreen {
         position: fixed;
@@ -244,12 +266,12 @@ summary {
         border-radius: 0;
         max-height: none;
     }
-    
+
     /* Hide desktop-only elements */
     .desktop-only {
         display: none !important;
     }
-    
+
     /* Full width containers on mobile */
     .mobile-full-width {
         width: 100% !important;
@@ -259,7 +281,7 @@ summary {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
-    
+
     /* Bottom sheet modal style */
     .mobile-bottom-sheet {
         position: fixed;
@@ -270,21 +292,22 @@ summary {
         max-height: 90vh;
         animation: slideUpFromBottom 0.3s ease-out;
     }
-    
+
     @keyframes slideUpFromBottom {
         from {
             transform: translateY(100%);
         }
+
         to {
             transform: translateY(0);
         }
     }
-    
+
     /* iOS keyboard handling */
     .keyboard-aware {
         transition: transform 0.3s ease;
     }
-    
+
     /* Prevent body scroll when modal is open */
     body.modal-open {
         overflow: hidden;
@@ -298,7 +321,7 @@ summary {
     .mobile-bottom-nav {
         padding-bottom: var(--safe-area-inset-bottom);
     }
-    
+
     .landscape-hide {
         display: none;
     }
@@ -333,6 +356,7 @@ summary {
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -342,6 +366,7 @@ summary {
 .animate-slideInRight {
     animation: slideInRight 0.3s ease-out forwards;
 }
+
 /* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
     display: none;

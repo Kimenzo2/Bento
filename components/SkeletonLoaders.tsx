@@ -2,9 +2,9 @@ import React from 'react';
 import { motion, Transition } from 'framer-motion';
 
 // Base skeleton with shimmer effect
-const shimmerTransition: Transition = { 
-    repeat: Infinity, 
-    duration: 1.5, 
+const shimmerTransition: Transition = {
+    repeat: Infinity,
+    duration: 1.5,
     ease: 'linear' as const
 };
 
@@ -56,29 +56,6 @@ export const PageContentSkeleton: React.FC = () => (
     </div>
 );
 
-// Chat Message Skeleton
-export const ChatMessageSkeleton: React.FC = () => (
-    <div className="flex gap-3 p-3">
-        <SkeletonBase className="w-10 h-10 rounded-full flex-shrink-0" />
-        <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-                <SkeletonBase className="h-4 w-24" />
-                <SkeletonBase className="h-3 w-16" />
-            </div>
-            <SkeletonBase className="h-4 w-full" />
-            <SkeletonBase className="h-4 w-3/4" />
-        </div>
-    </div>
-);
-
-// Chat Messages List Skeleton
-export const ChatMessagesSkeleton: React.FC<{ count?: number }> = ({ count = 5 }) => (
-    <div className="space-y-4">
-        {Array.from({ length: count }).map((_, i) => (
-            <ChatMessageSkeleton key={i} />
-        ))}
-    </div>
-);
 
 // Editor Skeleton
 export const EditorSkeleton: React.FC = () => (
@@ -162,8 +139,6 @@ export default {
     BookCardSkeleton,
     BookGridSkeleton,
     PageContentSkeleton,
-    ChatMessageSkeleton,
-    ChatMessagesSkeleton,
     EditorSkeleton,
     ProfileCardSkeleton,
     IllustrationSkeleton,

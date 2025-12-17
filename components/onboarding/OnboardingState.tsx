@@ -28,7 +28,15 @@ interface OnboardingState {
 const OnboardingContext = createContext<OnboardingState | undefined>(undefined);
 
 export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [step, setStep] = useState<OnboardingStep>('spark');
+  // Initialize step from URL query param if present
+  const getInitialStep = (): OnboardingStep => {
+    const params = new URLSearchParams(window.location.search);
+    const stepParam = params.get('step') as OnboardingStep;
+    const validSteps: OnboardingStep[] = ['spark', 'quiz', 'magic', 'proreveal', 'pricing', 'tour', 'identity', 'cliffhanger', 'welcome'];
+    return validSteps.includes(stepParam) ? stepParam : 'spark';
+  };
+
+  const [step, setStep] = useState<OnboardingStep>(getInitialStep);
   const [theme, setTheme] = useState<ThemeOption | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);

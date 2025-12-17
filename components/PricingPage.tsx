@@ -327,7 +327,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               <button
                 onClick={() => handleSubscribe(tier)}
                 disabled={processingTier !== null}
-                className={`w-full py-3 rounded-xl font-heading font-bold transition-all mb-8 ${tier.buttonColor} flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed`}
+                className={`w-full py-3 rounded-xl font-heading font-bold transition-all mb-4 ${tier.buttonColor} flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed`}
               >
                 {processingTier === tier.name ? (
                   <>
@@ -338,6 +338,17 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                   tier.priceMonthly === 0 ? "Start Creating Free" : "Upgrade now"
                 )}
               </button>
+
+              {/* Why This Tier Button */}
+              {tier.priceMonthly > 0 && (
+                <button
+                  onClick={() => {/* TODO: Handle why tier click */}}
+                  className="w-full py-2 rounded-lg font-medium text-sm text-cocoa-light hover:text-charcoal-soft hover:bg-gray-100 transition-all mb-6 border border-transparent hover:border-gray-200"
+                >
+                  Why {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}?
+                </button>
+              )}
+              {tier.priceMonthly === 0 && <div className="mb-4" />}
 
               <div className="flex-1 space-y-4 mb-4">
                 {tier.features.map((feature, i) => (

@@ -66,7 +66,8 @@ export const WelcomeSuccess: React.FC = () => {
 
   const handleEnterStudio = () => {
     localStorage.setItem('genesis_onboarding_completed', 'true');
-    window.location.reload();
+    // Navigate to main app - clean route transition
+    window.location.href = '/';
   };
 
   // Personalized welcome based on quiz answers

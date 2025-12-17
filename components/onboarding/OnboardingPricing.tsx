@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Crown, Star, Zap, Briefcase, X, Loader, ArrowRight, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from './OnboardingState';
 import { initializePayment, initializeApplePayCheckout, isApplePayAvailable } from '../../services/paystackService';
 import { UserTier } from '../../types';
@@ -103,6 +104,7 @@ const tiers = [
 
 export const OnboardingPricing: React.FC = () => {
   const { setStep, addSparkPoints } = useOnboarding();
+  const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('author@genesis.ai');
@@ -405,6 +407,16 @@ export const OnboardingPricing: React.FC = () => {
                     </>
                   )}
                 </motion.button>
+
+                {/* Why This Tier Button */}
+                {tier.priceMonthly > 0 && (
+                  <button
+                    onClick={() => navigate(`/tier/${tier.name.toLowerCase()}`)}
+                    className="w-full mt-2 py-2 rounded-lg font-medium text-xs text-white/40 hover:text-white/70 hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
+                  >
+                    Why {tier.displayName}?
+                  </button>
+                )}
               </motion.div>
             );
           })}
