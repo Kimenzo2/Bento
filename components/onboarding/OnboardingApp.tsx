@@ -19,6 +19,9 @@ import React, { useEffect } from 'react';
 import { OnboardingProvider } from './OnboardingState';
 import { OnboardingLayout } from './OnboardingLayout';
 
+// Import responsive viewport utilities
+import '../../styles/onboarding-responsive.css';
+
 // Onboarding-specific global styles
 const ONBOARDING_STYLES = `
   html, body, #root {
@@ -28,6 +31,31 @@ const ONBOARDING_STYLES = `
     height: 100% !important;
     width: 100% !important;
     overflow: hidden !important;
+    /* Nunito font for onboarding */
+    --font-heading: 'Nunito', system-ui, sans-serif !important;
+    --font-body: 'Nunito', system-ui, sans-serif !important;
+  }
+
+  /* Override global scrollbar for onboarding - Seamless Dark */
+  ::-webkit-scrollbar {
+    width: 3px; /* Slightly wider to ensure rendering but still thin */
+    height: 3px;
+    background: transparent; /* Ensure track is transparent */
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent !important;
+    margin: 4px 0; /* Add margin to keep away from absolute edge */
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #0f172a !important; /* Dark Slate 900 - Fits #0a0a0f bg */
+    border-radius: 4px;
+    border: none; /* Ensure no border */
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #1e293b !important; /* Lighter on hover */
   }
 `;
 

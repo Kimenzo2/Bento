@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  Code, 
-  Wrench, 
-  Zap, 
-  TestTube2, 
-  Bug, 
+import {
+  Code,
+  Wrench,
+  Zap,
+  TestTube2,
+  Bug,
   Terminal,
   Eye,
   RefreshCw
@@ -23,14 +23,14 @@ interface AdvancedSettingsProps {
 }
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate }) => {
-  const Toggle = ({ 
-    label, 
-    description, 
-    checked, 
+  const Toggle = ({
+    label,
+    description,
+    checked,
     onChange,
     icon: Icon,
-    badge 
-  }: { 
+    badge
+  }: {
     label: string;
     description?: string;
     checked: boolean;
@@ -38,8 +38,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
     icon: any;
     badge?: string;
   }) => (
-    <div 
-      className="flex items-center justify-between py-4 md:py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group touch-manipulation active:bg-cream-base/50 -mx-2 px-2 rounded-lg transition-colors" 
+    <div
+      className="flex items-center justify-between py-4 md:py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group touch-manipulation active:bg-cream-base/50 -mx-2 px-2 rounded-lg transition-colors"
       onClick={() => onChange(!checked)}
     >
       <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
@@ -61,14 +61,12 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         </div>
       </div>
       <button
-        className={`w-12 h-7 md:w-11 md:h-6 rounded-full p-1 transition-colors duration-300 relative focus:outline-none flex-shrink-0 ml-3 md:ml-4 ${
-          checked ? 'bg-coral-burst' : 'bg-gray-200'
-        }`}
-      >
-        <div 
-          className={`w-5 h-5 md:w-4 md:h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${
-            checked ? 'translate-x-5' : 'translate-x-0'
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'
           }`}
+      >
+        <div
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'
+            }`}
         />
       </button>
     </div>
@@ -113,7 +111,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <p className="text-sm text-cocoa-light mb-4">
           Enable advanced debugging and development features
         </p>
-        
+
         <div className="space-y-0">
           <Toggle
             label="Developer Mode"
@@ -127,7 +125,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             }}
             icon={Code}
           />
-          
+
           <Toggle
             label="Debug Logs"
             description="Enable verbose console logging"
@@ -165,7 +163,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <p className="text-sm text-cocoa-light mb-4">
           Try new features before they're officially released
         </p>
-        
+
         <div className="space-y-0">
           <Toggle
             label="Beta Features"
@@ -175,7 +173,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             icon={TestTube2}
             badge="BETA"
           />
-          
+
           <Toggle
             label="Experimental UI"
             description="Try redesigned interface components"
@@ -197,7 +195,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <p className="text-sm text-cocoa-light mb-4">
           Configure automatic saving and synchronization
         </p>
-        
+
         <div className="space-y-0">
           <Toggle
             label="Auto-Save"
@@ -219,7 +217,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <p className="text-sm text-cocoa-light mb-4">
           Reset or clear application data
         </p>
-        
+
         <div className="space-y-3">
           <button
             onClick={handleResetSettings}
@@ -267,9 +265,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 md:p-4">
         <p className="text-xs md:text-sm text-purple-900">
           <strong>Need Help?</strong> Visit our{' '}
-          <a 
-            href="https://genesis-1765265007.documentationai.com/" 
-            target="_blank" 
+          <a
+            href="https://genesis-1765265007.documentationai.com/"
+            target="_blank"
             rel="noopener noreferrer"
             className="font-bold text-purple-700 hover:underline"
           >

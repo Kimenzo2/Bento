@@ -11,8 +11,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   BookOpen, Palette, Lock, Users, Headphones, Sparkles,
   Shield, Award, Clock, Zap, Check, TrendingUp, Building2,
-  Layers, Video, Globe, Briefcase, Crown, Target, BarChart3
+  Layers, Video, Globe, Briefcase, Crown, Target, BarChart3, Loader
 } from 'lucide-react';
+
+import { initializePayment, initializeApplePayCheckout, isApplePayAvailable } from '../../services/paystackService';
+import { UserTier } from '../../types';
 
 import {
   HeroSection,
@@ -60,6 +63,11 @@ const tierConfig: TierConfig = {
   customerCount: '2,500+',
   bgClass: 'bg-indigo-50/30',
   blobColors: ['bg-violet-500/10', 'bg-indigo-500/10']
+};
+
+const PAYMENT_CONFIG = {
+  paystackPaymentUrl: "https://paystack.shop/pay/akv70alb1x",
+  planCode: "PLN_09zg1ly5kg57niz"
 };
 
 // ============================================================================
@@ -364,9 +372,151 @@ const trustBadges = [
 const TierDetailStudio: React.FC = () => {
   const navigate = useNavigate();
   const [showQuiz, setShowQuiz] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [userEmail, setUserEmail] = React.useState("agency@genesis.ai");
 
-  const handleStartTrial = () => {
-    navigate('/signup?tier=studio');
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('genesis_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) setUserEmail(parsed.email);
+      }
+    } catch (e) {
+      console.error("Failed to load user settings");
+    }
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // Helper to get user ID from Supabase or generate one
+  const getUserId = async (): Promise<string> => {
+    try {
+      // Try to get from Supabase auth
+      const { supabase } = await import('../../services/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) return user.id;
+
+      // Fallback: generate/retrieve from localStorage
+      let localUserId = localStorage.getItem('genesis_user_id');
+      if (!localUserId) {
+        localUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('genesis_user_id', localUserId);
+      }
+      return localUserId;
+    } catch (error) {
+      console.error('Failed to get user ID:', error);
+      // Generate temp ID as last resort
+      return `temp_${Date.now()}`;
+    }
+  };
+
+  const handleStartTrial = async () => {
+    setIsProcessing(true);
+
+    // Default to Annual billing for this tier page
+    const isAnnual = true;
+
+    // Use Paystack Payment Page URL implementation (preferred)
+    if (PAYMENT_CONFIG.paystackPaymentUrl && PAYMENT_CONFIG.planCode) {
+      try {
+        const userId = await getUserId();
+
+        const paymentUrl = new URL(PAYMENT_CONFIG.paystackPaymentUrl);
+        paymentUrl.searchParams.append('email', userEmail);
+        paymentUrl.searchParams.append('metadata[user_id]', userId);
+        paymentUrl.searchParams.append('metadata[plan_code]', PAYMENT_CONFIG.planCode);
+        paymentUrl.searchParams.append('metadata[billing_cycle]', 'annual');
+
+        const paymentWindow = window.open(
+          paymentUrl.toString(),
+          '_blank',
+          'width=600,height=800,scrollbars=yes,resizable=yes'
+        );
+
+        if (!paymentWindow) {
+          alert('Please allow pop-ups to complete payment');
+          setIsProcessing(false);
+          return;
+        }
+
+        const pollInterval = setInterval(() => {
+          if (paymentWindow.closed) {
+            clearInterval(pollInterval);
+            setIsProcessing(false);
+            // Optionally redirect to welcome/success
+            console.log('Payment window closed');
+          }
+        }, 1000);
+
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+        }, 300000);
+
+      } catch (error) {
+        console.error('Failed to open payment page:', error);
+        alert('Unable to start payment. Please try again.');
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    // Fallback implementation
+    const amountToCharge = tierConfig.price.annual * 12;
+
+    try {
+      if (isApplePayAvailable()) {
+        await initializeApplePayCheckout({
+          email: userEmail,
+          amount: amountToCharge,
+          currency: "USD",
+          metadata: {
+            tier: UserTier.STUDIO,
+            billing_cycle: 'annual'
+          },
+          onSuccess: (transaction) => {
+            alert(`Subscription successful! Reference: ${transaction.reference}`);
+            setIsProcessing(false);
+            navigate('/welcome');
+          },
+          onCancel: () => {
+            setIsProcessing(false);
+          }
+        });
+      } else {
+        await initializePayment({
+          email: userEmail,
+          amount: amountToCharge,
+          currency: "USD",
+          metadata: {
+            tier: UserTier.STUDIO,
+            billing_cycle: 'annual'
+          },
+          onSuccess: (transaction) => {
+            alert(`Subscription successful! Reference: ${transaction.reference}`);
+            setIsProcessing(false);
+            navigate('/welcome');
+          },
+          onCancel: () => {
+            setIsProcessing(false);
+          },
+          onError: (error) => {
+            console.error("Payment error:", error);
+            alert(`Payment failed: ${error.message}`);
+            setIsProcessing(false);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Payment initialization failed:", error);
+      alert("Unable to start payment processing. Please try again.");
+      setIsProcessing(false);
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -383,7 +533,7 @@ const TierDetailStudio: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans selection:bg-indigo-200 selection:text-indigo-900">
+    <div className="min-h-screen bg-white font-body selection:bg-indigo-200 selection:text-indigo-900">
       <UsageHeatmap tier={tierConfig} />
       <BackToPricing onBack={handleBack} />
 
@@ -621,6 +771,7 @@ const TierDetailStudio: React.FC = () => {
         headline="Ready to Scale Your Content Production?"
         onStartTrial={handleStartTrial}
         onContactSales={handleContactSales}
+        ctaText={isProcessing ? 'Processing...' : 'Start 14-Day Free Trial'}
       />
 
       {/* Footer */}
@@ -630,33 +781,123 @@ const TierDetailStudio: React.FC = () => {
             <div>
               <h4 className="font-bold mb-4">Compare Tiers</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><button className="hover:text-white transition-colors">Creator ($16.41/mo)</button></li>
-                <li><button className="hover:text-white transition-colors">Empire ($166.58/mo)</button></li>
-                <li><button className="hover:text-white transition-colors">Full Comparison</button></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tier/creator')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Creator ($16.41/mo)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tier/empire')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Empire ($166.58/mo)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/welcome?step=pricing')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Full Comparison
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Resources</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Team Setup Guide</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Brand Hub Tutorial</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Agency Playbook</a></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('who')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Team Setup Guide
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('value-prop')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Brand Hub Tutorial
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('case-studies')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Agency Playbook
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Support</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Schedule Onboarding</a></li>
-                <li><a href="mailto:enterprise@genesis.ai" className="hover:text-white transition-colors">Contact Us</a></li>
+                <li>
+                  <a
+                    href="mailto:support@genesis.ai"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Help Center
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:enterprise@genesis.ai?subject=Studio%20Onboarding%20Request"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Schedule Onboarding
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:enterprise@genesis.ai"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Contact Us
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Legal</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Enterprise Agreement</a></li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=Terms%20of%20Service"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=Privacy%20Policy"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=Enterprise%20Agreement"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Enterprise Agreement
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

@@ -48,18 +48,18 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
     }, [booksPerMonth, pagesPerBook, hourlyRate, tier.price.monthly]);
 
     return (
-        <div className="bg-white rounded-2xl shadow-xl border border-charcoal-soft/5 overflow-hidden my-16">
+        <div className="bg-white rounded-xl md:rounded-2xl shadow-xl border border-charcoal-soft/5 overflow-hidden my-8 md:my-16">
             <div className={`bg-gradient-to-r ${tier.gradient} p-1`}></div>
-            <div className="p-8 md:p-12 grid lg:grid-cols-2 gap-12">
+            <div className="p-4 sm:p-6 md:p-8 lg:p-12 grid lg:grid-cols-2 gap-6 md:gap-12">
 
                 {/* Left: Inputs */}
                 <div className="space-y-8">
                     <div>
-                        <h3 className="text-2xl font-heading font-bold text-charcoal-soft mb-2 flex items-center gap-2">
-                            <Calculator className={`w-6 h-6 text-${tier.accentColor}-500`} />
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-heading font-bold text-charcoal-soft mb-2 flex items-center gap-2">
+                            <Calculator className={`w-5 h-5 md:w-6 md:h-6 text-${tier.accentColor}-500`} />
                             Calculate Your ROI
                         </h3>
-                        <p className="text-charcoal-soft/70">
+                        <p className="text-sm md:text-base text-charcoal-soft/70">
                             Adjust the sliders to see what Genesis {tier.name} could mean for your bottom line.
                         </p>
                     </div>
@@ -111,15 +111,15 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
                 </div>
 
                 {/* Right: Results Dashboard */}
-                <div className={`rounded-xl p-8 ${tier.bgClass} relative`}>
-                    <div className="grid grid-cols-2 gap-8 relative z-10">
+                <div className={`rounded-xl p-4 sm:p-6 md:p-8 ${tier.bgClass} relative`}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 relative z-10">
 
                         {/* Metric 1 */}
                         <div className="bg-white rounded-lg p-4 shadow-sm border border-white/50">
                             <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                                 <Clock className="w-4 h-4" /> Time Saved
                             </div>
-                            <div className="text-3xl font-heading font-black text-charcoal-soft">
+                            <div className="text-xl sm:text-2xl md:text-3xl font-heading font-black text-charcoal-soft">
                                 {timeSaved}<span className="text-lg font-normal text-charcoal-soft/50 ml-1">hrs/mo</span>
                             </div>
                         </div>
@@ -129,7 +129,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
                             <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                                 <DollarSign className="w-4 h-4" /> Monthly Value
                             </div>
-                            <div className={`text-3xl font-heading font-black bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}>
+                            <div className={`text-xl sm:text-2xl md:text-3xl font-heading font-black bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}>
                                 ${monthlyValue.toLocaleString()}
                             </div>
                         </div>
@@ -139,15 +139,15 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
                             <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                                 <TrendingUp className="w-4 h-4" /> Cost Per Book
                             </div>
-                            <div className="text-3xl font-heading font-black text-charcoal-soft">
+                            <div className="text-xl sm:text-2xl md:text-3xl font-heading font-black text-charcoal-soft">
                                 ${costPerBook}
                             </div>
                         </div>
 
                         {/* Metric 4 (Big Annual) */}
-                        <div className="col-span-2 bg-charcoal-soft rounded-xl p-6 text-white shadow-lg transform scale-105 border border-white/10">
-                            <div className="text-white/60 text-sm font-bold uppercase tracking-wider mb-2">Projected Annual Profit</div>
-                            <div className="text-4xl md:text-5xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-mint-fresh to-white">
+                        <div className="sm:col-span-2 bg-charcoal-soft rounded-xl p-4 sm:p-6 text-white shadow-lg sm:transform sm:scale-105 border border-white/10">
+                            <div className="text-white/60 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1 sm:mb-2">Projected Annual Profit</div>
+                            <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-mint-fresh to-white">
                                 ${annualProfit.toLocaleString()}
                             </div>
                             <div className="mt-2 text-xs text-white/40">

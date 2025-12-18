@@ -69,10 +69,10 @@ export const CreativePersonaQuiz: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-start px-3 py-6 md:p-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-start px-[var(--ob-container-padding)] py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
-      
+
       {/* Ambient orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
@@ -88,7 +88,7 @@ export const CreativePersonaQuiz: React.FC = () => {
       />
 
       {/* Grid pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',
@@ -113,7 +113,7 @@ export const CreativePersonaQuiz: React.FC = () => {
             <Users className="w-3 h-3 md:w-4 md:h-4 text-purple-400" />
             <span className="text-white/70 text-xs md:text-sm font-medium">Choose Your Path</span>
           </motion.div>
-          
+
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4 font-heading">
             Who is the captain
             <br />
@@ -126,11 +126,12 @@ export const CreativePersonaQuiz: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Role cards with images */}
-        <div className="grid grid-cols-3 gap-2 md:gap-5 mb-6 md:mb-10">
+        {/* Role cards with images - 2 up 1 down on mobile/tablet */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-[var(--ob-card-gap)] mb-6 md:mb-10 w-full px-2">
           {roles.map((role, index) => {
             const isSelected = selectedRole === role.id;
-            
+            const isLastOdd = index === roles.length - 1 && roles.length % 2 === 1;
+
             return (
               <motion.button
                 key={role.id}
@@ -140,23 +141,22 @@ export const CreativePersonaQuiz: React.FC = () => {
                 onClick={() => handleRoleSelect(role.id)}
                 disabled={isTransitioning}
                 whileHover={{ y: -5 }}
-                className={`group relative p-3 md:p-6 rounded-xl md:rounded-2xl text-center transition-all duration-300 ${
-                  isSelected 
-                    ? `${role.glow} ring-2 ring-white/30` 
-                    : 'hover:bg-white/5'
-                } overflow-hidden`}
+                className={`group relative p-3 md:p-4 md:ob-p-card rounded-xl md:rounded-2xl text-center transition-all duration-300 ${isSelected
+                  ? `${role.glow} ring-2 ring-white/30`
+                  : 'hover:bg-white/5'
+                  } overflow-hidden ${isLastOdd ? 'col-span-2 md:col-span-1 max-w-[75%] md:max-w-none mx-auto' : ''}`}
               >
                 {/* Background */}
                 <div className={`absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`} />
-                
+
                 {/* Glass border */}
                 <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10" />
-                
+
                 {/* Shimmer on hover */}
                 <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 <div className="relative">
-                  {/* Role Image - Compact on mobile */}
+                  {/* Role Image - Larger on mobile */}
                   <motion.div
                     className="mb-2 md:mb-5 flex justify-center"
                     animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
@@ -165,13 +165,13 @@ export const CreativePersonaQuiz: React.FC = () => {
                     <img
                       src={role.image}
                       alt={role.title}
-                      className="w-16 h-16 md:w-28 md:h-28 lg:w-36 lg:h-36 object-contain drop-shadow-2xl rounded-xl md:rounded-3xl"
+                      className="w-20 h-20 md:w-28 md:h-28 lg:w-36 lg:h-36 object-contain drop-shadow-2xl rounded-xl md:rounded-3xl"
                     />
-                    
+
                     {/* Glow behind image */}
                     <div className={`absolute w-32 h-32 bg-gradient-to-br ${role.gradient} blur-3xl opacity-30 -z-10`} />
                   </motion.div>
-                  
+
                   {/* Text */}
                   <h3 className="text-xs md:text-xl font-bold text-white mb-0 md:mb-1">{role.title}</h3>
                   <p className={`text-[10px] md:text-sm mb-1 md:mb-3 bg-gradient-to-r ${role.gradient} bg-clip-text text-transparent font-medium hidden md:block`}>
@@ -180,13 +180,12 @@ export const CreativePersonaQuiz: React.FC = () => {
                   <p className="text-white/50 text-xs md:text-sm leading-relaxed hidden md:block">
                     {role.description}
                   </p>
-                  
+
                   {/* Selection indicator */}
-                  <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                    isSelected 
-                      ? 'border-white bg-white' 
-                      : 'border-white/20'
-                  }`}>
+                  <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
+                    ? 'border-white bg-white'
+                    : 'border-white/20'
+                    }`}>
                     {isSelected && (
                       <motion.div
                         initial={{ scale: 0 }}
@@ -221,13 +220,13 @@ export const CreativePersonaQuiz: React.FC = () => {
               >
                 {/* Button gradient */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />
-                
+
                 {/* Shimmer */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                
+
                 {/* Glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
-                
+
                 <span className="relative flex items-center gap-3 text-white">
                   {isTransitioning ? (
                     <>

@@ -342,6 +342,12 @@ const TierDetailCreator: React.FC = () => {
   const navigate = useNavigate();
   const [showQuiz, setShowQuiz] = React.useState(false);
 
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleStartTrial = () => {
     navigate('/signup?tier=creator');
   };
@@ -360,7 +366,7 @@ const TierDetailCreator: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans selection:bg-emerald-200 selection:text-emerald-900">
+    <div className="min-h-screen bg-white font-body selection:bg-emerald-200 selection:text-emerald-900">
       <UsageHeatmap tier={tierConfig} />
       <BackToPricing onBack={handleBack} />
 
@@ -590,33 +596,123 @@ const TierDetailCreator: React.FC = () => {
             <div>
               <h4 className="font-bold mb-4">Compare Tiers</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><button className="hover:text-white transition-colors">Spark (Free)</button></li>
-                <li><button className="hover:text-white transition-colors">Studio ($49.92/mo)</button></li>
-                <li><button className="hover:text-white transition-colors">Empire ($166.58/mo)</button></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/welcome?step=pricing')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Spark (Free)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tier/studio')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Studio ($49.92/mo)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tier/empire')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Empire ($166.58/mo)
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Resources</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Getting Started Guide</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Style Gallery</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Publishing Tutorials</a></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/welcome?step=tour')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Getting Started Guide
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('features')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Style Gallery
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('how')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Publishing Tutorials
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Support</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Community Forum</a></li>
-                <li><a href="mailto:hello@genesis.ai" className="hover:text-white transition-colors">Contact Us</a></li>
+                <li>
+                  <a
+                    href="mailto:support@genesis.ai"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Help Center
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:hello@genesis.ai?subject=Community%20Forum"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Community Forum
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:hello@genesis.ai"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Contact Us
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Legal</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">License Agreement</a></li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=Terms%20of%20Service"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=Privacy%20Policy"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=License%20Agreement"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    License Agreement
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

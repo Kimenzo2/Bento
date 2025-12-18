@@ -18,20 +18,20 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
     const totalProfit = (booksPerYear * avgProfitPerBook) - annualCost;
 
     return (
-        <div className="bg-gradient-to-br from-charcoal-soft to-black rounded-3xl p-8 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-charcoal-soft to-black rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden">
             {/* Background blobs */}
             <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${tier.gradient} opacity-20 blur-3xl rounded-full`} />
 
-            <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+            <div className="relative z-10 grid lg:grid-cols-2 gap-6 md:gap-12 items-center">
                 <div>
-                    <h3 className="font-heading font-bold text-2xl mb-4">When does it pay for itself?</h3>
-                    <p className="text-white/70 mb-8">
+                    <h3 className="font-heading font-bold text-lg sm:text-xl md:text-2xl mb-2 md:mb-4">When does it pay for itself?</h3>
+                    <p className="text-sm md:text-base text-white/70 mb-4 md:mb-8">
                         See how quickly your Genesis subscription turns from a cost into a profit engine.
                     </p>
 
-                    <div className="mb-8">
-                        <label className="block text-sm font-bold text-white/80 mb-4">
-                            I plan to publish <span className="text-xl text-white">{booksPerYear}</span> books this year
+                    <div className="mb-4 md:mb-8">
+                        <label className="block text-xs sm:text-sm font-bold text-white/80 mb-2 md:mb-4">
+                            I plan to publish <span className="text-base sm:text-lg md:text-xl text-white">{booksPerYear}</span> books this year
                         </label>
                         <input
                             type="range"
@@ -43,17 +43,17 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
                         />
                     </div>
 
-                    <div className="flex gap-4">
-                        <div className={`p-4 rounded-xl bg-white/10 border border-white/10 flex-1`}>
-                            <div className="text-xs text-white/50 uppercase tracking-wider mb-1">Break Even</div>
-                            <div className="text-2xl font-bold flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                        <div className={`p-3 md:p-4 rounded-xl bg-white/10 border border-white/10 flex-1`}>
+                            <div className="text-[10px] sm:text-xs text-white/50 uppercase tracking-wider mb-1">Break Even</div>
+                            <div className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
                                 {breakEvenBooks} Books
                                 <Calendar className="w-5 h-5 text-white/50" />
                             </div>
                         </div>
-                        <div className={`p-4 rounded-xl bg-gradient-to-br ${tier.gradient} border border-white/10 flex-1`}>
-                            <div className="text-xs text-white/80 uppercase tracking-wider mb-1">Projected Profit</div>
-                            <div className="text-2xl font-bold flex items-center gap-2">
+                        <div className={`p-3 md:p-4 rounded-xl bg-gradient-to-br ${tier.gradient} border border-white/10 flex-1`}>
+                            <div className="text-[10px] sm:text-xs text-white/80 uppercase tracking-wider mb-1">Projected Profit</div>
+                            <div className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
                                 ${totalProfit.toLocaleString()}
                                 <DollarSign className="w-5 h-5" />
                             </div>
@@ -62,7 +62,7 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
                 </div>
 
                 {/* Timeline Visualization */}
-                <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                <div className="bg-white/5 rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/10">
                     <h4 className="font-bold text-white/90 mb-6 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5" />
                         Profit Timeline

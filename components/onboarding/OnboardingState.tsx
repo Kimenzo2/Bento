@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+/**
+ * OnboardingState - PERFORMANCE OPTIMIZED
+ * 
+ * Optimizations:
+ * 1. ⚡ Stable context value with useMemo prevents child re-renders
+ * 2. ⚡ Stable callbacks with useCallback
+ * 3. ⚡ Lazy initial state computation
+ */
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 export type OnboardingStep = 'spark' | 'quiz' | 'magic' | 'proreveal' | 'pricing' | 'tour' | 'identity' | 'cliffhanger' | 'welcome';
 export type ThemeOption = 'cosmos' | 'kingdom' | 'cell';
@@ -28,46 +36,80 @@ interface OnboardingState {
 const OnboardingContext = createContext<OnboardingState | undefined>(undefined);
 
 export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize step from URL query param if present
-  const getInitialStep = (): OnboardingStep => {
+  // ⚡ Lazy initial state computation (runs only once)
+  const [step, setStepState] = useState<OnboardingStep>(() => {
     const params = new URLSearchParams(window.location.search);
     const stepParam = params.get('step') as OnboardingStep;
     const validSteps: OnboardingStep[] = ['spark', 'quiz', 'magic', 'proreveal', 'pricing', 'tour', 'identity', 'cliffhanger', 'welcome'];
     return validSteps.includes(stepParam) ? stepParam : 'spark';
-  };
+  });
 
-  const [step, setStep] = useState<OnboardingStep>(getInitialStep);
-  const [theme, setTheme] = useState<ThemeOption | null>(null);
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<QuizAnswers>({
+  const [theme, setThemeState] = useState<ThemeOption | null>(null);
+  const [role, setRoleState] = useState<UserRole | null>(null);
+  const [generatedContent, setGeneratedContentState] = useState<string | null>(null);
+  const [quizAnswers, setQuizAnswersState] = useState<QuizAnswers>({
     intent: null,
     skill: null,
     cadence: null,
   });
   const [sparkPoints, setSparkPoints] = useState(0);
 
-  const addSparkPoints = (points: number) => {
+  // ⚡ Stable callbacks with useCallback
+  const setStep = useCallback((newStep: OnboardingStep) => {
+    setStepState(newStep);
+  }, []);
+
+  const setTheme = useCallback((newTheme: ThemeOption) => {
+    setThemeState(newTheme);
+  }, []);
+
+  const setRole = useCallback((newRole: UserRole) => {
+    setRoleState(newRole);
+  }, []);
+
+  const setGeneratedContent = useCallback((content: string) => {
+    setGeneratedContentState(content);
+  }, []);
+
+  const setQuizAnswers = useCallback((answers: QuizAnswers) => {
+    setQuizAnswersState(answers);
+  }, []);
+
+  const addSparkPoints = useCallback((points: number) => {
     setSparkPoints(prev => prev + points);
-  };
+  }, []);
+
+  // ⚡ Memoized context value prevents unnecessary re-renders
+  const value = useMemo<OnboardingState>(() => ({
+    step,
+    theme,
+    role,
+    generatedContent,
+    quizAnswers,
+    sparkPoints,
+    setStep,
+    setTheme,
+    setRole,
+    setGeneratedContent,
+    setQuizAnswers,
+    addSparkPoints,
+  }), [
+    step,
+    theme,
+    role,
+    generatedContent,
+    quizAnswers,
+    sparkPoints,
+    setStep,
+    setTheme,
+    setRole,
+    setGeneratedContent,
+    setQuizAnswers,
+    addSparkPoints,
+  ]);
 
   return (
-    <OnboardingContext.Provider
-      value={{
-        step,
-        theme,
-        role,
-        generatedContent,
-        quizAnswers,
-        sparkPoints,
-        setStep,
-        setTheme,
-        setRole,
-        setGeneratedContent,
-        setQuizAnswers,
-        addSparkPoints,
-      }}
-    >
+    <OnboardingContext.Provider value={value}>
       {children}
     </OnboardingContext.Provider>
   );

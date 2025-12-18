@@ -73,7 +73,7 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
 
     return (
         <div
-            className={`relative overflow-hidden rounded-2xl p-8 mb-12 border border-white/20 shadow-xl ${tier.bgClass.replace('/30', '/50')}`}
+            className={`relative overflow-hidden rounded-xl md:rounded-2xl p-4 sm:p-6 md:p-8 mb-6 md:mb-12 border border-white/20 shadow-xl ${tier.bgClass.replace('/30', '/50')}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
@@ -81,15 +81,15 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
             <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${tier.gradient} opacity-5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2`} />
             <div className={`absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr ${tier.gradient} opacity-5 blur-2xl rounded-full translate-y-1/2 -translate-x-1/3`} />
 
-            <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center justify-between">
+            <div className="relative z-10 flex flex-col md:flex-row gap-4 md:gap-8 items-center justify-between">
 
                 {/* Left Side: Controls & Context */}
-                <div className="w-full md:w-1/2 space-y-6">
+                <div className="w-full md:w-1/2 space-y-4 md:space-y-6">
                     <div>
-                        <h3 className="text-xl font-heading font-bold text-charcoal-soft mb-2">
+                        <h3 className="text-base sm:text-lg md:text-xl font-heading font-bold text-charcoal-soft mb-1 md:mb-2">
                             See How Much You'll Save
                         </h3>
-                        <p className="text-charcoal-soft/70 text-sm">
+                        <p className="text-charcoal-soft/70 text-xs md:text-sm">
                             Stop overpaying specifically for content creation. Compare Genesis {tier.name} against traditional methods.
                         </p>
                     </div>
@@ -104,7 +104,7 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
                                     key={key}
                                     onClick={() => setMode(key)}
                                     className={`
-                    flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+                    flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300
                     ${isActive
                                             ? `bg-gradient-to-r ${tier.gradient} text-white shadow-md transform scale-105`
                                             : 'bg-white text-charcoal-soft hover:bg-gray-50 border border-charcoal-soft/10'
@@ -125,20 +125,20 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
                 </div>
 
                 {/* Right Side: Big Numbers */}
-                <div className="w-full md:w-1/2 bg-white/60 backdrop-blur-md rounded-2xl p-6 border border-white/50 text-center relative overflow-hidden group">
+                <div className="w-full md:w-1/2 bg-white/60 backdrop-blur-md rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/50 text-center relative overflow-hidden group">
                     <div className={`absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
 
-                    <div className="grid grid-cols-2 gap-4 divide-x divide-charcoal-soft/10">
+                    <div className="grid grid-cols-2 gap-2 md:gap-4 divide-x divide-charcoal-soft/10">
                         <div className="space-y-1">
-                            <div className="text-charcoal-soft/60 text-xs font-bold uppercase tracking-wider">Monthly Savings</div>
-                            <div className={`text-3xl md:text-4xl font-heading font-black bg-gradient-to-br ${tier.gradient} bg-clip-text text-transparent`}>
+                            <div className="text-charcoal-soft/60 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Monthly Savings</div>
+                            <div className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-heading font-black bg-gradient-to-br ${tier.gradient} bg-clip-text text-transparent`}>
                                 ${savings.toLocaleString()}
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="text-charcoal-soft/60 text-xs font-bold uppercase tracking-wider">Yearly Projection</div>
-                            <div className="text-3xl md:text-4xl font-heading font-black text-charcoal-soft flex items-center justify-center gap-1">
+                            <div className="text-charcoal-soft/60 text-[10px] sm:text-xs font-bold uppercase tracking-wider">Yearly Projection</div>
+                            <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-heading font-black text-charcoal-soft flex items-center justify-center gap-1">
                                 <span className="text-lg opacity-40">$</span>
                                 {projection.toLocaleString()}
                             </div>

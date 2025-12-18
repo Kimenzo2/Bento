@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { 
-  Check, 
+import {
+  Check,
   ChevronRight,
   Clock,
-  Crown, 
+  Crown,
   Gift,
   Star,
   Users,
@@ -16,15 +16,50 @@ import { useOnboarding } from './OnboardingState';
 // Psychological trigger: Live social proof counter
 const LiveUpgradeCounter = () => {
   const [count, setCount] = useState(47);
-  
+
   useEffect(() => {
-    // Simulate real-time upgrades (psychological trigger: social proof)
-    const interval = setInterval(() => {
-      if (Math.random() > 0.6) {
-        setCount(prev => prev + 1);
+    const fetchInitialCount = async () => {
+      try {
+        const { supabase } = await import('../../services/supabaseClient');
+        const { data, error } = await supabase.rpc('get_today_upgrade_count');
+        if (!error && data !== null) {
+          // Add a base number to make it look more impressive if it's a new day
+          setCount(Math.max(47, data));
+        }
+      } catch (err) {
+        console.error('Failed to fetch upgrade count:', err);
       }
-    }, 8000);
-    return () => clearInterval(interval);
+    };
+
+    fetchInitialCount();
+
+    // Subscribe to realtime updates
+    let subscription: any;
+    const setupSubscription = async () => {
+      const { supabase } = await import('../../services/supabaseClient');
+      subscription = supabase
+        .channel('subscription_events_count')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'subscription_events'
+          },
+          (payload: any) => {
+            if (['charge_success', 'subscription_create'].includes(payload.new.event_type)) {
+              setCount(prev => prev + 1);
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -57,8 +92,12 @@ const LiveUpgradeCounter = () => {
 };
 
 // Countdown timer for urgency
-const UrgencyTimer = () => {
-  const [timeLeft, setTimeLeft] = useState(599); // 9:59
+const UrgencyTimer = ({ durationMinutes = 10 }: { durationMinutes?: number }) => {
+  const [timeLeft, setTimeLeft] = useState(durationMinutes * 60 - 1);
+
+  useEffect(() => {
+    setTimeLeft(durationMinutes * 60 - 1);
+  }, [durationMinutes]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,11 +113,10 @@ const UrgencyTimer = () => {
     <motion.div
       animate={{ scale: timeLeft < 60 ? [1, 1.05, 1] : 1 }}
       transition={{ duration: 0.5, repeat: timeLeft < 60 ? Infinity : 0 }}
-      className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
-        timeLeft < 60 
-          ? 'bg-red-500/20 border-red-400/50 text-red-300' 
+      className={`flex items-center gap-2 px-4 py-2 rounded-full border ${timeLeft < 60
+          ? 'bg-red-500/20 border-red-400/50 text-red-300'
           : 'bg-amber-500/20 border-amber-400/30 text-amber-300'
-      }`}
+        }`}
     >
       <Clock className="w-4 h-4" />
       <span className="font-mono font-bold">
@@ -107,7 +145,7 @@ const FeatureComparison = () => {
         <div className="text-center text-white/50">Free</div>
         <div className="text-center text-amber-400 font-medium">Pro</div>
       </div>
-      
+
       <div className="space-y-2">
         {features.map((feature, idx) => (
           <motion.div
@@ -115,11 +153,10 @@ const FeatureComparison = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${
-              feature.highlight 
-                ? 'bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-white/10' 
+            className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${feature.highlight
+                ? 'bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-white/10'
                 : 'bg-white/5'
-            }`}
+              }`}
           >
             <div className="text-white/80 text-sm">{feature.name}</div>
             <div className="text-center">
@@ -156,11 +193,72 @@ export const ProRevealMoment: React.FC = () => {
   const { setStep, sparkPoints } = useOnboarding();
   const [showComparison, setShowComparison] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [deal, setDeal] = useState({
+    original_price: 19.99,
+    deal_price: 11.99,
+    duration_minutes: 10
+  });
 
   useEffect(() => {
+    const fetchDeal = async () => {
+      try {
+        const { supabase } = await import('../../services/supabaseClient');
+        const { data, error } = await supabase
+          .from('exclusive_deals')
+          .select('*')
+          .eq('name', 'Onboarding Exclusive')
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (!error && data) {
+          setDeal({
+            original_price: Number(data.original_price),
+            deal_price: Number(data.deal_price),
+            duration_minutes: Number(data.duration_minutes)
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch deal:', err);
+      }
+    };
+
+    fetchDeal();
+
+    // Subscribe to deal updates
+    let subscription: any;
+    const setupSubscription = async () => {
+      const { supabase } = await import('../../services/supabaseClient');
+      subscription = supabase
+        .channel('exclusive_deals_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'exclusive_deals',
+            filter: "name=eq.Onboarding Exclusive"
+          },
+          (payload: any) => {
+            if (payload.new && payload.new.is_active) {
+              setDeal({
+                original_price: Number(payload.new.original_price),
+                deal_price: Number(payload.new.deal_price),
+                duration_minutes: Number(payload.new.duration_minutes)
+              });
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
+
     // Delayed reveal for anticipation building
     const timer = setTimeout(() => setShowComparison(true), 1500);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   const handleContinueFree = () => {
@@ -173,10 +271,10 @@ export const ProRevealMoment: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center px-4 py-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 overflow-x-hidden overflow-y-auto">
       {/* Premium Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-950/50 via-[#0a0a0f] to-amber-950/30" />
-      
+
       {/* Animated glow orbs */}
       <motion.div
         animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
@@ -191,7 +289,7 @@ export const ProRevealMoment: React.FC = () => {
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col justify-center py-8">
-        
+
         {/* Header with social proof */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -199,7 +297,7 @@ export const ProRevealMoment: React.FC = () => {
           className="flex flex-col items-center gap-4 mb-8"
         >
           <LiveUpgradeCounter />
-          
+
           {/* Crown icon with glow */}
           <motion.div
             initial={{ scale: 0 }}
@@ -230,7 +328,7 @@ export const ProRevealMoment: React.FC = () => {
               something magical.
             </span>
           </h1>
-          
+
           <p className="text-white/60 text-lg max-w-md mx-auto">
             Imagine what you could create with{' '}
             <span className="text-amber-400 font-semibold">unlimited power.</span>
@@ -277,7 +375,7 @@ export const ProRevealMoment: React.FC = () => {
             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             className="absolute -inset-1 bg-gradient-conic from-purple-500 via-amber-400 via-pink-500 to-purple-500 rounded-3xl opacity-20 blur-sm"
           />
-          
+
           <div className="relative">
             {/* Offer badge */}
             <div className="flex items-center justify-between mb-4">
@@ -285,14 +383,14 @@ export const ProRevealMoment: React.FC = () => {
                 <Gift className="w-5 h-5 text-amber-400" />
                 <span className="text-amber-300 font-semibold">Onboarding Exclusive</span>
               </div>
-              <UrgencyTimer />
+              <UrgencyTimer durationMinutes={deal.duration_minutes} />
             </div>
 
             {/* Price comparison - Anchoring */}
             <div className="text-center mb-6">
               <div className="flex items-center justify-center gap-3 mb-2">
-                <span className="text-white/40 line-through text-2xl">$19.99</span>
-                <span className="text-4xl md:text-5xl font-bold text-white">$11.99</span>
+                <span className="text-white/40 line-through text-2xl">${deal.original_price}</span>
+                <span className="text-4xl md:text-5xl font-bold text-white">${deal.deal_price}</span>
                 <span className="text-white/60">/month</span>
               </div>
               <motion.div
@@ -320,19 +418,19 @@ export const ProRevealMoment: React.FC = () => {
               >
                 {/* Animated gradient background */}
                 <motion.div
-                  animate={{ 
+                  animate={{
                     backgroundPosition: isHovering ? ['0% 50%', '100% 50%', '0% 50%'] : '0% 50%'
                   }}
                   transition={{ duration: 3, repeat: Infinity }}
                   className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 via-amber-500 to-purple-600 bg-[length:200%_100%]"
                 />
-                
+
                 {/* Shimmer effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                
+
                 {/* Glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
-                
+
                 <span className="relative flex items-center justify-center gap-2 text-white">
                   <Crown className="w-5 h-5" />
                   Unlock Pro Now

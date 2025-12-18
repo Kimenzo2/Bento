@@ -1,17 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface OnboardingHeaderProps {
   currentStep: number;
   totalSteps: number;
-  onSkip?: () => void;
 }
 
 export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
   currentStep,
   totalSteps,
-  onSkip,
 }) => {
   const progressPercent = Math.round((currentStep / totalSteps) * 100);
 
@@ -50,14 +48,14 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
               >
                 {/* Gradient fill */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500" />
-                
+
                 {/* Shimmer effect */}
                 <motion.div
                   animate={{ x: ['-100%', '200%'] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2"
                 />
-                
+
                 {/* Glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 blur-sm opacity-50" />
               </motion.div>
@@ -69,22 +67,20 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
                 const stepProgress = ((idx + 1) / totalSteps) * 100;
                 const isCompleted = progressPercent >= stepProgress;
                 const isCurrent = currentStep === idx + 1;
-                
+
                 return (
                   <div
                     key={idx}
-                    className={`flex flex-col items-center transition-all duration-300 ${
-                      idx === 0 ? 'items-start' : idx === totalSteps - 1 ? 'items-end' : ''
-                    }`}
+                    className={`flex flex-col items-center transition-all duration-300 ${idx === 0 ? 'items-start' : idx === totalSteps - 1 ? 'items-end' : ''
+                      }`}
                   >
                     <div
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        isCompleted 
-                          ? 'bg-gradient-to-br from-purple-400 to-pink-400 shadow-sm shadow-purple-500/50' 
-                          : isCurrent 
-                            ? 'bg-white' 
-                            : 'bg-white/20'
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${isCompleted
+                        ? 'bg-gradient-to-br from-purple-400 to-pink-400 shadow-sm shadow-purple-500/50'
+                        : isCurrent
+                          ? 'bg-white'
+                          : 'bg-white/20'
+                        }`}
                     />
                   </div>
                 );
@@ -92,26 +88,13 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
             </div>
           </div>
 
+
           {/* Step counter */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm">
             <span className="text-white font-bold text-sm">{currentStep}</span>
             <span className="text-white/40 text-sm">/</span>
             <span className="text-white/40 text-sm">{totalSteps}</span>
           </div>
-
-          {/* Skip button */}
-          {onSkip && (
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              onClick={onSkip}
-              className="group flex items-center gap-2 px-4 py-2 rounded-full text-white/50 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all duration-300"
-            >
-              <span className="text-sm font-medium">Skip</span>
-              <X className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </motion.button>
-          )}
         </div>
       </div>
     </motion.div>

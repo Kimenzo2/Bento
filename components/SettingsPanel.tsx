@@ -107,7 +107,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
       showPerformanceMetrics: false,
       autoSave: true
     };
-    
+
     try {
       const saved = localStorage.getItem('genesis_settings');
       if (saved) {
@@ -209,9 +209,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
         {description && <span className="text-xs text-gray-500 mt-1">{description}</span>}
       </div>
       <button
-        className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 relative focus:outline-none flex-shrink-0 ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
       >
-        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`}></div>
+        <div className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'}`}></div>
       </button>
     </div>
   );
@@ -264,7 +264,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
             <TabButton id="sessions" icon={Smartphone} label="Sessions" />
             <TabButton id="advanced" icon={Wrench} label="Advanced" />
             <TabButton id="about" icon={Info} label="About" />
-            
+
             <a
               href="https://genesis-1765265007.documentationai.com/"
               target="_blank"
@@ -313,12 +313,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                         <span className="animate-pulse">Loading...</span>
                       ) : (
                         <>
-                          <span className={`font-bold ${
-                            actualUserTier === UserTier.SPARK ? 'text-gray-600' :
+                          <span className={`font-bold ${actualUserTier === UserTier.SPARK ? 'text-gray-600' :
                             actualUserTier === UserTier.CREATOR ? 'text-blue-600' :
-                            actualUserTier === UserTier.STUDIO ? 'text-coral-burst' :
-                            'text-purple-600'
-                          }`}>
+                              actualUserTier === UserTier.STUDIO ? 'text-coral-burst' :
+                                'text-purple-600'
+                            }`}>
                             {actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase()}
                           </span>
                           {' Plan • Member since ' + memberSince}
@@ -611,31 +610,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                 )}
               </button>
             </div>
-            
+
             {/* Legal Links */}
             <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs text-cocoa-light/70 pt-3 border-t border-peach-soft/30">
-              <button 
+              <button
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
                 className="hover:text-coral-burst transition-colors"
               >
                 Privacy Policy
               </button>
               <span className="text-peach-soft">•</span>
-              <button 
+              <button
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
                 className="hover:text-coral-burst transition-colors"
               >
                 Terms of Service
               </button>
               <span className="text-peach-soft">•</span>
-              <button 
+              <button
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
                 className="hover:text-coral-burst transition-colors"
               >
                 Cookie Policy
               </button>
               <span className="text-peach-soft">•</span>
-              <button 
+              <button
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
                 className="hover:text-coral-burst transition-colors"
               >

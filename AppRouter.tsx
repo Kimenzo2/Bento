@@ -31,10 +31,13 @@ const TierDetailCreator = lazy(() => import('./components/tiers/TierDetailCreato
 const TierDetailStudio = lazy(() => import('./components/tiers/TierDetailStudio'));
 const TierDetailEmpire = lazy(() => import('./components/tiers/TierDetailEmpire'));
 
+// Layout wrapper for tiers to provide strict styling context
+const TierLayout = lazy(() => import('./components/tiers/TierLayout'));
+
 // Minimal loading state - just prevents flash
 const AppLoading: React.FC = () => (
-  <div 
-    style={{ 
+  <div
+    style={{
       position: 'fixed',
       inset: 0,
       background: '#0a0a0f',
@@ -43,7 +46,7 @@ const AppLoading: React.FC = () => (
       justifyContent: 'center',
     }}
   >
-    <div 
+    <div
       style={{
         width: 48,
         height: 48,
@@ -60,23 +63,23 @@ const AppLoading: React.FC = () => (
 // Route guard component
 const OnboardingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const hasCompletedOnboarding = localStorage.getItem('genesis_onboarding_completed') === 'true';
-  
+
   if (hasCompletedOnboarding) {
     // User completed onboarding, redirect to main app
     return <Navigate to="/" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const hasCompletedOnboarding = localStorage.getItem('genesis_onboarding_completed') === 'true';
-  
+
   if (!hasCompletedOnboarding) {
     // New user, redirect to onboarding
     return <Navigate to="/welcome" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -85,28 +88,31 @@ export const AppRouter: React.FC = () => {
     <Suspense fallback={<AppLoading />}>
       <Routes>
         {/* Tier detail pages - accessible during onboarding for "Why" buttons */}
-        <Route path="/tier/creator" element={<TierDetailCreator />} />
-        <Route path="/tier/studio" element={<TierDetailStudio />} />
-        <Route path="/tier/empire" element={<TierDetailEmpire />} />
-        
+        {/* Wrapped in TierLayout to ensure correct Font/Theme providers */}
+        <Route element={<TierLayout />}>
+          <Route path="/tier/creator" element={<TierDetailCreator />} />
+          <Route path="/tier/studio" element={<TierDetailStudio />} />
+          <Route path="/tier/empire" element={<TierDetailEmpire />} />
+        </Route>
+
         {/* Onboarding route - completely isolated experience */}
-        <Route 
-          path="/welcome/*" 
+        <Route
+          path="/welcome/*"
           element={
             <OnboardingGuard>
               <OnboardingApp />
             </OnboardingGuard>
-          } 
+          }
         />
-        
+
         {/* Main app - all other routes */}
-        <Route 
-          path="/*" 
+        <Route
+          path="/*"
           element={
             <MainAppGuard>
               <MainApp />
             </MainAppGuard>
-          } 
+          }
         />
       </Routes>
     </Suspense>

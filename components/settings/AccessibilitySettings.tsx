@@ -14,21 +14,21 @@ interface AccessibilitySettingsProps {
 }
 
 const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings, onUpdate }) => {
-  const Toggle = ({ 
-    label, 
-    description, 
-    checked, 
+  const Toggle = ({
+    label,
+    description,
+    checked,
     onChange,
-    icon: Icon 
-  }: { 
+    icon: Icon
+  }: {
     label: string;
     description?: string;
     checked: boolean;
     onChange: (val: boolean) => void;
     icon: any;
   }) => (
-    <div 
-      className="flex items-center justify-between py-4 md:py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group touch-manipulation active:bg-cream-base/50 -mx-2 px-2 rounded-lg transition-colors" 
+    <div
+      className="flex items-center justify-between py-4 md:py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group touch-manipulation active:bg-cream-base/50 -mx-2 px-2 rounded-lg transition-colors"
       onClick={() => onChange(!checked)}
     >
       <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
@@ -43,14 +43,12 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         </div>
       </div>
       <button
-        className={`w-12 h-7 md:w-11 md:h-6 rounded-full p-1 transition-colors duration-300 relative focus:outline-none flex-shrink-0 ml-3 md:ml-4 ${
-          checked ? 'bg-coral-burst' : 'bg-gray-200'
-        }`}
-      >
-        <div 
-          className={`w-5 h-5 md:w-4 md:h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${
-            checked ? 'translate-x-5' : 'translate-x-0'
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'
           }`}
+      >
+        <div
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'
+            }`}
         />
       </button>
     </div>
@@ -65,7 +63,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         <p className="text-sm text-cocoa-light mb-4">
           Adjust visual settings for better readability and comfort
         </p>
-        
+
         <div className="space-y-0">
           <Toggle
             label="Reduced Motion"
@@ -82,7 +80,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
             }}
             icon={Moon}
           />
-          
+
           <Toggle
             label="High Contrast"
             description="Increase contrast for better visibility"
@@ -110,7 +108,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         <p className="text-sm text-cocoa-light mb-4">
           Customize text size and navigation preferences
         </p>
-        
+
         <div className="space-y-4">
           <div>
             <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">
@@ -122,15 +120,14 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
                   key={size}
                   onClick={() => {
                     onUpdate({ ...settings, fontSize: size });
-                    document.documentElement.style.fontSize = 
-                      size === 'small' ? '14px' : 
-                      size === 'large' ? '18px' : '16px';
+                    document.documentElement.style.fontSize =
+                      size === 'small' ? '14px' :
+                        size === 'large' ? '18px' : '16px';
                   }}
-                  className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border-2 transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${
-                    settings.fontSize === size
-                      ? 'border-coral-burst bg-coral-burst text-white'
-                      : 'border-peach-soft bg-white text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'
-                  }`}
+                  className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border-2 transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${settings.fontSize === size
+                    ? 'border-coral-burst bg-coral-burst text-white'
+                    : 'border-peach-soft bg-white text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'
+                    }`}
                 >
                   {size}
                 </button>
@@ -164,7 +161,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         <p className="text-sm text-cocoa-light mb-4">
           Optimize for assistive technologies
         </p>
-        
+
         <div className="space-y-0">
           <Toggle
             label="Screen Reader Mode"
@@ -176,7 +173,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
             }}
             icon={Monitor}
           />
-          
+
           <Toggle
             label="Sound Effects"
             description="Enable audio feedback for actions"

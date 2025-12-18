@@ -366,6 +366,12 @@ const TierDetailEmpire: React.FC = () => {
   const navigate = useNavigate();
   const [showQuiz, setShowQuiz] = React.useState(false);
 
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleStartTrial = () => {
     // Empire typically goes to sales contact
     handleContactSales();
@@ -385,7 +391,7 @@ const TierDetailEmpire: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream-base">
+    <div className="min-h-screen bg-cream-base font-body">
       <UsageHeatmap tier={tierConfig} />
       <BackToPricing onBack={handleBack} />
 
@@ -721,33 +727,122 @@ const TierDetailEmpire: React.FC = () => {
             <div>
               <h4 className="font-bold mb-4">Compare Tiers</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><button className="hover:text-white transition-colors">Creator ($16.41/mo)</button></li>
-                <li><button className="hover:text-white transition-colors">Studio ($49.92/mo)</button></li>
-                <li><button className="hover:text-white transition-colors">Full Comparison</button></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tier/creator')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Creator ($16.41/mo)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/tier/studio')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Studio ($49.92/mo)
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/welcome?step=pricing')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Full Comparison
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Resources</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Security Whitepaper</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Enterprise Case Studies</a></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('security')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Security Whitepaper
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href="mailto:enterprise@genesis.ai?subject=API%20Documentation%20Request"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    API Documentation
+                  </a>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection('case-studies')}
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Enterprise Case Studies
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="mailto:enterprise@genesis.ai" className="hover:text-white transition-colors">enterprise@genesis.ai</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Schedule Demo</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Request Proposal</a></li>
+                <li>
+                  <a
+                    href="mailto:enterprise@genesis.ai"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    enterprise@genesis.ai
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:enterprise@genesis.ai?subject=Schedule%20Demo"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Schedule Demo
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:enterprise@genesis.ai?subject=Request%20Proposal"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Request Proposal
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Legal</h4>
               <ul className="space-y-2 text-white/60 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Enterprise Agreement</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">DPA Template</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">BAA Template</a></li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=Enterprise%20Agreement"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    Enterprise Agreement
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=DPA%20Template"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    DPA Template
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:legal@genesis.ai?subject=BAA%20Template"
+                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                  >
+                    BAA Template
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

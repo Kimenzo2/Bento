@@ -1,0 +1,389 @@
+/**
+ * Onboarding Responsive Utilities
+ * Device-family-specific viewport optimization
+ * 
+ * Breakpoint Strategy based on real-world viewport research:
+ * - xs: 360px (Samsung Base, Budget Androids, Infinix Smart)
+ * - sm: 375px (iPhone SE, Legacy iPhones)
+ * - md: 390-393px (iPhone 14/15/16, Modern Androids)
+ * - lg: 412px (Pixel, Samsung Ultra, Xiaomi flagships)
+ * - xl: 430px (iPhone Pro Max/Plus)
+ */
+
+/* ============================================
+   CSS CUSTOM PROPERTIES - SCALING SYSTEM
+   ============================================ */
+
+:root {
+    /* Base scaling factors - will be overridden per breakpoint */
+    --ob-scale: 1;
+    --ob-icon-sm: 3.5rem;
+    /* 56px base */
+    --ob-icon-md: 5rem;
+    /* 80px base */
+    --ob-icon-lg: 6rem;
+    /* 96px base */
+    --ob-text-xs: 0.75rem;
+    /* 12px */
+    --ob-text-sm: 0.875rem;
+    /* 14px */
+    --ob-text-base: 1rem;
+    /* 16px */
+    --ob-text-lg: 1.125rem;
+    /* 18px */
+    --ob-text-xl: 1.25rem;
+    /* 20px */
+    --ob-text-2xl: 1.5rem;
+    /* 24px */
+    --ob-text-3xl: 1.875rem;
+    /* 30px */
+    --ob-text-4xl: 2.25rem;
+    /* 36px */
+    --ob-text-5xl: 3rem;
+    /* 48px */
+    --ob-spacing-xs: 0.25rem;
+    --ob-spacing-sm: 0.5rem;
+    --ob-spacing-md: 1rem;
+    --ob-spacing-lg: 1.5rem;
+    --ob-spacing-xl: 2rem;
+    --ob-container-padding: 1rem;
+    --ob-card-padding: 0.75rem;
+    --ob-button-height: 2.75rem;
+    --ob-card-gap: 0.5rem;
+}
+
+/* ============================================
+   DEVICE-FAMILY BREAKPOINTS
+   ============================================ */
+
+/* XXS: Extra Small - 320px (iPhone SE old, Galaxy S3) */
+@media (max-width: 359px) {
+    :root {
+        --ob-scale: 0.75;
+        --ob-icon-sm: 2.5rem;
+        --ob-icon-md: 3.5rem;
+        --ob-icon-lg: 4.5rem;
+        --ob-text-xs: 0.5625rem;
+        --ob-text-sm: 0.6875rem;
+        --ob-text-base: 0.8125rem;
+        --ob-text-lg: 0.9375rem;
+        --ob-text-xl: 1rem;
+        --ob-text-2xl: 1.125rem;
+        --ob-text-3xl: 1.375rem;
+        --ob-text-4xl: 1.625rem;
+        --ob-text-5xl: 2rem;
+        --ob-container-padding: 0.5rem;
+        --ob-card-padding: 0.375rem;
+        --ob-button-height: 2.25rem;
+        --ob-card-gap: 0.25rem;
+    }
+}
+
+/* XS: Samsung Base, Budget Androids (360-374px) */
+@media (min-width: 360px) and (max-width: 374px) {
+    :root {
+        --ob-scale: 0.85;
+        --ob-icon-sm: 3rem;
+        --ob-icon-md: 4rem;
+        --ob-icon-lg: 5rem;
+        --ob-text-xs: 0.625rem;
+        --ob-text-sm: 0.75rem;
+        --ob-text-base: 0.875rem;
+        --ob-text-lg: 1rem;
+        --ob-text-xl: 1.125rem;
+        --ob-text-2xl: 1.25rem;
+        --ob-text-3xl: 1.5rem;
+        --ob-text-4xl: 1.875rem;
+        --ob-text-5xl: 2.25rem;
+        --ob-container-padding: 0.75rem;
+        --ob-card-padding: 0.5rem;
+        --ob-button-height: 2.5rem;
+        --ob-card-gap: 0.375rem;
+    }
+}
+
+/* SM: iPhone SE, Legacy (375-389px) */
+@media (min-width: 375px) and (max-width: 389px) {
+    :root {
+        --ob-scale: 0.9;
+        --ob-icon-sm: 3.25rem;
+        --ob-icon-md: 4.5rem;
+        --ob-icon-lg: 5.5rem;
+        --ob-text-3xl: 1.625rem;
+        --ob-text-4xl: 2rem;
+        --ob-text-5xl: 2.5rem;
+        --ob-container-padding: 0.875rem;
+        --ob-card-padding: 0.625rem;
+    }
+}
+
+/* MD: iPhone 14/15/16 Base, Modern Androids (390-411px) */
+@media (min-width: 390px) and (max-width: 411px) {
+    :root {
+        --ob-scale: 1;
+        /* Uses base values defined in :root */
+    }
+}
+
+/* LG: Pixel, Samsung Ultra, Xiaomi (412-429px) */
+@media (min-width: 412px) and (max-width: 429px) {
+    :root {
+        --ob-scale: 1.05;
+        --ob-icon-sm: 3.75rem;
+        --ob-icon-md: 5.25rem;
+        --ob-icon-lg: 6.5rem;
+        --ob-text-3xl: 2rem;
+        --ob-text-4xl: 2.5rem;
+        --ob-text-5xl: 3.25rem;
+        --ob-container-padding: 1.125rem;
+        --ob-card-padding: 0.875rem;
+        --ob-card-gap: 0.625rem;
+    }
+}
+
+/* XL: iPhone Pro Max/Plus (430px+) */
+@media (min-width: 430px) {
+    :root {
+        --ob-scale: 1.1;
+        --ob-icon-sm: 4rem;
+        --ob-icon-md: 5.5rem;
+        --ob-icon-lg: 7rem;
+        --ob-text-3xl: 2.125rem;
+        --ob-text-4xl: 2.75rem;
+        --ob-text-5xl: 3.5rem;
+        --ob-container-padding: 1.25rem;
+        --ob-card-padding: 1rem;
+        --ob-button-height: 3rem;
+        --ob-card-gap: 0.75rem;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES FOR ONBOARDING
+   ============================================ */
+
+/* Container that fills available width with proper padding */
+.ob-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: var(--ob-container-padding);
+    padding-right: var(--ob-container-padding);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Responsive icon sizing */
+.ob-icon-sm {
+    width: var(--ob-icon-sm);
+    height: var(--ob-icon-sm);
+}
+
+.ob-icon-md {
+    width: var(--ob-icon-md);
+    height: var(--ob-icon-md);
+}
+
+.ob-icon-lg {
+    width: var(--ob-icon-lg);
+    height: var(--ob-icon-lg);
+}
+
+/* Responsive text sizing */
+.ob-text-xs {
+    font-size: var(--ob-text-xs);
+}
+
+.ob-text-sm {
+    font-size: var(--ob-text-sm);
+}
+
+.ob-text-base {
+    font-size: var(--ob-text-base);
+}
+
+.ob-text-lg {
+    font-size: var(--ob-text-lg);
+}
+
+.ob-text-xl {
+    font-size: var(--ob-text-xl);
+}
+
+.ob-text-2xl {
+    font-size: var(--ob-text-2xl);
+}
+
+.ob-text-3xl {
+    font-size: var(--ob-text-3xl);
+}
+
+.ob-text-4xl {
+    font-size: var(--ob-text-4xl);
+}
+
+.ob-text-5xl {
+    font-size: var(--ob-text-5xl);
+}
+
+/* Responsive spacing */
+.ob-gap-xs {
+    gap: var(--ob-spacing-xs);
+}
+
+.ob-gap-sm {
+    gap: var(--ob-spacing-sm);
+}
+
+.ob-gap-md {
+    gap: var(--ob-spacing-md);
+}
+
+.ob-gap-lg {
+    gap: var(--ob-spacing-lg);
+}
+
+.ob-gap-xl {
+    gap: var(--ob-spacing-xl);
+}
+
+.ob-p-card {
+    padding: var(--ob-card-padding);
+}
+
+.ob-p-container {
+    padding: var(--ob-container-padding);
+}
+
+/* Card grid with responsive gaps */
+.ob-card-grid {
+    display: grid;
+    gap: var(--ob-card-gap);
+}
+
+/* Button with responsive height */
+.ob-button {
+    min-height: var(--ob-button-height);
+    padding-left: var(--ob-spacing-lg);
+    padding-right: var(--ob-spacing-lg);
+}
+
+/* Full-bleed container for edge-to-edge content on mobile */
+.ob-full-bleed {
+    width: 100vw;
+    margin-left: calc(-1 * var(--ob-container-padding));
+    margin-right: calc(-1 * var(--ob-container-padding));
+    padding-left: var(--ob-container-padding);
+    padding-right: var(--ob-container-padding);
+}
+
+/* Theme card specific sizing */
+.ob-theme-card {
+    padding: var(--ob-card-padding);
+    border-radius: calc(0.75rem * var(--ob-scale));
+}
+
+.ob-theme-card-image {
+    width: calc(3.5rem * var(--ob-scale));
+    height: calc(3.5rem * var(--ob-scale));
+}
+
+@media (min-width: 390px) {
+    .ob-theme-card-image {
+        width: calc(5rem * var(--ob-scale));
+        height: calc(5rem * var(--ob-scale));
+    }
+}
+
+@media (min-width: 430px) {
+    .ob-theme-card-image {
+        width: calc(6rem * var(--ob-scale));
+        height: calc(6rem * var(--ob-scale));
+    }
+}
+
+/* Quiz option card sizing */
+.ob-quiz-option {
+    padding: var(--ob-card-padding);
+}
+
+.ob-quiz-option-image {
+    width: calc(3.5rem * var(--ob-scale));
+    height: calc(3.5rem * var(--ob-scale));
+    flex-shrink: 0;
+}
+
+@media (min-width: 390px) {
+    .ob-quiz-option-image {
+        width: calc(5rem * var(--ob-scale));
+        height: calc(6rem * var(--ob-scale));
+    }
+}
+
+/* Progress ring sizing */
+.ob-progress-ring {
+    width: calc(3.5rem * var(--ob-scale));
+    height: calc(3.5rem * var(--ob-scale));
+}
+
+@media (min-width: 390px) {
+    .ob-progress-ring {
+        width: calc(5rem * var(--ob-scale));
+        height: calc(5rem * var(--ob-scale));
+    }
+}
+
+/* Hero headline responsive sizing */
+.ob-hero-headline {
+    font-size: clamp(1.5rem, 5vw + 0.5rem, 3rem);
+    line-height: 1.1;
+}
+
+@media (min-width: 390px) {
+    .ob-hero-headline {
+        font-size: clamp(1.875rem, 6vw + 0.5rem, 3.5rem);
+    }
+}
+
+@media (min-width: 430px) {
+    .ob-hero-headline {
+        font-size: clamp(2.25rem, 7vw + 0.5rem, 4rem);
+    }
+}
+
+/* Auth modal sizing */
+.ob-auth-modal {
+    width: calc(100% - 2 * var(--ob-container-padding));
+    max-width: 28rem;
+}
+
+.ob-auth-button {
+    min-height: var(--ob-button-height);
+    font-size: var(--ob-text-base);
+}
+
+/* Pricing card responsive sizing */
+.ob-pricing-card {
+    padding: var(--ob-card-padding);
+}
+
+.ob-pricing-price {
+    font-size: var(--ob-text-4xl);
+}
+
+/* Tier page hero section */
+.ob-tier-hero {
+    padding-top: calc(3rem * var(--ob-scale));
+    padding-bottom: calc(2rem * var(--ob-scale));
+}
+
+.ob-tier-hero-icon {
+    width: calc(4rem * var(--ob-scale));
+    height: calc(4rem * var(--ob-scale));
+}
+
+@media (min-width: 430px) {
+    .ob-tier-hero-icon {
+        width: calc(5rem * var(--ob-scale));
+        height: calc(5rem * var(--ob-scale));
+    }
+}

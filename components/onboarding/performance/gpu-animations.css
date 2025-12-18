@@ -1,0 +1,82 @@
+/**
+ * GPU-ACCELERATED ANIMATION STYLES
+ * 
+ * These CSS classes force animations to run on the GPU compositor layer,
+ * bypassing the main thread for butter-smooth 60fps animations.
+ */
+
+/* GPU-accelerated layer creation */
+.gpu-accelerated {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Will-change hints for animation targets */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-transform-opacity {
+  will-change: transform, opacity;
+}
+
+/* Remove will-change after animation (cleanup) */
+.animation-complete {
+  will-change: auto;
+}
+
+/* Optimized animation layers for particles */
+.particle-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Ambient orb optimized layer */
+.ambient-orb-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  pointer-events: none;
+  animation-timing-function: ease-in-out;
+}
+
+/* Star layer for twinkling effects */
+.star-layer {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+/* Motion container for smooth transitions */
+.motion-container {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* Instant fallback (no flash) */
+.instant-fallback {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+/* Reduced motion overrides */
+@media (prefers-reduced-motion: reduce) {
+  .gpu-accelerated,
+  .particle-layer,
+  .ambient-orb-layer,
+  .star-layer,
+  .motion-container {
+    animation: none !important;
+    transition: none !important;
+    will-change: auto;
+  }
+}

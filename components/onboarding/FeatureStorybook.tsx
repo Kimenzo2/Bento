@@ -84,11 +84,11 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
             alt="Gen - Your Creative Guide"
             className="w-36 h-36 object-contain drop-shadow-2xl rounded-3xl"
           />
-          
+
           {/* Glow behind */}
           <div className="absolute inset-0 bg-purple-500/30 blur-3xl -z-10" />
         </div>
-        
+
         {/* Speech bubble */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -98,7 +98,7 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
         >
           {/* Bubble arrow */}
           <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/10 backdrop-blur-xl rotate-45 border-t border-l border-white/20" />
-          
+
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-5 py-4 border border-white/20 max-w-[200px]">
             <p className="text-white/90 text-sm font-medium leading-relaxed">"{message}"</p>
             <p className="text-white/40 text-xs mt-2 flex items-center gap-1">
@@ -157,10 +157,10 @@ export const FeatureStorybook: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-3 py-6 md:p-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-[var(--ob-container-padding)] py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
-      
+
       {/* Feature-specific background pattern */}
       <motion.div
         key={currentFeature.id}
@@ -170,9 +170,9 @@ export const FeatureStorybook: React.FC = () => {
         className="absolute inset-0"
         style={{ background: currentFeature.bgPattern }}
       />
-      
+
       {/* Grid pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
@@ -205,13 +205,12 @@ export const FeatureStorybook: React.FC = () => {
                     setDirection(idx > currentIndex ? 1 : -1);
                     setCurrentIndex(idx);
                   }}
-                  className={`h-1.5 rounded-full transition-all duration-500 ${
-                    idx === currentIndex 
-                      ? 'w-10 bg-white' 
-                      : idx < currentIndex 
-                        ? 'w-6 bg-white/50' 
+                  className={`h-1.5 rounded-full transition-all duration-500 ${idx === currentIndex
+                      ? 'w-10 bg-white'
+                      : idx < currentIndex
+                        ? 'w-6 bg-white/50'
                         : 'w-2 bg-white/20'
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -242,7 +241,7 @@ export const FeatureStorybook: React.FC = () => {
                         alt={currentFeature.title}
                         className="w-24 h-24 md:w-36 md:h-36 lg:w-48 lg:h-48 object-contain drop-shadow-2xl rounded-2xl md:rounded-3xl"
                       />
-                      
+
                       {/* Glow behind image */}
                       <div className={`absolute inset-0 bg-gradient-to-br ${currentFeature.gradient} blur-3xl opacity-40 -z-10 scale-75`} />
                     </motion.div>
@@ -293,11 +292,10 @@ export const FeatureStorybook: React.FC = () => {
                 disabled={isFirst}
                 whileHover={{ scale: isFirst ? 1 : 1.05 }}
                 whileTap={{ scale: isFirst ? 1 : 0.95 }}
-                className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${
-                  isFirst 
-                    ? 'text-white/20 cursor-not-allowed' 
+                className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${isFirst
+                    ? 'text-white/20 cursor-not-allowed'
                     : 'text-white/70 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
@@ -319,10 +317,10 @@ export const FeatureStorybook: React.FC = () => {
               >
                 {/* Button gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-r ${currentFeature.gradient}`} />
-                
+
                 {/* Shimmer */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                
+
                 <span className="relative flex items-center gap-2 text-white">
                   {isLast ? 'Complete Tour' : 'Next'}
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

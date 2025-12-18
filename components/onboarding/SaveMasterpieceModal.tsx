@@ -1,26 +1,56 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, Lock, Mail, Shield, Sparkles, Star } from 'lucide-react';
+import { Mail, Shield, Lock, Check, ArrowLeft, Loader2 } from 'lucide-react';
 import { useOnboarding } from './OnboardingState';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../services/supabaseClient';
 
 export const SaveMasterpieceModal: React.FC = () => {
-  const { theme, setStep, sparkPoints } = useOnboarding();
+  const { theme, setStep } = useOnboarding();
   const { signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await signInWithGoogle();
-      setStep('welcome');
-    } catch (error) {
+      // Redirect back to the welcome success step after authentication
+      const { error } = await signInWithGoogle('/welcome?step=welcome');
+      if (error) {
+        setError(error.message || 'Failed to connect with Google');
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred');
       setIsLoading(false);
     }
   };
 
-  const handleSkipForNow = () => {
-    setStep('welcome');
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/welcome?step=welcome`,
+        }
+      });
+
+      if (error) throw error;
+      setSuccessMessage('Check your email for the magic link! ✨');
+    } catch (err: any) {
+      console.error('Magic link error:', err);
+      setError(err?.message || 'Failed to send magic link. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getThemeEmoji = () => {
@@ -51,158 +81,123 @@ export const SaveMasterpieceModal: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-center p-6 overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
-      
-      {/* Ambient orbs */}
-      <motion.div
-        animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 8, repeat: Infinity }}
-        className={`absolute w-[500px] h-[500px] rounded-full bg-gradient-to-br ${getThemeGradient()} blur-3xl opacity-20`}
-        style={{ top: '-20%', right: '-10%' }}
-      />
+    <div className="relative w-full max-w-lg mx-auto px-4 py-8 flex flex-col items-center">
+      {/* Background stays simple dark */}
+      <div className="fixed inset-0 bg-[#0a0a0f] -z-10" />
 
-      {/* Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-md"
-      >
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-          {/* Preview header */}
-          <div className={`relative h-44 bg-gradient-to-br ${getThemeGradient()} overflow-hidden`}>
-            {/* Pattern overlay */}
-            <div 
-              className="absolute inset-0 opacity-10"
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)',
-                backgroundSize: '20px 20px'
-              }}
-            />
-            
-            {/* Floating emoji */}
-            <motion.div
-              animate={{ y: [0, -10, 0], rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-7xl"
+      {/* Back button when in email form */}
+      {showEmailForm && !successMessage && (
+        <button
+          onClick={() => setShowEmailForm(false)}
+          className="absolute top-8 left-4 p-2 text-white/40 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Creation Icon/Emoji */}
+      <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getThemeGradient()} flex items-center justify-center text-4xl shadow-xl mb-6`}>
+        {getThemeEmoji()}
+      </div>
+
+      {/* Main Info */}
+      <div className="text-center mb-10">
+        <h2 className="text-2xl font-bold text-white mb-3 font-heading">
+          {successMessage ? 'Check your inbox' : 'Save your masterpiece'}
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed max-w-xs mx-auto">
+          {successMessage
+            ? successMessage
+            : `Create a free account to keep **${getThemeName()}** and unlock the full Genesis experience.`
+          }
+        </p>
+      </div>
+
+      {error && (
+        <div className="w-full max-w-xs mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs text-center font-medium">
+          {error}
+        </div>
+      )}
+
+      {/* Auth UI */}
+      <div className="w-full max-w-xs mb-10">
+        {!showEmailForm ? (
+          <div className="space-y-4">
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+              className="w-full h-14 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center gap-3 text-slate-900 font-bold transition-all active:scale-95"
             >
-              {getThemeEmoji()}
-            </motion.div>
-            
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
-            
-            {/* Story info */}
-            <div className="absolute bottom-4 left-6 right-6">
-              <p className="text-white/60 text-xs font-medium uppercase tracking-wider mb-1">Your Creation</p>
-              <h3 className="text-xl font-bold text-white font-heading">{getThemeName()}</h3>
-            </div>
-            
-            {/* Spark points badge */}
-            <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/30 backdrop-blur-sm rounded-full border border-white/10">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-              <span className="text-white font-bold text-sm">{sparkPoints}</span>
-            </div>
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+              Continue with Google
+            </button>
+
+            <button
+              onClick={() => setShowEmailForm(true)}
+              className="w-full h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all active:scale-95"
+            >
+              <Mail className="w-5 h-5" />
+              Use Email Instead
+            </button>
           </div>
-
-          {/* Content */}
-          <div className="p-8">
-            <div className="text-center mb-8">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 mb-4"
-              >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-white/70 text-sm font-medium">One step away</span>
-              </motion.div>
-              
-              <h2 className="text-2xl font-bold text-white mb-2 font-heading">
-                Save your masterpiece.
-              </h2>
-              <p className="text-white/50">
-                Create a free account to keep your story and unlock the full Genesis experience.
-              </p>
+        ) : successMessage ? (
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="w-full h-14 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all"
+          >
+            Resend Email
+          </button>
+        ) : (
+          <form onSubmit={handleMagicLink} className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+                className="w-full h-14 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:border-white/30 focus:bg-white/10 outline-none transition-all"
+              />
             </div>
+            <button
+              type="submit"
+              disabled={isLoading || !email}
+              className="w-full h-14 bg-white text-slate-900 font-bold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                'Send Magic Link'
+              )}
+            </button>
+          </form>
+        )}
+      </div>
 
-            {/* Auth buttons */}
-            <div className="space-y-3 mb-6">
-              <motion.button
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full relative group py-4 px-6 rounded-xl font-medium overflow-hidden"
-              >
-                {/* Gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white to-slate-100" />
-                
-                {/* Shimmer */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                
-                <span className="relative flex items-center justify-center gap-3 text-slate-900">
-                  {isLoading ? (
-                    <>
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      >
-                        <Sparkles className="w-5 h-5" />
-                      </motion.div>
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-                      Continue with Google
-                    </>
-                  )}
-                </span>
-              </motion.button>
-              
-              <button className="w-full py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-medium text-white/80 hover:text-white transition-all flex items-center justify-center gap-2">
-                <Mail className="w-5 h-5" />
-                Use Email Instead
-              </button>
-            </div>
-
-            {/* Trust badges */}
-            <div className="flex items-center justify-center gap-6 mb-6">
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Secure</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
-                <Lock className="w-3.5 h-3.5" />
-                <span>Private</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
-                <Check className="w-3.5 h-3.5" />
-                <span>Free</span>
-              </div>
-            </div>
-
-            {/* Skip option */}
-            <div className="text-center">
-              <button
-                onClick={handleSkipForNow}
-                className="text-white/40 hover:text-white/70 text-sm font-medium transition-colors"
-              >
-                Skip for now →
-              </button>
-            </div>
+      {/* Trust & Legal */}
+      <div className="w-full max-w-xs text-center">
+        <div className="flex items-center justify-center gap-6 mb-8">
+          <div className="flex flex-col items-center gap-1">
+            <Shield className="w-4 h-4 text-emerald-400" />
+            <span className="text-white/40 text-[10px] uppercase font-bold">Secure</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Lock className="w-4 h-4 text-emerald-400" />
+            <span className="text-white/40 text-[10px] uppercase font-bold">Private</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Check className="w-4 h-4 text-emerald-400" />
+            <span className="text-white/40 text-[10px] uppercase font-bold">Free</span>
           </div>
         </div>
 
-        {/* Legal note */}
-        <p className="text-center text-white/30 text-xs mt-6 max-w-xs mx-auto">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
+        <p className="text-white/30 text-[11px] leading-relaxed">
+          By continuing, you agree to our <span className="text-white/50 underline">Terms of Service</span> and <span className="text-white/50 underline">Privacy Policy</span>.
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 };
+
+

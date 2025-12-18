@@ -109,7 +109,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className={`absolute top-20 right-10 w-72 h-72 ${tier.blobColors[0]} rounded-full blur-3xl`} />
     <div className={`absolute bottom-20 left-10 w-96 h-96 ${tier.blobColors[1]} rounded-full blur-3xl`} />
 
-    <div className="container mx-auto px-6 py-20 relative z-10">
+    <div className="container mx-auto px-[var(--ob-container-padding)] py-12 md:py-20 relative z-10">
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         {/* Left: Content */}
         <div className="space-y-8">
@@ -122,7 +122,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-charcoal-soft leading-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-heading font-bold text-charcoal-soft leading-tight break-words">
             {headline.split(' ').map((word, i) => (
               <span key={i} className={i === headline.split(' ').length - 1 ? `bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent` : ''}>
                 {word}{' '}
@@ -131,13 +131,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </h1>
 
           {/* Subheadline */}
-          <p className="text-xl text-charcoal-soft/70 max-w-xl">
+          <p className="text-base md:text-lg lg:text-xl text-charcoal-soft/70 max-w-xl break-words">
             {subheadline}
           </p>
 
           {/* Hero Stat */}
           <div className="flex items-center gap-6">
-            <div className={`text-4xl font-heading font-bold bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}>
+            <div className={`text-2xl md:text-3xl lg:text-4xl font-heading font-bold bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}>
               {tier.heroStat.value}
             </div>
             <div className="text-sm text-charcoal-soft/60 max-w-[120px]">
@@ -147,17 +147,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* CTAs */}
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
               <button
                 onClick={onStartTrial}
-                className={`px-8 py-4 rounded-2xl font-bold text-white bg-gradient-to-r ${tier.gradient} shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2`}
+                className={`px-4 sm:px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-white bg-gradient-to-r ${tier.gradient} shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2`}
               >
                 {ctaText}
                 <ArrowRight className="w-5 h-5" />
               </button>
               <button
                 onClick={onDownloadPDF}
-                className="px-8 py-4 rounded-2xl font-bold text-charcoal-soft bg-white border-2 border-charcoal-soft/10 hover:border-charcoal-soft/30 transition-all flex items-center gap-2"
+                className="px-4 sm:px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base text-charcoal-soft bg-white border-2 border-charcoal-soft/10 hover:border-charcoal-soft/30 transition-all flex items-center justify-center gap-2"
               >
                 <Download className="w-5 h-5" />
                 {secondaryCtaText}
@@ -171,7 +171,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <p className="text-xs text-charcoal-soft/50 mb-4 uppercase tracking-wider">
               Trusted by {tier.customerCount} creators worldwide
             </p>
-            <div className="flex flex-wrap gap-6 items-center opacity-50">
+            <div className="flex flex-wrap gap-2 sm:gap-4 md:gap-6 items-center opacity-50">
               {trustLogos.map((logo, i) => (
                 <div key={i} className="h-8 px-4 bg-charcoal-soft/10 rounded-lg flex items-center justify-center text-xs font-medium text-charcoal-soft/70">
                   {logo}
@@ -226,7 +226,7 @@ export const SectionWrapper: React.FC<SectionWrapperProps> = ({
     id={id}
     className={`py-20 md:py-32 ${dark ? 'bg-charcoal-soft text-white' : (background || 'bg-cream-base')} ${className}`}
   >
-    <div className="container mx-auto px-6">
+    <div className="container mx-auto px-[var(--ob-container-padding)]">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -258,18 +258,18 @@ interface FeatureGridProps {
 
 export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, gradient }) => (
   <div
-    className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+    className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
   >
     {features.map((feature, index) => (
       <div
         key={index}
-        className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-charcoal-soft/5 hover:border-coral-burst/20"
+        className="group bg-white rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-charcoal-soft/5 hover:border-coral-burst/20"
       >
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-          <feature.icon className="w-6 h-6 text-white" />
+        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+          <feature.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
         </div>
-        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">{feature.title}</h3>
-        <p className="text-sm text-charcoal-soft/60 mb-4">{feature.description}</p>
+        <h3 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-1.5 md:mb-2">{feature.title}</h3>
+        <p className="text-xs md:text-sm text-charcoal-soft/60 mb-3 md:mb-4">{feature.description}</p>
 
         {feature.highlight && (
           <div className="mb-4 px-3 py-1.5 bg-mint-breeze/50 rounded-lg inline-block">
@@ -299,7 +299,7 @@ export const TestimonialCard: React.FC<{ testimonial: Testimonial; gradient: str
   gradient
 }) => (
   <div
-    className="bg-white rounded-2xl p-6 shadow-lg border border-charcoal-soft/5"
+    className="bg-white rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg border border-charcoal-soft/5"
   >
     <Quote className={`w-8 h-8 mb-4 bg-gradient-to-br ${gradient} bg-clip-text text-coral-burst/30`} />
     <p className="text-charcoal-soft/80 mb-6 italic">"{testimonial.quote}"</p>
@@ -386,25 +386,25 @@ interface PersonaCardsProps {
 }
 
 export const PersonaCards: React.FC<PersonaCardsProps> = ({ personas, gradient }) => (
-  <div className="grid md:grid-cols-2 gap-6">
+  <div className="grid md:grid-cols-2 gap-3 md:gap-6">
     {personas.map((persona, index) => (
       <div
         key={index}
-        className="bg-white rounded-2xl overflow-hidden shadow-lg border border-charcoal-soft/5 hover:shadow-xl transition-shadow"
+        className="bg-white rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-charcoal-soft/5 hover:shadow-xl transition-shadow"
       >
-        <div className={`h-2 bg-gradient-to-r ${gradient}`} />
-        <div className="p-6">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-coral-burst/20 to-gold-sunshine/20 flex items-center justify-center text-2xl font-bold text-coral-burst">
+        <div className={`h-1.5 md:h-2 bg-gradient-to-r ${gradient}`} />
+        <div className="p-4 md:p-6">
+          <div className="flex items-start gap-3 md:gap-4 mb-3 md:mb-4">
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-coral-burst/20 to-gold-sunshine/20 flex items-center justify-center text-xl md:text-2xl font-bold text-coral-burst flex-shrink-0">
               {persona.name.charAt(0)}
             </div>
             <div>
-              <h4 className="font-heading font-bold text-lg text-charcoal-soft">{persona.name}</h4>
-              <p className="text-sm text-charcoal-soft/60">{persona.role}</p>
+              <h4 className="font-heading font-bold text-base md:text-lg text-charcoal-soft">{persona.name}</h4>
+              <p className="text-xs md:text-sm text-charcoal-soft/60">{persona.role}</p>
             </div>
           </div>
 
-          <p className="text-charcoal-soft/70 italic mb-4">"{persona.quote}"</p>
+          <p className="text-charcoal-soft/70 italic mb-3 md:mb-4 text-sm md:text-base">"{persona.quote}"</p>
 
           <div className="space-y-3 pt-4 border-t border-charcoal-soft/10">
             <div>
@@ -441,12 +441,12 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({ caseStud
       {caseStudies.map((study, index) => (
         <div
           key={index}
-          className="bg-white rounded-2xl overflow-hidden shadow-sm border border-charcoal-soft/5"
+          className="bg-white rounded-xl md:rounded-2xl overflow-hidden shadow-sm border border-charcoal-soft/5"
         >
           {/* Header */}
           <button
             onClick={() => setOpenIndex(openIndex === index ? null : index)}
-            className="w-full px-6 py-5 flex items-center justify-between hover:bg-cream-base/50 transition-colors"
+            className="w-full px-4 md:px-6 py-3 md:py-5 flex items-center justify-between hover:bg-cream-base/50 transition-colors"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-charcoal-soft/5 flex items-center justify-center">
@@ -463,35 +463,35 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({ caseStud
           {/* Content */}
           {openIndex === index && (
             <div className="overflow-hidden">
-              <div className="px-6 pb-6 space-y-6">
+              <div className="px-3 sm:px-4 md:px-6 pb-4 md:pb-6 space-y-4 md:space-y-6">
                 {/* Challenge, Solution */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-red-50 rounded-xl">
-                    <h5 className="font-bold text-red-700 mb-2">Challenge</h5>
-                    <p className="text-sm text-red-900/70">{study.challenge}</p>
+                <div className="grid md:grid-cols-2 gap-3 md:gap-4">
+                  <div className="p-3 md:p-4 bg-red-50 rounded-lg md:rounded-xl">
+                    <h5 className="font-bold text-red-700 mb-1.5 md:mb-2 text-sm md:text-base">Challenge</h5>
+                    <p className="text-xs md:text-sm text-red-900/70 break-words">{study.challenge}</p>
                   </div>
-                  <div className="p-4 bg-green-50 rounded-xl">
-                    <h5 className="font-bold text-green-700 mb-2">Solution</h5>
-                    <p className="text-sm text-green-900/70">{study.solution}</p>
+                  <div className="p-3 md:p-4 bg-green-50 rounded-lg md:rounded-xl">
+                    <h5 className="font-bold text-green-700 mb-1.5 md:mb-2 text-sm md:text-base">Solution</h5>
+                    <p className="text-xs md:text-sm text-green-900/70 break-words">{study.solution}</p>
                   </div>
                 </div>
 
                 {/* Results */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:gap-4">
                   {study.results.map((result, i) => (
-                    <div key={i} className="text-center p-4 bg-cream-base rounded-xl">
-                      <div className={`text-2xl font-heading font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
+                    <div key={i} className="text-center p-2 sm:p-3 md:p-4 bg-cream-base rounded-lg md:rounded-xl overflow-hidden">
+                      <div className={`text-base sm:text-lg md:text-2xl font-heading font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent truncate`}>
                         {result.metric}
                       </div>
-                      <div className="text-xs text-charcoal-soft/60">{result.label}</div>
+                      <div className="text-[9px] sm:text-[10px] md:text-xs text-charcoal-soft/60 line-clamp-2">{result.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Quote */}
                 {study.quote && (
-                  <div className="p-4 bg-charcoal-soft/5 rounded-xl">
-                    <p className="text-charcoal-soft/80 italic">"{study.quote}"</p>
+                  <div className="p-3 md:p-4 bg-charcoal-soft/5 rounded-lg md:rounded-xl">
+                    <p className="text-xs sm:text-sm md:text-base text-charcoal-soft/80 italic break-words">"{study.quote}"</p>
                     {study.quotePerson && (
                       <p className="text-sm text-charcoal-soft/50 mt-2">— {study.quotePerson}</p>
                     )}
@@ -522,19 +522,19 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
   costPerUnit,
   competitors
 }) => (
-  <div className="grid lg:grid-cols-2 gap-8">
+  <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
     {/* Main Price Card */}
     <div
-      className={`bg-gradient-to-br ${tier.gradient} rounded-3xl p-8 text-white`}
+      className={`bg-gradient-to-br ${tier.gradient} rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 text-white`}
     >
-      <h3 className="text-xl font-bold mb-2">Genesis {tier.name}</h3>
-      <div className="flex items-baseline gap-2 mb-6">
-        <span className="text-5xl font-heading font-bold">${tier.price.annual}</span>
-        <span className="text-white/70">/month</span>
+      <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1.5 md:mb-2">Genesis {tier.name}</h3>
+      <div className="flex items-baseline gap-1.5 md:gap-2 mb-4 md:mb-6">
+        <span className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold">${tier.price.annual}</span>
+        <span className="text-white/70 text-sm md:text-base">/month</span>
       </div>
-      <div className="bg-white/20 rounded-xl p-4 mb-6">
-        <div className="text-sm">Billed annually at ${Math.round(tier.price.annual * 12)}/year</div>
-        <div className="text-lg font-bold">Save ${Math.round((tier.price.monthly - tier.price.annual) * 12)}/year</div>
+      <div className="bg-white/20 rounded-lg md:rounded-xl p-3 md:p-4 mb-4 md:mb-6">
+        <div className="text-xs md:text-sm">Billed annually at ${Math.round(tier.price.annual * 12)}/year</div>
+        <div className="text-sm md:text-lg font-bold">Save ${Math.round((tier.price.monthly - tier.price.annual) * 12)}/year</div>
       </div>
 
       {/* Cost Per Unit */}
@@ -550,14 +550,14 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
     </div>
 
     {/* Comparison */}
-    <div className="space-y-4">
-      <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-4">Compare Alternatives</h3>
+    <div className="space-y-3 md:space-y-4">
+      <h3 className="font-heading font-bold text-base sm:text-lg md:text-xl text-charcoal-soft mb-2 md:mb-4">Compare Alternatives</h3>
 
       {competitors.map((comp, i) => (
-        <div key={i} className="flex items-center justify-between p-4 bg-white rounded-xl border border-charcoal-soft/10">
-          <div>
-            <div className="font-medium text-charcoal-soft">{comp.name}</div>
-            <div className="text-xs text-charcoal-soft/50">{comp.features}</div>
+        <div key={i} className="flex items-center justify-between p-3 md:p-4 bg-white rounded-lg md:rounded-xl border border-charcoal-soft/10">
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-charcoal-soft text-sm md:text-base truncate">{comp.name}</div>
+            <div className="text-[10px] md:text-xs text-charcoal-soft/50 truncate">{comp.features}</div>
           </div>
           <div className="text-right">
             <div className="font-bold text-charcoal-soft">{comp.price}</div>
@@ -565,14 +565,14 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
         </div>
       ))}
 
-      <div className={`flex items-center justify-between p-4 bg-gradient-to-r ${tier.gradient} rounded-xl text-white`}>
-        <div>
-          <div className="font-bold">Genesis {tier.name}</div>
-          <div className="text-xs text-white/70">Everything included</div>
+      <div className={`flex items-center justify-between p-3 md:p-4 bg-gradient-to-r ${tier.gradient} rounded-lg md:rounded-xl text-white`}>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-sm md:text-base">Genesis {tier.name}</div>
+          <div className="text-[10px] md:text-xs text-white/70">Everything included</div>
         </div>
-        <div className="text-right">
-          <div className="font-bold">${tier.price.annual}/mo</div>
-          <div className="text-xs text-white/70">Best Value ✓</div>
+        <div className="text-right flex-shrink-0">
+          <div className="font-bold text-sm md:text-base">${tier.price.annual}/mo</div>
+          <div className="text-[10px] md:text-xs text-white/70">Best Value ✓</div>
         </div>
       </div>
     </div>
@@ -705,31 +705,30 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
   onContactSales,
   ctaText = 'Start Your 14-Day Free Trial'
 }) => (
-  <section className={`py-20 bg-gradient-to-br ${tier.gradient}`}>
-    <div className="container mx-auto px-6">
+  <section className={`py-12 md:py-20 bg-gradient-to-br ${tier.gradient}`}>
+    <div className="container mx-auto px-[var(--ob-container-padding)]">
       <div className="max-w-3xl mx-auto text-center text-white">
-        <h2 className="text-3xl md:text-4xl font-heading font-bold mb-6">
+        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-heading font-bold mb-4 md:mb-6 break-words">
           {headline}
         </h2>
 
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-2 sm:gap-4 mb-6 md:mb-8">
           <button
             onClick={onStartTrial}
-            className="px-8 py-4 rounded-2xl font-bold bg-white text-charcoal-soft shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
-          >
-            {ctaText}
+            className="px-4 sm:px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base bg-white text-charcoal-soft shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center justify-center gap-2">
+            <span className="truncate">{ctaText}</span>
             <ArrowRight className="w-5 h-5" />
           </button>
           <button
             onClick={onContactSales}
-            className="px-8 py-4 rounded-2xl font-bold bg-white/20 text-white border-2 border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
+            className="px-4 sm:px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base bg-white/20 text-white border-2 border-white/30 hover:bg-white/30 transition-all flex items-center justify-center gap-2"
           >
             <Phone className="w-5 h-5" />
             Talk to Our Team
           </button>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-6 text-sm text-white/70">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-white/70">
           <span className="flex items-center gap-2">
             <Check className="w-4 h-4" />
             No credit card required
@@ -755,9 +754,9 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
 export const BackToPricing: React.FC<{ onBack: () => void }> = ({ onBack }) => (
   <button
     onClick={onBack}
-    className="fixed top-6 left-6 z-50 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-charcoal-soft/10 flex items-center gap-2 text-charcoal-soft hover:bg-white transition-colors"
+    className="fixed top-4 left-2 sm:top-6 sm:left-6 z-50 px-2 sm:px-4 py-1.5 sm:py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-charcoal-soft/10 flex items-center gap-1 sm:gap-2 text-charcoal-soft hover:bg-white transition-colors"
   >
-    <ChevronRight className="w-4 h-4 rotate-180" />
-    <span className="text-sm font-medium">Back to Pricing</span>
+    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 rotate-180" />
+    <span className="text-xs sm:text-sm font-medium">Back to Pricing</span>
   </button>
 );
