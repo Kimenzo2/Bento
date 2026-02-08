@@ -1,30 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Zap, 
-  Flame, 
-  Award, 
-  Palette, 
-  Target,
-  Clock,
-  Star,
-  Sparkles,
-  ChevronRight,
-  Calendar,
-  ArrowUp,
+import {
   ArrowDown,
-  Minus,
+  ArrowUp,
+  Award,
+  BarChart3,
+  Calendar,
+  ChevronRight,
+  Clock,
   Crown,
   Lightbulb,
-  X
+  Minus,
+  Palette,
+  Sparkles,
+  Star,
+  Target,
+  TrendingUp,
+  X,
+  Zap,
 } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { insightsService } from '../../services/insightsService';
-import type { 
-  UserInsights, 
-  WeeklyInsightsSummary, 
-  TrendingStyle, 
-  PersonalRecommendation
+import type {
+  PersonalRecommendation,
+  TrendingStyle,
+  UserInsights,
+  WeeklyInsightsSummary,
 } from '../../types/advanced';
 
 interface InsightsDashboardProps {
@@ -36,13 +36,15 @@ interface InsightsDashboardProps {
 export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
   userId,
   isOpen,
-  onClose
+  onClose,
 }) => {
   const [insights, setInsights] = useState<UserInsights | null>(null);
   const [weeklySummary, setWeeklySummary] = useState<WeeklyInsightsSummary | null>(null);
   const [trendingStyles, setTrendingStyles] = useState<TrendingStyle[]>([]);
   const [recommendations, setRecommendations] = useState<PersonalRecommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'trends' | 'recommendations' | 'achievements'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'trends' | 'recommendations' | 'achievements'
+  >('overview');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
       const [userInsights, trends, recs] = await Promise.all([
         insightsService.getUserInsights(userId),
         insightsService.getTrendingStyles(),
-        insightsService.generateRecommendations(userId)
+        insightsService.generateRecommendations(userId),
       ]);
 
       setInsights(userInsights);
@@ -70,21 +72,29 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
           most_active_hour: userInsights.peak_creative_hours?.[0] || 12,
           week_over_week_change: userInsights.metrics?.visuals_created_change || 0,
           top_style: userInsights.favorite_styles?.[0] || 'None',
-          improvement_tips: userInsights.recommendations?.map(r => r.description || r.title) || []
+          improvement_tips:
+            userInsights.recommendations?.map((r) => r.description || r.title) || [],
         });
       }
       setTrendingStyles(trends);
       // Convert recommendations to PersonalRecommendation format
-      setRecommendations(recs.map(r => ({
-        id: r.title,
-        type: r.type === 'try_trending_style' ? 'style' : 
-              r.type === 'join_challenge' ? 'challenge' : 
-              r.type === 'collaborate' ? 'technique' : 'prompt',
-        title: r.title,
-        description: r.description || '',
-        reason: r.reason || '',
-        confidence_score: typeof r.priority === 'number' ? r.priority / 10 : 0.5
-      })));
+      setRecommendations(
+        recs.map((r) => ({
+          id: r.title,
+          type:
+            r.type === 'try_trending_style'
+              ? 'style'
+              : r.type === 'join_challenge'
+                ? 'challenge'
+                : r.type === 'collaborate'
+                  ? 'technique'
+                  : 'prompt',
+          title: r.title,
+          description: r.description || '',
+          reason: r.reason || '',
+          confidence_score: typeof r.priority === 'number' ? r.priority / 10 : 0.5,
+        }))
+      );
     } catch (error) {
       console.error('Error loading insights:', error);
     } finally {
@@ -116,7 +126,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div 
+      <div
         className="bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -131,10 +141,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
               <p className="text-gray-400 text-sm">Your weekly analytics & trends</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
@@ -145,8 +152,8 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'trends', label: 'Trends', icon: TrendingUp },
             { id: 'recommendations', label: 'For You', icon: Lightbulb },
-            { id: 'achievements', label: 'Achievements', icon: Award }
-          ].map(tab => (
+            { id: 'achievements', label: 'Achievements', icon: Award },
+          ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
@@ -248,15 +255,17 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                             {weeklySummary.top_style || 'None yet'}
                           </p>
                         </div>
-                        
+
                         {/* Best Performing */}
                         {weeklySummary.best_performing && (
                           <div className="bg-gray-900/50 rounded-lg p-4">
                             <p className="text-sm text-gray-400 mb-1">Best Performing</p>
                             <div className="flex items-center gap-2">
-                              <div 
+                              <div
                                 className="w-10 h-10 rounded-lg bg-cover bg-center"
-                                style={{ backgroundImage: `url(${weeklySummary.best_performing.image_url})` }}
+                                style={{
+                                  backgroundImage: `url(${weeklySummary.best_performing.image_url})`,
+                                }}
                               />
                               <div>
                                 <p className="text-white font-medium">
@@ -271,22 +280,28 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                         )}
 
                         {/* Improvement Tips */}
-                        {weeklySummary.improvement_tips && weeklySummary.improvement_tips.length > 0 && (
-                          <div className="md:col-span-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
-                            <p className="text-sm text-purple-300 mb-2 flex items-center gap-2">
-                              <Sparkles className="w-4 h-4" />
-                              Tips to Improve
-                            </p>
-                            <ul className="space-y-1">
-                              {weeklySummary.improvement_tips.slice(0, 3).map((tip: string, i: number) => (
-                                <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
-                                  <span className="text-purple-400">•</span>
-                                  {tip}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {weeklySummary.improvement_tips &&
+                          weeklySummary.improvement_tips.length > 0 && (
+                            <div className="md:col-span-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
+                              <p className="text-sm text-purple-300 mb-2 flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                Tips to Improve
+                              </p>
+                              <ul className="space-y-1">
+                                {weeklySummary.improvement_tips
+                                  .slice(0, 3)
+                                  .map((tip: string, i: number) => (
+                                    <li
+                                      key={i}
+                                      className="text-gray-300 text-sm flex items-start gap-2"
+                                    >
+                                      <span className="text-purple-400">•</span>
+                                      {tip}
+                                    </li>
+                                  ))}
+                              </ul>
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}
@@ -303,7 +318,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                           <div key={style.style} className="flex items-center gap-3">
                             <div className="w-24 text-sm text-gray-300">{style.style}</div>
                             <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
-                              <div 
+                              <div
                                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
                                 style={{ width: `${style.percentage}%` }}
                               />
@@ -342,8 +357,8 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
               {activeTab === 'recommendations' && (
                 <div className="space-y-4">
                   {recommendations.map((rec) => (
-                    <RecommendationCard 
-                      key={rec.id} 
+                    <RecommendationCard
+                      key={rec.id}
                       recommendation={rec}
                       onTry={() => {
                         // Handle trying recommendation - just log for now
@@ -351,7 +366,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                       }}
                       onDismiss={() => {
                         // Remove from local state
-                        setRecommendations(prev => prev.filter(r => r.id !== rec.id));
+                        setRecommendations((prev) => prev.filter((r) => r.id !== rec.id));
                       }}
                     />
                   ))}
@@ -382,9 +397,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                     <div className="text-center py-12">
                       <Award className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                       <p className="text-gray-400">No achievements yet</p>
-                      <p className="text-sm text-gray-500">
-                        Keep creating to unlock achievements
-                      </p>
+                      <p className="text-sm text-gray-500">Keep creating to unlock achievements</p>
                     </div>
                   )}
 
@@ -401,7 +414,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                         </span>
                       </div>
                       <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
                           style={{ width: `${(insights.xp_progress || 0) * 100}%` }}
                         />
@@ -431,12 +444,19 @@ interface StatCardProps {
   hideChange?: boolean;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, change, color, hideChange }) => {
+const StatCard: React.FC<StatCardProps> = ({
+  icon: Icon,
+  label,
+  value,
+  change,
+  color,
+  hideChange,
+}) => {
   const colorStyles = {
     yellow: 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30 text-yellow-400',
     pink: 'from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-400',
     purple: 'from-purple-500/20 to-indigo-500/20 border-purple-500/30 text-purple-400',
-    blue: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30 text-blue-400'
+    blue: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30 text-blue-400',
   };
 
   const indicator = getChangeIndicator(change);
@@ -476,29 +496,33 @@ const TrendCard: React.FC<TrendCardProps> = ({ trend, rank }) => {
   return (
     <div className="bg-gray-800/50 rounded-xl p-4 hover:bg-gray-800/70 transition-colors">
       <div className="flex items-start gap-4">
-        <div className={`w-8 h-8 rounded-lg ${rankBgs[rank - 1] || 'bg-gray-600'} flex items-center justify-center`}>
-          <span className={`font-bold ${rankColors[rank - 1] || 'text-gray-400'}`}>
-            #{rank}
-          </span>
+        <div
+          className={`w-8 h-8 rounded-lg ${rankBgs[rank - 1] || 'bg-gray-600'} flex items-center justify-center`}
+        >
+          <span className={`font-bold ${rankColors[rank - 1] || 'text-gray-400'}`}>#{rank}</span>
         </div>
         <div className="flex-1">
           <h4 className="font-semibold text-white">{trend.style}</h4>
-          <p className="text-sm text-gray-400">
-            {trend.usage_count} uses this week
-          </p>
+          <p className="text-sm text-gray-400">{trend.usage_count} uses this week</p>
           <div className="flex items-center gap-2 mt-2">
-            <div className={`flex items-center gap-1 text-xs ${
-              trend.trend_direction === 'rising' ? 'text-green-400' :
-              trend.trend_direction === 'falling' ? 'text-red-400' : 'text-gray-400'
-            }`}>
+            <div
+              className={`flex items-center gap-1 text-xs ${
+                trend.trend_direction === 'rising'
+                  ? 'text-green-400'
+                  : trend.trend_direction === 'falling'
+                    ? 'text-red-400'
+                    : 'text-gray-400'
+              }`}
+            >
               {trend.trend_direction === 'rising' && <TrendingUp className="w-3 h-3" />}
               {trend.trend_direction === 'falling' && <TrendingUp className="w-3 h-3 rotate-180" />}
-              {trend.growth_percentage > 0 ? '+' : ''}{trend.growth_percentage.toFixed(0)}%
+              {trend.growth_percentage > 0 ? '+' : ''}
+              {trend.growth_percentage.toFixed(0)}%
             </div>
             {trend.sample_images && trend.sample_images.length > 0 && (
               <div className="flex -space-x-2">
                 {trend.sample_images.slice(0, 3).map((img: string, i: number) => (
-                  <div 
+                  <div
                     key={i}
                     className="w-6 h-6 rounded-full bg-cover bg-center border-2 border-gray-800"
                     style={{ backgroundImage: `url(${img})` }}
@@ -519,16 +543,16 @@ interface RecommendationCardProps {
   onDismiss: () => void;
 }
 
-const RecommendationCard: React.FC<RecommendationCardProps> = ({ 
-  recommendation, 
-  onTry, 
-  onDismiss 
+const RecommendationCard: React.FC<RecommendationCardProps> = ({
+  recommendation,
+  onTry,
+  onDismiss,
 }) => {
   const typeIcons: Record<string, React.ElementType> = {
     style: Palette,
     prompt: Sparkles,
     technique: Target,
-    challenge: Award
+    challenge: Award,
   };
 
   const Icon = typeIcons[recommendation.type] || Lightbulb;
@@ -545,14 +569,11 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
               <h4 className="font-semibold text-white">{recommendation.title}</h4>
               <p className="text-sm text-gray-400 mt-1">{recommendation.description}</p>
             </div>
-            <button
-              onClick={onDismiss}
-              className="p-1 hover:bg-gray-700 rounded"
-            >
+            <button onClick={onDismiss} className="p-1 hover:bg-gray-700 rounded">
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>
-          
+
           <div className="flex items-center gap-3 mt-3">
             <button
               onClick={onTry}
@@ -586,21 +607,23 @@ interface AchievementCardProps {
 
 const AchievementCard: React.FC<AchievementCardProps> = ({ achievement }) => {
   return (
-    <div className={`rounded-xl p-4 border transition-all ${
-      achievement.unlocked 
-        ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-yellow-500/30' 
-        : 'bg-gray-800/30 border-gray-700/30 opacity-60'
-    }`}>
+    <div
+      className={`rounded-xl p-4 border transition-all ${
+        achievement.unlocked
+          ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+          : 'bg-gray-800/30 border-gray-700/30 opacity-60'
+      }`}
+    >
       <div className="text-3xl mb-2">{achievement.icon}</div>
       <h4 className={`font-semibold ${achievement.unlocked ? 'text-white' : 'text-gray-400'}`}>
         {achievement.name}
       </h4>
       <p className="text-xs text-gray-400 mt-1">{achievement.description}</p>
-      
+
       {!achievement.unlocked && achievement.progress !== undefined && achievement.target && (
         <div className="mt-3">
           <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gray-500 rounded-full"
               style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
             />
@@ -610,7 +633,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement }) => {
           </p>
         </div>
       )}
-      
+
       {achievement.unlocked && achievement.unlocked_at && (
         <p className="text-xs text-yellow-400/70 mt-2">
           Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}

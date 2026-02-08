@@ -1,20 +1,20 @@
 /**
  * @module Performance
  * @description Performance monitoring and Web Vitals tracking utilities
- * 
+ *
  * Features:
  * - Core Web Vitals measurement (LCP, FID, CLS, FCP, TTFB)
  * - Custom performance marks and measures
  * - Performance observer utilities
  * - Memory usage tracking
- * 
+ *
  * @example
  * ```typescript
  * import { reportWebVitals, measureAsync, getMemoryUsage } from '@utils/performance';
- * 
+ *
  * // Report web vitals on app init
  * reportWebVitals(console.log);
- * 
+ *
  * // Measure async operation
  * const result = await measureAsync('fetchBooks', fetchBooks);
  * ```
@@ -66,7 +66,7 @@ export function reportWebVitals(callback?: WebVitalCallback): void {
     if (callback) {
       callback(metric);
     }
-    
+
     // Log in development
     if (import.meta.env.DEV) {
       logger.debug(`Web Vital: ${metric.name}`, {
@@ -121,14 +121,17 @@ export function reportWebVitals(callback?: WebVitalCallback): void {
   try {
     let clsValue = 0;
     const clsObserver = new PerformanceObserver((entryList) => {
-      for (const entry of entryList.getEntries() as (PerformanceEntry & { hadRecentInput: boolean; value: number })[]) {
+      for (const entry of entryList.getEntries() as (PerformanceEntry & {
+        hadRecentInput: boolean;
+        value: number;
+      })[]) {
         if (!entry.hadRecentInput) {
           clsValue += entry.value;
         }
       }
     });
     clsObserver.observe({ type: 'layout-shift', buffered: true });
-    
+
     // Report CLS on page hide
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
@@ -196,21 +199,18 @@ export function measure(name: string, startMark: string, endMark?: string): numb
 /**
  * Measure an async operation
  */
-export async function measureAsync<T>(
-  name: string,
-  operation: () => Promise<T>
-): Promise<T> {
+export async function measureAsync<T>(name: string, operation: () => Promise<T>): Promise<T> {
   const startMark = `${name}-start`;
   mark(startMark);
-  
+
   try {
     const result = await operation();
     const duration = measure(name, startMark);
-    
+
     if (duration !== null) {
       logger.debug(`Performance: ${name}`, { durationMs: Math.round(duration) });
     }
-    
+
     return result;
   } catch (error) {
     measure(`${name}-error`, startMark);
@@ -222,7 +222,9 @@ export async function measureAsync<T>(
  * Get memory usage (if available)
  */
 export function getMemoryUsage(): { usedJSHeapSize: number; totalJSHeapSize: number } | null {
-  const memory = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+  const memory = (
+    performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }
+  ).memory;
   if (memory) {
     return {
       usedJSHeapSize: memory.usedJSHeapSize,
@@ -240,7 +242,11 @@ export function logMemoryUsage(): void {
   if (usage) {
     const usedMB = Math.round(usage.usedJSHeapSize / 1024 / 1024);
     const totalMB = Math.round(usage.totalJSHeapSize / 1024 / 1024);
-    logger.debug('Memory usage', { usedMB, totalMB, percentage: Math.round((usedMB / totalMB) * 100) });
+    logger.debug('Memory usage', {
+      usedMB,
+      totalMB,
+      percentage: Math.round((usedMB / totalMB) * 100),
+    });
   }
 }
 

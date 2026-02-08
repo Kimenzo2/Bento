@@ -1,21 +1,26 @@
-import { BookProject, GenerationSettings, ArtStyle, UserTier, BrandStoryConfig, Character } from "../types";
-import Bytez from "bytez.js";
+import Bytez from 'bytez.js';
 import {
-  RequestQueue,
+  type BookProject,
+  type BrandStoryConfig,
+  type Character,
+  type GenerationSettings,
+  UserTier,
+} from '../types';
+import {
+  AGE_CONTENT_MODIFIERS,
+  type CharacterReference,
+  STYLE_PROMPT_TEMPLATES,
+  TIER_QUALITY_CONFIG,
+  buildPremiumImagePrompt,
+} from './generator/prompts/premiumPrompts';
+import {
   LRUCache,
-  retryWithBackoff,
+  RequestQueue,
   deduplicateRequest,
   getCachedImageUrl,
-  setCachedImageUrl
+  retryWithBackoff,
+  setCachedImageUrl,
 } from './performanceOptimizations';
-import { 
-  STYLE_PROMPT_TEMPLATES, 
-  TIER_QUALITY_CONFIG, 
-  AGE_CONTENT_MODIFIERS,
-  buildPremiumImagePrompt,
-  buildCharacterConsistencyPrompt,
-  type CharacterReference 
-} from './generator/prompts/premiumPrompts';
 
 // Helper to safely get env vars in both Vite and Node environments
 const getEnv = (key: string) => {
@@ -35,14 +40,12 @@ const grokApiKeys = [
   getEnv('VITE_GROK_API_KEY_1'),
   getEnv('VITE_GROK_API_KEY_2'),
   getEnv('VITE_GROK_API_KEY_3'),
-].filter(key => key && key.length > 0);
+].filter((key) => key && key.length > 0);
 
 let currentGrokKeyIndex = 0;
 
 if (grokApiKeys.length === 0) {
-  console.warn("⚠️ No Grok API Keys found! Please check your .env file. - geminiService.ts:43");
-} else {
-  console.log(`✅ Loaded ${grokApiKeys.length} Grok API key(s) - geminiService.ts:45`);
+  if (import.meta.env.DEV) console.warn('No Grok API Keys found. Check your .env file.');
 }
 
 // Function to get next available Grok key (rotates through keys)
@@ -66,14 +69,12 @@ const bytezApiKeys = [
   getEnv('VITE_BYTEZ_API_KEY_9'),
   getEnv('VITE_BYTEZ_API_KEY_10'),
   getEnv('VITE_BYTEZ_API_KEY_11'),
-].filter(key => key && key.length > 0);
+].filter((key) => key && key.length > 0);
 
 let currentKeyIndex = 0;
 
 if (bytezApiKeys.length === 0) {
-  console.warn("⚠️ No Bytez API Keys found! Please check your .env file. - geminiService.ts:74");
-} else {
-  console.log(`✅ Loaded ${bytezApiKeys.length} Bytez API key(s) - geminiService.ts:76`);
+  if (import.meta.env.DEV) console.warn('No Bytez API Keys found. Check your .env file.');
 }
 
 // Function to get next available key (rotates through keys)
@@ -93,20 +94,24 @@ async function retryWithNextKey<T>(
 
   for (let i = 0; i < maxRetries; i++) {
     const key = getNextBytezKey();
-    if (!key) throw new Error("No Bytez API keys available");
+    if (!key) throw new Error('No Bytez API keys available');
 
     try {
       const sdk = new Bytez(key);
       const result = await operation(sdk);
 
       if (i > 0) {
-        console.log(`✅ Succeeded with key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)} - geminiService.ts:103`);
+        console.log(
+          `✅ Succeeded with key #${currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex} - geminiService.ts:103`
+        );
       }
 
       return result;
     } catch (error: any) {
       lastError = error;
-      console.warn(`⚠️ Key #${(currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex)} failed, trying next... - geminiService.ts:109`);
+      console.warn(
+        `⚠️ Key #${currentKeyIndex === 0 ? bytezApiKeys.length : currentKeyIndex} failed, trying next... - geminiService.ts:109`
+      );
 
       // If it's not a quota/rate limit error, don't retry
       if (!error?.error?.code || ![429, 403, 500].includes(error.error.code)) {
@@ -115,7 +120,7 @@ async function retryWithNextKey<T>(
     }
   }
 
-  console.error("❌ All Bytez API keys exhausted - geminiService.ts:118");
+  console.error('❌ All Bytez API keys exhausted - geminiService.ts:118');
   throw lastError;
 }
 
@@ -123,11 +128,11 @@ async function retryWithNextKey<T>(
 function getModelId(tier: UserTier): string {
   // Ultra model only for paid tiers
   if (tier === UserTier.STUDIO || tier === UserTier.EMPIRE) {
-    return "google/imagen-4.0-ultra-generate-001";
+    return 'google/imagen-4.0-ultra-generate-001';
   }
 
   // Standard model for free tier (Spark)
-  return "google/imagen-4.0-generate-001";
+  return 'google/imagen-4.0-generate-001';
 }
 
 // ============================================================================
@@ -140,9 +145,9 @@ class TokenBucketRateLimiter {
   private readonly refillRate: number; // tokens per second
   private lastRefillTime: number;
   private readonly minDelayMs: number;
-  private lastCallTime: number = 0;
+  private lastCallTime = 0;
 
-  constructor(maxTokens: number = 10, refillRate: number = 2, minDelayMs: number = 500) {
+  constructor(maxTokens = 10, refillRate = 2, minDelayMs = 500) {
     this.tokens = maxTokens;
     this.maxTokens = maxTokens;
     this.refillRate = refillRate;
@@ -164,13 +169,15 @@ class TokenBucketRateLimiter {
     const now = Date.now();
     const timeSinceLastCall = now - this.lastCallTime;
     if (timeSinceLastCall < this.minDelayMs) {
-      await new Promise(r => setTimeout(r, this.minDelayMs - timeSinceLastCall));
+      await new Promise((r) => setTimeout(r, this.minDelayMs - timeSinceLastCall));
     }
 
     if (this.tokens < 1) {
       const waitTime = ((1 - this.tokens) / this.refillRate) * 1000;
-      console.log(`[RateLimiter] Waiting ${Math.round(waitTime)}ms for token - geminiService.ts:172`);
-      await new Promise(r => setTimeout(r, waitTime));
+      console.log(
+        `[RateLimiter] Waiting ${Math.round(waitTime)}ms for token - geminiService.ts:172`
+      );
+      await new Promise((r) => setTimeout(r, waitTime));
       this.refill();
     }
 
@@ -202,9 +209,8 @@ const rateLimiter = {
   minDelay: 1000,
   async throttle() {
     await grokRateLimiter.acquire();
-  }
+  },
 };
-
 
 // ============================================================================
 // TEXT GENERATION: Bytez API with Google Gemini 2.5 Pro
@@ -219,18 +225,24 @@ const BYTEZ_TEXT_API_KEY = getEnv('VITE_BYTEZ_TEXT_API_KEY') || '5bd38cb5f6b3a45
 const BYTEZ_TEXT_MODEL = 'google/gemini-2.5-pro';
 
 // Helper function to call Bytez API with Gemini 2.5 Pro for text generation
-async function callGeminiAPI(prompt: string, modelName: string = BYTEZ_TEXT_MODEL, maxTokens: number = 4096): Promise<string> {
+async function callGeminiAPI(
+  prompt: string,
+  modelName: string = BYTEZ_TEXT_MODEL,
+  maxTokens = 4096
+): Promise<string> {
   try {
-    console.log(`🔄 Calling Bytez API with ${modelName} for text generation... - geminiService.ts:224`);
+    console.log(
+      `🔄 Calling Bytez API with ${modelName} for text generation... - geminiService.ts:224`
+    );
 
     const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
     const model = sdk.model(modelName);
 
     const messages = [
       {
-        role: "user",
-        content: `You are a JSON generator. Always respond with valid JSON only. No markdown code blocks, no explanations, just pure JSON.\n\n${prompt}\n\nRespond with valid JSON only.`
-      }
+        role: 'user',
+        content: `You are a JSON generator. Always respond with valid JSON only. No markdown code blocks, no explanations, just pure JSON.\n\n${prompt}\n\nRespond with valid JSON only.`,
+      },
     ];
 
     const { error, output } = await model.run(messages);
@@ -812,7 +824,7 @@ Each imagePrompt must specify:
 // Helper to parse age from audience string
 const parseAge = (audience: string): number => {
   const match = audience.match(/\d+/);
-  return match ? parseInt(match[0]) : 8; // Default to 8 if no number found
+  return match ? Number.parseInt(match[0]) : 8; // Default to 8 if no number found
 };
 
 // ============================================================================
@@ -836,7 +848,9 @@ export const buildCharacterVoicePrompt = (character: Character): string => {
     parts.push(`- Tone: ${character.voiceProfile.tone}`);
     parts.push(`- Vocabulary Level: ${character.voiceProfile.vocabulary}`);
     if (character.voiceProfile.catchphrases?.length) {
-      parts.push(`- Signature phrases: "${character.voiceProfile.catchphrases.slice(0, 3).join('", "')}"`);
+      parts.push(
+        `- Signature phrases: "${character.voiceProfile.catchphrases.slice(0, 3).join('", "')}"`
+      );
     }
     if (character.voiceProfile.laughStyle) {
       parts.push(`- When happy: ${character.voiceProfile.laughStyle}`);
@@ -905,13 +919,17 @@ export const buildCharacterVoicePrompt = (character: Character): string => {
       parts.push(`\nSPEECH PATTERNS: ${character.behavioralPatterns.speechPatterns}`);
     }
     if (character.behavioralPatterns.joyTriggers?.length) {
-      parts.push(`- Gets excited about: ${character.behavioralPatterns.joyTriggers.slice(0, 2).join(', ')}`);
+      parts.push(
+        `- Gets excited about: ${character.behavioralPatterns.joyTriggers.slice(0, 2).join(', ')}`
+      );
     }
   }
 
   // Quirks for character flavor
   if (character.quirks?.length) {
-    parts.push(`\nCHARACTER QUIRKS (include naturally): ${character.quirks.slice(0, 3).join('; ')}`);
+    parts.push(
+      `\nCHARACTER QUIRKS (include naturally): ${character.quirks.slice(0, 3).join('; ')}`
+    );
   }
 
   return parts.join('\n');
@@ -944,7 +962,6 @@ OUTPUT FORMAT for learning moments:
   }
 }`;
 
-
 // ============================================================================
 // BRAND CONTENT GENERATION FUNCTION
 // ============================================================================
@@ -954,7 +971,7 @@ export const generateBrandContent = async (
   brandConfig: BrandStoryConfig
 ): Promise<Partial<BookProject>> => {
   if (!BYTEZ_TEXT_API_KEY) {
-    throw new Error("Bytez Text API Key is missing. Please configure VITE_BYTEZ_TEXT_API_KEY.");
+    throw new Error('Bytez Text API Key is missing. Please configure VITE_BYTEZ_TEXT_API_KEY.');
   }
 
   // Apply rate limiting
@@ -963,13 +980,13 @@ export const generateBrandContent = async (
   const inputPayload = {
     contentType: brandConfig.contentType,
     company: brandConfig.companyInfo,
-    sections: brandConfig.sections.filter(s => s.enabled).sort((a, b) => a.order - b.order),
+    sections: brandConfig.sections.filter((s) => s.enabled).sort((a, b) => a.order - b.order),
     tone: brandConfig.tone,
     visualStyle: brandConfig.visualStyle,
     colorScheme: brandConfig.colorScheme,
     fiscalYear: brandConfig.fiscalYear,
     pageCount: settings.pageCount,
-    artStyle: settings.style
+    artStyle: settings.style,
   };
 
   const prompt = `${SYSTEM_INSTRUCTION_BRAND}
@@ -997,7 +1014,7 @@ IMPORTANT:
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn("JSON Parse failed, attempting repair... - geminiService.ts:909", parseError);
+      console.warn('JSON Parse failed, attempting repair... - geminiService.ts:909', parseError);
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -1013,11 +1030,12 @@ IMPORTANT:
     // Map to BookProject structure
     const project: Partial<BookProject> = {
       id: rawData.bookId || crypto.randomUUID(),
-      title: rawData.metadata?.title || brandConfig.companyInfo.name + " - " + brandConfig.contentType,
-      synopsis: rawData.metadata?.synopsis || "",
+      title:
+        rawData.metadata?.title || brandConfig.companyInfo.name + ' - ' + brandConfig.contentType,
+      synopsis: rawData.metadata?.synopsis || '',
       style: settings.style,
       tone: settings.tone,
-      targetAudience: "Business Professionals",
+      targetAudience: 'Business Professionals',
       isBranching: false,
       brandProfile: settings.brandProfile,
       createdAt: new Date(),
@@ -1026,34 +1044,36 @@ IMPORTANT:
 
       characters: [],
 
-      chapters: [{
-        id: crypto.randomUUID(),
-        title: rawData.metadata?.title || "Brand Story",
-        pages: (rawData.pages || []).map((p: any) => ({
+      chapters: [
+        {
           id: crypto.randomUUID(),
-          pageNumber: p.pageNumber,
-          text: p.text,
-          imagePrompt: p.imagePrompt,
-          layoutType: p.layoutType || 'split-horizontal',
-          narrationNotes: p.narrationNotes,
-          sectionType: p.sectionType,
-          dataVisualization: p.dataVisualization
-        }))
-      }]
+          title: rawData.metadata?.title || 'Brand Story',
+          pages: (rawData.pages || []).map((p: any) => ({
+            id: crypto.randomUUID(),
+            pageNumber: p.pageNumber,
+            text: p.text,
+            imagePrompt: p.imagePrompt,
+            layoutType: p.layoutType || 'split-horizontal',
+            narrationNotes: p.narrationNotes,
+            sectionType: p.sectionType,
+            dataVisualization: p.dataVisualization,
+          })),
+        },
+      ],
     };
 
     return project;
-
   } catch (error) {
-    console.error("Brand content generation failed: - geminiService.ts:957", error);
+    console.error('Brand content generation failed: - geminiService.ts:957', error);
     throw error;
   }
 };
 
-
-export const generateBookStructure = async (settings: GenerationSettings): Promise<Partial<BookProject>> => {
+export const generateBookStructure = async (
+  settings: GenerationSettings
+): Promise<Partial<BookProject>> => {
   if (!BYTEZ_TEXT_API_KEY) {
-    throw new Error("Bytez Text API Key is missing. Please configure VITE_BYTEZ_TEXT_API_KEY.");
+    throw new Error('Bytez Text API Key is missing. Please configure VITE_BYTEZ_TEXT_API_KEY.');
   }
 
   // Apply rate limiting
@@ -1065,20 +1085,24 @@ export const generateBookStructure = async (settings: GenerationSettings): Promi
     topic: settings.prompt,
     ageGroup: ageGroup,
     pageCount: settings.pageCount,
-    genre: "Fiction", // Could be inferred or added to settings
+    genre: 'Fiction', // Could be inferred or added to settings
     artStyle: settings.style,
     interactive: settings.isBranching,
     educational: settings.educational || false,
     learningConfig: settings.learningConfig,
-    language: "en",
+    language: 'en',
     tone: settings.tone,
-    ...(settings.brandProfile ? {
-      characterDescription: `Brand Character: ${settings.brandProfile.name}. ${settings.brandProfile.guidelines} `
-    } : {}),
-    ...(settings.teacherCharacter ? {
-      teacherCharacterName: settings.teacherCharacter.name,
-      teacherCharacterRole: 'mentor/guide who teaches throughout the story'
-    } : {})
+    ...(settings.brandProfile
+      ? {
+          characterDescription: `Brand Character: ${settings.brandProfile.name}. ${settings.brandProfile.guidelines} `,
+        }
+      : {}),
+    ...(settings.teacherCharacter
+      ? {
+          teacherCharacterName: settings.teacherCharacter.name,
+          teacherCharacterRole: 'mentor/guide who teaches throughout the story',
+        }
+      : {}),
   };
 
   // Build character teaching voice prompt if teacher is selected
@@ -1117,7 +1141,9 @@ This is an EDUCATIONAL book.You MUST include learning content based on these set
 - Difficulty: ${settings.learningConfig.difficulty}
 - Integration Mode: ${mode}
 
-${mode === 'integrated' ? `
+${
+  mode === 'integrated'
+    ? `
 ### ✅ INTEGRATED MODE - WOVEN INTO STORY (SELECTED)
 **CRITICAL**: Learning must be seamlessly woven into the narrative!
 
@@ -1144,10 +1170,13 @@ Each page MUST have this structure:
 }
 
 EXAMPLE: If teaching counting, Page 1 shows hero meeting 3 birds while mentor teaches counting!
-` : ''
-      }
+`
+    : ''
+}
 
-${mode === 'after-chapter' ? `
+${
+  mode === 'after-chapter'
+    ? `
 ### ✅ AFTER-CHAPTER MODE - REVIEW AT END (SELECTED)
 **CRITICAL**: Keep story pure, then review concepts at chapter breaks!
 
@@ -1174,10 +1203,13 @@ Review Page MUST have:
     "quiz": { /* complete quiz */ }
   }
 }
-` : ''
-      }
+`
+    : ''
+}
 
-${mode === 'dedicated-section' ? `
+${
+  mode === 'dedicated-section'
+    ? `
 ### ✅ DEDICATED SECTION MODE - SEPARATE TEACHING (SELECTED)
 **CRITICAL**: Complete story first, ALL learning at the end!
 
@@ -1200,8 +1232,9 @@ STRUCTURE:
     "quiz": { /* full quiz */ }
   }
 }
-` : ''
-      }
+`
+    : ''
+}
 
 ⚠️ **VALIDATION BEFORE RETURNING JSON**:
 ${mode === 'integrated' ? `✓ ALL pages have learningContent\n✓ Learning woven into narrative` : ''}
@@ -1246,7 +1279,7 @@ ${JSON.stringify(inputPayload, null, 2)} `;
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn("JSON Parse failed, attempting repair... - geminiService.ts:1158", parseError);
+      console.warn('JSON Parse failed, attempting repair... - geminiService.ts:1158', parseError);
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -1262,8 +1295,8 @@ ${JSON.stringify(inputPayload, null, 2)} `;
     // Map to BookProject structure
     const project: Partial<BookProject> = {
       id: rawData.bookId || crypto.randomUUID(),
-      title: rawData.metadata?.title || "Untitled Masterpiece",
-      synopsis: rawData.metadata?.synopsis || "",
+      title: rawData.metadata?.title || 'Untitled Masterpiece',
+      synopsis: rawData.metadata?.synopsis || '',
       style: settings.style,
       tone: settings.tone,
       targetAudience: settings.audience,
@@ -1284,35 +1317,37 @@ ${JSON.stringify(inputPayload, null, 2)} `;
         description: c.description,
         visualTraits: c.visualPrompt, // Map visualPrompt to visualTraits
         visualPrompt: c.visualPrompt,
-        traits: c.traits
+        traits: c.traits,
       })),
 
-      chapters: [{
-        id: crypto.randomUUID(),
-        title: "Story",
-        pages: (rawData.pages || []).map((p: any) => ({
+      chapters: [
+        {
           id: crypto.randomUUID(),
-          pageNumber: p.pageNumber,
-          text: p.text,
-          imagePrompt: p.imagePrompt,
-          layoutType: p.layoutType || 'text-only', // Use AI generated layout or default
-          narrationNotes: p.narrationNotes,
-          interactiveElement: p.interactiveElement,
-          learningMoment: p.learningMoment,
-          learningContent: p.learningContent, // Map new field
-          vocabularyWords: p.vocabularyWords,
-          choices: p.interactiveElement?.options?.map((o: any) => ({
-            text: o.text,
-            targetPageNumber: o.leadsToPage
-          })) || []
-        }))
-      }]
+          title: 'Story',
+          pages: (rawData.pages || []).map((p: any) => ({
+            id: crypto.randomUUID(),
+            pageNumber: p.pageNumber,
+            text: p.text,
+            imagePrompt: p.imagePrompt,
+            layoutType: p.layoutType || 'text-only', // Use AI generated layout or default
+            narrationNotes: p.narrationNotes,
+            interactiveElement: p.interactiveElement,
+            learningMoment: p.learningMoment,
+            learningContent: p.learningContent, // Map new field
+            vocabularyWords: p.vocabularyWords,
+            choices:
+              p.interactiveElement?.options?.map((o: any) => ({
+                text: o.text,
+                targetPageNumber: o.leadsToPage,
+              })) || [],
+          })),
+        },
+      ],
     };
 
     return project;
-
   } catch (error) {
-    console.error("Story Architect failed: - geminiService.ts:1224", error);
+    console.error('Story Architect failed: - geminiService.ts:1224', error);
     throw error;
   }
 };
@@ -1329,7 +1364,7 @@ export const generateStructuredContent = async <T>(
   systemInstruction?: string
 ): Promise<T> => {
   if (!BYTEZ_TEXT_API_KEY) {
-    throw new Error("Bytez Text API Key is missing");
+    throw new Error('Bytez Text API Key is missing');
   }
 
   // Apply rate limiting
@@ -1345,14 +1380,14 @@ export const generateStructuredContent = async <T>(
     const jsonString = extractJson(text);
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error("Structured generation failed: - geminiService.ts:1257", error);
+    console.error('Structured generation failed: - geminiService.ts:1257', error);
     throw error;
   }
 };
 
 export const generateIllustration = async (
-  imagePrompt: string, 
-  style: string, 
+  imagePrompt: string,
+  style: string,
   tier: UserTier = UserTier.SPARK,
   options?: {
     ageGroup?: string;
@@ -1376,103 +1411,112 @@ export const generateIllustration = async (
   }
 
   // PERFORMANCE: Deduplicate identical concurrent requests
-  return deduplicateRequest(cacheKey, async () => {
-    const modelId = getModelId(tier);
-    console.log(`🎨 Generating illustration using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1276`);
+  return deduplicateRequest(
+    cacheKey,
+    async () => {
+      const modelId = getModelId(tier);
+      console.log(
+        `🎨 Generating illustration using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1276`
+      );
 
-    // PERFORMANCE: Use request queue to limit concurrent API calls
-    return bytezRequestQueue.add(async () => {
-      // PERFORMANCE: Apply rate limiting
-      await bytezRateLimiter.acquire();
+      // PERFORMANCE: Use request queue to limit concurrent API calls
+      return bytezRequestQueue.add(async () => {
+        // PERFORMANCE: Apply rate limiting
+        await bytezRateLimiter.acquire();
 
-      try {
-        // PREMIUM: Use enterprise-grade prompts for paid tiers or when explicitly requested
-        const usePremium = options?.usePremiumPrompts || 
-          tier === UserTier.STUDIO || 
-          tier === UserTier.EMPIRE || 
-          tier === UserTier.CREATOR;
-        
-        let fullPrompt: string;
-        
-        if (usePremium && STYLE_PROMPT_TEMPLATES[style]) {
-          // Use premium prompt builder for professional-grade output
-          fullPrompt = buildPremiumImagePrompt({
-            basePrompt: imagePrompt,
-            style: style,
-            tier: tier.toString(),
-            ageGroup: options?.ageGroup,
-            characterRef: options?.characterRef,
-            sceneContext: options?.sceneContext
-          });
-          console.log('✨ Using premium prompt engineering for', style);
-        } else {
-          // Use improved prompts even for free tier when style is known
-          const styleConfig = STYLE_PROMPT_TEMPLATES[style];
-          if (styleConfig) {
-            fullPrompt = `${styleConfig.prefix}. ${imagePrompt}. ${styleConfig.lighting}. ${styleConfig.quality}. AVOID: ${styleConfig.avoidances}`;
-          } else {
-            // Fallback for unknown styles
-            fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, detailed illustration, professional quality, cinematic lighting.`;
-          }
-        }
+        try {
+          // PREMIUM: Use enterprise-grade prompts for paid tiers or when explicitly requested
+          const usePremium =
+            options?.usePremiumPrompts ||
+            tier === UserTier.STUDIO ||
+            tier === UserTier.EMPIRE ||
+            tier === UserTier.CREATOR;
 
-        const output = await retryWithBackoff(
-          async () => {
-            return retryWithNextKey(async (sdk) => {
-              const model = sdk.model(modelId);
-              const { error, output } = await model.run(fullPrompt);
+          let fullPrompt: string;
 
-              if (error) {
-                throw { error };
-              }
-
-              return output;
+          if (usePremium && STYLE_PROMPT_TEMPLATES[style]) {
+            // Use premium prompt builder for professional-grade output
+            fullPrompt = buildPremiumImagePrompt({
+              basePrompt: imagePrompt,
+              style: style,
+              tier: tier.toString(),
+              ageGroup: options?.ageGroup,
+              characterRef: options?.characterRef,
+              sceneContext: options?.sceneContext,
             });
-          },
-          {
-            maxRetries: 2,
-            initialDelayMs: 2000,
-            maxDelayMs: 10000,
-            retryCondition: (error) => {
-              // Only retry on rate limit or server errors
-              const code = error?.error?.code || error?.status;
-              return [429, 500, 502, 503].includes(code);
+            console.log('✨ Using premium prompt engineering for', style);
+          } else {
+            // Use improved prompts even for free tier when style is known
+            const styleConfig = STYLE_PROMPT_TEMPLATES[style];
+            if (styleConfig) {
+              fullPrompt = `${styleConfig.prefix}. ${imagePrompt}. ${styleConfig.lighting}. ${styleConfig.quality}. AVOID: ${styleConfig.avoidances}`;
+            } else {
+              // Fallback for unknown styles
+              fullPrompt = `Style: ${style}. ${imagePrompt}. High quality, detailed illustration, professional quality, cinematic lighting.`;
             }
           }
-        );
 
-        // PERFORMANCE: Cache successful result
-        if (output) {
-          setCachedImageUrl(cacheKey, output);
+          const output = await retryWithBackoff(
+            async () => {
+              return retryWithNextKey(async (sdk) => {
+                const model = sdk.model(modelId);
+                const { error, output } = await model.run(fullPrompt);
+
+                if (error) {
+                  throw { error };
+                }
+
+                return output;
+              });
+            },
+            {
+              maxRetries: 2,
+              initialDelayMs: 2000,
+              maxDelayMs: 10000,
+              retryCondition: (error) => {
+                // Only retry on rate limit or server errors
+                const code = error?.error?.code || error?.status;
+                return [429, 500, 502, 503].includes(code);
+              },
+            }
+          );
+
+          // PERFORMANCE: Cache successful result
+          if (output) {
+            setCachedImageUrl(cacheKey, output);
+          }
+
+          console.log('✅ Bytez generation successful - geminiService.ts:1316');
+          return output;
+        } catch (error) {
+          console.error('❌ All Bytez keys exhausted: - geminiService.ts:1319', error);
+          return null;
         }
-
-        console.log("✅ Bytez generation successful - geminiService.ts:1316");
-        return output;
-      } catch (error) {
-        console.error("❌ All Bytez keys exhausted: - geminiService.ts:1319", error);
-        return null;
-      }
-    });
-  }, 10000); // 10 second deduplication window
+      });
+    },
+    10000
+  ); // 10 second deduplication window
 };
 
 export const generateRefinedImage = async (
   prompt: string,
   params: {
-    styleA: string,
-    styleB?: string,
-    mixRatio?: number,
-    lighting?: string,
-    camera?: string,
-    characterDescription?: string,
-    ageGroup?: string
+    styleA: string;
+    styleB?: string;
+    mixRatio?: number;
+    lighting?: string;
+    camera?: string;
+    characterDescription?: string;
+    ageGroup?: string;
   },
   tier: UserTier = UserTier.SPARK
 ): Promise<string | null> => {
   const modelId = getModelId(tier);
   const qualityConfig = TIER_QUALITY_CONFIG[tier.toString()] || TIER_QUALITY_CONFIG['SPARK'];
 
-  console.log(`🎨 Generating refined image using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1340`);
+  console.log(
+    `🎨 Generating refined image using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1340`
+  );
 
   // Get style configurations
   const styleAConfig = STYLE_PROMPT_TEMPLATES[params.styleA];
@@ -1517,8 +1561,12 @@ ${styleInstruction}
 
 SUBJECT: ${prompt}
 
-${params.characterDescription ? `CHARACTER DETAILS (maintain consistency):
-${params.characterDescription}` : ''}
+${
+  params.characterDescription
+    ? `CHARACTER DETAILS (maintain consistency):
+${params.characterDescription}`
+    : ''
+}
 
 COMPOSITION:
 ${compositionParts.join('\n')}
@@ -1555,10 +1603,10 @@ ${styleAConfig?.avoidances || 'No muddy colors, no inconsistent lighting, no ana
       return output;
     });
 
-    console.log("✅ Bytez generation successful - geminiService.ts:1378");
+    console.log('✅ Bytez generation successful - geminiService.ts:1378');
     return output;
   } catch (error) {
-    console.error("❌ All Bytez keys exhausted: - geminiService.ts:1381", error);
+    console.error('❌ All Bytez keys exhausted: - geminiService.ts:1381', error);
     return null;
   }
 };
@@ -1591,17 +1639,17 @@ function repairJson(jsonString: string): string | null {
     let cleaned = jsonString.replace(/,\s*"[^"]*$/, '');
 
     // 2. Count braces/brackets to close them
-    let openBraces = (cleaned.match(/{/g) || []).length;
+    const openBraces = (cleaned.match(/{/g) || []).length;
     let closeBraces = (cleaned.match(/}/g) || []).length;
-    let openBrackets = (cleaned.match(/\[/g) || []).length;
+    const openBrackets = (cleaned.match(/\[/g) || []).length;
     let closeBrackets = (cleaned.match(/\]/g) || []).length;
 
     while (openBraces > closeBraces) {
-      cleaned += "}";
+      cleaned += '}';
       closeBraces++;
     }
     while (openBrackets > closeBrackets) {
-      cleaned += "]";
+      cleaned += ']';
       closeBrackets++;
     }
 

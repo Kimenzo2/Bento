@@ -1,6 +1,6 @@
 /**
  * OPTIMIZED MOTION COMPONENTS
- * 
+ *
  * Pre-configured Framer Motion components with:
  * 1. GPU acceleration baked in
  * 2. Optimized transition defaults
@@ -8,11 +8,12 @@
  * 4. Memoization for stable references
  */
 
-import { motion, type MotionProps, type Variants } from 'framer-motion';
-import React, { memo, forwardRef, useMemo } from 'react';
+import { type MotionProps, type Variants, motion } from 'framer-motion';
+import type React from 'react';
+import { forwardRef, memo, useMemo } from 'react';
 import {
-  GPU_ACCELERATED_STYLES,
   FAST_TRANSITION,
+  GPU_ACCELERATED_STYLES,
   SMOOTH_TRANSITION,
   STAGGER_FAST,
   prefersReducedMotion,
@@ -32,39 +33,43 @@ const cleanupStyle: React.CSSProperties = {
 /**
  * Optimized motion.div with GPU acceleration
  */
-export const OptimizedMotionDiv = memo(forwardRef<
-  HTMLDivElement,
-  MotionProps & React.HTMLAttributes<HTMLDivElement>
->(function OptimizedMotionDiv({ style, children, transition, ...props }, ref) {
-  const reducedMotion = useMemo(() => prefersReducedMotion(), []);
-  
-  const mergedStyle = useMemo(() => ({
-    ...gpuStyle,
-    ...style,
-  }), [style]);
-  
-  const optimizedTransition = useMemo(() => {
-    if (reducedMotion) return { duration: 0 };
-    return transition || SMOOTH_TRANSITION;
-  }, [reducedMotion, transition]);
-  
-  return (
-    <motion.div
-      ref={ref}
-      style={mergedStyle}
-      transition={optimizedTransition}
-      onAnimationComplete={() => {
-        // Cleanup will-change after animation
-        if (ref && typeof ref === 'object' && ref.current) {
-          Object.assign(ref.current.style, cleanupStyle);
-        }
-      }}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
-}));
+export const OptimizedMotionDiv = memo(
+  forwardRef<HTMLDivElement, MotionProps & React.HTMLAttributes<HTMLDivElement>>(
+    function OptimizedMotionDiv({ style, children, transition, ...props }, ref) {
+      const reducedMotion = useMemo(() => prefersReducedMotion(), []);
+
+      const mergedStyle = useMemo(
+        () => ({
+          ...gpuStyle,
+          ...style,
+        }),
+        [style]
+      );
+
+      const optimizedTransition = useMemo(() => {
+        if (reducedMotion) return { duration: 0 };
+        return transition || SMOOTH_TRANSITION;
+      }, [reducedMotion, transition]);
+
+      return (
+        <motion.div
+          ref={ref}
+          style={mergedStyle}
+          transition={optimizedTransition}
+          onAnimationComplete={() => {
+            // Cleanup will-change after animation
+            if (ref && typeof ref === 'object' && ref.current) {
+              Object.assign(ref.current.style, cleanupStyle);
+            }
+          }}
+          {...props}
+        >
+          {children}
+        </motion.div>
+      );
+    }
+  )
+);
 
 /**
  * Fast fade in/out component
@@ -75,14 +80,14 @@ interface FadeProps extends Omit<MotionProps, 'initial' | 'animate' | 'exit'> {
   delay?: number;
 }
 
-export const FastFade = memo(function FastFade({ 
-  children, 
-  className, 
+export const FastFade = memo(function FastFade({
+  children,
+  className,
   delay = 0,
-  ...props 
+  ...props
 }: FadeProps) {
   const reducedMotion = prefersReducedMotion();
-  
+
   return (
     <motion.div
       initial={{ opacity: reducedMotion ? 1 : 0 }}
@@ -115,17 +120,21 @@ export const FastSlide = memo(function FastSlide({
   ...props
 }: SlideProps) {
   const reducedMotion = prefersReducedMotion();
-  
+
   const getInitial = () => {
     if (reducedMotion) return { opacity: 1, x: 0, y: 0 };
     switch (direction) {
-      case 'up': return { opacity: 0, y: distance };
-      case 'down': return { opacity: 0, y: -distance };
-      case 'left': return { opacity: 0, x: distance };
-      case 'right': return { opacity: 0, x: -distance };
+      case 'up':
+        return { opacity: 0, y: distance };
+      case 'down':
+        return { opacity: 0, y: -distance };
+      case 'left':
+        return { opacity: 0, x: distance };
+      case 'right':
+        return { opacity: 0, x: -distance };
     }
   };
-  
+
   return (
     <motion.div
       initial={getInitial()}
@@ -156,7 +165,7 @@ export const StaggerContainer = memo(function StaggerContainer({
   fast = true,
 }: StaggerProps) {
   const stagger = fast ? STAGGER_FAST : { staggerChildren: 0.1, delayChildren: 0.2 };
-  
+
   return (
     <motion.div
       initial="hidden"
@@ -185,25 +194,18 @@ interface StaggerItemProps {
   className?: string;
 }
 
-export const StaggerItem = memo(function StaggerItem({
-  children,
-  className,
-}: StaggerItemProps) {
+export const StaggerItem = memo(function StaggerItem({ children, className }: StaggerItemProps) {
   const variants: Variants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: FAST_TRANSITION,
     },
   };
-  
+
   return (
-    <motion.div
-      variants={variants}
-      className={className}
-      style={gpuStyle}
-    >
+    <motion.div variants={variants} className={className} style={gpuStyle}>
       {children}
     </motion.div>
   );
@@ -245,20 +247,20 @@ interface PulseProps {
   active?: boolean;
 }
 
-export const Pulse = memo(function Pulse({
-  children,
-  className,
-  active = true,
-}: PulseProps) {
+export const Pulse = memo(function Pulse({ children, className, active = true }: PulseProps) {
   return (
     <motion.div
-      animate={active ? {
-        scale: [1, 1.02, 1],
-        opacity: [1, 0.8, 1],
-      } : {}}
+      animate={
+        active
+          ? {
+              scale: [1, 1.02, 1],
+              opacity: [1, 0.8, 1],
+            }
+          : {}
+      }
       transition={{
         duration: 1.5,
-        repeat: active ? Infinity : 0,
+        repeat: active ? Number.POSITIVE_INFINITY : 0,
         ease: 'easeInOut',
       }}
       className={className}
@@ -286,15 +288,19 @@ export const Float = memo(function Float({
   duration = 4,
 }: FloatProps) {
   const reducedMotion = prefersReducedMotion();
-  
+
   return (
     <motion.div
-      animate={reducedMotion ? {} : {
-        y: [-yRange, yRange, -yRange],
-      }}
+      animate={
+        reducedMotion
+          ? {}
+          : {
+              y: [-yRange, yRange, -yRange],
+            }
+      }
       transition={{
         duration,
-        repeat: Infinity,
+        repeat: Number.POSITIVE_INFINITY,
         ease: 'easeInOut',
       }}
       className={className}

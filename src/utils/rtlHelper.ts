@@ -1,11 +1,11 @@
 /**
  * RTL Helper Utilities
- * 
+ *
  * Provides helper functions for right-to-left layout support
  */
 
-import type { TextDirection, LanguageCode } from '../types/language.d';
 import { isRTLLanguage } from '../config/languages';
+import type { LanguageCode, TextDirection } from '../types/language.d';
 
 /**
  * CSS logical property mappings
@@ -14,11 +14,11 @@ export const LOGICAL_PROPERTIES = {
   // Margin
   marginLeft: 'marginInlineStart',
   marginRight: 'marginInlineEnd',
-  
+
   // Padding
   paddingLeft: 'paddingInlineStart',
   paddingRight: 'paddingInlineEnd',
-  
+
   // Border
   borderLeft: 'borderInlineStart',
   borderRight: 'borderInlineEnd',
@@ -28,25 +28,25 @@ export const LOGICAL_PROPERTIES = {
   borderRightColor: 'borderInlineEndColor',
   borderLeftStyle: 'borderInlineStartStyle',
   borderRightStyle: 'borderInlineEndStyle',
-  
+
   // Position
   left: 'insetInlineStart',
   right: 'insetInlineEnd',
-  
+
   // Border radius
   borderTopLeftRadius: 'borderStartStartRadius',
   borderTopRightRadius: 'borderStartEndRadius',
   borderBottomLeftRadius: 'borderEndStartRadius',
   borderBottomRightRadius: 'borderEndEndRadius',
-  
+
   // Text align
   'text-align: left': 'text-align: start',
   'text-align: right': 'text-align: end',
-  
+
   // Float
   'float: left': 'float: inline-start',
   'float: right': 'float: inline-end',
-  
+
   // Clear
   'clear: left': 'clear: inline-start',
   'clear: right': 'clear: inline-end',
@@ -59,15 +59,15 @@ export const TAILWIND_RTL_MAPPINGS: Record<string, string> = {
   // Margin
   'ml-': 'ms-',
   'mr-': 'me-',
-  
+
   // Padding
   'pl-': 'ps-',
   'pr-': 'pe-',
-  
+
   // Border
   'border-l-': 'border-s-',
   'border-r-': 'border-e-',
-  
+
   // Rounded
   'rounded-l-': 'rounded-s-',
   'rounded-r-': 'rounded-e-',
@@ -75,21 +75,21 @@ export const TAILWIND_RTL_MAPPINGS: Record<string, string> = {
   'rounded-tr-': 'rounded-se-',
   'rounded-bl-': 'rounded-es-',
   'rounded-br-': 'rounded-ee-',
-  
+
   // Position
   'left-': 'start-',
   'right-': 'end-',
-  
+
   // Text align
   'text-left': 'text-start',
   'text-right': 'text-end',
-  
+
   // Scroll
   'scroll-ml-': 'scroll-ms-',
   'scroll-mr-': 'scroll-me-',
   'scroll-pl-': 'scroll-ps-',
   'scroll-pr-': 'scroll-pe-',
-  
+
   // Space
   'space-x-': 'space-x-', // Handled by Tailwind RTL plugin
 };
@@ -120,13 +120,13 @@ export const getDirectionForLanguage = (code: LanguageCode): TextDirection => {
  */
 export const convertToLogicalClass = (className: string): string => {
   let result = className;
-  
+
   Object.entries(TAILWIND_RTL_MAPPINGS).forEach(([physical, logical]) => {
     // Use regex to match whole class names
     const regex = new RegExp(`\\b${physical}`, 'g');
     result = result.replace(regex, logical);
   });
-  
+
   return result;
 };
 
@@ -147,18 +147,15 @@ export const getDirectionalStyle = (
  */
 export const flipTransform = (transform: string, isRTL: boolean): string => {
   if (!isRTL) return transform;
-  
+
   // Flip translateX values
-  return transform.replace(
-    /translateX\(([^)]+)\)/g,
-    (match, value) => {
-      // If it starts with a negative sign, remove it; otherwise add it
-      if (value.trim().startsWith('-')) {
-        return `translateX(${value.trim().substring(1)})`;
-      }
-      return `translateX(-${value.trim()})`;
+  return transform.replace(/translateX\(([^)]+)\)/g, (match, value) => {
+    // If it starts with a negative sign, remove it; otherwise add it
+    if (value.trim().startsWith('-')) {
+      return `translateX(${value.trim().substring(1)})`;
     }
-  );
+    return `translateX(-${value.trim()})`;
+  });
 };
 
 /**
@@ -166,7 +163,7 @@ export const flipTransform = (transform: string, isRTL: boolean): string => {
  */
 export const getMirroredIcon = (iconName: string, isRTL: boolean): string => {
   if (!isRTL) return iconName;
-  
+
   const iconMappings: Record<string, string> = {
     'chevron-left': 'chevron-right',
     'chevron-right': 'chevron-left',
@@ -183,7 +180,7 @@ export const getMirroredIcon = (iconName: string, isRTL: boolean): string => {
     'log-in': 'log-in', // Same
     'log-out': 'log-out', // Same
   };
-  
+
   return iconMappings[iconName] || iconName;
 };
 
@@ -273,5 +270,5 @@ export default {
   getDirectionalStyle,
   flipTransform,
   getMirroredIcon,
-  RTL_CSS
+  RTL_CSS,
 };

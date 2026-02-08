@@ -1,22 +1,22 @@
 /**
  * Circuit Breaker Service
- * 
+ *
  * Prevents runaway API costs by implementing spending limits and rate controls.
  * Uses in-memory tracking with periodic Supabase sync for persistence.
- * 
+ *
  * Key Features:
  * - Per-user spending limits (daily/monthly)
  * - Per-session rate limiting
  * - Graceful degradation (downgrade to cheaper models instead of blocking)
  * - Real-time budget tracking
  * - Supabase integration for persistent limits
- * 
+ *
  * Design: All checks are SYNCHRONOUS and use cached data to avoid latency.
  * Supabase sync happens in background to update limits and persist overrides.
  */
 
-import { supabase } from '../supabaseClient';
 import { UserTier } from '../../types';
+import { supabase } from '../supabaseClient';
 
 // ============================================================================
 // CONFIGURATION
@@ -32,29 +32,29 @@ export interface SpendingLimits {
 // Tier-based spending limits
 const TIER_LIMITS: Record<UserTier, SpendingLimits> = {
   [UserTier.SPARK]: {
-    dailyLimitUsd: 0.50,
-    monthlyLimitUsd: 5.00,
+    dailyLimitUsd: 0.5,
+    monthlyLimitUsd: 5.0,
     maxRequestsPerMinute: 5,
-    maxRequestsPerHour: 30
+    maxRequestsPerHour: 30,
   },
   [UserTier.CREATOR]: {
-    dailyLimitUsd: 5.00,
-    monthlyLimitUsd: 50.00,
+    dailyLimitUsd: 5.0,
+    monthlyLimitUsd: 50.0,
     maxRequestsPerMinute: 15,
-    maxRequestsPerHour: 100
+    maxRequestsPerHour: 100,
   },
   [UserTier.STUDIO]: {
-    dailyLimitUsd: 25.00,
-    monthlyLimitUsd: 250.00,
+    dailyLimitUsd: 25.0,
+    monthlyLimitUsd: 250.0,
     maxRequestsPerMinute: 30,
-    maxRequestsPerHour: 300
+    maxRequestsPerHour: 300,
   },
   [UserTier.EMPIRE]: {
-    dailyLimitUsd: 100.00,
-    monthlyLimitUsd: 1000.00,
+    dailyLimitUsd: 100.0,
+    monthlyLimitUsd: 1000.0,
     maxRequestsPerMinute: 60,
-    maxRequestsPerHour: 600
-  }
+    maxRequestsPerHour: 600,
+  },
 };
 
 // ============================================================================
@@ -79,9 +79,9 @@ function getBudget(userId: string): UserBudget {
   const now = new Date();
   const today = now.getDate();
   const thisMonth = now.getMonth();
-  
+
   let budget = userBudgets.get(userId);
-  
+
   if (!budget) {
     budget = {
       userId,
@@ -89,27 +89,27 @@ function getBudget(userId: string): UserBudget {
       monthlySpend: 0,
       lastResetDay: today,
       lastResetMonth: thisMonth,
-      requestTimestamps: []
+      requestTimestamps: [],
     };
     userBudgets.set(userId, budget);
   }
-  
+
   // Reset daily spend if new day
   if (budget.lastResetDay !== today) {
     budget.dailySpend = 0;
     budget.lastResetDay = today;
   }
-  
+
   // Reset monthly spend if new month
   if (budget.lastResetMonth !== thisMonth) {
     budget.monthlySpend = 0;
     budget.lastResetMonth = thisMonth;
   }
-  
+
   // Clean old timestamps (keep only last hour)
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
-  budget.requestTimestamps = budget.requestTimestamps.filter(t => t > oneHourAgo);
-  
+  budget.requestTimestamps = budget.requestTimestamps.filter((t) => t > oneHourAgo);
+
   return budget;
 }
 
@@ -138,7 +138,7 @@ export function checkCircuitBreaker(
   const budget = getBudget(userId);
   const limits = TIER_LIMITS[tier] || TIER_LIMITS[UserTier.SPARK];
   const now = Date.now();
-  
+
   // Check monthly limit
   if (budget.monthlySpend + estimatedCostUsd > limits.monthlyLimitUsd) {
     return {
@@ -146,55 +146,55 @@ export function checkCircuitBreaker(
       reason: 'monthly_limit',
       suggestedAction: 'downgrade',
       suggestedModel: 'gemini-1.5-flash', // Cheaper model
-      remainingBudget: limits.monthlyLimitUsd - budget.monthlySpend
+      remainingBudget: limits.monthlyLimitUsd - budget.monthlySpend,
     };
   }
-  
+
   // Check daily limit
   if (budget.dailySpend + estimatedCostUsd > limits.dailyLimitUsd) {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
+
     return {
       allowed: false,
       reason: 'daily_limit',
       suggestedAction: 'downgrade',
       suggestedModel: 'gemini-1.5-flash',
       remainingBudget: limits.dailyLimitUsd - budget.dailySpend,
-      resetTime: tomorrow.getTime()
+      resetTime: tomorrow.getTime(),
     };
   }
-  
+
   // Check per-minute rate limit
   const oneMinuteAgo = now - 60 * 1000;
-  const requestsLastMinute = budget.requestTimestamps.filter(t => t > oneMinuteAgo).length;
-  
+  const requestsLastMinute = budget.requestTimestamps.filter((t) => t > oneMinuteAgo).length;
+
   if (requestsLastMinute >= limits.maxRequestsPerMinute) {
     return {
       allowed: false,
       reason: 'rate_limit_minute',
       suggestedAction: 'queue',
-      resetTime: budget.requestTimestamps[0] + 60 * 1000
+      resetTime: budget.requestTimestamps[0] + 60 * 1000,
     };
   }
-  
+
   // Check per-hour rate limit
   const requestsLastHour = budget.requestTimestamps.length;
-  
+
   if (requestsLastHour >= limits.maxRequestsPerHour) {
     return {
       allowed: false,
       reason: 'rate_limit_hour',
       suggestedAction: 'queue',
-      resetTime: budget.requestTimestamps[0] + 60 * 60 * 1000
+      resetTime: budget.requestTimestamps[0] + 60 * 60 * 1000,
     };
   }
-  
+
   // All checks passed
   return {
     allowed: true,
-    remainingBudget: limits.dailyLimitUsd - budget.dailySpend
+    remainingBudget: limits.dailyLimitUsd - budget.dailySpend,
   };
 }
 
@@ -211,7 +211,10 @@ export function recordSpend(userId: string, costUsd: number): void {
 /**
  * Get current spending status for UI display
  */
-export function getSpendingStatus(userId: string, tier: UserTier): {
+export function getSpendingStatus(
+  userId: string,
+  tier: UserTier
+): {
   dailySpend: number;
   dailyLimit: number;
   dailyPercentage: number;
@@ -223,7 +226,7 @@ export function getSpendingStatus(userId: string, tier: UserTier): {
 } {
   const budget = getBudget(userId);
   const limits = TIER_LIMITS[tier] || TIER_LIMITS[UserTier.SPARK];
-  
+
   return {
     dailySpend: budget.dailySpend,
     dailyLimit: limits.dailyLimitUsd,
@@ -232,7 +235,7 @@ export function getSpendingStatus(userId: string, tier: UserTier): {
     monthlyLimit: limits.monthlyLimitUsd,
     monthlyPercentage: (budget.monthlySpend / limits.monthlyLimitUsd) * 100,
     requestsThisHour: budget.requestTimestamps.length,
-    hourlyLimit: limits.maxRequestsPerHour
+    hourlyLimit: limits.maxRequestsPerHour,
   };
 }
 
@@ -244,7 +247,7 @@ const MODEL_DOWNGRADES: Record<string, string> = {
   'gemini-2.5-pro': 'gemini-1.5-flash',
   'gemini-1.5-pro': 'gemini-1.5-flash',
   'imagen-4.0-ultra-generate-exp-05-20': 'imagen-4.0-generate-preview-05-20',
-  'grok-3': 'grok-3-mini'
+  'grok-3': 'grok-3-mini',
 };
 
 /**
@@ -264,20 +267,20 @@ export function selectModelWithBudget(
   estimatedCost: number
 ): { model: string; wasDowngraded: boolean } {
   const check = checkCircuitBreaker(userId, tier, estimatedCost);
-  
+
   if (check.allowed) {
     return { model: preferredModel, wasDowngraded: false };
   }
-  
+
   if (check.suggestedAction === 'downgrade' && check.suggestedModel) {
     return { model: check.suggestedModel, wasDowngraded: true };
   }
-  
+
   // Use the general downgrade map
   const downgraded = getDowngradedModel(preferredModel);
-  return { 
-    model: downgraded, 
-    wasDowngraded: downgraded !== preferredModel 
+  return {
+    model: downgraded,
+    wasDowngraded: downgraded !== preferredModel,
   };
 }
 
@@ -323,17 +326,17 @@ export async function syncSpendingLimitsFromDB(userId: string): Promise<void> {
       .select('*')
       .eq('user_id', userId)
       .single();
-    
+
     if (error || !data) {
       // No custom limits, use tier defaults
       return;
     }
-    
+
     // If user has unlimited access in DB, grant it locally
     if (data.has_unlimited_access) {
       adminOverrides.add(userId);
     }
-    
+
     console.log(`📊 Synced spending limits for user ${userId}`);
   } catch (err) {
     // Fail silently - will use tier defaults
@@ -346,14 +349,15 @@ export async function syncSpendingLimitsFromDB(userId: string): Promise<void> {
  */
 export async function persistUnlimitedAccess(userId: string, granted: boolean): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('user_spending_limits')
-      .upsert({
+    const { error } = await supabase.from('user_spending_limits').upsert(
+      {
         user_id: userId,
         has_unlimited_access: granted,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-    
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
+
     if (error) {
       console.warn('📊 Failed to persist unlimited access (non-critical):', error.message);
     }
@@ -367,24 +371,29 @@ export async function persistUnlimitedAccess(userId: string, granted: boolean): 
  * Use this for critical operations where accuracy matters more than speed
  */
 export async function checkSpendingLimitFromDB(
-  userId: string, 
+  userId: string,
   estimatedCost: number
-): Promise<{ allowed: boolean; dailyRemaining: number; monthlyRemaining: number; reason: string } | null> {
+): Promise<{
+  allowed: boolean;
+  dailyRemaining: number;
+  monthlyRemaining: number;
+  reason: string;
+} | null> {
   try {
     const { data, error } = await supabase
       .rpc('check_spending_limit', {
         p_user_id: userId,
-        p_estimated_cost: estimatedCost
+        p_estimated_cost: estimatedCost,
       })
       .single();
-    
+
     if (error || !data) return null;
-    
+
     return {
       allowed: data.allowed,
       dailyRemaining: data.daily_remaining,
       monthlyRemaining: data.monthly_remaining,
-      reason: data.reason
+      reason: data.reason,
     };
   } catch {
     return null;
@@ -405,15 +414,15 @@ export async function getUserUsageSummaryFromDB(userId: string): Promise<{
     const { data, error } = await supabase
       .rpc('get_user_usage_summary', { p_user_id: userId })
       .single();
-    
+
     if (error || !data) return null;
-    
+
     return {
       dailyCost: data.daily_cost,
       monthlyCost: data.monthly_cost,
       dailyOperations: data.daily_operations,
       monthlyOperations: data.monthly_operations,
-      avgLatencyMs: data.avg_latency_ms
+      avgLatencyMs: data.avg_latency_ms,
     };
   } catch {
     return null;
@@ -433,5 +442,5 @@ export default {
   persistUnlimitedAccess,
   checkSpendingLimitFromDB,
   getUserUsageSummaryFromDB,
-  TIER_LIMITS
+  TIER_LIMITS,
 };

@@ -1,15 +1,5 @@
-import React, { useState } from 'react';
-import { 
-  Info, 
-  GitBranch, 
-  Shield, 
-  FileText, 
-  ExternalLink, 
-  Mail,
-  Calendar,
-  Zap,
-  Heart
-} from 'lucide-react';
+import { Calendar, FileText, GitBranch, Heart, Info, Mail, Shield, Zap } from 'lucide-react';
+import type React from 'react';
 
 const AboutSection: React.FC = () => {
   const appVersion = '2.0.0';
@@ -29,7 +19,8 @@ const AboutSection: React.FC = () => {
           </div>
         </div>
         <p className="text-white/90 text-xs md:text-sm">
-          Transform ideas into beautiful children's books with AI. Create, customize, and publish stunning stories.
+          Transform ideas into beautiful children's books with AI. Create, customize, and publish
+          stunning stories.
         </p>
       </div>
 
@@ -38,7 +29,7 @@ const AboutSection: React.FC = () => {
         <h3 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-3 md:mb-4">
           Version Information
         </h3>
-        
+
         <div className="space-y-0">
           <div className="flex items-center justify-between py-3 border-b border-peach-soft/30">
             <div className="flex items-center gap-2 md:gap-3">
@@ -73,11 +64,13 @@ const AboutSection: React.FC = () => {
         <h3 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-3 md:mb-4">
           What's New in v2.0
         </h3>
-        
+
         <div className="bg-cream-base rounded-xl p-3 md:p-4 space-y-1.5 md:space-y-2">
           <div className="flex items-start gap-2">
             <span className="text-green-600 font-bold">✓</span>
-            <p className="text-xs md:text-sm text-charcoal-soft">React 19 with improved performance</p>
+            <p className="text-xs md:text-sm text-charcoal-soft">
+              React 19 with improved performance
+            </p>
           </div>
           <div className="flex items-start gap-2">
             <span className="text-green-600 font-bold">✓</span>
@@ -105,14 +98,16 @@ const AboutSection: React.FC = () => {
         <h3 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-3 md:mb-4">
           Legal & Support
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           <a
             href="/legal/privacy"
             className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base hover:shadow-soft-sm transition-all group touch-manipulation"
           >
             <Shield className="w-4 h-4 md:w-5 md:h-5 text-coral-burst flex-shrink-0" />
-            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">Privacy</span>
+            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
+              Privacy
+            </span>
           </a>
 
           <a
@@ -120,7 +115,9 @@ const AboutSection: React.FC = () => {
             className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base hover:shadow-soft-sm transition-all group touch-manipulation"
           >
             <FileText className="w-4 h-4 md:w-5 md:h-5 text-coral-burst flex-shrink-0" />
-            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">Terms</span>
+            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
+              Terms
+            </span>
           </a>
 
           <a
@@ -128,7 +125,9 @@ const AboutSection: React.FC = () => {
             className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base hover:shadow-soft-sm transition-all group touch-manipulation"
           >
             <Info className="w-4 h-4 md:w-5 md:h-5 text-coral-burst flex-shrink-0" />
-            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">Usage</span>
+            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
+              Usage
+            </span>
           </a>
 
           <a
@@ -138,7 +137,9 @@ const AboutSection: React.FC = () => {
             className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base hover:shadow-soft-sm transition-all group touch-manipulation"
           >
             <FileText className="w-4 h-4 md:w-5 md:h-5 text-coral-burst flex-shrink-0" />
-            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">Docs</span>
+            <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
+              Docs
+            </span>
           </a>
         </div>
       </div>
@@ -150,11 +151,9 @@ const AboutSection: React.FC = () => {
         <h3 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-3 md:mb-4">
           Get Help
         </h3>
-        
+
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
-          <p className="text-xs md:text-sm text-blue-900">
-            Need assistance? We're here to help!
-          </p>
+          <p className="text-xs md:text-sm text-blue-900">Need assistance? We're here to help!</p>
           <a
             href="mailto:support@genesis.app"
             className="flex items-center gap-2 text-xs md:text-sm font-bold text-blue-600 hover:text-blue-700 touch-manipulation"
@@ -172,7 +171,8 @@ const AboutSection: React.FC = () => {
           <h4 className="font-bold text-pink-900 text-sm md:text-base">Made with Love</h4>
         </div>
         <p className="text-xs md:text-sm text-pink-800">
-          Crafted to make storytelling accessible to everyone. Thank you for being part of our journey! 🎨📖
+          Crafted to make storytelling accessible to everyone. Thank you for being part of our
+          journey! 🎨📖
         </p>
       </div>
 

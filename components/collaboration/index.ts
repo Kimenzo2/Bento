@@ -6,7 +6,11 @@
 
 // Core components
 export { default as ReactionBar, MiniReactionDisplay, FloatingReaction } from './ReactionBar';
-export { default as PresenceIndicator, FloatingCursors, TypingIndicator } from './PresenceIndicator';
+export {
+  default as PresenceIndicator,
+  FloatingCursors,
+  TypingIndicator,
+} from './PresenceIndicator';
 export { default as ActivityFeed, ActivityNotification } from './ActivityFeed';
 export { default as SharedVisualCard } from './SharedVisualCard';
 export { default as ChallengeCard, ChallengeLeaderboard } from './ChallengeCard';

@@ -1,23 +1,19 @@
-import React, { useState } from 'react';
 import {
-  LayoutDashboard,
-  PenTool,
   BookOpen,
   Image as ImageIcon,
-  Layout,
-  Share,
-  Settings,
-  User,
+  LayoutDashboard,
   Menu,
-  X,
+  PenTool,
   Trophy,
+  User,
+  X,
   Zap,
-  GraduationCap
 } from 'lucide-react';
-import { AppMode, UserTier } from '../types';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserSettings } from '../hooks/useUserSettings';
-import { getUserProfile, UserProfile } from '../services/profileService';
+import { type UserProfile, getUserProfile } from '../services/profileService';
+import { AppMode, UserTier } from '../types';
 
 interface NavigationProps {
   currentMode: AppMode;
@@ -40,7 +36,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
   }, [user]);
 
   const currentUserTier = userProfile?.user_tier || UserTier.SPARK;
-  
+
   // Get tier display info
   const getTierBadge = (tier: string) => {
     switch (tier) {
@@ -76,15 +72,13 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
         bg-cream-base/85 backdrop-blur-md border-b border-peach-soft shadow-soft-sm rounded-b-3xl"
         style={{ paddingTop: 'calc(0.5rem + var(--safe-area-inset-top))', paddingBottom: '0.5rem' }}
       >
-
         {/* Logo */}
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleModeChange(AppMode.DASHBOARD)}>
+        <div
+          className="flex items-center gap-3 group cursor-pointer"
+          onClick={() => handleModeChange(AppMode.DASHBOARD)}
+        >
           <div className="w-10 h-10 rounded-xl overflow-hidden shadow-glow group-hover:scale-105 transition-transform">
-            <img 
-              src="/genesis-icon.jpg" 
-              alt="Genesis" 
-              className="w-full h-full object-cover"
-            />
+            <img src="/genesis-icon.jpg" alt="Genesis" className="w-full h-full object-cover" />
           </div>
           <span className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft tracking-tight">
             Genesis
@@ -98,9 +92,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
               key={item.mode}
               onClick={() => handleModeChange(item.mode)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full font-heading font-medium transition-all duration-300 text-sm
-                ${currentMode === item.mode
-                  ? 'bg-gradient-to-r from-gold-sunshine to-coral-burst text-white shadow-md transform scale-105'
-                  : 'text-cocoa-light hover:text-coral-burst hover:bg-cream-soft'
+                ${
+                  currentMode === item.mode
+                    ? 'bg-gradient-to-r from-gold-sunshine to-coral-burst text-white shadow-md transform scale-105'
+                    : 'text-cocoa-light hover:text-coral-burst hover:bg-cream-soft'
                 }`}
             >
               <item.icon className={`w-4 h-4 ${currentMode === item.mode ? 'text-white' : ''}`} />
@@ -111,19 +106,24 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3 md:gap-4">
-
           {/* Tier Badge */}
           <button
             onClick={() => handleModeChange(AppMode.GAMIFICATION)}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-peach-soft hover:border-gold-sunshine transition-colors cursor-pointer"
             title={`You are on the ${tierBadge.label} plan`}
           >
-            <div className={`w-6 h-6 rounded-full ${tierBadge.color} text-white flex items-center justify-center font-bold text-xs shadow-sm`}>
+            <div
+              className={`w-6 h-6 rounded-full ${tierBadge.color} text-white flex items-center justify-center font-bold text-xs shadow-sm`}
+            >
               {tierBadge.label.charAt(0)}
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">Plan</span>
-              <span className="text-xs font-bold text-charcoal-soft leading-none">{tierBadge.label}</span>
+              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">
+                Plan
+              </span>
+              <span className="text-xs font-bold text-charcoal-soft leading-none">
+                {tierBadge.label}
+              </span>
             </div>
           </button>
 
@@ -152,7 +152,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           >
             <div className="w-8 h-8 rounded-full overflow-hidden bg-cream-base flex items-center justify-center text-coral-burst group-hover:scale-110 transition-transform">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-full scale-110" />
+                <img
+                  src={avatarUrl}
+                  alt="Avatar"
+                  className="w-full h-full object-cover rounded-full scale-110"
+                />
               ) : (
                 <User className="w-5 h-5" />
               )}
@@ -174,8 +178,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
       </nav>
 
       {/* Mobile Navigation Overlay */}
-      <div className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-
+      <div
+        className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      >
         <button
           onClick={() => handleModeChange(AppMode.PRICING)}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-sunshine to-coral-burst text-white rounded-2xl font-heading font-bold text-lg shadow-soft-md mb-4"
@@ -191,7 +196,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           aria-label="Open gamification"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg shadow-sm">3</div>
+            <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg shadow-sm">
+              3
+            </div>
             <div className="text-left">
               <div className="font-bold text-charcoal-soft">Rising Author</div>
               <div className="text-xs text-cocoa-light">1,250 / 2,000 XP</div>
@@ -205,14 +212,19 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             key={item.mode}
             onClick={() => handleModeChange(item.mode)}
             className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-heading font-bold text-lg transition-all min-h-[56px]
-              ${currentMode === item.mode
-                ? 'bg-white text-coral-burst shadow-soft-md border border-peach-soft'
-                : 'text-cocoa-light hover:bg-white/50'
+              ${
+                currentMode === item.mode
+                  ? 'bg-white text-coral-burst shadow-soft-md border border-peach-soft'
+                  : 'text-cocoa-light hover:bg-white/50'
               }`}
           >
-            <item.icon className={`w-6 h-6 ${currentMode === item.mode ? 'text-coral-burst' : 'text-cocoa-light'}`} />
+            <item.icon
+              className={`w-6 h-6 ${currentMode === item.mode ? 'text-coral-burst' : 'text-cocoa-light'}`}
+            />
             <span>{item.label}</span>
-            {currentMode === item.mode && <div className="ml-auto w-2 h-2 rounded-full bg-gold-sunshine"></div>}
+            {currentMode === item.mode && (
+              <div className="ml-auto w-2 h-2 rounded-full bg-gold-sunshine"></div>
+            )}
           </button>
         ))}
       </div>

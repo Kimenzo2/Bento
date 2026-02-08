@@ -1,26 +1,24 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  GitBranch, 
-  GitCommit, 
-  GitMerge,
-  Clock,
-  Eye,
-  RotateCcw,
-  Copy,
-  ChevronRight,
+import {
   ChevronDown,
-  X,
+  ChevronRight,
+  Clock,
+  Copy,
+  Eye,
+  GitBranch,
+  GitCommit,
+  GitMerge,
   Maximize2,
   Minimize2,
+  RotateCcw,
+  Star,
+  X,
   ZoomIn,
   ZoomOut,
-  Move,
-  Info,
-  Star,
-  Sparkles
 } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { versionControlService } from '../../services/versionControlService';
-import type { VisualVersion, VisualBranch, VersionNode } from '../../types/advanced';
+import type { VersionNode, VisualBranch, VisualVersion } from '../../types/advanced';
 
 interface FamilyTreeViewerProps {
   visualId: string;
@@ -35,7 +33,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
   isOpen,
   onClose,
   onRestoreVersion,
-  onForkVersion
+  onForkVersion,
 }) => {
   const [versions, setVersions] = useState<VisualVersion[]>([]);
   const [branches, setBranches] = useState<VisualBranch[]>([]);
@@ -61,7 +59,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
       const [history, branchList, tree] = await Promise.all([
         versionControlService.getVersions(visualId),
         versionControlService.getBranches(visualId),
-        versionControlService.getFamilyTree(visualId)
+        versionControlService.getFamilyTree(visualId),
       ]);
 
       setVersions(history);
@@ -114,7 +112,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
   };
 
   const toggleBranch = (branchName: string) => {
-    setExpandedBranches(prev => {
+    setExpandedBranches((prev) => {
       const next = new Set(prev);
       if (next.has(branchName)) {
         next.delete(branchName);
@@ -127,7 +125,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
 
   const groupedVersions = useMemo(() => {
     const groups: Record<string, VisualVersion[]> = {};
-    versions.forEach(v => {
+    versions.forEach((v) => {
       const branch = v.branch_name || 'main';
       if (!groups[branch]) groups[branch] = [];
       groups[branch].push(v);
@@ -139,24 +137,24 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
     const d = new Date(date);
     const now = new Date();
     const diff = now.getTime() - d.getTime();
-    
+
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
-    
+
     return d.toLocaleDateString();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center ${
         isFullscreen ? 'p-0' : 'p-4'
       }`}
     >
-      <div 
+      <div
         className={`bg-gray-900 rounded-2xl overflow-hidden flex flex-col ${
           isFullscreen ? 'w-full h-full rounded-none' : 'w-full max-w-5xl max-h-[90vh]'
         }`}
@@ -182,8 +180,8 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
               {[
                 { id: 'timeline', label: 'Timeline', icon: Clock },
                 { id: 'branches', label: 'Branches', icon: GitBranch },
-                { id: 'tree', label: 'Tree', icon: GitMerge }
-              ].map(mode => (
+                { id: 'tree', label: 'Tree', icon: GitMerge },
+              ].map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => setViewMode(mode.id as typeof viewMode)}
@@ -202,7 +200,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
             {/* Zoom Controls */}
             <div className="flex items-center gap-1 ml-2">
               <button
-                onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
+                onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
                 className="p-1.5 hover:bg-gray-800 rounded transition-colors"
               >
                 <ZoomOut className="w-4 h-4 text-gray-400" />
@@ -211,7 +209,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                 {Math.round(zoom * 100)}%
               </span>
               <button
-                onClick={() => setZoom(z => Math.min(2, z + 0.1))}
+                onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
                 className="p-1.5 hover:bg-gray-800 rounded transition-colors"
               >
                 <ZoomIn className="w-4 h-4 text-gray-400" />
@@ -242,12 +240,10 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
         {isComparing && (
           <div className="px-4 py-2 bg-blue-500/20 border-b border-blue-500/30 flex items-center justify-between">
             <p className="text-sm text-blue-300">
-              <span className="font-medium">Compare Mode:</span> Select another version to compare with "{compareVersion?.version_name || `v${compareVersion?.version_number}`}"
+              <span className="font-medium">Compare Mode:</span> Select another version to compare
+              with "{compareVersion?.version_name || `v${compareVersion?.version_number}`}"
             </p>
-            <button
-              onClick={cancelCompare}
-              className="text-sm text-blue-400 hover:text-blue-300"
-            >
+            <button onClick={cancelCompare} className="text-sm text-blue-400 hover:text-blue-300">
               Cancel
             </button>
           </div>
@@ -262,7 +258,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
           ) : (
             <>
               {/* Main View */}
-              <div 
+              <div
                 className="flex-1 overflow-auto p-4"
                 style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
               >
@@ -369,7 +365,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                       depth={0}
                       selectedId={selectedVersion?.id}
                       onSelect={(id) => {
-                        const version = versions.find(v => v.id === id);
+                        const version = versions.find((v) => v.id === id);
                         if (version) setSelectedVersion(version);
                       }}
                     />
@@ -423,24 +419,24 @@ const VersionCard: React.FC<VersionCardProps> = ({
   onRestore,
   onFork,
   onCompare,
-  formatDate
+  formatDate,
 }) => {
   return (
     <div className="relative flex gap-4">
       {/* Timeline Line */}
       <div className="flex flex-col items-center">
-        <div className={`w-4 h-4 rounded-full border-2 z-10 ${
-          isFirst 
-            ? 'bg-green-500 border-green-400' 
-            : isCompareTarget
-              ? 'bg-blue-500 border-blue-400'
-              : isSelected
-                ? 'bg-purple-500 border-purple-400'
-                : 'bg-gray-700 border-gray-600'
-        }`} />
-        {!isLast && (
-          <div className="w-0.5 flex-1 bg-gray-700" />
-        )}
+        <div
+          className={`w-4 h-4 rounded-full border-2 z-10 ${
+            isFirst
+              ? 'bg-green-500 border-green-400'
+              : isCompareTarget
+                ? 'bg-blue-500 border-blue-400'
+                : isSelected
+                  ? 'bg-purple-500 border-purple-400'
+                  : 'bg-gray-700 border-gray-600'
+          }`}
+        />
+        {!isLast && <div className="w-0.5 flex-1 bg-gray-700" />}
       </div>
 
       {/* Card */}
@@ -465,17 +461,11 @@ const VersionCard: React.FC<VersionCardProps> = ({
                   Auto
                 </span>
               )}
-              {version.is_starred && (
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              )}
+              {version.is_starred && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
             </div>
-            <p className="text-sm text-gray-400 mt-1">
-              {formatDate(version.created_at)}
-            </p>
+            <p className="text-sm text-gray-400 mt-1">{formatDate(version.created_at)}</p>
             {version.description && (
-              <p className="text-sm text-gray-500 mt-2 line-clamp-2">
-                {version.description}
-              </p>
+              <p className="text-sm text-gray-500 mt-2 line-clamp-2">{version.description}</p>
             )}
             {version.changes_summary && (
               <div className="flex gap-2 mt-2 text-xs">
@@ -494,7 +484,7 @@ const VersionCard: React.FC<VersionCardProps> = ({
 
           {/* Thumbnail */}
           {version.thumbnail_url && (
-            <div 
+            <div
               className="w-16 h-16 rounded-lg bg-cover bg-center ml-4 flex-shrink-0"
               style={{ backgroundImage: `url(${version.thumbnail_url})` }}
             />
@@ -504,21 +494,30 @@ const VersionCard: React.FC<VersionCardProps> = ({
         {/* Actions */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-700/50">
           <button
-            onClick={(e) => { e.stopPropagation(); onRestore(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRestore();
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Restore
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onFork(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFork();
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
           >
             <Copy className="w-3.5 h-3.5" />
             Fork
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onCompare(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCompare();
+            }}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
               isComparing
                 ? 'bg-blue-500 hover:bg-blue-600 text-white'
@@ -564,7 +563,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, selectedId, onSelect }
       >
         {hasChildren && (
           <button
-            onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
             className="p-0.5"
           >
             {isExpanded ? (
@@ -584,7 +586,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, selectedId, onSelect }
           </span>
         )}
         {node.thumbnail_url && (
-          <div 
+          <div
             className="w-8 h-8 rounded bg-cover bg-center"
             style={{ backgroundImage: `url(${node.thumbnail_url})` }}
           />
@@ -623,23 +625,20 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
   compareWith,
   onRestore,
   onFork,
-  onClose
+  onClose,
 }) => {
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-white">Version Details</h3>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-gray-800 rounded"
-        >
+        <button onClick={onClose} className="p-1 hover:bg-gray-800 rounded">
           <X className="w-4 h-4 text-gray-400" />
         </button>
       </div>
 
       {/* Preview */}
       {version.thumbnail_url && (
-        <div 
+        <div
           className="w-full aspect-square rounded-xl bg-cover bg-center mb-4"
           style={{ backgroundImage: `url(${version.thumbnail_url})` }}
         />
@@ -666,9 +665,7 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
 
         <div>
           <p className="text-xs text-gray-500 uppercase tracking-wide">Created</p>
-          <p className="text-white">
-            {new Date(version.created_at).toLocaleString()}
-          </p>
+          <p className="text-white">{new Date(version.created_at).toLocaleString()}</p>
         </div>
 
         <div>

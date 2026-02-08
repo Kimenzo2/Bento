@@ -1,16 +1,13 @@
 /**
  * CurriculumViewer Component
- * 
+ *
  * Displays curriculum ebooks with instructional content, differentiated materials,
  * SEL integration, and teacher notes.
  */
 
-import React, { useState } from 'react';
-import {
-  CurriculumEbook,
-  InstructionalPage,
-  DifferentiationTier
-} from '../types/curriculum';
+import type React from 'react';
+import { useState } from 'react';
+import type { CurriculumEbook, DifferentiationTier, InstructionalPage } from '../types/curriculum';
 import CurriculumAssessment from './CurriculumAssessment';
 
 // Helper type for accessing dynamic properties safely
@@ -36,14 +33,13 @@ const safeGet = (obj: unknown, ...keys: string[]): unknown => {
 };
 
 // Helper to check if value is a non-empty array
-const isNonEmptyArray = (val: unknown): val is unknown[] =>
-  Array.isArray(val) && val.length > 0;
+const isNonEmptyArray = (val: unknown): val is unknown[] => Array.isArray(val) && val.length > 0;
 
 export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
   ebook,
   onClose,
   onEdit,
-  userRole = 'student'
+  userRole = 'student',
 }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('story');
@@ -138,10 +134,11 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
           </h3>
           <button
             onClick={speakContent}
-            className={`p-2.5 rounded-xl transition-all shadow-sm ${isPlaying
+            className={`p-2.5 rounded-xl transition-all shadow-sm ${
+              isPlaying
                 ? 'bg-coral-burst text-white shadow-md scale-105'
                 : 'bg-cream-soft text-cocoa-light hover:bg-peach-soft/50 hover:text-charcoal-soft'
-              }`}
+            }`}
           >
             {isPlaying ? '⏹️' : '🔊'}
           </button>
@@ -158,14 +155,25 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             <span>📚</span> Vocabulary
           </h4>
           <div className="grid gap-3">
-            {(currentPage.vocabularyFocus as Array<{ term: string; definition: string; example?: string }>).map((vocab, idx: number) => (
-              <div key={idx} className="bg-white rounded-xl p-4 shadow-sm border border-peach-soft/20">
+            {(
+              currentPage.vocabularyFocus as Array<{
+                term: string;
+                definition: string;
+                example?: string;
+              }>
+            ).map((vocab, idx: number) => (
+              <div
+                key={idx}
+                className="bg-white rounded-xl p-4 shadow-sm border border-peach-soft/20"
+              >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-charcoal-soft text-lg">{vocab.term}</span>
                 </div>
                 <p className="text-cocoa-light text-sm mt-1">{vocab.definition}</p>
                 {vocab.example && (
-                  <p className="text-cocoa-light/70 text-xs mt-2 italic bg-cream-soft p-2 rounded-lg">"{vocab.example}"</p>
+                  <p className="text-cocoa-light/70 text-xs mt-2 italic bg-cream-soft p-2 rounded-lg">
+                    "{vocab.example}"
+                  </p>
                 )}
               </div>
             ))}
@@ -182,14 +190,18 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
           <div className="space-y-4">
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full w-fit shadow-sm border border-purple-100">
               <span className="text-xs font-bold text-cocoa-light uppercase">Competency:</span>
-              <span className="text-purple-600 font-bold text-sm">{currentPage.selIntegration.competency}</span>
+              <span className="text-purple-600 font-bold text-sm">
+                {currentPage.selIntegration.competency}
+              </span>
             </div>
             <p className="text-charcoal-soft text-sm bg-white p-4 rounded-xl shadow-sm border border-purple-100">
               {currentPage.selIntegration.scenario}
             </p>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-100">
               <p className="text-purple-600 text-sm font-bold mb-2">🤔 Reflection:</p>
-              <p className="text-charcoal-soft text-sm">{currentPage.selIntegration.reflectionPrompt}</p>
+              <p className="text-charcoal-soft text-sm">
+                {currentPage.selIntegration.reflectionPrompt}
+              </p>
             </div>
           </div>
         </div>
@@ -201,13 +213,21 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
           <h4 className="text-green-700 font-heading font-bold mb-4 flex items-center gap-2">
             <span>✨</span> Interactive Activity
           </h4>
-          {(currentPage.interactiveElements as Array<{ type: string; prompt: string; options?: string[] }>).map((element, idx: number) => (
+          {(
+            currentPage.interactiveElements as Array<{
+              type: string;
+              prompt: string;
+              options?: string[];
+            }>
+          ).map((element, idx: number) => (
             <div key={idx} className="space-y-3">
               <p className="text-charcoal-soft font-medium text-lg">{element.prompt}</p>
               {element.type === 'checkForUnderstanding' && (
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-green-100 flex items-center gap-3">
                   <span className="text-2xl">🤝</span>
-                  <p className="text-cocoa-light text-sm font-medium">Think about this, then share with a partner!</p>
+                  <p className="text-cocoa-light text-sm font-medium">
+                    Think about this, then share with a partner!
+                  </p>
                 </div>
               )}
             </div>
@@ -227,25 +247,31 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             <h4 className="text-blue-600 font-heading font-bold mb-3 text-lg flex items-center gap-2">
               <span>🎯</span> Concept: {currentPage.instructionalContent.concept}
             </h4>
-            <p className="text-charcoal-soft leading-relaxed">{currentPage.instructionalContent.explanation}</p>
+            <p className="text-charcoal-soft leading-relaxed">
+              {currentPage.instructionalContent.explanation}
+            </p>
           </div>
 
           {/* Examples */}
-          {currentPage.instructionalContent.examples && currentPage.instructionalContent.examples.length > 0 && (
-            <div className="bg-green-50 rounded-3xl p-6 border border-green-100 shadow-sm">
-              <h4 className="text-green-600 font-heading font-bold mb-3 flex items-center gap-2">
-                <span>✅</span> Examples
-              </h4>
-              <ul className="space-y-3">
-                {currentPage.instructionalContent.examples.map((example, idx) => (
-                  <li key={idx} className="flex items-start gap-3 bg-white p-3 rounded-xl border border-green-100">
-                    <span className="text-green-500 mt-1">•</span>
-                    <span className="text-charcoal-soft">{example}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {currentPage.instructionalContent.examples &&
+            currentPage.instructionalContent.examples.length > 0 && (
+              <div className="bg-green-50 rounded-3xl p-6 border border-green-100 shadow-sm">
+                <h4 className="text-green-600 font-heading font-bold mb-3 flex items-center gap-2">
+                  <span>✅</span> Examples
+                </h4>
+                <ul className="space-y-3">
+                  {currentPage.instructionalContent.examples.map((example, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-start gap-3 bg-white p-3 rounded-xl border border-green-100"
+                    >
+                      <span className="text-green-500 mt-1">•</span>
+                      <span className="text-charcoal-soft">{example}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
           {/* Non-Examples */}
           {isNonEmptyArray(currentPage.instructionalContent.nonExamples) && (
@@ -254,12 +280,17 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 <span>❌</span> Non-Examples (Common Misconceptions)
               </h4>
               <ul className="space-y-3">
-                {(currentPage.instructionalContent.nonExamples as string[]).map((example: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3 bg-white p-3 rounded-xl border border-red-100">
-                    <span className="text-red-500 mt-1">•</span>
-                    <span className="text-charcoal-soft">{example}</span>
-                  </li>
-                ))}
+                {(currentPage.instructionalContent.nonExamples as string[]).map(
+                  (example: string, idx: number) => (
+                    <li
+                      key={idx}
+                      className="flex items-start gap-3 bg-white p-3 rounded-xl border border-red-100"
+                    >
+                      <span className="text-red-500 mt-1">•</span>
+                      <span className="text-charcoal-soft">{example}</span>
+                    </li>
+                  )
+                )}
               </ul>
             </div>
           )}
@@ -271,14 +302,19 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 <span>🪜</span> Scaffolding Steps
               </h4>
               <ol className="space-y-3">
-                {(currentPage.instructionalContent.scaffolding as string[]).map((step: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3 bg-white p-3 rounded-xl border border-purple-100">
-                    <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="text-charcoal-soft">{step}</span>
-                  </li>
-                ))}
+                {(currentPage.instructionalContent.scaffolding as string[]).map(
+                  (step: string, idx: number) => (
+                    <li
+                      key={idx}
+                      className="flex items-start gap-3 bg-white p-3 rounded-xl border border-purple-100"
+                    >
+                      <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <span className="text-charcoal-soft">{step}</span>
+                    </li>
+                  )
+                )}
               </ol>
             </div>
           )}
@@ -298,9 +334,13 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             <div className="space-y-4">
               {isNonEmptyArray(safeGet(currentPage.teacherNotes, 'anticipatedMisconceptions')) && (
                 <div className="bg-white rounded-xl p-4 border border-peach-soft/30">
-                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">Anticipated Misconceptions:</p>
+                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
+                    Anticipated Misconceptions:
+                  </p>
                   <ul className="space-y-2">
-                    {(safeGet(currentPage.teacherNotes, 'anticipatedMisconceptions') as string[]).map((misc: string, idx: number) => (
+                    {(
+                      safeGet(currentPage.teacherNotes, 'anticipatedMisconceptions') as string[]
+                    ).map((misc: string, idx: number) => (
                       <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
                         <span className="text-coral-burst">•</span>
                         {misc}
@@ -312,19 +352,24 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
 
               {isNonEmptyArray(safeGet(currentPage.teacherNotes, 'discussionStarters')) && (
                 <div className="bg-white rounded-xl p-4 border border-peach-soft/30">
-                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">Discussion Starters:</p>
+                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
+                    Discussion Starters:
+                  </p>
                   <ul className="space-y-2">
-                    {(safeGet(currentPage.teacherNotes, 'discussionStarters') as string[]).map((question: string, idx: number) => (
-                      <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
-                        <span className="text-coral-burst">•</span>
-                        {question}
-                      </li>
-                    ))}
+                    {(safeGet(currentPage.teacherNotes, 'discussionStarters') as string[]).map(
+                      (question: string, idx: number) => (
+                        <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
+                          <span className="text-coral-burst">•</span>
+                          {question}
+                        </li>
+                      )
+                    )}
                   </ul>
                 </div>
               )}
 
-              {typeof safeGet(currentPage.teacherNotes, 'pacing') === 'string' && safeGet(currentPage.teacherNotes, 'pacing') ? (
+              {typeof safeGet(currentPage.teacherNotes, 'pacing') === 'string' &&
+              safeGet(currentPage.teacherNotes, 'pacing') ? (
                 <div className="flex items-center gap-2 text-cocoa-light text-sm font-medium bg-white px-4 py-2 rounded-xl w-fit border border-peach-soft/30">
                   <span>⏱️</span>
                   Estimated Time: {String(safeGet(currentPage.teacherNotes, 'pacing'))}
@@ -339,12 +384,27 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
 
   // Render resources mode
   const renderResourcesMode = (): React.ReactNode => {
-    const lessonPlanOutline = safeGet(ebook.teacherResources, 'lessonPlanOutline') as Record<string, string> | null;
-    const standardsCorrelation = safeGet(ebook.teacherResources, 'standardsCorrelation') as AnyRecord | null;
-    const primaryStandards = safeGet(ebook.teacherResources, 'standardsCorrelation', 'primaryStandards') as string[] | null;
-    const hasLessonPlanOutline = lessonPlanOutline !== null && Object.keys(lessonPlanOutline).length > 0;
-    const hasStandardsCorrelation = standardsCorrelation !== null && Object.keys(standardsCorrelation).length > 0;
-    const hasDifferentiation = Boolean(ebook.teacherResources?.differentiationGuide || safeGet(ebook.teacherResources, 'differentiationStrategies'));
+    const lessonPlanOutline = safeGet(ebook.teacherResources, 'lessonPlanOutline') as Record<
+      string,
+      string
+    > | null;
+    const standardsCorrelation = safeGet(
+      ebook.teacherResources,
+      'standardsCorrelation'
+    ) as AnyRecord | null;
+    const primaryStandards = safeGet(
+      ebook.teacherResources,
+      'standardsCorrelation',
+      'primaryStandards'
+    ) as string[] | null;
+    const hasLessonPlanOutline =
+      lessonPlanOutline !== null && Object.keys(lessonPlanOutline).length > 0;
+    const hasStandardsCorrelation =
+      standardsCorrelation !== null && Object.keys(standardsCorrelation).length > 0;
+    const hasDifferentiation = Boolean(
+      ebook.teacherResources?.differentiationGuide ||
+        safeGet(ebook.teacherResources, 'differentiationStrategies')
+    );
     const hasFamilyEngagement = Boolean(ebook.familyEngagement);
 
     return (
@@ -356,11 +416,18 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             </h4>
             <div className="space-y-3">
               {Object.entries(lessonPlanOutline!).map(([phase, description]) => (
-                <div key={phase} className="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100">
+                <div
+                  key={phase}
+                  className="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100"
+                >
                   <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0" />
                   <div>
-                    <span className="text-charcoal-soft font-bold capitalize block mb-1">{phase.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <p className="text-cocoa-light text-sm">{typeof description === 'string' ? description : ''}</p>
+                    <span className="text-charcoal-soft font-bold capitalize block mb-1">
+                      {phase.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                    <p className="text-cocoa-light text-sm">
+                      {typeof description === 'string' ? description : ''}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -376,22 +443,40 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             <div className="grid gap-4">
               {primaryStandards && primaryStandards.length > 0 ? (
                 <div>
-                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">Primary Standards:</p>
+                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
+                    Primary Standards:
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {primaryStandards.map((std: string, idx: number) => (
-                      <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold font-mono border border-purple-200">
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold font-mono border border-purple-200"
+                      >
                         {std}
                       </span>
                     ))}
                   </div>
                 </div>
               ) : null}
-              {isNonEmptyArray(safeGet(ebook.teacherResources, 'standardsCorrelation', 'supportingStandards')) ? (
+              {isNonEmptyArray(
+                safeGet(ebook.teacherResources, 'standardsCorrelation', 'supportingStandards')
+              ) ? (
                 <div>
-                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">Supporting Standards:</p>
+                  <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
+                    Supporting Standards:
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    {(safeGet(ebook.teacherResources, 'standardsCorrelation', 'supportingStandards') as string[]).map((std: string, idx: number) => (
-                      <span key={idx} className="px-3 py-1 bg-white text-cocoa-light rounded-lg text-xs font-bold font-mono border border-peach-soft/30">
+                    {(
+                      safeGet(
+                        ebook.teacherResources,
+                        'standardsCorrelation',
+                        'supportingStandards'
+                      ) as string[]
+                    ).map((std: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-white text-cocoa-light rounded-lg text-xs font-bold font-mono border border-peach-soft/30"
+                      >
                         {std}
                       </span>
                     ))}
@@ -408,31 +493,56 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
               <span>🎯</span> Differentiation Strategies
             </h4>
             <div className="grid gap-4">
-              {isNonEmptyArray(safeGet(ebook.teacherResources, 'differentiationStrategies', 'elSupports') ||
-                safeGet(ebook.teacherResources, 'differentiationGuide', 'universalDesign')) ? (
+              {isNonEmptyArray(
+                safeGet(ebook.teacherResources, 'differentiationStrategies', 'elSupports') ||
+                  safeGet(ebook.teacherResources, 'differentiationGuide', 'universalDesign')
+              ) ? (
                 <div className="bg-white rounded-xl p-4 border border-green-100">
-                  <p className="text-sm font-bold text-blue-500 uppercase mb-2">🌐 English Learner Supports:</p>
+                  <p className="text-sm font-bold text-blue-500 uppercase mb-2">
+                    🌐 English Learner Supports:
+                  </p>
                   <ul className="space-y-1">
-                    {((safeGet(ebook.teacherResources, 'differentiationStrategies', 'elSupports') ||
-                      safeGet(ebook.teacherResources, 'differentiationGuide', 'universalDesign')) as string[]).map((support: string, idx: number) => (
-                        <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
-                          <span className="text-green-500">•</span>
-                          {support}
-                        </li>
-                      ))}
+                    {(
+                      (safeGet(ebook.teacherResources, 'differentiationStrategies', 'elSupports') ||
+                        safeGet(
+                          ebook.teacherResources,
+                          'differentiationGuide',
+                          'universalDesign'
+                        )) as string[]
+                    ).map((support: string, idx: number) => (
+                      <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
+                        <span className="text-green-500">•</span>
+                        {support}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               ) : null}
-              {isNonEmptyArray(safeGet(ebook.teacherResources, 'differentiationStrategies', 'giftedEnrichment') ||
-                safeGet(ebook.teacherResources, 'extensions')) ? (
+              {isNonEmptyArray(
+                safeGet(ebook.teacherResources, 'differentiationStrategies', 'giftedEnrichment') ||
+                  safeGet(ebook.teacherResources, 'extensions')
+              ) ? (
                 <div className="bg-white rounded-xl p-4 border border-green-100">
-                  <p className="text-sm font-bold text-amber-500 uppercase mb-2">⭐ Gifted/Advanced:</p>
+                  <p className="text-sm font-bold text-amber-500 uppercase mb-2">
+                    ⭐ Gifted/Advanced:
+                  </p>
                   <ul className="space-y-1">
-                    {((safeGet(ebook.teacherResources, 'differentiationStrategies', 'giftedEnrichment') ||
-                      safeGet(ebook.teacherResources, 'extensions') || []) as Array<string | AnyRecord>).slice(0, 5).map((enrichment, idx: number) => (
+                    {(
+                      (safeGet(
+                        ebook.teacherResources,
+                        'differentiationStrategies',
+                        'giftedEnrichment'
+                      ) ||
+                        safeGet(ebook.teacherResources, 'extensions') ||
+                        []) as Array<string | AnyRecord>
+                    )
+                      .slice(0, 5)
+                      .map((enrichment, idx: number) => (
                         <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
                           <span className="text-amber-500">•</span>
-                          {typeof enrichment === 'string' ? enrichment : String((enrichment as AnyRecord).title || '')}
+                          {typeof enrichment === 'string'
+                            ? enrichment
+                            : String((enrichment as AnyRecord).title || '')}
                         </li>
                       ))}
                   </ul>
@@ -448,43 +558,66 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
               <span>👨‍👩‍👧</span> Family Engagement
             </h4>
 
-            {(ebook.familyEngagement?.parentLetter || ebook.familyEngagement?.welcomeLetter) ? (
+            {ebook.familyEngagement?.parentLetter || ebook.familyEngagement?.welcomeLetter ? (
               <div className="mb-4 bg-white rounded-xl p-4 border border-pink-100">
                 <p className="text-charcoal-soft text-sm mb-4 leading-relaxed italic">
-                  "{typeof ebook.familyEngagement?.parentLetter === 'string'
+                  "
+                  {typeof ebook.familyEngagement?.parentLetter === 'string'
                     ? ebook.familyEngagement.parentLetter
-                    : ebook.familyEngagement?.welcomeLetter || ''}"
+                    : ebook.familyEngagement?.welcomeLetter || ''}
+                  "
                 </p>
 
                 {isNonEmptyArray(ebook.familyEngagement?.discussionQuestions) ? (
                   <div className="mt-3">
-                    <p className="text-sm font-bold text-cocoa-light uppercase mb-2">Discussion Questions:</p>
+                    <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
+                      Discussion Questions:
+                    </p>
                     <ul className="space-y-2">
-                      {(ebook.familyEngagement!.discussionQuestions as string[]).map((q: string, idx: number) => (
-                        <li key={idx} className="text-charcoal-soft text-sm flex items-start gap-2">
-                          <span className="text-pink-400">•</span>
-                          {q}
-                        </li>
-                      ))}
+                      {(ebook.familyEngagement!.discussionQuestions as string[]).map(
+                        (q: string, idx: number) => (
+                          <li
+                            key={idx}
+                            className="text-charcoal-soft text-sm flex items-start gap-2"
+                          >
+                            <span className="text-pink-400">•</span>
+                            {q}
+                          </li>
+                        )
+                      )}
                     </ul>
                   </div>
                 ) : null}
               </div>
             ) : null}
 
-            {isNonEmptyArray(ebook.familyEngagement?.extendedLearning || ebook.familyEngagement?.familyActivities) ? (
+            {isNonEmptyArray(
+              ebook.familyEngagement?.extendedLearning || ebook.familyEngagement?.familyActivities
+            ) ? (
               <div>
-                <p className="text-sm font-bold text-cocoa-light uppercase mb-2">Home Activities:</p>
+                <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
+                  Home Activities:
+                </p>
                 <div className="space-y-2">
-                  {((ebook.familyEngagement?.extendedLearning || ebook.familyEngagement?.familyActivities || []) as AnyRecord[]).map((activity: AnyRecord, idx: number) => (
-                    <div key={idx} className="bg-white rounded-xl p-4 border border-pink-100 shadow-sm">
-                      <p className="text-charcoal-soft text-sm font-bold mb-1">{String(activity.title || activity.activity || activity.description || '')}</p>
+                  {(
+                    (ebook.familyEngagement?.extendedLearning ||
+                      ebook.familyEngagement?.familyActivities ||
+                      []) as AnyRecord[]
+                  ).map((activity: AnyRecord, idx: number) => (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-xl p-4 border border-pink-100 shadow-sm"
+                    >
+                      <p className="text-charcoal-soft text-sm font-bold mb-1">
+                        {String(activity.title || activity.activity || activity.description || '')}
+                      </p>
                       {isNonEmptyArray(activity.materials) ? (
                         <p className="text-cocoa-light text-xs mt-1">
-                          <span className="font-bold">Materials:</span> {(activity.materials as string[]).join(', ')}
+                          <span className="font-bold">Materials:</span>{' '}
+                          {(activity.materials as string[]).join(', ')}
                         </p>
                       ) : null}
-                      {(activity.duration || activity.timeRequired) ? (
+                      {activity.duration || activity.timeRequired ? (
                         <p className="text-cocoa-light text-xs mt-1 flex items-center gap-1">
                           <span>⏱️</span> {String(activity.duration || activity.timeRequired || '')}
                         </p>
@@ -512,9 +645,14 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             >
               ← Back to Lesson
             </button>
-            <h2 className="text-charcoal-soft font-heading font-bold text-lg">{ebook.metadata.title} - Assessment</h2>
+            <h2 className="text-charcoal-soft font-heading font-bold text-lg">
+              {ebook.metadata.title} - Assessment
+            </h2>
             {onClose && (
-              <button onClick={onClose} className="text-cocoa-light hover:text-coral-burst transition-colors">
+              <button
+                onClick={onClose}
+                className="text-cocoa-light hover:text-coral-burst transition-colors"
+              >
                 ✕
               </button>
             )}
@@ -533,9 +671,13 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
           {/* Title Bar */}
           <div className="flex items-center justify-between p-4">
             <div>
-              <h1 className="text-xl md:text-2xl font-heading font-bold text-charcoal-soft">{ebook.metadata.title}</h1>
+              <h1 className="text-xl md:text-2xl font-heading font-bold text-charcoal-soft">
+                {ebook.metadata.title}
+              </h1>
               <div className="flex items-center gap-2 text-sm text-cocoa-light font-medium">
-                <span className="bg-peach-soft/30 px-2 py-0.5 rounded-full text-cocoa-dark">Grade {ebook.metadata.gradeLevel}</span>
+                <span className="bg-peach-soft/30 px-2 py-0.5 rounded-full text-cocoa-dark">
+                  Grade {ebook.metadata.gradeLevel}
+                </span>
                 <span>•</span>
                 <span>{ebook.metadata.subject}</span>
                 <span>•</span>
@@ -548,7 +690,12 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 className="p-2 rounded-xl hover:bg-cream-soft transition-colors text-cocoa-light hover:text-coral-burst"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             )}
@@ -560,20 +707,31 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
               {[
                 { id: 'story', label: '📖 Story', show: true },
                 { id: 'instruction', label: '🎓 Instruction', show: userRole === 'teacher' },
-                { id: 'assessment', label: '📝 Assessment', show: isNonEmptyArray(ebook.assessmentBank) || ebook.assessmentSuite },
-                { id: 'resources', label: '📚 Resources', show: userRole === 'teacher' || userRole === 'parent' }
-              ].filter(tab => tab.show).map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setViewMode(tab.id as ViewMode)}
-                  className={`flex-1 md:flex-none px-4 py-2.5 text-sm font-heading font-bold rounded-xl transition-all ${viewMode === tab.id
-                      ? 'bg-white text-coral-burst shadow-sm'
-                      : 'text-cocoa-light hover:text-charcoal-soft hover:bg-white/50'
+                {
+                  id: 'assessment',
+                  label: '📝 Assessment',
+                  show: isNonEmptyArray(ebook.assessmentBank) || ebook.assessmentSuite,
+                },
+                {
+                  id: 'resources',
+                  label: '📚 Resources',
+                  show: userRole === 'teacher' || userRole === 'parent',
+                },
+              ]
+                .filter((tab) => tab.show)
+                .map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setViewMode(tab.id as ViewMode)}
+                    className={`flex-1 md:flex-none px-4 py-2.5 text-sm font-heading font-bold rounded-xl transition-all ${
+                      viewMode === tab.id
+                        ? 'bg-white text-coral-burst shadow-sm'
+                        : 'text-cocoa-light hover:text-charcoal-soft hover:bg-white/50'
                     }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
             </div>
           </div>
 
@@ -581,16 +739,19 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
           {(viewMode === 'story' || viewMode === 'instruction') && (
             <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border-b border-peach-soft/30 gap-3">
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <span className="text-xs font-bold text-cocoa-light uppercase whitespace-nowrap">Level:</span>
+                <span className="text-xs font-bold text-cocoa-light uppercase whitespace-nowrap">
+                  Level:
+                </span>
                 <div className="flex bg-cream-soft p-1 rounded-lg w-full sm:w-auto">
-                  {(['approaching', 'onLevel', 'advanced'] as DifferentiationTier[]).map(tier => (
+                  {(['approaching', 'onLevel', 'advanced'] as DifferentiationTier[]).map((tier) => (
                     <button
                       key={tier}
                       onClick={() => setDifferentiationTier(tier)}
-                      className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all ${differentiationTier === tier
+                      className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                        differentiationTier === tier
                           ? 'bg-white text-coral-burst shadow-sm'
                           : 'text-cocoa-light hover:text-charcoal-soft'
-                        }`}
+                      }`}
                     >
                       {tier === 'approaching' && '📉 Approaching'}
                       {tier === 'onLevel' && '📊 On Level'}
@@ -605,7 +766,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                   <input
                     type="checkbox"
                     checked={showSEL}
-                    onChange={e => setShowSEL(e.target.checked)}
+                    onChange={(e) => setShowSEL(e.target.checked)}
                     className="w-4 h-4 accent-coral-burst rounded"
                   />
                   Show SEL
@@ -615,7 +776,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                     <input
                       type="checkbox"
                       checked={showTeacherNotes}
-                      onChange={e => setShowTeacherNotes(e.target.checked)}
+                      onChange={(e) => setShowTeacherNotes(e.target.checked)}
                       className="w-4 h-4 accent-coral-burst rounded"
                     />
                     Teacher Notes
@@ -664,10 +825,11 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 <button
                   key={idx}
                   onClick={() => goToPage(idx)}
-                  className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentPageIndex
+                  className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    idx === currentPageIndex
                       ? 'bg-coral-burst scale-125'
                       : 'bg-peach-soft hover:bg-coral-light'
-                    }`}
+                  }`}
                   title={page.title || `Page ${idx + 1}`}
                 />
               ))}

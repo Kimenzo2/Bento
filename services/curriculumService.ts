@@ -1,35 +1,27 @@
 /**
  * Curriculum-Based Learning Engine Service
- * 
+ *
  * Generates standards-aligned educational ebooks using the Genesis AI system.
  * Supports Common Core (CCSS), NGSS, and CASEL SEL frameworks.
  */
 
-import {
-  CurriculumGenerationRequest,
-  CurriculumEbook,
-  StandardsFramework,
-  CommonCoreStandard,
-  NGSSStandard,
-  SELCompetency,
-  StudentProfile,
-  InstructionalPage,
+import type {
   AssessmentQuestion,
-  TeacherResources,
-  FamilyEngagement,
-  DifferentiationTier,
-  LearningStyle,
-  GradeBand,
   BloomsTaxonomyLevel,
-  QuestionType
+  CommonCoreStandard,
+  CurriculumEbook,
+  CurriculumGenerationRequest,
+  FamilyEngagement,
+  GradeBand,
+  StandardsFramework,
 } from '../types/curriculum';
-import { UserTier } from '../types';
 
 // @ts-ignore
 import Bytez from 'bytez.js';
 
 // Bytez API configuration for curriculum generation (Gemini 2.5 Pro)
-const BYTEZ_TEXT_API_KEY = import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
+const BYTEZ_TEXT_API_KEY =
+  import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
 const GEMINI_TEXT_MODEL = 'google/gemini-2.5-pro';
 
 if (BYTEZ_TEXT_API_KEY) {
@@ -356,37 +348,38 @@ Remember: Generate ONLY valid JSON. The response must be parseable by JSON.parse
 /**
  * Call the AI API to generate curriculum content using Bytez with Gemini 2.5 Pro
  */
-async function callCurriculumAPI(
-  prompt: string,
-  _maxTokens: number = 16384
-): Promise<string> {
+async function callCurriculumAPI(prompt: string, _maxTokens = 16384): Promise<string> {
   try {
     console.log(`🔄 Curriculum: Calling Bytez API with ${GEMINI_TEXT_MODEL}...`);
-    
+
     const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
     const model = sdk.model(GEMINI_TEXT_MODEL);
-    
+
     const messages = [
-      { 
-        role: "user", 
-        content: CURRICULUM_SYSTEM_PROMPT + "\n\nAlways respond with valid JSON only. No markdown code blocks.\n\n" + prompt + "\n\nRespond with valid JSON only."
-      }
+      {
+        role: 'user',
+        content:
+          CURRICULUM_SYSTEM_PROMPT +
+          '\n\nAlways respond with valid JSON only. No markdown code blocks.\n\n' +
+          prompt +
+          '\n\nRespond with valid JSON only.',
+      },
     ];
-    
+
     const { error, output } = await model.run(messages);
-    
+
     if (error) {
       console.error('❌ Curriculum Bytez API error:', error);
       throw new Error(`Curriculum API error: ${JSON.stringify(error)}`);
     }
-    
+
     if (!output) {
       console.error('❌ No output from curriculum API');
       throw new Error('No output received from curriculum API');
     }
-    
+
     console.log('✅ Curriculum generated successfully');
-    
+
     // Handle different output formats
     let content: string;
     if (typeof output === 'string') {
@@ -400,7 +393,7 @@ async function callCurriculumAPI(
     } else {
       content = JSON.stringify(output);
     }
-    
+
     return content;
   } catch (error) {
     console.error('❌ Curriculum generation failed:', error);
@@ -423,17 +416,19 @@ function buildCurriculumPrompt(request: CurriculumGenerationRequest): string {
     includeAssessments,
     includeFamilyEngagement,
     selFocus,
-    language
+    language,
   } = request;
 
   // Determine grade band
   const gradeBand = getGradeBand(gradeLevel);
-  
+
   // Format standards
-  const standardsList = standards.map(s => {
-    if (typeof s === 'string') return s;
-    return `${s.code}: ${s.description}`;
-  }).join('\n');
+  const standardsList = standards
+    .map((s) => {
+      if (typeof s === 'string') return s;
+      return `${s.code}: ${s.description}`;
+    })
+    .join('\n');
 
   // Build student profile section
   let studentProfileSection = '';
@@ -473,7 +468,7 @@ PEDAGOGICAL APPROACH: ${pedagogicalApproach || 'explicit instruction with gradua
 
 REQUIREMENTS:
 - Generate exactly ${pageCount || 10} instructional pages
-- ${includeAssessments ? 'Include comprehensive assessment bank with 8-12 questions across Bloom\'s levels' : 'Include 3-5 key assessment questions'}
+- ${includeAssessments ? "Include comprehensive assessment bank with 8-12 questions across Bloom's levels" : 'Include 3-5 key assessment questions'}
 - ${includeFamilyEngagement ? 'Include detailed family engagement materials with home activities' : 'Include basic parent communication'}
 - Language: ${language || 'English'}
 
@@ -506,7 +501,7 @@ function getGradeBand(gradeLevel: number): GradeBand {
 function parseCurriculumResponse(response: string): CurriculumEbook {
   // Clean up response if needed
   let cleanResponse = response.trim();
-  
+
   // Remove markdown code blocks if present
   if (cleanResponse.startsWith('```json')) {
     cleanResponse = cleanResponse.slice(7);
@@ -517,28 +512,30 @@ function parseCurriculumResponse(response: string): CurriculumEbook {
   if (cleanResponse.endsWith('```')) {
     cleanResponse = cleanResponse.slice(0, -3);
   }
-  
+
   try {
     const ebook = JSON.parse(cleanResponse) as CurriculumEbook;
-    
+
     // Validate required fields
     if (!ebook.ebookId) {
       ebook.ebookId = `curriculum_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
-    
+
     if (!ebook.metadata) {
-      throw new Error("Invalid curriculum response: missing metadata");
+      throw new Error('Invalid curriculum response: missing metadata');
     }
-    
+
     if (!ebook.instructionalSequence || ebook.instructionalSequence.length === 0) {
-      throw new Error("Invalid curriculum response: missing instructional sequence");
+      throw new Error('Invalid curriculum response: missing instructional sequence');
     }
-    
+
     return ebook;
   } catch (error) {
-    console.error("Failed to parse curriculum response:", error);
-    console.error("Raw response:", response.substring(0, 500));
-    throw new Error(`Failed to parse curriculum response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Failed to parse curriculum response:', error);
+    console.error('Raw response:', response.substring(0, 500));
+    throw new Error(
+      `Failed to parse curriculum response: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -549,34 +546,34 @@ export async function generateCurriculumEbook(
   request: CurriculumGenerationRequest,
   onProgress?: (stage: string, progress: number) => void
 ): Promise<CurriculumEbook> {
-  console.log("📚 Starting curriculum generation:", request);
-  
+  console.log('📚 Starting curriculum generation:', request);
+
   try {
     // Stage 1: Building prompt
-    onProgress?.("Analyzing standards and building curriculum framework...", 10);
+    onProgress?.('Analyzing standards and building curriculum framework...', 10);
     const prompt = buildCurriculumPrompt(request);
-    
+
     // Stage 2: Generating content
-    onProgress?.("Generating standards-aligned instructional content...", 30);
+    onProgress?.('Generating standards-aligned instructional content...', 30);
     const response = await callCurriculumAPI(prompt);
-    
+
     // Stage 3: Parsing response
-    onProgress?.("Validating curriculum structure and assessments...", 70);
+    onProgress?.('Validating curriculum structure and assessments...', 70);
     const ebook = parseCurriculumResponse(response);
-    
+
     // Stage 4: Post-processing
-    onProgress?.("Finalizing differentiated materials...", 90);
-    
+    onProgress?.('Finalizing differentiated materials...', 90);
+
     // Add generation metadata
     ebook.metadata.createdAt = new Date().toISOString();
-    ebook.metadata.version = "1.0";
-    
-    onProgress?.("Curriculum ebook complete!", 100);
-    console.log("✅ Curriculum generation complete:", ebook.metadata.title);
-    
+    ebook.metadata.version = '1.0';
+
+    onProgress?.('Curriculum ebook complete!', 100);
+    console.log('✅ Curriculum generation complete:', ebook.metadata.title);
+
     return ebook;
   } catch (error) {
-    console.error("❌ Curriculum generation failed:", error);
+    console.error('❌ Curriculum generation failed:', error);
     throw error;
   }
 }
@@ -586,30 +583,32 @@ export async function generateCurriculumEbook(
  */
 export async function generateAdditionalAssessments(
   ebook: CurriculumEbook,
-  questionCount: number = 5,
+  questionCount = 5,
   bloomsLevels?: BloomsTaxonomyLevel[]
 ): Promise<AssessmentQuestion[]> {
   const alignedStandardsStr = (ebook.metadata.alignedStandards || [])
-    .map(s => typeof s === 'string' ? s : s.code)
+    .map((s) => (typeof s === 'string' ? s : s.code))
     .join(', ');
-  
+
   const prompt = `Given this curriculum ebook about "${ebook.metadata.title}" for grade ${ebook.metadata.gradeLevel}:
 
 Standards Covered: ${alignedStandardsStr}
 Learning Objectives: ${ebook.metadata.learningObjectives.join('; ')}
 
 Generate ${questionCount} additional assessment questions.
-${bloomsLevels ? `Focus on these Bloom's levels: ${bloomsLevels.join(', ')}` : 'Include a variety of Bloom\'s levels.'}
+${bloomsLevels ? `Focus on these Bloom's levels: ${bloomsLevels.join(', ')}` : "Include a variety of Bloom's levels."}
 
 Return ONLY a JSON array of assessment question objects following the schema from the system instructions.`;
 
   const response = await callCurriculumAPI(prompt, 4096);
-  
+
   try {
     const questions = JSON.parse(response);
-    return Array.isArray(questions) ? questions : questions.assessments || questions.questions || [];
+    return Array.isArray(questions)
+      ? questions
+      : questions.assessments || questions.questions || [];
   } catch {
-    console.error("Failed to parse additional assessments");
+    console.error('Failed to parse additional assessments');
     return [];
   }
 }
@@ -625,7 +624,7 @@ export async function generateFamilyMaterials(
   const vocabularyList = ebookMeta.vocabularyTerms
     ? (ebookMeta.vocabularyTerms as string[]).slice(0, 5).join(', ')
     : 'key vocabulary from the lessons';
-  
+
   const prompt = `Given this curriculum ebook:
 Title: ${ebook.metadata.title}
 Subject: ${ebook.metadata.subject}
@@ -643,12 +642,12 @@ ${languages.length > 1 ? `5. Translations for: ${languages.slice(1).join(', ')}`
 Return ONLY a JSON object following the familyEngagement schema from the system instructions.`;
 
   const response = await callCurriculumAPI(prompt, 4096);
-  
+
   try {
     return JSON.parse(response);
   } catch {
-    console.error("Failed to parse family materials");
-    throw new Error("Failed to generate family materials");
+    console.error('Failed to parse family materials');
+    throw new Error('Failed to generate family materials');
   }
 }
 
@@ -659,13 +658,13 @@ export async function adaptForGradeLevel(
   ebook: CurriculumEbook,
   targetGradeLevel: number
 ): Promise<CurriculumEbook> {
-  const currentGrade = parseInt(String(ebook.metadata.gradeLevel), 10) || 3;
+  const currentGrade = Number.parseInt(String(ebook.metadata.gradeLevel), 10) || 3;
   const direction = targetGradeLevel > currentGrade ? 'up' : 'down';
-  
+
   const alignedStandardsStr = (ebook.metadata.alignedStandards || [])
-    .map(s => typeof s === 'string' ? s : s.code)
+    .map((s) => (typeof s === 'string' ? s : s.code))
     .join(', ');
-  
+
   const prompt = `Adapt the following curriculum ebook from grade ${currentGrade} to grade ${targetGradeLevel}:
 
 Current Title: ${ebook.metadata.title}
@@ -673,19 +672,23 @@ Current Subject: ${ebook.metadata.subject}
 Current Standards: ${alignedStandardsStr}
 
 When adapting ${direction}:
-${direction === 'up' ? `
+${
+  direction === 'up'
+    ? `
 - Increase text complexity and sentence length
 - Add more abstract concepts
 - Include deeper analysis questions
 - Expand vocabulary to include more tier 3 terms
 - Increase DOK levels in assessments
-` : `
+`
+    : `
 - Simplify language and use shorter sentences
 - Make concepts more concrete
 - Add more visual supports
 - Focus on tier 1 and 2 vocabulary
 - Include more repetition and scaffolding
-`}
+`
+}
 
 Find appropriate grade ${targetGradeLevel} standards that align with the same content area.
 
@@ -701,41 +704,73 @@ Generate a complete adapted curriculum ebook as JSON following the schema from s
 export const CCSS_ELA_ANCHOR_STANDARDS = {
   reading: {
     keyIdeas: [
-      { code: "CCRA.R.1", description: "Read closely to determine what the text says explicitly and to make logical inferences" },
-      { code: "CCRA.R.2", description: "Determine central ideas or themes and analyze their development" },
-      { code: "CCRA.R.3", description: "Analyze how and why individuals, events, or ideas develop and interact" }
+      {
+        code: 'CCRA.R.1',
+        description:
+          'Read closely to determine what the text says explicitly and to make logical inferences',
+      },
+      {
+        code: 'CCRA.R.2',
+        description: 'Determine central ideas or themes and analyze their development',
+      },
+      {
+        code: 'CCRA.R.3',
+        description: 'Analyze how and why individuals, events, or ideas develop and interact',
+      },
     ],
     craftStructure: [
-      { code: "CCRA.R.4", description: "Interpret words and phrases as they are used in a text" },
-      { code: "CCRA.R.5", description: "Analyze the structure of texts" },
-      { code: "CCRA.R.6", description: "Assess how point of view or purpose shapes content and style" }
+      { code: 'CCRA.R.4', description: 'Interpret words and phrases as they are used in a text' },
+      { code: 'CCRA.R.5', description: 'Analyze the structure of texts' },
+      {
+        code: 'CCRA.R.6',
+        description: 'Assess how point of view or purpose shapes content and style',
+      },
     ],
     integration: [
-      { code: "CCRA.R.7", description: "Integrate and evaluate content presented in diverse media and formats" },
-      { code: "CCRA.R.8", description: "Delineate and evaluate the argument and specific claims in a text" },
-      { code: "CCRA.R.9", description: "Analyze how two or more texts address similar themes or topics" }
+      {
+        code: 'CCRA.R.7',
+        description: 'Integrate and evaluate content presented in diverse media and formats',
+      },
+      {
+        code: 'CCRA.R.8',
+        description: 'Delineate and evaluate the argument and specific claims in a text',
+      },
+      {
+        code: 'CCRA.R.9',
+        description: 'Analyze how two or more texts address similar themes or topics',
+      },
     ],
     complexity: [
-      { code: "CCRA.R.10", description: "Read and comprehend complex literary and informational texts independently" }
-    ]
+      {
+        code: 'CCRA.R.10',
+        description: 'Read and comprehend complex literary and informational texts independently',
+      },
+    ],
   },
   writing: {
     textTypes: [
-      { code: "CCRA.W.1", description: "Write arguments to support claims in an analysis" },
-      { code: "CCRA.W.2", description: "Write informative/explanatory texts" },
-      { code: "CCRA.W.3", description: "Write narratives to develop real or imagined experiences" }
+      { code: 'CCRA.W.1', description: 'Write arguments to support claims in an analysis' },
+      { code: 'CCRA.W.2', description: 'Write informative/explanatory texts' },
+      { code: 'CCRA.W.3', description: 'Write narratives to develop real or imagined experiences' },
     ],
     production: [
-      { code: "CCRA.W.4", description: "Produce clear and coherent writing appropriate to task, purpose, and audience" },
-      { code: "CCRA.W.5", description: "Develop and strengthen writing through planning, revising, editing" },
-      { code: "CCRA.W.6", description: "Use technology to produce and publish writing" }
+      {
+        code: 'CCRA.W.4',
+        description:
+          'Produce clear and coherent writing appropriate to task, purpose, and audience',
+      },
+      {
+        code: 'CCRA.W.5',
+        description: 'Develop and strengthen writing through planning, revising, editing',
+      },
+      { code: 'CCRA.W.6', description: 'Use technology to produce and publish writing' },
     ],
     research: [
-      { code: "CCRA.W.7", description: "Conduct short and sustained research projects" },
-      { code: "CCRA.W.8", description: "Gather relevant information from multiple sources" },
-      { code: "CCRA.W.9", description: "Draw evidence from literary or informational texts" }
-    ]
-  }
+      { code: 'CCRA.W.7', description: 'Conduct short and sustained research projects' },
+      { code: 'CCRA.W.8', description: 'Gather relevant information from multiple sources' },
+      { code: 'CCRA.W.9', description: 'Draw evidence from literary or informational texts' },
+    ],
+  },
 };
 
 /**
@@ -744,47 +779,132 @@ export const CCSS_ELA_ANCHOR_STANDARDS = {
 export const NGSS_SAMPLE_STANDARDS = {
   elementary: {
     lifeScience: [
-      { code: "K-LS1-1", description: "Use observations to describe patterns of what plants and animals need to survive" },
-      { code: "1-LS1-1", description: "Use materials to design a solution to a human problem by mimicking organisms" },
-      { code: "2-LS2-1", description: "Plan and conduct an investigation to determine if plants need sunlight and water" },
-      { code: "3-LS1-1", description: "Develop models to describe organisms' life cycles" },
-      { code: "4-LS1-1", description: "Construct an argument that plants and animals have internal and external structures" },
-      { code: "5-LS2-1", description: "Develop a model to describe the movement of matter among organisms" }
+      {
+        code: 'K-LS1-1',
+        description:
+          'Use observations to describe patterns of what plants and animals need to survive',
+      },
+      {
+        code: '1-LS1-1',
+        description: 'Use materials to design a solution to a human problem by mimicking organisms',
+      },
+      {
+        code: '2-LS2-1',
+        description:
+          'Plan and conduct an investigation to determine if plants need sunlight and water',
+      },
+      { code: '3-LS1-1', description: "Develop models to describe organisms' life cycles" },
+      {
+        code: '4-LS1-1',
+        description:
+          'Construct an argument that plants and animals have internal and external structures',
+      },
+      {
+        code: '5-LS2-1',
+        description: 'Develop a model to describe the movement of matter among organisms',
+      },
     ],
     physicalScience: [
-      { code: "K-PS2-1", description: "Plan and conduct an investigation to compare effects of different strengths of pushes and pulls" },
-      { code: "1-PS4-1", description: "Plan and conduct investigations to provide evidence that vibrating materials make sound" },
-      { code: "2-PS1-1", description: "Plan and conduct an investigation to describe and classify materials by observable properties" },
-      { code: "3-PS2-1", description: "Plan and conduct an investigation to provide evidence of the effects of balanced and unbalanced forces" },
-      { code: "4-PS3-1", description: "Use evidence to construct an explanation about energy transfer" },
-      { code: "5-PS1-1", description: "Develop a model to describe matter is made of particles too small to be seen" }
+      {
+        code: 'K-PS2-1',
+        description:
+          'Plan and conduct an investigation to compare effects of different strengths of pushes and pulls',
+      },
+      {
+        code: '1-PS4-1',
+        description:
+          'Plan and conduct investigations to provide evidence that vibrating materials make sound',
+      },
+      {
+        code: '2-PS1-1',
+        description:
+          'Plan and conduct an investigation to describe and classify materials by observable properties',
+      },
+      {
+        code: '3-PS2-1',
+        description:
+          'Plan and conduct an investigation to provide evidence of the effects of balanced and unbalanced forces',
+      },
+      {
+        code: '4-PS3-1',
+        description: 'Use evidence to construct an explanation about energy transfer',
+      },
+      {
+        code: '5-PS1-1',
+        description: 'Develop a model to describe matter is made of particles too small to be seen',
+      },
     ],
     earthScience: [
-      { code: "K-ESS2-1", description: "Use and share observations of local weather conditions" },
-      { code: "1-ESS1-1", description: "Use observations of the sun, moon, and stars to describe patterns" },
-      { code: "2-ESS1-1", description: "Use information to identify where water is found on Earth" },
-      { code: "3-ESS2-1", description: "Represent data in tables to describe typical weather conditions" },
-      { code: "4-ESS1-1", description: "Identify evidence from patterns in rock formations that Earth has changed over time" },
-      { code: "5-ESS1-1", description: "Support an argument that gravitational force affects the motion of orbiting objects" }
-    ]
+      { code: 'K-ESS2-1', description: 'Use and share observations of local weather conditions' },
+      {
+        code: '1-ESS1-1',
+        description: 'Use observations of the sun, moon, and stars to describe patterns',
+      },
+      {
+        code: '2-ESS1-1',
+        description: 'Use information to identify where water is found on Earth',
+      },
+      {
+        code: '3-ESS2-1',
+        description: 'Represent data in tables to describe typical weather conditions',
+      },
+      {
+        code: '4-ESS1-1',
+        description:
+          'Identify evidence from patterns in rock formations that Earth has changed over time',
+      },
+      {
+        code: '5-ESS1-1',
+        description:
+          'Support an argument that gravitational force affects the motion of orbiting objects',
+      },
+    ],
   },
   middleSchool: {
     lifeScience: [
-      { code: "MS-LS1-1", description: "Conduct an investigation to provide evidence that living things are made of cells" },
-      { code: "MS-LS1-2", description: "Develop and use a model to describe the function of a cell" },
-      { code: "MS-LS2-1", description: "Analyze and interpret data to provide evidence for the effects of resource availability" }
+      {
+        code: 'MS-LS1-1',
+        description:
+          'Conduct an investigation to provide evidence that living things are made of cells',
+      },
+      {
+        code: 'MS-LS1-2',
+        description: 'Develop and use a model to describe the function of a cell',
+      },
+      {
+        code: 'MS-LS2-1',
+        description:
+          'Analyze and interpret data to provide evidence for the effects of resource availability',
+      },
     ],
     physicalScience: [
-      { code: "MS-PS1-1", description: "Develop models to describe the atomic composition of simple molecules" },
-      { code: "MS-PS1-2", description: "Analyze and interpret data to identify the substances by characteristic properties" },
-      { code: "MS-PS2-1", description: "Apply Newton's Third Law to design a solution to a problem involving motion" }
+      {
+        code: 'MS-PS1-1',
+        description: 'Develop models to describe the atomic composition of simple molecules',
+      },
+      {
+        code: 'MS-PS1-2',
+        description:
+          'Analyze and interpret data to identify the substances by characteristic properties',
+      },
+      {
+        code: 'MS-PS2-1',
+        description: "Apply Newton's Third Law to design a solution to a problem involving motion",
+      },
     ],
     earthScience: [
-      { code: "MS-ESS1-1", description: "Develop and use a model of the Earth-sun-moon system" },
-      { code: "MS-ESS2-1", description: "Develop a model to describe the cycling of Earth's materials" },
-      { code: "MS-ESS3-1", description: "Construct a scientific explanation based on evidence for how geoscience processes have changed Earth's surface" }
-    ]
-  }
+      { code: 'MS-ESS1-1', description: 'Develop and use a model of the Earth-sun-moon system' },
+      {
+        code: 'MS-ESS2-1',
+        description: "Develop a model to describe the cycling of Earth's materials",
+      },
+      {
+        code: 'MS-ESS3-1',
+        description:
+          "Construct a scientific explanation based on evidence for how geoscience processes have changed Earth's surface",
+      },
+    ],
+  },
 };
 
 /**
@@ -792,60 +912,53 @@ export const NGSS_SAMPLE_STANDARDS = {
  */
 export const CASEL_SEL_COMPETENCIES = {
   selfAwareness: {
-    name: "Self-Awareness",
-    description: "The ability to accurately recognize one's own emotions, thoughts, and values and how they influence behavior",
+    name: 'Self-Awareness',
+    description:
+      "The ability to accurately recognize one's own emotions, thoughts, and values and how they influence behavior",
     indicators: [
-      "Identifying emotions",
-      "Accurate self-perception",
-      "Recognizing strengths",
-      "Self-confidence",
-      "Self-efficacy"
-    ]
+      'Identifying emotions',
+      'Accurate self-perception',
+      'Recognizing strengths',
+      'Self-confidence',
+      'Self-efficacy',
+    ],
   },
   selfManagement: {
-    name: "Self-Management",
-    description: "The ability to successfully regulate emotions, thoughts, and behaviors in different situations",
+    name: 'Self-Management',
+    description:
+      'The ability to successfully regulate emotions, thoughts, and behaviors in different situations',
     indicators: [
-      "Impulse control",
-      "Stress management",
-      "Self-discipline",
-      "Self-motivation",
-      "Goal-setting",
-      "Organizational skills"
-    ]
+      'Impulse control',
+      'Stress management',
+      'Self-discipline',
+      'Self-motivation',
+      'Goal-setting',
+      'Organizational skills',
+    ],
   },
   socialAwareness: {
-    name: "Social Awareness",
-    description: "The ability to take the perspective of and empathize with others",
-    indicators: [
-      "Perspective-taking",
-      "Empathy",
-      "Appreciating diversity",
-      "Respect for others"
-    ]
+    name: 'Social Awareness',
+    description: 'The ability to take the perspective of and empathize with others',
+    indicators: ['Perspective-taking', 'Empathy', 'Appreciating diversity', 'Respect for others'],
   },
   relationshipSkills: {
-    name: "Relationship Skills",
-    description: "The ability to establish and maintain healthy relationships",
-    indicators: [
-      "Communication",
-      "Social engagement",
-      "Relationship-building",
-      "Teamwork"
-    ]
+    name: 'Relationship Skills',
+    description: 'The ability to establish and maintain healthy relationships',
+    indicators: ['Communication', 'Social engagement', 'Relationship-building', 'Teamwork'],
   },
   responsibleDecisionMaking: {
-    name: "Responsible Decision-Making",
-    description: "The ability to make constructive choices about personal behavior and social interactions",
+    name: 'Responsible Decision-Making',
+    description:
+      'The ability to make constructive choices about personal behavior and social interactions',
     indicators: [
-      "Identifying problems",
-      "Analyzing situations",
-      "Solving problems",
-      "Evaluating",
-      "Reflecting",
-      "Ethical responsibility"
-    ]
-  }
+      'Identifying problems',
+      'Analyzing situations',
+      'Solving problems',
+      'Evaluating',
+      'Reflecting',
+      'Ethical responsibility',
+    ],
+  },
 };
 
 /**
@@ -858,7 +971,7 @@ export function getStandardsForGrade(
 ): CommonCoreStandard[] {
   // This is a simplified implementation
   // In production, this would query a full standards database
-  
+
   if (framework === 'CCSS') {
     return Object.values(CCSS_ELA_ANCHOR_STANDARDS.reading)
       .flat()
@@ -866,37 +979,37 @@ export function getStandardsForGrade(
         code: s.code,
         description: s.description,
         gradeLevel: String(gradeLevel),
-        strand: 'Reading'
+        strand: 'Reading',
       }));
   }
-  
+
   if (framework === 'NGSS') {
     const level = gradeLevel <= 5 ? 'elementary' : 'middleSchool';
     const standards = NGSS_SAMPLE_STANDARDS[level];
-    
+
     if (subject === 'Life Science' || subject === 'Science') {
       return standards.lifeScience.map((s: { code: string; description: string }) => ({
         code: s.code,
         description: s.description,
         gradeLevel: String(gradeLevel),
-        strand: 'Life Science'
+        strand: 'Life Science',
       }));
     }
-    
+
     const allStandards = [
       ...standards.lifeScience,
       ...standards.physicalScience,
-      ...(standards.earthScience || [])
+      ...(standards.earthScience || []),
     ];
-    
+
     return allStandards.map((s: { code: string; description: string }) => ({
       code: s.code,
       description: s.description,
       gradeLevel: String(gradeLevel),
-      strand: 'Science'
+      strand: 'Science',
     }));
   }
-  
+
   return [];
 }
 
@@ -919,7 +1032,7 @@ const curriculumService = {
   getSELCompetencies,
   CCSS_ELA_ANCHOR_STANDARDS,
   NGSS_SAMPLE_STANDARDS,
-  CASEL_SEL_COMPETENCIES
+  CASEL_SEL_COMPETENCIES,
 };
 
 export default curriculumService;

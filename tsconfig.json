@@ -1,29 +1,32 @@
 {
   "compilerOptions": {
+    /* Ignore deprecation warnings for TS 6.0 compat */
+    "ignoreDeprecations": "5.0",
+    
     /* Language and Environment */
-    "target": "ES2024",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "useDefineForClassFields": true,
-    
+
     /* Modules */
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    
+
     /* Emit */
     "noEmit": true,
     "skipLibCheck": true,
-    
+
     /* Type Checking - Balanced strictness for existing codebase */
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
-    
+
     /* Paths */
     "baseUrl": ".",
     "paths": {
@@ -35,19 +38,20 @@
       "@utils/*": ["./utils/*"],
       "@types/*": ["./types/*"]
     },
-    
+
     "types": ["node", "vite/client"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "vite.config.ts"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "vite.config.ts"],
   "exclude": [
     "node_modules",
     "dist",
     "dev-dist",
     "e2e",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/test/**"
   ]
 }

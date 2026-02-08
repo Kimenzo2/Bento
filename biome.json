@@ -7,13 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": [
-      "node_modules",
-      "dist",
-      "dev-dist",
-      "*.min.js",
-      "*.min.css"
-    ]
+    "ignore": ["node_modules", "dist", "dev-dist", "*.min.js", "*.min.css"]
   },
   "formatter": {
     "enabled": true,
@@ -93,10 +87,7 @@
       "bracketSpacing": true,
       "bracketSameLine": false
     },
-    "globals": [
-      "React",
-      "JSX"
-    ]
+    "globals": ["React", "JSX"]
   },
   "json": {
     "formatter": {

@@ -1,6 +1,6 @@
 /**
  * Performance Optimizations for Genesis
- * 
+ *
  * Critical utilities for handling 1M+ concurrent users:
  * - Request deduplication
  * - Memory-efficient caching with LRU eviction
@@ -17,13 +17,13 @@ export class LRUCache<K, V> {
   private cache = new Map<K, V>();
   private readonly maxSize: number;
 
-  constructor(maxSize: number = 100) {
+  constructor(maxSize = 100) {
     this.maxSize = maxSize;
   }
 
   get(key: K): V | undefined {
     if (!this.cache.has(key)) return undefined;
-    
+
     // Move to end (most recently used)
     const value = this.cache.get(key)!;
     this.cache.delete(key);
@@ -73,7 +73,7 @@ const pendingRequests = new Map<string, PendingRequest<any>>();
 export async function deduplicateRequest<T>(
   key: string,
   requestFn: () => Promise<T>,
-  ttlMs: number = 5000
+  ttlMs = 5000
 ): Promise<T> {
   // Return existing request if in flight
   if (pendingRequests.has(key)) {
@@ -102,7 +102,7 @@ export class RequestQueue {
   private readonly maxConcurrent: number;
   private readonly delayBetweenMs: number;
 
-  constructor(maxConcurrent: number = 3, delayBetweenMs: number = 100) {
+  constructor(maxConcurrent = 3, delayBetweenMs = 100) {
     this.maxConcurrent = maxConcurrent;
     this.delayBetweenMs = delayBetweenMs;
   }
@@ -120,7 +120,7 @@ export class RequestQueue {
           this.activeCount--;
           // Add delay between requests
           if (this.delayBetweenMs > 0) {
-            await new Promise(r => setTimeout(r, this.delayBetweenMs));
+            await new Promise((r) => setTimeout(r, this.delayBetweenMs));
           }
           this.processNext();
         }
@@ -231,11 +231,7 @@ export class BatchProcessor<T, R> {
   private readonly processFn: (items: T[]) => Promise<R[]>;
   private resolvers: Array<{ resolve: (value: R) => void; reject: (error: any) => void }> = [];
 
-  constructor(
-    processFn: (items: T[]) => Promise<R[]>,
-    maxBatchSize: number = 10,
-    maxWaitMs: number = 50
-  ) {
+  constructor(processFn: (items: T[]) => Promise<R[]>, maxBatchSize = 10, maxWaitMs = 50) {
     this.processFn = processFn;
     this.maxBatchSize = maxBatchSize;
     this.maxWaitMs = maxWaitMs;
@@ -271,7 +267,7 @@ export class BatchProcessor<T, R> {
       const results = await this.processFn(items);
       resolvers.forEach((r, i) => r.resolve(results[i]));
     } catch (error) {
-      resolvers.forEach(r => r.reject(error));
+      resolvers.forEach((r) => r.reject(error));
     }
   }
 }
@@ -286,7 +282,7 @@ export class ConnectionManager {
   private readonly idleTimeoutMs: number;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(maxConnections: number = 50, idleTimeoutMs: number = 60000) {
+  constructor(maxConnections = 50, idleTimeoutMs = 60000) {
     this.maxConnections = maxConnections;
     this.idleTimeoutMs = idleTimeoutMs;
     this.startCleanupInterval();
@@ -308,7 +304,7 @@ export class ConnectionManager {
       }
     });
 
-    toRemove.forEach(key => {
+    toRemove.forEach((key) => {
       const conn = this.connections.get(key);
       if (conn?.channel?.unsubscribe) {
         conn.channel.unsubscribe();
@@ -349,7 +345,7 @@ export class ConnectionManager {
 
   private evictOldest(): void {
     let oldestKey: string | null = null;
-    let oldestTime = Infinity;
+    let oldestTime = Number.POSITIVE_INFINITY;
 
     this.connections.forEach((conn, key) => {
       if (conn.refCount === 0 && conn.lastUsed < oldestTime) {
@@ -371,7 +367,7 @@ export class ConnectionManager {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
-    this.connections.forEach(conn => {
+    this.connections.forEach((conn) => {
       if (conn.channel?.unsubscribe) {
         conn.channel.unsubscribe();
       }
@@ -403,7 +399,7 @@ export async function retryWithBackoff<T>(
     initialDelayMs = 1000,
     maxDelayMs = 30000,
     backoffMultiplier = 2,
-    retryCondition = () => true
+    retryCondition = () => true,
   } = options;
 
   let lastError: any;
@@ -421,7 +417,7 @@ export async function retryWithBackoff<T>(
 
       // Add jitter to prevent thundering herd
       const jitter = Math.random() * delay * 0.1;
-      await new Promise(r => setTimeout(r, delay + jitter));
+      await new Promise((r) => setTimeout(r, delay + jitter));
 
       delay = Math.min(delay * backoffMultiplier, maxDelayMs);
     }

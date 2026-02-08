@@ -1,10 +1,10 @@
 /**
  * Language Configuration for Genesis
- * 
+ *
  * Defines all supported languages with their properties
  */
 
-import { Language, LanguageCode } from '../types/language.d';
+import type { Language, LanguageCode } from '../types/language.d';
 
 export const SUPPORTED_LANGUAGES: Language[] = [
   {
@@ -19,7 +19,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 100,
     isRTL: false,
     isBeta: false,
-    translators: ['Genesis Team']
+    translators: ['Genesis Team'],
   },
   {
     code: 'es',
@@ -33,7 +33,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 85,
     isRTL: false,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'fr',
@@ -47,7 +47,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 80,
     isRTL: false,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'de',
@@ -61,7 +61,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 75,
     isRTL: false,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'zh-CN',
@@ -75,7 +75,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 70,
     isRTL: false,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'ar',
@@ -89,7 +89,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 65,
     isRTL: true,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'pt',
@@ -103,7 +103,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 75,
     isRTL: false,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'hi',
@@ -117,7 +117,7 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 60,
     isRTL: false,
     isBeta: true,
-    translators: []
+    translators: [],
   },
   {
     code: 'ja',
@@ -131,15 +131,15 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     completionPercentage: 70,
     isRTL: false,
     isBeta: true,
-    translators: []
-  }
+    translators: [],
+  },
 ];
 
 /**
  * Get language by code
  */
 export const getLanguageByCode = (code: LanguageCode): Language | undefined => {
-  return SUPPORTED_LANGUAGES.find(lang => lang.code === code);
+  return SUPPORTED_LANGUAGES.find((lang) => lang.code === code);
 };
 
 /**
@@ -153,14 +153,14 @@ export const getDefaultLanguage = (): Language => {
  * Check if a language code is valid
  */
 export const isValidLanguageCode = (code: string): code is LanguageCode => {
-  return SUPPORTED_LANGUAGES.some(lang => lang.code === code);
+  return SUPPORTED_LANGUAGES.some((lang) => lang.code === code);
 };
 
 /**
  * Get RTL languages
  */
 export const getRTLLanguages = (): Language[] => {
-  return SUPPORTED_LANGUAGES.filter(lang => lang.isRTL);
+  return SUPPORTED_LANGUAGES.filter((lang) => lang.isRTL);
 };
 
 /**
@@ -210,7 +210,7 @@ export const TRANSLATION_NAMESPACES = [
   'storybook',
   'curriculum',
   'pricing',
-  'gamification'
+  'gamification',
 ] as const;
 
-export type TranslationNamespace = typeof TRANSLATION_NAMESPACES[number];
+export type TranslationNamespace = (typeof TRANSLATION_NAMESPACES)[number];

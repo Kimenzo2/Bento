@@ -1,9 +1,9 @@
 /**
  * Request Sanitization Service
- * 
+ *
  * Lightweight input validation and PII detection for AI requests.
  * Designed to be FAST - uses regex patterns, no ML models or API calls.
- * 
+ *
  * Features:
  * - PII detection (emails, phones, SSNs, credit cards)
  * - Payload size validation
@@ -18,25 +18,37 @@
 const PII_PATTERNS = {
   // Email addresses
   email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  
+
   // Phone numbers (various formats)
   phone: /(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g,
-  
+
   // Social Security Numbers
   ssn: /\b\d{3}[-.\s]?\d{2}[-.\s]?\d{4}\b/g,
-  
+
   // Credit card numbers (basic pattern)
   creditCard: /\b(?:\d{4}[-.\s]?){3}\d{4}\b/g,
-  
+
   // IP addresses
   ipAddress: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
-  
+
   // Dates of birth (common formats)
-  dob: /\b(?:0?[1-9]|1[0-2])[-/](?:0?[1-9]|[12]\d|3[01])[-/](?:19|20)\d{2}\b/g
+  dob: /\b(?:0?[1-9]|1[0-2])[-/](?:0?[1-9]|[12]\d|3[01])[-/](?:19|20)\d{2}\b/g,
+
+  // Bank account / routing numbers
+  bankAccount: /\b\d{8,17}\b/g,
+
+  // Passport numbers (common formats)
+  passport: /\b[A-Z]{1,2}\d{6,9}\b/g,
+
+  // Driver's license (US formats)
+  driversLicense: /\b[A-Z]{1,2}\d{4,8}\b/g,
+
+  // Medical record numbers
+  medicalRecord: /\bMRN[:\s]?\d{6,10}\b/gi,
 };
 
 // ============================================================================
-// PROMPT INJECTION PATTERNS
+// PROMPT INJECTION PATTERNS (Enhanced)
 // ============================================================================
 
 const INJECTION_PATTERNS = [
@@ -44,39 +56,74 @@ const INJECTION_PATTERNS = [
   /ignore\s+(all\s+)?(previous|above)\s+(instructions?|prompts?)/i,
   /disregard\s+(all\s+)?(previous|above)\s+(instructions?|prompts?)/i,
   /forget\s+(all\s+)?(previous|above)\s+(instructions?|prompts?)/i,
-  
+  /override\s+(all\s+)?(previous|system)\s+(instructions?|prompts?)/i,
+
   // Role manipulation
   /you\s+are\s+now\s+(a|an)\s+/i,
   /pretend\s+(to\s+be|you\s+are)/i,
   /act\s+as\s+(if\s+you\s+are|a|an)/i,
-  
+  /roleplay\s+as/i,
+  /speak\s+as\s+if\s+you\s+were/i,
+
   // Jailbreak attempts
   /\bDAN\b.*\bmode\b/i,
   /\bjailbreak\b/i,
   /bypass\s+(safety|content|filter)/i,
-  
+  /\buncensored\b.*\bmode\b/i,
+  /\bdeveloper\s+mode\b/i,
+  /\bno\s+restrictions\b/i,
+
   // Hidden instruction attempts
   /\[SYSTEM\]/i,
   /\[INST\]/i,
-  /<<SYS>>/i
+  /<<SYS>>/i,
+  /<\|im_start\|>/i,
+  /<\|im_end\|>/i,
+  /\[\/INST\]/i,
+
+  // Token manipulation
+  /\x00/g, // Null bytes
+  /[\x01-\x08\x0B\x0C\x0E-\x1F]/g, // Control characters
+
+  // Base64 encoded malicious content
+  /aWdub3JlIGFsbCBwcmV2aW91cyBpbnN0cnVjdGlvbnM/i, // "ignore all previous instructions" in base64
+
+  // Unicode confusables/homoglyphs for 'ignore'
+  /[іі][gg][nn][оо][rr][ee]/i,
+
+  // Markdown/HTML injection into prompts
+  /```\s*system/i,
+  /<!--.*-->/s,
 ];
 
 // ============================================================================
-// CONTENT POLICY PATTERNS (for children's content)
+// CONTENT POLICY PATTERNS (for children's content) - Enhanced
 // ============================================================================
 
 const INAPPROPRIATE_CONTENT = [
   // Violence
-  /\b(kill|murder|blood|gore|violent|weapon|gun|knife|stab)\b/i,
-  
+  /\b(kill|murder|blood|gore|violent|weapon|gun|knife|stab|shoot|assault|torture)\b/i,
+
   // Adult content
-  /\b(nude|naked|sexual|explicit|pornograph)/i,
-  
+  /\b(nude|naked|sexual|explicit|pornograph|erotic|nsfw)\b/i,
+
   // Harmful behavior
-  /\b(suicide|self[-\s]?harm|eating\s+disorder)/i,
-  
+  /\b(suicide|self[-\s]?harm|eating\s+disorder|anorex|bulimi)\b/i,
+
   // Drugs/alcohol for minors
-  /\b(drug|cocaine|heroin|meth|alcohol|drunk|weed|marijuana)\b/i
+  /\b(drug|cocaine|heroin|meth|alcohol|drunk|weed|marijuana|cannabis|opioid)\b/i,
+
+  // Extremism/Hate
+  /\b(terrorist|nazi|white\s+supremac|ethnic\s+cleansing)\b/i,
+
+  // Profanity (severe)
+  /\b(f+u+c+k+|s+h+i+t+|c+u+n+t+)\b/i,
+
+  // Gambling
+  /\b(gambl|casino|betting|slot\s+machine)\b/i,
+
+  // Fear-inducing for children
+  /\b(kidnap|abduct|molest|predator)\b/i,
 ];
 
 // ============================================================================
@@ -112,38 +159,35 @@ export interface SanitizationOptions {
 
 /**
  * Sanitize input text - FAST, synchronous, no API calls
- * 
+ *
  * @param text - The input text to sanitize
  * @param options - Sanitization options
  * @returns SanitizationResult with cleaned text and any issues found
  */
-export function sanitizeInput(
-  text: string,
-  options: SanitizationOptions = {}
-): SanitizationResult {
+export function sanitizeInput(text: string, options: SanitizationOptions = {}): SanitizationResult {
   const {
     redactPII = true,
     checkInjection = true,
     checkContentPolicy = true,
     maxLength = 50000,
-    isChildrenContent = true
+    isChildrenContent = true,
   } = options;
-  
+
   const issues: SanitizationIssue[] = [];
   let sanitizedText = text;
   let blocked = false;
   let blockReason: string | undefined;
-  
+
   // Check size first (fastest check)
   if (text.length > maxLength) {
     issues.push({
       type: 'size',
       severity: 'medium',
-      description: `Input exceeds maximum length of ${maxLength} characters`
+      description: `Input exceeds maximum length of ${maxLength} characters`,
     });
     sanitizedText = text.substring(0, maxLength);
   }
-  
+
   // Check for PII
   if (redactPII) {
     for (const [piiType, pattern] of Object.entries(PII_PATTERNS)) {
@@ -153,14 +197,14 @@ export function sanitizeInput(
           type: 'pii',
           severity: 'medium',
           description: `Found ${matches.length} potential ${piiType}(s)`,
-          redacted: true
+          redacted: true,
         });
         // Redact with placeholder
         sanitizedText = sanitizedText.replace(pattern, `[REDACTED_${piiType.toUpperCase()}]`);
       }
     }
   }
-  
+
   // Check for prompt injection
   if (checkInjection) {
     for (const pattern of INJECTION_PATTERNS) {
@@ -168,14 +212,14 @@ export function sanitizeInput(
         issues.push({
           type: 'injection',
           severity: 'high',
-          description: 'Potential prompt injection detected'
+          description: 'Potential prompt injection detected',
         });
         // Don't block, but log for monitoring
         break;
       }
     }
   }
-  
+
   // Check content policy for children's content
   if (checkContentPolicy && isChildrenContent) {
     for (const pattern of INAPPROPRIATE_CONTENT) {
@@ -183,21 +227,21 @@ export function sanitizeInput(
         issues.push({
           type: 'content_policy',
           severity: 'critical',
-          description: 'Content may violate children\'s content policy'
+          description: "Content may violate children's content policy",
         });
         blocked = true;
-        blockReason = 'Content not appropriate for children\'s educational materials';
+        blockReason = "Content not appropriate for children's educational materials";
         break;
       }
     }
   }
-  
+
   return {
     isClean: issues.length === 0,
     sanitizedText,
     issues,
     blocked,
-    blockReason
+    blockReason,
   };
 }
 
@@ -248,15 +292,15 @@ export function validatePayloadSize(
   maxSizeBytes: number = 1024 * 1024 // 1MB default
 ): { valid: boolean; size: number; message?: string } {
   const size = new Blob([JSON.stringify(payload)]).size;
-  
+
   if (size > maxSizeBytes) {
     return {
       valid: false,
       size,
-      message: `Payload size ${(size / 1024).toFixed(1)}KB exceeds maximum ${(maxSizeBytes / 1024).toFixed(1)}KB`
+      message: `Payload size ${(size / 1024).toFixed(1)}KB exceeds maximum ${(maxSizeBytes / 1024).toFixed(1)}KB`,
     };
   }
-  
+
   return { valid: true, size };
 }
 
@@ -275,13 +319,13 @@ export function sanitizeBookRequest(request: {
   const allText = [
     request.title || '',
     request.synopsis || '',
-    ...(request.characters || []).map(c => `${c.name || ''} ${c.backstory || ''}`)
+    ...(request.characters || []).map((c) => `${c.name || ''} ${c.backstory || ''}`),
   ].join(' ');
-  
+
   return sanitizeInput(allText, {
     redactPII: true,
     checkContentPolicy: true,
-    isChildrenContent: true
+    isChildrenContent: true,
   });
 }
 
@@ -293,7 +337,7 @@ export function sanitizeInterviewQuestion(question: string): SanitizationResult 
     redactPII: false, // Users might ask about character's personal details
     checkInjection: true,
     checkContentPolicy: true,
-    maxLength: 2000
+    maxLength: 2000,
   });
 }
 
@@ -306,7 +350,7 @@ export function sanitizeImagePrompt(prompt: string): SanitizationResult {
     checkInjection: false, // Image prompts don't have injection risk
     checkContentPolicy: true,
     maxLength: 1000,
-    isChildrenContent: true
+    isChildrenContent: true,
   });
 }
 
@@ -318,5 +362,5 @@ export default {
   validatePayloadSize,
   sanitizeBookRequest,
   sanitizeInterviewQuestion,
-  sanitizeImagePrompt
+  sanitizeImagePrompt,
 };

@@ -1,16 +1,17 @@
 /**
  * Language Selector Component
- * 
+ *
  * Full language selection panel with search, filter, and grid display
  */
 
-import React, { useState, useMemo } from 'react';
-import { Search, Globe, Check, RotateCcw } from 'lucide-react';
+import { Check, Globe, RotateCcw, Search } from 'lucide-react';
+import type React from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LanguageCard } from './LanguageCard';
-import { useLanguage } from '../../src/hooks/useLanguage';
 import { SUPPORTED_LANGUAGES, getLanguageByCode } from '../../src/config/languages';
+import { useLanguage } from '../../src/hooks/useLanguage';
 import type { LanguageCode } from '../../src/types/language.d';
+import { LanguageCard } from './LanguageCard';
 
 interface LanguageSelectorProps {
   onLanguageChange?: (code: LanguageCode) => void;
@@ -19,7 +20,7 @@ interface LanguageSelectorProps {
 
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   onLanguageChange,
-  showCompact = false
+  showCompact = false,
 }) => {
   const { t } = useTranslation('settings');
   const { currentLanguage, changeLanguage, isLoading } = useLanguage();
@@ -29,15 +30,17 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
   // Filter and search languages
   const filteredLanguages = useMemo(() => {
-    return SUPPORTED_LANGUAGES.filter(lang => {
+    return SUPPORTED_LANGUAGES.filter((lang) => {
       // Search filter
-      const matchesSearch = searchQuery === '' ||
+      const matchesSearch =
+        searchQuery === '' ||
         lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lang.englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lang.code.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Category filter
-      const matchesFilter = filter === 'all' ||
+      const matchesFilter =
+        filter === 'all' ||
         (filter === 'complete' && lang.completionPercentage >= 90) ||
         (filter === 'rtl' && lang.isRTL);
 
@@ -81,7 +84,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label={t('selectLanguage', 'Select language')}
         >
-          {SUPPORTED_LANGUAGES.map(lang => (
+          {SUPPORTED_LANGUAGES.map((lang) => (
             <option key={lang.code} value={lang.code}>
               {lang.flag} {lang.name}
             </option>
@@ -154,14 +157,15 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
         {/* Filter buttons */}
         <div className="flex gap-2">
-          {(['all', 'complete', 'rtl'] as const).map(filterOption => (
+          {(['all', 'complete', 'rtl'] as const).map((filterOption) => (
             <button
               key={filterOption}
               onClick={() => setFilter(filterOption)}
               className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
-                ${filter === filterOption
-                  ? 'bg-coral-burst text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ${
+                  filter === filterOption
+                    ? 'bg-coral-burst text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               aria-pressed={filter === filterOption ? 'true' : 'false'}
             >
@@ -175,7 +179,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
       {/* Language grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredLanguages.map(lang => (
+        {filteredLanguages.map((lang) => (
           <LanguageCard
             key={lang.code}
             language={lang}
@@ -190,9 +194,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       {filteredLanguages.length === 0 && (
         <div className="text-center py-12">
           <Globe className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">
-            {t('noLanguagesFound', 'No languages found')}
-          </p>
+          <p className="text-gray-500">{t('noLanguagesFound', 'No languages found')}</p>
           <button
             onClick={() => {
               setSearchQuery('');
@@ -208,18 +210,20 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       {/* Language stats */}
       <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
         <span>
-          {t('totalLanguages', '{{count}} languages available', { count: SUPPORTED_LANGUAGES.length })}
+          {t('totalLanguages', '{{count}} languages available', {
+            count: SUPPORTED_LANGUAGES.length,
+          })}
         </span>
         <span>•</span>
         <span>
           {t('completeLanguages', '{{count}} fully translated', {
-            count: SUPPORTED_LANGUAGES.filter(l => l.completionPercentage >= 90).length
+            count: SUPPORTED_LANGUAGES.filter((l) => l.completionPercentage >= 90).length,
           })}
         </span>
         <span>•</span>
         <span>
           {t('rtlSupport', '{{count}} RTL supported', {
-            count: SUPPORTED_LANGUAGES.filter(l => l.isRTL).length
+            count: SUPPORTED_LANGUAGES.filter((l) => l.isRTL).length,
           })}
         </span>
       </div>

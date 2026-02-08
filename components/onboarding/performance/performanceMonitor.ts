@@ -1,6 +1,6 @@
 /**
  * PERFORMANCE MONITORING
- * 
+ *
  * Track and optimize:
  * 1. Component render times
  * 2. Animation frame rates
@@ -32,21 +32,21 @@ const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV === 'devel
  */
 export function measureRender(componentName: string, startTime: number): void {
   if (!isDev) return;
-  
+
   const duration = performance.now() - startTime;
-  
+
   if (!metrics.renderTimes.has(componentName)) {
     metrics.renderTimes.set(componentName, []);
   }
-  
+
   const times = metrics.renderTimes.get(componentName)!;
   times.push(duration);
-  
+
   // Keep only last 100 measurements
   if (times.length > 100) {
     times.shift();
   }
-  
+
   // Warn if render is slow (> 16ms = drops below 60fps)
   if (duration > 16) {
     console.warn(`[Perf] Slow render: ${componentName} took ${duration.toFixed(2)}ms`);
@@ -70,34 +70,34 @@ let fpsMonitorActive = false;
 export function startFPSMonitor(): void {
   if (fpsMonitorActive) return;
   fpsMonitorActive = true;
-  
+
   const measureFPS = () => {
     fpsFrameCount++;
     const now = performance.now();
-    
+
     if (now - fpsLastTime >= 1000) {
-      const fps = Math.round(fpsFrameCount * 1000 / (now - fpsLastTime));
+      const fps = Math.round((fpsFrameCount * 1000) / (now - fpsLastTime));
       metrics.fps.push(fps);
-      
+
       // Keep only last 60 measurements
       if (metrics.fps.length > 60) {
         metrics.fps.shift();
       }
-      
+
       // Warn if FPS drops below 30
       if (fps < 30 && isDev) {
         console.warn(`[Perf] Low FPS detected: ${fps}`);
       }
-      
+
       fpsFrameCount = 0;
       fpsLastTime = now;
     }
-    
+
     if (fpsMonitorActive) {
       requestAnimationFrame(measureFPS);
     }
   };
-  
+
   requestAnimationFrame(measureFPS);
 }
 
@@ -112,18 +112,18 @@ let longTaskObserver: PerformanceObserver | null = null;
 
 export function startLongTaskMonitor(): void {
   if (longTaskObserver || !('PerformanceObserver' in window)) return;
-  
+
   try {
     longTaskObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         metrics.longTasks.push(entry.duration);
-        
+
         if (isDev && entry.duration > 50) {
           console.warn(`[Perf] Long task detected: ${entry.duration.toFixed(2)}ms`);
         }
       }
     });
-    
+
     longTaskObserver.observe({ entryTypes: ['longtask'] });
   } catch {
     // Long task API not supported
@@ -142,13 +142,13 @@ export function stopLongTaskMonitor(): void {
  */
 export function measureMemory(): void {
   if (!isDev) return;
-  
+
   // @ts-expect-error - memory API is non-standard
   const memory = performance.memory;
   if (memory) {
     const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
     metrics.memoryUsage.push(usedMB);
-    
+
     // Keep only last 60 measurements
     if (metrics.memoryUsage.length > 60) {
       metrics.memoryUsage.shift();
@@ -166,25 +166,26 @@ export function getPerformanceReport(): {
   avgMemoryMB: number;
 } {
   const avgRenderTimes: Record<string, number> = {};
-  
+
   metrics.renderTimes.forEach((times, name) => {
     if (times.length > 0) {
       avgRenderTimes[name] = times.reduce((a, b) => a + b, 0) / times.length;
     }
   });
-  
-  const avgFPS = metrics.fps.length > 0
-    ? metrics.fps.reduce((a, b) => a + b, 0) / metrics.fps.length
-    : 60;
-  
-  const avgLongTaskDuration = metrics.longTasks.length > 0
-    ? metrics.longTasks.reduce((a, b) => a + b, 0) / metrics.longTasks.length
-    : 0;
-  
-  const avgMemoryMB = metrics.memoryUsage.length > 0
-    ? metrics.memoryUsage.reduce((a, b) => a + b, 0) / metrics.memoryUsage.length
-    : 0;
-  
+
+  const avgFPS =
+    metrics.fps.length > 0 ? metrics.fps.reduce((a, b) => a + b, 0) / metrics.fps.length : 60;
+
+  const avgLongTaskDuration =
+    metrics.longTasks.length > 0
+      ? metrics.longTasks.reduce((a, b) => a + b, 0) / metrics.longTasks.length
+      : 0;
+
+  const avgMemoryMB =
+    metrics.memoryUsage.length > 0
+      ? metrics.memoryUsage.reduce((a, b) => a + b, 0) / metrics.memoryUsage.length
+      : 0;
+
   return {
     avgRenderTimes,
     avgFPS,
@@ -200,7 +201,7 @@ export function initPerformanceMonitoring(): void {
   if (isDev) {
     startFPSMonitor();
     startLongTaskMonitor();
-    
+
     // Log report every 10 seconds in dev
     setInterval(() => {
       const report = getPerformanceReport();

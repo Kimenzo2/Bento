@@ -1,42 +1,38 @@
-
-import React, { useState, useRef, useEffect } from 'react';
 import {
-  Settings,
-  User,
-  CreditCard,
-  Bell,
-  Shield,
-  LogOut,
-  Cpu,
-  Save,
-  Upload,
-  CheckCircle,
-  Image as ImageIcon,
-  Calendar,
-  Download,
   ArrowLeft,
-  FolderOpen,
-  Type,
-  Globe,
+  Bell,
   BookOpen,
-  Eye,
+  Calendar,
+  CheckCircle,
+  CreditCard,
   Database,
+  Eye,
+  FolderOpen,
+  Globe,
+  Image as ImageIcon,
   Info,
+  LogOut,
+  Save,
+  Shield,
   Smartphone,
-  Wrench
+  Type,
+  Upload,
+  User,
+  Wrench,
 } from 'lucide-react';
-import { AppMode, UserTier, SavedBook } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import ThemeSelector from './settings/ThemeSelector';
-import LibraryPanel from './settings/LibraryPanel';
+import { type UserProfile, getUserProfile } from '../services/profileService';
+import { AppMode, type SavedBook, UserTier } from '../types';
+import AboutSection from './settings/AboutSection';
+import AccessibilitySettings from './settings/AccessibilitySettings';
+import AdvancedSettings from './settings/AdvancedSettings';
+import DataManagement from './settings/DataManagement';
 import FontSelector from './settings/FontSelector';
 import { LanguageSelector } from './settings/LanguageSelector';
-import AccessibilitySettings from './settings/AccessibilitySettings';
-import DataManagement from './settings/DataManagement';
-import AboutSection from './settings/AboutSection';
+import LibraryPanel from './settings/LibraryPanel';
 import SessionManagement from './settings/SessionManagement';
-import AdvancedSettings from './settings/AdvancedSettings';
-import { getUserProfile, UserProfile } from '../services/profileService';
+import ThemeSelector from './settings/ThemeSelector';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
@@ -44,7 +40,11 @@ interface SettingsPanelProps {
   onViewBook?: (book: SavedBook) => void;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, userTier: propsUserTier }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({
+  onNavigate,
+  onViewBook,
+  userTier: propsUserTier,
+}) => {
   const { user } = useAuth();
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(true);
@@ -62,12 +62,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
   // Get actual user tier from profile, fallback to props or SPARK
   const actualUserTier = userProfile?.user_tier || propsUserTier || UserTier.SPARK;
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'privacy' | 'subscriptions' | 'themes' | 'library' | 'typography' | 'language' | 'accessibility' | 'data' | 'sessions' | 'advanced' | 'about'>('profile');
+  const [activeTab, setActiveTab] = useState<
+    | 'profile'
+    | 'notifications'
+    | 'privacy'
+    | 'subscriptions'
+    | 'themes'
+    | 'library'
+    | 'typography'
+    | 'language'
+    | 'accessibility'
+    | 'data'
+    | 'sessions'
+    | 'advanced'
+    | 'about'
+  >('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const memberSince = user?.created_at ? new Date(user.created_at).getFullYear() : new Date().getFullYear();
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).getFullYear()
+    : new Date().getFullYear();
 
   // Initialize avatar from localStorage or user's avatar
   const [avatarPreview, setAvatarPreview] = useState<string | null>(() => {
@@ -105,7 +121,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
       betaFeatures: false,
       experimentalUI: false,
       showPerformanceMetrics: false,
-      autoSave: true
+      autoSave: true,
     };
 
     try {
@@ -123,15 +139,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
   useEffect(() => {
     if (user) {
       // Get user's display name from metadata or email
-      const displayName = user.user_metadata?.full_name ||
+      const displayName =
+        user.user_metadata?.full_name ||
         user.user_metadata?.name ||
         user.email?.split('@')[0] ||
         'Creative Author';
 
       // Get user's avatar from metadata
-      const userAvatar = user.user_metadata?.avatar_url ||
-        user.user_metadata?.picture ||
-        null;
+      const userAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
 
       // Update form data with user info (preserve other saved settings)
       setFormData((prev: any) => ({
@@ -163,7 +178,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
       // Dispatch event for other components to react (e.g. orientation lock)
       window.dispatchEvent(new Event('genesis-settings-changed'));
     } catch (e) {
-      console.error("Failed to save settings to local storage", e);
+      console.error('Failed to save settings to local storage', e);
     }
 
     setTimeout(() => {
@@ -188,13 +203,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
     }
   };
 
-  const TabButton = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
+  const TabButton = ({
+    id,
+    icon: Icon,
+    label,
+  }: { id: typeof activeTab; icon: any; label: string }) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-[120px] md:min-w-0
-        ${activeTab === id
-          ? 'bg-white shadow-soft-sm text-coral-burst font-bold border border-peach-soft'
-          : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft'
+        ${
+          activeTab === id
+            ? 'bg-white shadow-soft-sm text-coral-burst font-bold border border-peach-soft'
+            : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft'
         }`}
     >
       <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
@@ -202,23 +222,39 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
     </button>
   );
 
-  const Toggle = ({ label, description, checked, onChange }: { label: string, description?: string, checked: boolean, onChange: (val: boolean) => void }) => (
-    <div className="flex items-center justify-between py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group" onClick={() => onChange(!checked)}>
+  const Toggle = ({
+    label,
+    description,
+    checked,
+    onChange,
+  }: {
+    label: string;
+    description?: string;
+    checked: boolean;
+    onChange: (val: boolean) => void;
+  }) => (
+    <div
+      className="flex items-center justify-between py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group"
+      onClick={() => onChange(!checked)}
+    >
       <div className="flex flex-col">
-        <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">{label}</span>
+        <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">
+          {label}
+        </span>
         {description && <span className="text-xs text-gray-500 mt-1">{description}</span>}
       </div>
       <button
         className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
       >
-        <div className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'}`}></div>
+        <div
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'}`}
+        ></div>
       </button>
     </div>
   );
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 pb-24 animate-fadeIn relative">
-
       {/* Success Toast */}
       {showSuccess && (
         <div className="fixed top-20 md:top-24 left-4 right-4 md:left-auto md:right-6 z-50 bg-white border border-green-200 text-green-700 px-4 md:px-6 py-3 md:py-4 rounded-xl shadow-soft-lg flex items-center gap-3 animate-fadeIn">
@@ -241,13 +277,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
           </button>
         )}
         <div>
-          <h1 className="font-heading font-bold text-2xl md:text-4xl text-charcoal-soft mb-1 md:mb-2">Settings</h1>
-          <p className="text-cocoa-light font-body text-sm md:text-base">Manage your profile, preferences, and system configuration.</p>
+          <h1 className="font-heading font-bold text-2xl md:text-4xl text-charcoal-soft mb-1 md:mb-2">
+            Settings
+          </h1>
+          <p className="text-cocoa-light font-body text-sm md:text-base">
+            Manage your profile, preferences, and system configuration.
+          </p>
         </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-
         {/* Sidebar Menu - Horizontal scroll on mobile, vertical on desktop */}
         <div className="w-full md:w-64">
           <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
@@ -279,16 +318,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
         {/* Main Content */}
         <div className="flex-1 bg-white rounded-2xl md:rounded-3xl shadow-soft-lg border border-white/50 p-4 md:p-8 min-h-[400px] md:min-h-[500px] relative">
-
           {/* Content Area */}
           <div className="space-y-6">
-
             {activeTab === 'profile' && (
               <div className="animate-fadeIn space-y-6 md:space-y-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-lg text-white relative group overflow-hidden flex-shrink-0">
                     {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover scale-110" />
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar"
+                        className="w-full h-full object-cover scale-110"
+                      />
                     ) : (
                       <User className="w-8 h-8 md:w-10 md:h-10" />
                     )}
@@ -307,24 +348,35 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                     />
                   </div>
                   <div className="text-center sm:text-left">
-                    <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft">{formData.displayName}</h3>
+                    <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft">
+                      {formData.displayName}
+                    </h3>
                     <p className="text-cocoa-light text-sm md:text-base">
                       {isLoadingProfile ? (
                         <span className="animate-pulse">Loading...</span>
                       ) : (
                         <>
-                          <span className={`font-bold ${actualUserTier === UserTier.SPARK ? 'text-gray-600' :
-                            actualUserTier === UserTier.CREATOR ? 'text-blue-600' :
-                              actualUserTier === UserTier.STUDIO ? 'text-coral-burst' :
-                                'text-purple-600'
-                            }`}>
+                          <span
+                            className={`font-bold ${
+                              actualUserTier === UserTier.SPARK
+                                ? 'text-gray-600'
+                                : actualUserTier === UserTier.CREATOR
+                                  ? 'text-blue-600'
+                                  : actualUserTier === UserTier.STUDIO
+                                    ? 'text-coral-burst'
+                                    : 'text-purple-600'
+                            }`}
+                          >
                             {actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase()}
                           </span>
                           {' Plan • Member since ' + memberSince}
                         </>
                       )}
                     </p>
-                    <button onClick={handleAvatarClick} className="mt-2 text-sm font-bold text-coral-burst hover:underline flex items-center gap-1 mx-auto sm:mx-0 touch-manipulation">
+                    <button
+                      onClick={handleAvatarClick}
+                      className="mt-2 text-sm font-bold text-coral-burst hover:underline flex items-center gap-1 mx-auto sm:mx-0 touch-manipulation"
+                    >
                       <ImageIcon className="w-3 h-3" /> Change Avatar
                     </button>
                   </div>
@@ -332,7 +384,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                 <div className="h-px bg-peach-soft/50 w-full"></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">Display Name</label>
+                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                      Display Name
+                    </label>
                     <input
                       type="text"
                       value={formData.displayName}
@@ -341,7 +395,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">Email Address</label>
+                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                      Email Address
+                    </label>
                     <input
                       type="email"
                       value={formData.email}
@@ -351,7 +407,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-cocoa-light uppercase">Bio / Author Note</label>
+                  <label className="text-xs font-bold text-cocoa-light uppercase">
+                    Bio / Author Note
+                  </label>
                   <textarea
                     value={formData.bio}
                     onChange={(e) => handleChange('bio', e.target.value)}
@@ -359,7 +417,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-cocoa-light uppercase">Default Art Style</label>
+                  <label className="text-xs font-bold text-cocoa-light uppercase">
+                    Default Art Style
+                  </label>
                   <select
                     value={formData.defaultStyle}
                     onChange={(e) => handleChange('defaultStyle', e.target.value)}
@@ -379,8 +439,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">Creativity (Temperature)</label>
-                    <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded">{formData.temperature}</span>
+                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                      Creativity (Temperature)
+                    </label>
+                    <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded">
+                      {formData.temperature}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -388,7 +452,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                     max="1"
                     step="0.1"
                     value={formData.temperature}
-                    onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
+                    onChange={(e) => handleChange('temperature', Number.parseFloat(e.target.value))}
                     className="w-full accent-coral-burst h-2 bg-peach-soft rounded-lg appearance-none cursor-pointer hover:bg-peach-light transition-colors"
                   />
                   <div className="flex justify-between text-xs text-cocoa-light">
@@ -402,7 +466,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
             {activeTab === 'notifications' && (
               <div className="animate-fadeIn space-y-2">
-                <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">Email Preferences</h3>
+                <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
+                  Email Preferences
+                </h3>
                 <Toggle
                   label="Generation Complete Alerts"
                   checked={formData.emailUpdates}
@@ -418,7 +484,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
             {activeTab === 'privacy' && (
               <div className="animate-fadeIn space-y-2">
-                <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">Privacy & Data</h3>
+                <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
+                  Privacy & Data
+                </h3>
                 <Toggle
                   label="Public Profile Visibility"
                   checked={formData.publicProfile}
@@ -432,7 +500,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                 <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100">
                   <h4 className="text-sm font-bold text-red-800 mb-2">Danger Zone</h4>
                   <button
-                    onClick={() => alert('Account deletion requested. Please contact support to finalize.')}
+                    onClick={() =>
+                      alert('Account deletion requested. Please contact support to finalize.')
+                    }
                     className="text-xs text-red-600 hover:underline font-bold hover:text-red-800 transition-colors"
                   >
                     Delete Account & All Data
@@ -444,7 +514,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
             {activeTab === 'themes' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">Display Settings</h3>
+                  <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
+                    Display Settings
+                  </h3>
                   <Toggle
                     label="Auto Rotate Screen"
                     description="Allow the app to rotate when you turn your device. Keep off for vertical-only mode."
@@ -456,22 +528,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
               </div>
             )}
 
-            {activeTab === 'typography' && (
-              <FontSelector />
-            )}
+            {activeTab === 'typography' && <FontSelector />}
 
-            {activeTab === 'language' && (
-              <LanguageSelector />
-            )}
+            {activeTab === 'language' && <LanguageSelector />}
 
-            {activeTab === 'library' && (
-              <LibraryPanel onViewBook={onViewBook} />
-            )}
+            {activeTab === 'library' && <LibraryPanel onViewBook={onViewBook} />}
 
             {activeTab === 'subscriptions' && (
               <div className="animate-fadeIn space-y-6">
                 <div>
-                  <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft mb-2">Current Plan</h3>
+                  <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft mb-2">
+                    Current Plan
+                  </h3>
                   <p className="text-cocoa-light text-sm">Manage your subscription and billing</p>
                 </div>
 
@@ -486,14 +554,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                       <div>
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center">
-                            <span className="text-white font-heading font-bold text-base md:text-lg">G</span>
+                            <span className="text-white font-heading font-bold text-base md:text-lg">
+                              G
+                            </span>
                           </div>
-                          <span className="text-white/60 text-xs md:text-sm font-medium">Genesis</span>
+                          <span className="text-white/60 text-xs md:text-sm font-medium">
+                            Genesis
+                          </span>
                         </div>
-                        <h4 className="font-heading font-bold text-2xl md:text-3xl text-white mb-1">Spark Plan</h4>
+                        <h4 className="font-heading font-bold text-2xl md:text-3xl text-white mb-1">
+                          Spark Plan
+                        </h4>
                         <p className="text-white/70 text-xs md:text-sm">Free Forever</p>
                       </div>
-                      <span className="px-2.5 md:px-3 py-1 md:py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-full border border-green-500/30">Active</span>
+                      <span className="px-2.5 md:px-3 py-1 md:py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-full border border-green-500/30">
+                        Active
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 md:mb-6">
@@ -529,8 +605,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
                 {/* Upgrade CTA */}
                 <div className="bg-gradient-to-r from-coral-burst to-gold-sunshine p-5 md:p-6 rounded-2xl text-white">
-                  <h4 className="font-heading font-bold text-lg md:text-xl mb-2">Unlock Premium Features</h4>
-                  <p className="text-sm text-white/90 mb-4">Upgrade to Creator (10 ebooks/month) or Visionary (unlimited) for advanced AI and priority support</p>
+                  <h4 className="font-heading font-bold text-lg md:text-xl mb-2">
+                    Unlock Premium Features
+                  </h4>
+                  <p className="text-sm text-white/90 mb-4">
+                    Upgrade to Creator (10 ebooks/month) or Visionary (unlimited) for advanced AI
+                    and priority support
+                  </p>
                   <button
                     onClick={() => onNavigate?.(AppMode.PRICING)}
                     className="px-6 py-3 bg-white text-coral-burst rounded-full font-bold hover:scale-105 transition-transform shadow-lg touch-manipulation"
@@ -541,7 +622,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
 
                 {/* Billing History */}
                 <div>
-                  <h4 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-4">Billing History</h4>
+                  <h4 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-4">
+                    Billing History
+                  </h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-4 bg-cream-base rounded-xl">
                       <div className="flex items-center gap-3">
@@ -551,7 +634,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
                           <p className="text-xs text-cocoa-light">Free tier - No charges</p>
                         </div>
                       </div>
-                      <span className="text-base md:text-lg font-bold text-charcoal-soft">$0.00</span>
+                      <span className="text-base md:text-lg font-bold text-charcoal-soft">
+                        $0.00
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -563,27 +648,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onNavigate, onViewBook, u
             )}
 
             {activeTab === 'data' && (
-              <DataManagement onShowSuccess={(msg) => {
-                setShowSuccess(true);
-                setTimeout(() => setShowSuccess(false), 3000);
-              }} />
+              <DataManagement
+                onShowSuccess={(msg) => {
+                  setShowSuccess(true);
+                  setTimeout(() => setShowSuccess(false), 3000);
+                }}
+              />
             )}
 
             {activeTab === 'sessions' && (
-              <SessionManagement onShowSuccess={(msg) => {
-                setShowSuccess(true);
-                setTimeout(() => setShowSuccess(false), 3000);
-              }} />
+              <SessionManagement
+                onShowSuccess={(msg) => {
+                  setShowSuccess(true);
+                  setTimeout(() => setShowSuccess(false), 3000);
+                }}
+              />
             )}
 
             {activeTab === 'advanced' && (
               <AdvancedSettings settings={formData} onUpdate={setFormData} />
             )}
 
-            {activeTab === 'about' && (
-              <AboutSection />
-            )}
-
+            {activeTab === 'about' && <AboutSection />}
           </div>
 
           {/* Footer */}

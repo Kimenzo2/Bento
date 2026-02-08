@@ -1,7 +1,7 @@
 import js from '@eslint/js';
-import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -28,13 +28,10 @@ export default tseslint.config(
     rules: {
       // React Hooks rules
       ...reactHooks.configs.recommended.rules,
-      
+
       // React Refresh for HMR
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-      
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+
       // TypeScript specific rules
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -50,7 +47,7 @@ export default tseslint.config(
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
       '@typescript-eslint/no-import-type-side-effects': 'error',
-      
+
       // General best practices
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
@@ -58,7 +55,7 @@ export default tseslint.config(
       'object-shorthand': 'error',
       'prefer-template': 'warn',
       'prefer-arrow-callback': 'warn',
-      
+
       // Import organization
       'sort-imports': [
         'warn',
@@ -69,5 +66,5 @@ export default tseslint.config(
         },
       ],
     },
-  },
+  }
 );

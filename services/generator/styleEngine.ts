@@ -1,6 +1,6 @@
-import { generateStructuredContent, generateIllustration } from '../geminiService';
-import { EbookRequest, StyleGuide, ColorPalette } from '../../types/generator';
 import { Type } from '@google/genai';
+import type { ColorPalette, EbookRequest, StyleGuide } from '../../types/generator';
+import { generateStructuredContent } from '../geminiService';
 
 const SYSTEM_INSTRUCTION_STYLE_ARCHITECT = `
 You are the "Lead Art Director" for a premium ebook studio.
@@ -16,7 +16,7 @@ Focus on:
 `;
 
 export const generateStyleGuide = async (request: EbookRequest): Promise<StyleGuide> => {
-    const prompt = `
+  const prompt = `
     Create a comprehensive Style Guide for an ebook with these requirements:
     Topic: ${request.topic}
     Style: ${request.style}
@@ -53,104 +53,104 @@ export const generateStyleGuide = async (request: EbookRequest): Promise<StyleGu
        "No gradients in backgrounds", "Character outlines must be 2px")
     `;
 
-    const schema = {
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      artStyle: {
         type: Type.OBJECT,
         properties: {
-            artStyle: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    description: { type: Type.STRING },
-                    technicalSpecs: {
-                        type: Type.OBJECT,
-                        properties: {
-                            lineWeight: { type: Type.STRING },
-                            renderingTechnique: { type: Type.STRING },
-                            textureApproach: { type: Type.STRING },
-                            lightingModel: { type: Type.STRING }
-                        }
-                    }
-                }
+          name: { type: Type.STRING },
+          description: { type: Type.STRING },
+          technicalSpecs: {
+            type: Type.OBJECT,
+            properties: {
+              lineWeight: { type: Type.STRING },
+              renderingTechnique: { type: Type.STRING },
+              textureApproach: { type: Type.STRING },
+              lightingModel: { type: Type.STRING },
             },
-            colorPalette: {
-                type: Type.OBJECT,
-                properties: {
-                    primary: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    accent: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    neutral: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    special: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    background: { type: Type.STRING },
-                    text: { type: Type.STRING }
-                }
-            },
-            styleEnforcementPrompt: { type: Type.STRING },
-            consistencyRules: { type: Type.ARRAY, items: { type: Type.STRING } }
-        }
+          },
+        },
+      },
+      colorPalette: {
+        type: Type.OBJECT,
+        properties: {
+          primary: { type: Type.ARRAY, items: { type: Type.STRING } },
+          accent: { type: Type.ARRAY, items: { type: Type.STRING } },
+          neutral: { type: Type.ARRAY, items: { type: Type.STRING } },
+          special: { type: Type.ARRAY, items: { type: Type.STRING } },
+          background: { type: Type.STRING },
+          text: { type: Type.STRING },
+        },
+      },
+      styleEnforcementPrompt: { type: Type.STRING },
+      consistencyRules: { type: Type.ARRAY, items: { type: Type.STRING } },
+    },
+  };
+
+  try {
+    const result = await generateStructuredContent<{
+      artStyle: StyleGuide['artStyle'];
+      colorPalette: ColorPalette;
+      styleEnforcementPrompt: string;
+      consistencyRules: string[];
+    }>(prompt, schema, SYSTEM_INSTRUCTION_STYLE_ARCHITECT);
+
+    return {
+      id: `style_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      artStyle: result.artStyle,
+      colorPalette: result.colorPalette,
+      styleEnforcementPrompt: result.styleEnforcementPrompt,
+      consistencyRules: result.consistencyRules,
     };
-
-    try {
-        const result = await generateStructuredContent<{
-            artStyle: StyleGuide['artStyle'];
-            colorPalette: ColorPalette;
-            styleEnforcementPrompt: string;
-            consistencyRules: string[];
-        }>(prompt, schema, SYSTEM_INSTRUCTION_STYLE_ARCHITECT);
-
-        return {
-            id: `style_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            artStyle: result.artStyle,
-            colorPalette: result.colorPalette,
-            styleEnforcementPrompt: result.styleEnforcementPrompt,
-            consistencyRules: result.consistencyRules
-        };
-    } catch (error) {
-        console.error("Failed to generate style guide:", error);
-        throw error;
-    }
+  } catch (error) {
+    console.error('Failed to generate style guide:', error);
+    throw error;
+  }
 };
 
 /**
  * Creates a style-enforced image prompt by combining the base prompt with style guide rules
  */
 export const createStyleEnforcedPrompt = (
-    basePrompt: string,
-    styleGuide: StyleGuide,
-    previousPageImageUrl?: string
+  basePrompt: string,
+  styleGuide: StyleGuide,
+  previousPageImageUrl?: string
 ): string => {
-    let enforcedPrompt = basePrompt;
+  let enforcedPrompt = basePrompt;
 
-    // Add style enforcement
-    enforcedPrompt += `\n\n===== STYLE CONSISTENCY REQUIREMENTS =====\n`;
-    enforcedPrompt += styleGuide.styleEnforcementPrompt;
+  // Add style enforcement
+  enforcedPrompt += `\n\n===== STYLE CONSISTENCY REQUIREMENTS =====\n`;
+  enforcedPrompt += styleGuide.styleEnforcementPrompt;
 
-    // Add technical specs
-    enforcedPrompt += `\n\nTECHNICAL SPECIFICATIONS:\n`;
-    enforcedPrompt += `- Line Weight: ${styleGuide.artStyle.technicalSpecs.lineWeight}\n`;
-    enforcedPrompt += `- Rendering: ${styleGuide.artStyle.technicalSpecs.renderingTechnique}\n`;
-    enforcedPrompt += `- Textures: ${styleGuide.artStyle.technicalSpecs.textureApproach}\n`;
-    enforcedPrompt += `- Lighting: ${styleGuide.artStyle.technicalSpecs.lightingModel}\n`;
+  // Add technical specs
+  enforcedPrompt += `\n\nTECHNICAL SPECIFICATIONS:\n`;
+  enforcedPrompt += `- Line Weight: ${styleGuide.artStyle.technicalSpecs.lineWeight}\n`;
+  enforcedPrompt += `- Rendering: ${styleGuide.artStyle.technicalSpecs.renderingTechnique}\n`;
+  enforcedPrompt += `- Textures: ${styleGuide.artStyle.technicalSpecs.textureApproach}\n`;
+  enforcedPrompt += `- Lighting: ${styleGuide.artStyle.technicalSpecs.lightingModel}\n`;
 
-    // Add color palette
-    enforcedPrompt += `\nCOLOR PALETTE (USE ONLY THESE):\n`;
-    enforcedPrompt += `- Primary: ${styleGuide.colorPalette.primary.join(', ')}\n`;
-    enforcedPrompt += `- Accent: ${styleGuide.colorPalette.accent.join(', ')}\n`;
-    enforcedPrompt += `- Neutral: ${styleGuide.colorPalette.neutral.join(', ')}\n`;
+  // Add color palette
+  enforcedPrompt += `\nCOLOR PALETTE (USE ONLY THESE):\n`;
+  enforcedPrompt += `- Primary: ${styleGuide.colorPalette.primary.join(', ')}\n`;
+  enforcedPrompt += `- Accent: ${styleGuide.colorPalette.accent.join(', ')}\n`;
+  enforcedPrompt += `- Neutral: ${styleGuide.colorPalette.neutral.join(', ')}\n`;
 
-    // Add consistency rules
-    enforcedPrompt += `\nCONSISTENCY RULES:\n`;
-    styleGuide.consistencyRules.forEach(rule => {
-        enforcedPrompt += `- ${rule}\n`;
-    });
+  // Add consistency rules
+  enforcedPrompt += `\nCONSISTENCY RULES:\n`;
+  styleGuide.consistencyRules.forEach((rule) => {
+    enforcedPrompt += `- ${rule}\n`;
+  });
 
-    // Add reference to previous page if available
-    if (previousPageImageUrl) {
-        enforcedPrompt += `\n===== CRITICAL =====\n`;
-        enforcedPrompt += `MATCH THE EXACT STYLE OF THE PREVIOUS PAGE.\n`;
-        enforcedPrompt += `Reference Image: ${previousPageImageUrl}\n`;
-        enforcedPrompt += `Maintain IDENTICAL rendering technique, lighting, and visual quality.\n`;
-    }
+  // Add reference to previous page if available
+  if (previousPageImageUrl) {
+    enforcedPrompt += `\n===== CRITICAL =====\n`;
+    enforcedPrompt += `MATCH THE EXACT STYLE OF THE PREVIOUS PAGE.\n`;
+    enforcedPrompt += `Reference Image: ${previousPageImageUrl}\n`;
+    enforcedPrompt += `Maintain IDENTICAL rendering technique, lighting, and visual quality.\n`;
+  }
 
-    enforcedPrompt += `\nQuality: Publication-ready, 4K resolution, professional illustration.`;
+  enforcedPrompt += `\nQuality: Publication-ready, 4K resolution, professional illustration.`;
 
-    return enforcedPrompt;
+  return enforcedPrompt;
 };

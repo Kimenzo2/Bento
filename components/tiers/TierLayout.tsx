@@ -6,9 +6,6 @@ import { FontProvider } from '../../src/contexts/FontContext';
 import { LanguageProvider } from '../../src/contexts/LanguageContext';
 import ErrorBoundary from '../ErrorBoundary';
 
-// Import responsive viewport utilities
-import '../../styles/onboarding-responsive.css';
-
 /**
  * TierLayout
  * 

@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
-import { render, RenderOptions } from '@testing-library/react';
-import { ReactElement, ReactNode } from 'react';
+import { type RenderOptions, render } from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
 
 /**
  * Custom render function that wraps components with providers
@@ -41,6 +41,5 @@ export const waitForAsync = (ms = 0): Promise<void> =>
 /**
  * Create a mock function with proper typing
  */
-export const createMockFn = <T extends (...args: unknown[]) => unknown>(
-  implementation?: T
-) => vi.fn(implementation);
+export const createMockFn = <T extends (...args: unknown[]) => unknown>(implementation?: T) =>
+  vi.fn(implementation);

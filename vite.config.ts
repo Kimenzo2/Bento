@@ -1,23 +1,50 @@
-import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react-swc'
-import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
-import { resolve } from 'path'
+import { resolve } from 'path';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig, loadEnv } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
-  
+
   return {
     plugins: [
       // React with SWC for faster builds (20x faster than Babel)
       react(),
       // Tailwind CSS v4 Vite plugin
       tailwindcss(),
+
+      // Sentry source maps upload (production only)
+      isProduction &&
+        sentryVitePlugin({
+          org: env.SENTRY_ORG || 'student-40v',
+          project: env.SENTRY_PROJECT || 'javascript-react',
+          authToken: env.SENTRY_AUTH_TOKEN,
+
+          // Release configuration
+          release: {
+            name: env.VERCEL_GIT_COMMIT_SHA || `genesis-${Date.now()}`,
+            deploy: {
+              env: env.VERCEL_ENV || 'production',
+            },
+          },
+
+          // Source map settings
+          sourcemaps: {
+            assets: './dist/**',
+            filesToDeleteAfterUpload: './dist/**/*.map',
+          },
+
+          // Telemetry
+          telemetry: false,
+        }),
+
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
-          enabled: true
+          enabled: true,
         },
         includeAssets: ['favicon.ico', 'genesis-icon.jpg', 'robots.txt'],
         workbox: {
@@ -30,12 +57,12 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'google-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
+                  statuses: [0, 200],
+                },
+              },
             },
             {
               urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
@@ -44,12 +71,12 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'gstatic-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
+                  statuses: [0, 200],
+                },
+              },
             },
             {
               urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
@@ -58,19 +85,20 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'avatar-cache',
                 expiration: {
                   maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
                 },
                 cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            }
-          ]
+                  statuses: [0, 200],
+                },
+              },
+            },
+          ],
         },
         manifest: {
           name: 'Genesis - AI Visual Storytelling',
           short_name: 'Genesis',
-          description: 'AI-powered visual storytelling and collaboration platform. Create stunning ebooks, visual stories, and collaborative art.',
+          description:
+            'AI-powered visual storytelling and collaboration platform. Create stunning ebooks, visual stories, and collaborative art.',
           theme_color: '#FF9B71',
           background_color: '#FFF8F3',
           display: 'standalone',
@@ -83,20 +111,20 @@ export default defineConfig(({ mode }) => {
               src: 'genesis-icon.jpg',
               sizes: '192x192',
               type: 'image/jpeg',
-              purpose: 'any'
+              purpose: 'any',
             },
             {
               src: 'genesis-icon.jpg',
               sizes: '512x512',
               type: 'image/jpeg',
-              purpose: 'any'
+              purpose: 'any',
             },
             {
               src: 'genesis-icon.jpg',
               sizes: '512x512',
               type: 'image/jpeg',
-              purpose: 'maskable'
-            }
+              purpose: 'maskable',
+            },
           ],
           screenshots: [
             {
@@ -104,15 +132,15 @@ export default defineConfig(({ mode }) => {
               sizes: '512x512',
               type: 'image/jpeg',
               form_factor: 'wide',
-              label: 'Genesis Homepage'
+              label: 'Genesis Homepage',
             },
             {
               src: 'genesis-icon.jpg',
               sizes: '512x512',
               type: 'image/jpeg',
               form_factor: 'narrow',
-              label: 'Genesis Mobile'
-            }
+              label: 'Genesis Mobile',
+            },
           ],
           shortcuts: [
             {
@@ -120,18 +148,18 @@ export default defineConfig(({ mode }) => {
               short_name: 'Create',
               description: 'Start creating a new story',
               url: '/?action=create',
-              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }]
+              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }],
             },
             {
               name: 'Visual Studio',
               short_name: 'Studio',
               description: 'Open Visual Studio',
               url: '/?view=studio',
-              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }]
-            }
-          ]
-        }
-      })
+              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }],
+            },
+          ],
+        },
+      }),
     ],
     // Path aliases matching tsconfig.json
     resolve: {
@@ -150,11 +178,11 @@ export default defineConfig(({ mode }) => {
       drop: isProduction ? ['debugger'] : [],
     },
     optimizeDeps: {
-      include: ['bytez.js', 'react', 'react-dom', 'react-router-dom']
+      include: ['bytez.js', 'react', 'react-dom', 'react-router-dom'],
     },
     build: {
       commonjsOptions: {
-        include: [/bytez\.js/, /node_modules/]
+        include: [/bytez\.js/, /node_modules/],
       },
       // Modern ES2022 target (widely supported and compatible with Lightning CSS)
       target: 'esnext',
@@ -164,9 +192,9 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-utils': ['@supabase/supabase-js', 'i18next', 'react-i18next'],
-            'vendor-ui': ['framer-motion', 'lucide-react']
-          }
-        }
+            'vendor-ui': ['framer-motion', 'lucide-react'],
+          },
+        },
       },
       // Generate source maps for error tracking
       sourcemap: isProduction ? 'hidden' : true,
@@ -176,7 +204,7 @@ export default defineConfig(({ mode }) => {
     // Performance optimizations
     server: {
       hmr: {
-        overlay: true
+        overlay: true,
       },
       // Warm up frequently used files
       warmup: {
@@ -184,13 +212,13 @@ export default defineConfig(({ mode }) => {
           './App.tsx',
           './components/Navigation.tsx',
           './components/CreationCanvas.tsx',
-        ]
-      }
+        ],
+      },
     },
     // Preview server config
     preview: {
       port: 4173,
       strictPort: true,
-    }
-  }
-})
+    },
+  };
+});

@@ -1,9 +1,9 @@
 <div align="center">
-<img width="1200" height="475" alt="Genesis Visual Learning Platform" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+<img width="1200" height="475" alt="Genesis AI Visual Learning Platform" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 
-# 🌟 GENESIS: The Visual Learning Revolution 🌟
+# 🌟 GENESIS: AI-Powered Visual Learning Revolution 🌟
 
-### *More Than Ebooks. This is the Future of Interactive Storytelling.*
+### *Learn Anything. See Everything. AI Generates Personalized Video Lessons On-Demand.*
 
 [![Genesis Version](https://img.shields.io/badge/Genesis-v2.0-purple?style=for-the-badge&logo=sparkles)](https://genesis.ai)
 [![License](https://img.shields.io/badge/License-Commercial-blue?style=for-the-badge)](LICENSE)
@@ -13,114 +13,244 @@
 
 ---
 
-## 🚀 Unleash Your Imagination
+## 🎯 THE VISION
 
-**Genesis** is not just another "ebook generator." It is a **Vast, Majestic Visual Learning Platform** designed to transform simple ideas into immersive, interactive educational experiences. We combine state-of-the-art Generative AI with deep pedagogical tools to create something entirely new.
+> **"I want to learn Digestion"**
+> 
+> Genesis instantly generates a personalized AI video with lifelike characters, animations, and narration explaining the digestive system - tailored to YOUR learning level.
 
-Whether you are a solo creator, a professional educator, or a media empire, Genesis provides the tools to build worlds, not just pages.
+**Genesis is NOT an ebook platform.** It is an **AI Visual Learning Edutainment Platform** that transforms how humans learn by generating personalized educational video content on ANY topic, in ANY language, for ANY learning style.
+
+### What Makes Genesis Revolutionary:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    USER PROMPT                               │
+│            "Teach me about Black Holes"                      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                 AI ORCHESTRATION ENGINE                      │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+│  │ Script AI   │→ │ Visual AI    │→ │ Avatar/Character  │   │
+│  │ (Gemini)    │  │ (Runway/Pika)│  │ (Synthesia/HeyGen)│   │
+│  └─────────────┘  └──────────────┘  └───────────────────┘   │
+│         ↓                 ↓                  ↓               │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │              AI VOICE SYNTHESIS                          │ │
+│  │              (ElevenLabs - 29 Languages)                 │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│              PERSONALIZED VIDEO LESSON                       │
+│     🎬 Streaming via Mux | 📊 Analytics | 🌍 50+ Languages   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## ✨ Majestic Features
+## 🚀 CORE CAPABILITIES
 
-### 🎨 **Living Storyboards**
-Forget static text. Genesis creates **Living Storyboards** where characters breathe, scenes evolve, and narratives come to life.
-- **Dynamic Visuals**: Multiple premium illustration styles from "Pixar-esque" to "Watercolor Dream".
-- **Smart Layouts**: AI automatically composes your pages for maximum visual impact.
+### 🎬 **AI Video Generation**
+Genesis creates complete educational videos from simple text prompts.
+- **AI Script Writing**: Gemini Pro generates pedagogically-optimized lesson scripts
+- **AI Scene Generation**: Runway ML / Pika Labs create stunning visual scenes
+- **AI Characters**: Synthesia / HeyGen generate lifelike teaching avatars
+- **AI Voice**: ElevenLabs provides natural narration in 29+ languages
 
-### 🗣️ **Interactive Voice Tutor**
-Learning is a conversation. Our **AI Voice Tutor** doesn't just read; it teaches.
-- **Real-time Interaction**: Ask questions, get answers, and explore concepts deeply.
-- **Character Personas**: Choose from playful, nurturing, or challenging teaching styles.
-- **Web Speech API Integration**: Seamless, browser-native voice synthesis.
+### 🧠 **Adaptive Learning Intelligence**
+Every learner is unique. Genesis adapts.
+- **Learning Level Detection**: Beginner, Intermediate, Advanced, Expert
+- **Learning Style Matching**: Visual, Auditory, Kinesthetic content adaptation
+- **Knowledge Gap Analysis**: AI identifies what you don't know and fills the gaps
+- **Progress Tracking**: Spaced repetition and mastery tracking
 
-### 🎮 **Gamified Mastery**
-Turn creation into a game. Stay motivated with our deep gamification system.
-- **XP & Leveling**: Rise from a *Novice Author* to a *Literary Legend*.
-- **Streaks**: Maintain your daily creative flow.
-- **Badges**: Earn recognition for your milestones.
+### 🗣️ **Interactive AI Tutor**
+Learning is a conversation, not a lecture.
+- **Real-time Q&A**: Ask questions mid-lesson, get instant video responses
+- **Character Personas**: Choose from 20+ AI teacher personalities
+- **Multi-language Support**: Learn in your native language
+- **Voice Interaction**: Speak your questions, hear the answers
 
-### 🏢 **Professional Studio Tools**
-For those building a business, Genesis is a powerhouse.
-- **Style Presets**: Save and reuse your favorite artistic prompts.
-- **Video Exports**: *[Coming Soon]* Convert your books into animated video content.
-- **Brand Hub**: *[Coming Soon]* Maintain consistent character consistency.
+### 🎮 **Gamified Mastery Journey**
+Education meets entertainment.
+- **XP & Leveling**: Progress from *Curious Beginner* to *Knowledge Master*
+- **Learning Streaks**: Build daily learning habits
+- **Achievement Badges**: Celebrate topic mastery
+- **Leaderboards**: Compete with friends and global learners
+
+### 📚 **Content Library**
+Not just on-demand - build your knowledge library.
+- **Save Generated Lessons**: Keep your personalized videos forever
+- **Curated Learning Paths**: AI-suggested topic sequences
+- **Community Contributions**: Share and discover lessons from other learners
+- **Offline Access**: Download lessons for learning anywhere
 
 ---
 
-## 💎 Power Tiers
+## ✨ USE CASES
 
-Choose the power level that suits your ambition.
+| Who | How They Use Genesis |
+|-----|---------------------|
+| **Students (K-12)** | "Explain photosynthesis like I'm 10" → Fun animated video |
+| **University Students** | "Teach me quantum entanglement" → Detailed scientific visualization |
+| **Professionals** | "How does blockchain consensus work?" → Technical deep-dive |
+| **Language Learners** | "Teach me Spanish greetings" → Interactive conversation practice |
+| **Parents** | "Why is the sky blue? (for my 5-year-old)" → Child-friendly animation |
+| **Curious Adults** | "How do vaccines work?" → Clear medical explanation |
+| **Educators** | Generate custom lesson content for their curriculum |
+| **Corporate Training** | On-demand employee education modules |
+
+---
+
+## 💎 POWER TIERS
 
 | Feature | **⚡ SPARK** (Free) | **⭐ CREATOR** ($19.99/mo) | **💼 STUDIO** ($59.99/mo) | **👑 EMPIRE** ($199.99/mo) |
 | :--- | :---: | :---: | :---: | :---: |
-| **Ideal For** | Hobbyists & Dreamers | Serious Authors | Agencies & Schools | Media Moguls |
-| **Monthly Books** | 3 Books | 30 Books | **Unlimited** | **Unlimited** |
-| **Pages Per Book** | 4 Pages | 12 Pages | 500 Pages | **Unlimited** |
-| **Styles** | Basic Selection | Premium Selection | **All Styles** | **Custom Models** |
-| **Commercial Rights** | ❌ | ✅ | ✅ | ✅ |
-| **Watermarks** | Yes | None | None | None |
-| **Team Seats** | 1 | 1 | 5 Seats | **Unlimited** |
-| **Special Features** | Community Support | Priority Rendering | Video Exports*, Brand Hub* | API Access, Dedicated Manager |
-
-> *Save ~17% with annual billing!*
-> *\* Features marked with asterisk are in active development.*
+| **Ideal For** | Curious Learners | Dedicated Students | Educators & Schools | Enterprises |
+| **Monthly Video Minutes** | 30 mins | 300 mins | **Unlimited** | **Unlimited** |
+| **Video Quality** | 720p | 1080p | 4K | 4K + Custom Branding |
+| **AI Characters** | 3 Basic | 10 Premium | **All Characters** | **Custom Avatars** |
+| **Languages** | 5 | 15 | **All 50+** | **All + Custom** |
+| **Download Videos** | ❌ | ✅ | ✅ | ✅ |
+| **Team/Class Access** | 1 | 1 | 30 Seats | **Unlimited** |
+| **API Access** | ❌ | ❌ | ✅ | ✅ Full API |
+| **LMS Integration** | ❌ | ❌ | ✅ | ✅ + SSO |
 
 ---
 
-## 🛠️ The Tech Stack of Gods
+## 🛠️ TECHNOLOGY ARCHITECTURE
 
-Built with the most advanced technologies to ensure speed, scalability, and beauty.
+### AI & Machine Learning
+- **Script Generation**: Google Gemini Pro (multimodal intelligence)
+- **Video Generation**: Runway ML Gen-3, Pika Labs, Luma AI
+- **AI Avatars**: Synthesia, HeyGen, D-ID
+- **Voice Synthesis**: ElevenLabs (29 languages, voice cloning)
+- **Image Generation**: DALL-E 3, Midjourney API, Stable Diffusion
 
-- **Frontend**: React 18 + TypeScript + Vite (Blazing fast)
-- **Styling**: Tailwind CSS (Beautiful, responsive design)
-- **AI Engine**: Google Gemini Pro Vision (Multimodal intelligence)
-- **Database**: Supabase (Real-time sync, Auth, Vector Search)
-- **Payments**: Paystack & Apple Pay Integration (Seamless monetization)
-- **Voice**: Web Speech API + Custom Voice Synthesis
+### Infrastructure (Mars-Class - 1M+ Users)
+- **Frontend**: React 19 + TypeScript + Vite
+- **Database**: Supabase (Postgres + pgvector + Real-time)
+- **Video Streaming**: Mux (adaptive HLS, analytics)
+- **Media Processing**: Cloudinary (images, thumbnails, transformations)
+- **Search**: Algolia (sub-50ms, typo-tolerant)
+- **Caching**: Upstash Redis (global edge)
+- **Background Jobs**: Inngest (workflow orchestration)
 
----
+### Observability & Security
+- **Error Tracking**: Sentry (session replay, performance)
+- **Analytics**: PostHog + Vercel Analytics
+- **Logging**: HyperDX (distributed tracing)
+- **Security**: Arcjet (bot protection, rate limiting)
+- **Feature Flags**: Statsig (A/B testing)
 
-## 🏁 Getting Started
-
-Ready to build your empire?
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/your-repo/genesis.git
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment**
-   Create a `.env.local` file with your keys:
-   ```env
-   VITE_SUPABASE_URL=your_url
-   VITE_SUPABASE_ANON_KEY=your_key
-   VITE_GEMINI_API_KEY=your_key
-   ```
-
-4. **Ignite the Engine**
-   ```bash
-   npm run dev
-   ```
+### Communication
+- **Email**: Resend (transactional, templates)
+- **Notifications**: Knock (multi-channel)
+- **Real-time Collaboration**: Liveblocks
 
 ---
 
-## 📚 Documentation & Guides
+## 🏁 GETTING STARTED
 
-- [**User Guide: Creating Masterpieces**](USER_GUIDE.md) - *How to use the platform.*
-- [**Apple Pay Setup**](APPLE_PAY_SETUP.md) - *Monetization configuration.*
-- [**Supabase Setup**](SUPABASE_SETUP.md) - *Database architecture.*
-- [**Translation Guide**](TRANSLATION_GUIDE.md) - *Global reach.*
+### Prerequisites
+- Node.js 20+
+- npm or pnpm
+- Supabase account
+- API keys for AI services
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/genesis.git
+cd genesis
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.mars-class.example .env.local
+# Edit .env.local with your API keys
+
+# Start development server
+npm run dev
+```
+
+### Required API Keys
+
+```env
+# Core
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_key
+VITE_GEMINI_API_KEY=your_gemini_key
+
+# AI Video Generation
+VITE_ELEVENLABS_API_KEY=your_elevenlabs_key
+SYNTHESIA_API_KEY=your_synthesia_key
+RUNWAY_API_KEY=your_runway_key
+
+# Infrastructure
+VITE_UPSTASH_REDIS_REST_URL=your_upstash_url
+VITE_SENTRY_DSN=your_sentry_dsn
+VITE_MUX_TOKEN_ID=your_mux_token
+VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+```
+
+---
+
+## 📚 DOCUMENTATION
+
+- [**User Guide**](USER_GUIDE.md) - How to use Genesis
+- [**API Documentation**](API_DOCS.md) - For developers
+- [**Supabase Setup**](SUPABASE_SETUP.md) - Database architecture
+- [**AI Integration Guide**](AI_INTEGRATION.md) - Connecting AI services
+- [**Deployment Guide**](DEPLOYMENT.md) - Production deployment
+
+---
+
+## 🗺️ ROADMAP
+
+### Phase 1: Foundation ✅
+- [x] Core platform architecture
+- [x] Supabase integration
+- [x] Basic AI text generation
+- [x] User authentication & subscriptions
+
+### Phase 2: AI Video Pipeline 🚧
+- [x] ElevenLabs voice integration
+- [ ] Synthesia/HeyGen avatar integration
+- [ ] Runway ML scene generation
+- [ ] Mux video streaming
+- [ ] Real-time video generation queue
+
+### Phase 3: Learning Intelligence
+- [ ] Adaptive learning algorithms
+- [ ] Knowledge graph construction
+- [ ] Personalized learning paths
+- [ ] Progress analytics dashboard
+
+### Phase 4: Scale & Enterprise
+- [ ] Multi-tenant architecture
+- [ ] LMS integrations (Canvas, Moodle, Blackboard)
+- [ ] Enterprise SSO
+- [ ] White-label solutions
 
 ---
 
 <div align="center">
 
-**Genesis** © 2025. *Dream. Create. Inspire.*
+## 🌟 THE FUTURE OF LEARNING IS VISUAL
+
+**Genesis** transforms curiosity into understanding through the power of AI-generated visual education.
+
+*Ask anything. Learn everything. See it all.*
+
+---
+
+**Genesis** © 2025. *Learn. See. Understand.*
+
+[Website](https://genesis.ai) • [Documentation](https://docs.genesis.ai) • [Discord](https://discord.gg/genesis)
 
 </div>

@@ -14,6 +14,23 @@ export {
 } from './security';
 
 export {
+  generateUUID,
+  sha256,
+  hashToPercentage,
+  hashToPercentageSync,
+  generateSecureToken,
+  generateUrlSafeToken,
+  hmacSha256,
+  verifyHmac,
+  generateCsrfToken,
+  getCsrfToken,
+  validateCsrfToken,
+  deriveKey,
+  encrypt,
+  decrypt,
+} from './crypto';
+
+export {
   reportWebVitals,
   mark,
   measure,

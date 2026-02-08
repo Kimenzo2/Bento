@@ -1,21 +1,22 @@
 /**
  * Language Context for Genesis
- * 
+ *
  * Provides language management, RTL support, and formatting utilities
  * throughout the application.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import type React from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Language, LanguageCode, TextDirection, LanguageContextType } from '../types/language.d';
 import {
-  SUPPORTED_LANGUAGES,
-  getLanguageByCode,
-  getDefaultLanguage,
-  isValidLanguageCode,
+  FALLBACK_LANGUAGE,
   LANGUAGE_STORAGE_KEY,
-  FALLBACK_LANGUAGE
+  SUPPORTED_LANGUAGES,
+  getDefaultLanguage,
+  getLanguageByCode,
+  isValidLanguageCode,
 } from '../config/languages';
+import type { Language, LanguageCode, LanguageContextType } from '../types/language.d';
 
 // Create the context
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -95,137 +96,151 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   /**
    * Change the current language
    */
-  const changeLanguage = useCallback(async (code: LanguageCode): Promise<void> => {
-    if (!isValidLanguageCode(code)) {
-      console.error(`[LanguageContext] Invalid language code: ${code}`);
-      return;
-    }
+  const changeLanguage = useCallback(
+    async (code: LanguageCode): Promise<void> => {
+      if (!isValidLanguageCode(code)) {
+        console.error(`[LanguageContext] Invalid language code: ${code}`);
+        return;
+      }
 
-    const targetLanguage = getLanguageByCode(code);
-    if (!targetLanguage) {
-      console.error(`[LanguageContext] Language not found: ${code}`);
-      return;
-    }
+      const targetLanguage = getLanguageByCode(code);
+      if (!targetLanguage) {
+        console.error(`[LanguageContext] Language not found: ${code}`);
+        return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    try {
-      // Change i18n language (this loads the translation files)
-      await i18n.changeLanguage(code);
+      try {
+        // Change i18n language (this loads the translation files)
+        await i18n.changeLanguage(code);
 
-      // Update state
-      setCurrentLanguage(targetLanguage);
+        // Update state
+        setCurrentLanguage(targetLanguage);
 
-      // Apply to document
-      applyLanguageToDocument(targetLanguage);
+        // Apply to document
+        applyLanguageToDocument(targetLanguage);
 
-      console.log(`[LanguageContext] Language changed to: ${targetLanguage.name}`);
-    } catch (error) {
-      console.error(`[LanguageContext] Failed to change language:`, error);
-      // Fallback to English
-      await i18n.changeLanguage(FALLBACK_LANGUAGE);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [i18n, applyLanguageToDocument]);
+        console.log(`[LanguageContext] Language changed to: ${targetLanguage.name}`);
+      } catch (error) {
+        console.error(`[LanguageContext] Failed to change language:`, error);
+        // Fallback to English
+        await i18n.changeLanguage(FALLBACK_LANGUAGE);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [i18n, applyLanguageToDocument]
+  );
 
   /**
    * Format a date according to current locale
    */
-  const formatDate = useCallback((date: Date | string | number): string => {
-    const dateObj = date instanceof Date ? date : new Date(date);
-    try {
-      return new Intl.DateTimeFormat(currentLanguage.numberFormat, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }).format(dateObj);
-    } catch {
-      return dateObj.toLocaleDateString();
-    }
-  }, [currentLanguage.numberFormat]);
+  const formatDate = useCallback(
+    (date: Date | string | number): string => {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      try {
+        return new Intl.DateTimeFormat(currentLanguage.numberFormat, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }).format(dateObj);
+      } catch {
+        return dateObj.toLocaleDateString();
+      }
+    },
+    [currentLanguage.numberFormat]
+  );
 
   /**
    * Format a number according to current locale
    */
-  const formatNumber = useCallback((num: number): string => {
-    try {
-      return new Intl.NumberFormat(currentLanguage.numberFormat).format(num);
-    } catch {
-      return num.toLocaleString();
-    }
-  }, [currentLanguage.numberFormat]);
+  const formatNumber = useCallback(
+    (num: number): string => {
+      try {
+        return new Intl.NumberFormat(currentLanguage.numberFormat).format(num);
+      } catch {
+        return num.toLocaleString();
+      }
+    },
+    [currentLanguage.numberFormat]
+  );
 
   /**
    * Format currency according to current locale
    */
-  const formatCurrency = useCallback((amount: number, currencyCode?: string): string => {
-    const currency = currencyCode || currentLanguage.currency;
-    try {
-      return new Intl.NumberFormat(currentLanguage.numberFormat, {
-        style: 'currency',
-        currency
-      }).format(amount);
-    } catch {
-      return `${currency} ${amount.toFixed(2)}`;
-    }
-  }, [currentLanguage.numberFormat, currentLanguage.currency]);
+  const formatCurrency = useCallback(
+    (amount: number, currencyCode?: string): string => {
+      const currency = currencyCode || currentLanguage.currency;
+      try {
+        return new Intl.NumberFormat(currentLanguage.numberFormat, {
+          style: 'currency',
+          currency,
+        }).format(amount);
+      } catch {
+        return `${currency} ${amount.toFixed(2)}`;
+      }
+    },
+    [currentLanguage.numberFormat, currentLanguage.currency]
+  );
 
   /**
    * Format relative time (e.g., "2 hours ago")
    */
-  const formatRelativeTime = useCallback((date: Date | string | number): string => {
-    const dateObj = date instanceof Date ? date : new Date(date);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
+  const formatRelativeTime = useCallback(
+    (date: Date | string | number): string => {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
 
-    try {
-      const rtf = new Intl.RelativeTimeFormat(currentLanguage.numberFormat, { numeric: 'auto' });
+      try {
+        const rtf = new Intl.RelativeTimeFormat(currentLanguage.numberFormat, { numeric: 'auto' });
 
-      if (diffInSeconds < 60) {
-        return rtf.format(-diffInSeconds, 'second');
-      } else if (diffInSeconds < 3600) {
-        return rtf.format(-Math.floor(diffInSeconds / 60), 'minute');
-      } else if (diffInSeconds < 86400) {
-        return rtf.format(-Math.floor(diffInSeconds / 3600), 'hour');
-      } else if (diffInSeconds < 2592000) {
-        return rtf.format(-Math.floor(diffInSeconds / 86400), 'day');
-      } else if (diffInSeconds < 31536000) {
-        return rtf.format(-Math.floor(diffInSeconds / 2592000), 'month');
-      } else {
-        return rtf.format(-Math.floor(diffInSeconds / 31536000), 'year');
+        if (diffInSeconds < 60) {
+          return rtf.format(-diffInSeconds, 'second');
+        } else if (diffInSeconds < 3600) {
+          return rtf.format(-Math.floor(diffInSeconds / 60), 'minute');
+        } else if (diffInSeconds < 86400) {
+          return rtf.format(-Math.floor(diffInSeconds / 3600), 'hour');
+        } else if (diffInSeconds < 2592000) {
+          return rtf.format(-Math.floor(diffInSeconds / 86400), 'day');
+        } else if (diffInSeconds < 31536000) {
+          return rtf.format(-Math.floor(diffInSeconds / 2592000), 'month');
+        } else {
+          return rtf.format(-Math.floor(diffInSeconds / 31536000), 'year');
+        }
+      } catch {
+        return dateObj.toLocaleDateString();
       }
-    } catch {
-      return dateObj.toLocaleDateString();
-    }
-  }, [currentLanguage.numberFormat]);
+    },
+    [currentLanguage.numberFormat]
+  );
 
   // Memoize context value
-  const contextValue = useMemo<LanguageContextType>(() => ({
-    currentLanguage,
-    languages: SUPPORTED_LANGUAGES,
-    changeLanguage,
-    direction: currentLanguage.direction,
-    isLoading,
-    formatDate,
-    formatNumber,
-    formatCurrency,
-    formatRelativeTime
-  }), [
-    currentLanguage,
-    changeLanguage,
-    isLoading,
-    formatDate,
-    formatNumber,
-    formatCurrency,
-    formatRelativeTime
-  ]);
-
-  return (
-    <LanguageContext.Provider value={contextValue}>
-      {children}
-    </LanguageContext.Provider>
+  const contextValue = useMemo<LanguageContextType>(
+    () => ({
+      currentLanguage,
+      languages: SUPPORTED_LANGUAGES,
+      changeLanguage,
+      direction: currentLanguage.direction,
+      isLoading,
+      formatDate,
+      formatNumber,
+      formatCurrency,
+      formatRelativeTime,
+    }),
+    [
+      currentLanguage,
+      changeLanguage,
+      isLoading,
+      formatDate,
+      formatNumber,
+      formatCurrency,
+      formatRelativeTime,
+    ]
   );
+
+  return <LanguageContext.Provider value={contextValue}>{children}</LanguageContext.Provider>;
 };
 
 /**

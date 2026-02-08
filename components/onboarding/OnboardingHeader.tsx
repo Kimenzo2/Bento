@@ -1,16 +1,13 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
+import type React from 'react';
 
 interface OnboardingHeaderProps {
   currentStep: number;
   totalSteps: number;
 }
 
-export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
-  currentStep,
-  totalSteps,
-}) => {
+export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep, totalSteps }) => {
   const progressPercent = Math.round((currentStep / totalSteps) * 100);
 
   return (
@@ -26,7 +23,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+            transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
             className="flex items-center gap-2"
           >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
@@ -52,7 +49,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
                 {/* Shimmer effect */}
                 <motion.div
                   animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2"
                 />
 
@@ -71,23 +68,24 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
                 return (
                   <div
                     key={idx}
-                    className={`flex flex-col items-center transition-all duration-300 ${idx === 0 ? 'items-start' : idx === totalSteps - 1 ? 'items-end' : ''
-                      }`}
+                    className={`flex flex-col items-center transition-all duration-300 ${
+                      idx === 0 ? 'items-start' : idx === totalSteps - 1 ? 'items-end' : ''
+                    }`}
                   >
                     <div
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${isCompleted
-                        ? 'bg-gradient-to-br from-purple-400 to-pink-400 shadow-sm shadow-purple-500/50'
-                        : isCurrent
-                          ? 'bg-white'
-                          : 'bg-white/20'
-                        }`}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        isCompleted
+                          ? 'bg-gradient-to-br from-purple-400 to-pink-400 shadow-sm shadow-purple-500/50'
+                          : isCurrent
+                            ? 'bg-white'
+                            : 'bg-white/20'
+                      }`}
                     />
                   </div>
                 );
               })}
             </div>
           </div>
-
 
           {/* Step counter */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm">

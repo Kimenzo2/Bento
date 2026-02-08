@@ -19,9 +19,6 @@ import React, { useEffect } from 'react';
 import { OnboardingProvider } from './OnboardingState';
 import { OnboardingLayout } from './OnboardingLayout';
 
-// Import responsive viewport utilities
-import '../../styles/onboarding-responsive.css';
-
 // Onboarding-specific global styles
 const ONBOARDING_STYLES = `
   html, body, #root {

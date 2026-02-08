@@ -1,11 +1,7 @@
 // KDP Quality Validation System
 
-import {
-  KDPValidationResult,
-  QualityMetrics,
-  KDP_CONSTRAINTS
-} from './kdpTypes';
 import { validatePageCount } from './kdpLayoutEngine';
+import { type KDPValidationResult, KDP_CONSTRAINTS, type QualityMetrics } from './kdpTypes';
 
 /**
  * Comprehensive quality validation for KDP export
@@ -49,7 +45,9 @@ export async function validateKDPQuality(
 
   // 4. Bleed Configuration
   if (!options.hasBleed && options.imageCount > 0) {
-    warnings.push('Book contains images but bleed is not enabled. Consider enabling bleed for full-page images.');
+    warnings.push(
+      'Book contains images but bleed is not enabled. Consider enabling bleed for full-page images.'
+    );
   }
 
   // 5. Page Count Parity
@@ -67,20 +65,18 @@ export async function validateKDPQuality(
     colorMode: 'RGB',
     hasBleed: options.hasBleed,
     marginsValid: true,
-    fontsEmbedded: true
+    fontsEmbedded: true,
   };
 }
 
 /**
  * Calculate overall quality score (0-100)
  */
-export function calculateQualityScore(
-  validation: KDPValidationResult
-): QualityMetrics {
+export function calculateQualityScore(validation: KDPValidationResult): QualityMetrics {
   let imageResolution = 0;
   let colorAccuracy = 100;
-  let marginCompliance = validation.marginsValid ? 100 : 50;
-  let fontEmbedding = validation.fontsEmbedded ? 100 : 0;
+  const marginCompliance = validation.marginsValid ? 100 : 50;
+  const fontEmbedding = validation.fontsEmbedded ? 100 : 0;
 
   // Image resolution scoring
   if (validation.resolution >= 300) {
@@ -104,10 +100,7 @@ export function calculateQualityScore(
 
   // Calculate overall score
   const overallScore = Math.round(
-    (imageResolution * 0.4) +
-    (colorAccuracy * 0.2) +
-    (marginCompliance * 0.2) +
-    (fontEmbedding * 0.2)
+    imageResolution * 0.4 + colorAccuracy * 0.2 + marginCompliance * 0.2 + fontEmbedding * 0.2
   );
 
   return {
@@ -115,7 +108,7 @@ export function calculateQualityScore(
     colorAccuracy,
     marginCompliance,
     fontEmbedding,
-    overallScore
+    overallScore,
   };
 }
 
@@ -131,25 +124,25 @@ export function getQualityAssessment(score: number): {
     return {
       level: 'excellent',
       message: 'Professional Print Quality - Ready for KDP',
-      color: 'text-green-600'
+      color: 'text-green-600',
     };
   } else if (score >= 85) {
     return {
       level: 'good',
       message: 'High Quality - Suitable for Publishing',
-      color: 'text-blue-600'
+      color: 'text-blue-600',
     };
   } else if (score >= 70) {
     return {
       level: 'acceptable',
       message: 'Acceptable Quality - May need improvements',
-      color: 'text-yellow-600'
+      color: 'text-yellow-600',
     };
   } else {
     return {
       level: 'poor',
       message: 'Quality Issues Detected - Please review',
-      color: 'text-red-600'
+      color: 'text-red-600',
     };
   }
 }
@@ -184,23 +177,23 @@ export function validateISBN(isbn: string): {
     if (!/^\d{13}$/.test(cleanISBN)) {
       return {
         isValid: false,
-        error: 'ISBN-13 must contain only digits'
+        error: 'ISBN-13 must contain only digits',
       };
     }
 
     // Validate checksum
     let sum = 0;
     for (let i = 0; i < 12; i++) {
-      const digit = parseInt(cleanISBN[i]);
-      sum += (i % 2 === 0) ? digit : digit * 3;
+      const digit = Number.parseInt(cleanISBN[i]);
+      sum += i % 2 === 0 ? digit : digit * 3;
     }
     const checkDigit = (10 - (sum % 10)) % 10;
-    const providedCheckDigit = parseInt(cleanISBN[12]);
+    const providedCheckDigit = Number.parseInt(cleanISBN[12]);
 
     if (checkDigit !== providedCheckDigit) {
       return {
         isValid: false,
-        error: 'Invalid ISBN-13 checksum'
+        error: 'Invalid ISBN-13 checksum',
       };
     }
 
@@ -212,22 +205,22 @@ export function validateISBN(isbn: string): {
     if (!/^\d{9}[\dX]$/.test(cleanISBN)) {
       return {
         isValid: false,
-        error: 'ISBN-10 format invalid'
+        error: 'ISBN-10 format invalid',
       };
     }
 
     // Validate checksum
     let sum = 0;
     for (let i = 0; i < 9; i++) {
-      sum += parseInt(cleanISBN[i]) * (10 - i);
+      sum += Number.parseInt(cleanISBN[i]) * (10 - i);
     }
     const lastChar = cleanISBN[9];
-    sum += lastChar === 'X' ? 10 : parseInt(lastChar);
+    sum += lastChar === 'X' ? 10 : Number.parseInt(lastChar);
 
     if (sum % 11 !== 0) {
       return {
         isValid: false,
-        error: 'Invalid ISBN-10 checksum'
+        error: 'Invalid ISBN-10 checksum',
       };
     }
 
@@ -236,16 +229,14 @@ export function validateISBN(isbn: string): {
 
   return {
     isValid: false,
-    error: 'ISBN must be 10 or 13 digits'
+    error: 'ISBN must be 10 or 13 digits',
   };
 }
 
 /**
  * Generate pre-flight checklist
  */
-export function generatePreflightChecklist(
-  validation: KDPValidationResult
-): Array<{
+export function generatePreflightChecklist(validation: KDPValidationResult): Array<{
   category: string;
   status: 'pass' | 'warning' | 'fail';
   message: string;
@@ -260,43 +251,46 @@ export function generatePreflightChecklist(
   checklist.push({
     category: 'File Size',
     status: validation.fileSize <= KDP_CONSTRAINTS.MAX_FILE_SIZE ? 'pass' : 'fail',
-    message: `${(validation.fileSize / 1024 / 1024).toFixed(2)} MB / 650 MB`
+    message: `${(validation.fileSize / 1024 / 1024).toFixed(2)} MB / 650 MB`,
   });
 
   // Page count
   checklist.push({
     category: 'Page Count',
-    status: validation.pageCount >= KDP_CONSTRAINTS.MIN_PAGES && 
-            validation.pageCount <= KDP_CONSTRAINTS.MAX_PAGES ? 'pass' : 'fail',
-    message: `${validation.pageCount} pages (${KDP_CONSTRAINTS.MIN_PAGES}-${KDP_CONSTRAINTS.MAX_PAGES} required)`
+    status:
+      validation.pageCount >= KDP_CONSTRAINTS.MIN_PAGES &&
+      validation.pageCount <= KDP_CONSTRAINTS.MAX_PAGES
+        ? 'pass'
+        : 'fail',
+    message: `${validation.pageCount} pages (${KDP_CONSTRAINTS.MIN_PAGES}-${KDP_CONSTRAINTS.MAX_PAGES} required)`,
   });
 
   // Resolution
   checklist.push({
     category: 'Image Resolution',
     status: validation.resolution >= KDP_CONSTRAINTS.TARGET_DPI ? 'pass' : 'fail',
-    message: `${validation.resolution} DPI (300 DPI required)`
+    message: `${validation.resolution} DPI (300 DPI required)`,
   });
 
   // Color mode
   checklist.push({
     category: 'Color Mode',
     status: validation.colorMode === 'RGB' ? 'pass' : 'warning',
-    message: `${validation.colorMode} (RGB recommended)`
+    message: `${validation.colorMode} (RGB recommended)`,
   });
 
   // Margins
   checklist.push({
     category: 'Margins',
     status: validation.marginsValid ? 'pass' : 'fail',
-    message: validation.marginsValid ? 'Within safe zones' : 'Content outside margins'
+    message: validation.marginsValid ? 'Within safe zones' : 'Content outside margins',
   });
 
   // Fonts
   checklist.push({
     category: 'Font Embedding',
     status: validation.fontsEmbedded ? 'pass' : 'fail',
-    message: validation.fontsEmbedded ? 'All fonts embedded' : 'Fonts not embedded'
+    message: validation.fontsEmbedded ? 'All fonts embedded' : 'Fonts not embedded',
   });
 
   // Bleed
@@ -304,7 +298,7 @@ export function generatePreflightChecklist(
     checklist.push({
       category: 'Bleed',
       status: 'pass',
-      message: 'Bleed configured (0.125" margins)'
+      message: 'Bleed configured (0.125" margins)',
     });
   }
 

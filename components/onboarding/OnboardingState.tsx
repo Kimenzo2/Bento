@@ -1,14 +1,23 @@
 /**
  * OnboardingState - PERFORMANCE OPTIMIZED
- * 
+ *
  * Optimizations:
  * 1. ⚡ Stable context value with useMemo prevents child re-renders
  * 2. ⚡ Stable callbacks with useCallback
  * 3. ⚡ Lazy initial state computation
  */
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { type ReactNode, createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-export type OnboardingStep = 'spark' | 'quiz' | 'magic' | 'proreveal' | 'pricing' | 'tour' | 'identity' | 'cliffhanger' | 'welcome';
+export type OnboardingStep =
+  | 'spark'
+  | 'quiz'
+  | 'magic'
+  | 'proreveal'
+  | 'pricing'
+  | 'tour'
+  | 'identity'
+  | 'cliffhanger'
+  | 'welcome';
 export type ThemeOption = 'cosmos' | 'kingdom' | 'cell';
 export type UserRole = 'mentor' | 'explorer' | 'guardian';
 
@@ -40,7 +49,17 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
   const [step, setStepState] = useState<OnboardingStep>(() => {
     const params = new URLSearchParams(window.location.search);
     const stepParam = params.get('step') as OnboardingStep;
-    const validSteps: OnboardingStep[] = ['spark', 'quiz', 'magic', 'proreveal', 'pricing', 'tour', 'identity', 'cliffhanger', 'welcome'];
+    const validSteps: OnboardingStep[] = [
+      'spark',
+      'quiz',
+      'magic',
+      'proreveal',
+      'pricing',
+      'tour',
+      'identity',
+      'cliffhanger',
+      'welcome',
+    ];
     return validSteps.includes(stepParam) ? stepParam : 'spark';
   });
 
@@ -76,43 +95,42 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
   const addSparkPoints = useCallback((points: number) => {
-    setSparkPoints(prev => prev + points);
+    setSparkPoints((prev) => prev + points);
   }, []);
 
   // ⚡ Memoized context value prevents unnecessary re-renders
-  const value = useMemo<OnboardingState>(() => ({
-    step,
-    theme,
-    role,
-    generatedContent,
-    quizAnswers,
-    sparkPoints,
-    setStep,
-    setTheme,
-    setRole,
-    setGeneratedContent,
-    setQuizAnswers,
-    addSparkPoints,
-  }), [
-    step,
-    theme,
-    role,
-    generatedContent,
-    quizAnswers,
-    sparkPoints,
-    setStep,
-    setTheme,
-    setRole,
-    setGeneratedContent,
-    setQuizAnswers,
-    addSparkPoints,
-  ]);
-
-  return (
-    <OnboardingContext.Provider value={value}>
-      {children}
-    </OnboardingContext.Provider>
+  const value = useMemo<OnboardingState>(
+    () => ({
+      step,
+      theme,
+      role,
+      generatedContent,
+      quizAnswers,
+      sparkPoints,
+      setStep,
+      setTheme,
+      setRole,
+      setGeneratedContent,
+      setQuizAnswers,
+      addSparkPoints,
+    }),
+    [
+      step,
+      theme,
+      role,
+      generatedContent,
+      quizAnswers,
+      sparkPoints,
+      setStep,
+      setTheme,
+      setRole,
+      setGeneratedContent,
+      setQuizAnswers,
+      addSparkPoints,
+    ]
   );
+
+  return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 };
 
 export const useOnboarding = () => {

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, ChevronLeft, Sparkles } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
 import { useOnboarding } from './OnboardingState';
 
 // Image paths for features
@@ -28,27 +29,30 @@ const features: Feature[] = [
     id: 1,
     title: 'AI-Powered Storytelling',
     subtitle: 'Your imagination, amplified',
-    description: 'Transform a single sentence into richly detailed narratives with our advanced AI. Generate compelling stories, educational content, and brand narratives in seconds.',
+    description:
+      'Transform a single sentence into richly detailed narratives with our advanced AI. Generate compelling stories, educational content, and brand narratives in seconds.',
     image: featureImages.storytelling,
     gradient: 'from-purple-600 via-violet-600 to-indigo-600',
     bgPattern: 'radial-gradient(circle at 20% 80%, rgba(168,85,247,0.15) 0%, transparent 50%)',
-    mascotMessage: "I can help you craft stories that captivate and inspire!",
+    mascotMessage: 'I can help you craft stories that captivate and inspire!',
   },
   {
     id: 2,
     title: 'Dynamic Illustrations',
     subtitle: 'See your words come to life',
-    description: 'Every scene you write automatically generates stunning, style-matched illustrations. Choose from dozens of art styles—from whimsical to photorealistic.',
+    description:
+      'Every scene you write automatically generates stunning, style-matched illustrations. Choose from dozens of art styles—from whimsical to photorealistic.',
     image: featureImages.illustrations,
     gradient: 'from-pink-600 via-rose-600 to-red-600',
     bgPattern: 'radial-gradient(circle at 80% 20%, rgba(244,63,94,0.15) 0%, transparent 50%)',
-    mascotMessage: "Watch as your imagination takes visual form!",
+    mascotMessage: 'Watch as your imagination takes visual form!',
   },
   {
     id: 3,
     title: 'Multi-Mode Creation',
     subtitle: 'One platform, endless possibilities',
-    description: 'Switch seamlessly between Children\'s Books, Sci-Fi Epics, Educational Content, and Brand Stories. Each mode unlocks specialized tools and templates.',
+    description:
+      "Switch seamlessly between Children's Books, Sci-Fi Epics, Educational Content, and Brand Stories. Each mode unlocks specialized tools and templates.",
     image: featureImages.multimode,
     gradient: 'from-amber-500 via-orange-500 to-red-500',
     bgPattern: 'radial-gradient(circle at 50% 50%, rgba(251,146,60,0.15) 0%, transparent 50%)',
@@ -58,7 +62,8 @@ const features: Feature[] = [
     id: 4,
     title: 'Smart Editor',
     subtitle: 'Professional tools, simplified',
-    description: 'Rich text editing with AI suggestions, auto-formatting, character consistency checks, and real-time collaboration. Your creative suite, reimagined.',
+    description:
+      'Rich text editing with AI suggestions, auto-formatting, character consistency checks, and real-time collaboration. Your creative suite, reimagined.',
     image: featureImages.editor,
     gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
     bgPattern: 'radial-gradient(circle at 20% 20%, rgba(20,184,166,0.15) 0%, transparent 50%)',
@@ -74,7 +79,7 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
         initial={{ opacity: 0, x: -50, scale: 0.8 }}
         animate={{ opacity: 1, x: 0, scale: 1 }}
         exit={{ opacity: 0, x: -50, scale: 0.8 }}
-        transition={{ type: "spring", bounce: 0.4 }}
+        transition={{ type: 'spring', bounce: 0.4 }}
         className="hidden lg:flex flex-col items-center"
       >
         {/* Gen Mascot Image */}
@@ -145,14 +150,14 @@ export const FeatureStorybook: React.FC = () => {
       setStep('identity');
     } else {
       setDirection(1);
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
   const goPrev = () => {
     if (!isFirst) {
       setDirection(-1);
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex((prev) => prev - 1);
     }
   };
 
@@ -175,15 +180,16 @@ export const FeatureStorybook: React.FC = () => {
       <div
         className="absolute inset-0 opacity-[0.02]"
         style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '80px 80px'
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
         }}
       />
 
       {/* Floating orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
         className={`absolute w-96 h-96 rounded-full bg-gradient-to-br ${currentFeature.gradient} blur-3xl opacity-20`}
         style={{ top: '10%', right: '-10%' }}
       />
@@ -205,12 +211,13 @@ export const FeatureStorybook: React.FC = () => {
                     setDirection(idx > currentIndex ? 1 : -1);
                     setCurrentIndex(idx);
                   }}
-                  className={`h-1.5 rounded-full transition-all duration-500 ${idx === currentIndex
+                  className={`h-1.5 rounded-full transition-all duration-500 ${
+                    idx === currentIndex
                       ? 'w-10 bg-white'
                       : idx < currentIndex
                         ? 'w-6 bg-white/50'
                         : 'w-2 bg-white/20'
-                    }`}
+                  }`}
                 />
               ))}
             </div>
@@ -233,7 +240,7 @@ export const FeatureStorybook: React.FC = () => {
                     <motion.div
                       initial={{ scale: 0, rotate: -10 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: 0.2, type: "spring", bounce: 0.4 }}
+                      transition={{ delay: 0.2, type: 'spring', bounce: 0.4 }}
                       className="relative mb-3 md:mb-6"
                     >
                       <img
@@ -243,7 +250,9 @@ export const FeatureStorybook: React.FC = () => {
                       />
 
                       {/* Glow behind image */}
-                      <div className={`absolute inset-0 bg-gradient-to-br ${currentFeature.gradient} blur-3xl opacity-40 -z-10 scale-75`} />
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${currentFeature.gradient} blur-3xl opacity-40 -z-10 scale-75`}
+                      />
                     </motion.div>
 
                     {/* Text content */}
@@ -252,7 +261,9 @@ export const FeatureStorybook: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <p className={`text-xs md:text-sm font-medium mb-1 md:mb-2 bg-gradient-to-r ${currentFeature.gradient} bg-clip-text text-transparent`}>
+                      <p
+                        className={`text-xs md:text-sm font-medium mb-1 md:mb-2 bg-gradient-to-r ${currentFeature.gradient} bg-clip-text text-transparent`}
+                      >
                         {currentFeature.subtitle}
                       </p>
                       <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-2 md:mb-4 font-heading">
@@ -292,10 +303,11 @@ export const FeatureStorybook: React.FC = () => {
                 disabled={isFirst}
                 whileHover={{ scale: isFirst ? 1 : 1.05 }}
                 whileTap={{ scale: isFirst ? 1 : 0.95 }}
-                className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${isFirst
+                className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${
+                  isFirst
                     ? 'text-white/20 cursor-not-allowed'
                     : 'text-white/70 hover:text-white hover:bg-white/5'
-                  }`}
+                }`}
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous

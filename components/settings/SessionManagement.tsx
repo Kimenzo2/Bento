@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Smartphone, 
-  Monitor, 
-  Clock, 
-  MapPin, 
-  LogOut,
+import {
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  Clock,
+  LogOut,
+  MapPin,
+  Monitor,
+  Smartphone,
 } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Session {
@@ -65,7 +66,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
       } else {
         // Would revoke specific session in production
         onShowSuccess('Session ended successfully');
-        setSessions(sessions.filter(s => s.id !== sessionId));
+        setSessions(sessions.filter((s) => s.id !== sessionId));
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -92,9 +93,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
   return (
     <div className="animate-fadeIn space-y-6">
       <div>
-        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">
-          Active Sessions
-        </h3>
+        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">Active Sessions</h3>
         <p className="text-sm text-cocoa-light mb-4">
           Manage devices and browsers where you're currently signed in
         </p>
@@ -114,17 +113,19 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
                       <Monitor className="w-5 h-5 text-coral-burst" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h4 className="font-bold text-charcoal-soft text-sm md:text-base">{session.device}</h4>
+                      <h4 className="font-bold text-charcoal-soft text-sm md:text-base">
+                        {session.device}
+                      </h4>
                       {session.isCurrent && (
                         <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
                           Current
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs md:text-sm text-cocoa-light">
                       <div className="flex items-center gap-1.5">
                         <Monitor className="w-3.5 h-3.5" />
@@ -163,9 +164,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
         <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">
           Sign Out Everywhere
         </h3>
-        <p className="text-sm text-cocoa-light mb-4">
-          End all active sessions on all devices
-        </p>
+        <p className="text-sm text-cocoa-light mb-4">End all active sessions on all devices</p>
 
         <button
           onClick={handleLogoutAll}
@@ -200,7 +199,8 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
           <div>
             <h4 className="font-bold text-yellow-900 mb-1">Suspicious Activity?</h4>
             <p className="text-sm text-yellow-800 mb-2">
-              If you notice any unfamiliar sessions or devices, end those sessions immediately and change your password.
+              If you notice any unfamiliar sessions or devices, end those sessions immediately and
+              change your password.
             </p>
             <button className="text-sm font-bold text-yellow-900 hover:text-yellow-700 underline">
               Report Security Issue

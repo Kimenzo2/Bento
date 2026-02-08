@@ -1,7 +1,7 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { StoryBeat } from '../types';
-import { Sparkles, Activity, Film } from 'lucide-react';
+import { Activity, Film, Sparkles } from 'lucide-react';
+import type React from 'react';
+import type { StoryBeat } from '../types';
 
 interface LivingStoryboardProps {
   beats: StoryBeat[];
@@ -10,7 +10,12 @@ interface LivingStoryboardProps {
   isGenerating?: boolean;
 }
 
-const LivingStoryboard: React.FC<LivingStoryboardProps> = ({ beats, onBeatClick, onGenerate, isGenerating = false }) => {
+const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
+  beats,
+  onBeatClick,
+  onGenerate,
+  isGenerating = false,
+}) => {
   // Helper to determine color based on emotional tone
   const getToneColor = (tone: string) => {
     const t = tone.toLowerCase();
@@ -30,7 +35,8 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({ beats, onBeatClick,
         </div>
         <h3 className="text-xl font-semibold text-white mb-2">No Storyboard Generated</h3>
         <p className="text-slate-400 mb-6 max-w-md">
-          Generate a living storyboard to visualize your narrative arc, track emotional beats, and maintain pacing.
+          Generate a living storyboard to visualize your narrative arc, track emotional beats, and
+          maintain pacing.
         </p>
         {onGenerate && (
           <button
@@ -42,7 +48,7 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({ beats, onBeatClick,
               <>
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
                 >
                   <Sparkles className="w-4 h-4" />
                 </motion.div>
@@ -101,8 +107,8 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({ beats, onBeatClick,
                   <span className="text-xs font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">
                     Page {beat.pageNumber}
                   </span>
-                  <div 
-                    className={`w-2 h-2 rounded-full ${getToneColor(beat.emotionalTone)} shadow-[0_0_8px_rgba(0,0,0,0.5)]`} 
+                  <div
+                    className={`w-2 h-2 rounded-full ${getToneColor(beat.emotionalTone)} shadow-[0_0_8px_rgba(0,0,0,0.5)]`}
                     title={`Tone: ${beat.emotionalTone}`}
                   />
                 </div>
@@ -119,13 +125,16 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({ beats, onBeatClick,
                     <span>{beat.tensionLevel}/10</span>
                   </div>
                   <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(beat.tensionLevel / 10) * 100}%` }}
-                      transition={{ delay: 0.5 + (index * 0.05), duration: 0.8 }}
+                      transition={{ delay: 0.5 + index * 0.05, duration: 0.8 }}
                       className={`h-full rounded-full ${
-                        beat.tensionLevel > 7 ? 'bg-red-500' : 
-                        beat.tensionLevel > 4 ? 'bg-orange-500' : 'bg-blue-500'
+                        beat.tensionLevel > 7
+                          ? 'bg-red-500'
+                          : beat.tensionLevel > 4
+                            ? 'bg-orange-500'
+                            : 'bg-blue-500'
                       }`}
                     />
                   </div>

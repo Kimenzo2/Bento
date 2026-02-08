@@ -1,9 +1,118 @@
 /**
  * Paystack Payment Service
  * Uses Paystack Inline JS (loaded from CDN)
+ * 
+ * Supported Payment Channels by Region:
+ * 
+ * KENYA (KES):
+ * - Cards (Visa, Mastercard, Amex)
+ * - Apple Pay (Safari/iOS)
+ * - M-PESA (STK Push) - Mobile money
+ * - M-PESA Offline - Pay later via Paybill
+ * - Airtel Money
+ * - Pesalink - Instant bank transfers
+ * 
+ * GHANA (GHS):
+ * - Cards (Visa, Mastercard)
+ * - MTN Mobile Money
+ * - Telecel (Vodafone)
+ * - Airtel Money
+ * 
+ * NIGERIA (NGN):
+ * - Cards (Visa, Mastercard, Verve)
+ * - USSD (GTBank *737#)
+ * - Bank Account
+ * - Pay with Transfer
+ * 
+ * SOUTH AFRICA (ZAR):
+ * - Cards (Visa, Mastercard, Amex)
+ * - EFT (Ozow)
+ * - QR Code (SnapScan, Scan to Pay)
+ * 
+ * CÔTE D'IVOIRE (XOF):
+ * - MTN Mobile Money
+ * - Orange Money
+ * - Wave
+ * 
+ * WORLDWIDE:
+ * - Cards (Visa, Mastercard)
+ * - Apple Pay (Safari/iOS)
+ * - Google Pay (Chrome/Android) - via Payment Request API
+ * 
  * Documentation: https://paystack.com/docs/payments/accept-payments/#popup
- * Apple Pay: https://paystack.com/docs/payments/apple-pay/
+ * Payment Channels: https://paystack.com/docs/payments/payment-channels/
  */
+
+// =============================================================================
+// TYPES & INTERFACES
+// =============================================================================
+
+export type PaystackCurrency = 'NGN' | 'GHS' | 'ZAR' | 'KES' | 'USD' | 'XOF';
+
+export type MobileMoneyProvider = 
+  | 'mtn'      // Ghana, Côte d'Ivoire
+  | 'atl'      // Airtel Money - Ghana, Kenya
+  | 'vod'      // Telecel (Vodafone) - Ghana
+  | 'mpesa'    // M-PESA STK Push - Kenya
+  | 'mpesa_offline' // M-PESA Paybill - Kenya
+  | 'mptill'   // M-PESA Till (B2B) - Kenya
+  | 'orange'   // Orange Money - Côte d'Ivoire
+  | 'wave';    // Wave - Côte d'Ivoire
+
+export type PaymentChannel = 
+  | 'card'
+  | 'bank'
+  | 'ussd'
+  | 'qr'
+  | 'mobile_money'
+  | 'bank_transfer'
+  | 'eft'
+  | 'apple_pay';
+
+export interface CountryPaymentMethods {
+  country: string;
+  currency: PaystackCurrency;
+  channels: PaymentChannel[];
+  mobileMoneyProviders?: MobileMoneyProvider[];
+}
+
+// Available payment methods by country
+export const COUNTRY_PAYMENT_METHODS: Record<string, CountryPaymentMethods> = {
+  KE: {
+    country: 'Kenya',
+    currency: 'KES',
+    channels: ['card', 'mobile_money', 'bank_transfer'],
+    mobileMoneyProviders: ['mpesa', 'mpesa_offline', 'atl'],
+  },
+  GH: {
+    country: 'Ghana',
+    currency: 'GHS',
+    channels: ['card', 'mobile_money'],
+    mobileMoneyProviders: ['mtn', 'atl', 'vod'],
+  },
+  NG: {
+    country: 'Nigeria',
+    currency: 'NGN',
+    channels: ['card', 'bank', 'ussd', 'bank_transfer'],
+    mobileMoneyProviders: [],
+  },
+  ZA: {
+    country: 'South Africa',
+    currency: 'ZAR',
+    channels: ['card', 'eft', 'qr'],
+    mobileMoneyProviders: [],
+  },
+  CI: {
+    country: "Côte d'Ivoire",
+    currency: 'XOF',
+    channels: ['card', 'mobile_money'],
+    mobileMoneyProviders: ['mtn', 'orange', 'wave'],
+  },
+};
+
+// =============================================================================
+// SCRIPT LOADING
+// =============================================================================
 
 // Load Paystack Inline script from CDN (V2 for Apple Pay support)
 const loadPaystackScript = (): Promise<boolean> => {
@@ -24,20 +133,91 @@ const loadPaystackScript = (): Promise<boolean> => {
   });
 };
 
+// =============================================================================
+// TRANSACTION INTERFACES
+// =============================================================================
+
 interface PaystackTransactionOptions {
   email: string;
   amount: number; // Actual amount in currency (e.g., 19.99)
-  currency?: string;
+  currency?: PaystackCurrency;
   reference?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
   metadata?: Record<string, any>;
-  channels?: string[];
+  channels?: PaymentChannel[];
   onSuccess: (transaction: any) => void;
   onCancel: () => void;
   onError?: (error: any) => void;
 }
+
+interface MobileMoneyOptions {
+  email: string;
+  amount: number;
+  currency: 'GHS' | 'KES' | 'XOF';
+  phone: string;
+  provider: MobileMoneyProvider;
+  reference?: string;
+  metadata?: Record<string, any>;
+  onSuccess: (transaction: any) => void;
+  onPending: (displayText: string, reference: string) => void;
+  onError?: (error: any) => void;
+}
+
+interface MPesaOfflineOptions {
+  email: string;
+  amount: number;
+  phone: string;
+  reference?: string;
+  metadata?: Record<string, any>;
+  onSuccess: (paybillDetails: { accountNumber: string; accountReference: string; displayText: string }) => void;
+  onError?: (error: any) => void;
+}
+
+interface PesalinkOptions {
+  email: string;
+  amount: number;
+  accountExpiresAt?: string; // ISO 8601 format, max 25 minutes
+  reference?: string;
+  metadata?: Record<string, any>;
+  onSuccess: (transferDetails: { accountNumber: string; transactionReference: string; bankName: string }) => void;
+  onError?: (error: any) => void;
+}
+
+interface USSDOptions {
+  email: string;
+  amount: number;
+  ussdType: '737'; // GTBank
+  reference?: string;
+  metadata?: Record<string, any>;
+  onSuccess: (ussdCode: string, reference: string) => void;
+  onError?: (error: any) => void;
+}
+
+interface QRCodeOptions {
+  email: string;
+  amount: number;
+  provider?: 'scan-to-pay';
+  reference?: string;
+  metadata?: Record<string, any>;
+  onSuccess: (qrCodeData: { qrCode: string; reference: string }) => void;
+  onError?: (error: any) => void;
+}
+
+interface EFTOptions {
+  email: string;
+  amount: number;
+  provider?: 'ozow';
+  reference?: string;
+  metadata?: Record<string, any>;
+  onSuccess: (redirectUrl: string, reference: string) => void;
+  onError?: (error: any) => void;
+}
+
+// =============================================================================
+// CORE PAYMENT FUNCTIONS
+// =============================================================================
 
 /**
  * Initialize a payment transaction using Paystack InlineJS V2
@@ -55,7 +235,7 @@ export const initializePayment = async ({
   channels,
   onSuccess,
   onCancel,
-  onError
+  onError,
 }: PaystackTransactionOptions): Promise<void> => {
   // Load Paystack script first
   const scriptLoaded = await loadPaystackScript();
@@ -65,11 +245,11 @@ export const initializePayment = async ({
     return;
   }
   // Get Paystack public key from environment
-  // Get Paystack public key from environment
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
   if (!publicKey) {
-    const errorMessage = 'Paystack Public Key not found. Please configure VITE_PAYSTACK_PUBLIC_KEY in your .env file.';
+    const errorMessage =
+      'Paystack Public Key not found. Please configure VITE_PAYSTACK_PUBLIC_KEY in your .env file.';
     console.error(errorMessage);
     alert('Payment system configuration is missing. Please contact support.');
     onCancel();
@@ -78,7 +258,9 @@ export const initializePayment = async ({
 
   // Warn if using Live Key on localhost
   if (publicKey.startsWith('pk_live_') && window.location.hostname === 'localhost') {
-    console.warn('WARNING: You are using a Paystack LIVE KEY on localhost. Payments may fail or process real money!');
+    console.warn(
+      'WARNING: You are using a Paystack LIVE KEY on localhost. Payments may fail or process real money!'
+    );
   }
 
   // Validate required parameters
@@ -109,7 +291,7 @@ export const initializePayment = async ({
       ref: reference || generateReference(),
       metadata: {
         ...metadata,
-        custom_fields: []
+        custom_fields: [],
       },
       onSuccess: (transaction: any) => {
         console.log('Payment successful:', transaction);
@@ -122,7 +304,7 @@ export const initializePayment = async ({
       onError: (error: any) => {
         console.log('Payment failed:', error);
         if (onError) onError(error);
-      }
+      },
     };
 
     if (firstName) paymentOptions.firstname = firstName;
@@ -194,7 +376,7 @@ export const isApplePayAvailable = (): boolean => {
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  
+
   // Apple Pay is available on Safari (macOS/iOS) or any iOS browser
   return isSafari || isIOS || (isMacOS && isSafari);
 };
@@ -213,7 +395,7 @@ interface ApplePayCheckoutOptions {
  * Initialize payment with Apple Pay support using Paystack Checkout
  * This method shows a pre-checkout modal with Apple Pay button on Apple devices
  * and falls back to regular checkout on non-Apple devices
- * 
+ *
  * @param options - Checkout configuration options
  */
 export const initializeApplePayCheckout = async ({
@@ -223,7 +405,7 @@ export const initializeApplePayCheckout = async ({
   reference,
   metadata,
   onSuccess,
-  onCancel
+  onCancel,
 }: ApplePayCheckoutOptions): Promise<void> => {
   // Load Paystack script first
   const scriptLoaded = await loadPaystackScript();
@@ -266,7 +448,7 @@ export const initializeApplePayCheckout = async ({
       ref: reference || generateReference(),
       metadata: {
         ...metadata,
-        custom_fields: []
+        custom_fields: [],
       },
       onSuccess: (transaction: any) => {
         console.log('Payment successful:', transaction);
@@ -275,7 +457,7 @@ export const initializeApplePayCheckout = async ({
       onCancel: () => {
         console.log('Payment cancelled');
         onCancel();
-      }
+      },
     });
   } catch (error: any) {
     console.error('Failed to initialize Apple Pay checkout:', error);
@@ -302,7 +484,7 @@ interface PaymentRequestButtonOptions {
 /**
  * Mount an Apple Pay payment request button
  * This gives you more control over the button placement and styling
- * 
+ *
  * @param options - Payment request button configuration
  */
 export const mountApplePayButton = async ({
@@ -317,7 +499,7 @@ export const mountApplePayButton = async ({
   onSuccess,
   onCancel,
   onError,
-  onElementsMount
+  onElementsMount,
 }: PaymentRequestButtonOptions): Promise<void> => {
   // Load Paystack script first
   const scriptLoaded = await loadPaystackScript();
@@ -351,7 +533,7 @@ export const mountApplePayButton = async ({
       loadPaystackCheckoutButton: otherChannelsButtonId,
       metadata: {
         ...metadata,
-        custom_fields: []
+        custom_fields: [],
       },
       style: {
         theme,
@@ -361,8 +543,8 @@ export const mountApplePayButton = async ({
           width: '100%',
           borderRadius: '8px',
           type: 'buy', // 'pay', 'buy', 'donate', 'checkout', 'book', 'subscribe'
-          locale: 'en'
-        }
+          locale: 'en',
+        },
       },
       onSuccess: (response: any) => {
         console.log('Apple Pay payment successful:', response);
@@ -379,10 +561,600 @@ export const mountApplePayButton = async ({
       onElementsMount: (elements: { applePay: boolean } | null) => {
         console.log('Payment elements mounted:', elements);
         onElementsMount?.(elements);
-      }
+      },
     });
   } catch (error: any) {
     console.error('Failed to mount Apple Pay button:', error);
     onError?.(error);
+  }
+};
+
+// =============================================================================
+// GOOGLE PAY DETECTION
+// =============================================================================
+
+/**
+ * Check if Google Pay is available on the current device/browser
+ * Google Pay works via Payment Request API on Chrome/Android
+ * @returns boolean indicating Google Pay availability
+ */
+export const isGooglePayAvailable = (): boolean => {
+  // Check for Chrome browser and Android
+  const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  
+  // Check if Payment Request API is available
+  const hasPaymentRequest = 'PaymentRequest' in window;
+  
+  // Google Pay is available on Chrome (desktop/mobile) and Android browsers
+  return hasPaymentRequest && (isChrome || isAndroid);
+};
+
+/**
+ * Detect all available digital wallets on the current device
+ * @returns Object with availability of each wallet type
+ */
+export const detectDigitalWallets = (): { applePay: boolean; googlePay: boolean } => {
+  return {
+    applePay: isApplePayAvailable(),
+    googlePay: isGooglePayAvailable(),
+  };
+};
+
+// =============================================================================
+// M-PESA PAYMENTS (KENYA)
+// =============================================================================
+
+/**
+ * Backend API endpoint for Charge API calls
+ * These methods require server-side integration - the secret key must NOT be in frontend
+ * See: /api/paystack-charge.ts and /api/paystack-verify.ts
+ */
+const CHARGE_API_ENDPOINT = '/api/paystack-charge';
+const VERIFY_API_ENDPOINT = '/api/paystack-verify';
+
+/**
+ * Initialize M-PESA payment via STK Push
+ * Customer receives a prompt on their phone to authorize payment
+ * Phone number should include country code: +254XXXXXXXXX
+ * 
+ * NOTE: This function calls your backend API which then calls Paystack's Charge API
+ * You must implement the backend endpoint at /api/paystack/charge
+ * 
+ * @param options - M-PESA payment options
+ */
+export const initializeMPesaPayment = async ({
+  email,
+  amount,
+  phone,
+  reference,
+  metadata,
+  onSuccess,
+  onPending,
+  onError,
+}: Omit<MobileMoneyOptions, 'currency' | 'provider'>): Promise<void> => {
+  // Normalize phone number to include Kenya country code
+  const normalizedPhone = phone.startsWith('+254') 
+    ? phone 
+    : phone.startsWith('0') 
+      ? `+254${phone.slice(1)}`
+      : `+254${phone}`;
+
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency: 'KES',
+        reference: reference || generateReference(),
+        metadata,
+        mobile_money: {
+          phone: normalizedPhone,
+          provider: 'mpesa',
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'M-PESA charge failed' });
+      return;
+    }
+
+    if (data.data.status === 'pay_offline') {
+      // Customer needs to authorize on their phone
+      onPending(data.data.display_text, data.data.reference);
+    } else if (data.data.status === 'success') {
+      onSuccess(data.data);
+    } else {
+      onError?.({ message: data.data.message || 'Unexpected response' });
+    }
+  } catch (error: any) {
+    console.error('M-PESA payment error:', error);
+    onError?.(error);
+  }
+};
+
+/**
+ * Initialize M-PESA Offline payment
+ * Creates a Paybill account number that customer can pay to anytime
+ * Useful for pay-after-service scenarios
+ * 
+ * NOTE: Requires backend integration at /api/paystack/charge
+ * 
+ * @param options - M-PESA offline payment options
+ */
+export const initializeMPesaOfflinePayment = async ({
+  email,
+  amount,
+  phone,
+  reference,
+  metadata,
+  onSuccess,
+  onError,
+}: MPesaOfflineOptions): Promise<void> => {
+  const normalizedPhone = phone.startsWith('+254') 
+    ? phone 
+    : phone.startsWith('0') 
+      ? `+254${phone.slice(1)}`
+      : `+254${phone}`;
+
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency: 'KES',
+        reference: reference || generateReference(),
+        metadata,
+        mobile_money: {
+          phone: normalizedPhone,
+          provider: 'mpesa_offline',
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'M-PESA Offline charge failed' });
+      return;
+    }
+
+    // Return the Paybill details for customer to use
+    onSuccess({
+      accountNumber: data.data.account_number,
+      accountReference: data.data.account_reference,
+      displayText: data.data.display_text,
+    });
+  } catch (error: any) {
+    console.error('M-PESA Offline payment error:', error);
+    onError?.(error);
+  }
+};
+
+// =============================================================================
+// MOBILE MONEY PAYMENTS (GHANA, CÔTE D'IVOIRE, KENYA)
+// =============================================================================
+
+/**
+ * Initialize Mobile Money payment for any supported provider
+ * Supported providers:
+ * - MTN (Ghana, Côte d'Ivoire)
+ * - Airtel/ATMoney (Ghana, Kenya)
+ * - Telecel/Vodafone (Ghana)
+ * - Orange (Côte d'Ivoire)
+ * - Wave (Côte d'Ivoire)
+ * 
+ * @param options - Mobile money payment options
+ */
+export const initializeMobileMoneyPayment = async ({
+  email,
+  amount,
+  currency,
+  phone,
+  provider,
+  reference,
+  metadata,
+  onSuccess,
+  onPending,
+  onError,
+}: MobileMoneyOptions): Promise<void> => {
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency,
+        reference: reference || generateReference(),
+        metadata,
+        mobile_money: {
+          phone,
+          provider,
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'Mobile money charge failed' });
+      return;
+    }
+
+    if (data.data.status === 'pay_offline') {
+      onPending(data.data.display_text, data.data.reference);
+    } else if (data.data.status === 'success') {
+      onSuccess(data.data);
+    } else {
+      onError?.({ message: data.data.message || 'Unexpected response' });
+    }
+  } catch (error: any) {
+    console.error('Mobile money payment error:', error);
+    onError?.(error);
+  }
+};
+
+// =============================================================================
+// PESALINK BANK TRANSFERS (KENYA)
+// =============================================================================
+
+/**
+ * Initialize Pesalink instant bank transfer for Kenya
+ * Customer receives account details to make an instant transfer
+ * Account is valid for 25 minutes
+ * 
+ * @param options - Pesalink payment options
+ */
+export const initializePesalinkPayment = async ({
+  email,
+  amount,
+  accountExpiresAt,
+  reference,
+  metadata,
+  onSuccess,
+  onError,
+}: PesalinkOptions): Promise<void> => {
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency: 'KES',
+        reference: reference || generateReference(),
+        metadata,
+        bank_transfer: {
+          account_expires_at: accountExpiresAt || null, // null defaults to 25 minutes
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'Pesalink charge failed' });
+      return;
+    }
+
+    onSuccess({
+      accountNumber: data.data.account_number,
+      transactionReference: data.data.transaction_reference,
+      bankName: data.data.bank_name || 'Pesalink',
+    });
+  } catch (error: any) {
+    console.error('Pesalink payment error:', error);
+    onError?.(error);
+  }
+};
+
+// =============================================================================
+// USSD PAYMENTS (NIGERIA)
+// =============================================================================
+
+/**
+ * Initialize USSD payment for Nigeria
+ * Returns a USSD code that the customer dials to complete payment
+ * Currently supports GTBank (*737#)
+ * 
+ * @param options - USSD payment options
+ */
+export const initializeUSSDPayment = async ({
+  email,
+  amount,
+  ussdType = '737',
+  reference,
+  metadata,
+  onSuccess,
+  onError,
+}: USSDOptions): Promise<void> => {
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency: 'NGN',
+        reference: reference || generateReference(),
+        metadata,
+        ussd: {
+          type: ussdType,
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'USSD charge failed' });
+      return;
+    }
+
+    // Return the USSD code for customer to dial
+    onSuccess(data.data.ussd_code, data.data.reference);
+  } catch (error: any) {
+    console.error('USSD payment error:', error);
+    onError?.(error);
+  }
+};
+
+// =============================================================================
+// QR CODE PAYMENTS (SOUTH AFRICA)
+// =============================================================================
+
+/**
+ * Initialize QR Code payment for South Africa
+ * Works with SnapScan and Scan to Pay enabled apps
+ * 
+ * @param options - QR Code payment options
+ */
+export const initializeQRCodePayment = async ({
+  email,
+  amount,
+  provider = 'scan-to-pay',
+  reference,
+  metadata,
+  onSuccess,
+  onError,
+}: QRCodeOptions): Promise<void> => {
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency: 'ZAR',
+        reference: reference || generateReference(),
+        metadata,
+        qr: {
+          provider,
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'QR Code charge failed' });
+      return;
+    }
+
+    onSuccess({
+      qrCode: data.data.qr_code,
+      reference: data.data.reference,
+    });
+  } catch (error: any) {
+    console.error('QR Code payment error:', error);
+    onError?.(error);
+  }
+};
+
+// =============================================================================
+// EFT PAYMENTS (SOUTH AFRICA)
+// =============================================================================
+
+/**
+ * Initialize EFT (Electronic Funds Transfer) payment for South Africa
+ * Redirects customer to their bank's internet banking portal via Ozow
+ * 
+ * @param options - EFT payment options
+ */
+export const initializeEFTPayment = async ({
+  email,
+  amount,
+  provider = 'ozow',
+  reference,
+  metadata,
+  onSuccess,
+  onError,
+}: EFTOptions): Promise<void> => {
+  try {
+    const response = await fetch(CHARGE_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100),
+        currency: 'ZAR',
+        reference: reference || generateReference(),
+        metadata,
+        eft: {
+          provider,
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.status) {
+      onError?.({ message: data.message || 'EFT charge failed' });
+      return;
+    }
+
+    // Return the redirect URL for Ozow
+    onSuccess(data.data.authorization_url, data.data.reference);
+  } catch (error: any) {
+    console.error('EFT payment error:', error);
+    onError?.(error);
+  }
+};
+
+// =============================================================================
+// PAYMENT CHANNEL DETECTION & UTILITIES
+// =============================================================================
+
+/**
+ * Get available payment methods for a given country
+ * @param countryCode - ISO 3166-1 alpha-2 country code (e.g., 'KE', 'NG', 'GH')
+ * @returns Available payment methods for the country
+ */
+export const getPaymentMethodsForCountry = (countryCode: string): CountryPaymentMethods | null => {
+  return COUNTRY_PAYMENT_METHODS[countryCode.toUpperCase()] || null;
+};
+
+/**
+ * Detect the user's country based on various signals
+ * Uses timezone and locale as hints
+ * @returns Detected country code or null
+ */
+export const detectUserCountry = (): string | null => {
+  try {
+    // Try to get country from timezone
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    const timezoneToCountry: Record<string, string> = {
+      'Africa/Nairobi': 'KE',
+      'Africa/Lagos': 'NG',
+      'Africa/Accra': 'GH',
+      'Africa/Johannesburg': 'ZA',
+      'Africa/Abidjan': 'CI',
+    };
+
+    if (timezone in timezoneToCountry) {
+      return timezoneToCountry[timezone];
+    }
+
+    // Try to get from browser language
+    const language = navigator.language || (navigator as any).userLanguage;
+    if (language) {
+      const parts = language.split('-');
+      if (parts.length > 1) {
+        return parts[1].toUpperCase();
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Get all available payment options for the current user
+ * Combines country detection with device capabilities
+ * @param countryCode - Optional country code override
+ * @returns Object with all available payment options
+ */
+export const getAvailablePaymentOptions = (countryCode?: string): {
+  country: CountryPaymentMethods | null;
+  wallets: { applePay: boolean; googlePay: boolean };
+  detectedCountry: string | null;
+} => {
+  const detectedCountry = countryCode || detectUserCountry();
+  const country = detectedCountry ? getPaymentMethodsForCountry(detectedCountry) : null;
+  const wallets = detectDigitalWallets();
+
+  return {
+    country,
+    wallets,
+    detectedCountry,
+  };
+};
+
+/**
+ * Get recommended payment channels for Paystack checkout
+ * Returns an array of channel strings to pass to the channels parameter
+ * @param countryCode - Country code
+ * @param includeWallets - Whether to include digital wallets
+ * @returns Array of payment channel strings
+ */
+export const getRecommendedChannels = (
+  countryCode: string,
+  includeWallets: boolean = true
+): PaymentChannel[] => {
+  const countryMethods = getPaymentMethodsForCountry(countryCode);
+  
+  if (!countryMethods) {
+    // Default to card payments
+    return ['card'];
+  }
+
+  const channels: PaymentChannel[] = [...countryMethods.channels];
+
+  if (includeWallets) {
+    const wallets = detectDigitalWallets();
+    if (wallets.applePay) {
+      channels.push('apple_pay');
+    }
+  }
+
+  return channels;
+};
+
+/**
+ * Verify a transaction status with Paystack
+ * Should be called after receiving webhook or to manually verify
+ * @param reference - Transaction reference
+ * @returns Transaction verification result
+ */
+export const verifyTransaction = async (reference: string): Promise<{
+  status: boolean;
+  message: string;
+  data?: {
+    status: 'success' | 'failed' | 'pending' | 'abandoned';
+    amount: number;
+    currency: string;
+    channel: string;
+    reference: string;
+    paidAt?: string;
+  };
+}> => {
+  try {
+    const response = await fetch(`${VERIFY_API_ENDPOINT}/${reference}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error('Transaction verification error:', error);
+    return { status: false, message: error.message || 'Verification failed' };
   }
 };

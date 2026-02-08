@@ -1,9 +1,9 @@
 /**
  * Premium Prompts Module
- * 
+ *
  * Enterprise-grade prompt templates for professional visual learning content generation.
  * Each style has carefully engineered prompts that maximize Imagen 4.0 quality output.
- * 
+ *
  * @module premiumPrompts
  */
 
@@ -26,8 +26,8 @@ export interface StylePromptConfig {
  */
 export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
   // ===================== ILLUSTRATION STYLES =====================
-  
-  'Watercolor': {
+
+  Watercolor: {
     prefix: 'Traditional watercolor painting technique with authentic paint behavior',
     technicalSpecs: `
       - Soft color bleeds and wet-on-wet effects
@@ -36,10 +36,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Organic edge quality with subtle granulation
       - Pigment pooling in recessed areas
       - Dry brush textures for details`,
-    lighting: 'Soft diffused natural lighting with gentle atmospheric perspective, subtle shadows with color temperature shifts',
-    quality: 'Masterful watercolor illustration, award-winning gallery quality, Daniel Smith pigment richness',
-    colorApproach: 'Harmonious analogous palette with strategic complementary accents, 60-30-10 color distribution',
-    avoidances: 'No harsh digital edges, no flat fills, no oversaturated neon colors, no hard outlines'
+    lighting:
+      'Soft diffused natural lighting with gentle atmospheric perspective, subtle shadows with color temperature shifts',
+    quality:
+      'Masterful watercolor illustration, award-winning gallery quality, Daniel Smith pigment richness',
+    colorApproach:
+      'Harmonious analogous palette with strategic complementary accents, 60-30-10 color distribution',
+    avoidances:
+      'No harsh digital edges, no flat fills, no oversaturated neon colors, no hard outlines',
   },
 
   'Pixar 3D': {
@@ -52,13 +56,17 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Ambient occlusion in crevices
       - Motion blur for dynamic scenes
       - Depth of field with bokeh`,
-    lighting: 'Three-point studio lighting (key, fill, rim), warm key light, cool fill, strong rim separation, soft ambient occlusion',
-    quality: 'Feature-film quality, 4K render, Academy Award-winning animation studio output, RenderMan quality',
-    colorApproach: 'Pixar color science - saturated but naturalistic, strong silhouette readability, emotional color storytelling',
-    avoidances: 'No uncanny valley, no plastic-looking skin, no harsh CG artifacts, no flat lighting'
+    lighting:
+      'Three-point studio lighting (key, fill, rim), warm key light, cool fill, strong rim separation, soft ambient occlusion',
+    quality:
+      'Feature-film quality, 4K render, Academy Award-winning animation studio output, RenderMan quality',
+    colorApproach:
+      'Pixar color science - saturated but naturalistic, strong silhouette readability, emotional color storytelling',
+    avoidances:
+      'No uncanny valley, no plastic-looking skin, no harsh CG artifacts, no flat lighting',
   },
 
-  'Anime': {
+  Anime: {
     prefix: 'High-quality anime illustration in modern studio style',
     technicalSpecs: `
       - Clean line art with variable line weight (thick outlines, thin details)
@@ -68,13 +76,16 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Speed lines for motion
       - Sparkle and glow effects for emphasis
       - Gradient backgrounds with soft bokeh`,
-    lighting: 'Dramatic anime lighting with strong key shadows, rim lighting for drama, soft gradient ambient',
-    quality: 'Studio Ghibli meets Makoto Shinkai, theatrical release quality, Kyoto Animation polish',
-    colorApproach: 'Vibrant anime palette with sunset gradients, complementary color pops, nostalgic warm undertones',
-    avoidances: 'No Western cartoon proportions, no rough sketchy lines, no muddy colors'
+    lighting:
+      'Dramatic anime lighting with strong key shadows, rim lighting for drama, soft gradient ambient',
+    quality:
+      'Studio Ghibli meets Makoto Shinkai, theatrical release quality, Kyoto Animation polish',
+    colorApproach:
+      'Vibrant anime palette with sunset gradients, complementary color pops, nostalgic warm undertones',
+    avoidances: 'No Western cartoon proportions, no rough sketchy lines, no muddy colors',
   },
 
-  'Cartoon': {
+  Cartoon: {
     prefix: 'Professional animation-ready cartoon illustration',
     technicalSpecs: `
       - Bold confident outlines with consistent weight
@@ -84,12 +95,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Limited palette per character (3-5 colors)
       - Geometric shape language (circles = friendly, triangles = dynamic)`,
     lighting: 'Simple two-tone shading (light/shadow), cel-shaded approach, minimal gradients',
-    quality: 'Broadcast animation quality, Cartoon Network/Disney Junior polish, character guide ready',
-    colorApproach: 'Bold primary and secondary colors, high saturation for key elements, clear color coding',
-    avoidances: 'No muddy blending, no realistic proportions, no overly complex shading'
+    quality:
+      'Broadcast animation quality, Cartoon Network/Disney Junior polish, character guide ready',
+    colorApproach:
+      'Bold primary and secondary colors, high saturation for key elements, clear color coding',
+    avoidances: 'No muddy blending, no realistic proportions, no overly complex shading',
   },
 
-  'Realistic': {
+  Realistic: {
     prefix: 'Photorealistic digital illustration with painterly refinement',
     technicalSpecs: `
       - Accurate anatomy and proportions
@@ -98,10 +111,12 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Environmental integration with proper scale
       - Atmospheric perspective for depth
       - Accurate shadow terminator and bounce light`,
-    lighting: 'Natural lighting matching time of day, HDR dynamic range, accurate color temperature',
+    lighting:
+      'Natural lighting matching time of day, HDR dynamic range, accurate color temperature',
     quality: 'Craig Mullins meets Karla Ortiz, ArtStation trending, concept art master quality',
-    colorApproach: 'Naturalistic color grading, limited palette with environmental influence, realistic color harmony',
-    avoidances: 'No anime proportions, no flat colors, no inconsistent lighting direction'
+    colorApproach:
+      'Naturalistic color grading, limited palette with environmental influence, realistic color harmony',
+    avoidances: 'No anime proportions, no flat colors, no inconsistent lighting direction',
   },
 
   'Digital Art': {
@@ -113,13 +128,16 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Atmospheric depth through color and value
       - Dynamic composition with clear flow
       - Subtle texture overlays`,
-    lighting: 'Cinematic lighting with strong mood, dramatic key-to-fill ratio, volumetric atmosphere',
-    quality: 'ArtStation HQ featured quality, professional game art production values, AAA concept art',
-    colorApproach: 'Sophisticated color harmony, mood-driven palette, strategic color temperature contrast',
-    avoidances: 'No overblending, no lifeless flat areas, no inconsistent rendering'
+    lighting:
+      'Cinematic lighting with strong mood, dramatic key-to-fill ratio, volumetric atmosphere',
+    quality:
+      'ArtStation HQ featured quality, professional game art production values, AAA concept art',
+    colorApproach:
+      'Sophisticated color harmony, mood-driven palette, strategic color temperature contrast',
+    avoidances: 'No overblending, no lifeless flat areas, no inconsistent rendering',
   },
 
-  'Sketch': {
+  Sketch: {
     prefix: 'Professional architectural/illustration sketch with artistic confidence',
     technicalSpecs: `
       - Confident gestural line work
@@ -129,13 +147,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Varied line weight for depth
       - Strategic white space`,
     lighting: 'Suggested through line density and hatching direction, atmospheric sketched shadows',
-    quality: 'Professional concept artist sketchbook, architectural rendering quality, publication ready',
+    quality:
+      'Professional concept artist sketchbook, architectural rendering quality, publication ready',
     colorApproach: 'Limited accent palette (1-3 colors), graphite grays with warm or cool bias',
-    avoidances: 'No messy or chaotic linework, no fully rendered areas that break sketch aesthetic'
+    avoidances: 'No messy or chaotic linework, no fully rendered areas that break sketch aesthetic',
   },
 
-  'Storybook': {
-    prefix: 'Classic children\'s book illustration with timeless charm',
+  Storybook: {
+    prefix: "Classic children's book illustration with timeless charm",
     technicalSpecs: `
       - Soft textured brushwork reminiscent of traditional media
       - Warm inviting color palette
@@ -144,14 +163,16 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Pattern and texture integration
       - Decorative borders optional`,
     lighting: 'Soft golden hour lighting, gentle shadows, warm ambient glow',
-    quality: 'Caldecott Medal worthy, classic children\'s literature illustration, Maurice Sendak meets Oliver Jeffers',
-    colorApproach: 'Warm nostalgic palette, muted pastels with rich accents, age-appropriate vibrancy',
-    avoidances: 'No harsh contrasts, no scary or intense imagery, no overly complex compositions'
+    quality:
+      "Caldecott Medal worthy, classic children's literature illustration, Maurice Sendak meets Oliver Jeffers",
+    colorApproach:
+      'Warm nostalgic palette, muted pastels with rich accents, age-appropriate vibrancy',
+    avoidances: 'No harsh contrasts, no scary or intense imagery, no overly complex compositions',
   },
 
   // ===================== EDUCATIONAL STYLES =====================
 
-  'Diagram': {
+  Diagram: {
     prefix: 'Professional technical diagram with clear educational communication',
     technicalSpecs: `
       - Clean vector-quality lines
@@ -162,12 +183,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Scale indicators where relevant
       - Color-coded systems`,
     lighting: 'Flat studio lighting for clarity, no dramatic shadows, even illumination',
-    quality: 'Scientific American illustration quality, textbook-ready, Dorling Kindersley visual reference',
-    colorApproach: 'Functional color coding (blue=input, red=output, green=process), high contrast for readability',
-    avoidances: 'No decorative elements that distract, no unclear connections, no ambiguous labels'
+    quality:
+      'Scientific American illustration quality, textbook-ready, Dorling Kindersley visual reference',
+    colorApproach:
+      'Functional color coding (blue=input, red=output, green=process), high contrast for readability',
+    avoidances: 'No decorative elements that distract, no unclear connections, no ambiguous labels',
   },
 
-  'Infographic': {
+  Infographic: {
     prefix: 'Modern data visualization infographic with engaging visual hierarchy',
     technicalSpecs: `
       - Clear information hierarchy
@@ -177,12 +200,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Flow indicators (arrows, lines)
       - Modular grid layout`,
     lighting: 'Flat design aesthetic, no 3D shadows unless purposeful, clean and modern',
-    quality: 'National Geographic quality, Information is Beautiful award-worthy, publication-ready',
-    colorApproach: 'Limited palette (4-5 colors max), data-driven color decisions, accessible contrast ratios',
-    avoidances: 'No chartjunk, no misleading scales, no decorations that obscure data'
+    quality:
+      'National Geographic quality, Information is Beautiful award-worthy, publication-ready',
+    colorApproach:
+      'Limited palette (4-5 colors max), data-driven color decisions, accessible contrast ratios',
+    avoidances: 'No chartjunk, no misleading scales, no decorations that obscure data',
   },
 
-  'Blueprint': {
+  Blueprint: {
     prefix: 'Technical blueprint with precise engineering detail',
     technicalSpecs: `
       - Orthographic projection views
@@ -192,12 +217,13 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Parts lists/legends
       - Scale notation`,
     lighting: 'Pure line work, no lighting effects, technical drawing standard',
-    quality: 'Engineering documentation quality, ISO standard compliance, patent illustration ready',
+    quality:
+      'Engineering documentation quality, ISO standard compliance, patent illustration ready',
     colorApproach: 'Classic blueprint blue on white, or black on white with colored annotations',
-    avoidances: 'No freehand elements, no inconsistent line weights without meaning'
+    avoidances: 'No freehand elements, no inconsistent line weights without meaning',
   },
 
-  'Comic': {
+  Comic: {
     prefix: 'Professional comic book sequential art',
     technicalSpecs: `
       - Dynamic panel compositions
@@ -209,7 +235,7 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
     lighting: 'High contrast dramatic lighting, strong blacks, dynamic shadows',
     quality: 'Marvel/DC publication quality, professional inker finish, colorist-ready',
     colorApproach: 'Bold comic coloring, strategic use of flats and gradients, mood-driven palette',
-    avoidances: 'No confusing panel flow, no weak linework, no muddy color choices'
+    avoidances: 'No confusing panel flow, no weak linework, no muddy color choices',
   },
 
   // ===================== BRAND/CORPORATE STYLES =====================
@@ -224,12 +250,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Consistent spacing system
       - Premium material textures (glass, metal)`,
     lighting: 'Soft studio lighting, subtle shadows for depth, high-key overall',
-    quality: 'Apple/Google design quality, Fortune 500 brand standards, award-winning corporate design',
-    colorApproach: 'Sophisticated limited palette, neutral base with single accent color, premium feel',
-    avoidances: 'No clutter, no gradients for gradients sake, no dated design elements'
+    quality:
+      'Apple/Google design quality, Fortune 500 brand standards, award-winning corporate design',
+    colorApproach:
+      'Sophisticated limited palette, neutral base with single accent color, premium feel',
+    avoidances: 'No clutter, no gradients for gradients sake, no dated design elements',
   },
 
-  'Cyberpunk': {
+  Cyberpunk: {
     prefix: 'Cyberpunk aesthetic with neon-noir atmosphere',
     technicalSpecs: `
       - Neon lighting and glow effects
@@ -238,13 +266,14 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Dense urban environments
       - High-tech low-life contrast
       - Glitch and scan line effects`,
-    lighting: 'Dramatic neon lighting with complementary color temperature contrast (pink/cyan), volumetric fog',
+    lighting:
+      'Dramatic neon lighting with complementary color temperature contrast (pink/cyan), volumetric fog',
     quality: 'Blade Runner 2049 meets Ghost in the Shell, AAA game cinematic quality',
     colorApproach: 'Neon accents (cyan, magenta, yellow) against dark desaturated backgrounds',
-    avoidances: 'No washed out colors, no flat lighting, no generic sci-fi'
+    avoidances: 'No washed out colors, no flat lighting, no generic sci-fi',
   },
 
-  'Vintage': {
+  Vintage: {
     prefix: 'Nostalgic vintage illustration with period-authentic styling',
     technicalSpecs: `
       - Limited color palette (4-color process look)
@@ -254,9 +283,10 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Classic illustration techniques
       - Art Deco or Mid-century modern influence`,
     lighting: 'Soft vintage lighting, golden warm tones, gentle vignetting',
-    quality: 'Norman Rockwell meets Alphonse Mucha, vintage poster art quality, collectible print worthy',
+    quality:
+      'Norman Rockwell meets Alphonse Mucha, vintage poster art quality, collectible print worthy',
     colorApproach: 'Muted period-accurate palette, sepia undertones, limited bright accents',
-    avoidances: 'No modern design elements, no digital-looking effects, no anachronistic details'
+    avoidances: 'No modern design elements, no digital-looking effects, no anachronistic details',
   },
 
   'Paper Cutout': {
@@ -269,9 +299,11 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
       - Occasional fold or curl details
       - Mixed paper types (craft, colored, patterned)`,
     lighting: 'Soft overhead lighting casting subtle shadows between layers, ambient room light',
-    quality: 'Stop-motion animation production quality, gallery-worthy paper art, Laika Studios aesthetic',
-    colorApproach: 'Craft paper naturals with bright construction paper accents, textured color appearance',
-    avoidances: 'No flat digital look, no impossible paper physics, no sharp digital gradients'
+    quality:
+      'Stop-motion animation production quality, gallery-worthy paper art, Laika Studios aesthetic',
+    colorApproach:
+      'Craft paper naturals with bright construction paper accents, textured color appearance',
+    avoidances: 'No flat digital look, no impossible paper physics, no sharp digital gradients',
   },
 
   'Flat Design': {
@@ -286,8 +318,8 @@ export const STYLE_PROMPT_TEMPLATES: Record<string, StylePromptConfig> = {
     lighting: 'No lighting effects - pure flat design, equal value across surfaces',
     quality: 'Google Material Design quality, tech industry standard, scalable vector aesthetic',
     colorApproach: 'Bold Material palette, complementary color pops, accessible color contrast',
-    avoidances: 'No subtle gradients, no realistic textures, no complex shading'
-  }
+    avoidances: 'No subtle gradients, no realistic textures, no complex shading',
+  },
 };
 
 // ============================================================================
@@ -303,26 +335,39 @@ export interface QualityConfig {
 }
 
 export const TIER_QUALITY_CONFIG: Record<string, QualityConfig> = {
-  'SPARK': {
+  SPARK: {
     model: 'google/imagen-4.0-generate-001',
     resolution: { width: 1024, height: 1024 },
     qualityModifiers: ['high quality', 'detailed'],
   },
-  'CREATOR': {
+  CREATOR: {
     model: 'google/imagen-4.0-generate-001',
     resolution: { width: 1536, height: 1536 },
     qualityModifiers: ['high quality', 'professional', 'detailed', 'sharp focus'],
   },
-  'STUDIO': {
+  STUDIO: {
     model: 'google/imagen-4.0-ultra-generate-001',
     resolution: { width: 2048, height: 2048 },
-    qualityModifiers: ['ultra high quality', 'professional', 'masterwork', 'extremely detailed', '8K resolution'],
+    qualityModifiers: [
+      'ultra high quality',
+      'professional',
+      'masterwork',
+      'extremely detailed',
+      '8K resolution',
+    ],
   },
-  'EMPIRE': {
+  EMPIRE: {
     model: 'google/imagen-4.0-ultra-generate-001',
     resolution: { width: 2048, height: 2048 },
-    qualityModifiers: ['ultra high quality', 'professional masterwork', 'award-winning', 'museum quality', '8K HDR', 'perfect composition'],
-  }
+    qualityModifiers: [
+      'ultra high quality',
+      'professional masterwork',
+      'award-winning',
+      'museum quality',
+      '8K HDR',
+      'perfect composition',
+    ],
+  },
 };
 
 // ============================================================================
@@ -330,39 +375,44 @@ export const TIER_QUALITY_CONFIG: Record<string, QualityConfig> = {
 // ============================================================================
 
 export const ASPECT_RATIOS = {
-  'square': { width: 1, height: 1, description: 'Square format - social media, profile images' },
-  'landscape': { width: 16, height: 9, description: 'Widescreen - presentations, headers' },
-  'portrait': { width: 9, height: 16, description: 'Vertical - mobile, stories, book pages' },
-  'book': { width: 3, height: 4, description: 'Book page - traditional ebook format' },
-  'wide': { width: 21, height: 9, description: 'Ultrawide - cinematic, banners' },
-  'classic': { width: 4, height: 3, description: 'Classic photo - traditional photography' }
+  square: { width: 1, height: 1, description: 'Square format - social media, profile images' },
+  landscape: { width: 16, height: 9, description: 'Widescreen - presentations, headers' },
+  portrait: { width: 9, height: 16, description: 'Vertical - mobile, stories, book pages' },
+  book: { width: 3, height: 4, description: 'Book page - traditional ebook format' },
+  wide: { width: 21, height: 9, description: 'Ultrawide - cinematic, banners' },
+  classic: { width: 4, height: 3, description: 'Classic photo - traditional photography' },
 };
 
 // ============================================================================
 // AGE-APPROPRIATE CONTENT MODIFIERS
 // ============================================================================
 
-export const AGE_CONTENT_MODIFIERS: Record<string, { style: string; complexity: string; mood: string }> = {
+export const AGE_CONTENT_MODIFIERS: Record<
+  string,
+  { style: string; complexity: string; mood: string }
+> = {
   '3-5': {
     style: 'Simple shapes, bright colors, friendly expressions, rounded forms, no sharp edges',
     complexity: 'Minimal detail, clear focal point, uncluttered composition, large simple shapes',
-    mood: 'Warm, safe, joyful, playful, non-threatening, gentle'
+    mood: 'Warm, safe, joyful, playful, non-threatening, gentle',
   },
   '6-8': {
-    style: 'Colorful and engaging, slightly more detail, expressive characters, dynamic but not intense',
+    style:
+      'Colorful and engaging, slightly more detail, expressive characters, dynamic but not intense',
     complexity: 'Moderate detail, clear storytelling, organized composition with visual interest',
-    mood: 'Adventurous, fun, exciting but safe, encouraging, wonder-filled'
+    mood: 'Adventurous, fun, exciting but safe, encouraging, wonder-filled',
   },
   '9-12': {
-    style: 'More sophisticated illustration, detailed characters and environments, stylistic variety',
+    style:
+      'More sophisticated illustration, detailed characters and environments, stylistic variety',
     complexity: 'Rich detail, complex compositions allowed, layered visual storytelling',
-    mood: 'Engaging, challenging, mysterious, inspiring, emotionally resonant'
+    mood: 'Engaging, challenging, mysterious, inspiring, emotionally resonant',
   },
   '13+': {
     style: 'Mature illustration quality, nuanced expressions, sophisticated visual language',
     complexity: 'Full artistic complexity, subtle details, professional composition',
-    mood: 'Full emotional range, thought-provoking, visually striking, thematically deep'
-  }
+    mood: 'Full emotional range, thought-provoking, visually striking, thematically deep',
+  },
 };
 
 // ============================================================================
@@ -592,5 +642,5 @@ export default {
   buildPremiumImagePrompt,
   buildCharacterConsistencyPrompt,
   PREMIUM_BOOK_IMAGE_TEMPLATE,
-  PREMIUM_INFOGRAPHIC_TEMPLATE
+  PREMIUM_INFOGRAPHIC_TEMPLATE,
 };

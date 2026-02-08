@@ -1,21 +1,21 @@
 /**
  * @module Logger
  * @description Professional logging service with structured output, levels, and environment awareness
- * 
+ *
  * Features:
  * - Environment-aware logging (silenced in production for non-errors)
  * - Structured log format with timestamps
  * - Log levels: debug, info, warn, error
  * - Context support for tracing
  * - Performance measurement utilities
- * 
+ *
  * @example
  * ```typescript
  * import { logger } from '@services/logger';
- * 
+ *
  * logger.info('User action', { userId: '123', action: 'login' });
  * logger.error('Failed to load data', new Error('Network error'), { endpoint: '/api/data' });
- * 
+ *
  * // Performance measurement
  * const timer = logger.startTimer('API call');
  * await fetchData();
@@ -112,10 +112,14 @@ class Logger {
     }
 
     const formattedMessage = this.formatEntry(entry);
-    const logMethod = level === 'error' ? console.error :
-                      level === 'warn' ? console.warn :
-                      level === 'debug' ? console.debug :
-                      console.log;
+    const logMethod =
+      level === 'error'
+        ? console.error
+        : level === 'warn'
+          ? console.warn
+          : level === 'debug'
+            ? console.debug
+            : console.log;
 
     logMethod(formattedMessage);
 
@@ -130,11 +134,30 @@ class Logger {
   }
 
   /**
-   * Placeholder for error reporting service integration
+   * Report errors to external error tracking service
+   * Integrated with Sentry for production error monitoring
    */
   private reportToErrorService(entry: LogEntry): void {
-    // TODO: Integrate with Sentry, LogRocket, or similar
-    // Example: Sentry.captureException(entry.error);
+    // Dynamically import to avoid circular dependencies
+    import('./errorReporting')
+      .then(({ errorReporter }) => {
+        if (entry.error) {
+          const error = new Error(entry.error.message);
+          error.name = entry.error.name;
+          error.stack = entry.error.stack;
+          errorReporter.captureException(error, {
+            metadata: entry.context as Record<string, unknown>,
+          });
+        } else {
+          errorReporter.captureMessage(entry.message, 'error', {
+            metadata: entry.context as Record<string, unknown>,
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback: log to console if error reporter not available
+        console.error('[Logger] Failed to report error to service');
+      });
   }
 
   /**

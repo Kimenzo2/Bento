@@ -1,12 +1,8 @@
-import { Resend } from 'resend';
+// SECURITY: Email sending is routed through /api/send-email server endpoint.
+// The Resend API key must NEVER be in client-side code.
+// This service constructs the request and sends it to our server API.
 
-const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-
-if (!resendApiKey) {
-  console.warn('⚠️ Resend API key not found. Email functionality will be disabled.');
-}
-
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const EMAIL_API_ENDPOINT = '/api/send-email';
 
 export interface EmailOptions {
   to: string | string[];
@@ -20,49 +16,43 @@ export interface EmailOptions {
 /**
  * Send an email using Resend API
  */
-export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; id?: string; error?: string }> {
-  if (!resend) {
-    console.error('❌ Resend is not configured. Cannot send email.');
-    return { success: false, error: 'Email service not configured' };
-  }
-
+export async function sendEmail(
+  options: EmailOptions
+): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const emailData: any = {
-      from: options.from || 'Genesis <onboarding@resend.dev>',
-      to: Array.isArray(options.to) ? options.to : [options.to],
-      subject: options.subject,
-    };
+    const response = await fetch(EMAIL_API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+        from: options.from,
+        replyTo: options.replyTo,
+      }),
+    });
 
-    // Add html or text based on what's provided
-    if (options.html) {
-      emailData.html = options.html;
-    }
-    if (options.text) {
-      emailData.text = options.text;
-    }
-    if (options.replyTo) {
-      emailData.replyTo = options.replyTo;
-    }
+    const data = await response.json();
 
-    const { data, error } = await resend.emails.send(emailData);
-
-    if (error) {
-      console.error('❌ Failed to send email:', error);
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to send email' };
     }
 
-    console.log('✅ Email sent successfully:', data?.id);
-    return { success: true, id: data?.id };
+    return { success: true, id: data.id };
   } catch (error: any) {
-    console.error('❌ Email sending error:', error);
-    return { success: false, error: error.message || 'Unknown error' };
+    if (import.meta.env.DEV) console.error('Email sending error:', error);
+    return { success: false, error: 'Network error sending email' };
   }
 }
 
 /**
  * Send a welcome email to new users
  */
-export async function sendWelcomeEmail(userEmail: string, userName: string): Promise<{ success: boolean; error?: string }> {
+export async function sendWelcomeEmail(
+  userEmail: string,
+  userName: string
+): Promise<{ success: boolean; error?: string }> {
   const html = `
     <!DOCTYPE html>
     <html>
@@ -130,7 +120,11 @@ export async function sendWelcomeEmail(userEmail: string, userName: string): Pro
 /**
  * Send a book completion celebration email
  */
-export async function sendBookCompletionEmail(userEmail: string, userName: string, bookTitle: string): Promise<{ success: boolean; error?: string }> {
+export async function sendBookCompletionEmail(
+  userEmail: string,
+  userName: string,
+  bookTitle: string
+): Promise<{ success: boolean; error?: string }> {
   const html = `
     <!DOCTYPE html>
     <html>
@@ -194,13 +188,13 @@ export async function sendBookCompletionEmail(userEmail: string, userName: strin
  * Send a subscription upgrade confirmation email
  */
 export async function sendSubscriptionEmail(
-  userEmail: string, 
-  userName: string, 
-  planName: string, 
+  userEmail: string,
+  userName: string,
+  planName: string,
   features: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  const featuresList = features.map(f => `<li>${f}</li>`).join('');
-  
+  const featuresList = features.map((f) => `<li>${f}</li>`).join('');
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -264,7 +258,7 @@ export async function sendSubscriptionEmail(
  * Send a password reset email
  */
 export async function sendPasswordResetEmail(
-  userEmail: string, 
+  userEmail: string,
   resetLink: string
 ): Promise<{ success: boolean; error?: string }> {
   const html = `

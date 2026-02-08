@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { X, Download, BookOpen, AlertCircle, CheckCircle, Info, FileText, Settings } from 'lucide-react';
-import { BookProject, UserTier } from '../types';
-import { TrimSize } from '../services/export/kdpTypes';
 import {
-  exportToKDP,
-  downloadKDP,
-  previewKDPExport
-} from '../services/export/kdpExportService';
-import {
-  getQualityAssessment
-} from '../services/export/kdpValidation';
+  AlertCircle,
+  BookOpen,
+  CheckCircle,
+  Download,
+  FileText,
+  Info,
+  Settings,
+  X,
+} from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { downloadKDP, previewKDPExport } from '../services/export/kdpExportService';
+import type { TrimSize } from '../services/export/kdpTypes';
+import { getQualityAssessment } from '../services/export/kdpValidation';
+import { type BookProject, UserTier } from '../types';
 
 interface KDPExportModalProps {
   project: BookProject;
@@ -22,7 +26,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
   project,
   isOpen,
   onClose,
-  userTier = UserTier.SPARK
+  userTier = UserTier.SPARK,
 }) => {
   const [trimSize, setTrimSize] = useState<TrimSize>('8.5x8.5');
   const [includeBleed, setIncludeBleed] = useState(true);
@@ -43,7 +47,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
     try {
       const previewData = await previewKDPExport(project, {
         trimSize,
-        includeBleed
+        includeBleed,
       });
       setPreview(previewData);
     } catch (error) {
@@ -68,7 +72,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
         {
           trimSize,
           includeBleed,
-          copyrightYear: new Date().getFullYear()
+          copyrightYear: new Date().getFullYear(),
         },
         (progress, message) => {
           // Real-time progress updates from export service
@@ -86,7 +90,10 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
       }, 1500);
     } catch (error) {
       console.error('Export failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Export failed. Please check your images and try again.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Export failed. Please check your images and try again.';
       alert(`Export Error: ${errorMessage}`);
       setIsExporting(false);
       setExportProgress(0);
@@ -96,7 +103,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const qualityAssessment = preview?.quality 
+  const qualityAssessment = preview?.quality
     ? getQualityAssessment(preview.quality.overallScore)
     : null;
 
@@ -128,12 +135,14 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
           {preview && preview.quality && (
             <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-heading font-bold text-charcoal-soft">Quality Assessment</h3>
+                <h3 className="text-lg font-heading font-bold text-charcoal-soft">
+                  Quality Assessment
+                </h3>
                 <div className={`text-3xl font-bold ${qualityAssessment?.color}`}>
                   {preview.quality.overallScore}%
                 </div>
               </div>
-              
+
               {qualityAssessment && (
                 <div className={`flex items-center gap-2 mb-4 ${qualityAssessment.color}`}>
                   {qualityAssessment.level === 'excellent' || qualityAssessment.level === 'good' ? (
@@ -171,7 +180,9 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 
               {/* File Info */}
               <div className="flex items-center justify-between text-sm text-cocoa-light">
-                <span>Estimated File Size: {(preview.estimatedFileSize / 1024 / 1024).toFixed(2)} MB</span>
+                <span>
+                  Estimated File Size: {(preview.estimatedFileSize / 1024 / 1024).toFixed(2)} MB
+                </span>
                 <span>Pages: {preview.validation.pageCount}</span>
               </div>
             </div>
@@ -179,17 +190,21 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 
           {/* Export Settings */}
           <div className="mb-6">
-            <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-4">Export Settings</h3>
-            
+            <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-4">
+              Export Settings
+            </h3>
+
             {/* Trim Size Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-bold text-cocoa-light mb-2">Book Size (Trim Size)</label>
+              <label className="block text-sm font-bold text-cocoa-light mb-2">
+                Book Size (Trim Size)
+              </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { value: '6x9', label: '6" × 9"', desc: 'Standard Novel' },
                   { value: '8.5x8.5', label: '8.5" × 8.5"', desc: 'Square Picture Book' },
                   { value: '8x10', label: '8" × 10"', desc: 'Premium Format' },
-                  { value: '8.5x11', label: '8.5" × 11"', desc: 'Large Format' }
+                  { value: '8.5x11', label: '8.5" × 11"', desc: 'Large Format' },
                 ].map((size) => (
                   <button
                     key={size.value}
@@ -252,7 +267,9 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
           {/* Pre-flight Checklist */}
           {preview && preview.checklist && (
             <div className="mb-6">
-              <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-3">Pre-flight Checklist</h3>
+              <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-3">
+                Pre-flight Checklist
+              </h3>
               <div className="space-y-2">
                 {preview.checklist.map((item: any, idx: number) => (
                   <div
@@ -261,8 +278,8 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
                       item.status === 'pass'
                         ? 'bg-green-50 border border-green-200'
                         : item.status === 'warning'
-                        ? 'bg-yellow-50 border border-yellow-200'
-                        : 'bg-red-50 border border-red-200'
+                          ? 'bg-yellow-50 border border-yellow-200'
+                          : 'bg-red-50 border border-red-200'
                     }`}
                   >
                     {item.status === 'pass' ? (
@@ -283,21 +300,24 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
           )}
 
           {/* Warnings */}
-          {preview && preview.validation && preview.validation.warnings && preview.validation.warnings.length > 0 && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <div className="font-bold text-yellow-800 mb-2">Warnings</div>
-                  <ul className="text-sm text-yellow-700 space-y-1">
-                    {preview.validation.warnings.map((warning: string, idx: number) => (
-                      <li key={idx}>• {warning}</li>
-                    ))}
-                  </ul>
+          {preview &&
+            preview.validation &&
+            preview.validation.warnings &&
+            preview.validation.warnings.length > 0 && (
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-yellow-800 mb-2">Warnings</div>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      {preview.validation.warnings.map((warning: string, idx: number) => (
+                        <li key={idx}>• {warning}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Tier Restriction */}
           {userTier === UserTier.SPARK && (
@@ -331,7 +351,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
           >
             Cancel
           </button>
-          
+
           <button
             onClick={handleExport}
             disabled={isExporting || userTier === UserTier.SPARK}
@@ -359,7 +379,11 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 };
 
 // Quality Metric Component
-const QualityMetric: React.FC<{ label: string; score: number; icon: string }> = ({ label, score, icon }) => {
+const QualityMetric: React.FC<{ label: string; score: number; icon: string }> = ({
+  label,
+  score,
+  icon,
+}) => {
   const getColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
     if (score >= 70) return 'text-yellow-600';

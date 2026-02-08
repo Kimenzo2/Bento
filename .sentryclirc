@@ -1,0 +1,11 @@
+[defaults]
+org = student-40v
+project = javascript-react
+
+[auth]
+# Auth token loaded from SENTRY_AUTH_TOKEN environment variable
+
+[http]
+# Increase timeout for slower connections
+timeout = 120
+max_retries = 5

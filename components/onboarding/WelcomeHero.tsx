@@ -1,6 +1,8 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 /**
  * WelcomeHero - PERFORMANCE OPTIMIZED
- * 
+ *
  * Optimizations:
  * 1. ⚡ Reduced particle count (20 → 8) - still magical, less CPU
  * 2. ⚡ Memoized all sub-components prevent re-renders
@@ -10,9 +12,8 @@
  * 6. ⚡ Uses CSS animations for ambient effects (off main thread)
  * 7. ⚡ Lazy image loading with priority hints
  */
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import type React from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { type ThemeOption, useOnboarding } from './OnboardingState';
 import { APPLE_EASE, GPU_ACCELERATED_STYLES, prefersReducedMotion } from './performance/gpuStyles';
 
@@ -26,60 +27,76 @@ const GPU_STYLE: React.CSSProperties = {
 const FAST_TRANSITION = { duration: 0.25, ease: APPLE_EASE } as const;
 
 // ⚡ Memoized floating particle - reduced animation complexity
-const FloatingParticle = memo(({ delay, size, x, y, duration }: { 
-  delay: number; 
-  size: number; 
-  x: string; 
-  y: string; 
-  duration: number 
-}) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{
-      opacity: [0, 0.6, 0],
-      scale: [0.5, 1, 0.5],
-      y: [0, -150],
-    }}
-    transition={{
-      delay,
-      duration,
-      repeat: Infinity,
-      repeatDelay: duration * 0.5,
-      ease: 'linear', // Linear is cheaper to compute
-    }}
-    className="absolute rounded-full bg-linear-to-br from-white/50 to-white/10 pointer-events-none"
-    style={{ 
-      left: x, 
-      top: y, 
-      width: size, 
-      height: size,
-      ...GPU_STYLE,
-    }}
-  />
-));
+const FloatingParticle = memo(
+  ({
+    delay,
+    size,
+    x,
+    y,
+    duration,
+  }: {
+    delay: number;
+    size: number;
+    x: string;
+    y: string;
+    duration: number;
+  }) => (
+    <motion.div
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{
+        opacity: [0, 0.6, 0],
+        scale: [0.5, 1, 0.5],
+        y: [0, -150],
+      }}
+      transition={{
+        delay,
+        duration,
+        repeat: Number.POSITIVE_INFINITY,
+        repeatDelay: duration * 0.5,
+        ease: 'linear', // Linear is cheaper to compute
+      }}
+      className="absolute rounded-full bg-linear-to-br from-white/50 to-white/10 pointer-events-none"
+      style={{
+        left: x,
+        top: y,
+        width: size,
+        height: size,
+        ...GPU_STYLE,
+      }}
+    />
+  )
+);
 FloatingParticle.displayName = 'FloatingParticle';
 
 // ⚡ Memoized ambient orb - uses CSS animation instead of Framer
-const AmbientOrb = memo(({ color, size, x, y, blur }: { 
-  color: string; 
-  size: string; 
-  x: string; 
-  y: string; 
-  blur: string 
-}) => (
-  <div
-    className={`absolute rounded-full ${color} pointer-events-none animate-pulse`}
-    style={{ 
-      left: x, 
-      top: y, 
-      width: size, 
-      height: size, 
-      filter: `blur(${blur})`,
-      animationDuration: '6s',
-      ...GPU_STYLE,
-    }}
-  />
-));
+const AmbientOrb = memo(
+  ({
+    color,
+    size,
+    x,
+    y,
+    blur,
+  }: {
+    color: string;
+    size: string;
+    x: string;
+    y: string;
+    blur: string;
+  }) => (
+    <div
+      className={`absolute rounded-full ${color} pointer-events-none animate-pulse`}
+      style={{
+        left: x,
+        top: y,
+        width: size,
+        height: size,
+        filter: `blur(${blur})`,
+        animationDuration: '6s',
+        ...GPU_STYLE,
+      }}
+    />
+  )
+);
 AmbientOrb.displayName = 'AmbientOrb';
 
 // ⚡ Pre-computed particle positions (stable between renders)
@@ -110,7 +127,7 @@ const THEME_CARDS = [
     image: THEME_IMAGES.cosmos,
     gradient: 'from-indigo-600 via-purple-600 to-blue-700',
     glow: 'shadow-[0_0_60px_rgba(99,102,241,0.4)]',
-    particle: '✨'
+    particle: '✨',
   },
   {
     id: 'kingdom' as ThemeOption,
@@ -119,7 +136,7 @@ const THEME_CARDS = [
     image: THEME_IMAGES.kingdom,
     gradient: 'from-amber-500 via-orange-500 to-red-600',
     glow: 'shadow-[0_0_60px_rgba(245,158,11,0.4)]',
-    particle: '👑'
+    particle: '👑',
   },
   {
     id: 'cell' as ThemeOption,
@@ -128,8 +145,8 @@ const THEME_CARDS = [
     image: THEME_IMAGES.cell,
     gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
     glow: 'shadow-[0_0_60px_rgba(16,185,129,0.4)]',
-    particle: '🧬'
-  }
+    particle: '🧬',
+  },
 ] as const;
 
 export const WelcomeHero: React.FC = memo(() => {
@@ -145,14 +162,17 @@ export const WelcomeHero: React.FC = memo(() => {
   }, []);
 
   // ⚡ Stable callback with useCallback
-  const handleThemeSelect = useCallback((theme: ThemeOption) => {
-    setSelectedTheme(theme);
-    setTheme(theme);
-    setTimeout(() => setStep('quiz'), 400); // Reduced from 800ms
-  }, [setTheme, setStep]);
+  const handleThemeSelect = useCallback(
+    (theme: ThemeOption) => {
+      setSelectedTheme(theme);
+      setTheme(theme);
+      setTimeout(() => setStep('quiz'), 400); // Reduced from 800ms
+    },
+    [setTheme, setStep]
+  );
 
   return (
-    <div 
+    <div
       className="relative flex flex-col items-center h-full min-h-full px-(--ob-container-padding) py-4 md:py-6 overflow-x-hidden overflow-y-auto transform-gpu"
       style={GPU_STYLE}
     >
@@ -172,9 +192,7 @@ export const WelcomeHero: React.FC = memo(() => {
       )}
 
       {/* ⚡ Reduced floating particles (8 instead of 20) */}
-      {!reducedMotion && PARTICLES.map((p, i) => (
-        <FloatingParticle key={i} {...p} />
-      ))}
+      {!reducedMotion && PARTICLES.map((p, i) => <FloatingParticle key={i} {...p} />)}
 
       {/* Radial spotlight - static */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02),transparent_70%)] pointer-events-none" />
@@ -212,7 +230,9 @@ export const WelcomeHero: React.FC = memo(() => {
                 <motion.div
                   initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={reducedMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  transition={
+                    reducedMotion ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
+                  }
                   style={GPU_STYLE}
                 >
                   <h1 className="ob-hero-headline font-bold mb-3 md:mb-5 lg:mb-6 font-heading tracking-tight">
@@ -250,16 +270,24 @@ export const WelcomeHero: React.FC = memo(() => {
                     key={card.id}
                     initial={reducedMotion ? {} : { opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={reducedMotion ? { duration: 0 } : {
-                      delay: 0.2 + (index * 0.08), // Faster stagger
-                      duration: 0.35,
-                      ease: [0.22, 1, 0.36, 1]
-                    }}
-                    whileHover={reducedMotion ? {} : {
-                      scale: 1.02,
-                      y: -4,
-                      transition: { duration: 0.15 }
-                    }}
+                    transition={
+                      reducedMotion
+                        ? { duration: 0 }
+                        : {
+                            delay: 0.2 + index * 0.08, // Faster stagger
+                            duration: 0.35,
+                            ease: [0.22, 1, 0.36, 1],
+                          }
+                    }
+                    whileHover={
+                      reducedMotion
+                        ? {}
+                        : {
+                            scale: 1.02,
+                            y: -4,
+                            transition: { duration: 0.15 },
+                          }
+                    }
                     whileTap={reducedMotion ? {} : { scale: 0.98 }}
                     onClick={() => handleThemeSelect(card.id)}
                     disabled={selectedTheme !== null}
@@ -276,7 +304,9 @@ export const WelcomeHero: React.FC = memo(() => {
                     <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
 
                     {/* Gradient on hover */}
-                    <div className={`absolute inset-0 bg-linear-to-br ${card.gradient} opacity-0 group-hover:opacity-15 transition-opacity duration-200`} />
+                    <div
+                      className={`absolute inset-0 bg-linear-to-br ${card.gradient} opacity-0 group-hover:opacity-15 transition-opacity duration-200`}
+                    />
 
                     {/* Card border */}
                     <div className="absolute inset-0 rounded-2xl md:rounded-3xl border border-white/10 group-hover:border-white/20 transition-colors duration-200" />
@@ -290,13 +320,19 @@ export const WelcomeHero: React.FC = memo(() => {
                         loading="eager"
                         decoding="async"
                       />
-                      <div className={`absolute inset-0 bg-linear-to-br ${card.gradient} blur-2xl opacity-20 -z-10`} />
+                      <div
+                        className={`absolute inset-0 bg-linear-to-br ${card.gradient} blur-2xl opacity-20 -z-10`}
+                      />
                     </div>
 
                     {/* Text */}
                     <div className="relative z-10">
-                      <h3 className="text-xs md:text-lg lg:text-lg xl:text-2xl font-bold text-white mb-0.5 md:mb-2 font-heading">{card.title}</h3>
-                      <p className="text-[10px] md:text-sm lg:text-sm xl:text-base text-white/60 leading-tight md:leading-relaxed hidden md:block">{card.desc}</p>
+                      <h3 className="text-xs md:text-lg lg:text-lg xl:text-2xl font-bold text-white mb-0.5 md:mb-2 font-heading">
+                        {card.title}
+                      </h3>
+                      <p className="text-[10px] md:text-sm lg:text-sm xl:text-base text-white/60 leading-tight md:leading-relaxed hidden md:block">
+                        {card.desc}
+                      </p>
                     </div>
 
                     {/* Selection particle */}

@@ -1,6 +1,8 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Sparkles, Star, Wand2 } from 'lucide-react';
 /**
  * InstantCreationDemo - PERFORMANCE OPTIMIZED
- * 
+ *
  * Optimizations:
  * 1. ⚡ Reduced star count (30 → 12) - still magical, way less CPU
  * 2. ⚡ Memoized sub-components (ParticleExplosion, TypewriterText)
@@ -10,9 +12,8 @@
  * 6. ⚡ Lazy video loading
  * 7. ⚡ Reduced particle explosion (12 → 8)
  */
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Star, Wand2 } from 'lucide-react';
+import type React from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOnboarding } from './OnboardingState';
 import { APPLE_EASE, GPU_ACCELERATED_STYLES, prefersReducedMotion } from './performance/gpuStyles';
 
@@ -68,8 +69,8 @@ const ParticleExplosion = memo(({ active }: { active: boolean }) => {
           initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
           animate={{
             scale: [0.5, 1, 0],
-            x: Math.cos(angle * Math.PI / 180) * 100,
-            y: Math.sin(angle * Math.PI / 180) * 100,
+            x: Math.cos((angle * Math.PI) / 180) * 100,
+            y: Math.sin((angle * Math.PI) / 180) * 100,
             opacity: [1, 0.8, 0],
           }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -92,7 +93,7 @@ const TypewriterText = memo(({ text, onComplete }: { text: string; onComplete: (
   useEffect(() => {
     indexRef.current = 0;
     setDisplayedText('');
-    
+
     const typeNextChar = () => {
       if (indexRef.current < text.length) {
         setDisplayedText(text.slice(0, indexRef.current + 1));
@@ -102,7 +103,7 @@ const TypewriterText = memo(({ text, onComplete }: { text: string; onComplete: (
         onCompleteRef.current();
       }
     };
-    
+
     setTimeout(typeNextChar, 100);
   }, [text]);
 
@@ -116,18 +117,20 @@ const TypewriterText = memo(({ text, onComplete }: { text: string; onComplete: (
 TypewriterText.displayName = 'TypewriterText';
 
 // ⚡ Memoized ambient star
-const AmbientStar = memo(({ x, y, delay, duration }: { x: string; y: string; delay: number; duration: number }) => (
-  <div
-    className="absolute w-1 h-1 bg-white rounded-full animate-pulse pointer-events-none"
-    style={{
-      left: x,
-      top: y,
-      animationDelay: `${delay}s`,
-      animationDuration: `${duration}s`,
-      ...GPU_STYLE,
-    }}
-  />
-));
+const AmbientStar = memo(
+  ({ x, y, delay, duration }: { x: string; y: string; delay: number; duration: number }) => (
+    <div
+      className="absolute w-1 h-1 bg-white rounded-full animate-pulse pointer-events-none"
+      style={{
+        left: x,
+        top: y,
+        animationDelay: `${delay}s`,
+        animationDuration: `${duration}s`,
+        ...GPU_STYLE,
+      }}
+    />
+  )
+);
 AmbientStar.displayName = 'AmbientStar';
 
 export const InstantCreationDemo: React.FC = memo(() => {
@@ -141,8 +144,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
     switch (theme) {
       case 'cosmos':
         return {
-          prompt: "A starship ignites its quantum engines...",
-          generated: "The Aurora-7 erupted from the nebula in a cascade of stellar fire, its crystalline hull catching the light of a thousand dying suns. Captain Zara gripped the helm as reality bent around them—they were about to jump across the galaxy.",
+          prompt: 'A starship ignites its quantum engines...',
+          generated:
+            'The Aurora-7 erupted from the nebula in a cascade of stellar fire, its crystalline hull catching the light of a thousand dying suns. Captain Zara gripped the helm as reality bent around them—they were about to jump across the galaxy.',
           visualImage: THEME_IMAGES.cosmos,
           visualGradient: 'from-blue-400 via-purple-500 to-pink-500',
           bgGradient: 'from-slate-900 via-indigo-950 to-slate-900',
@@ -151,8 +155,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
         };
       case 'kingdom':
         return {
-          prompt: "The dragon awakens in the mountain...",
-          generated: "Flames licked the ancient stones as Valdris opened one golden eye. A thousand years of slumber ended. Below, the kingdom of Aethermoor slept unaware that their protector—and their doom—had finally stirred from the depths.",
+          prompt: 'The dragon awakens in the mountain...',
+          generated:
+            'Flames licked the ancient stones as Valdris opened one golden eye. A thousand years of slumber ended. Below, the kingdom of Aethermoor slept unaware that their protector—and their doom—had finally stirred from the depths.',
           visualImage: THEME_IMAGES.kingdom,
           visualGradient: 'from-amber-400 via-orange-500 to-red-600',
           bgGradient: 'from-slate-900 via-amber-950 to-slate-900',
@@ -161,8 +166,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
         };
       case 'cell':
         return {
-          prompt: "Inside the cell, a journey begins...",
-          generated: "The mitochondria hummed with ancient energy, powering the cell's impossible machinery. Ribosomes danced along messenger RNA, translating the code of life itself into proteins that would heal, grow, and transform.",
+          prompt: 'Inside the cell, a journey begins...',
+          generated:
+            "The mitochondria hummed with ancient energy, powering the cell's impossible machinery. Ribosomes danced along messenger RNA, translating the code of life itself into proteins that would heal, grow, and transform.",
           visualImage: THEME_IMAGES.cell,
           visualVideo: THEME_VIDEOS.cell,
           visualGradient: 'from-emerald-400 via-teal-500 to-cyan-600',
@@ -172,8 +178,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
         };
       default:
         return {
-          prompt: "Once upon a time...",
-          generated: "In a world where imagination shaped reality, a single spark of creativity was about to change everything. The canvas awaited its first stroke of genius.",
+          prompt: 'Once upon a time...',
+          generated:
+            'In a world where imagination shaped reality, a single spark of creativity was about to change everything. The canvas awaited its first stroke of genius.',
           visualImage: THEME_IMAGES.genMascot,
           visualGradient: 'from-purple-400 via-pink-500 to-amber-500',
           bgGradient: 'from-slate-900 via-purple-950 to-slate-900',
@@ -203,7 +210,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
   }, [setStep]);
 
   return (
-    <div 
+    <div
       className={`relative h-full min-h-full flex flex-col items-center justify-start px-(--ob-container-padding) py-6 md:p-6 overflow-x-hidden overflow-y-auto bg-linear-to-br ${content.bgGradient} transform-gpu`}
       style={GPU_STYLE}
     >
@@ -213,9 +220,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.04),transparent_70%)] rounded-full" />
 
         {/* ⚡ Reduced floating stars (12 instead of 30) - CSS animated */}
-        {!reducedMotion && AMBIENT_STARS.map((star, i) => (
-          <AmbientStar key={i} {...star} />
-        ))}
+        {!reducedMotion && AMBIENT_STARS.map((star, i) => <AmbientStar key={i} {...star} />)}
       </div>
 
       {/* Spark Points indicator */}
@@ -271,7 +276,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
             className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
           >
             <Wand2 className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
-            <span className="text-white/70 text-xs md:text-sm font-medium">Experience the Magic</span>
+            <span className="text-white/70 text-xs md:text-sm font-medium">
+              Experience the Magic
+            </span>
           </motion.div>
 
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4 font-heading">
@@ -326,7 +333,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
 
                   {/* Glow */}
-                  <div className={`absolute inset-0 bg-linear-to-r ${content.visualGradient} blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-200`} />
+                  <div
+                    className={`absolute inset-0 bg-linear-to-r ${content.visualGradient} blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-200`}
+                  />
 
                   <span className="relative flex items-center gap-2 text-white font-bold text-base md:text-lg">
                     <Wand2 className="w-4 h-4 md:w-5 md:h-5" />
@@ -353,11 +362,13 @@ export const InstantCreationDemo: React.FC = memo(() => {
               >
                 <motion.div
                   animate={reducedMotion ? {} : { rotate: 360 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
                   className="inline-block mb-6"
                   style={GPU_STYLE}
                 >
-                  <div className={`w-16 h-16 rounded-full bg-linear-to-r ${content.visualGradient} p-0.5`}>
+                  <div
+                    className={`w-16 h-16 rounded-full bg-linear-to-r ${content.visualGradient} p-0.5`}
+                  >
                     <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
                       <Sparkles className="w-8 h-8 text-white" />
                     </div>
@@ -387,7 +398,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   className="flex justify-center mb-4 md:mb-8"
                   style={GPU_STYLE}
                 >
-                  <div className={`overflow-hidden rounded-2xl md:rounded-3xl ${content.glowColor} shadow-xl`}>
+                  <div
+                    className={`overflow-hidden rounded-2xl md:rounded-3xl ${content.glowColor} shadow-xl`}
+                  >
                     {content.visualVideo ? (
                       <video
                         src={content.visualVideo}
@@ -425,7 +438,9 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   className="flex items-center justify-center gap-2 text-emerald-400 mb-4 md:mb-8"
                 >
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="font-medium text-sm md:text-base">Your first creation is born!</span>
+                  <span className="font-medium text-sm md:text-base">
+                    Your first creation is born!
+                  </span>
                 </motion.div>
               </motion.div>
             )}

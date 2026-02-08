@@ -1,13 +1,13 @@
-import React from 'react';
-import { 
-  LayoutDashboard, 
-  PenTool, 
-  BookOpen, 
-  Image as ImageIcon, 
-  Layout, 
-  Share, 
-  Settings 
+import {
+  BookOpen,
+  Image as ImageIcon,
+  Layout,
+  LayoutDashboard,
+  PenTool,
+  Settings,
+  Share,
 } from 'lucide-react';
+import type React from 'react';
 import { AppMode } from '../types';
 
 interface SidebarProps {
@@ -43,12 +43,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
               key={item.mode}
               onClick={() => setMode(item.mode)}
               className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group
-                ${currentMode === item.mode 
-                  ? 'bg-white/10 text-brand-cyan shadow-[0_0_20px_rgba(34,211,238,0.1)] border border-brand-cyan/20' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                ${
+                  currentMode === item.mode
+                    ? 'bg-white/10 text-brand-cyan shadow-[0_0_20px_rgba(34,211,238,0.1)] border border-brand-cyan/20'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
             >
-              <item.icon className={`w-5 h-5 ${currentMode === item.mode ? 'text-brand-cyan' : 'group-hover:text-white'}`} />
+              <item.icon
+                className={`w-5 h-5 ${currentMode === item.mode ? 'text-brand-cyan' : 'group-hover:text-white'}`}
+              />
               <span className="hidden md:block font-medium">{item.label}</span>
               {currentMode === item.mode && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-cyan shadow-[0_0_10px_#22d3ee] hidden md:block"></div>

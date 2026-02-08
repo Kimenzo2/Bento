@@ -6,7 +6,7 @@ export type ColorMode = 'RGB';
 export type PDFFormat = 'PDF/X-1a:2001' | 'PDF/A';
 
 export interface TrimDimensions {
-  width: number;  // inches
+  width: number; // inches
   height: number; // inches
   widthMM: number;
   heightMM: number;
@@ -20,7 +20,7 @@ export interface PageDimensions extends TrimDimensions {
 export interface Margins {
   top: number;
   bottom: number;
-  inside: number;  // gutter
+  inside: number; // gutter
   outside: number;
 }
 
@@ -63,7 +63,7 @@ export interface FontSizes {
 }
 
 export interface SpineSpecifications {
-  width: number;        // inches
+  width: number; // inches
   textSafeZone: number; // 0.0625" on each side
   minimumPages: number;
 }
@@ -81,26 +81,26 @@ export const TRIM_SIZE_SPECS: Record<TrimSize, TrimDimensions> = {
     width: 6,
     height: 9,
     widthMM: 152.4,
-    heightMM: 228.6
+    heightMM: 228.6,
   },
   '8.5x8.5': {
     width: 8.5,
     height: 8.5,
     widthMM: 215.9,
-    heightMM: 215.9
+    heightMM: 215.9,
   },
   '8x10': {
     width: 8,
     height: 10,
     widthMM: 203.2,
-    heightMM: 254
+    heightMM: 254,
   },
   '8.5x11': {
     width: 8.5,
     height: 11,
     widthMM: 215.9,
-    heightMM: 279.4
-  }
+    heightMM: 279.4,
+  },
 };
 
 export const KDP_CONSTRAINTS = {
@@ -113,5 +113,5 @@ export const KDP_CONSTRAINTS = {
   MIN_LINE_WIDTH: 0.75, // points
   MIN_GRAYSCALE_FILL: 10, // percent
   SPINE_TEXT_MARGIN: 0.0625, // inches
-  MIN_SPINE_PAGES: 79
+  MIN_SPINE_PAGES: 79,
 };

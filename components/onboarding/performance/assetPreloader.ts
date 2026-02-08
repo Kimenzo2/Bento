@@ -1,6 +1,6 @@
 /**
  * INTELLIGENT ASSET PRELOADING
- * 
+ *
  * Strategies:
  * 1. Critical path preloading (above-the-fold assets)
  * 2. Predictive preloading based on user journey
@@ -18,7 +18,7 @@ export const ONBOARDING_ASSETS = {
     '/images/onboarding/On 4.jpeg', // Kingdom
     '/images/onboarding/On 5.png', // Cell
   ],
-  
+
   // High priority - load after critical (quiz screen)
   high: [
     '/images/onboarding/On 13.png', // Kids
@@ -27,13 +27,13 @@ export const ONBOARDING_ASSETS = {
     '/images/onboarding/On 16.png', // Beginner
     '/images/onboarding/On 17.png', // Pro
   ],
-  
+
   // Medium priority - load when idle (creation demo)
   medium: [
     '/images/onboarding/On 18.png', // Daily
     '/images/onboarding/On 19.png', // Occasional
   ],
-  
+
   // Low priority - lazy load (tour)
   low: [
     '/images/onboarding/On 6.png',
@@ -41,11 +41,9 @@ export const ONBOARDING_ASSETS = {
     '/images/onboarding/On 8.png',
     '/images/onboarding/On 9.png',
   ],
-  
+
   // Video assets - load on demand
-  videos: [
-    '/images/onboarding/Cinematic_microscopic_journey_202512151050_ve.mp4',
-  ],
+  videos: ['/images/onboarding/Cinematic_microscopic_journey_202512151050_ve.mp4'],
 } as const;
 
 // Asset cache to prevent duplicate requests
@@ -59,11 +57,11 @@ export function preloadImage(src: string): Promise<void> {
   if (loadedAssets.has(src)) {
     return Promise.resolve();
   }
-  
+
   if (assetCache.has(src)) {
     return assetCache.get(src)!;
   }
-  
+
   const promise = new Promise<void>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -73,7 +71,7 @@ export function preloadImage(src: string): Promise<void> {
     img.onerror = reject;
     img.src = src;
   });
-  
+
   assetCache.set(src, promise);
   return promise;
 }
@@ -85,11 +83,11 @@ export function preloadVideo(src: string): Promise<void> {
   if (loadedAssets.has(src)) {
     return Promise.resolve();
   }
-  
+
   if (assetCache.has(src)) {
     return assetCache.get(src)!;
   }
-  
+
   const promise = new Promise<void>((resolve) => {
     const link = document.createElement('link');
     link.rel = 'preload';
@@ -102,7 +100,7 @@ export function preloadVideo(src: string): Promise<void> {
     link.onerror = () => resolve(); // Don't block on video errors
     document.head.appendChild(link);
   });
-  
+
   assetCache.set(src, promise);
   return promise;
 }
@@ -110,13 +108,10 @@ export function preloadVideo(src: string): Promise<void> {
 /**
  * Batch preload with concurrency control
  */
-export async function preloadBatch(
-  urls: readonly string[],
-  concurrency = 3
-): Promise<void> {
+export async function preloadBatch(urls: readonly string[], concurrency = 3): Promise<void> {
   const queue = [...urls];
   const active: Promise<void>[] = [];
-  
+
   while (queue.length > 0 || active.length > 0) {
     while (active.length < concurrency && queue.length > 0) {
       const url = queue.shift()!;
@@ -126,7 +121,7 @@ export async function preloadBatch(
       });
       active.push(promise);
     }
-    
+
     if (active.length > 0) {
       await Promise.race(active);
     }
@@ -155,7 +150,7 @@ export function preloadNextScreen(currentStep: string): void {
     cliffhanger: [],
     welcome: [],
   };
-  
+
   const assets = stepAssets[currentStep];
   if (assets && assets.length > 0) {
     // Use requestIdleCallback for non-blocking preload
@@ -173,7 +168,7 @@ export function preloadNextScreen(currentStep: string): void {
 export function initAssetPreloading(): void {
   // Preload critical immediately
   preloadCriticalAssets();
-  
+
   // Preload high priority during idle time
   if ('requestIdleCallback' in window) {
     requestIdleCallback(() => {
@@ -190,6 +185,6 @@ export function initAssetPreloading(): void {
  */
 export function getPreloadLinks(): string {
   return ONBOARDING_ASSETS.critical
-    .map(src => `<link rel="preload" as="image" href="${src}" />`)
+    .map((src) => `<link rel="preload" as="image" href="${src}" />`)
     .join('\n');
 }

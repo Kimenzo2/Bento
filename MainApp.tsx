@@ -1,9 +1,9 @@
 /**
  * MainApp - The Genesis Core Application
- * 
+ *
  * This is the MAIN APPLICATION with the cream-themed UI.
  * It is completely separate from OnboardingApp at the router level.
- * 
+ *
  * ARCHITECTURE:
  * - Only renders for users who have completed onboarding
  * - Has its own layout (Navigation, main content area)
@@ -11,32 +11,47 @@
  * - All app-specific state and logic lives here
  */
 
-import React, { useState, lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { injectSpeedInsights } from '@vercel/speed-insights';
+import type React from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
-import Navigation from './components/Navigation';
-import { AppMode, BookProject, GenerationSettings, GamificationState, UserTier, SavedBook } from './types';
-import { generateBookStructure, generateIllustration, generateBrandContent } from './services/geminiService';
-import UpgradeModal from './components/UpgradeModal';
-import { ToastContainer, ToastType } from './components/Toast';
-
-import { getAllBooks, saveBook } from './services/storageService';
-import { canCreateEbook, getEbooksCreatedThisMonth, incrementEbookCount, getMaxPages } from './services/tierLimits';
-import { getUserProfile, incrementBooksCreated, addXP, UserProfile } from './services/profileService';
-import { supabase } from './services/supabaseClient';
-import { useGoogleOneTap } from './hooks/useGoogleOneTap';
-import { useAuth } from './contexts/AuthContext';
 import InstallPWA from './components/InstallPWA';
+import Navigation from './components/Navigation';
+import { ToastContainer, type ToastType } from './components/Toast';
+import UpgradeModal from './components/UpgradeModal';
+import { useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { useGoogleOneTap } from './hooks/useGoogleOneTap';
+import {
+  generateBookStructure,
+  generateBrandContent,
+  generateIllustration,
+} from './services/geminiService';
+import { type UserProfile, getUserProfile } from './services/profileService';
+import { supabase } from './services/supabaseClient';
+import {
+  canCreateEbook,
+  getEbooksCreatedThisMonth,
+  getMaxPages,
+  incrementEbookCount,
+} from './services/tierLimits';
 import { FontProvider } from './src/contexts/FontContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
+import {
+  AppMode,
+  type BookProject,
+  type GamificationState,
+  type GenerationSettings,
+  type SavedBook,
+  UserTier,
+} from './types';
 import './src/config/i18n';
 
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 // Global Components
 import WhatsNewModal from './components/WhatsNewModal';
-import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { OfflineIndicator, useNetworkStatus } from './hooks/useNetworkStatus';
 
 // PERFORMANCE: Lazy load heavy components
@@ -69,7 +84,7 @@ const MainAppContent: React.FC = () => {
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
   const [viewingBook, setViewingBook] = useState<BookProject | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [generationStatus, setGenerationStatus] = useState<string>('');
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [forceRenderKey, setForceRenderKey] = useState(0);
@@ -90,23 +105,23 @@ const MainAppContent: React.FC = () => {
 
   const addToast = (message: string, type: ToastType) => {
     const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, message, type }]);
+    setToasts((prev) => [...prev, { id, message, type }]);
   };
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   // Listen for theme and language changes
   useEffect(() => {
     const handleThemeChange = () => {
       console.log('[MainApp] Theme changed, forcing re-render');
-      setForceRenderKey(prev => prev + 1);
+      setForceRenderKey((prev) => prev + 1);
     };
 
     const handleLanguageChange = () => {
       console.log('[MainApp] Language changed, forcing re-render');
-      setForceRenderKey(prev => prev + 1);
+      setForceRenderKey((prev) => prev + 1);
     };
 
     window.addEventListener('themeChanged', handleThemeChange);
@@ -156,7 +171,6 @@ const MainAppContent: React.FC = () => {
     };
   }, []);
 
-
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
@@ -165,7 +179,7 @@ const MainAppContent: React.FC = () => {
         return;
       }
       const targetMode = Object.values(AppMode).find(
-        m => m.toLowerCase().replace(/\s+/g, '-') === hash.toLowerCase()
+        (m) => m.toLowerCase().replace(/\s+/g, '-') === hash.toLowerCase()
       ) as AppMode | undefined;
       if (targetMode && targetMode !== currentMode) setCurrentMode(targetMode);
     };
@@ -200,52 +214,79 @@ const MainAppContent: React.FC = () => {
 
     fetchProfile();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setTimeout(async () => {
-          const profile = await getUserProfile();
-          if (!profile && session?.user) {
-            setTimeout(async () => {
-              const retryProfile = await getUserProfile();
-              setUserProfile(retryProfile);
-            }, 1000);
-          } else {
-            setUserProfile(profile);
-          }
-        }, 500);
-      } else if (event === 'SIGNED_OUT') {
-        setUserProfile(null);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event: string, session: any) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setTimeout(async () => {
+            const profile = await getUserProfile();
+            if (!profile && session?.user) {
+              setTimeout(async () => {
+                const retryProfile = await getUserProfile();
+                setUserProfile(retryProfile);
+              }, 1000);
+            } else {
+              setUserProfile(profile);
+            }
+          }, 500);
+        } else if (event === 'SIGNED_OUT') {
+          setUserProfile(null);
+        }
       }
-    });
+    );
 
     return () => authListener.subscription.unsubscribe();
   }, []);
 
   // Derive tier and gamification state
   const rawTier = userProfile?.user_tier;
-  const currentUserTier = rawTier && Object.values(UserTier).includes(rawTier as UserTier)
-    ? (rawTier as UserTier)
-    : UserTier.SPARK;
+  const currentUserTier =
+    rawTier && Object.values(UserTier).includes(rawTier as UserTier)
+      ? (rawTier as UserTier)
+      : UserTier.SPARK;
 
   const gamificationState: GamificationState = userProfile?.gamification_data || {
     level: 1,
-    levelTitle: "Novice Author",
+    levelTitle: 'Novice Author',
     currentXP: 0,
     nextLevelXP: 100,
     booksCreatedCount: 0,
     currentStreak: 0,
     lastActivityDate: undefined,
     badges: [
-      { id: '1', name: "First Spark", description: "Create your first book", icon: "rocket", unlocked: false },
-      { id: '2', name: "Style Explorer", description: "Try 3 different styles", icon: "palette", unlocked: false },
-      { id: '3', name: "Wordsmith", description: "Write 5,000 words", icon: "feather", unlocked: false },
-      { id: '4', name: "Bestseller", description: "Get 1,000 views", icon: "diamond", unlocked: false }
+      {
+        id: '1',
+        name: 'First Spark',
+        description: 'Create your first book',
+        icon: 'rocket',
+        unlocked: false,
+      },
+      {
+        id: '2',
+        name: 'Style Explorer',
+        description: 'Try 3 different styles',
+        icon: 'palette',
+        unlocked: false,
+      },
+      {
+        id: '3',
+        name: 'Wordsmith',
+        description: 'Write 5,000 words',
+        icon: 'feather',
+        unlocked: false,
+      },
+      {
+        id: '4',
+        name: 'Bestseller',
+        description: 'Get 1,000 views',
+        icon: 'diamond',
+        unlocked: false,
+      },
     ],
     dailyChallenges: [
       { id: 'c1', title: "Create a Children's Book", xpReward: 50, completed: false },
-      { id: 'c2', title: "Try a new Art Style", xpReward: 75, completed: false },
-      { id: 'c3', title: "Share a book", xpReward: 100, completed: false }
-    ]
+      { id: 'c2', title: 'Try a new Art Style', xpReward: 75, completed: false },
+      { id: 'c3', title: 'Share a book', xpReward: 100, completed: false },
+    ],
   };
 
   const checkTierLimits = (settings: GenerationSettings): boolean => {
@@ -271,7 +312,9 @@ const MainAppContent: React.FC = () => {
     setGenerationProgress(0);
 
     const isBrandContent = settings.brandStoryConfig && settings.brandStoryConfig.companyInfo?.name;
-    setGenerationStatus(isBrandContent ? "Creating professional brand content..." : "Architecting story structure...");
+    setGenerationStatus(
+      isBrandContent ? 'Creating professional brand content...' : 'Architecting story structure...'
+    );
 
     try {
       setGenerationProgress(5);
@@ -280,14 +323,14 @@ const MainAppContent: React.FC = () => {
         : await generateBookStructure(settings);
 
       if (!structure.chapters?.length || !structure.chapters[0].pages?.length) {
-        throw new Error("Generated content is empty. Please try again.");
+        throw new Error('Generated content is empty. Please try again.');
       }
 
       setGenerationProgress(15);
-      let newProject: BookProject = {
+      const newProject: BookProject = {
         id: crypto.randomUUID(),
-        title: structure.title || "Untitled Masterpiece",
-        synopsis: structure.synopsis || "",
+        title: structure.title || 'Untitled Masterpiece',
+        synopsis: structure.synopsis || '',
         style: settings.style,
         tone: settings.tone,
         targetAudience: settings.audience,
@@ -297,9 +340,9 @@ const MainAppContent: React.FC = () => {
         decisionTree: structure.decisionTree,
         backMatter: structure.backMatter,
         seriesInfo: structure.seriesInfo,
-        chapters: (structure.chapters || []).map(c => ({
+        chapters: (structure.chapters || []).map((c) => ({
           id: crypto.randomUUID(),
-          title: c.title || "Chapter",
+          title: c.title || 'Chapter',
           pages: (c.pages || []).map((p: any) => ({
             id: crypto.randomUUID(),
             pageNumber: p.pageNumber,
@@ -310,8 +353,8 @@ const MainAppContent: React.FC = () => {
             narrationNotes: p.narrationNotes,
             interactiveElement: p.interactiveElement,
             learningMoment: p.learningMoment,
-            vocabularyWords: p.vocabularyWords
-          }))
+            vocabularyWords: p.vocabularyWords,
+          })),
         })),
         characters: (structure.characters || []).map((c: any) => ({
           id: crypto.randomUUID(),
@@ -319,12 +362,12 @@ const MainAppContent: React.FC = () => {
           description: c.description,
           visualTraits: c.visualTraits,
           visualPrompt: c.visualPrompt,
-          traits: c.traits
+          traits: c.traits,
         })),
-        createdAt: new Date()
+        createdAt: new Date(),
       };
 
-      const allPages = newProject.chapters.flatMap(c => c.pages);
+      const allPages = newProject.chapters.flatMap((c) => c.pages);
       const totalPages = allPages.length;
       let processedCount = 0;
 
@@ -340,12 +383,12 @@ const MainAppContent: React.FC = () => {
               }
             } catch (err) {
               attempts++;
-              if (attempts < 3) await new Promise(r => setTimeout(r, 2000));
+              if (attempts < 3) await new Promise((r) => setTimeout(r, 2000));
             }
           }
         }
         processedCount++;
-        setGenerationProgress(20 + ((processedCount / totalPages) * 60));
+        setGenerationProgress(20 + (processedCount / totalPages) * 60);
         setGenerationStatus(`Painting page ${processedCount} of ${totalPages}...`);
       }
 
@@ -353,21 +396,23 @@ const MainAppContent: React.FC = () => {
         const coverPrompt = `Book cover for "${newProject.title}". Style: ${newProject.style}. Synopsis: ${newProject.synopsis}.`;
         const coverUrl = await generateIllustration(coverPrompt, settings.style);
         if (coverUrl) newProject.coverImage = coverUrl;
-      } catch { }
+      } catch {}
 
       setGenerationProgress(100);
-      setGenerationStatus("Complete!");
-      await new Promise(r => setTimeout(r, 1000));
+      setGenerationStatus('Complete!');
+      await new Promise((r) => setTimeout(r, 1000));
 
       incrementEbookCount();
       setCurrentProject(newProject);
       setCurrentMode(AppMode.SUCCESS);
     } catch (error) {
-      console.error("Generation failed", error);
-      alert(`Failed to generate project: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error('Generation failed', error);
+      alert(
+        `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setIsGenerating(false);
-      setGenerationStatus("");
+      setGenerationStatus('');
       setGenerationProgress(0);
     }
   };
@@ -407,8 +452,21 @@ const MainAppContent: React.FC = () => {
           />
         );
       case AppMode.SUCCESS:
-        if (!currentProject) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
-        return <BookSuccessView project={currentProject} onNavigate={setCurrentMode} userTier={currentUserTier} />;
+        if (!currentProject)
+          return (
+            <CreationCanvas
+              onGenerate={handleGenerateProject}
+              isGenerating={isGenerating}
+              generationStatus={generationStatus}
+            />
+          );
+        return (
+          <BookSuccessView
+            project={currentProject}
+            onNavigate={setCurrentMode}
+            userTier={currentUserTier}
+          />
+        );
       case AppMode.EDITOR:
         return (
           <SmartEditor
@@ -432,16 +490,38 @@ const MainAppContent: React.FC = () => {
           />
         );
       case AppMode.SETTINGS:
-        return <SettingsPanel onNavigate={setCurrentMode} userTier={currentUserTier} onViewBook={handleReadBook} />;
+        return (
+          <SettingsPanel
+            onNavigate={setCurrentMode}
+            userTier={currentUserTier}
+            onViewBook={handleReadBook}
+          />
+        );
       case AppMode.LEGAL:
         return <LegalViewer onNavigate={setCurrentMode} />;
       case AppMode.VIEWER:
-        if (!viewingBook) return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} onEditBook={handleEditBook} onReadBook={handleReadBook} />;
+        if (!viewingBook)
+          return (
+            <CreationCanvas
+              onGenerate={handleGenerateProject}
+              isGenerating={isGenerating}
+              generationStatus={generationStatus}
+              onEditBook={handleEditBook}
+              onReadBook={handleReadBook}
+            />
+          );
         return (
           <StorybookViewer
             project={viewingBook}
-            onClose={() => { setViewingBook(null); setCurrentMode(AppMode.DASHBOARD); }}
-            onEdit={() => { setCurrentProject(viewingBook); setViewingBook(null); setCurrentMode(AppMode.EDITOR); }}
+            onClose={() => {
+              setViewingBook(null);
+              setCurrentMode(AppMode.DASHBOARD);
+            }}
+            onEdit={() => {
+              setCurrentProject(viewingBook);
+              setViewingBook(null);
+              setCurrentMode(AppMode.EDITOR);
+            }}
             onDownload={() => setCurrentMode(AppMode.PRICING)}
             onShare={() => console.log('Share triggered')}
           />
@@ -451,13 +531,21 @@ const MainAppContent: React.FC = () => {
       case AppMode.GAMIFICATION:
         return <GamificationHub gameState={gamificationState} setMode={setCurrentMode} />;
       default:
-        return <CreationCanvas onGenerate={handleGenerateProject} isGenerating={isGenerating} generationStatus={generationStatus} />;
+        return (
+          <CreationCanvas
+            onGenerate={handleGenerateProject}
+            isGenerating={isGenerating}
+            generationStatus={generationStatus}
+          />
+        );
     }
   };
 
   const location = useLocation();
   const isSharedRoute = location.pathname.startsWith('/shared/');
-  const isProcessingAuth = window.location.hash.includes('access_token') || window.location.hash.includes('error_description');
+  const isProcessingAuth =
+    window.location.hash.includes('access_token') ||
+    window.location.hash.includes('error_description');
 
   // Loading state during OAuth
   if (authLoading || isProcessingAuth) {
@@ -475,7 +563,13 @@ const MainAppContent: React.FC = () => {
   if (isSharedRoute) {
     return (
       <div className="min-h-screen bg-cream-base">
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-coral-burst border-t-transparent rounded-full" /></div>}>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="animate-spin w-8 h-8 border-4 border-coral-burst border-t-transparent rounded-full" />
+            </div>
+          }
+        >
           <Routes>
             <Route path="/shared/:shortCode" element={<SharedBookViewer />} />
           </Routes>
@@ -500,7 +594,10 @@ const MainAppContent: React.FC = () => {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        onUpgrade={() => { setShowUpgradeModal(false); setCurrentMode(AppMode.PRICING); }}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          setCurrentMode(AppMode.PRICING);
+        }}
       />
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />

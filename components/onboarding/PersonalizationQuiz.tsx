@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Check, Sparkles } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
 import { useOnboarding } from './OnboardingState';
 
 // Animated background blob
-const FloatingBlob = ({ color, size, x, y, delay }: { color: string; size: string; x: string; y: string; delay: number }) => (
+const FloatingBlob = ({
+  color,
+  size,
+  x,
+  y,
+  delay,
+}: { color: string; size: string; x: string; y: string; delay: number }) => (
   <motion.div
     initial={{ scale: 0.8, opacity: 0 }}
     animate={{
@@ -16,8 +23,8 @@ const FloatingBlob = ({ color, size, x, y, delay }: { color: string; size: strin
     transition={{
       duration: 15,
       delay,
-      repeat: Infinity,
-      ease: "easeInOut"
+      repeat: Number.POSITIVE_INFINITY,
+      ease: 'easeInOut',
     }}
     className={`absolute rounded-full ${color} blur-3xl pointer-events-none`}
     style={{ width: size, height: size, left: x, top: y }}
@@ -52,29 +59,71 @@ const questions: QuizQuestion[] = [
   {
     id: 'intent',
     title: 'What sparks your imagination?',
-    subtitle: 'We\'ll tailor your creative palette based on your interests.',
+    subtitle: "We'll tailor your creative palette based on your interests.",
     options: [
-      { value: 'kids', label: 'Children\'s Stories', description: 'Whimsical tales for young minds', image: quizImages.kids, gradient: 'from-pink-500 to-rose-600' },
-      { value: 'scifi', label: 'Sci-Fi Adventures', description: 'Explore galaxies far, far away', image: quizImages.scifi, gradient: 'from-indigo-500 to-purple-600' },
-      { value: 'brand', label: 'Brand & Marketing', description: 'Visual content that converts', image: quizImages.brand, gradient: 'from-amber-500 to-orange-600' },
+      {
+        value: 'kids',
+        label: "Children's Stories",
+        description: 'Whimsical tales for young minds',
+        image: quizImages.kids,
+        gradient: 'from-pink-500 to-rose-600',
+      },
+      {
+        value: 'scifi',
+        label: 'Sci-Fi Adventures',
+        description: 'Explore galaxies far, far away',
+        image: quizImages.scifi,
+        gradient: 'from-indigo-500 to-purple-600',
+      },
+      {
+        value: 'brand',
+        label: 'Brand & Marketing',
+        description: 'Visual content that converts',
+        image: quizImages.brand,
+        gradient: 'from-amber-500 to-orange-600',
+      },
     ],
   },
   {
     id: 'skill',
     title: 'How would you describe yourself?',
-    subtitle: 'We\'ll adjust the interface complexity for you.',
+    subtitle: "We'll adjust the interface complexity for you.",
     options: [
-      { value: 'beginner', label: 'Just Starting Out', description: 'Show me the ropes', image: quizImages.beginner, gradient: 'from-emerald-500 to-teal-600' },
-      { value: 'pro', label: 'Seasoned Creator', description: 'I know my way around', image: quizImages.pro, gradient: 'from-violet-500 to-purple-600' },
+      {
+        value: 'beginner',
+        label: 'Just Starting Out',
+        description: 'Show me the ropes',
+        image: quizImages.beginner,
+        gradient: 'from-emerald-500 to-teal-600',
+      },
+      {
+        value: 'pro',
+        label: 'Seasoned Creator',
+        description: 'I know my way around',
+        image: quizImages.pro,
+        gradient: 'from-violet-500 to-purple-600',
+      },
     ],
   },
   {
     id: 'cadence',
     title: 'How often will you create?',
-    subtitle: 'We\'ll optimize your workflow accordingly.',
+    subtitle: "We'll optimize your workflow accordingly.",
     options: [
-      { value: 'daily', label: 'Daily Creator', description: 'Content is my craft', image: quizImages.daily, gradient: 'from-orange-500 to-red-600' },
-      { value: 'occasional', label: 'When Inspiration Strikes', description: 'Quality over quantity', image: quizImages.occasional, gradient: 'from-blue-500 to-indigo-600' },
+      {
+        value: 'daily',
+        label: 'Daily Creator',
+        description: 'Content is my craft',
+        image: quizImages.daily,
+        gradient: 'from-orange-500 to-red-600',
+      },
+      {
+        value: 'occasional',
+        label: 'When Inspiration Strikes',
+        description: 'Quality over quantity',
+        image: quizImages.occasional,
+        gradient: 'from-blue-500 to-indigo-600',
+      },
     ],
   },
 ];
@@ -95,7 +144,7 @@ export const PersonalizationQuiz: React.FC = () => {
     if (currentQuestion < questions.length - 1) {
       setIsTransitioning(true);
       setTimeout(() => {
-        setCurrentQuestion(prev => prev + 1);
+        setCurrentQuestion((prev) => prev + 1);
         setIsTransitioning(false);
       }, 400);
     }
@@ -121,7 +170,7 @@ export const PersonalizationQuiz: React.FC = () => {
         className="absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
+          backgroundSize: '40px 40px',
         }}
       />
 
@@ -158,8 +207,8 @@ export const PersonalizationQuiz: React.FC = () => {
                 strokeWidth="4"
                 strokeLinecap="round"
                 initial={{ strokeDasharray: '226', strokeDashoffset: '226' }}
-                animate={{ strokeDashoffset: 226 - (226 * progress / 100) }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                animate={{ strokeDashoffset: 226 - (226 * progress) / 100 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
               />
             </svg>
             {/* Center number */}
@@ -178,12 +227,13 @@ export const PersonalizationQuiz: React.FC = () => {
           {questions.map((q, idx) => (
             <div
               key={q.id}
-              className={`h-1.5 rounded-full transition-all duration-500 ${idx < currentQuestion
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                idx < currentQuestion
                   ? 'w-8 bg-purple-500'
                   : idx === currentQuestion
                     ? 'w-8 bg-white'
                     : 'w-2 bg-white/20'
-                }`}
+              }`}
             />
           ))}
         </motion.div>
@@ -203,11 +253,13 @@ export const PersonalizationQuiz: React.FC = () => {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+                transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
                 className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
               >
                 <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
-                <span className="text-white/70 text-xs md:text-sm font-medium">Question {currentQuestion + 1} of {questions.length}</span>
+                <span className="text-white/70 text-xs md:text-sm font-medium">
+                  Question {currentQuestion + 1} of {questions.length}
+                </span>
               </motion.div>
 
               <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-1.5 md:mb-3 font-heading px-2">
@@ -217,7 +269,9 @@ export const PersonalizationQuiz: React.FC = () => {
             </div>
 
             {/* Options with Images */}
-            <div className={`grid gap-[var(--ob-card-gap)] ${question.options.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+            <div
+              className={`grid gap-[var(--ob-card-gap)] ${question.options.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}
+            >
               {question.options.map((option, idx) => {
                 const isSelected = currentAnswer === option.value;
 
@@ -228,13 +282,14 @@ export const PersonalizationQuiz: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + idx * 0.1 }}
                     onClick={() => handleSelect(option.value)}
-                    className={`group relative w-full ob-p-card rounded-xl md:rounded-2xl text-left transition-all duration-300 overflow-hidden ${isSelected
-                        ? 'ring-2 ring-white/40'
-                        : 'hover:bg-white/5'
-                      }`}
+                    className={`group relative w-full ob-p-card rounded-xl md:rounded-2xl text-left transition-all duration-300 overflow-hidden ${
+                      isSelected ? 'ring-2 ring-white/40' : 'hover:bg-white/5'
+                    }`}
                   >
                     {/* Background gradient on selection */}
-                    <div className={`absolute inset-0 bg-gradient-to-r ${option.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`} />
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-r ${option.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`}
+                    />
 
                     {/* Glass effect */}
                     <div className="absolute inset-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl" />
@@ -258,20 +313,25 @@ export const PersonalizationQuiz: React.FC = () => {
 
                       {/* Text */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm md:text-lg font-bold text-white mb-0 md:mb-0.5">{option.label}</h3>
-                        <p className="text-white/50 text-xs md:text-sm hidden md:block">{option.description}</p>
+                        <h3 className="text-sm md:text-lg font-bold text-white mb-0 md:mb-0.5">
+                          {option.label}
+                        </h3>
+                        <p className="text-white/50 text-xs md:text-sm hidden md:block">
+                          {option.description}
+                        </p>
                       </div>
 
                       {/* Selection indicator */}
-                      <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
-                          ? 'border-white bg-white'
-                          : 'border-white/30'
-                        }`}>
+                      <div
+                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                          isSelected ? 'border-white bg-white' : 'border-white/30'
+                        }`}
+                      >
                         {isSelected && (
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ type: "spring", bounce: 0.5 }}
+                            transition={{ type: 'spring', bounce: 0.5 }}
                           >
                             <Check className="w-4 h-4 text-slate-900" />
                           </motion.div>

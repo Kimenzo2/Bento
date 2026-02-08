@@ -1,38 +1,58 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { ErrorBoundary as RollbarErrorBoundary, Provider as RollbarProvider } from '@rollbar/react';
+import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { AuthProvider } from './contexts/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
-import { Provider as RollbarProvider, ErrorBoundary as RollbarErrorBoundary } from '@rollbar/react';
-import rollbar, { rollbarConfig } from './config/rollbar';
+import App from './App';
+import { rollbarConfig } from './config/rollbar';
+import { AuthProvider } from './contexts/AuthContext';
+import { IntegrationsProvider } from './contexts/IntegrationsContext';
+import { initializeSentry } from './src/sentry';
 import './index.css';
 
-// Log app initialization for debugging (console.error survives production builds)
-console.error('[Genesis] Application starting - Mode:', import.meta.env.MODE);
+// Initialize Sentry error tracking
+initializeSentry();
+
+// Log app initialization for debugging (only in development)
+if (import.meta.env.DEV) {
+  console.warn('[Genesis] Application starting - Mode:', import.meta.env.MODE);
+}
 
 // Global error handler to catch unhandled errors
-window.onerror = function (message, source, lineno, colno, error) {
-  console.error('[Genesis] Global error:', { message, source, lineno, colno, error });
-  // Show error on page if root is empty
+window.onerror = (_message, _source, _lineno, _colno, _error) => {
+  if (import.meta.env.DEV) {
+    console.error('[Genesis] Global error:', { message: _message, source: _source, lineno: _lineno, error: _error });
+  }
+  // Show safe error on page if root is empty (no user-controlled data in HTML)
   const root = document.getElementById('root');
   if (root && !root.hasChildNodes()) {
-    root.innerHTML = `
-      <div style="padding: 20px; font-family: sans-serif; background: #FFF8E7; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-        <div style="max-width: 500px; text-align: center;">
-          <h1 style="color: #FF9B71;">Error Loading Genesis</h1>
-          <p style="color: #5A5A5A;">${message}</p>
-          <pre style="background: white; padding: 10px; border-radius: 8px; overflow: auto; text-align: left; font-size: 12px;">${error?.stack || 'No stack trace'}</pre>
-          <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #FFD93D; border: none; border-radius: 20px; cursor: pointer;">Reload</button>
-        </div>
-      </div>
-    `;
+    const container = document.createElement('div');
+    container.style.cssText = 'padding: 20px; font-family: sans-serif; background: #FFF8E7; min-height: 100vh; display: flex; align-items: center; justify-content: center;';
+    const inner = document.createElement('div');
+    inner.style.cssText = 'max-width: 500px; text-align: center;';
+    const h1 = document.createElement('h1');
+    h1.style.color = '#FF9B71';
+    h1.textContent = 'Error Loading Genesis';
+    const p = document.createElement('p');
+    p.style.color = '#5A5A5A';
+    p.textContent = 'Something went wrong. Please reload the page.';
+    const btn = document.createElement('button');
+    btn.textContent = 'Reload';
+    btn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #FFD93D; border: none; border-radius: 20px; cursor: pointer;';
+    btn.onclick = () => location.reload();
+    inner.appendChild(h1);
+    inner.appendChild(p);
+    inner.appendChild(btn);
+    container.appendChild(inner);
+    root.appendChild(container);
   }
   return false;
 };
 
 // Handle unhandled promise rejections
-window.onunhandledrejection = function (event) {
-  console.error('[Genesis] Unhandled promise rejection:', event.reason);
+window.onunhandledrejection = (event) => {
+  if (import.meta.env.DEV) {
+    console.error('[Genesis] Unhandled promise rejection:', event.reason);
+  }
 };
 
 interface ErrorBoundaryProps {
@@ -48,7 +68,7 @@ interface ErrorBoundaryState {
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
-    error: null
+    error: null,
   };
 
   constructor(props: ErrorBoundaryProps) {
@@ -60,7 +80,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    if (import.meta.env.DEV) console.error('Uncaught error:', error, errorInfo);
   }
 
   render() {
@@ -75,7 +95,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             We encountered an unexpected error while loading Genesis.
           </p>
           <div className="bg-white p-4 rounded-xl border border-[#FFE4CC] text-left overflow-auto max-w-lg max-h-40 mb-6 w-full shadow-sm text-sm font-mono text-red-500">
-            {this.state.error?.message || "Unknown error"}
+            {import.meta.env.DEV ? (this.state.error?.message || 'Unknown error') : 'An unexpected error occurred. Please reload the page.'}
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -93,7 +113,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+  throw new Error('Could not find root element to mount to');
 }
 
 const root = ReactDOM.createRoot(rootElement);
@@ -102,11 +122,20 @@ root.render(
     <RollbarProvider config={rollbarConfig}>
       <RollbarErrorBoundary>
         <ErrorBoundary>
-          <AuthProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </AuthProvider>
+          <IntegrationsProvider
+            onReady={(_result) => {
+              if (import.meta.env.DEV) console.warn('[Genesis] Integrations ready:', _result.initialized);
+            }}
+            onError={(_error) => {
+              if (import.meta.env.DEV) console.error('[Genesis] Integrations failed:', _error);
+            }}
+          >
+            <AuthProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </AuthProvider>
+          </IntegrationsProvider>
         </ErrorBoundary>
       </RollbarErrorBoundary>
     </RollbarProvider>
@@ -116,12 +145,13 @@ root.render(
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((_registration) => {
+        if (import.meta.env.DEV) console.warn('ServiceWorker registered, scope:', _registration.scope);
       })
-      .catch((error) => {
-        console.log('ServiceWorker registration failed: ', error);
+      .catch((_error) => {
+        if (import.meta.env.DEV) console.warn('ServiceWorker registration failed:', _error);
       });
   });
 }

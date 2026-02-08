@@ -1,16 +1,7 @@
-import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Check,
-  ChevronRight,
-  Clock,
-  Crown,
-  Gift,
-  Star,
-  Users,
-  X,
-  Zap
-} from 'lucide-react';
+import { Check, ChevronRight, Clock, Crown, Gift, Star, Users, X, Zap } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { useOnboarding } from './OnboardingState';
 
 // Psychological trigger: Live social proof counter
@@ -44,11 +35,11 @@ const LiveUpgradeCounter = () => {
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'subscription_events'
+            table: 'subscription_events',
           },
           (payload: any) => {
             if (['charge_success', 'subscription_create'].includes(payload.new.event_type)) {
-              setCount(prev => prev + 1);
+              setCount((prev) => prev + 1);
             }
           }
         )
@@ -72,7 +63,7 @@ const LiveUpgradeCounter = () => {
         <Users className="w-4 h-4 text-emerald-400" />
         <motion.div
           animate={{ scale: [1, 1.5, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
           className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full"
         />
       </div>
@@ -84,8 +75,8 @@ const LiveUpgradeCounter = () => {
           className="inline-block"
         >
           {count}
-        </motion.span>
-        {" "}creators upgraded today
+        </motion.span>{' '}
+        creators upgraded today
       </span>
     </motion.div>
   );
@@ -101,7 +92,7 @@ const UrgencyTimer = ({ durationMinutes = 10 }: { durationMinutes?: number }) =>
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -112,11 +103,12 @@ const UrgencyTimer = ({ durationMinutes = 10 }: { durationMinutes?: number }) =>
   return (
     <motion.div
       animate={{ scale: timeLeft < 60 ? [1, 1.05, 1] : 1 }}
-      transition={{ duration: 0.5, repeat: timeLeft < 60 ? Infinity : 0 }}
-      className={`flex items-center gap-2 px-4 py-2 rounded-full border ${timeLeft < 60
+      transition={{ duration: 0.5, repeat: timeLeft < 60 ? Number.POSITIVE_INFINITY : 0 }}
+      className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
+        timeLeft < 60
           ? 'bg-red-500/20 border-red-400/50 text-red-300'
           : 'bg-amber-500/20 border-amber-400/30 text-amber-300'
-        }`}
+      }`}
     >
       <Clock className="w-4 h-4" />
       <span className="font-mono font-bold">
@@ -153,10 +145,11 @@ const FeatureComparison = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${feature.highlight
+            className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${
+              feature.highlight
                 ? 'bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-white/10'
                 : 'bg-white/5'
-              }`}
+            }`}
           >
             <div className="text-white/80 text-sm">{feature.name}</div>
             <div className="text-center">
@@ -174,7 +167,7 @@ const FeatureComparison = () => {
               {typeof feature.pro === 'boolean' ? (
                 <motion.div
                   animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: idx * 0.2 }}
                 >
                   <Check className="w-4 h-4 text-emerald-400 mx-auto" />
                 </motion.div>
@@ -196,7 +189,7 @@ export const ProRevealMoment: React.FC = () => {
   const [deal, setDeal] = useState({
     original_price: 19.99,
     deal_price: 11.99,
-    duration_minutes: 10
+    duration_minutes: 10,
   });
 
   useEffect(() => {
@@ -209,12 +202,12 @@ export const ProRevealMoment: React.FC = () => {
           .eq('name', 'Onboarding Exclusive')
           .eq('is_active', true)
           .maybeSingle();
-        
+
         if (!error && data) {
           setDeal({
             original_price: Number(data.original_price),
             deal_price: Number(data.deal_price),
-            duration_minutes: Number(data.duration_minutes)
+            duration_minutes: Number(data.duration_minutes),
           });
         }
       } catch (err) {
@@ -236,14 +229,14 @@ export const ProRevealMoment: React.FC = () => {
             event: 'UPDATE',
             schema: 'public',
             table: 'exclusive_deals',
-            filter: "name=eq.Onboarding Exclusive"
+            filter: 'name=eq.Onboarding Exclusive',
           },
           (payload: any) => {
             if (payload.new && payload.new.is_active) {
               setDeal({
                 original_price: Number(payload.new.original_price),
                 deal_price: Number(payload.new.deal_price),
-                duration_minutes: Number(payload.new.duration_minutes)
+                duration_minutes: Number(payload.new.duration_minutes),
               });
             }
           }
@@ -278,18 +271,17 @@ export const ProRevealMoment: React.FC = () => {
       {/* Animated glow orbs */}
       <motion.div
         animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
         className="absolute top-20 left-10 w-64 h-64 bg-purple-600 rounded-full blur-[100px]"
       />
       <motion.div
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 10, repeat: Infinity }}
+        transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY }}
         className="absolute bottom-20 right-10 w-72 h-72 bg-amber-500 rounded-full blur-[120px]"
       />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col justify-center py-8">
-
         {/* Header with social proof */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -302,13 +294,13 @@ export const ProRevealMoment: React.FC = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
+            transition={{ delay: 0.3, type: 'spring', bounce: 0.5 }}
             className="relative"
           >
             <Crown className="w-16 h-16 text-amber-400" />
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
               className="absolute inset-0 bg-gradient-conic from-purple-500 via-amber-400 to-purple-500 rounded-full blur-2xl opacity-30"
             />
           </motion.div>
@@ -372,7 +364,7 @@ export const ProRevealMoment: React.FC = () => {
           {/* Animated border glow */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
             className="absolute -inset-1 bg-gradient-conic from-purple-500 via-amber-400 via-pink-500 to-purple-500 rounded-3xl opacity-20 blur-sm"
           />
 
@@ -390,13 +382,15 @@ export const ProRevealMoment: React.FC = () => {
             <div className="text-center mb-6">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <span className="text-white/40 line-through text-2xl">${deal.original_price}</span>
-                <span className="text-4xl md:text-5xl font-bold text-white">${deal.deal_price}</span>
+                <span className="text-4xl md:text-5xl font-bold text-white">
+                  ${deal.deal_price}
+                </span>
                 <span className="text-white/60">/month</span>
               </div>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 1.5, type: "spring" }}
+                transition={{ delay: 1.5, type: 'spring' }}
                 className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-400/30"
               >
                 <Zap className="w-4 h-4 text-emerald-400" />
@@ -419,9 +413,9 @@ export const ProRevealMoment: React.FC = () => {
                 {/* Animated gradient background */}
                 <motion.div
                   animate={{
-                    backgroundPosition: isHovering ? ['0% 50%', '100% 50%', '0% 50%'] : '0% 50%'
+                    backgroundPosition: isHovering ? ['0% 50%', '100% 50%', '0% 50%'] : '0% 50%',
                   }}
-                  transition={{ duration: 3, repeat: Infinity }}
+                  transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
                   className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 via-amber-500 to-purple-600 bg-[length:200%_100%]"
                 />
 

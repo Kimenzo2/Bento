@@ -1,6 +1,6 @@
-import { generateStructuredContent } from '../geminiService';
-import { EbookRequest, ContentStructure } from '../../types/generator';
 import { Type } from '@google/genai';
+import type { ContentStructure, EbookRequest } from '../../types/generator';
+import { generateStructuredContent } from '../geminiService';
 
 const SYSTEM_INSTRUCTION_ANALYZER = `
 You are the "Brain" of the Next-Gen Ebook Generator.
@@ -10,7 +10,7 @@ Do NOT generate the full book text yet. Focus on the STRUCTURE and VISUAL DIRECT
 `;
 
 export const analyzeContent = async (request: EbookRequest): Promise<ContentStructure> => {
-    const prompt = `
+  const prompt = `
     Analyze this ebook request and create a blueprint:
     Topic: ${request.topic}
     Target Audience: ${request.targetAudience}
@@ -29,85 +29,94 @@ export const analyzeContent = async (request: EbookRequest): Promise<ContentStru
     Return a JSON object matching the ContentStructure interface.
   `;
 
-    const schema = {
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      title: { type: Type.STRING },
+      synopsis: { type: Type.STRING },
+      narrativeArc: {
         type: Type.OBJECT,
         properties: {
-            title: { type: Type.STRING },
-            synopsis: { type: Type.STRING },
-            narrativeArc: {
-                type: Type.OBJECT,
-                properties: {
-                    introduction: { type: Type.STRING },
-                    learning: { type: Type.STRING },
-                    mastery: { type: Type.STRING }
-                }
+          introduction: { type: Type.STRING },
+          learning: { type: Type.STRING },
+          mastery: { type: Type.STRING },
+        },
+      },
+      visualStrategy: {
+        type: Type.OBJECT,
+        properties: {
+          metaphors: { type: Type.ARRAY, items: { type: Type.STRING } },
+          motifs: { type: Type.ARRAY, items: { type: Type.STRING } },
+          artStyleDetails: { type: Type.STRING },
+        },
+      },
+      colorPalette: {
+        type: Type.OBJECT,
+        properties: {
+          primary: { type: Type.ARRAY, items: { type: Type.STRING } },
+          accent: { type: Type.ARRAY, items: { type: Type.STRING } },
+          neutral: { type: Type.ARRAY, items: { type: Type.STRING } },
+          special: { type: Type.ARRAY, items: { type: Type.STRING } },
+          background: { type: Type.STRING },
+          text: { type: Type.STRING },
+        },
+      },
+      characterNeeds: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            role: { type: Type.STRING },
+            description: { type: Type.STRING },
+            visualTraits: {
+              type: Type.OBJECT,
+              properties: {
+                eyes: { type: Type.STRING },
+                hair: { type: Type.STRING },
+                body: { type: Type.STRING },
+                clothing: { type: Type.STRING },
+                distinctiveFeatures: { type: Type.ARRAY, items: { type: Type.STRING } },
+              },
             },
-            visualStrategy: {
-                type: Type.OBJECT,
-                properties: {
-                    metaphors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    motifs: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    artStyleDetails: { type: Type.STRING }
-                }
+            personality: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+        },
+      },
+      pages: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            pageNumber: { type: Type.INTEGER },
+            purpose: { type: Type.STRING },
+            scene: { type: Type.STRING },
+            characterAction: { type: Type.STRING },
+            expression: { type: Type.STRING },
+            background: { type: Type.STRING },
+            props: { type: Type.ARRAY, items: { type: Type.STRING } },
+            cameraAngle: { type: Type.STRING },
+            mood: { type: Type.STRING },
+            visualMetaphor: { type: Type.STRING },
+            textPlacement: { type: Type.STRING },
+            visualEnergy: { type: Type.STRING },
+            keyPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+            wordCount: { type: Type.INTEGER },
+            layoutTemplate: {
+              type: Type.STRING,
+              enum: [
+                'full-bleed',
+                'split-horizontal',
+                'split-vertical',
+                'text-overlay',
+                'comic-panel',
+              ],
             },
-            colorPalette: {
-                type: Type.OBJECT,
-                properties: {
-                    primary: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    accent: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    neutral: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    special: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    background: { type: Type.STRING },
-                    text: { type: Type.STRING }
-                }
-            },
-            characterNeeds: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        name: { type: Type.STRING },
-                        role: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        visualTraits: {
-                            type: Type.OBJECT,
-                            properties: {
-                                eyes: { type: Type.STRING },
-                                hair: { type: Type.STRING },
-                                body: { type: Type.STRING },
-                                clothing: { type: Type.STRING },
-                                distinctiveFeatures: { type: Type.ARRAY, items: { type: Type.STRING } }
-                            }
-                        },
-                        personality: { type: Type.ARRAY, items: { type: Type.STRING } }
-                    }
-                }
-            },
-            pages: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        pageNumber: { type: Type.INTEGER },
-                        purpose: { type: Type.STRING },
-                        scene: { type: Type.STRING },
-                        characterAction: { type: Type.STRING },
-                        expression: { type: Type.STRING },
-                        background: { type: Type.STRING },
-                        props: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        cameraAngle: { type: Type.STRING },
-                        mood: { type: Type.STRING },
-                        visualMetaphor: { type: Type.STRING },
-                        textPlacement: { type: Type.STRING },
-                        visualEnergy: { type: Type.STRING },
-                        keyPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        wordCount: { type: Type.INTEGER },
-                        layoutTemplate: { type: Type.STRING, enum: ['full-bleed', 'split-horizontal', 'split-vertical', 'text-overlay', 'comic-panel'] }
-                    }
-                }
-            }
-        }
-    };
+          },
+        },
+      },
+    },
+  };
 
-    return generateStructuredContent<ContentStructure>(prompt, schema, SYSTEM_INSTRUCTION_ANALYZER);
+  return generateStructuredContent<ContentStructure>(prompt, schema, SYSTEM_INSTRUCTION_ANALYZER);
 };

@@ -1,4 +1,3 @@
-
 export enum AppMode {
   DASHBOARD = 'DASHBOARD',
   CREATION = 'CREATION',
@@ -12,7 +11,7 @@ export enum AppMode {
   SUCCESS = 'SUCCESS',
   VIEWER = 'VIEWER',
   AUTH = 'AUTH',
-  LEGAL = 'LEGAL'
+  LEGAL = 'LEGAL',
 }
 
 export enum ArtStyle {
@@ -25,7 +24,7 @@ export enum ArtStyle {
   PAPER_CUTOUT = 'Paper Cutout Art',
   FLAT_DESIGN = 'Flat Design',
   INFOGRAPHIC = 'Modern Infographic',
-  BLUEPRINT = 'Technical Blueprint'
+  BLUEPRINT = 'Technical Blueprint',
 }
 
 export enum BookTone {
@@ -35,14 +34,14 @@ export enum BookTone {
   EDUCATIONAL = 'Educational',
   DRAMATIC = 'Dramatic',
   CALM = 'Calm',
-  ADVENTUROUS = 'Adventurous'
+  ADVENTUROUS = 'Adventurous',
 }
 
 export enum UserTier {
-  SPARK = 'SPARK',      // Free
-  CREATOR = 'CREATOR',  // $19.99
-  STUDIO = 'STUDIO',    // $59.99
-  EMPIRE = 'EMPIRE'     // $199.99
+  SPARK = 'SPARK', // Free
+  CREATOR = 'CREATOR', // $19.99
+  STUDIO = 'STUDIO', // $59.99
+  EMPIRE = 'EMPIRE', // $199.99
 }
 
 export interface Badge {
@@ -119,7 +118,14 @@ export interface Page {
   imagePrompt: string;
   imageUrl?: string; // Base64 or URL
   isImageOutdated?: boolean; // True if text changed significantly since generation
-  layoutType: 'full-bleed' | 'split-horizontal' | 'split-vertical' | 'text-only' | 'image-only' | 'learning-break' | 'learning-only';
+  layoutType:
+    | 'full-bleed'
+    | 'split-horizontal'
+    | 'split-vertical'
+    | 'text-only'
+    | 'image-only'
+    | 'learning-break'
+    | 'learning-only';
 
   // New fields
   narrationNotes?: NarrationNotes;
@@ -170,32 +176,32 @@ export interface Character {
   // ========== DEEP PERSONALITY SYSTEM ==========
   // Psychological Profile (Big Five / OCEAN Model)
   psychologicalProfile?: {
-    openness: number;        // 0-100: Creativity, curiosity, openness to new experiences
+    openness: number; // 0-100: Creativity, curiosity, openness to new experiences
     conscientiousness: number; // 0-100: Organization, dependability, self-discipline
-    extraversion: number;    // 0-100: Sociability, assertiveness, positive emotions
-    agreeableness: number;   // 0-100: Cooperation, trust, empathy
-    neuroticism: number;     // 0-100: Emotional instability, anxiety, moodiness
+    extraversion: number; // 0-100: Sociability, assertiveness, positive emotions
+    agreeableness: number; // 0-100: Cooperation, trust, empathy
+    neuroticism: number; // 0-100: Emotional instability, anxiety, moodiness
   };
 
   // Core Identity
   coreIdentity?: {
-    coreBelief: string;           // "The world is fundamentally..." (shapes worldview)
-    greatestDesire: string;       // What they want more than anything
-    greatestFear: string;         // What they avoid at all costs
-    moralCode: string;            // Their personal ethics/values
-    flaw: string;                 // Their tragic flaw or weakness
-    strength: string;             // Their greatest asset
-    lie: string;                  // A false belief they hold about themselves/world
-    truth: string;                // The truth they need to learn
+    coreBelief: string; // "The world is fundamentally..." (shapes worldview)
+    greatestDesire: string; // What they want more than anything
+    greatestFear: string; // What they avoid at all costs
+    moralCode: string; // Their personal ethics/values
+    flaw: string; // Their tragic flaw or weakness
+    strength: string; // Their greatest asset
+    lie: string; // A false belief they hold about themselves/world
+    truth: string; // The truth they need to learn
   };
 
   // Backstory & Formative Experiences
   formativeExperiences?: {
-    childhoodMemory: string;      // Defining childhood moment
-    biggestRegret: string;        // Something they wish they could undo
-    definingMoment: string;       // The event that made them who they are
-    secretShame: string;          // Something they hide from others
-    proudestAchievement: string;  // What they're most proud of
+    childhoodMemory: string; // Defining childhood moment
+    biggestRegret: string; // Something they wish they could undo
+    definingMoment: string; // The event that made them who they are
+    secretShame: string; // Something they hide from others
+    proudestAchievement: string; // What they're most proud of
   };
 
   // Relationships & Attachment
@@ -208,40 +214,40 @@ export interface Character {
 
   // Behavioral Patterns
   behavioralPatterns?: {
-    stressResponse: string;       // How they react under pressure
-    joyTriggers: string[];        // What makes them happy
-    angerTriggers: string[];      // What sets them off
-    copingMechanisms: string[];   // How they deal with problems
-    habits: string[];             // Regular behaviors/routines
-    speechPatterns: string;       // How they talk (formal, slang, poetic, etc.)
+    stressResponse: string; // How they react under pressure
+    joyTriggers: string[]; // What makes them happy
+    angerTriggers: string[]; // What sets them off
+    copingMechanisms: string[]; // How they deal with problems
+    habits: string[]; // Regular behaviors/routines
+    speechPatterns: string; // How they talk (formal, slang, poetic, etc.)
   };
 
   // Voice & Mannerisms
   voiceProfile?: {
-    tone: string;                 // warm, cold, sarcastic, earnest, etc.
+    tone: string; // warm, cold, sarcastic, earnest, etc.
     vocabulary: 'simple' | 'moderate' | 'sophisticated' | 'archaic';
-    catchphrases: string[];       // Things they often say
-    nonverbalTics: string[];      // Gestures, expressions, body language
-    laughStyle: string;           // How they laugh
+    catchphrases: string[]; // Things they often say
+    nonverbalTics: string[]; // Gestures, expressions, body language
+    laughStyle: string; // How they laugh
   };
 
   // Internal Conflicts
-  innerConflicts?: string[];      // The battles they fight within themselves
+  innerConflicts?: string[]; // The battles they fight within themselves
 
   // Character Arc Potential
   arcPotential?: {
-    startingState: string;        // Who they are at the beginning
-    potentialGrowth: string;      // How they could change
-    endingState: string;          // Who they could become
+    startingState: string; // Who they are at the beginning
+    potentialGrowth: string; // How they could change
+    endingState: string; // Who they could become
   };
 
   // ========== TEACHING CAPABILITIES ==========
   teachingStyle?: {
-    subjectsExpertise: string[];  // ['Math', 'Science', 'SEL', 'Reading', 'History']
+    subjectsExpertise: string[]; // ['Math', 'Science', 'SEL', 'Reading', 'History']
     teachingApproach: 'nurturing' | 'challenging' | 'playful' | 'socratic' | 'storytelling';
-    encouragementStyle: string;    // How they praise correct answers
-    correctionStyle: string;       // How they handle mistakes gently
-    exampleStyle: string;          // How they give examples (metaphors, real-world, stories)
+    encouragementStyle: string; // How they praise correct answers
+    correctionStyle: string; // How they handle mistakes gently
+    exampleStyle: string; // How they give examples (metaphors, real-world, stories)
   };
 }
 
@@ -493,7 +499,6 @@ export interface VisualSettings {
   prompt: string;
   generatedImage: string | null;
 }
-
 
 // ============================================
 // GREEN ROOM - Character Interview System

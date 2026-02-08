@@ -1,9 +1,9 @@
 /**
  * GPU-ACCELERATED ANIMATION STYLES
- * 
+ *
  * Forces animations to run on the GPU compositor layer,
  * bypassing the main thread for butter-smooth 60fps animations.
- * 
+ *
  * Key principles:
  * 1. Use transform3d to create GPU layer
  * 2. Use will-change sparingly and strategically

@@ -1,7 +1,7 @@
 /**
  * @module Security
  * @description Security utilities and Content Security Policy configuration
- * 
+ *
  * Features:
  * - CSP nonce generation
  * - Security headers configuration for Vercel/server
@@ -77,16 +77,14 @@ export class RateLimiter {
   isAllowed(key: string): boolean {
     const now = Date.now();
     const timestamps = this.requests.get(key) || [];
-    
+
     // Filter out old timestamps
-    const validTimestamps = timestamps.filter(
-      (ts) => now - ts < this.windowMs
-    );
-    
+    const validTimestamps = timestamps.filter((ts) => now - ts < this.windowMs);
+
     if (validTimestamps.length >= this.maxRequests) {
       return false;
     }
-    
+
     validTimestamps.push(now);
     this.requests.set(key, validTimestamps);
     return true;

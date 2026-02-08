@@ -1,11 +1,11 @@
 /**
  * Language Card Component
- * 
+ *
  * Displays a single language option with flag, name, and completion status
  */
 
-import React from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
+import type React from 'react';
 import type { Language } from '../../src/types/language.d';
 
 interface LanguageCardProps {
@@ -19,13 +19,14 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
   language,
   isActive,
   isLoading,
-  onClick
+  onClick,
 }) => {
-  const completionColor = language.completionPercentage >= 90
-    ? 'bg-green-500'
-    : language.completionPercentage >= 70
-    ? 'bg-yellow-500'
-    : 'bg-orange-500';
+  const completionColor =
+    language.completionPercentage >= 90
+      ? 'bg-green-500'
+      : language.completionPercentage >= 70
+        ? 'bg-yellow-500'
+        : 'bg-orange-500';
 
   return (
     <button
@@ -36,9 +37,10 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
         hover:scale-[1.02] hover:shadow-lg
         focus:outline-none focus:ring-2 focus:ring-coral-burst focus:ring-offset-2
         disabled:opacity-50 disabled:cursor-not-allowed
-        ${isActive
-          ? 'border-coral-burst bg-gradient-to-br from-coral-burst/10 to-gold-sunshine/10 shadow-md'
-          : 'border-gray-200 bg-white hover:border-gray-300'
+        ${
+          isActive
+            ? 'border-coral-burst bg-gradient-to-br from-coral-burst/10 to-gold-sunshine/10 shadow-md'
+            : 'border-gray-200 bg-white hover:border-gray-300'
         }
       `}
       aria-pressed={isActive ? 'true' : 'false'}
@@ -69,9 +71,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       </h3>
 
       {/* Language name (English) */}
-      <p className="text-sm text-gray-500 mb-3">
-        {language.englishName}
-      </p>
+      <p className="text-sm text-gray-500 mb-3">{language.englishName}</p>
 
       {/* RTL indicator */}
       {language.isRTL && (

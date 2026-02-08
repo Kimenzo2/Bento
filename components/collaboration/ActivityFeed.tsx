@@ -4,339 +4,376 @@
 // Real-time activity stream showing user actions
 // ==============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-    Activity, 
-    ActivityType, 
-    REACTION_EMOJIS, 
-    ReactionType 
-} from '../../types/collaboration';
-import { collaborationService } from '../../services/collaborationService';
-import { 
-    Image, 
-    GitFork, 
-    Star, 
-    Heart, 
-    MessageCircle, 
-    Trophy, 
-    UserPlus, 
-    Zap, 
-    Users,
-    Clock,
-    ChevronDown,
-    Loader2
+import {
+  ChevronDown,
+  Clock,
+  GitFork,
+  Heart,
+  Image,
+  Loader2,
+  MessageCircle,
+  Star,
+  Trophy,
+  UserPlus,
+  Users,
+  Zap,
 } from 'lucide-react';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { collaborationService } from '../../services/collaborationService';
+import {
+  type Activity,
+  type ActivityType,
+  REACTION_EMOJIS,
+  type ReactionType,
+} from '../../types/collaboration';
 
 interface ActivityFeedProps {
-    sessionId?: string;
-    scope?: 'global' | 'session';
-    maxHeight?: string;
-    showHeader?: boolean;
-    autoRefresh?: boolean;
-    refreshInterval?: number;
-    onActivityClick?: (activity: Activity) => void;
+  sessionId?: string;
+  scope?: 'global' | 'session';
+  maxHeight?: string;
+  showHeader?: boolean;
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+  onActivityClick?: (activity: Activity) => void;
 }
 
 const ActivityFeed: React.FC<ActivityFeedProps> = ({
-    sessionId,
-    scope = 'session',
-    maxHeight = '400px',
-    showHeader = true,
-    autoRefresh = true,
-    refreshInterval = 30000,
-    onActivityClick,
+  sessionId,
+  scope = 'session',
+  maxHeight = '400px',
+  showHeader = true,
+  autoRefresh = true,
+  refreshInterval = 30000,
+  onActivityClick,
 }) => {
-    const [activities, setActivities] = useState<Activity[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasMore, setHasMore] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const feedRef = useRef<HTMLDivElement>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const feedRef = useRef<HTMLDivElement>(null);
 
-    // Load activities
-    const loadActivities = useCallback(async (append = false) => {
-        if (!append) setIsLoading(true);
-        else setIsLoadingMore(true);
+  // Load activities
+  const loadActivities = useCallback(
+    async (append = false) => {
+      if (append) setIsLoadingMore(true);
+      else setIsLoading(true);
 
-        try {
-            const lastActivity = append && activities.length > 0 
-                ? activities[activities.length - 1] 
-                : undefined;
+      try {
+        const lastActivity =
+          append && activities.length > 0 ? activities[activities.length - 1] : undefined;
 
-            const data = await collaborationService.getActivities({
-                scope,
-                sessionId,
-                limit: 20,
-                before: lastActivity?.created_at,
-            });
+        const data = await collaborationService.getActivities({
+          scope,
+          sessionId,
+          limit: 20,
+          before: lastActivity?.created_at,
+        });
 
-            if (append) {
-                setActivities(prev => [...prev, ...data]);
-            } else {
-                setActivities(data);
-            }
-
-            setHasMore(data.length === 20);
-        } catch (error) {
-            console.error('Error loading activities:', error);
-        } finally {
-            setIsLoading(false);
-            setIsLoadingMore(false);
+        if (append) {
+          setActivities((prev) => [...prev, ...data]);
+        } else {
+          setActivities(data);
         }
-    }, [scope, sessionId, activities]);
 
-    // Initial load
-    useEffect(() => {
-        loadActivities();
-    }, [sessionId, scope]);
+        setHasMore(data.length === 20);
+      } catch (error) {
+        console.error('Error loading activities:', error);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [scope, sessionId, activities]
+  );
 
-    // Auto refresh
-    useEffect(() => {
-        if (!autoRefresh) return;
+  // Initial load
+  useEffect(() => {
+    loadActivities();
+  }, [sessionId, scope]);
 
-        const interval = setInterval(() => {
-            loadActivities();
-        }, refreshInterval);
+  // Auto refresh
+  useEffect(() => {
+    if (!autoRefresh) return;
 
-        return () => clearInterval(interval);
-    }, [autoRefresh, refreshInterval, loadActivities]);
+    const interval = setInterval(() => {
+      loadActivities();
+    }, refreshInterval);
 
-    // Get activity icon
-    const getActivityIcon = (type: ActivityType) => {
-        switch (type) {
-            case 'visual_created': return <Image className="w-4 h-4" />;
-            case 'visual_remixed': return <GitFork className="w-4 h-4" />;
-            case 'visual_featured': return <Star className="w-4 h-4 text-yellow-500" />;
-            case 'reaction_added': return <Heart className="w-4 h-4 text-red-400" />;
-            case 'annotation_added': return <MessageCircle className="w-4 h-4" />;
-            case 'comment_added': return <MessageCircle className="w-4 h-4" />;
-            case 'challenge_submitted': return <Trophy className="w-4 h-4 text-purple-500" />;
-            case 'challenge_won': return <Trophy className="w-4 h-4 text-yellow-500" />;
-            case 'user_joined': return <UserPlus className="w-4 h-4 text-green-500" />;
-            case 'user_leveled_up': return <Zap className="w-4 h-4 text-blue-500" />;
-            case 'collab_started': return <Users className="w-4 h-4 text-purple-500" />;
-            case 'collab_joined': return <Users className="w-4 h-4 text-green-500" />;
-            default: return <Clock className="w-4 h-4" />;
-        }
-    };
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, loadActivities]);
 
-    // Get activity color
-    const getActivityColor = (type: ActivityType): string => {
-        switch (type) {
-            case 'visual_created': return 'bg-coral-burst/10 text-coral-burst';
-            case 'visual_remixed': return 'bg-purple-100 text-purple-600';
-            case 'visual_featured': return 'bg-yellow-100 text-yellow-600';
-            case 'reaction_added': return 'bg-red-100 text-red-500';
-            case 'challenge_submitted': return 'bg-purple-100 text-purple-600';
-            case 'challenge_won': return 'bg-yellow-100 text-yellow-600';
-            case 'user_joined': return 'bg-green-100 text-green-600';
-            case 'user_leveled_up': return 'bg-blue-100 text-blue-600';
-            case 'collab_started': return 'bg-purple-100 text-purple-600';
-            case 'collab_joined': return 'bg-green-100 text-green-600';
-            default: return 'bg-gray-100 text-gray-600';
-        }
-    };
+  // Get activity icon
+  const getActivityIcon = (type: ActivityType) => {
+    switch (type) {
+      case 'visual_created':
+        return <Image className="w-4 h-4" />;
+      case 'visual_remixed':
+        return <GitFork className="w-4 h-4" />;
+      case 'visual_featured':
+        return <Star className="w-4 h-4 text-yellow-500" />;
+      case 'reaction_added':
+        return <Heart className="w-4 h-4 text-red-400" />;
+      case 'annotation_added':
+        return <MessageCircle className="w-4 h-4" />;
+      case 'comment_added':
+        return <MessageCircle className="w-4 h-4" />;
+      case 'challenge_submitted':
+        return <Trophy className="w-4 h-4 text-purple-500" />;
+      case 'challenge_won':
+        return <Trophy className="w-4 h-4 text-yellow-500" />;
+      case 'user_joined':
+        return <UserPlus className="w-4 h-4 text-green-500" />;
+      case 'user_leveled_up':
+        return <Zap className="w-4 h-4 text-blue-500" />;
+      case 'collab_started':
+        return <Users className="w-4 h-4 text-purple-500" />;
+      case 'collab_joined':
+        return <Users className="w-4 h-4 text-green-500" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
+  };
 
-    // Get activity text
-    const getActivityText = (activity: Activity): React.ReactNode => {
-        const userName = activity.user?.full_name || 'Someone';
+  // Get activity color
+  const getActivityColor = (type: ActivityType): string => {
+    switch (type) {
+      case 'visual_created':
+        return 'bg-coral-burst/10 text-coral-burst';
+      case 'visual_remixed':
+        return 'bg-purple-100 text-purple-600';
+      case 'visual_featured':
+        return 'bg-yellow-100 text-yellow-600';
+      case 'reaction_added':
+        return 'bg-red-100 text-red-500';
+      case 'challenge_submitted':
+        return 'bg-purple-100 text-purple-600';
+      case 'challenge_won':
+        return 'bg-yellow-100 text-yellow-600';
+      case 'user_joined':
+        return 'bg-green-100 text-green-600';
+      case 'user_leveled_up':
+        return 'bg-blue-100 text-blue-600';
+      case 'collab_started':
+        return 'bg-purple-100 text-purple-600';
+      case 'collab_joined':
+        return 'bg-green-100 text-green-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
 
-        switch (activity.type) {
-            case 'visual_created':
-                return (
-                    <>
-                        <strong>{userName}</strong> created a new visual
-                    </>
-                );
-            case 'visual_remixed':
-                return (
-                    <>
-                        <strong>{userName}</strong> remixed a visual
-                    </>
-                );
-            case 'visual_featured':
-                return (
-                    <>
-                        <strong>{userName}</strong>'s visual was featured! ⭐
-                    </>
-                );
-            case 'reaction_added':
-                const emoji = activity.metadata?.reactionType 
-                    ? REACTION_EMOJIS[activity.metadata.reactionType as ReactionType] 
-                    : '❤️';
-                return (
-                    <>
-                        <strong>{userName}</strong> reacted with {emoji}
-                    </>
-                );
-            case 'challenge_submitted':
-                return (
-                    <>
-                        <strong>{userName}</strong> submitted to{' '}
-                        <span className="text-purple-600">{activity.metadata?.challengeTitle || 'a challenge'}</span>
-                    </>
-                );
-            case 'challenge_won':
-                return (
-                    <>
-                        <strong>{userName}</strong> won{' '}
-                        <span className="text-yellow-600">{activity.metadata?.challengeTitle || 'a challenge'}</span>! 🏆
-                    </>
-                );
-            case 'user_joined':
-                return (
-                    <>
-                        <strong>{userName}</strong> joined the session
-                    </>
-                );
-            case 'user_leveled_up':
-                return (
-                    <>
-                        <strong>{userName}</strong> leveled up to{' '}
-                        <span className="text-blue-600">Level {activity.metadata?.newLevel}</span>! 🎉
-                    </>
-                );
-            case 'collab_started':
-                return (
-                    <>
-                        <strong>{userName}</strong> started a collaboration session
-                    </>
-                );
-            case 'collab_joined':
-                return (
-                    <>
-                        <strong>{userName}</strong> joined the collaboration
-                    </>
-                );
-            default:
-                return (
-                    <>
-                        <strong>{userName}</strong> did something
-                    </>
-                );
-        }
-    };
+  // Get activity text
+  const getActivityText = (activity: Activity): React.ReactNode => {
+    const userName = activity.user?.full_name || 'Someone';
 
-    // Format time ago
-    const formatTimeAgo = (dateString: string): string => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffSecs = Math.floor(diffMs / 1000);
-        const diffMins = Math.floor(diffSecs / 60);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
+    switch (activity.type) {
+      case 'visual_created':
+        return (
+          <>
+            <strong>{userName}</strong> created a new visual
+          </>
+        );
+      case 'visual_remixed':
+        return (
+          <>
+            <strong>{userName}</strong> remixed a visual
+          </>
+        );
+      case 'visual_featured':
+        return (
+          <>
+            <strong>{userName}</strong>'s visual was featured! ⭐
+          </>
+        );
+      case 'reaction_added':
+        const emoji = activity.metadata?.reactionType
+          ? REACTION_EMOJIS[activity.metadata.reactionType as ReactionType]
+          : '❤️';
+        return (
+          <>
+            <strong>{userName}</strong> reacted with {emoji}
+          </>
+        );
+      case 'challenge_submitted':
+        return (
+          <>
+            <strong>{userName}</strong> submitted to{' '}
+            <span className="text-purple-600">
+              {activity.metadata?.challengeTitle || 'a challenge'}
+            </span>
+          </>
+        );
+      case 'challenge_won':
+        return (
+          <>
+            <strong>{userName}</strong> won{' '}
+            <span className="text-yellow-600">
+              {activity.metadata?.challengeTitle || 'a challenge'}
+            </span>
+            ! 🏆
+          </>
+        );
+      case 'user_joined':
+        return (
+          <>
+            <strong>{userName}</strong> joined the session
+          </>
+        );
+      case 'user_leveled_up':
+        return (
+          <>
+            <strong>{userName}</strong> leveled up to{' '}
+            <span className="text-blue-600">Level {activity.metadata?.newLevel}</span>! 🎉
+          </>
+        );
+      case 'collab_started':
+        return (
+          <>
+            <strong>{userName}</strong> started a collaboration session
+          </>
+        );
+      case 'collab_joined':
+        return (
+          <>
+            <strong>{userName}</strong> joined the collaboration
+          </>
+        );
+      default:
+        return (
+          <>
+            <strong>{userName}</strong> did something
+          </>
+        );
+    }
+  };
 
-        if (diffSecs < 60) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-        return date.toLocaleDateString();
-    };
+  // Format time ago
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
 
-    return (
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-soft-lg border border-white overflow-hidden h-full flex flex-col">
-            {showHeader && (
-                <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 flex-shrink-0">
-                    <h3 className="font-heading font-bold text-sm sm:text-base text-charcoal-soft flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-coral-burst" />
-                        Activity
-                    </h3>
-                    <span className="text-[10px] sm:text-xs text-gray-400">
-                        {scope === 'session' ? 'This session' : 'Global'}
-                    </span>
-                </div>
-            )}
+    if (diffSecs < 60) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
-            <div
-                ref={feedRef}
-                className="overflow-y-auto flex-1 scroll-container pb-32 sm:pb-0"
-                style={{ maxHeight: maxHeight !== '400px' ? maxHeight : undefined }}
-            >
-                {isLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-coral-burst animate-spin" />
-                    </div>
-                ) : activities.length === 0 ? (
-                    <div className="text-center py-6 sm:py-8 text-gray-400">
-                        <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs sm:text-sm">No activity yet</p>
-                        <p className="text-[10px] sm:text-xs">Be the first to create something!</p>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-gray-50">
-                        {activities.map((activity, index) => (
-                            <div
-                                key={activity.id}
-                                className={`
+  return (
+    <div className="bg-white rounded-xl sm:rounded-2xl shadow-soft-lg border border-white overflow-hidden h-full flex flex-col">
+      {showHeader && (
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 flex-shrink-0">
+          <h3 className="font-heading font-bold text-sm sm:text-base text-charcoal-soft flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-coral-burst" />
+            Activity
+          </h3>
+          <span className="text-[10px] sm:text-xs text-gray-400">
+            {scope === 'session' ? 'This session' : 'Global'}
+          </span>
+        </div>
+      )}
+
+      <div
+        ref={feedRef}
+        className="overflow-y-auto flex-1 scroll-container pb-32 sm:pb-0"
+        style={{ maxHeight: maxHeight !== '400px' ? maxHeight : undefined }}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-coral-burst animate-spin" />
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-6 sm:py-8 text-gray-400">
+            <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-xs sm:text-sm">No activity yet</p>
+            <p className="text-[10px] sm:text-xs">Be the first to create something!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {activities.map((activity, index) => (
+              <div
+                key={activity.id}
+                className={`
                                     flex items-start gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 
                                     hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer
                                     animate-fadeIn
                                 `}
-                                style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
-                                onClick={() => onActivityClick?.(activity)}
-                            >
-                                {/* User avatar */}
-                                <div className="relative flex-shrink-0">
-                                    <img
-                                        src={activity.user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`}
-                                        alt={activity.user?.full_name || 'User'}
-                                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
-                                    />
-                                    {/* Activity type icon */}
-                                    <span className={`
+                style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
+                onClick={() => onActivityClick?.(activity)}
+              >
+                {/* User avatar */}
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={
+                      activity.user?.avatar_url ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`
+                    }
+                    alt={activity.user?.full_name || 'User'}
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
+                  />
+                  {/* Activity type icon */}
+                  <span
+                    className={`
                                         absolute -bottom-0.5 -right-0.5 
                                         w-4 h-4 sm:w-5 sm:h-5 rounded-full 
                                         flex items-center justify-center
                                         ring-2 ring-white
                                         ${getActivityColor(activity.type)}
-                                    `}>
-                                        {getActivityIcon(activity.type)}
-                                    </span>
-                                </div>
+                                    `}
+                  >
+                    {getActivityIcon(activity.type)}
+                  </span>
+                </div>
 
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs sm:text-sm text-charcoal-soft line-clamp-2">
-                                        {getActivityText(activity)}
-                                    </p>
-                                    <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
-                                        {formatTimeAgo(activity.created_at)}
-                                    </p>
-                                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-charcoal-soft line-clamp-2">
+                    {getActivityText(activity)}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
+                    {formatTimeAgo(activity.created_at)}
+                  </p>
+                </div>
 
-                                {/* Visual thumbnail if available */}
-                                {activity.visual && (
-                                    <img
-                                        src={activity.visual.thumbnail_url || activity.visual.image_url}
-                                        alt="Visual"
-                                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0"
-                                    />
-                                )}
-                            </div>
-                        ))}
-
-                        {/* Load more button */}
-                        {hasMore && (
-                            <button
-                                onClick={() => loadActivities(true)}
-                                disabled={isLoadingMore}
-                                className="w-full py-3 text-center text-xs sm:text-sm text-coral-burst hover:bg-coral-burst/5 active:bg-coral-burst/10 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
-                            >
-                                {isLoadingMore ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <>
-                                        <ChevronDown className="w-4 h-4" />
-                                        Load more
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
+                {/* Visual thumbnail if available */}
+                {activity.visual && (
+                  <img
+                    src={activity.visual.thumbnail_url || activity.visual.image_url}
+                    alt="Visual"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0"
+                  />
                 )}
-            </div>
-        </div>
-    );
+              </div>
+            ))}
+
+            {/* Load more button */}
+            {hasMore && (
+              <button
+                onClick={() => loadActivities(true)}
+                disabled={isLoadingMore}
+                className="w-full py-3 text-center text-xs sm:text-sm text-coral-burst hover:bg-coral-burst/5 active:bg-coral-burst/10 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
+              >
+                {isLoadingMore ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Load more
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -344,46 +381,52 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ActivityNotificationProps {
-    activity: Activity;
-    onDismiss?: () => void;
+  activity: Activity;
+  onDismiss?: () => void;
 }
 
 export const ActivityNotification: React.FC<ActivityNotificationProps> = ({
-    activity,
-    onDismiss,
+  activity,
+  onDismiss,
 }) => {
-    useEffect(() => {
-        if (!onDismiss) return;
-        const timer = setTimeout(onDismiss, 5000);
-        return () => clearTimeout(timer);
-    }, [onDismiss]);
+  useEffect(() => {
+    if (!onDismiss) return;
+    const timer = setTimeout(onDismiss, 5000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
 
-    return (
-        <div className="fixed bottom-28 sm:bottom-24 left-2 sm:left-4 right-2 sm:right-auto z-50 animate-slideUp" style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-[300px]">
-                <img
-                    src={activity.user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`}
-                    alt=""
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-charcoal-soft truncate">
-                        <strong>{activity.user?.full_name || 'Someone'}</strong>{' '}
-                        {activity.type === 'visual_created' && 'created a new visual'}
-                        {activity.type === 'reaction_added' && 'reacted to a visual'}
-                        {activity.type === 'collab_joined' && 'joined the session'}
-                    </p>
-                </div>
-                {activity.visual && (
-                    <img
-                        src={activity.visual.thumbnail_url || activity.visual.image_url}
-                        alt=""
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover flex-shrink-0"
-                    />
-                )}
-            </div>
+  return (
+    <div
+      className="fixed bottom-28 sm:bottom-24 left-2 sm:left-4 right-2 sm:right-auto z-50 animate-slideUp"
+      style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
+    >
+      <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-[300px]">
+        <img
+          src={
+            activity.user?.avatar_url ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`
+          }
+          alt=""
+          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm text-charcoal-soft truncate">
+            <strong>{activity.user?.full_name || 'Someone'}</strong>{' '}
+            {activity.type === 'visual_created' && 'created a new visual'}
+            {activity.type === 'reaction_added' && 'reacted to a visual'}
+            {activity.type === 'collab_joined' && 'joined the session'}
+          </p>
         </div>
-    );
+        {activity.visual && (
+          <img
+            src={activity.visual.thumbnail_url || activity.visual.image_url}
+            alt=""
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover flex-shrink-0"
+          />
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default ActivityFeed;

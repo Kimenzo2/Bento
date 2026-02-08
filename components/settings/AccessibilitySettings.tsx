@@ -1,5 +1,5 @@
-import React from 'react';
-import { Monitor, Moon, Contrast, MousePointer, Type, Keyboard, Volume } from 'lucide-react';
+import { Contrast, Keyboard, Monitor, Moon, Volume } from 'lucide-react';
+import type React from 'react';
 
 interface AccessibilitySettingsProps {
   settings: {
@@ -19,7 +19,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
     description,
     checked,
     onChange,
-    icon: Icon
+    icon: Icon,
   }: {
     label: string;
     description?: string;
@@ -43,12 +43,14 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         </div>
       </div>
       <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'
-          }`}
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${
+          checked ? 'bg-coral-burst' : 'bg-gray-200'
+        }`}
       >
         <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'
-            }`}
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${
+            checked ? 'translate-x-[22px]' : 'translate-x-0'
+          }`}
         />
       </button>
     </div>
@@ -121,13 +123,13 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
                   onClick={() => {
                     onUpdate({ ...settings, fontSize: size });
                     document.documentElement.style.fontSize =
-                      size === 'small' ? '14px' :
-                        size === 'large' ? '18px' : '16px';
+                      size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
                   }}
-                  className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border-2 transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${settings.fontSize === size
-                    ? 'border-coral-burst bg-coral-burst text-white'
-                    : 'border-peach-soft bg-white text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'
-                    }`}
+                  className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border-2 transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${
+                    settings.fontSize === size
+                      ? 'border-coral-burst bg-coral-burst text-white'
+                      : 'border-peach-soft bg-white text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'
+                  }`}
                 >
                   {size}
                 </button>
@@ -158,9 +160,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">
           Screen Reader & Audio
         </h3>
-        <p className="text-sm text-cocoa-light mb-4">
-          Optimize for assistive technologies
-        </p>
+        <p className="text-sm text-cocoa-light mb-4">Optimize for assistive technologies</p>
 
         <div className="space-y-0">
           <Toggle
@@ -186,8 +186,9 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 md:p-4">
         <p className="text-xs md:text-sm text-blue-900">
-          <strong>Tip:</strong> These settings work best when combined with your device's accessibility features.
-          Visit your device settings for additional options like VoiceOver, TalkBack, or Narrator.
+          <strong>Tip:</strong> These settings work best when combined with your device's
+          accessibility features. Visit your device settings for additional options like VoiceOver,
+          TalkBack, or Narrator.
         </p>
       </div>
     </div>

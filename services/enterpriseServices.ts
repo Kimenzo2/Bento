@@ -1,6 +1,6 @@
 /**
  * Enterprise Services - Barrel Export
- * 
+ *
  * Central export point for all enterprise-grade services.
  * Import from here to get access to:
  * - Usage Analytics (cost tracking, usage monitoring)
@@ -20,7 +20,7 @@ export {
   getSessionId,
   resetSession,
   type UsageEvent,
-  type CostSummary
+  type CostSummary,
 } from './analytics/usageAnalyticsService';
 
 // Circuit Breaker
@@ -38,7 +38,7 @@ export {
   checkSpendingLimitFromDB,
   getUserUsageSummaryFromDB,
   type CircuitBreakerResult,
-  type SpendingLimits
+  type SpendingLimits,
 } from './analytics/circuitBreakerService';
 
 export { default as circuitBreakerConfig } from './analytics/circuitBreakerService';
@@ -55,7 +55,7 @@ export {
   sanitizeImagePrompt,
   type SanitizationResult,
   type SanitizationIssue,
-  type SanitizationOptions
+  type SanitizationOptions,
 } from './security/sanitizationService';
 
 // Observability
@@ -72,5 +72,5 @@ export {
   traced,
   type AITrace,
   type SpanContext,
-  type AIMetrics
+  type AIMetrics,
 } from './observability/aiObservabilityService';

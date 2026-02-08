@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { ArrowLeft, FileText, Shield, Cookie, AlertCircle } from 'lucide-react';
-import { AppMode } from '../types';
+import { AlertCircle, ArrowLeft, Cookie, FileText, Shield } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { AppMode } from '../types';
 
 interface LegalViewerProps {
   onNavigate?: (mode: AppMode) => void;
@@ -9,7 +10,9 @@ interface LegalViewerProps {
 }
 
 const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'privacy' }) => {
-  const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | 'cookies' | 'acceptable-use'>(initialDoc);
+  const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | 'cookies' | 'acceptable-use'>(
+    initialDoc
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const documents = {
@@ -18,29 +21,29 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
       icon: Shield,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      file: 'PRIVACY_POLICY.md'
+      file: 'PRIVACY_POLICY.md',
     },
     terms: {
       title: 'Terms of Service',
       icon: FileText,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      file: 'TERMS_OF_SERVICE.md'
+      file: 'TERMS_OF_SERVICE.md',
     },
     cookies: {
       title: 'Cookie Policy',
       icon: Cookie,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      file: 'COOKIE_POLICY.md'
+      file: 'COOKIE_POLICY.md',
     },
     'acceptable-use': {
       title: 'Acceptable Use Policy',
       icon: AlertCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
-      file: 'ACCEPTABLE_USE_POLICY.md'
-    }
+      file: 'ACCEPTABLE_USE_POLICY.md',
+    },
   };
 
   const currentDoc = documents[activeDoc];
@@ -65,7 +68,6 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
   return (
     <div className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn">
       <div className="max-w-4xl mx-auto px-4 md:px-6 pt-4 md:pt-8">
-        
         {/* Header */}
         <div className="mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
           {onNavigate && (
@@ -77,7 +79,9 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
               <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
             </button>
           )}
-          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${currentDoc.bgColor} flex items-center justify-center`}>
+          <div
+            className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${currentDoc.bgColor} flex items-center justify-center`}
+          >
             <DocIcon className={`w-5 h-5 md:w-6 md:h-6 ${currentDoc.color}`} />
           </div>
           <div>
@@ -98,9 +102,10 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
                 key={key}
                 onClick={() => setActiveDoc(key as typeof activeDoc)}
                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading font-medium text-sm transition-all duration-200 touch-manipulation
-                  ${isActive
-                    ? `${doc.bgColor} ${doc.color} shadow-soft-sm border-2 border-current`
-                    : 'bg-white text-cocoa-light hover:bg-cream-soft border-2 border-transparent'
+                  ${
+                    isActive
+                      ? `${doc.bgColor} ${doc.color} shadow-soft-sm border-2 border-current`
+                      : 'bg-white text-cocoa-light hover:bg-cream-soft border-2 border-transparent'
                   }`}
               >
                 <Icon className="w-4 h-4" />
@@ -112,7 +117,8 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
 
         {/* Document Content */}
         <div className="bg-white rounded-2xl md:rounded-3xl shadow-soft-lg border border-white/50 p-6 md:p-10">
-          <article className="prose prose-sm md:prose-base max-w-none
+          <article
+            className="prose prose-sm md:prose-base max-w-none
             prose-headings:font-heading prose-headings:text-charcoal-soft
             prose-h1:text-2xl md:prose-h1:text-4xl prose-h1:mb-4 md:prose-h1:mb-6
             prose-h2:text-xl md:prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:text-coral-burst
@@ -125,7 +131,8 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
             prose-li:text-charcoal-soft prose-li:my-1
             prose-code:text-coral-burst prose-code:bg-cream-soft prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
             prose-blockquote:border-l-4 prose-blockquote:border-coral-burst prose-blockquote:pl-4 prose-blockquote:italic
-          ">
+          "
+          >
             <ReactMarkdown>{getMarkdownContent()}</ReactMarkdown>
           </article>
         </div>

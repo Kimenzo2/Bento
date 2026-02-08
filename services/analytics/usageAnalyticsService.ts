@@ -1,9 +1,9 @@
 /**
  * Usage Analytics Service
- * 
+ *
  * Non-blocking, async-first analytics for tracking AI usage, costs, and performance.
  * All operations are fire-and-forget to ensure ZERO impact on user experience.
- * 
+ *
  * Key Design Principles:
  * - Never block the main generation flow
  * - Graceful degradation if logging fails
@@ -21,7 +21,12 @@ export interface UsageEvent {
   id?: string;
   userId: string;
   sessionId: string;
-  eventType: 'image_generation' | 'text_generation' | 'character_interview' | 'book_creation' | 'infographic';
+  eventType:
+    | 'image_generation'
+    | 'text_generation'
+    | 'character_interview'
+    | 'book_creation'
+    | 'infographic';
   modelUsed: string;
   tokensInput?: number;
   tokensOutput?: number;
@@ -58,7 +63,7 @@ const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   'grok-3': { input: 0.003, output: 0.015 },
   'grok-3-mini': { input: 0.0003, output: 0.0005 },
   // Default fallback
-  'default': { input: 0.001, output: 0.002 }
+  default: { input: 0.001, output: 0.002 },
 };
 
 /**
@@ -66,18 +71,18 @@ const MODEL_COSTS: Record<string, { input: number; output: number }> = {
  */
 export function estimateCost(
   modelId: string,
-  inputTokens: number = 0,
-  outputTokens: number = 0,
-  isImageGeneration: boolean = false
+  inputTokens = 0,
+  outputTokens = 0,
+  isImageGeneration = false
 ): number {
   const costs = MODEL_COSTS[modelId] || MODEL_COSTS['default'];
-  
+
   if (isImageGeneration) {
     // Image generation is per-image, not per-token
     return costs.input;
   }
-  
-  return (inputTokens / 1000 * costs.input) + (outputTokens / 1000 * costs.output);
+
+  return (inputTokens / 1000) * costs.input + (outputTokens / 1000) * costs.output;
 }
 
 // ============================================================================
@@ -95,11 +100,11 @@ const MAX_QUEUE_SIZE = 50; // Flush if queue gets too large
 export function trackUsage(event: Omit<UsageEvent, 'createdAt'>): void {
   const fullEvent: UsageEvent = {
     ...event,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   };
-  
+
   eventQueue.push(fullEvent);
-  
+
   // Flush immediately if queue is getting large
   if (eventQueue.length >= MAX_QUEUE_SIZE) {
     flushQueue();
@@ -118,16 +123,15 @@ export function trackUsage(event: Omit<UsageEvent, 'createdAt'>): void {
  */
 async function flushQueue(): Promise<void> {
   if (eventQueue.length === 0) return;
-  
+
   // Take a snapshot and clear the queue immediately
   const eventsToFlush = [...eventQueue];
   eventQueue.length = 0;
-  
+
   try {
     // Fire and forget - don't await in the calling context
-    const { error } = await supabase
-      .from('usage_analytics')
-      .insert(eventsToFlush.map(e => ({
+    const { error } = await supabase.from('usage_analytics').insert(
+      eventsToFlush.map((e) => ({
         user_id: e.userId,
         session_id: e.sessionId,
         event_type: e.eventType,
@@ -140,9 +144,10 @@ async function flushQueue(): Promise<void> {
         success: e.success,
         error_code: e.errorCode,
         metadata: e.metadata,
-        created_at: new Date(e.createdAt).toISOString()
-      })));
-    
+        created_at: new Date(e.createdAt).toISOString(),
+      }))
+    );
+
     if (error) {
       // Log but don't throw - graceful degradation
       console.warn('📊 Analytics flush failed (non-critical):', error.message);
@@ -183,7 +188,7 @@ export function trackImageGeneration(params: {
     tier: params.tier,
     success: params.success,
     errorCode: params.errorCode,
-    metadata: { style: params.style }
+    metadata: { style: params.style },
   });
 }
 
@@ -214,7 +219,7 @@ export function trackTextGeneration(params: {
     tier: params.tier,
     success: params.success,
     errorCode: params.errorCode,
-    metadata: { purpose: params.purpose }
+    metadata: { purpose: params.purpose },
   });
 }
 
@@ -232,9 +237,10 @@ export function trackBookCreation(params: {
   errorCode?: string;
 }): void {
   // Estimate total cost for a book (multiple images + text)
-  const imageCost = params.imageCount * estimateCost('imagen-4.0-generate-preview-05-20', 0, 0, true);
+  const imageCost =
+    params.imageCount * estimateCost('imagen-4.0-generate-preview-05-20', 0, 0, true);
   const textCost = estimateCost('gemini-2.5-pro', 2000, 5000); // Approximate tokens for book
-  
+
   trackUsage({
     userId: params.userId,
     sessionId: params.sessionId,
@@ -245,7 +251,7 @@ export function trackBookCreation(params: {
     tier: params.tier,
     success: params.success,
     errorCode: params.errorCode,
-    metadata: { pageCount: params.pageCount, imageCount: params.imageCount }
+    metadata: { pageCount: params.pageCount, imageCount: params.imageCount },
   });
 }
 
@@ -261,24 +267,25 @@ export async function getUserCostSummary(userId: string): Promise<CostSummary | 
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    
+
     const { data, error } = await supabase
       .from('usage_analytics')
       .select('estimated_cost_usd, latency_ms')
       .eq('user_id', userId)
       .gte('created_at', startOfMonth);
-    
+
     if (error || !data) return null;
-    
+
     const todayData = data.filter((d: any) => new Date(d.created_at) >= new Date(startOfDay));
-    
+
     return {
       dailyCost: todayData.reduce((sum: number, d: any) => sum + (d.estimated_cost_usd || 0), 0),
       monthlyCost: data.reduce((sum: number, d: any) => sum + (d.estimated_cost_usd || 0), 0),
       totalGenerations: data.length,
-      averageLatency: data.length > 0 
-        ? data.reduce((sum: number, d: any) => sum + (d.latency_ms || 0), 0) / data.length 
-        : 0
+      averageLatency:
+        data.length > 0
+          ? data.reduce((sum: number, d: any) => sum + (d.latency_ms || 0), 0) / data.length
+          : 0,
     };
   } catch {
     return null;
@@ -331,5 +338,5 @@ export default {
   estimateCost,
   getUserCostSummary,
   getSessionId,
-  resetSession
+  resetSession,
 };

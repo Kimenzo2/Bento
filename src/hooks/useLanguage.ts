@@ -1,52 +1,52 @@
 /**
  * useLanguage Hook
- * 
+ *
  * Provides easy access to language switching and translation utilities
  */
 
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getLanguageByCode, isValidLanguageCode } from '../config/languages';
 import { useLanguageContext } from '../contexts/LanguageContext';
 import type { Language, LanguageCode } from '../types/language.d';
-import { getLanguageByCode, isValidLanguageCode } from '../config/languages';
 
 interface UseLanguageReturn {
   /** Current active language */
   currentLanguage: Language;
-  
+
   /** All available languages */
   languages: Language[];
-  
+
   /** Current text direction */
   direction: 'ltr' | 'rtl';
-  
+
   /** Whether language is currently loading */
   isLoading: boolean;
-  
+
   /** Change to a specific language */
   changeLanguage: (code: LanguageCode) => Promise<void>;
-  
+
   /** Translation function (from react-i18next) */
   t: (key: string, options?: Record<string, any>) => string;
-  
+
   /** Check if current language is RTL */
   isRTL: boolean;
-  
+
   /** Format date in current locale */
   formatDate: (date: Date | string | number) => string;
-  
+
   /** Format number in current locale */
   formatNumber: (num: number) => string;
-  
+
   /** Format currency in current locale */
   formatCurrency: (amount: number, currencyCode?: string) => string;
-  
+
   /** Format relative time */
   formatRelativeTime: (date: Date | string | number) => string;
-  
+
   /** Get language by code */
   getLanguage: (code: LanguageCode) => Language | undefined;
-  
+
   /** Check if a language code is valid */
   isValidCode: (code: string) => boolean;
 }
@@ -79,7 +79,7 @@ export const useLanguage = (): UseLanguageReturn => {
     formatCurrency: languageContext.formatCurrency,
     formatRelativeTime: languageContext.formatRelativeTime,
     getLanguage,
-    isValidCode
+    isValidCode,
   };
 };
 

@@ -1,20 +1,20 @@
 /**
  * @module Environment
  * @description Environment validation and typed access to environment variables
- * 
+ *
  * Features:
  * - Runtime validation of required environment variables
  * - Typed access to configuration
  * - Development vs production mode detection
  * - Missing variable warnings
- * 
+ *
  * @example
  * ```typescript
  * import { env, validateEnv } from '@config/env';
- * 
+ *
  * // Access typed env variables
  * const apiUrl = env.SUPABASE_URL;
- * 
+ *
  * // Validate on app start
  * validateEnv();
  * ```
@@ -30,23 +30,29 @@ const envSchema = z.object({
   // Supabase
   VITE_SUPABASE_URL: z.string().url().optional(),
   VITE_SUPABASE_ANON_KEY: z.string().min(1).optional(),
-  
+
   // AI Services
   VITE_GEMINI_API_KEY: z.string().optional(),
   VITE_BYTEZ_API_KEY: z.string().optional(),
   VITE_GROK_API_KEY: z.string().optional(),
-  
+
   // Payments
   VITE_PAYSTACK_PUBLIC_KEY: z.string().optional(),
-  
+
   // App Configuration
   VITE_APP_NAME: z.string().default('Genesis'),
   VITE_APP_VERSION: z.string().optional(),
-  
+
   // Feature Flags
-  VITE_ENABLE_ANALYTICS: z.string().transform(v => v === 'true').optional(),
-  VITE_ENABLE_DEBUG: z.string().transform(v => v === 'true').optional(),
-  
+  VITE_ENABLE_ANALYTICS: z
+    .string()
+    .transform((v) => v === 'true')
+    .optional(),
+  VITE_ENABLE_DEBUG: z
+    .string()
+    .transform((v) => v === 'true')
+    .optional(),
+
   // Node environment
   MODE: z.enum(['development', 'production', 'test']).default('development'),
   DEV: z.boolean().default(true),
@@ -69,9 +75,9 @@ function parseEnv(): EnvConfig {
   const result = envSchema.safeParse(rawEnv);
 
   if (!result.success) {
-    const issues = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`);
+    const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
     logger.warn('Environment validation issues', { issues });
-    
+
     // Return partial env with defaults
     return envSchema.parse({
       MODE: 'development',
@@ -108,14 +114,9 @@ export const isTest = env.MODE === 'test';
  * Call this early in application startup
  */
 export function validateEnv(): boolean {
-  const requiredVars = [
-    'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_ANON_KEY',
-  ] as const;
+  const requiredVars = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const;
 
-  const optionalButRecommended = [
-    'VITE_GEMINI_API_KEY',
-  ] as const;
+  const optionalButRecommended = ['VITE_GEMINI_API_KEY'] as const;
 
   const missing: string[] = [];
   const recommended: string[] = [];

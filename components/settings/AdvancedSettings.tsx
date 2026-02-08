@@ -1,14 +1,5 @@
+import { Bug, Code, Eye, RefreshCw, Terminal, TestTube2, Wrench, Zap } from 'lucide-react';
 import React from 'react';
-import {
-  Code,
-  Wrench,
-  Zap,
-  TestTube2,
-  Bug,
-  Terminal,
-  Eye,
-  RefreshCw
-} from 'lucide-react';
 
 interface AdvancedSettingsProps {
   settings: {
@@ -29,7 +20,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
     checked,
     onChange,
     icon: Icon,
-    badge
+    badge,
   }: {
     label: string;
     description?: string;
@@ -61,12 +52,14 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         </div>
       </div>
       <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'
-          }`}
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${
+          checked ? 'bg-coral-burst' : 'bg-gray-200'
+        }`}
       >
         <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'
-            }`}
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${
+            checked ? 'translate-x-[22px]' : 'translate-x-0'
+          }`}
         />
       </button>
     </div>
@@ -81,7 +74,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
   };
 
   const handleClearAllData = () => {
-    if (confirm('This will clear ALL local data including settings, cache, and drafts. Continue?')) {
+    if (
+      confirm('This will clear ALL local data including settings, cache, and drafts. Continue?')
+    ) {
       localStorage.clear();
       sessionStorage.clear();
       window.location.reload();
@@ -95,7 +90,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <div className="flex items-start gap-2 md:gap-3">
           <Wrench className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-bold text-yellow-900 mb-0.5 md:mb-1 text-sm md:text-base">Advanced Settings</h4>
+            <h4 className="font-bold text-yellow-900 mb-0.5 md:mb-1 text-sm md:text-base">
+              Advanced Settings
+            </h4>
             <p className="text-xs md:text-sm text-yellow-800">
               For power users and developers. Changes may affect app stability.
             </p>
@@ -105,9 +102,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
 
       {/* Developer Tools */}
       <div>
-        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">
-          Developer Tools
-        </h3>
+        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">Developer Tools</h3>
         <p className="text-sm text-cocoa-light mb-4">
           Enable advanced debugging and development features
         </p>
@@ -189,9 +184,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
 
       {/* Auto-Save */}
       <div>
-        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">
-          Data & Sync
-        </h3>
+        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">Data & Sync</h3>
         <p className="text-sm text-cocoa-light mb-4">
           Configure automatic saving and synchronization
         </p>
@@ -211,12 +204,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
 
       {/* System Actions */}
       <div>
-        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">
-          System Actions
-        </h3>
-        <p className="text-sm text-cocoa-light mb-4">
-          Reset or clear application data
-        </p>
+        <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">System Actions</h3>
+        <p className="text-sm text-cocoa-light mb-4">Reset or clear application data</p>
 
         <div className="space-y-3">
           <button
@@ -226,7 +215,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             <div className="flex items-center gap-2 md:gap-3">
               <RefreshCw className="w-5 h-5 text-orange-600" />
               <div className="text-left">
-                <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-orange-700">Reset Settings</div>
+                <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-orange-700">
+                  Reset Settings
+                </div>
                 <div className="text-xs text-gray-500">Restore defaults</div>
               </div>
             </div>
@@ -240,7 +231,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             <div className="flex items-center gap-2 md:gap-3">
               <Terminal className="w-5 h-5 text-red-600" />
               <div className="text-left">
-                <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-red-700">Clear All Data</div>
+                <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-red-700">
+                  Clear All Data
+                </div>
                 <div className="text-xs text-gray-500">Remove local storage</div>
               </div>
             </div>
@@ -255,8 +248,12 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
           <div className="space-y-0.5 md:space-y-1 whitespace-nowrap">
             <div>• React: {React.version}</div>
             <div className="truncate">• UA: {navigator.userAgent.slice(0, 40)}...</div>
-            <div>• Screen: {window.screen.width}x{window.screen.height}</div>
-            <div>• Viewport: {window.innerWidth}x{window.innerHeight}</div>
+            <div>
+              • Screen: {window.screen.width}x{window.screen.height}
+            </div>
+            <div>
+              • Viewport: {window.innerWidth}x{window.innerHeight}
+            </div>
             <div>• SW: {navigator.serviceWorker ? 'Yes' : 'No'}</div>
           </div>
         </div>
@@ -272,8 +269,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             className="font-bold text-purple-700 hover:underline"
           >
             docs
-          </a>
-          {' '}for API references.
+          </a>{' '}
+          for API references.
         </p>
       </div>
     </div>

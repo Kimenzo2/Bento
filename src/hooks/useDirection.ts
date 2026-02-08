@@ -1,6 +1,6 @@
 /**
  * useDirection Hook
- * 
+ *
  * Provides RTL/LTR direction utilities for components
  */
 
@@ -11,13 +11,13 @@ import type { TextDirection } from '../types/language.d';
 interface UseDirectionReturn {
   /** Current text direction */
   direction: TextDirection;
-  
+
   /** Whether the current direction is RTL */
   isRTL: boolean;
-  
+
   /** Whether the current direction is LTR */
   isLTR: boolean;
-  
+
   /** Get CSS logical property value based on direction */
   logical: {
     /** Returns 'right' for LTR, 'left' for RTL */
@@ -27,16 +27,16 @@ interface UseDirectionReturn {
     /** Returns 'ltr' or 'rtl' */
     dir: TextDirection;
   };
-  
+
   /** Mirror a value for RTL (useful for icons) */
   mirror: <T>(ltrValue: T, rtlValue: T) => T;
-  
+
   /** Get directional class names */
   getDirectionalClass: (ltrClass: string, rtlClass: string) => string;
-  
+
   /** Flip horizontal alignment */
   flipAlign: (align: 'left' | 'right' | 'center') => 'left' | 'right' | 'center';
-  
+
   /** Flip flex direction */
   flipFlexDirection: (direction: 'row' | 'row-reverse') => 'row' | 'row-reverse';
 }
@@ -55,31 +55,31 @@ export const useDirection = (): UseDirectionReturn => {
       direction,
       isRTL,
       isLTR,
-      
+
       logical: {
         start: isRTL ? 'right' : 'left',
         end: isRTL ? 'left' : 'right',
-        dir: direction
+        dir: direction,
       },
-      
+
       mirror: <T>(ltrValue: T, rtlValue: T): T => {
         return isRTL ? rtlValue : ltrValue;
       },
-      
+
       getDirectionalClass: (ltrClass: string, rtlClass: string): string => {
         return isRTL ? rtlClass : ltrClass;
       },
-      
+
       flipAlign: (align: 'left' | 'right' | 'center'): 'left' | 'right' | 'center' => {
         if (align === 'center') return 'center';
         if (!isRTL) return align;
         return align === 'left' ? 'right' : 'left';
       },
-      
+
       flipFlexDirection: (dir: 'row' | 'row-reverse'): 'row' | 'row-reverse' => {
         if (!isRTL) return dir;
         return dir === 'row' ? 'row-reverse' : 'row';
-      }
+      },
     };
   }, [direction, currentLanguage]);
 };

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Check, Sparkles, Users } from 'lucide-react';
-import { useOnboarding, type UserRole } from './OnboardingState';
+import type React from 'react';
+import { useState } from 'react';
+import { type UserRole, useOnboarding } from './OnboardingState';
 
 // Image paths for roles
 const roleImages = {
@@ -25,7 +26,8 @@ const roles: RoleOption[] = [
     id: 'mentor',
     title: 'The Mentor',
     subtitle: 'Educators & Teachers',
-    description: 'You shape minds and inspire futures. We\'ll optimize for curriculum integration and classroom tools.',
+    description:
+      "You shape minds and inspire futures. We'll optimize for curriculum integration and classroom tools.",
     image: roleImages.mentor,
     gradient: 'from-indigo-500 via-purple-500 to-violet-600',
     glow: 'shadow-[0_0_60px_rgba(99,102,241,0.4)]',
@@ -34,7 +36,7 @@ const roles: RoleOption[] = [
     id: 'explorer',
     title: 'The Explorer',
     subtitle: 'Students & Learners',
-    description: 'Curiosity is your compass. We\'ll unlock discovery modes and learning adventures.',
+    description: "Curiosity is your compass. We'll unlock discovery modes and learning adventures.",
     image: roleImages.explorer,
     gradient: 'from-blue-500 via-cyan-500 to-teal-500',
     glow: 'shadow-[0_0_60px_rgba(6,182,212,0.4)]',
@@ -43,7 +45,8 @@ const roles: RoleOption[] = [
     id: 'guardian',
     title: 'The Guardian',
     subtitle: 'Parents & Guides',
-    description: 'You nurture creativity at home. We\'ll focus on family-friendly content and shared experiences.',
+    description:
+      "You nurture creativity at home. We'll focus on family-friendly content and shared experiences.",
     image: roleImages.guardian,
     gradient: 'from-amber-500 via-orange-500 to-red-500',
     glow: 'shadow-[0_0_60px_rgba(245,158,11,0.4)]',
@@ -76,13 +79,13 @@ export const CreativePersonaQuiz: React.FC = () => {
       {/* Ambient orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
         className="absolute w-[500px] h-[500px] rounded-full bg-purple-600/20 blur-3xl"
         style={{ top: '-10%', left: '-10%' }}
       />
       <motion.div
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 10, repeat: Infinity }}
+        transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY }}
         className="absolute w-[400px] h-[400px] rounded-full bg-blue-600/20 blur-3xl"
         style={{ bottom: '-5%', right: '-10%' }}
       />
@@ -92,7 +95,7 @@ export const CreativePersonaQuiz: React.FC = () => {
         className="absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
+          backgroundSize: '50px 50px',
         }}
       />
 
@@ -107,7 +110,7 @@ export const CreativePersonaQuiz: React.FC = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+            transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
             className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
           >
             <Users className="w-3 h-3 md:w-4 md:h-4 text-purple-400" />
@@ -141,13 +144,14 @@ export const CreativePersonaQuiz: React.FC = () => {
                 onClick={() => handleRoleSelect(role.id)}
                 disabled={isTransitioning}
                 whileHover={{ y: -5 }}
-                className={`group relative p-3 md:p-4 md:ob-p-card rounded-xl md:rounded-2xl text-center transition-all duration-300 ${isSelected
-                  ? `${role.glow} ring-2 ring-white/30`
-                  : 'hover:bg-white/5'
-                  } overflow-hidden ${isLastOdd ? 'col-span-2 md:col-span-1 max-w-[75%] md:max-w-none mx-auto' : ''}`}
+                className={`group relative p-3 md:p-4 md:ob-p-card rounded-xl md:rounded-2xl text-center transition-all duration-300 ${
+                  isSelected ? `${role.glow} ring-2 ring-white/30` : 'hover:bg-white/5'
+                } overflow-hidden ${isLastOdd ? 'col-span-2 md:col-span-1 max-w-[75%] md:max-w-none mx-auto' : ''}`}
               >
                 {/* Background */}
-                <div className={`absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`} />
+                <div
+                  className={`absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`}
+                />
 
                 {/* Glass border */}
                 <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10" />
@@ -169,12 +173,18 @@ export const CreativePersonaQuiz: React.FC = () => {
                     />
 
                     {/* Glow behind image */}
-                    <div className={`absolute w-32 h-32 bg-gradient-to-br ${role.gradient} blur-3xl opacity-30 -z-10`} />
+                    <div
+                      className={`absolute w-32 h-32 bg-gradient-to-br ${role.gradient} blur-3xl opacity-30 -z-10`}
+                    />
                   </motion.div>
 
                   {/* Text */}
-                  <h3 className="text-xs md:text-xl font-bold text-white mb-0 md:mb-1">{role.title}</h3>
-                  <p className={`text-[10px] md:text-sm mb-1 md:mb-3 bg-gradient-to-r ${role.gradient} bg-clip-text text-transparent font-medium hidden md:block`}>
+                  <h3 className="text-xs md:text-xl font-bold text-white mb-0 md:mb-1">
+                    {role.title}
+                  </h3>
+                  <p
+                    className={`text-[10px] md:text-sm mb-1 md:mb-3 bg-gradient-to-r ${role.gradient} bg-clip-text text-transparent font-medium hidden md:block`}
+                  >
                     {role.subtitle}
                   </p>
                   <p className="text-white/50 text-xs md:text-sm leading-relaxed hidden md:block">
@@ -182,15 +192,16 @@ export const CreativePersonaQuiz: React.FC = () => {
                   </p>
 
                   {/* Selection indicator */}
-                  <div className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
-                    ? 'border-white bg-white'
-                    : 'border-white/20'
-                    }`}>
+                  <div
+                    className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                      isSelected ? 'border-white bg-white' : 'border-white/20'
+                    }`}
+                  >
                     {isSelected && (
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ type: "spring", bounce: 0.5 }}
+                        transition={{ type: 'spring', bounce: 0.5 }}
                       >
                         <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-slate-900" />
                       </motion.div>

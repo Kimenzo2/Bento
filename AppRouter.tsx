@@ -1,24 +1,25 @@
 /**
  * AppRouter - Root-level routing for Genesis
- * 
+ *
  * ARCHITECTURE DECISION:
  * This is the SINGLE POINT OF ENTRY for the entire application.
  * It decides at the router level whether to show:
  * 1. OnboardingApp - Completely isolated, dark-themed experience for new users
  * 2. MainApp - The full Genesis application with cream theme
- * 
+ *
  * WHY THIS PATTERN:
  * - Onboarding and Main App are SIBLINGS, not parent-child
  * - They share NOTHING except React context (Auth)
  * - Each has its own layout, styles, and state
  * - Bundle splitting: new users only download onboarding code initially
  * - Zero possibility of style bleed or state interference
- * 
+ *
  * This is how production apps like Figma, Notion, and Linear handle onboarding.
  */
 
-import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import type React from 'react';
+import { Suspense, lazy } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 // Lazy load both apps for optimal bundle splitting
 // New users get OnboardingApp bundle first (smaller)

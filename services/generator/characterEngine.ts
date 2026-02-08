@@ -1,6 +1,11 @@
-import { generateStructuredContent, generateIllustration } from '../geminiService';
-import { CharacterProfile, CharacterSheet, VisualIdentity, EbookRequest } from '../../types/generator';
 import { Type } from '@google/genai';
+import type {
+  CharacterProfile,
+  CharacterSheet,
+  EbookRequest,
+  VisualIdentity,
+} from '../../types/generator';
+import { generateStructuredContent } from '../geminiService';
 
 const SYSTEM_INSTRUCTION_ARTIST = `
 You are the "Lead Character Artist" for a high-end animation studio (Pixar/Ghibli level).
@@ -14,10 +19,10 @@ Focus on:
 `;
 
 export const generateCharacterSheet = async (
-    profile: CharacterProfile,
-    request: EbookRequest
+  profile: CharacterProfile,
+  request: EbookRequest
 ): Promise<CharacterSheet> => {
-    const prompt = `
+  const prompt = `
     Create a detailed Character Sheet for:
     Name: ${profile.name}
     Role: ${profile.role}
@@ -41,53 +46,53 @@ export const generateCharacterSheet = async (
     - styleEnforcement: A short string of keywords to append to every prompt involving this character to ensure consistency (e.g., "3D render, Pixar style, soft lighting").
     `;
 
-    const schema = {
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      visualIdentity: {
         type: Type.OBJECT,
         properties: {
-            visualIdentity: {
-                type: Type.OBJECT,
-                properties: {
-                    faceStructure: { type: Type.STRING },
-                    bodyType: { type: Type.STRING },
-                    clothingStyle: { type: Type.STRING },
-                    accessories: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    expressionRange: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    colorPalette: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-            },
-            referenceImagePrompt: { type: Type.STRING },
-            styleEnforcement: { type: Type.STRING }
-        }
+          faceStructure: { type: Type.STRING },
+          bodyType: { type: Type.STRING },
+          clothingStyle: { type: Type.STRING },
+          accessories: { type: Type.ARRAY, items: { type: Type.STRING } },
+          expressionRange: { type: Type.ARRAY, items: { type: Type.STRING } },
+          colorPalette: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+      },
+      referenceImagePrompt: { type: Type.STRING },
+      styleEnforcement: { type: Type.STRING },
+    },
+  };
+
+  try {
+    const result = await generateStructuredContent<{
+      visualIdentity: VisualIdentity;
+      referenceImagePrompt: string;
+      styleEnforcement: string;
+    }>(prompt, schema, SYSTEM_INSTRUCTION_ARTIST);
+
+    return {
+      id: `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      baseProfile: profile,
+      visualIdentity: result.visualIdentity,
+      referenceImagePrompt: result.referenceImagePrompt,
+      styleEnforcement: result.styleEnforcement,
     };
-
-    try {
-        const result = await generateStructuredContent<{
-            visualIdentity: VisualIdentity;
-            referenceImagePrompt: string;
-            styleEnforcement: string;
-        }>(prompt, schema, SYSTEM_INSTRUCTION_ARTIST);
-
-        return {
-            id: `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            baseProfile: profile,
-            visualIdentity: result.visualIdentity,
-            referenceImagePrompt: result.referenceImagePrompt,
-            styleEnforcement: result.styleEnforcement
-        };
-    } catch (error) {
-        console.error("Failed to generate character sheet:", error);
-        throw error;
-    }
+  } catch (error) {
+    console.error('Failed to generate character sheet:', error);
+    throw error;
+  }
 };
 
 export const createConsistentScenePrompt = (
-    sheet: CharacterSheet,
-    sceneDescription: string,
-    action: string,
-    mood: string
+  sheet: CharacterSheet,
+  sceneDescription: string,
+  action: string,
+  mood: string
 ): string => {
-    // Construct a prompt that enforces the character's visual identity
-    return `
+  // Construct a prompt that enforces the character's visual identity
+  return `
     Subject: ${sheet.baseProfile.name} (${sheet.visualIdentity.faceStructure}, ${sheet.visualIdentity.bodyType}, wearing ${sheet.visualIdentity.clothingStyle}).
     Action: ${action}.
     Scene: ${sceneDescription}.
@@ -95,8 +100,8 @@ export const createConsistentScenePrompt = (
     
     Visual Identity Enforcement:
     - Must match reference: ${sheet.referenceImagePrompt.substring(0, 100)}...
-    - Accessories: ${sheet.visualIdentity.accessories.join(", ")}.
-    - Colors: ${sheet.visualIdentity.colorPalette.join(", ")}.
+    - Accessories: ${sheet.visualIdentity.accessories.join(', ')}.
+    - Colors: ${sheet.visualIdentity.colorPalette.join(', ')}.
     
     Style: ${sheet.styleEnforcement}.
     `;

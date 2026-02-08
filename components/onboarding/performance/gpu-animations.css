@@ -1,6 +1,6 @@
 /**
  * GPU-ACCELERATED ANIMATION STYLES
- * 
+ *
  * These CSS classes force animations to run on the GPU compositor layer,
  * bypassing the main thread for butter-smooth 60fps animations.
  */
