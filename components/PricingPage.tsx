@@ -1,6 +1,7 @@
 import { Briefcase, Check, Crown, Loader, Star, X, Zap } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   detectUserCountry,
   getRecommendedChannels,
@@ -85,7 +86,7 @@ const tiers: TierData[] = [
     icon: Briefcase,
     color: 'bg-coral-burst/10 text-coral-burst',
     buttonColor:
-      'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white shadow-lg hover:scale-105',
+      'bg-linear-to-r from-coral-burst to-gold-sunshine text-white shadow-lg hover:scale-105',
     saveLabel: 'Save 17%',
     paystackPaymentUrl: 'https://paystack.shop/pay/akv70alb1x',
     planCode: 'PLN_09zg1ly5kg57niz',
@@ -125,10 +126,16 @@ const tiers: TierData[] = [
 ];
 
 const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
+  const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState('author@genesis.ai');
+  const [userEmail, setUserEmail] = useState('');
   const [dynamicTiers, setDynamicTiers] = useState<TierData[]>(tiers);
+
+  // Set email from auth context
+  useEffect(() => {
+    if (user?.email) setUserEmail(user.email);
+  }, [user?.email]);
 
   useEffect(() => {
     const fetchDeal = async () => {
@@ -488,7 +495,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               {tier.priceMonthly > 0 && (
                 <button
                   onClick={() => {
-                    /* TODO: Handle why tier click */
+                    const el = document.getElementById('pricing-faq');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
                   className="w-full py-2 rounded-lg font-medium text-sm text-cocoa-light hover:text-charcoal-soft hover:bg-gray-100 transition-all mb-6 border border-transparent hover:border-gray-200"
                 >

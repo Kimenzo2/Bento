@@ -954,7 +954,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     <select
                       value={tone}
                       onChange={(e) => setTone(e.target.value as BookTone)}
-                      className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor:pointer hover:border-coral-burst/50 transition-colors"
+                      className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor-pointer hover:border-coral-burst/50 transition-colors"
                       title="Select narrative tone"
                       aria-label="Narrative tone"
                     >
@@ -977,7 +977,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     <select
                       value={audience}
                       onChange={(e) => setAudience(e.target.value)}
-                      className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor:pointer hover:border-coral-burst/50 transition-colors"
+                      className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor-pointer hover:border-coral-burst/50 transition-colors"
                       title="Select target audience"
                       aria-label="Target audience"
                     >

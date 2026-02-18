@@ -23,6 +23,7 @@ import {
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { type UserProfile, getUserProfile } from '../services/profileService';
+import { getTierLimits } from '../services/tierLimits';
 import { AppMode, type SavedBook, UserTier } from '../types';
 import AboutSection from './settings/AboutSection';
 import AccessibilitySettings from './settings/AccessibilitySettings';
@@ -45,7 +46,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onViewBook,
   userTier: propsUserTier,
 }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(true);
 
@@ -563,9 +564,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           </span>
                         </div>
                         <h4 className="font-heading font-bold text-2xl md:text-3xl text-white mb-1">
-                          Spark Plan
+                          {(propsUserTier || UserTier.SPARK).charAt(0) + (propsUserTier || UserTier.SPARK).slice(1).toLowerCase()} Plan
                         </h4>
-                        <p className="text-white/70 text-xs md:text-sm">Free Forever</p>
+                        <p className="text-white/70 text-xs md:text-sm">{(propsUserTier || UserTier.SPARK) === UserTier.SPARK ? 'Free Forever' : 'Active Subscription'}</p>
                       </div>
                       <span className="px-2.5 md:px-3 py-1 md:py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-full border border-green-500/30">
                         Active
@@ -575,11 +576,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 md:mb-6">
                       <div>
                         <p className="text-white/50 text-xs mb-1">Ebooks / Month</p>
-                        <p className="text-white font-bold text-lg md:text-xl">3</p>
+                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(propsUserTier || UserTier.SPARK).ebooksPerMonth === Number.POSITIVE_INFINITY ? '∞' : getTierLimits(propsUserTier || UserTier.SPARK).ebooksPerMonth}</p>
                       </div>
                       <div>
                         <p className="text-white/50 text-xs mb-1">Max Pages</p>
-                        <p className="text-white font-bold text-lg md:text-xl">4</p>
+                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(propsUserTier || UserTier.SPARK).maxPagesPerBook === 999 ? '∞' : getTierLimits(propsUserTier || UserTier.SPARK).maxPagesPerBook}</p>
                       </div>
                     </div>
 
@@ -675,7 +676,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           {/* Footer */}
           <div className="mt-8 md:mt-10 pt-5 md:pt-6 border-t border-peach-soft/50">
             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4 mb-4">
-              <button className="flex items-center justify-center md:justify-start gap-2 text-cocoa-light font-bold hover:text-red-500 text-sm px-4 py-3 md:py-2 rounded-lg hover:bg-red-50 transition-colors touch-manipulation">
+              <button
+                onClick={async () => { await signOut(); }}
+                className="flex items-center justify-center md:justify-start gap-2 text-cocoa-light font-bold hover:text-red-500 text-sm px-4 py-3 md:py-2 rounded-lg hover:bg-red-50 transition-colors touch-manipulation">
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>
               <button

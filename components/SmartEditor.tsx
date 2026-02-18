@@ -60,6 +60,7 @@ interface SmartEditorProps {
   onSave?: (success: boolean, message: string) => void;
   onBack?: () => void;
   onNavigateToCreate?: () => void;
+  onToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 // Default characters for standalone Green Room access
@@ -631,6 +632,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   onSave,
   onBack,
   onNavigateToCreate,
+  onToast,
 }) => {
   const { userProfile } = useAuth();
   const [activePageIndex, setActivePageIndex] = useState(0);
@@ -878,7 +880,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
       );
       handleTextChange(improved);
     } catch (error) {
-      alert('Failed to improve text. Please try again.');
+      onToast?.('Failed to improve text. Please try again.', 'error');
     } finally {
       setIsImproving(false);
     }
@@ -908,7 +910,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         setShowConsistencyPanel(true);
       }
     } catch (error) {
-      alert('Failed to check character consistency. Please try again.');
+      onToast?.('Failed to check character consistency. Please try again.', 'error');
     } finally {
       setIsCheckingConsistency(false);
     }
@@ -969,8 +971,9 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         if (onShowUpgrade) {
           onShowUpgrade();
         } else {
-          alert(
-            "You've reached the limit of 5 AI illustrations per book on the Spark plan. Upgrade to Creator for unlimited magic!"
+          onToast?.(
+            "You've reached the limit of 5 AI illustrations per book on the Spark plan. Upgrade to Creator for unlimited magic!",
+            'info'
           );
         }
         return;
@@ -993,7 +996,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         onUpdateProject(newProject);
       }
     } catch (e) {
-      alert('Failed to generate image. Please try again.');
+      onToast?.('Failed to generate image. Please try again.', 'error');
     } finally {
       setIsGeneratingImage(false);
     }
@@ -1361,7 +1364,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     setSelectedCharacterForInterview(currentProject.characters[0]);
                     setShowGreenRoom(true);
                   } else {
-                    alert('Add a character to your story first!');
+                    onToast?.('Add a character to your story first!', 'info');
                   }
                 }}
                 className={`p-2 rounded-lg transition-colors ${showGreenRoom ? 'bg-emerald-100 text-emerald-600' : 'text-cocoa-light hover:text-emerald-500'}`}
@@ -1773,7 +1776,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         {/* Book Page Container */}
         <div className="w-full max-w-md md:max-w-2xl aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-[4px] relative flex flex-col overflow-hidden transform transition-transform duration-500 hover:scale-[1.01]">
           {/* Texture Overlay */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none z-10"></div>
+          <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none z-10"></div>
 
           {/* Illustration */}
           <div className="relative h-[55%] w-full bg-gray-100 overflow-hidden group">

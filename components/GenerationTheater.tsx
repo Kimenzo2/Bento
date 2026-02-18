@@ -7,9 +7,10 @@ import { type Particle, generateParticles, updateParticle } from '../utils/parti
 interface GenerationTheaterProps {
   progress: number; // 0-100
   status: string;
+  onCancel?: () => void;
 }
 
-const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status }) => {
+const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status, onCancel }) => {
   const [particles, setParticles] = useState<Particle[]>([]);
   const [currentPhase, setCurrentPhase] = useState(1);
 
@@ -188,25 +189,17 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status 
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Add shimmer animation to Tailwind */}
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .animate-shimmer {
-          animation: shimmer 1.5s infinite;
-        }
-        .animate-bounce-slow {
-          animation: bounce 2s infinite;
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-      `}</style>
+        {/* Cancel button */}
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="mt-8 px-6 py-2.5 rounded-full border-2 border-peach-soft text-cocoa-light font-heading font-bold text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-500 transition-all"
+          >
+            Cancel Generation
+          </button>
+        )}
+      </div>
     </div>
   );
 };

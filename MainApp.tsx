@@ -49,6 +49,7 @@ import {
 } from './types';
 import './src/config/i18n';
 
+import { Loader2 } from 'lucide-react';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 // Global Components
 import WhatsNewModal from './components/WhatsNewModal';
@@ -407,8 +408,9 @@ const MainAppContent: React.FC = () => {
       setCurrentMode(AppMode.SUCCESS);
     } catch (error) {
       console.error('Generation failed', error);
-      alert(
-        `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}`
+      addToast(
+        `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'error'
       );
     } finally {
       setIsGenerating(false);
@@ -477,6 +479,7 @@ const MainAppContent: React.FC = () => {
             onSave={(success, message) => addToast(message, success ? 'success' : 'error')}
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
             onNavigateToCreate={() => setCurrentMode(AppMode.CREATION)}
+            onToast={addToast}
           />
         );
       case AppMode.VISUAL_STUDIO:
@@ -487,6 +490,7 @@ const MainAppContent: React.FC = () => {
             userProfile={userProfile}
             onNavigate={setCurrentMode}
             onUpdateProject={setCurrentProject}
+            onToast={addToast}
           />
         );
       case AppMode.SETTINGS:
@@ -581,13 +585,13 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={setCurrentMode} />
-      <main className="pt-[80px] relative transition-all duration-300">
-        <Suspense fallback={null}>{renderContent()}</Suspense>
+      <main className="pt-20 relative transition-all duration-300">
+        <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-coral-burst" /></div>} key={forceRenderKey}>{renderContent()}</Suspense>
       </main>
 
       {isGenerating && (
-        <Suspense fallback={null}>
-          <GenerationTheater progress={generationProgress} status={generationStatus} />
+        <Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90"><Loader2 className="w-8 h-8 animate-spin text-coral-burst" /></div>}>
+          <GenerationTheater progress={generationProgress} status={generationStatus} onCancel={() => { setIsGenerating(false); setGenerationStatus(''); setGenerationProgress(0); }} />
         </Suspense>
       )}
 
@@ -605,8 +609,6 @@ const MainAppContent: React.FC = () => {
       <InstallPWA />
 
       <WhatsNewModal isOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
-      <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-
       <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
 
       <div className="fixed bottom-4 left-4 z-50">

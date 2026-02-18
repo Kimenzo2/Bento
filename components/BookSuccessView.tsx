@@ -55,20 +55,27 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
       });
     }
 
-    // Update confetti animation
-    const interval = setInterval(() => {
-      setConfetti((prev) =>
-        prev
-          .map((p) => ({
-            ...updateParticle(p, 1.5),
-            velocityY: p.velocityY + 0.1, // Add gravity
-          }))
-          .filter((p) => p.y < window.innerHeight && p.opacity > 0)
-      );
-    }, 50);
+    // Update confetti animation using requestAnimationFrame
+    let animId: number;
+    let lastTime = 0;
+    const animate = (time: number) => {
+      if (time - lastTime >= 80) {
+        lastTime = time;
+        setConfetti((prev) =>
+          prev
+            .map((p) => ({
+              ...updateParticle(p, 1.5),
+              velocityY: p.velocityY + 0.1,
+            }))
+            .filter((p) => p.y < window.innerHeight && p.opacity > 0)
+        );
+      }
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => cancelAnimationFrame(animId);
+  }, [user?.email, project.title]);
 
   const handleDownload = async () => {
     const needsWatermark = hasWatermark(userTier);

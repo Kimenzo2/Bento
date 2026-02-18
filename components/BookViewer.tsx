@@ -96,7 +96,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           {/* Book Page - Mobile: Full height vertical stack, Desktop: Aspect ratio card */}
           <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
             {/* Texture Overlay */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none"></div>
 
             {/* Image Section - Mobile: Takes 60% height, Desktop: 55% */}
             {currentPage.imageUrl && (

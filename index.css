@@ -9,8 +9,8 @@
  */
 @theme {
   /* Fonts - Bind to CSS variables for dynamic switching */
-  --font-heading: var(--font-heading);
-  --font-body: var(--font-body);
+  --font-heading: "Nunito", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
 
   /* Colors */
   --color-cream-base: var(--color-background, #fff8e7);
@@ -76,6 +76,24 @@
   }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 /* iOS Safe Area Insets */
 :root {
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -87,8 +105,8 @@
   --font-heading: "Nunito", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, sans-serif;
 
-  /* Color scheme for modern dark mode support */
-  color-scheme: light dark;
+  /* Color scheme for modern light mode support */
+  color-scheme: light;
 }
 
 /* FOUT Prevention with modern font-display */

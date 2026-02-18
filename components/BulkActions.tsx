@@ -93,7 +93,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]"
     >
-      <div className="bg-gray-900 dark:bg-gray-800 text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-4">
+      <div className="bg-charcoal-soft text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-4">
         {/* Selection info */}
         <div className="flex items-center gap-3 pr-4 border-r border-gray-700">
           <button
@@ -194,21 +194,21 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           <div className="p-6 text-center">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
 
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-charcoal-soft mb-2">
               Delete {count} Book{count > 1 ? 's' : ''}?
             </h3>
 
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-cocoa-light mb-6">
               This action cannot be undone. All selected books and their illustrations will be
               permanently deleted.
             </p>
@@ -217,7 +217,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
               <button
                 onClick={onClose}
                 disabled={isDeleting}
-                className="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl border border-peach-soft text-charcoal-soft font-medium hover:bg-cream-base transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -314,7 +314,7 @@ export const SelectableCard: React.FC<SelectableCardProps> = ({
                             ${
                               isSelected
                                 ? 'bg-coral-burst text-white'
-                                : 'bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600'
+                                : 'bg-white border-2 border-peach-soft'
                             }
                         `}
             >

@@ -131,7 +131,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           {currentUserTier === UserTier.SPARK && (
             <button
               onClick={() => handleModeChange(AppMode.PRICING)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform animate-pulse"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full font-heading font-bold text-sm shadow-md hover:scale-105 transition-transform ring-2 ring-gold-sunshine/40"
               aria-label="Upgrade"
             >
               <Zap className="w-4 h-4 fill-white" />

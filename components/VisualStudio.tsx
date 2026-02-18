@@ -30,6 +30,7 @@ interface VisualStudioProps {
   userProfile: UserProfile | null;
   onNavigate?: (mode: AppMode) => void;
   onUpdateProject?: (project: BookProject) => void;
+  onToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 const VisualStudio: React.FC<VisualStudioProps> = ({
@@ -38,6 +39,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   userProfile,
   onNavigate,
   onUpdateProject,
+  onToast,
 }) => {
   const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -83,7 +85,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   // Handle generation
   const handleGenerate = async () => {
     if (!settings.prompt && !settings.selectedCharacterId) {
-      alert('Please enter a prompt or select a character');
+      onToast?.('Please enter a prompt or select a character', 'info');
       return;
     }
 
@@ -154,7 +156,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
       }
     } catch (error) {
       console.error('Generation failed:', error);
-      alert('Failed to generate image. Please try again.');
+      onToast?.('Failed to generate image. Please try again.', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -398,6 +400,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         value={settings.expression}
                         onChange={(e) => setSettings({ ...settings, expression: e.target.value })}
                         className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
+                        title="Character expression"
+                        aria-label="Character expression"
                       >
                         <option value="neutral">Neutral</option>
                         <option value="happy">Happy</option>
@@ -410,6 +414,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         value={settings.pose}
                         onChange={(e) => setSettings({ ...settings, pose: e.target.value })}
                         className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
+                        title="Character pose"
+                        aria-label="Character pose"
                       >
                         <option value="standing">Standing</option>
                         <option value="sitting">Sitting</option>
@@ -435,6 +441,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         value={settings.lighting}
                         onChange={(e) => setSettings({ ...settings, lighting: e.target.value })}
                         className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
+                        title="Lighting style"
+                        aria-label="Lighting style"
                       >
                         <option value="natural">Natural Light</option>
                         <option value="golden-hour">Golden Hour</option>
@@ -447,6 +455,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         value={settings.cameraAngle}
                         onChange={(e) => setSettings({ ...settings, cameraAngle: e.target.value })}
                         className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
+                        title="Camera angle"
+                        aria-label="Camera angle"
                       >
                         <option value="eye-level">Eye Level</option>
                         <option value="low-angle">Low Angle</option>
