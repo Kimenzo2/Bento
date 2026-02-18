@@ -93,18 +93,20 @@ const TypewriterText = memo(({ text, onComplete }: { text: string; onComplete: (
   useEffect(() => {
     indexRef.current = 0;
     setDisplayedText('');
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const typeNextChar = () => {
       if (indexRef.current < text.length) {
         setDisplayedText(text.slice(0, indexRef.current + 1));
         indexRef.current++;
-        setTimeout(typeNextChar, 20); // Faster typing (20ms vs 30ms)
+        timeoutId = setTimeout(typeNextChar, 20);
       } else {
         onCompleteRef.current();
       }
     };
 
-    setTimeout(typeNextChar, 100);
+    timeoutId = setTimeout(typeNextChar, 100);
+    return () => clearTimeout(timeoutId);
   }, [text]);
 
   return (

@@ -44,9 +44,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
-          enabled: true,
+          enabled: false, // Disable SW in dev to avoid caching issues
         },
-        includeAssets: ['favicon.ico', 'genesis-icon.jpg', 'robots.txt'],
+        includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
           runtimeCaching: [
@@ -108,36 +108,36 @@ export default defineConfig(({ mode }) => {
           categories: ['education', 'entertainment', 'productivity'],
           icons: [
             {
-              src: 'genesis-icon.jpg',
+              src: 'genesis-icon-192.png',
               sizes: '192x192',
-              type: 'image/jpeg',
+              type: 'image/png',
               purpose: 'any',
             },
             {
-              src: 'genesis-icon.jpg',
+              src: 'genesis-icon-512.png',
               sizes: '512x512',
-              type: 'image/jpeg',
+              type: 'image/png',
               purpose: 'any',
             },
             {
-              src: 'genesis-icon.jpg',
+              src: 'genesis-icon-maskable-512.png',
               sizes: '512x512',
-              type: 'image/jpeg',
+              type: 'image/png',
               purpose: 'maskable',
             },
           ],
           screenshots: [
             {
-              src: 'genesis-icon.jpg',
+              src: 'genesis-icon-512.png',
               sizes: '512x512',
-              type: 'image/jpeg',
+              type: 'image/png',
               form_factor: 'wide',
               label: 'Genesis Homepage',
             },
             {
-              src: 'genesis-icon.jpg',
+              src: 'genesis-icon-512.png',
               sizes: '512x512',
-              type: 'image/jpeg',
+              type: 'image/png',
               form_factor: 'narrow',
               label: 'Genesis Mobile',
             },
@@ -148,14 +148,14 @@ export default defineConfig(({ mode }) => {
               short_name: 'Create',
               description: 'Start creating a new story',
               url: '/?action=create',
-              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }],
+              icons: [{ src: 'genesis-icon-192.png', sizes: '192x192' }],
             },
             {
               name: 'Visual Studio',
               short_name: 'Studio',
               description: 'Open Visual Studio',
               url: '/?view=studio',
-              icons: [{ src: 'genesis-icon.jpg', sizes: '192x192' }],
+              icons: [{ src: 'genesis-icon-192.png', sizes: '192x192' }],
             },
           ],
         },

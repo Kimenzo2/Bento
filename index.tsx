@@ -142,16 +142,5 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((_registration) => {
-        if (import.meta.env.DEV) console.warn('ServiceWorker registered, scope:', _registration.scope);
-      })
-      .catch((_error) => {
-        if (import.meta.env.DEV) console.warn('ServiceWorker registration failed:', _error);
-      });
-  });
-}
+// Service Worker is auto-registered by vite-plugin-pwa (registerType: 'autoUpdate')
+// No manual registration needed — the plugin injects it at build time

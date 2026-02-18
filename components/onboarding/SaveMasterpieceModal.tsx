@@ -94,7 +94,7 @@ export const SaveMasterpieceModal: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full max-w-lg mx-auto px-[var(--ob-container-padding)] py-8 flex flex-col items-center">
+    <div className="relative w-full h-full min-h-full max-w-lg mx-auto px-[var(--ob-container-padding)] py-8 flex flex-col items-center overflow-y-auto">
       {/* Background - matches onboarding gradient */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900 -z-10" />
       <div className="absolute inset-0 bg-linear-to-br from-purple-900/20 via-transparent to-blue-900/20 -z-10" />
@@ -134,7 +134,7 @@ export const SaveMasterpieceModal: React.FC = () => {
         <p className="text-white/60 text-sm leading-relaxed max-w-xs mx-auto">
           {successMessage
             ? successMessage
-            : `Create a free account to keep **${getThemeName()}** and unlock the full Genesis experience.`}
+            : <>Create a free account to keep <strong className="text-white/80">{getThemeName()}</strong> and unlock the full Genesis experience.</>}
         </p>
       </div>
 
@@ -221,9 +221,17 @@ export const SaveMasterpieceModal: React.FC = () => {
 
         <p className="text-white/30 text-[11px] leading-relaxed">
           By continuing, you agree to our{' '}
-          <span className="text-white/50 underline">Terms of Service</span> and{' '}
-          <span className="text-white/50 underline">Privacy Policy</span>.
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-white/50 underline hover:text-white/70 transition-colors">Terms of Service</a> and{' '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-white/50 underline hover:text-white/70 transition-colors">Privacy Policy</a>.
         </p>
+
+        {/* Skip option for users not ready to sign up */}
+        <button
+          onClick={() => setStep('welcome')}
+          className="mt-6 text-white/25 hover:text-white/50 text-xs transition-colors"
+        >
+          Maybe later →
+        </button>
       </div>
     </div>
   );

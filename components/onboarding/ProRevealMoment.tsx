@@ -26,8 +26,10 @@ const LiveUpgradeCounter = () => {
 
     // Subscribe to realtime updates
     let subscription: any;
+    let unmounted = false;
     const setupSubscription = async () => {
       const { supabase } = await import('../../services/supabaseClient');
+      if (unmounted) return;
       subscription = supabase
         .channel('subscription_events_count')
         .on(
@@ -49,6 +51,7 @@ const LiveUpgradeCounter = () => {
     setupSubscription();
 
     return () => {
+      unmounted = true;
       if (subscription) subscription.unsubscribe();
     };
   }, []);
@@ -219,8 +222,10 @@ export const ProRevealMoment: React.FC = () => {
 
     // Subscribe to deal updates
     let subscription: any;
+    let unmounted = false;
     const setupSubscription = async () => {
       const { supabase } = await import('../../services/supabaseClient');
+      if (unmounted) return;
       subscription = supabase
         .channel('exclusive_deals_updates')
         .on(
@@ -249,6 +254,7 @@ export const ProRevealMoment: React.FC = () => {
     // Delayed reveal for anticipation building
     const timer = setTimeout(() => setShowComparison(true), 1500);
     return () => {
+      unmounted = true;
       clearTimeout(timer);
       if (subscription) subscription.unsubscribe();
     };
@@ -259,8 +265,8 @@ export const ProRevealMoment: React.FC = () => {
   };
 
   const handleUpgrade = () => {
-    // Navigate to onboarding pricing screen
-    setStep('pricing');
+    // Open Paystack payment page in a new tab
+    window.open('https://paystack.shop/pay/0i-23vlf14', '_blank', 'noopener,noreferrer');
   };
 
   return (

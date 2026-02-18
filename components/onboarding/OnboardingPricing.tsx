@@ -172,9 +172,12 @@ export const OnboardingPricing: React.FC = () => {
     fetchDeal();
 
     // Subscribe to deal updates
+    // Subscribe to deal updates (with unmount guard for async setup)
     let subscription: { unsubscribe: () => void } | null = null;
+    let unmounted = false;
     const setupSubscription = async () => {
       const { supabase } = await import('../../services/supabaseClient');
+      if (unmounted) return;
       subscription = supabase
         .channel('exclusive_deals_pricing')
         .on(
@@ -198,7 +201,6 @@ export const OnboardingPricing: React.FC = () => {
                       saveLabel: 'EXCLUSIVE DEAL'
                     };
                   } else {
-                    // Reset to original
                     const original = tiers.find(ot => ot.name === UserTier.CREATOR);
                     return original || t;
                   }
@@ -224,6 +226,7 @@ export const OnboardingPricing: React.FC = () => {
     }
 
     return () => {
+      unmounted = true;
       if (subscription) subscription.unsubscribe();
     };
   }, []);
@@ -282,6 +285,7 @@ export const OnboardingPricing: React.FC = () => {
         const pollInterval = setInterval(() => {
           if (paymentWindow.closed) {
             clearInterval(pollInterval);
+            clearTimeout(safetyTimeout);
             setProcessingTier(null);
             // Continue to tour after payment window closes
             addSparkPoints(50);
@@ -289,7 +293,7 @@ export const OnboardingPricing: React.FC = () => {
           }
         }, 1000);
 
-        setTimeout(() => {
+        const safetyTimeout = setTimeout(() => {
           clearInterval(pollInterval);
           setProcessingTier(null);
         }, 300000);

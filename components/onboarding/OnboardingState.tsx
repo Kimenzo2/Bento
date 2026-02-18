@@ -170,14 +170,13 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // ⚡ Stable callbacks with useCallback
   const setStep = useCallback((newStep: OnboardingStep) => {
+    // Push browser history OUTSIDE the state updater (React 19 purity requirement)
+    if (!isPopstateRef.current) {
+      setStepInURL(newStep);
+    }
+    isPopstateRef.current = false;
     setStepState((prevStep) => {
       if (prevStep === newStep) return prevStep;
-      // Push a new history entry so browser back goes to previous step
-      // (only when the change is NOT from a popstate event)
-      if (!isPopstateRef.current) {
-        setStepInURL(newStep);
-      }
-      isPopstateRef.current = false;
       return newStep;
     });
   }, []);

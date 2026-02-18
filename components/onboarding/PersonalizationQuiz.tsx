@@ -199,11 +199,24 @@ export const PersonalizationQuiz: React.FC = () => {
                 className="fill-none stroke-white/10 hidden md:block"
                 strokeWidth="4"
               />
+              {/* Mobile animated ring (matches mobile bg ring r=24) */}
+              <motion.circle
+                cx="50%"
+                cy="50%"
+                r="24"
+                className="fill-none stroke-purple-500 md:hidden"
+                strokeWidth="3"
+                strokeLinecap="round"
+                initial={{ strokeDasharray: '150.8', strokeDashoffset: '150.8' }}
+                animate={{ strokeDashoffset: 150.8 - (150.8 * progress) / 100 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+              {/* Desktop animated ring (matches desktop bg ring r=36) */}
               <motion.circle
                 cx="40"
                 cy="40"
                 r="36"
-                className="fill-none stroke-purple-500"
+                className="fill-none stroke-purple-500 hidden md:block"
                 strokeWidth="4"
                 strokeLinecap="round"
                 initial={{ strokeDasharray: '226', strokeDashoffset: '226' }}
