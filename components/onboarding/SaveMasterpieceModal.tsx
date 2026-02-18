@@ -94,9 +94,20 @@ export const SaveMasterpieceModal: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full max-w-lg mx-auto px-4 py-8 flex flex-col items-center">
-      {/* Background stays simple dark */}
-      <div className="fixed inset-0 bg-[#0a0a0f] -z-10" />
+    <div className="relative w-full max-w-lg mx-auto px-[var(--ob-container-padding)] py-8 flex flex-col items-center">
+      {/* Background - matches onboarding gradient */}
+      <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900 -z-10" />
+      <div className="absolute inset-0 bg-linear-to-br from-purple-900/20 via-transparent to-blue-900/20 -z-10" />
+
+      {/* Ambient orbs for visual consistency */}
+      <div
+        className="absolute w-[400px] h-[400px] rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10"
+        style={{ top: '10%', left: '-15%' }}
+      />
+      <div
+        className="absolute w-[350px] h-[350px] rounded-full bg-blue-600/15 blur-3xl pointer-events-none -z-10"
+        style={{ bottom: '10%', right: '-10%' }}
+      />
 
       {/* Back button when in email form */}
       {showEmailForm && !successMessage && (

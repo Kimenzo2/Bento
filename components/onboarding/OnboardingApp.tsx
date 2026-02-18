@@ -18,11 +18,12 @@
 import React, { useEffect } from 'react';
 import { OnboardingProvider } from './OnboardingState';
 import { OnboardingLayout } from './OnboardingLayout';
+import '../../styles/onboarding-responsive.css';
 
 // Onboarding-specific global styles
 const ONBOARDING_STYLES = `
   html, body, #root {
-    background: #0a0a0f !important;
+    background: #0d0d1a !important;
     margin: 0 !important;
     padding: 0 !important;
     height: 100% !important;
@@ -47,7 +48,7 @@ const ONBOARDING_STYLES = `
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #0f172a !important; /* Dark Slate 900 - Fits #0a0a0f bg */
+    background: #0f172a !important; /* Dark Slate 900 - Fits #0d0d1a bg */
     border-radius: 4px;
     border: none; /* Ensure no border */
   }

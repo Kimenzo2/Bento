@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Crown, Rocket, Sparkles, Star, Zap } from 'lucide-react';
-import { useOnboarding } from './OnboardingState';
+import { useOnboarding, clearOnboardingState } from './OnboardingState';
 
 // Confetti particle
 const Confetti = ({ delay, x }: { delay: number; x: number }) => {
@@ -66,6 +66,7 @@ export const WelcomeSuccess: React.FC = () => {
 
   const handleEnterStudio = () => {
     localStorage.setItem('genesis_onboarding_completed', 'true');
+    clearOnboardingState(); // Clean up persisted onboarding data
     // Navigate to main app - clean route transition
     window.location.href = '/';
   };
@@ -92,12 +93,13 @@ export const WelcomeSuccess: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-center p-6 overflow-hidden">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-[var(--ob-container-padding)] py-6 overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900" />
+      <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
+      <div className="absolute inset-0 bg-linear-to-br from-purple-950/20 via-transparent to-purple-950/20" />
       
       {/* Radial gradient */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-purple-600/10 to-transparent rounded-full" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-radial from-purple-600/10 to-transparent rounded-full" />
 
       {/* Confetti */}
       {showConfetti && (
@@ -115,13 +117,13 @@ export const WelcomeSuccess: React.FC = () => {
       {/* Ambient orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 6, repeat: Infinity }}
+        transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY }}
         className="absolute w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-3xl"
         style={{ top: '20%', left: '-10%' }}
       />
       <motion.div
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
         className="absolute w-[350px] h-[350px] rounded-full bg-pink-600/20 blur-3xl"
         style={{ bottom: '10%', right: '-5%' }}
       />
@@ -138,17 +140,17 @@ export const WelcomeSuccess: React.FC = () => {
           {/* Rotating ring */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 p-1"
+            transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            className="absolute inset-0 rounded-full bg-linear-to-r from-purple-500 via-pink-500 to-amber-500 p-1"
           >
-            <div className="w-full h-full rounded-full bg-[#0a0a0f]" />
+            <div className="w-full h-full rounded-full bg-[#0d0d1a]" />
           </motion.div>
           
           {/* Inner circle */}
           <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-purple-600/30 to-pink-600/30 backdrop-blur-xl border border-white/10 flex items-center justify-center">
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
             >
               <Crown className="w-14 h-14 text-amber-400" />
             </motion.div>
@@ -157,7 +159,7 @@ export const WelcomeSuccess: React.FC = () => {
           {/* Sparkles */}
           <motion.div
             animate={{ scale: [1, 1.3, 1], rotate: [0, 15, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
             className="absolute -top-3 -right-3"
           >
             <Sparkles className="w-8 h-8 text-amber-400" />
@@ -249,7 +251,7 @@ export const WelcomeSuccess: React.FC = () => {
             {/* Shimmer */}
             <motion.div
               animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-1/2"
             />
             

@@ -203,6 +203,8 @@ export default defineConfig(({ mode }) => {
     },
     // Performance optimizations
     server: {
+      port: 3000,
+      strictPort: true,
       hmr: {
         overlay: true,
       },

@@ -164,7 +164,7 @@ export const FeatureStorybook: React.FC = () => {
   return (
     <div className="relative h-full min-h-full flex flex-col items-center justify-center px-[var(--ob-container-padding)] py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
+      <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
 
       {/* Feature-specific background pattern */}
       <motion.div

@@ -16,16 +16,41 @@ import type {
   StandardsFramework,
 } from '../types/curriculum';
 
-// @ts-ignore
-import Bytez from 'bytez.js';
+import { GoogleGenAI } from '@google/genai';
 
-// Bytez API configuration for curriculum generation (Gemini 2.5 Pro)
-const BYTEZ_TEXT_API_KEY =
-  import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '5bd38cb5f6b3a450314dc0fb3768d3c7';
-const GEMINI_TEXT_MODEL = 'google/gemini-2.5-pro';
+// Helper to safely get env vars in both Vite and Node environments
+const getEnvVar = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+};
 
-if (BYTEZ_TEXT_API_KEY) {
-  console.log('✅ Curriculum Service: Bytez API configured with Gemini 2.5 Pro');
+// Gemini API keys for curriculum generation (shared pool)
+const geminiCurriculumKeys = [
+  getEnvVar('VITE_GEMINI_API_KEY_1'),
+  getEnvVar('VITE_GEMINI_API_KEY_2'),
+  getEnvVar('VITE_GEMINI_API_KEY_3'),
+  getEnvVar('VITE_GEMINI_API_KEY_4'),
+  getEnvVar('VITE_GEMINI_API_KEY_5'),
+  getEnvVar('VITE_GEMINI_API_KEY_6'),
+  getEnvVar('VITE_GEMINI_API_KEY_7'),
+  getEnvVar('VITE_GEMINI_API_KEY_8'),
+  getEnvVar('VITE_GEMINI_API_KEY_9'),
+  getEnvVar('VITE_GEMINI_API_KEY_10'),
+  getEnvVar('VITE_GEMINI_API_KEY_11'),
+].filter((key) => key && key.length > 0);
+
+const GEMINI_TEXT_MODEL = 'gemini-2.0-flash';
+let curriculumKeyIndex = 0;
+
+if (geminiCurriculumKeys.length > 0) {
+  console.log(`✅ Curriculum Service: Gemini API configured with ${geminiCurriculumKeys.length} key(s)`);
 }
 
 /**
@@ -346,55 +371,60 @@ All content must include:
 Remember: Generate ONLY valid JSON. The response must be parseable by JSON.parse() directly.`;
 
 /**
- * Call the AI API to generate curriculum content using Bytez with Gemini 2.5 Pro
+ * Call the AI API to generate curriculum content using Gemini API directly
  */
 async function callCurriculumAPI(prompt: string, _maxTokens = 16384): Promise<string> {
   try {
-    console.log(`🔄 Curriculum: Calling Bytez API with ${GEMINI_TEXT_MODEL}...`);
+    if (geminiCurriculumKeys.length === 0) {
+      throw new Error('No Gemini API keys available for curriculum generation');
+    }
 
-    const sdk = new Bytez(BYTEZ_TEXT_API_KEY);
-    const model = sdk.model(GEMINI_TEXT_MODEL);
+    const maxRetries = geminiCurriculumKeys.length;
+    let lastError: any;
 
-    const messages = [
-      {
-        role: 'user',
-        content:
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const key = geminiCurriculumKeys[curriculumKeyIndex];
+        curriculumKeyIndex = (curriculumKeyIndex + 1) % geminiCurriculumKeys.length;
+
+        console.log(`🔄 Curriculum: Calling Gemini API with ${GEMINI_TEXT_MODEL}...`);
+
+        const client = new GoogleGenAI({ apiKey: key });
+
+        const fullPrompt =
           CURRICULUM_SYSTEM_PROMPT +
           '\n\nAlways respond with valid JSON only. No markdown code blocks.\n\n' +
           prompt +
-          '\n\nRespond with valid JSON only.',
-      },
-    ];
+          '\n\nRespond with valid JSON only.';
 
-    const { error, output } = await model.run(messages);
+        const response = await client.models.generateContent({
+          model: GEMINI_TEXT_MODEL,
+          contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+          config: {
+            maxOutputTokens: _maxTokens,
+            temperature: 0.7,
+          },
+        });
 
-    if (error) {
-      console.error('❌ Curriculum Bytez API error:', error);
-      throw new Error(`Curriculum API error: ${JSON.stringify(error)}`);
+        const content = response.text;
+
+        if (!content || content.trim().length === 0) {
+          throw new Error('Empty response from Gemini API');
+        }
+
+        console.log('✅ Curriculum generated successfully');
+        return content;
+      } catch (error: any) {
+        lastError = error;
+        const status = error?.status || error?.httpStatusCode || error?.code;
+        if (status && ![429, 403, 500, 502, 503].includes(status)) {
+          throw error;
+        }
+        console.warn(`⚠️ Gemini key #${curriculumKeyIndex} failed for curriculum, trying next...`);
+      }
     }
 
-    if (!output) {
-      console.error('❌ No output from curriculum API');
-      throw new Error('No output received from curriculum API');
-    }
-
-    console.log('✅ Curriculum generated successfully');
-
-    // Handle different output formats
-    let content: string;
-    if (typeof output === 'string') {
-      content = output;
-    } else if (output.content) {
-      content = output.content;
-    } else if (output.message?.content) {
-      content = output.message.content;
-    } else if (Array.isArray(output) && output[0]?.content) {
-      content = output[0].content;
-    } else {
-      content = JSON.stringify(output);
-    }
-
-    return content;
+    throw lastError || new Error('All Gemini keys exhausted for curriculum generation');
   } catch (error) {
     console.error('❌ Curriculum generation failed:', error);
     throw error;

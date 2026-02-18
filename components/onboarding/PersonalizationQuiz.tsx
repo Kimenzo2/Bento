@@ -156,9 +156,9 @@ export const PersonalizationQuiz: React.FC = () => {
 
   return (
     <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 md:pt-16 md:pb-10 overflow-x-hidden overflow-y-auto">
-      {/* Premium Background - inherits from parent */}
-      <div className="absolute inset-0" />
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-blue-900/20" />
+      {/* Premium Background - opaque base + tinted overlay */}
+      <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
+      <div className="absolute inset-0 bg-linear-to-br from-purple-900/20 via-transparent to-blue-900/20" />
 
       {/* Floating blobs */}
       <FloatingBlob color="bg-purple-600/20" size="500px" x="-15%" y="10%" delay={0} />

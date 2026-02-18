@@ -33,8 +33,12 @@ const envSchema = z.object({
 
   // AI Services
   VITE_GEMINI_API_KEY: z.string().optional(),
-  VITE_BYTEZ_API_KEY: z.string().optional(),
-  VITE_GROK_API_KEY: z.string().optional(),
+  VITE_GEMINI_API_KEY_1: z.string().optional(),
+  VITE_GEMINI_API_KEY_2: z.string().optional(),
+  VITE_GEMINI_API_KEY_3: z.string().optional(),
+  VITE_BYTEZ_API_KEY_1: z.string().optional(),
+  VITE_BYTEZ_API_KEY_2: z.string().optional(),
+  VITE_BYTEZ_API_KEY_3: z.string().optional(),
 
   // Payments
   VITE_PAYSTACK_PUBLIC_KEY: z.string().optional(),

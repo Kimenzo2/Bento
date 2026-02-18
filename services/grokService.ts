@@ -1,24 +1,60 @@
-// @ts-ignore
-import Bytez from 'bytez.js';
+import { GoogleGenAI } from '@google/genai';
 import type { BookProject } from '../types';
 import { callAIService } from './infrastructure/externalServiceWrapper';
 
-// Bytez API key for text generation
-const BYTEZ_API_KEY = import.meta.env.VITE_BYTEZ_TEXT_API_KEY || '';
-const TEXT_MODEL = 'google/gemini-2.5-pro';
-
-// Validate API key at module load
-if (!BYTEZ_API_KEY) {
-  if (import.meta.env.DEV) {
-    console.warn('⚠️ VITE_BYTEZ_TEXT_API_KEY is not configured. AI features will not work.');
+// Helper to safely get env vars in both Vite and Node environments
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
   }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+};
+
+// Gemini API keys for text generation (shared pool with geminiService)
+const geminiApiKeys = [
+  getEnv('VITE_GEMINI_API_KEY_1'),
+  getEnv('VITE_GEMINI_API_KEY_2'),
+  getEnv('VITE_GEMINI_API_KEY_3'),
+  getEnv('VITE_GEMINI_API_KEY_4'),
+  getEnv('VITE_GEMINI_API_KEY_5'),
+  getEnv('VITE_GEMINI_API_KEY_6'),
+  getEnv('VITE_GEMINI_API_KEY_7'),
+  getEnv('VITE_GEMINI_API_KEY_8'),
+  getEnv('VITE_GEMINI_API_KEY_9'),
+  getEnv('VITE_GEMINI_API_KEY_10'),
+  getEnv('VITE_GEMINI_API_KEY_11'),
+].filter((key) => key && key.length > 0);
+
+const TEXT_MODEL = 'gemini-2.0-flash';
+
+let currentKeyIndex = 0;
+
+// Validate API keys at module load
+if (geminiApiKeys.length === 0) {
+  if (import.meta.env.DEV) {
+    console.warn('⚠️ No Gemini API keys found. AI features will not work.');
+  }
+} else {
+  console.log(`✅ Grok service: Using Gemini API with ${geminiApiKeys.length} key(s)`);
+}
+
+function getNextKey(): string {
+  if (geminiApiKeys.length === 0) throw new Error('No Gemini API keys available');
+  const key = geminiApiKeys[currentKeyIndex];
+  currentKeyIndex = (currentKeyIndex + 1) % geminiApiKeys.length;
+  return key;
 }
 
 /**
- * Check if the Bytez API is available
+ * Check if the Gemini API is available (replaces old Grok/Bytez check)
  */
 export const isGrokAvailable = (): boolean => {
-  return Boolean(BYTEZ_API_KEY && BYTEZ_API_KEY.length > 0);
+  return geminiApiKeys.length > 0;
 };
 
 export interface GrokMessage {
@@ -27,46 +63,62 @@ export interface GrokMessage {
 }
 
 /**
- * Helper function to make API calls using Bytez SDK with Gemini 2.5 Pro
+ * Helper function to make API calls using Google Gemini API (gemini-2.0-flash)
  * ENFORCED: All calls go through circuit breaker for resilience
  */
 export async function callAPI(messages: GrokMessage[]): Promise<string> {
-  const result = await callAIService('bytez', 'callAPI', async () => {
-    const sdk = new Bytez(BYTEZ_API_KEY);
-    const model = sdk.model(TEXT_MODEL);
+  const result = await callAIService('gemini', 'callAPI', async () => {
+    const maxRetries = geminiApiKeys.length;
+    let lastError: any;
 
-    // Convert messages to the format expected by Bytez
-    const formattedMessages = messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const client = new GoogleGenAI({ apiKey: getNextKey() });
 
-    const { error, output } = await model.run(formattedMessages);
+        // Build the prompt from messages
+        const systemMessage = messages.find((m) => m.role === 'system');
+        const conversationMessages = messages.filter((m) => m.role !== 'system');
 
-    if (error) {
-      if (import.meta.env.DEV) console.error('Bytez API error:', error);
-      throw new Error(`Bytez API error: ${JSON.stringify(error)}`);
+        // Build contents for Gemini
+        const contents = conversationMessages.map((msg) => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }],
+        }));
+
+        // Prepend system instruction to first user message if present
+        if (systemMessage && contents.length > 0 && contents[0].role === 'user') {
+          contents[0].parts[0].text = `${systemMessage.content}\n\n${contents[0].parts[0].text}`;
+        }
+
+        const response = await client.models.generateContent({
+          model: TEXT_MODEL,
+          contents,
+          config: {
+            maxOutputTokens: 8192,
+            temperature: 0.9,
+            topP: 0.95,
+            topK: 40,
+          },
+        });
+
+        const text = response.text;
+        if (!text || text.trim().length === 0) {
+          throw new Error('Empty response received from Gemini API');
+        }
+
+        if (import.meta.env.DEV) console.log('✅ Gemini API response received (grokService)');
+        return text.trim();
+      } catch (error: any) {
+        lastError = error;
+        const status = error?.status || error?.httpStatusCode || error?.code;
+        if (status && ![429, 403, 500, 502, 503].includes(status)) {
+          throw error; // Don't retry on non-retriable errors
+        }
+        console.warn(`⚠️ Gemini key #${currentKeyIndex} failed in grokService, trying next...`);
+      }
     }
 
-    if (!output) {
-      console.error('❌ No output from Bytez API');
-      throw new Error('No output received from Bytez API');
-    }
-
-    if (import.meta.env.DEV) console.warn('Bytez API response received');
-
-    // Handle different output formats
-    if (typeof output === 'string') {
-      return output.trim();
-    } else if (output.content) {
-      return output.content.trim();
-    } else if (output.message?.content) {
-      return output.message.content.trim();
-    } else if (Array.isArray(output) && output[0]?.content) {
-      return output[0].content.trim();
-    }
-
-    return JSON.stringify(output);
+    throw lastError || new Error('All Gemini API keys exhausted in grokService');
   });
 
   if (result.success) {
@@ -85,9 +137,9 @@ export async function improveText(
   tone: string,
   targetAudience: string
 ): Promise<string> {
-  if (!BYTEZ_API_KEY) {
+  if (geminiApiKeys.length === 0) {
     throw new Error(
-      'API key is not configured. Please add VITE_BYTEZ_TEXT_API_KEY to your environment.'
+      'Gemini API keys are not configured. Please add VITE_GEMINI_API_KEY_* to your environment.'
     );
   }
 
@@ -127,9 +179,9 @@ export async function checkCharacterConsistency(project: BookProject): Promise<{
   }>;
   overallScore: number;
 }> {
-  if (!BYTEZ_API_KEY) {
+  if (geminiApiKeys.length === 0) {
     throw new Error(
-      'API key is not configured. Please add VITE_BYTEZ_TEXT_API_KEY to your environment.'
+      'Gemini API keys are not configured. Please add VITE_GEMINI_API_KEY_* to your environment.'
     );
   }
 
@@ -203,8 +255,8 @@ export async function getWritingSuggestions(
   }>
 > {
   // Return empty array if API is not available (graceful degradation)
-  if (!BYTEZ_API_KEY) {
-    console.warn('API key not configured - writing suggestions disabled');
+  if (geminiApiKeys.length === 0) {
+    console.warn('Gemini API keys not configured - writing suggestions disabled');
     return [];
   }
 

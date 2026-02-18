@@ -54,7 +54,7 @@ const WelcomeSuccess = lazy(() =>
 
 // ⚡ Instant fallback - invisible, doesn't cause layout shift
 const InstantFallback = memo(() => (
-  <div className="w-full h-full min-h-screen bg-linear-to-br from-slate-900 via-[#0a0a0f] to-slate-900 transform-gpu" />
+  <div className="w-full h-full min-h-screen bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900 transform-gpu" />
 ));
 InstantFallback.displayName = 'InstantFallback';
 
@@ -195,7 +195,7 @@ export const OnboardingLayout: React.FC = memo(() => {
 
   // ⚡ GPU-accelerated container with Suspense for code splitting
   return (
-    <div className="w-full h-full min-h-screen bg-linear-to-br from-slate-900 via-[#0a0a0f] to-slate-900 overflow-hidden transform-gpu backface-hidden">
+    <div className="w-full h-full min-h-screen bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900 overflow-hidden transform-gpu backface-hidden">
       {/* Header - shown on select steps */}
       {showHeader && <OnboardingHeader currentStep={stepMap[step]} totalSteps={9} />}
 

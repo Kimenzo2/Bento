@@ -369,19 +369,19 @@ export const OnboardingPricing: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center px-3 py-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 overflow-x-hidden overflow-y-auto">
       {/* Background */}
-      <div className="absolute inset-0 bg-linear-to-br from-purple-950/30 via-[#0a0a0f] to-blue-950/30" />
+      <div className="absolute inset-0 bg-linear-to-br from-purple-950/30 via-[#0d0d1a] to-blue-950/30" />
       
       {/* Ambient orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
         className="absolute top-10 left-0 w-72 h-72 bg-purple-600 rounded-full blur-[120px]"
       />
       <motion.div
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
-        transition={{ duration: 10, repeat: Infinity }}
+        transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY }}
         className="absolute bottom-10 right-0 w-80 h-80 bg-blue-600 rounded-full blur-[120px]"
       />
 

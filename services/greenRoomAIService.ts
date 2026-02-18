@@ -2,7 +2,7 @@
  * Green Room AI Service
  *
  * Dedicated API service for Green Room character conversations.
- * Uses Google Gemini API keys directly (not through Bytez) to avoid resource crowding with storybook generation.
+ * Uses Bytez API keys to avoid resource crowding with storybook generation (which uses Gemini API keys).
  *
  * Extended with visual generation for:
  * - Character portrait generation
@@ -10,7 +10,8 @@
  * - Scene context visuals
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// @ts-ignore
+import Bytez from 'bytez.js';
 import { UserTier } from '../types';
 import type { Character } from '../types';
 import {
@@ -20,39 +21,47 @@ import {
 } from './characterConsistencyService';
 import { generateIllustration } from './geminiService';
 
-// Dedicated Gemini API keys for Green Room (separate from storybook generation)
-const GREEN_ROOM_API_KEYS = [
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_1,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_2,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_3,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_4,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_5,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_6,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_7,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_8,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_9,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_10,
-  import.meta.env.VITE_GREEN_ROOM_API_KEY_11,
-].filter(Boolean); // Remove undefined keys
+// Helper to safely get env vars in both Vite and Node environments
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+};
 
-// Use Gemini 1.5 Pro for high-quality character conversations
-// This model excels at:
-// - Natural dialogue and personality consistency
-// - Complex reasoning and emotional intelligence
-// - Long context understanding (up to 2M tokens)
-// - Nuanced character behavior and responses
-const GREEN_ROOM_MODEL = 'gemini-1.5-pro';
+// Dedicated Bytez API keys for Green Room (separate from storybook generation)
+const GREEN_ROOM_API_KEYS = [
+  getEnv('VITE_BYTEZ_API_KEY_1'),
+  getEnv('VITE_BYTEZ_API_KEY_2'),
+  getEnv('VITE_BYTEZ_API_KEY_3'),
+  getEnv('VITE_BYTEZ_API_KEY_4'),
+  getEnv('VITE_BYTEZ_API_KEY_5'),
+  getEnv('VITE_BYTEZ_API_KEY_6'),
+  getEnv('VITE_BYTEZ_API_KEY_7'),
+  getEnv('VITE_BYTEZ_API_KEY_8'),
+  getEnv('VITE_BYTEZ_API_KEY_9'),
+  getEnv('VITE_BYTEZ_API_KEY_10'),
+  getEnv('VITE_BYTEZ_API_KEY_11'),
+].filter((key) => key && key.length > 0);
+
+// Use Gemini 2.5 Pro via Bytez for high-quality character conversations
+const GREEN_ROOM_MODEL = 'google/gemini-2.5-pro';
 
 // Current key index for rotation
 let currentKeyIndex = 0;
 
 // Validate API keys at module load
 if (GREEN_ROOM_API_KEYS.length === 0) {
-  console.warn('⚠️ No Green Room API keys configured. Character conversations will not work.');
-  console.warn('Add VITE_GREEN_ROOM_API_KEY_1, VITE_GREEN_ROOM_API_KEY_2, etc. to your .env file');
+  console.warn('⚠️ No Bytez API keys configured for Green Room. Character conversations will not work.');
+  console.warn('Add VITE_BYTEZ_API_KEY_1, VITE_BYTEZ_API_KEY_2, etc. to your .env file');
 } else {
   console.log(
-    `✅ Green Room AI configured with ${GREEN_ROOM_API_KEYS.length} dedicated API key(s)`
+    `✅ Green Room AI configured with ${GREEN_ROOM_API_KEYS.length} Bytez API key(s)`
   );
 }
 
@@ -83,13 +92,8 @@ export interface GreenRoomMessage {
 }
 
 /**
- * Call Green Room AI with dedicated Gemini API keys
- * Automatically rotates through available keys for load balancing
- */
-const GREEN_ROOM_MODELS = ['gemini-1.5-pro', 'gemini-1.5-flash'];
-
 /**
- * Call Green Room AI with dedicated Gemini API keys
+ * Call Green Room AI with dedicated Bytez API keys
  * Automatically rotates through available keys and models for reliability
  */
 export async function callGreenRoomAI(messages: GreenRoomMessage[]): Promise<string> {
@@ -103,69 +107,63 @@ export async function callGreenRoomAI(messages: GreenRoomMessage[]): Promise<str
       ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
       : 'undefined';
 
-    // Try models in order (Pro -> Flash) for each key
-    for (const modelName of GREEN_ROOM_MODELS) {
-      try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: modelName });
+    try {
+      const sdk = new Bytez(apiKey);
+      const model = sdk.model(GREEN_ROOM_MODEL);
 
-        // Convert messages to Gemini chat format
-        const systemMessage = messages.find((m) => m.role === 'system');
-        const conversationMessages = messages.filter((m) => m.role !== 'system');
+      // Convert messages to the format expected by Bytez
+      const formattedMessages = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
-        const chatHistory = conversationMessages.slice(0, -1).map((msg, idx) => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [
-            {
-              text:
-                idx === 0 && systemMessage
-                  ? `${systemMessage.content}\n\n${msg.content}`
-                  : msg.content,
-            },
-          ],
-        }));
+      console.log(
+        `🎭 Green Room AI: Calling ${GREEN_ROOM_MODEL} via Bytez (Key: ${maskedKey}, Attempt ${attempt + 1}/${maxRetries})...`
+      );
 
-        const lastMessage = conversationMessages[conversationMessages.length - 1];
+      const { error, output } = await model.run(formattedMessages);
 
-        console.log(
-          `🎭 Green Room AI: Calling ${modelName} (Key: ${maskedKey}, Attempt ${attempt + 1}/${maxRetries})...`
-        );
-
-        const chat = model.startChat({
-          history: chatHistory,
-          generationConfig: {
-            maxOutputTokens: 8192,
-            temperature: 0.9,
-            topP: 0.95,
-            topK: 40,
-          },
-          // Safety settings omitted for brevity, identical to original
-        });
-
-        const result = await chat.sendMessage(lastMessage.content);
-        const response = await result.response;
-        const text = response.text();
-
-        if (!text || text.trim().length === 0) {
-          throw new Error('Empty response received');
-        }
-
-        console.log(`✅ Green Room AI response received from ${modelName}`);
-        return text.trim();
-      } catch (error: any) {
-        console.warn(
-          `⚠️ Green Room AI failed with ${modelName} (Key: ${maskedKey}):`,
-          error.message
-        );
-        lastError = error;
-        // Try next model with SAME key, if that fails, loop continues to next key
+      if (error) {
+        throw new Error(`Bytez API error: ${JSON.stringify(error)}`);
       }
+
+      if (!output) {
+        throw new Error('Empty response received from Bytez');
+      }
+
+      // Handle different output formats
+      let text: string;
+      if (typeof output === 'string') {
+        text = output.trim();
+      } else if (output.content) {
+        text = output.content.trim();
+      } else if (output.message?.content) {
+        text = output.message.content.trim();
+      } else if (Array.isArray(output) && output[0]?.content) {
+        text = output[0].content.trim();
+      } else {
+        text = JSON.stringify(output);
+      }
+
+      if (!text || text.length === 0) {
+        throw new Error('Empty text in response');
+      }
+
+      console.log(`✅ Green Room AI response received from Bytez (${GREEN_ROOM_MODEL})`);
+      return text;
+    } catch (error: any) {
+      console.warn(
+        `⚠️ Green Room AI failed with Bytez (Key: ${maskedKey}):`,
+        error.message
+      );
+      lastError = error;
+      // Loop continues to next key
     }
   }
 
   // All keys exhausted
-  console.error('❌ All Green Room API keys exhausted');
-  throw lastError || new Error('All Green Room API keys failed');
+  console.error('❌ All Green Room Bytez API keys exhausted');
+  throw lastError || new Error('All Green Room Bytez API keys failed');
 }
 
 /**

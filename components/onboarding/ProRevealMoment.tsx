@@ -266,7 +266,7 @@ export const ProRevealMoment: React.FC = () => {
   return (
     <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 overflow-x-hidden overflow-y-auto">
       {/* Premium Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-950/50 via-[#0a0a0f] to-amber-950/30" />
+      <div className="absolute inset-0 bg-linear-to-br from-purple-950/50 via-[#0d0d1a] to-amber-950/30" />
 
       {/* Animated glow orbs */}
       <motion.div
@@ -301,7 +301,7 @@ export const ProRevealMoment: React.FC = () => {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
-              className="absolute inset-0 bg-gradient-conic from-purple-500 via-amber-400 to-purple-500 rounded-full blur-2xl opacity-30"
+              className="absolute inset-0 bg-conic from-purple-500 via-amber-400 to-purple-500 rounded-full blur-2xl opacity-30"
             />
           </motion.div>
         </motion.div>
@@ -365,7 +365,7 @@ export const ProRevealMoment: React.FC = () => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
-            className="absolute -inset-1 bg-gradient-conic from-purple-500 via-amber-400 via-pink-500 to-purple-500 rounded-3xl opacity-20 blur-sm"
+            className="absolute -inset-1 bg-conic from-purple-500 via-amber-400 via-pink-500 to-purple-500 rounded-3xl opacity-20 blur-sm"
           />
 
           <div className="relative">
