@@ -264,9 +264,70 @@ export const ProRevealMoment: React.FC = () => {
     setStep('tour');
   };
 
-  const handleUpgrade = () => {
-    // Open Paystack payment page in a new tab
-    window.open('https://paystack.shop/pay/0i-23vlf14', '_blank', 'noopener,noreferrer');
+  const handleUpgrade = async () => {
+    // Resolve email: Supabase auth → localStorage → prompt
+    let email = '';
+    let userId = `temp_${Date.now()}`;
+    try {
+      const { supabase } = await import('../../services/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      email = user?.email || user?.user_metadata?.email || '';
+      if (user?.id) userId = user.id;
+    } catch (_) { /* fallback below */ }
+
+    if (!email) {
+      try {
+        const saved = localStorage.getItem('genesis_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.email) email = parsed.email;
+        }
+      } catch (_) { /* fallback below */ }
+    }
+    if (!email) {
+      const prompted = prompt('Please enter your email address to continue with payment:');
+      if (!prompted || !prompted.includes('@')) {
+        alert('A valid email address is required for payment.');
+        return;
+      }
+      email = prompted.trim();
+    }
+
+    try {
+      // Use Paystack Inline SDK with plan parameter for subscription
+      const { initializePayment, verifyTransaction } = await import('../../services/paystackService');
+      await initializePayment({
+        email,
+        amount: deal.deal_price * 100,
+        plan: 'PLN_sx952147c601pnd', // Onboarding Exclusive plan
+        metadata: {
+          user_id: userId,
+          plan_code: 'PLN_sx952147c601pnd',
+          tier: 'Creator',
+          source: 'onboarding_pro_reveal',
+          deal_price: deal.deal_price,
+          original_price: deal.original_price,
+        },
+        onSuccess: async (transaction: any) => {
+          try {
+            const verification = await verifyTransaction(transaction.reference);
+            if (verification?.status === 'success') {
+              setStep('tour');
+            } else {
+              alert('Payment verification pending. Your account will be updated shortly.');
+            }
+          } catch (_) {
+            window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
+          }
+        },
+        onCancel: () => {
+          // User closed the payment modal — stay on ProReveal
+        },
+      });
+    } catch (error: any) {
+      console.error('Failed to initialize payment:', error);
+      alert(`Unable to start payment. ${error.message || 'Please try again.'}`);
+    }
   };
 
   return (

@@ -3,14 +3,6 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Briefcase, Check, Crown, Loader, Shield, Star, X, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from './OnboardingState';
-import { 
-  detectUserCountry,
-  getRecommendedChannels,
-  initializeApplePayCheckout, 
-  initializePayment, 
-  isApplePayAvailable,
-} from '../../services/paystackService';
-import type { PaymentChannel } from '../../services/paystackService';
 import { UserTier } from '../../types';
 import type { LucideIcon } from 'lucide-react';
 
@@ -31,7 +23,6 @@ interface PricingTier {
   limitations?: string[];
   saveLabel?: string;
   isPopular?: boolean;
-  isExclusive?: boolean;
 }
 
 // Tier data matching PricingPage
@@ -135,86 +126,11 @@ export const OnboardingPricing: React.FC = () => {
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState('author@genesis.ai');
+  const [userEmail, setUserEmail] = useState('');
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [dynamicTiers, setDynamicTiers] = useState(tiers);
 
+  // Load email from localStorage on mount
   useEffect(() => {
-    const fetchDeal = async () => {
-      try {
-        const { supabase } = await import('../../services/supabaseClient');
-        const { data, error } = await supabase
-          .from('exclusive_deals')
-          .select('*')
-          .eq('name', 'Onboarding Exclusive')
-          .eq('is_active', true)
-          .maybeSingle();
-        
-        if (!error && data) {
-          setDynamicTiers(prev => prev.map(t => {
-            if (t.name === UserTier.CREATOR) {
-              return {
-                ...t,
-                priceMonthly: Number(data.deal_price),
-                priceAnnual: Number(data.deal_price) * 0.85, // Keep annual discount
-                isExclusive: true,
-                saveLabel: 'EXCLUSIVE DEAL'
-              };
-            }
-            return t;
-          }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch deal:', err);
-      }
-    };
-
-    fetchDeal();
-
-    // Subscribe to deal updates
-    // Subscribe to deal updates (with unmount guard for async setup)
-    let subscription: { unsubscribe: () => void } | null = null;
-    let unmounted = false;
-    const setupSubscription = async () => {
-      const { supabase } = await import('../../services/supabaseClient');
-      if (unmounted) return;
-      subscription = supabase
-        .channel('exclusive_deals_pricing')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'exclusive_deals',
-            filter: "name=eq.Onboarding Exclusive"
-          },
-          (payload: { new: { is_active: boolean; deal_price: number } }) => {
-            if (payload.new) {
-              setDynamicTiers(prev => prev.map(t => {
-                if (t.name === UserTier.CREATOR) {
-                  if (payload.new.is_active) {
-                    return {
-                      ...t,
-                      priceMonthly: Number(payload.new.deal_price),
-                      priceAnnual: Number(payload.new.deal_price) * 0.85,
-                      isExclusive: true,
-                      saveLabel: 'EXCLUSIVE DEAL'
-                    };
-                  } else {
-                    const original = tiers.find(ot => ot.name === UserTier.CREATOR);
-                    return original || t;
-                  }
-                }
-                return t;
-              }));
-            }
-          }
-        )
-        .subscribe();
-    };
-
-    setupSubscription();
-
     try {
       const saved = localStorage.getItem('genesis_settings');
       if (saved) {
@@ -222,13 +138,8 @@ export const OnboardingPricing: React.FC = () => {
         if (parsed.email) setUserEmail(parsed.email);
       }
     } catch (_e) {
-      console.error('Failed to load user settings');
+      // Ignore parse errors
     }
-
-    return () => {
-      unmounted = true;
-      if (subscription) subscription.unsubscribe();
-    };
   }, []);
 
   // Helper to get user ID
@@ -257,113 +168,78 @@ export const OnboardingPricing: React.FC = () => {
       return;
     }
 
-    setProcessingTier(tier.name);
-    setSelectedTier(tier.name);
-
-    if (tier.paystackPaymentUrl && tier.planCode) {
-      try {
-        const userId = await getUserId();
-        const paymentUrl = new URL(tier.paystackPaymentUrl);
-        paymentUrl.searchParams.append('email', userEmail);
-        paymentUrl.searchParams.append('metadata[user_id]', userId);
-        paymentUrl.searchParams.append('metadata[plan_code]', tier.planCode);
-        paymentUrl.searchParams.append('metadata[billing_cycle]', isAnnual ? 'annual' : 'monthly');
-        paymentUrl.searchParams.append('metadata[source]', 'onboarding');
-        
-        const paymentWindow = window.open(
-          paymentUrl.toString(),
-          '_blank',
-          'width=600,height=800,scrollbars=yes,resizable=yes'
-        );
-        
-        if (!paymentWindow) {
-          alert('Please allow pop-ups to complete payment');
-          setProcessingTier(null);
-          return;
-        }
-
-        const pollInterval = setInterval(() => {
-          if (paymentWindow.closed) {
-            clearInterval(pollInterval);
-            clearTimeout(safetyTimeout);
-            setProcessingTier(null);
-            // Continue to tour after payment window closes
-            addSparkPoints(50);
-            setStep('tour');
-          }
-        }, 1000);
-
-        const safetyTimeout = setTimeout(() => {
-          clearInterval(pollInterval);
-          setProcessingTier(null);
-        }, 300000);
-
-      } catch (error) {
-        console.error('Failed to open payment page:', error);
-        alert('Unable to start payment. Please try again.');
-        setProcessingTier(null);
-      }
+    if (!tier.planCode) {
+      alert('This plan is not available for subscription.');
       return;
     }
 
-    // Fallback payment flow
-    const amountToCharge = isAnnual ? (tier.priceAnnual * 12) : tier.priceMonthly;
+    setProcessingTier(tier.name);
+    setSelectedTier(tier.name);
+
+    // Resolve email: state → Supabase auth → localStorage → prompt
+    let email = userEmail;
+    if (!email) {
+      try {
+        const { supabase } = await import('../../services/supabaseClient');
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        email = authUser?.email || authUser?.user_metadata?.email || '';
+      } catch (_) { /* fallback below */ }
+    }
+    if (!email) {
+      try {
+        const saved = localStorage.getItem('genesis_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.email) email = parsed.email;
+        }
+      } catch (_) { /* fallback below */ }
+    }
+    if (!email) {
+      const prompted = prompt('Please enter your email address to continue with payment:');
+      if (!prompted || !prompted.includes('@')) {
+        alert('A valid email address is required for payment.');
+        setProcessingTier(null);
+        return;
+      }
+      email = prompted.trim();
+    }
+    if (email && email !== userEmail) setUserEmail(email);
+
+    const userId = await getUserId();
 
     try {
-      if (isApplePayAvailable()) {
-        await initializeApplePayCheckout({
-          email: userEmail,
-          amount: amountToCharge,
-          currency: 'USD',
-          metadata: {
-            tier: tier.name,
-            billing_cycle: isAnnual ? 'annual' : 'monthly',
-            source: 'onboarding',
-          },
-          onSuccess: () => {
-            setProcessingTier(null);
-            addSparkPoints(50);
-            setStep('tour');
-          },
-          onCancel: () => {
-            setProcessingTier(null);
-          },
-        });
-      } else {
-        // Get recommended payment channels for user's country
-        const userCountry = detectUserCountry();
-        const channels: PaymentChannel[] = userCountry 
-          ? getRecommendedChannels(userCountry, true) 
-          : ['card', 'mobile_money', 'bank_transfer', 'ussd', 'bank', 'apple_pay'];
-
-        await initializePayment({
-          email: userEmail,
-          amount: amountToCharge,
-          currency: 'USD',
-          channels, // Show all available payment methods
-          metadata: {
-            tier: tier.name,
-            billing_cycle: isAnnual ? 'annual' : 'monthly',
-            source: 'onboarding',
-          },
-          onSuccess: () => {
-            setProcessingTier(null);
-            addSparkPoints(50);
-            setStep('tour');
-          },
-          onCancel: () => {
-            setProcessingTier(null);
-          },
-          onError: (error) => {
-            console.error('Payment error:', error);
-            alert(`Payment failed: ${error.message}`);
-            setProcessingTier(null);
-          },
-        });
-      }
-    } catch (error) {
+      // Use Paystack Inline SDK with plan parameter for subscription
+      const { initializePayment, verifyTransaction } = await import('../../services/paystackService');
+      await initializePayment({
+        email,
+        amount: tier.priceMonthly * 100,
+        plan: tier.planCode!,
+        metadata: {
+          user_id: userId,
+          plan_code: tier.planCode,
+          tier: tier.name,
+          source: 'onboarding',
+        },
+        onSuccess: async (transaction: any) => {
+          try {
+            const verification = await verifyTransaction(transaction.reference);
+            if (verification?.status === 'success') {
+              window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
+            } else {
+              alert('Payment verification pending. Your account will be updated shortly.');
+              setProcessingTier(null);
+            }
+          } catch (_) {
+            window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
+          }
+        },
+        onCancel: () => {
+          setProcessingTier(null);
+        },
+      });
+    } catch (error: any) {
       console.error('Payment initialization failed:', error);
-      alert('Unable to start payment processing. Please try again.');
+      alert(`Unable to start payment. ${error.message || 'Please try again.'}`);
       setProcessingTier(null);
     }
   };
@@ -431,7 +307,7 @@ export const OnboardingPricing: React.FC = () => {
 
         {/* Pricing Cards Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {dynamicTiers.map((tier, index) => {
+          {tiers.map((tier, index) => {
             const isSelected = selectedTier === tier.name;
             const isProcessing = processingTier === tier.name;
             
@@ -451,14 +327,6 @@ export const OnboardingPricing: React.FC = () => {
                 {tier.isPopular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-linear-to-r from-purple-500 via-pink-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
                     ⭐ Most Popular
-                  </div>
-                )}
-
-                {/* Exclusive Deal Badge */}
-                {'isExclusive' in tier && tier.isExclusive && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-linear-to-r from-emerald-500 to-teal-500 text-white px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    EXCLUSIVE DEAL
                   </div>
                 )}
 

@@ -677,7 +677,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <div className="mt-8 md:mt-10 pt-5 md:pt-6 border-t border-peach-soft/50">
             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4 mb-4">
               <button
-                onClick={async () => { await signOut(); }}
+                onClick={async () => {
+                  await signOut();
+                  window.location.href = '/auth';
+                }}
                 className="flex items-center justify-center md:justify-start gap-2 text-cocoa-light font-bold hover:text-red-500 text-sm px-4 py-3 md:py-2 rounded-lg hover:bg-red-50 transition-colors touch-manipulation">
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>

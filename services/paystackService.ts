@@ -141,6 +141,7 @@ interface PaystackTransactionOptions {
   email: string;
   amount: number; // Actual amount in currency (e.g., 19.99)
   currency?: PaystackCurrency;
+  plan?: string; // Paystack plan code (e.g., 'PLN_xxx') — creates a recurring subscription
   reference?: string;
   firstName?: string;
   lastName?: string;
@@ -227,6 +228,7 @@ export const initializePayment = async ({
   email,
   amount,
   currency = 'USD',
+  plan,
   reference,
   firstName,
   lastName,
@@ -263,9 +265,9 @@ export const initializePayment = async ({
     );
   }
 
-  // Validate required parameters
-  if (!email || !amount) {
-    const errorMessage = 'Email and amount are required for payment initialization.';
+  // Validate required parameters — amount can be 0 when plan is provided (plan amount used)
+  if (!email || (!amount && !plan)) {
+    const errorMessage = 'Email and amount (or plan) are required for payment initialization.';
     console.error(errorMessage);
     alert('Invalid payment parameters. Please try again.');
     onCancel();
@@ -294,25 +296,28 @@ export const initializePayment = async ({
         custom_fields: [],
       },
       onSuccess: (transaction: any) => {
-        console.log('Payment successful:', transaction);
+        if (import.meta.env.DEV) console.log('Payment successful:', transaction);
         onSuccess(transaction);
       },
       onCancel: () => {
-        console.log('Payment modal closed');
+        if (import.meta.env.DEV) console.log('Payment modal closed');
         onCancel();
       },
       onError: (error: any) => {
-        console.log('Payment failed:', error);
+        if (import.meta.env.DEV) console.log('Payment failed:', error);
         if (onError) onError(error);
       },
     };
+
+    // If a plan code is provided, attach it for recurring subscription creation
+    if (plan) paymentOptions.plan = plan;
 
     if (firstName) paymentOptions.firstname = firstName;
     if (lastName) paymentOptions.lastname = lastName;
     if (phone) paymentOptions.phone = phone;
     if (channels) paymentOptions.channels = channels;
 
-    console.log('Initializing Paystack payment with options:', paymentOptions);
+    if (import.meta.env.DEV) console.log('Initializing Paystack payment with options:', paymentOptions);
     await paystack.checkout(paymentOptions);
   } catch (error: any) {
     console.error('Failed to initialize Paystack:', error);
@@ -329,6 +334,28 @@ const generateReference = (): string => {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 9);
   return `PSK_${timestamp}_${randomStr}`;
+};
+
+/**
+ * Verify a transaction server-side via /api/paystack-verify
+ * @param reference - Paystack transaction reference
+ * @returns Verified transaction data, or null on failure
+ */
+export const verifyTransaction = async (reference: string): Promise<any | null> => {
+  try {
+    const res = await fetch(`/api/paystack-verify?reference=${encodeURIComponent(reference)}`);
+    const data = await res.json();
+    if (data.status && data.data?.status === 'success') {
+      return data.data;
+    }
+    if (import.meta.env.DEV) {
+      console.warn('Transaction verification failed:', data.data?.gateway_response || data.message);
+    }
+    return null;
+  } catch (error) {
+    console.error('Verification request failed:', error);
+    return null;
+  }
 };
 
 /**
@@ -451,11 +478,11 @@ export const initializeApplePayCheckout = async ({
         custom_fields: [],
       },
       onSuccess: (transaction: any) => {
-        console.log('Payment successful:', transaction);
+        if (import.meta.env.DEV) console.log('Payment successful:', transaction);
         onSuccess(transaction);
       },
       onCancel: () => {
-        console.log('Payment cancelled');
+        if (import.meta.env.DEV) console.log('Payment cancelled');
         onCancel();
       },
     });
@@ -547,7 +574,7 @@ export const mountApplePayButton = async ({
         },
       },
       onSuccess: (response: any) => {
-        console.log('Apple Pay payment successful:', response);
+        if (import.meta.env.DEV) console.log('Apple Pay payment successful:', response);
         onSuccess(response);
       },
       onError: () => {
@@ -555,11 +582,11 @@ export const mountApplePayButton = async ({
         onError?.({ message: 'Payment failed' });
       },
       onCancel: () => {
-        console.log('Apple Pay payment cancelled');
+        if (import.meta.env.DEV) console.log('Apple Pay payment cancelled');
         onCancel();
       },
       onElementsMount: (elements: { applePay: boolean } | null) => {
-        console.log('Payment elements mounted:', elements);
+        if (import.meta.env.DEV) console.log('Payment elements mounted:', elements);
         onElementsMount?.(elements);
       },
     });
@@ -1123,38 +1150,4 @@ export const getRecommendedChannels = (
   }
 
   return channels;
-};
-
-/**
- * Verify a transaction status with Paystack
- * Should be called after receiving webhook or to manually verify
- * @param reference - Transaction reference
- * @returns Transaction verification result
- */
-export const verifyTransaction = async (reference: string): Promise<{
-  status: boolean;
-  message: string;
-  data?: {
-    status: 'success' | 'failed' | 'pending' | 'abandoned';
-    amount: number;
-    currency: string;
-    channel: string;
-    reference: string;
-    paidAt?: string;
-  };
-}> => {
-  try {
-    const response = await fetch(`${VERIFY_API_ENDPOINT}/${reference}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await response.json();
-    return data;
-  } catch (error: any) {
-    console.error('Transaction verification error:', error);
-    return { status: false, message: error.message || 'Verification failed' };
-  }
 };

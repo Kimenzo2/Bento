@@ -1,5 +1,5 @@
 import { UserTier } from '../types';
-import { detectUserCountry, getRecommendedChannels, initializePayment, type PaymentChannel, PaystackCurrency } from './paystackService';
+import { detectUserCountry, getRecommendedChannels, initializePayment, verifyTransaction, type PaymentChannel, PaystackCurrency } from './paystackService';
 import { supabase } from './supabaseClient';
 
 interface SubscriptionPlan {
@@ -83,13 +83,14 @@ export const initiateSubscription = async (
     ? getRecommendedChannels(userCountry, true) as PaymentChannel[]
     : ['card', 'mobile_money', 'bank_transfer', 'ussd', 'bank', 'apple_pay'];
   
-  console.log(`Detected country: ${userCountry}, Available channels:`, channels);
+  if (import.meta.env.DEV) console.log(`Detected country: ${userCountry}, Available channels:`, channels);
 
   // Initialize Paystack payment with subscription plan
   await initializePayment({
     email: userEmail,
     amount: plan.amount,
     currency: plan.currency,
+    plan: plan.planCode, // Creates a recurring subscription on Paystack
     channels, // Show all available payment methods
     firstName: userName?.split(' ')[0],
     lastName: userName?.split(' ').slice(1).join(' '),
@@ -113,9 +114,17 @@ export const initiateSubscription = async (
       ],
     },
     onSuccess: async (transaction) => {
-      console.log('✅ Payment successful:', transaction);
+      if (import.meta.env.DEV) console.log('Payment successful:', transaction);
 
       try {
+        // Server-side verification before trusting the callback
+        const verified = await verifyTransaction(transaction.reference);
+        if (!verified) {
+          console.error('Transaction verification failed for:', transaction.reference);
+          alert('Payment could not be verified. Please contact support with reference: ' + transaction.reference);
+          return;
+        }
+
         // Log the subscription event
         await supabase.from('subscription_events').insert({
           user_id: userId,
@@ -124,31 +133,27 @@ export const initiateSubscription = async (
           plan_code: plan.planCode,
           amount: Math.round(plan.amount * 100), // Convert to cents
           status: 'success',
-          metadata: transaction,
+          metadata: { ...transaction, verified: true },
         });
 
-        console.log('✅ Subscription event logged');
-
-        // Show success message
         alert(
-          `🎉 Payment successful! Your ${plan.name} subscription is being activated. The page will refresh shortly.`
+          `🎉 Payment verified! Your ${plan.name} subscription is being activated. The page will refresh shortly.`
         );
 
-        // Wait a moment for webhook to process, then reload
+        // Wait for webhook to process, then reload
         setTimeout(() => {
           window.location.reload();
-        }, 2000);
+        }, 3000);
       } catch (error) {
         console.error('Error logging subscription event:', error);
-        // Still reload to get updated tier from backend
-        setTimeout(() => window.location.reload(), 2000);
+        setTimeout(() => window.location.reload(), 3000);
       }
     },
     onCancel: () => {
-      console.log('❌ Payment cancelled by user');
+      if (import.meta.env.DEV) console.log('Payment cancelled by user');
     },
     onError: (error) => {
-      console.error('❌ Payment error:', error);
+      console.error('Payment error:', error);
       alert('Payment failed. Please try again or contact support if the issue persists.');
     },
   });

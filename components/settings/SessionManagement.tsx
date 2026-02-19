@@ -62,7 +62,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
     try {
       if (sessionId === 'current') {
         await signOut();
-        window.location.href = '/';
+        window.location.href = '/auth';
       } else {
         // Would revoke specific session in production
         onShowSuccess('Session ended successfully');
@@ -82,7 +82,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
     setIsLoading(true);
     try {
       await signOut();
-      window.location.href = '/';
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Logout all error:', error);
     } finally {

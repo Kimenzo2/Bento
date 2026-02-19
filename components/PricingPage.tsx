@@ -2,14 +2,7 @@ import { Briefcase, Check, Crown, Loader, Star, X, Zap } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  detectUserCountry,
-  getRecommendedChannels,
-  initializeApplePayCheckout,
-  initializePayment,
-  isApplePayAvailable,
-} from '../services/paystackService';
-import type { PaymentChannel } from '../services/paystackService';
+import { initializePayment, verifyTransaction } from '../services/paystackService';
 
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
@@ -34,7 +27,6 @@ interface TierData {
   limitations?: string[];
   saveLabel?: string;
   isPopular?: boolean;
-  isExclusive?: boolean;
 }
 
 const tiers: TierData[] = [
@@ -130,223 +122,107 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const [isAnnual, setIsAnnual] = useState(true);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
-  const [dynamicTiers, setDynamicTiers] = useState<TierData[]>(tiers);
 
   // Set email from auth context
   useEffect(() => {
     if (user?.email) setUserEmail(user.email);
   }, [user?.email]);
 
+  // Also try to get email from localStorage on mount
   useEffect(() => {
-    const fetchDeal = async () => {
+    if (!userEmail) {
       try {
-        const { supabase } = await import('../services/supabaseClient');
-        const { data, error } = await supabase
-          .from('exclusive_deals')
-          .select('*')
-          .eq('name', 'Onboarding Exclusive')
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (!error && data) {
-          setDynamicTiers((prev) =>
-            prev.map((t) => {
-              if (t.name === UserTier.CREATOR) {
-                return {
-                  ...t,
-                  priceMonthly: Number(data.deal_price),
-                  priceAnnual: Number(data.deal_price) * 0.85,
-                  isExclusive: true,
-                  saveLabel: 'EXCLUSIVE DEAL',
-                };
-              }
-              return t;
-            })
-          );
+        const saved = localStorage.getItem('genesis_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.email) setUserEmail(parsed.email);
         }
-      } catch (err) {
-        console.error('Failed to fetch deal:', err);
+      } catch (_e) {
+        // Ignore parse errors
       }
-    };
-
-    fetchDeal();
-
-    // Subscribe to deal updates
-    let subscription: { unsubscribe: () => void } | null = null;
-    const setupSubscription = async () => {
-      const { supabase } = await import('../services/supabaseClient');
-      subscription = supabase
-        .channel('exclusive_deals_pricing_page')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'exclusive_deals',
-            filter: 'name=eq.Onboarding Exclusive',
-          },
-          (payload: { new: { is_active?: boolean; deal_price?: number } | null }) => {
-            const newData = payload.new;
-            if (newData) {
-              setDynamicTiers((prev) =>
-                prev.map((t) => {
-                  if (t.name === UserTier.CREATOR) {
-                    if (newData.is_active) {
-                      return {
-                        ...t,
-                        priceMonthly: Number(newData.deal_price),
-                        priceAnnual: Number(newData.deal_price) * 0.85,
-                        isExclusive: true,
-                        saveLabel: 'EXCLUSIVE DEAL',
-                      };
-                    } else {
-                      const original = tiers.find((ot) => ot.name === UserTier.CREATOR);
-                      return original || t;
-                    }
-                  }
-                  return t;
-                })
-              );
-            }
-          }
-        )
-        .subscribe();
-    };
-
-    setupSubscription();
-
-    try {
-      const saved = localStorage.getItem('genesis_settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.email) setUserEmail(parsed.email);
-      }
-    } catch (_e) {
-      console.error('Failed to load user settings');
     }
-
-    return () => {
-      if (subscription) subscription.unsubscribe();
-    };
   }, []);
 
   const handleSubscribe = async (tier: TierData) => {
     if (tier.priceMonthly === 0) {
-      // Free tier logic - likely just redirect or do nothing
       alert('You are now on the Free Spark plan!');
       if (onUpgrade) onUpgrade(UserTier.SPARK);
       return;
     }
 
-    setProcessingTier(tier.name);
-
-    // If Paystack payment page URL is provided, open it in a new window with metadata
-    if (tier.paystackPaymentUrl && tier.planCode) {
-      try {
-        // Get user ID from Supabase auth or localStorage
-        const userId = await getUserId();
-
-        // Build URL with metadata parameters
-        const paymentUrl = new URL(tier.paystackPaymentUrl);
-        paymentUrl.searchParams.append('email', userEmail);
-        paymentUrl.searchParams.append('metadata[user_id]', userId);
-        paymentUrl.searchParams.append('metadata[plan_code]', tier.planCode);
-        paymentUrl.searchParams.append('metadata[billing_cycle]', isAnnual ? 'annual' : 'monthly');
-
-        // Open Paystack payment page in new window
-        const paymentWindow = window.open(
-          paymentUrl.toString(),
-          '_blank',
-          'width=600,height=800,scrollbars=yes,resizable=yes'
-        );
-
-        if (!paymentWindow) {
-          alert('Please allow pop-ups to complete payment');
-          setProcessingTier(null);
-          return;
-        }
-
-        // Poll for payment completion (webhook will update backend)
-        const pollInterval = setInterval(() => {
-          if (paymentWindow.closed) {
-            clearInterval(pollInterval);
-            setProcessingTier(null);
-            // Optionally reload user profile to check if tier was upgraded
-          }
-        }, 1000);
-
-        // Clean up after 5 minutes
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          setProcessingTier(null);
-        }, 300000);
-      } catch (error) {
-        console.error('Failed to open payment page:', error);
-        alert('Unable to start payment. Please try again.');
-        setProcessingTier(null);
-      }
+    if (!tier.planCode) {
+      alert('This plan is not available for subscription.');
       return;
     }
 
-    // Fallback to old payment flow if no payment page URL
-    // Calculate total amount to charge based on billing cycle
-    const amountToCharge = isAnnual ? tier.priceAnnual * 12 : tier.priceMonthly;
+    setProcessingTier(tier.name);
+
+    // Resolve email: auth context → Supabase getUser → localStorage → prompt
+    let email = userEmail;
+    if (!email) {
+      try {
+        const { supabase } = await import('../services/supabaseClient');
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        email = authUser?.email || authUser?.user_metadata?.email || '';
+      } catch (_) { /* fallback below */ }
+    }
+    if (!email) {
+      try {
+        const saved = localStorage.getItem('genesis_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.email) email = parsed.email;
+        }
+      } catch (_) { /* fallback below */ }
+    }
+    if (!email) {
+      const prompted = prompt('Please enter your email address to continue with payment:');
+      if (!prompted || !prompted.includes('@')) {
+        alert('A valid email address is required for payment.');
+        setProcessingTier(null);
+        return;
+      }
+      email = prompted.trim();
+    }
+    if (email && email !== userEmail) setUserEmail(email);
+
+    // Get user ID for metadata
+    const userId = await getUserId();
 
     try {
-      // Use Apple Pay checkout on Apple devices for better UX
-      if (isApplePayAvailable()) {
-        await initializeApplePayCheckout({
-          email: userEmail,
-          amount: amountToCharge,
-          currency: 'USD',
-          metadata: {
-            tier: tier.name,
-            billing_cycle: isAnnual ? 'annual' : 'monthly',
-          },
-          onSuccess: (transaction) => {
-            alert(`Subscription successful! Reference: ${transaction.reference}`);
-            setProcessingTier(null);
-            if (onUpgrade) onUpgrade(tier.name as UserTier);
-          },
-          onCancel: () => {
-            setProcessingTier(null);
-          },
-        });
-      } else {
-        // Get recommended payment channels for user's country
-        const userCountry = detectUserCountry();
-        const channels: PaymentChannel[] = userCountry 
-          ? getRecommendedChannels(userCountry, true) 
-          : ['card', 'mobile_money', 'bank_transfer', 'ussd', 'bank', 'apple_pay'];
-
-        // Fallback to regular Paystack payment for non-Apple devices
-        await initializePayment({
-          email: userEmail,
-          amount: amountToCharge,
-          currency: 'USD',
-          channels, // Show all available payment methods
-          metadata: {
-            tier: tier.name,
-            billing_cycle: isAnnual ? 'annual' : 'monthly',
-          },
-          onSuccess: (transaction) => {
-            alert(`Subscription successful! Reference: ${transaction.reference}`);
-            setProcessingTier(null);
-            if (onUpgrade) onUpgrade(tier.name as UserTier);
-          },
-          onCancel: () => {
-            setProcessingTier(null);
-          },
-          onError: (error) => {
-            console.error('Payment error:', error);
-            alert(`Payment failed: ${error.message}`);
-            setProcessingTier(null);
-          },
-        });
-      }
-    } catch (error) {
+      // Use Paystack Inline SDK with plan parameter for subscription
+      await initializePayment({
+        email,
+        amount: isAnnual ? tier.priceAnnual * 100 : tier.priceMonthly * 100,
+        plan: tier.planCode!,
+        metadata: {
+          user_id: userId,
+          plan_code: tier.planCode,
+          tier: tier.name,
+        },
+        onSuccess: async (transaction: any) => {
+          try {
+            // Verify transaction server-side
+            const verification = await verifyTransaction(transaction.reference);
+            if (verification?.status === 'success') {
+              if (onUpgrade) onUpgrade(tier.name);
+              window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
+            } else {
+              alert('Payment verification pending. Your account will be updated shortly.');
+              setProcessingTier(null);
+            }
+          } catch (_) {
+            // Verification endpoint may not be available locally — still redirect
+            window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
+          }
+        },
+        onCancel: () => {
+          setProcessingTier(null);
+        },
+      });
+    } catch (error: any) {
       console.error('Payment initialization failed:', error);
-      alert('Unable to start payment processing. Please try again.');
+      alert(`Unable to start payment. ${error.message || 'Please try again.'}`);
       setProcessingTier(null);
     }
   };
@@ -425,7 +301,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
 
         {/* Pricing Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-end">
-          {dynamicTiers.map((tier) => (
+          {tiers.map((tier) => (
             <div
               key={tier.name}
               className={`relative bg-white rounded-3xl p-8 border-2 transition-all duration-300 flex flex-col h-full
@@ -438,14 +314,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               {tier.isPopular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-linear-to-r from-coral-burst to-gold-sunshine text-white px-4 py-1 rounded-full font-heading font-bold text-sm shadow-md whitespace-nowrap">
                   Most Popular ⭐
-                </div>
-              )}
-
-              {/* Exclusive Deal Badge */}
-              {tier.isExclusive && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-linear-to-r from-emerald-500 to-teal-500 text-white px-4 py-1 rounded-full font-heading font-bold text-sm shadow-md whitespace-nowrap flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  EXCLUSIVE DEAL
                 </div>
               )}
 
