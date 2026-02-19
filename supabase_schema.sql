@@ -76,19 +76,29 @@ CREATE INDEX IF NOT EXISTS books_created_at_idx ON public.books(created_at DESC)
 -- 3. TRIGGER: Auto-create profile on signup
 -- =============================================
 -- Automatically creates a profile when a new user signs up
+-- Populates full_name, display_name, avatar_url from auth metadata
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, display_name, user_tier)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email)
-  );
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture'),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    'SPARK'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = COALESCE(EXCLUDED.full_name, profiles.full_name),
+    avatar_url = COALESCE(EXCLUDED.avatar_url, profiles.avatar_url),
+    display_name = COALESCE(EXCLUDED.display_name, profiles.display_name),
+    updated_at = NOW();
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
 
 -- Drop trigger if exists (for re-running this script)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;

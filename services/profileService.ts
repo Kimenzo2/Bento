@@ -89,17 +89,47 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
 
     if (existingProfile) {
       console.log('[ProfileService] Profile exists:', existingProfile.email);
+
+      // Patch missing fields from auth metadata (trigger may have missed avatar_url/full_name)
+      const updates: Record<string, any> = {};
+      const metaName = user.user_metadata?.full_name || user.user_metadata?.name;
+      const metaAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+
+      if (!existingProfile.full_name && metaName) updates.full_name = metaName;
+      if (!existingProfile.display_name && (metaName || existingProfile.full_name))
+        updates.display_name = metaName || existingProfile.full_name;
+      if (!existingProfile.avatar_url && metaAvatar) updates.avatar_url = metaAvatar;
+
+      if (Object.keys(updates).length > 0) {
+        updates.updated_at = new Date().toISOString();
+        console.log('[ProfileService] Patching missing profile fields:', Object.keys(updates));
+        await supabase.from('profiles').update(updates).eq('id', user.id);
+        // Re-fetch after patch
+        const { data: patchedProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (patchedProfile) {
+          invalidateProfileCache(user.id);
+          return patchedProfile as UserProfile;
+        }
+      }
+
       return existingProfile as UserProfile;
     }
 
     // Profile doesn't exist, create it
     console.log('[ProfileService] Creating new profile for:', user.email);
 
+    const derivedName =
+        user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
+
     const newProfile = {
       id: user.id,
       email: user.email,
-      full_name:
-        user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+      full_name: derivedName,
+      display_name: derivedName,
       avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
       user_tier: UserTier.SPARK,
       gamification_data: defaultGamificationData,

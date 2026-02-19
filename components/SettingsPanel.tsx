@@ -136,24 +136,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   });
 
-  // Sync form data with user when user changes (e.g., after login)
+  // Sync form data with user profile when user or DB profile changes
   useEffect(() => {
     if (user) {
-      // Get user's display name from metadata or email
+      // Prefer DB profile data over user_metadata (which is empty for email signups)
       const displayName =
+        userProfile?.full_name ||
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
         user.email?.split('@')[0] ||
         'Creative Author';
 
-      // Get user's avatar from metadata
-      const userAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
+      // Get avatar from DB profile first, then metadata
+      const userAvatar =
+        userProfile?.avatar_url ||
+        user.user_metadata?.avatar_url ||
+        user.user_metadata?.picture ||
+        null;
 
       // Update form data with user info (preserve other saved settings)
       setFormData((prev: any) => ({
         ...prev,
         displayName: prev.displayName || displayName,
-        email: user.email || prev.email,
+        email: userProfile?.email || user.email || prev.email,
       }));
 
       // Update avatar if user has one and we don't have a custom one saved
@@ -161,7 +166,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         setAvatarPreview(userAvatar);
       }
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));

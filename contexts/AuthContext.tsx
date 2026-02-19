@@ -1,7 +1,8 @@
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type React from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { sendWelcomeEmail } from '../services/emailService';
+import { ensureUserProfile } from '../services/profileService';
 import { supabase } from '../services/supabaseClient';
 
 // UserProfile type for convenience
@@ -31,6 +32,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dbProfile, setDbProfile] = useState<{ full_name: string | null; avatar_url: string | null; email: string } | null>(null);
+  const profileEnsuredRef = useRef<string | null>(null);
 
   // Refresh session helper
   const refreshSession = async () => {
@@ -83,6 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Clear DB profile on sign-out
+        if (!session?.user) {
+          setDbProfile(null);
+          profileEnsuredRef.current = null;
+        }
       }
     );
 
@@ -92,6 +101,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
+
+  // Ensure profile exists in DB whenever user signs in
+  useEffect(() => {
+    if (user && profileEnsuredRef.current !== user.id) {
+      profileEnsuredRef.current = user.id;
+      ensureUserProfile().then((profile) => {
+        if (profile) {
+          setDbProfile({
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+            email: profile.email,
+          });
+        }
+      }).catch((err) => {
+        if (import.meta.env.DEV) console.error('[Auth] Failed to ensure profile:', err);
+      });
+    }
+  }, [user]);
 
   const signInWithGoogle = async (returnTo = '/') => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -214,10 +241,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userProfile: user
       ? {
           id: user.id,
-          email: user.email || '',
+          email: dbProfile?.email || user.email || '',
           display_name:
-            user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
-          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+            dbProfile?.full_name ||
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email?.split('@')[0],
+          avatar_url:
+            dbProfile?.avatar_url ||
+            user.user_metadata?.avatar_url ||
+            user.user_metadata?.picture,
         }
       : null,
     signInWithGoogle,
