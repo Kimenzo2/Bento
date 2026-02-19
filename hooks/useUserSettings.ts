@@ -34,12 +34,13 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 /**
- * Hook to get unified user display data from both Auth context and localStorage settings
+ * Hook to get unified user display data from Auth context (DB profile), localStorage, and user metadata.
+ * Priority chain: DB profile → localStorage → user_metadata → fallback
  */
 export const useUserSettings = (): UserDisplayData & {
   updateSettings: (settings: Partial<UserSettings>) => void;
 } => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const [settings, setSettings] = useState<UserSettings>(() => {
     try {
@@ -75,10 +76,12 @@ export const useUserSettings = (): UserDisplayData & {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Sync with user data when user changes
+  // Sync with user data when user or DB profile changes
+  // DB profile (via AuthContext) is the source of truth for identity fields
   useEffect(() => {
     if (user) {
       const userName =
+        userProfile?.display_name ||
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
         user.email?.split('@')[0] ||
@@ -86,11 +89,12 @@ export const useUserSettings = (): UserDisplayData & {
 
       setSettings((prev) => ({
         ...prev,
-        displayName: prev.displayName || userName,
-        email: user.email || prev.email,
+        // Force-set identity from DB — don't use || which preserves stale localStorage
+        displayName: userName,
+        email: userProfile?.email || user.email || prev.email,
       }));
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     setSettings((prev) => {
@@ -104,13 +108,18 @@ export const useUserSettings = (): UserDisplayData & {
     });
   };
 
-  // Determine best avatar to use (custom > user metadata > null)
+  // Determine best avatar to use: custom upload > DB profile > user metadata > null
   const avatarUrl =
-    customAvatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+    customAvatar ||
+    userProfile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture ||
+    null;
 
-  // Determine best display name
+  // Determine best display name: localStorage settings > DB profile > user metadata > email prefix
   const displayName =
     settings.displayName ||
+    userProfile?.display_name ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split('@')[0] ||

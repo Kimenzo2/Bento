@@ -18,6 +18,7 @@ const AuthPage: React.FC = () => {
   const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/';
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +53,7 @@ const AuthPage: React.FC = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await signUpWithEmail(email, password);
+        const { error } = await signUpWithEmail(email, password, fullName.trim() || undefined);
         if (error) throw error;
         setSuccessMessage('Account created! Please check your email to confirm.');
         setIsLoading(false);
@@ -205,6 +206,20 @@ const AuthPage: React.FC = () => {
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
+            {isSignUp && (
+              <div>
+                <label className="block text-xs font-bold text-cocoa-light uppercase mb-1 ml-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-cream-base border border-peach-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all"
+                  placeholder="Your name"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-bold text-cocoa-light uppercase mb-1 ml-1">
                 Email Address

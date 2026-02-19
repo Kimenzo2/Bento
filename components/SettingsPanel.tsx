@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { type UserProfile, getUserProfile } from '../services/profileService';
+import { type UserProfile, getUserProfile, updateUserProfile, invalidateProfileCache } from '../services/profileService';
 import { getTierLimits } from '../services/tierLimits';
 import { AppMode, type SavedBook, UserTier } from '../types';
 import AboutSection from './settings/AboutSection';
@@ -46,9 +46,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onViewBook,
   userTier: propsUserTier,
 }) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshProfile } = useAuth();
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(true);
+  const profileLoadedRef = React.useRef(false);
 
   // Fetch user profile to get real tier
   React.useEffect(() => {
@@ -136,34 +137,74 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   });
 
-  // Sync form data with user profile when user or DB profile changes
+  // Sync form data with DB profile — DB is the source of truth for identity + settings
   useEffect(() => {
-    if (user) {
-      // Prefer DB profile data over user_metadata (which is empty for email signups)
-      const displayName =
-        userProfile?.full_name ||
+    if (!user) return;
+
+    // When DB profile loads for the first time, force-set ALL fields from DB
+    // This ensures DB data overrides stale localStorage for identity fields
+    if (userProfile && !profileLoadedRef.current) {
+      profileLoadedRef.current = true;
+
+      const dbName =
+        userProfile.display_name ||
+        userProfile.full_name ||
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
         user.email?.split('@')[0] ||
         'Creative Author';
 
-      // Get avatar from DB profile first, then metadata
-      const userAvatar =
-        userProfile?.avatar_url ||
+      setFormData((prev: any) => ({
+        ...prev,
+        // Identity fields: DB always wins
+        displayName: dbName,
+        email: userProfile.email || user.email || prev.email,
+        // Settings fields: DB wins over defaults, but localStorage overrides (user may have unsaved local changes)
+        bio: userProfile.bio || prev.bio,
+        defaultStyle: userProfile.default_style || prev.defaultStyle,
+        temperature: userProfile.creativity_temperature ?? prev.temperature,
+        emailUpdates: userProfile.email_notifications ?? prev.emailUpdates,
+        marketingEmails: userProfile.marketing_emails ?? prev.marketingEmails,
+        publicProfile: userProfile.is_public ?? prev.publicProfile,
+        dataSharing: userProfile.data_sharing_enabled ?? prev.dataSharing,
+      }));
+
+      // Avatar: DB profile > metadata > localStorage
+      const dbAvatar =
+        userProfile.avatar_url ||
         user.user_metadata?.avatar_url ||
         user.user_metadata?.picture ||
         null;
+      if (dbAvatar) {
+        // Only override if user hasn't uploaded a custom avatar
+        const customAvatar = localStorage.getItem('genesis_avatar');
+        if (!customAvatar || !customAvatar.startsWith('data:')) {
+          setAvatarPreview(dbAvatar);
+        }
+      }
+      return;
+    }
 
-      // Update form data with user info (preserve other saved settings)
+    // Before DB profile loads, use metadata as temporary fallback
+    if (!userProfile && !profileLoadedRef.current) {
+      const metaName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split('@')[0] ||
+        'Creative Author';
+
       setFormData((prev: any) => ({
         ...prev,
-        displayName: prev.displayName || displayName,
-        email: userProfile?.email || user.email || prev.email,
+        displayName: prev.displayName || metaName,
+        email: user.email || prev.email,
       }));
 
-      // Update avatar if user has one and we don't have a custom one saved
-      if (userAvatar && !localStorage.getItem('genesis_avatar')) {
-        setAvatarPreview(userAvatar);
+      const metaAvatar =
+        user.user_metadata?.avatar_url ||
+        user.user_metadata?.picture ||
+        null;
+      if (metaAvatar && !localStorage.getItem('genesis_avatar')) {
+        setAvatarPreview(metaAvatar);
       }
     }
   }, [user, userProfile]);
@@ -172,26 +213,52 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
 
-    // Persist settings and avatar
     try {
+      // 1. Persist UI preferences to localStorage (themes, toggles, etc.)
       localStorage.setItem('genesis_settings', JSON.stringify(formData));
       if (avatarPreview) {
         localStorage.setItem('genesis_avatar', avatarPreview);
       }
-      // Dispatch event for other components to react (e.g. orientation lock)
       window.dispatchEvent(new Event('genesis-settings-changed'));
+
+      // 2. Persist profile data to Supabase DB (the source of truth)
+      if (user) {
+        const profileUpdates: Record<string, any> = {
+          display_name: formData.displayName || undefined,
+          full_name: formData.displayName || undefined,
+          bio: formData.bio || undefined,
+          default_style: formData.defaultStyle || undefined,
+          creativity_temperature: formData.temperature,
+          email_notifications: formData.emailUpdates,
+          marketing_emails: formData.marketingEmails,
+          is_public: formData.publicProfile,
+          data_sharing_enabled: formData.dataSharing,
+        };
+
+        // If avatar is a URL (not base64), persist it to DB
+        if (avatarPreview && !avatarPreview.startsWith('data:')) {
+          profileUpdates.avatar_url = avatarPreview;
+        }
+
+        const updatedProfile = await updateUserProfile(profileUpdates);
+        if (updatedProfile) {
+          setUserProfile(updatedProfile);
+          // Refresh AuthContext's profile so all components get fresh data
+          await refreshProfile();
+        } else {
+          console.error('[Settings] Failed to save profile to database');
+        }
+      }
     } catch (e) {
-      console.error('Failed to save settings to local storage', e);
+      console.error('Failed to save settings:', e);
     }
 
-    setTimeout(() => {
-      setIsSaving(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    }, 800);
+    setIsSaving(false);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   const handleAvatarClick = () => {
@@ -569,9 +636,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           </span>
                         </div>
                         <h4 className="font-heading font-bold text-2xl md:text-3xl text-white mb-1">
-                          {(propsUserTier || UserTier.SPARK).charAt(0) + (propsUserTier || UserTier.SPARK).slice(1).toLowerCase()} Plan
+                          {actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase()} Plan
                         </h4>
-                        <p className="text-white/70 text-xs md:text-sm">{(propsUserTier || UserTier.SPARK) === UserTier.SPARK ? 'Free Forever' : 'Active Subscription'}</p>
+                        <p className="text-white/70 text-xs md:text-sm">{actualUserTier === UserTier.SPARK ? 'Free Forever' : 'Active Subscription'}</p>
                       </div>
                       <span className="px-2.5 md:px-3 py-1 md:py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-full border border-green-500/30">
                         Active
@@ -581,11 +648,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 md:mb-6">
                       <div>
                         <p className="text-white/50 text-xs mb-1">Ebooks / Month</p>
-                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(propsUserTier || UserTier.SPARK).ebooksPerMonth === Number.POSITIVE_INFINITY ? '∞' : getTierLimits(propsUserTier || UserTier.SPARK).ebooksPerMonth}</p>
+                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(actualUserTier).ebooksPerMonth === Number.POSITIVE_INFINITY ? '∞' : getTierLimits(actualUserTier).ebooksPerMonth}</p>
                       </div>
                       <div>
                         <p className="text-white/50 text-xs mb-1">Max Pages</p>
-                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(propsUserTier || UserTier.SPARK).maxPagesPerBook === 999 ? '∞' : getTierLimits(propsUserTier || UserTier.SPARK).maxPagesPerBook}</p>
+                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(actualUserTier).maxPagesPerBook === 999 ? '∞' : getTierLimits(actualUserTier).maxPagesPerBook}</p>
                       </div>
                     </div>
 

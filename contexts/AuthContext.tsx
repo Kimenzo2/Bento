@@ -2,7 +2,7 @@ import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type React from 'react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { sendWelcomeEmail } from '../services/emailService';
-import { ensureUserProfile } from '../services/profileService';
+import { ensureUserProfile, getUserProfile, invalidateProfileCache } from '../services/profileService';
 import { supabase } from '../services/supabaseClient';
 
 // UserProfile type for convenience
@@ -21,9 +21,10 @@ interface AuthContextType {
   signInWithGoogle: (returnTo?: string) => Promise<{ error: any }>;
   signInWithIdToken: (token: string, nonce?: string | null) => Promise<{ data: any; error: any }>;
   signInWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
+  signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<{ error: any }>;
   refreshSession: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dbProfile, setDbProfile] = useState<{ full_name: string | null; avatar_url: string | null; email: string } | null>(null);
+  const [dbProfile, setDbProfile] = useState<{ full_name: string | null; display_name: string | null; avatar_url: string | null; email: string } | null>(null);
   const profileEnsuredRef = useRef<string | null>(null);
 
   // Refresh session helper
@@ -110,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (profile) {
           setDbProfile({
             full_name: profile.full_name,
+            display_name: profile.display_name,
             avatar_url: profile.avatar_url,
             email: profile.email,
           });
@@ -144,10 +146,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { data, error };
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: fullName ? { data: { full_name: fullName, name: fullName } } : undefined,
     });
     if (error) {
       if (import.meta.env.DEV) console.error('[Auth] Email sign-up error:', error.message);
@@ -234,6 +237,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  // Re-fetch the DB profile (call after updating profile in settings)
+  const refreshProfile = async () => {
+    if (!user) return;
+    invalidateProfileCache(user.id);
+    const profile = await getUserProfile();
+    if (profile) {
+      setDbProfile({
+        full_name: profile.full_name,
+        display_name: profile.display_name,
+        avatar_url: profile.avatar_url,
+        email: profile.email,
+      });
+    }
+  };
+
   const value = {
     user,
     session,
@@ -243,6 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: user.id,
           email: dbProfile?.email || user.email || '',
           display_name:
+            dbProfile?.display_name ||
             dbProfile?.full_name ||
             user.user_metadata?.full_name ||
             user.user_metadata?.name ||
@@ -259,6 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUpWithEmail,
     signOut,
     refreshSession,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

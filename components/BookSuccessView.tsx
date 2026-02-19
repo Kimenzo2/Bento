@@ -29,7 +29,7 @@ interface BookSuccessViewProps {
 }
 
 const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, userTier }) => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showKDPExportModal, setShowKDPExportModal] = useState(false);
@@ -49,7 +49,10 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
     // Send book completion celebration email
     if (user?.email && project.title) {
       const userName =
-        user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+        userProfile?.display_name ||
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email.split('@')[0];
       sendBookCompletionEmail(user.email, userName, project.title).catch((err) => {
         console.error('[BookSuccess] Failed to send completion email:', err);
       });

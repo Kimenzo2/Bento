@@ -11,8 +11,16 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
+  display_name: string | null;
   avatar_url: string | null;
   user_tier: UserTier;
+  bio: string | null;
+  default_style: string | null;
+  creativity_temperature: number | null;
+  email_notifications: boolean | null;
+  marketing_emails: boolean | null;
+  is_public: boolean | null;
+  data_sharing_enabled: boolean | null;
   gamification_data: GamificationState;
   created_at: string;
   updated_at: string;
@@ -232,6 +240,67 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
 export const invalidateProfileCache = (userId: string): void => {
   profileCache.delete(userId);
   profileCacheTimestamps.delete(userId);
+};
+
+/**
+ * Update user profile fields (display name, bio, avatar, etc.)
+ * This is the ONLY function that should be used to persist user-edited profile data.
+ */
+export const updateUserProfile = async (
+  updates: {
+    full_name?: string;
+    display_name?: string;
+    avatar_url?: string | null;
+    bio?: string;
+    email?: string;
+    default_style?: string;
+    creativity_temperature?: number;
+    email_notifications?: boolean;
+    marketing_emails?: boolean;
+    is_public?: boolean;
+    data_sharing_enabled?: boolean;
+  }
+): Promise<UserProfile | null> => {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error('[ProfileService] No authenticated user for profile update');
+      return null;
+    }
+
+    // If display_name is updated, sync full_name too (keep them consistent)
+    const syncedUpdates = { ...updates, updated_at: new Date().toISOString() };
+    if (updates.display_name && !updates.full_name) {
+      syncedUpdates.full_name = updates.display_name;
+    }
+    if (updates.full_name && !updates.display_name) {
+      syncedUpdates.display_name = updates.full_name;
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(syncedUpdates)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[ProfileService] Error updating profile:', error);
+      return null;
+    }
+
+    // Invalidate cache so next read gets fresh data
+    invalidateProfileCache(user.id);
+
+    console.log('[ProfileService] Profile updated successfully');
+    return data as UserProfile;
+  } catch (error) {
+    console.error('[ProfileService] Error in updateUserProfile:', error);
+    return null;
+  }
 };
 
 /**
