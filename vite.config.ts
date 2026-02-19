@@ -48,6 +48,18 @@ export default defineConfig(({ mode }) => {
         },
         includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
         workbox: {
+          // Clean up caches from previous SW versions to prevent stale chunk serving
+          cleanupOutdatedCaches: true,
+          // Take control of all clients immediately on activation
+          clientsClaim: true,
+          // Navigation fallback for SPA — only for HTML navigation requests
+          navigateFallback: '/index.html',
+          // CRITICAL: Never serve index.html for asset/API requests
+          navigateFallbackDenylist: [
+            /^\/assets\//,
+            /^\/api\//,
+            /\.(?:js|css|png|jpg|jpeg|svg|ico|woff|woff2|webp|json|txt|map)$/,
+          ],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
           runtimeCaching: [
             {

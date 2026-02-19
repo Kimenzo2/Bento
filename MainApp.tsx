@@ -55,18 +55,40 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import WhatsNewModal from './components/WhatsNewModal';
 import { OfflineIndicator, useNetworkStatus } from './hooks/useNetworkStatus';
 
-// PERFORMANCE: Lazy load heavy components
-const CreationCanvas = lazy(() => import('./components/CreationCanvas'));
-const SmartEditor = lazy(() => import('./components/SmartEditor'));
-const VisualStudio = lazy(() => import('./components/VisualStudio'));
-const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
-const PricingPage = lazy(() => import('./components/PricingPage'));
-const GamificationHub = lazy(() => import('./components/GamificationHub'));
-const BookSuccessView = lazy(() => import('./components/BookSuccessView'));
-const GenerationTheater = lazy(() => import('./components/GenerationTheater'));
-const StorybookViewer = lazy(() => import('./components/StorybookViewer'));
-const SharedBookViewer = lazy(() => import('./components/SharedBookViewer'));
-const LegalViewer = lazy(() => import('./components/LegalViewer'));
+// PERFORMANCE: Lazy load heavy components with stale-chunk recovery.
+// When a deployment changes chunk hashes, old HTML may reference chunks
+// that no longer exist. This wrapper retries once, then reloads the page
+// to fetch the new index.html with correct chunk references.
+function lazyWithRetry(
+  importFn: () => Promise<{ default: React.ComponentType<any> }>
+) {
+  return lazy(() =>
+    importFn().catch((error: Error) => {
+      // Only auto-reload once per session to avoid infinite loops
+      const key = 'genesis_chunk_reload';
+      const lastReload = sessionStorage.getItem(key);
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 10_000) {
+        sessionStorage.setItem(key, String(now));
+        console.warn('[Genesis] Chunk load failed, reloading for fresh assets…', error.message);
+        window.location.reload();
+      }
+      throw error; // If we already reloaded recently, let the error boundary handle it
+    })
+  );
+}
+
+const CreationCanvas = lazyWithRetry(() => import('./components/CreationCanvas'));
+const SmartEditor = lazyWithRetry(() => import('./components/SmartEditor'));
+const VisualStudio = lazyWithRetry(() => import('./components/VisualStudio'));
+const SettingsPanel = lazyWithRetry(() => import('./components/SettingsPanel'));
+const PricingPage = lazyWithRetry(() => import('./components/PricingPage'));
+const GamificationHub = lazyWithRetry(() => import('./components/GamificationHub'));
+const BookSuccessView = lazyWithRetry(() => import('./components/BookSuccessView'));
+const GenerationTheater = lazyWithRetry(() => import('./components/GenerationTheater'));
+const StorybookViewer = lazyWithRetry(() => import('./components/StorybookViewer'));
+const SharedBookViewer = lazyWithRetry(() => import('./components/SharedBookViewer'));
+const LegalViewer = lazyWithRetry(() => import('./components/LegalViewer'));
 
 const MainAppContent: React.FC = () => {
   // Initialize Google One Tap
@@ -476,7 +498,7 @@ const MainAppContent: React.FC = () => {
             onUpdateProject={setCurrentProject}
             userTier={currentUserTier}
             onShowUpgrade={() => setShowUpgradeModal(true)}
-            onSave={(success, message) => addToast(message, success ? 'success' : 'error')}
+            onSave={(success: boolean, message: string) => addToast(message, success ? 'success' : 'error')}
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
             onNavigateToCreate={() => setCurrentMode(AppMode.CREATION)}
             onToast={addToast}
