@@ -1012,7 +1012,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   // ============================================
   if (isStandaloneMode) {
     return (
-      <div className="h-[calc(100vh-80px)] w-full overflow-auto bg-gradient-to-br from-cream-base via-peach-soft/20 to-cream-base">
+      <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto bg-gradient-to-br from-cream-base via-peach-soft/20 to-cream-base" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Header */}
         <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-peach-soft/50 px-6 py-4">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -1225,7 +1225,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     );
 
   return (
-    <div className="h-[calc(100vh-80px)] w-full flex flex-col lg:flex-row overflow-hidden bg-cream-base relative">
+    <div className="h-[calc(100dvh-80px)] w-full flex flex-col lg:flex-row bg-cream-base relative overflow-x-hidden overflow-y-auto lg:overflow-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* Mobile Tab Toggle */}
       <div className="lg:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30 shadow-sm">
         <div className="flex p-1 bg-cream-soft rounded-xl w-full max-w-xs border border-peach-soft/50">
@@ -1246,7 +1246,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
       {/* Left Panel: Tools & Text */}
       <div
-        className={`w-full lg:w-[40%] flex-col border-r border-peach-soft/50 bg-cream-soft ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex h-full'}`}
+        className={`w-full lg:w-[40%] flex-col border-r border-peach-soft/50 bg-cream-soft ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex min-h-[50vh] lg:h-full'}`}
       >
         {/* Header */}
         <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-peach-soft/30 shrink-0 gap-4">
@@ -1763,7 +1763,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
       {/* Right Panel: Preview */}
       <div
-        className={`w-full lg:w-[60%] bg-peach-soft/20 items-center justify-center p-4 lg:p-8 pt-12 lg:pt-16 relative overflow-hidden ${mobileView === 'edit' ? 'hidden lg:flex' : 'flex h-full'}`}
+        className={`w-full lg:w-[60%] bg-peach-soft/20 items-center justify-center p-4 lg:p-8 pt-12 lg:pt-16 relative overflow-hidden ${mobileView === 'edit' ? 'hidden lg:flex' : 'flex min-h-[50vh] lg:h-full'}`}
       >
         <div
           className="absolute inset-0 pointer-events-none opacity-30"

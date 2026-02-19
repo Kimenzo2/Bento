@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import '../../src/config/i18n'; // Initialize i18n
 import { ThemeProvider } from '../../contexts/ThemeContext';
@@ -20,6 +20,19 @@ const TIER_FONT_STYLES: React.CSSProperties = {
 } as React.CSSProperties;
 
 export const TierLayout: React.FC = () => {
+    // Load Nunito font from Google Fonts for tier pages
+    useEffect(() => {
+        const fontLink = document.createElement('link');
+        fontLink.id = 'tier-nunito-font';
+        fontLink.rel = 'stylesheet';
+        fontLink.href = 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap';
+        document.head.appendChild(fontLink);
+        return () => {
+            const el = document.getElementById('tier-nunito-font');
+            if (el) el.remove();
+        };
+    }, []);
+
     return (
         <ErrorBoundary>
             <ThemeProvider>

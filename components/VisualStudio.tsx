@@ -220,7 +220,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
 
   return (
     <div
-      className={`w-full mx-auto animate-fadeIn ${viewMode === 'storymap' ? 'h-[100dvh] flex flex-col overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}
+      className={`w-full mx-auto animate-fadeIn ${viewMode === 'storymap' ? 'h-[100dvh] flex flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {/* Header with Mode Switcher */}
       <div

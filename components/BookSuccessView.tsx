@@ -115,7 +115,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       {/* Warm gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#FFFBF0] via-[#FFE8D6] to-[#FFF8DC] opacity-50" />
 

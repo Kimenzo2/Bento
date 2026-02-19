@@ -1,5 +1,5 @@
-/* Import Default Fonts */
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@200..900&family=Manrope:wght@200..800&display=swap");
+/* Import Default Fonts — Fredoka (heading) + Manrope (body) matching the default "Playful Classic" pairing */
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap");
 
 @import "tailwindcss";
 
@@ -8,8 +8,10 @@
  * Theme customizations using @theme directive
  */
 @theme {
-  /* Fonts - Bind to CSS variables for dynamic switching */
-  --font-heading: "Nunito", system-ui, sans-serif;
+  /* Fonts - Bind to CSS variables for dynamic switching.
+     Defaults must match the "Playful Classic" pairing from fontPairings.ts.
+     FontContext overrides these via document.documentElement.style.setProperty(). */
+  --font-heading: "Fredoka", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, sans-serif;
 
   /* Colors */
@@ -102,7 +104,7 @@
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
 
   /* Default Fonts (will be overridden by FontContext) */
-  --font-heading: "Nunito", system-ui, sans-serif;
+  --font-heading: "Fredoka", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, sans-serif;
 
   /* Color scheme for modern light mode support */
@@ -120,12 +122,14 @@ body {
   color: var(--color-text, #5a5a5a);
   font-family: var(--font-body);
   overflow-x: hidden;
+  overflow-y: auto;
   /* Modern smooth scrolling */
   scroll-behavior: smooth;
   /* iOS smooth scrolling */
   -webkit-overflow-scrolling: touch;
-  /* Prevent iOS bounce/overscroll */
-  overscroll-behavior: none;
+  /* Only prevent horizontal overscroll — vertical must remain free for scrolling */
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
   /* Better text rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -160,17 +164,25 @@ summary {
   padding-left: var(--safe-area-inset-left);
   padding-right: var(--safe-area-inset-right);
   min-height: 100vh;
-  min-height: 100dvh;
-  /* Dynamic viewport height for iOS */
+  min-height: 100dvh; /* Dynamic viewport height for iOS */
+  /* Ensure content can scroll vertically */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Mobile touch improvements */
 @media (max-width: 768px) {
-  /* Prevent horizontal scrolling on mobile */
+  /* Prevent horizontal scrolling on mobile — but NEVER restrict vertical */
   html,
   body {
     overflow-x: hidden;
+    overflow-y: auto !important;
     max-width: 100vw;
+    /* Ensure vertical scroll chain is never broken */
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Better touch targets */
@@ -189,7 +201,7 @@ summary {
     user-select: none;
   }
 
-  /* Prevent pull-to-refresh on main content */
+  /* Prevent pull-to-refresh on main content — only when explicitly applied */
   .no-pull-refresh {
     overscroll-behavior-y: contain;
   }
@@ -320,11 +332,11 @@ summary {
     transition: transform 0.3s ease;
   }
 
-  /* Prevent body scroll when modal is open */
+  /* Prevent body scroll when modal is open — use overflow:hidden only, not position:fixed */
   body.modal-open {
     overflow: hidden;
-    position: fixed;
-    width: 100%;
+    /* position: fixed breaks scroll position on mobile — avoid it */
+    touch-action: none;
   }
 }
 

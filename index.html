@@ -123,10 +123,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://api.dicebear.com" />
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts — must match the default FontPairing ("Playful Classic": Fredoka + Manrope).
+       Loaded as high-priority preload + stylesheet to prevent font flash on mobile. -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Caveat+Brush&display=swap"
-    rel="stylesheet">
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+    media="all">
 
   <!-- Global Styles -->
   <style>
@@ -141,12 +147,14 @@
     body {
       background-color: #FFF8E7;
       color: #5A5A5A;
-      font-family: 'Manrope', sans-serif;
+      font-family: 'Manrope', 'Fredoka', system-ui, sans-serif;
       overflow-x: hidden;
+      overflow-y: auto;
       /* iOS smooth scrolling */
       -webkit-overflow-scrolling: touch;
-      /* Prevent iOS bounce/overscroll */
-      overscroll-behavior: none;
+      /* Only prevent horizontal overscroll — vertical must remain free */
+      overscroll-behavior-x: none;
+      overscroll-behavior-y: auto;
     }
 
     /* Apply safe area padding to app container */
@@ -157,14 +165,21 @@
       padding-right: var(--safe-area-inset-right);
       min-height: 100vh;
       min-height: 100dvh; /* Dynamic viewport height for iOS */
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* Mobile touch improvements */
     @media (max-width: 768px) {
-      /* Prevent horizontal scrolling on mobile */
+      /* Prevent horizontal scrolling on mobile — but NEVER restrict vertical */
       html, body {
         overflow-x: hidden;
+        overflow-y: auto !important;
         max-width: 100vw;
+        overscroll-behavior-x: none;
+        overscroll-behavior-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       /* Better touch targets */

@@ -607,7 +607,7 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={setCurrentMode} />
-      <main className="pt-20 relative transition-all duration-300">
+      <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-coral-burst" /></div>} key={forceRenderKey}>{renderContent()}</Suspense>
       </main>
 
