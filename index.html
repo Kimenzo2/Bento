@@ -123,16 +123,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://api.dicebear.com" />
 
-  <!-- Google Fonts — must match the default FontPairing ("Playful Classic": Fredoka + Manrope).
-       Loaded as high-priority preload + stylesheet to prevent font flash on mobile. -->
+  <!-- Google Fonts — default "Playful Classic" pairing: Fredoka (heading) + Manrope (body).
+       Single stylesheet link — NO preload (Google Fonts uses Vary:User-Agent which breaks preload on mobile). -->
   <link
-    rel="preload"
-    as="style"
-    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet"
-    media="all">
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap"
+    rel="stylesheet">
 
   <!-- Global Styles -->
   <style>
@@ -147,7 +142,7 @@
     body {
       background-color: #FFF8E7;
       color: #5A5A5A;
-      font-family: 'Manrope', 'Fredoka', system-ui, sans-serif;
+      font-family: 'Manrope', sans-serif;
       overflow-x: hidden;
       overflow-y: auto;
       /* iOS smooth scrolling */
