@@ -361,6 +361,8 @@ export const WelcomeHero: React.FC = memo(() => {
             >
               ✦ Choose your realm to begin ✦
             </motion.p>
+
+
           </div>
         </div>
       </div>

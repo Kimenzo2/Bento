@@ -69,15 +69,75 @@ const AppLoading: React.FC = () => (
   </div>
 );
 
-// Route guard component
+// Route guard for /welcome/* — ONBOARDING IS ONLY FOR BRAND NEW USERS.
+// Returning visitors are NEVER shown onboarding.
+// VERIFICATION ORDER: 1) localStorage (fast) → 2) DB profile (authoritative)
+// DB is the single source of truth. localStorage is just a cache.
 const OnboardingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
   const hasCompletedOnboarding = localStorage.getItem('genesis_onboarding_completed') === 'true';
 
-  if (hasCompletedOnboarding) {
-    // User completed onboarding, redirect to main app
-    return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (loading) return;
+
+    // FAST PATH: localStorage flag exists → returning user, no DB call needed
+    if (hasCompletedOnboarding) {
+      setShouldRedirect(true);
+      setChecking(false);
+      return;
+    }
+
+    // No localStorage flag. If NOT authenticated, they're brand new → show onboarding
+    if (!user) {
+      setChecking(false);
+      return;
+    }
+
+    // AUTHENTICATED but no localStorage (new device, cleared data, etc.)
+    // DB is the authority: check if profile exists
+    const checkProfile = async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (data) {
+          // Profile exists in DB → returning user. Restore localStorage cache and redirect.
+          localStorage.setItem('genesis_onboarding_completed', 'true');
+          setShouldRedirect(true);
+        }
+        // No profile in DB → genuinely new authenticated user, show onboarding
+      } catch {
+        // On error, show onboarding (safe default — better than locking them out)
+      } finally {
+        setChecking(false);
+      }
+    };
+    checkProfile();
+  }, [user, loading, hasCompletedOnboarding]);
+
+  // Wait for auth + DB check to resolve
+  if (loading || checking) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 48, height: 48, border: '3px solid rgba(255,217,61,0.2)', borderTopColor: '#FFD93D', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
+  // Returning user → redirect away from onboarding
+  if (shouldRedirect) {
+    if (user) {
+      return <Navigate to="/" replace />;
+    }
+    return <Navigate to="/auth?returnTo=/" replace />;
+  }
+
+  // Brand new user → show the onboarding funnel
   return <>{children}</>;
 };
 
@@ -128,9 +188,14 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     );
   }
 
-  // Not signed in → send to auth page
+  // Not signed in → check if returning visitor or brand new
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    if (hasCompletedOnboarding) {
+      // Returning visitor: session expired, send to auth then back to dashboard
+      return <Navigate to="/auth?returnTo=/" replace />;
+    }
+    // Brand new visitor: send to onboarding funnel
+    return <Navigate to="/welcome" replace />;
   }
 
   if (!hasCompletedOnboarding && !isReturningUser) {
