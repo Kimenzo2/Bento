@@ -4,12 +4,14 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createAuthenticatedHandler, type ApiContext } from './middleware';
+import { createPublicHandler, type ApiContext } from './middleware';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_VERIFY_URL = 'https://api.paystack.co/transaction/verify';
 
-export default createAuthenticatedHandler(
+// Public endpoint — unauthenticated users return from Paystack during onboarding
+// before they have a Supabase session. Only the reference is needed to verify.
+export default createPublicHandler(
   async (ctx: ApiContext) => {
     const { req, res, log } = ctx;
 
@@ -71,5 +73,5 @@ export default createAuthenticatedHandler(
       });
     }
   },
-  { protection: 'api', cors: true }
+  { cors: true }
 );

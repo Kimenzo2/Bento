@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Initialize Supabase with service role key for admin access
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -11,40 +12,41 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-// Paystack webhook source IPs (whitelist)
-// See: https://paystack.com/docs/payments/webhooks/#ip-whitelisting
-const PAYSTACK_WEBHOOK_IPS = [
-  '52.31.139.75',
-  '52.49.173.169',
-  '52.214.14.220',
-];
+/**
+ * Paystack Webhook Handler
+ *
+ * Security: HMAC SHA-512 signature verification (the ONLY reliable check).
+ * IP allowlisting is removed — Paystack can add/change IPs without notice,
+ * and Vercel's x-forwarded-for varies by region. HMAC is sufficient.
+ *
+ * CRITICAL: Vercel auto-parses JSON bodies, so req.body is already an object.
+ * We must use the raw body string for HMAC verification, NOT JSON.stringify(req.body)
+ * which can reorder keys or change whitespace, causing signature mismatch.
+ */
+export const config = {
+  api: {
+    // Disable Vercel's automatic body parsing so we get the raw string
+    // This is ESSENTIAL for correct HMAC verification
+    bodyParser: false,
+  },
+};
 
 /**
- * Enterprise-grade Paystack Webhook Handler
- *
- * Security measures:
- * 1. HMAC SHA-512 signature verification
- * 2. IP allowlist for known Paystack IPs
- * 3. Idempotency via unique paystack_reference in subscription_events
- * 4. Structured error logging
- * 5. Graceful error handling per event type
+ * Read the raw body from the request stream
  */
-export default async function handler(req: any, res: any) {
+function getRawBody(req: VercelRequest): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only accept POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // === IP Allowlist Check ===
-  const forwarded = req.headers['x-forwarded-for'];
-  const sourceIp = forwarded
-    ? (typeof forwarded === 'string' ? forwarded : forwarded[0]).split(',')[0].trim()
-    : req.socket?.remoteAddress || req.connection?.remoteAddress;
-
-  // Only enforce IP check in production (Vercel sets NODE_ENV)
-  if (process.env.NODE_ENV === 'production' && sourceIp && !PAYSTACK_WEBHOOK_IPS.includes(sourceIp)) {
-    console.warn(`[webhook] Rejected request from untrusted IP: ${sourceIp}`);
-    return res.status(403).json({ error: 'Forbidden' });
   }
 
   // === HMAC Signature Verification ===
@@ -54,20 +56,45 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ error: 'Webhook not configured' });
   }
 
+  // Read raw body for accurate HMAC computation
+  let rawBody: string;
+  try {
+    rawBody = await getRawBody(req);
+  } catch (err) {
+    console.error('[webhook] Failed to read request body:', err);
+    return res.status(400).json({ error: 'Invalid request body' });
+  }
+
+  if (!rawBody) {
+    console.warn('[webhook] Empty request body');
+    return res.status(400).json({ error: 'Empty body' });
+  }
+
   const hash = crypto
     .createHmac('sha512', webhookSecret)
-    .update(JSON.stringify(req.body))
+    .update(rawBody)
     .digest('hex');
 
-  if (hash !== req.headers['x-paystack-signature']) {
-    console.warn('[webhook] Invalid HMAC signature');
+  const signature = req.headers['x-paystack-signature'];
+  if (hash !== signature) {
+    console.warn('[webhook] Invalid HMAC signature', {
+      expected: hash.substring(0, 16) + '...',
+      received: typeof signature === 'string' ? signature.substring(0, 16) + '...' : 'missing',
+    });
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const event = req.body;
-  const eventId = event.data?.id || 'unknown';
+  // Parse the verified raw body
+  let event: any;
+  try {
+    event = JSON.parse(rawBody);
+  } catch (err) {
+    console.error('[webhook] Failed to parse JSON body');
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
 
-  console.log(`[webhook] Received event: ${event.event} (id: ${eventId})`);
+  const eventId = event.data?.id || 'unknown';
+  console.log(`[webhook] ✅ Verified event: ${event.event} (id: ${eventId})`);
 
   try {
     switch (event.event) {

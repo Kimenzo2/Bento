@@ -3,23 +3,34 @@
  * 
  * After paying on Paystack's hosted page, users are redirected here
  * with ?trxref=xxx&reference=xxx query parameters.
- * This component verifies the transaction server-side and shows the result.
+ * This component verifies the transaction server-side, polls for the
+ * webhook to update the user's tier, then redirects to the dashboard.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader2, ArrowRight } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { ArrowRight, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { verifyTransaction } from '../services/paystackService';
+import { getUserProfile, invalidateProfileCache } from '../services/profileService';
+import { supabase } from '../services/supabaseClient';
+import { UserTier } from '../types';
 
-type CallbackStatus = 'verifying' | 'success' | 'failed' | 'no-reference';
+type CallbackStatus = 'verifying' | 'success' | 'activating' | 'failed' | 'no-reference';
 
 export const PaymentCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [status, setStatus] = useState<CallbackStatus>('verifying');
   const [message, setMessage] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const reference = searchParams.get('trxref') || searchParams.get('reference');
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!reference) {
@@ -32,22 +43,68 @@ export const PaymentCallback: React.FC = () => {
       try {
         const verified = await verifyTransaction(reference);
         if (verified) {
-          setStatus('success');
-          setMessage('Your subscription has been activated! Redirecting to your dashboard...');
-          // Auto-redirect after 4 seconds
-          setTimeout(() => {
-            // Navigate to main app
-            window.location.href = '/#pricing';
-            setTimeout(() => window.location.reload(), 100);
-          }, 4000);
+          setStatus('activating');
+          setMessage('Payment confirmed! Activating your subscription...');
+
+          // Poll the user's profile every 2 seconds to detect when the webhook
+          // has updated their tier from SPARK to something higher.
+          // Max wait: 30 seconds (15 polls), then redirect anyway.
+          let pollCount = 0;
+          const maxPolls = 15;
+
+          const checkTier = async (): Promise<boolean> => {
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) return false;
+
+              // Bypass cache — read directly from DB
+              invalidateProfileCache(user.id);
+              const profile = await getUserProfile();
+              if (profile && profile.user_tier !== UserTier.SPARK) {
+                return true; // Tier has been updated by webhook!
+              }
+            } catch { /* ignore polling errors */ }
+            return false;
+          };
+
+          // Check immediately (webhook may have already processed)
+          const alreadyDone = await checkTier();
+          if (alreadyDone) {
+            setStatus('success');
+            setMessage('Your subscription is active! Redirecting to your dashboard...');
+            setTimeout(() => { window.location.href = '/'; }, 1500);
+            return;
+          }
+
+          // Start polling
+          pollRef.current = setInterval(async () => {
+            pollCount++;
+            const done = await checkTier();
+            if (done || pollCount >= maxPolls) {
+              if (pollRef.current) clearInterval(pollRef.current);
+              pollRef.current = null;
+
+              if (done) {
+                setStatus('success');
+                setMessage('Your subscription is active! Redirecting to your dashboard...');
+              } else {
+                setStatus('success');
+                setMessage('Payment confirmed! Your dashboard is being updated. Redirecting...');
+              }
+              setTimeout(() => { window.location.href = '/'; }, 1500);
+            } else {
+              setMessage(`Payment confirmed! Activating your subscription... (${pollCount}/${maxPolls})`);
+            }
+          }, 2000);
         } else {
+          // Payment may still be processing — this is normal for some channels
           setStatus('failed');
-          setMessage('Payment verification is still pending. Your subscription will activate shortly once confirmed by our payment provider.');
+          setMessage('Payment verification is still pending. Your subscription will activate shortly once confirmed. You can safely go to your dashboard.');
         }
       } catch (error) {
         console.error('Verification error:', error);
         setStatus('failed');
-        setMessage('We could not verify your payment right now. Don\'t worry — if you completed the payment, your subscription will be activated automatically via webhook.');
+        setMessage('We could not verify your payment right now. Don\'t worry — if you completed the payment, your subscription will be activated automatically.');
       }
     };
 
@@ -59,7 +116,7 @@ export const PaymentCallback: React.FC = () => {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-lg p-10 text-center">
         {/* Icon */}
         <div className="mb-6">
-          {status === 'verifying' && (
+          {(status === 'verifying' || status === 'activating') && (
             <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto" />
           )}
           {status === 'success' && (
@@ -73,7 +130,8 @@ export const PaymentCallback: React.FC = () => {
         {/* Title */}
         <h1 className="font-heading font-bold text-2xl text-charcoal-soft mb-3">
           {status === 'verifying' && 'Verifying Your Payment...'}
-          {status === 'success' && 'Payment Successful! 🎉'}
+          {status === 'activating' && 'Activating Subscription...'}
+          {status === 'success' && 'Subscription Active! 🎉'}
           {status === 'failed' && 'Verification Pending'}
           {status === 'no-reference' && 'Payment Status Unknown'}
         </h1>
@@ -91,12 +149,10 @@ export const PaymentCallback: React.FC = () => {
           </div>
         )}
 
-        {/* Action Button */}
-        {status !== 'verifying' && (
+        {/* Action Button — only show when not auto-processing */}
+        {(status === 'failed' || status === 'no-reference') && (
           <button
-            onClick={() => {
-              window.location.href = '/';
-            }}
+            onClick={() => { window.location.href = '/'; }}
             className="w-full py-3 px-6 bg-coral-burst text-white rounded-xl font-heading font-bold hover:bg-coral-burst/90 transition-all flex items-center justify-center gap-2"
           >
             Go to Dashboard

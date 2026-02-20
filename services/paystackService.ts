@@ -354,7 +354,9 @@ const generateReference = (): string => {
  */
 export const verifyTransaction = async (reference: string): Promise<any | null> => {
   try {
-    const res = await authenticatedFetch(`/api/paystack-verify?reference=${encodeURIComponent(reference)}`);
+    // Use plain fetch — this endpoint is public because users may not be
+    // authenticated yet (onboarding flow: pay before signup)
+    const res = await fetch(`/api/paystack-verify?reference=${encodeURIComponent(reference)}`);
     const data = await res.json();
     if (data.status && data.data?.status === 'success') {
       return data.data;
