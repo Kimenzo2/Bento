@@ -333,65 +333,9 @@ export const initializePayment = async ({
 };
 
 // =============================================================================
-// PAYMENT PAGES (Full-page redirect via server-side initialization)
+// PAYMENT PAGES — now using direct Paystack Payment Page URLs (no server init)
+// See paystackSubscription.ts for plan → URL mapping
 // =============================================================================
-
-interface PaymentPageOptions {
-  email: string;
-  plan: string;
-  callbackUrl?: string;
-  metadata?: Record<string, unknown>;
-}
-
-interface PaymentPageResult {
-  authorization_url: string;
-  access_code: string;
-  reference: string;
-}
-
-/**
- * Initialize a Payment Page checkout via the server-side /api/paystack-initialize endpoint.
- * This redirects the user to a Paystack-hosted Payment Page instead of opening an inline modal.
- *
- * Benefits over Inline:
- * - user_id is injected server-side from JWT (secure, not tamperable)
- * - Plan codes validated server-side
- * - Callback URL validated against allowed domains
- * - Full-page experience with all Paystack payment channels
- *
- * @returns The authorization_url, access_code, and reference — caller typically
- *          does `window.location.href = result.authorization_url` to redirect.
- */
-export const initializePaymentPage = async (
-  options: PaymentPageOptions
-): Promise<PaymentPageResult> => {
-  const { email, plan, callbackUrl, metadata } = options;
-
-  const callback_url =
-    callbackUrl ||
-    `${window.location.origin}/payment-callback`;
-
-  const response = await authenticatedFetch('/api/paystack-initialize', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, plan, callback_url, metadata }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.error || errorData.message || `Payment initialization failed (${response.status})`
-    );
-  }
-
-  const data: PaymentPageResult = await response.json();
-
-  if (!data.authorization_url) {
-    throw new Error('No authorization URL returned from payment provider');
-  }
-
-  return data;
-};
 
 /**
  * Generate a unique transaction reference
