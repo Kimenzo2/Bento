@@ -55,7 +55,7 @@ const DEFAULT_CONFIG: SecurityConfig = {
   enableRateLimiting: true,
   enableInputValidation: true,
   reportSecurityViolations: true,
-  allowedOrigins: ['https://aetherix.app', 'https://www.aetherix.app', 'https://*.vercel.app'],
+  allowedOrigins: ['https://iamazeyou.me', 'https://www.iamazeyou.me', 'https://*.vercel.app'],
 };
 
 // ============================================================================

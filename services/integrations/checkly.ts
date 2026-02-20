@@ -427,7 +427,7 @@ test('${name}', async ({ page }) => {
   ${steps.map((step, i) => `// Step ${i + 1}: ${step}`).join('\n  ')}
   
   // Navigate to Genesis
-  await page.goto(process.env.GENESIS_URL ?? 'https://aetherix.app');
+  await page.goto(process.env.GENESIS_URL ?? 'https://iamazeyou.me');
   
   // Wait for the app to load
   await expect(page).toHaveTitle(/Genesis/i);
