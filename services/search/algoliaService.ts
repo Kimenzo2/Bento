@@ -25,9 +25,8 @@ import { type AppError, type Result, safeCall } from '../serviceWrapper';
 const ALGOLIA_APP_ID = import.meta.env.VITE_ALGOLIA_APP_ID || '';
 const ALGOLIA_SEARCH_KEY =
   import.meta.env.VITE_ALGOLIA_SEARCH_KEY || '';
-// SECURITY: Write key must NEVER be in client-side code. Move indexing to a server-side API.
-const ALGOLIA_WRITE_KEY =
-  import.meta.env.VITE_ALGOLIA_WRITE_KEY || '';
+// SECURITY: Write key is server-only — never exposed to client bundle
+const ALGOLIA_WRITE_KEY = '';
 
 // Lazy initialization to avoid errors if keys are missing
 let _searchClient: ReturnType<typeof algoliasearch> | null = null;

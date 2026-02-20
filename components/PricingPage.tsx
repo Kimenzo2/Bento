@@ -2,7 +2,7 @@ import { Briefcase, Check, Crown, Loader, Star, X, Zap } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { initializePayment, verifyTransaction } from '../services/paystackService';
+// Payment Page URLs are stored in each tier's paystackPaymentUrl field
 
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
@@ -58,7 +58,7 @@ const tiers: TierData[] = [
     color: 'bg-blue-50 text-blue-600',
     buttonColor: 'bg-blue-500 text-white hover:bg-blue-600',
     saveLabel: 'Save 18%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/mfkoveuu1o',
+    paystackPaymentUrl: 'https://paystack.shop/pay/fan-nihu8w', // TEMP TEST — production: https://paystack.shop/pay/mfkoveuu1o
     planCode: 'PLN_zbnzvdqjsdxfcqc',
     features: [
       '30 ebooks per month',
@@ -143,112 +143,21 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
     }
   }, []);
 
-  const handleSubscribe = async (tier: TierData) => {
+  const handleSubscribe = (tier: TierData) => {
     if (tier.priceMonthly === 0) {
       alert('You are now on the Free Spark plan!');
       if (onUpgrade) onUpgrade(UserTier.SPARK);
       return;
     }
 
-    if (!tier.planCode) {
+    if (!tier.paystackPaymentUrl) {
       alert('This plan is not available for subscription.');
       return;
     }
 
-    setProcessingTier(tier.name);
-
-    // Resolve email: auth context → Supabase getUser → localStorage → prompt
-    let email = userEmail;
-    if (!email) {
-      try {
-        const { supabase } = await import('../services/supabaseClient');
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        email = authUser?.email || authUser?.user_metadata?.email || '';
-      } catch (_) { /* fallback below */ }
-    }
-    if (!email) {
-      try {
-        const saved = localStorage.getItem('genesis_settings');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.email) email = parsed.email;
-        }
-      } catch (_) { /* fallback below */ }
-    }
-    if (!email) {
-      const prompted = prompt('Please enter your email address to continue with payment:');
-      if (!prompted || !prompted.includes('@')) {
-        alert('A valid email address is required for payment.');
-        setProcessingTier(null);
-        return;
-      }
-      email = prompted.trim();
-    }
-    if (email && email !== userEmail) setUserEmail(email);
-
-    // Get user ID for metadata
-    const userId = await getUserId();
-
-    try {
-      // Use Paystack Inline SDK with plan parameter for subscription
-      await initializePayment({
-        email,
-        amount: isAnnual ? tier.priceAnnual * 100 : tier.priceMonthly * 100,
-        plan: tier.planCode!,
-        metadata: {
-          user_id: userId,
-          plan_code: tier.planCode,
-          tier: tier.name,
-        },
-        onSuccess: async (transaction: any) => {
-          try {
-            // Verify transaction server-side
-            const verification = await verifyTransaction(transaction.reference);
-            if (verification?.status === 'success') {
-              if (onUpgrade) onUpgrade(tier.name);
-              window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
-            } else {
-              alert('Payment verification pending. Your account will be updated shortly.');
-              setProcessingTier(null);
-            }
-          } catch (_) {
-            // Verification endpoint may not be available locally — still redirect
-            window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
-          }
-        },
-        onCancel: () => {
-          setProcessingTier(null);
-        },
-      });
-    } catch (error: any) {
-      console.error('Payment initialization failed:', error);
-      alert(`Unable to start payment. ${error.message || 'Please try again.'}`);
-      setProcessingTier(null);
-    }
-  };
-
-  // Helper to get user ID from Supabase or generate one
-  const getUserId = async (): Promise<string> => {
-    try {
-      // Try to get from Supabase auth
-      const { supabase } = await import('../services/supabaseClient');
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user?.id) return user.id;
-
-      // Fallback: generate/retrieve from localStorage
-      let localUserId = localStorage.getItem('genesis_user_id');
-      if (!localUserId) {
-        localUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('genesis_user_id', localUserId);
-      }
-      return localUserId;
-    } catch (error) {
-      console.error('Failed to get user ID:', error);
-      // Generate temp ID as last resort
-      return `temp_${Date.now()}`;
-    }
+    // Redirect directly to Paystack-hosted Payment Page
+    // Paystack handles email collection, payment methods, and confirmation
+    window.location.href = tier.paystackPaymentUrl;
   };
 
   return (

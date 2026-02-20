@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
+import { createAuthenticatedHandler, type ApiContext } from './middleware';
 
-const resend = new Resend(process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Simple in-memory rate limiter for email endpoint
 const emailRateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -19,50 +20,48 @@ function checkEmailRateLimit(identifier: string): boolean {
   return true;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export default createAuthenticatedHandler(
+  async (ctx: ApiContext) => {
+    const { req, res, log, requestId, userId } = ctx;
 
-  // Rate limit by IP
-  const clientIp = (typeof req.headers['x-forwarded-for'] === 'string'
-    ? req.headers['x-forwarded-for'].split(',')[0].trim()
-    : req.headers['x-real-ip'] || 'unknown') as string;
-  if (!checkEmailRateLimit(clientIp)) {
-    return res.status(429).json({ error: 'Too many email requests. Please try again later.' });
-  }
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-  try {
-    const { to, subject, html, text, from, replyTo } = req.body;
+    // Rate limit by authenticated user
+    if (!checkEmailRateLimit(userId || requestId)) {
+      return res.status(429).json({ error: 'Too many email requests. Please try again later.' });
+    }
 
-    // Validate required fields
-    if (!to || !subject || (!html && !text)) {
-      return res.status(400).json({
-        error: 'Missing required fields: to, subject, and html or text',
+    try {
+      const { to, subject, html, text, from, replyTo } = req.body;
+
+      if (!to || !subject || (!html && !text)) {
+        return res.status(400).json({
+          error: 'Missing required fields: to, subject, and html or text',
+        });
+      }
+
+      const { data, error } = await resend.emails.send({
+        from: from || 'Genesis <onboarding@resend.dev>',
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+        text,
+        replyTo,
       });
+
+      if (error) {
+        log.error('Resend API error in send-email');
+        return res.status(400).json({ error: 'Failed to send email' });
+      }
+
+      return res.status(200).json({ success: true, id: data?.id });
+    } catch (error: any) {
+      log.error('Server error in send-email handler', error);
+      return res.status(500).json({ error: 'Failed to send email' });
     }
-
-    // Send email via Resend
-    const { data, error } = await resend.emails.send({
-      from: from || 'Genesis <onboarding@resend.dev>',
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      html,
-      text,
-      replyTo,
-    });
-
-    if (error) {
-      console.error('Resend API error in send-email');
-      return res.status(400).json({ error: 'Failed to send email' });
-    }
-
-    return res.status(200).json({ success: true, id: data?.id });
-  } catch (error: any) {
-    console.error('Server error in send-email handler');
-    return res.status(500).json({
-      error: 'Failed to send email',
-    });
-  }
-}
+  },
+  { protection: 'api', rateLimit: { requests: 10, window: '1m' } }
+);

@@ -493,7 +493,8 @@ export const checkly = new ChecklyService();
 export function initializeCheckly(config?: Partial<ChecklyConfig>): Promise<void> {
   const finalConfig: ChecklyConfig = {
     accountId: config?.accountId ?? import.meta.env.VITE_CHECKLY_ACCOUNT_ID ?? '',
-    apiKey: config?.apiKey ?? import.meta.env.VITE_CHECKLY_API_KEY,
+    // Server secret — never exposed to client bundle (no VITE_ prefix)
+    apiKey: config?.apiKey,
     enableRUM: config?.enableRUM ?? true,
     siteId: config?.siteId ?? import.meta.env.VITE_CHECKLY_SITE_ID,
   };

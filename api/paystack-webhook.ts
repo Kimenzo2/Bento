@@ -2,10 +2,14 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase with service role key for admin access
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('[webhook] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
+
+const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
 // Paystack webhook source IPs (whitelist)
 // See: https://paystack.com/docs/payments/webhooks/#ip-whitelisting
@@ -107,7 +111,11 @@ export default async function handler(req: any, res: any) {
 
 /**
  * Idempotency guard: checks if a webhook event with the given reference
- * has already been processed. Uses the unique index on paystack_reference.
+ * has already been processed.
+ *
+ * Uses the unique index on (paystack_reference, event_type) for atomicity —
+ * concurrent duplicate webhooks will fail the INSERT constraint instead
+ * of racing through a SELECT gap.
  *
  * Returns true if event was already processed (duplicate).
  */
@@ -126,13 +134,57 @@ async function isDuplicate(reference: string | undefined, eventType: string): Pr
 }
 
 async function handleChargeSuccess(data: any) {
-  const userId = data.metadata?.user_id;
-  const planCode = data.metadata?.plan_code;
+  // --- Resolve user identity ---
+  // Initial charges carry user_id & plan_code in metadata.
+  // Recurring (automated) charges do NOT — look up via customer_code instead.
+  let userId: string | undefined = data.metadata?.user_id;
+  let planCode: string | undefined = data.metadata?.plan_code;
   const reference = data.reference;
+  const customerCode = data.customer?.customer_code;
 
   if (!userId || !planCode) {
-    console.warn('[webhook:charge.success] Missing user_id or plan_code in metadata');
-    return;
+    // Fallback 1: Look up by customer_code (for recurring charges)
+    if (customerCode) {
+      const { data: profile, error: lookupError } = await supabase
+        .from('profiles')
+        .select('id, subscription_plan_code')
+        .eq('paystack_customer_code', customerCode)
+        .single();
+
+      if (!lookupError && profile) {
+        userId = profile.id;
+        planCode = planCode || profile.subscription_plan_code || data.plan?.plan_code;
+        console.log(`[webhook:charge.success] Resolved user ${userId} via customer_code`);
+      }
+    }
+
+    // Fallback 2: Look up by customer email (for first-time Payment Page charges)
+    if (!userId && data.customer?.email) {
+      const { data: profile, error: emailLookupError } = await supabase
+        .from('profiles')
+        .select('id, subscription_plan_code')
+        .eq('email', data.customer.email)
+        .single();
+
+      if (!emailLookupError && profile) {
+        userId = profile.id;
+        planCode = planCode || profile.subscription_plan_code || data.plan?.plan_code;
+        console.log(`[webhook:charge.success] Resolved user ${userId} via email: ${data.customer.email}`);
+      }
+    }
+
+    if (!userId) {
+      console.warn('[webhook:charge.success] Cannot resolve user — no metadata, customer_code, or email match');
+      return;
+    }
+
+    // Resolve plan_code from the event data if still missing
+    planCode = planCode || data.plan?.plan_code;
+
+    if (!planCode) {
+      console.warn(`[webhook:charge.success] No plan_code resolvable for user ${userId}`);
+      return;
+    }
   }
 
   // Idempotency check
@@ -154,6 +206,10 @@ async function handleChargeSuccess(data: any) {
     }
 
     // Update subscription info
+    // Calculate next billing date: extend by 1 month from now (Paystack bills monthly)
+    const nextBillingDate = new Date();
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -161,6 +217,7 @@ async function handleChargeSuccess(data: any) {
         subscription_plan_code: planCode,
         paystack_customer_code: data.customer?.customer_code,
         subscription_start_date: new Date().toISOString(),
+        subscription_end_date: nextBillingDate.toISOString(),
         cancel_at_period_end: false,
       })
       .eq('id', userId);
@@ -210,15 +267,29 @@ async function handleSubscriptionCreate(data: any) {
   }
 
   try {
-    // Find user by customer code
-    const { data: profile, error: findError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('paystack_customer_code', customerCode)
-      .single();
+    // Find user by customer_code, then fall back to email
+    let profile: any = null;
 
-    if (findError || !profile) {
-      console.warn(`[webhook:subscription.create] User not found for customer: ${customerCode}`);
+    if (customerCode) {
+      const { data: found } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('paystack_customer_code', customerCode)
+        .single();
+      profile = found;
+    }
+
+    if (!profile && data.customer?.email) {
+      const { data: found } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', data.customer.email)
+        .single();
+      profile = found;
+    }
+
+    if (!profile) {
+      console.warn(`[webhook:subscription.create] User not found for customer: ${customerCode || data.customer?.email}`);
       return;
     }
 

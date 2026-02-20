@@ -31,14 +31,8 @@ const envSchema = z.object({
   VITE_SUPABASE_URL: z.string().url().optional(),
   VITE_SUPABASE_ANON_KEY: z.string().min(1).optional(),
 
-  // AI Services
-  VITE_GEMINI_API_KEY: z.string().optional(),
-  VITE_GEMINI_API_KEY_1: z.string().optional(),
-  VITE_GEMINI_API_KEY_2: z.string().optional(),
-  VITE_GEMINI_API_KEY_3: z.string().optional(),
-  VITE_BYTEZ_API_KEY_1: z.string().optional(),
-  VITE_BYTEZ_API_KEY_2: z.string().optional(),
-  VITE_BYTEZ_API_KEY_3: z.string().optional(),
+  // AI Services — keys are now server-side only (no VITE_ prefix)
+  // Client calls go through /api/ai-generate and /api/ai-bytez proxies
 
   // Payments
   VITE_PAYSTACK_PUBLIC_KEY: z.string().optional(),
@@ -120,7 +114,7 @@ export const isTest = env.MODE === 'test';
 export function validateEnv(): boolean {
   const requiredVars = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const;
 
-  const optionalButRecommended = ['VITE_GEMINI_API_KEY'] as const;
+  const optionalButRecommended = [] as const;
 
   const missing: string[] = [];
   const recommended: string[] = [];
@@ -149,7 +143,7 @@ export function validateEnv(): boolean {
     logger.info('Environment validated', {
       mode: env.MODE,
       supabaseConfigured: !!env.VITE_SUPABASE_URL,
-      aiConfigured: !!env.VITE_GEMINI_API_KEY,
+      aiConfigured: true, // AI is always available via server-side proxies
     });
   }
 

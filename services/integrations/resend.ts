@@ -103,7 +103,8 @@ class ResendService {
    * Initialize Resend with API key
    */
   initialize(config?: Partial<ResendConfig>): boolean {
-    const apiKey = config?.apiKey || import.meta.env.VITE_RESEND_API_KEY;
+    // Server secret — never exposed to client bundle (no VITE_ prefix)
+    const apiKey = config?.apiKey;
 
     if (!apiKey) {
       return false;

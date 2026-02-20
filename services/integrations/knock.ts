@@ -133,7 +133,8 @@ class KnockService {
    * Initialize Knock with API keys
    */
   async initialize(config?: Partial<KnockConfig>): Promise<boolean> {
-    const apiKey = config?.apiKey || import.meta.env.VITE_KNOCK_API_KEY;
+    // Server secret — never exposed to client bundle (no VITE_ prefix)
+    const apiKey = config?.apiKey;
     const publicApiKey = config?.publicApiKey || import.meta.env.VITE_KNOCK_PUBLIC_API_KEY;
 
     if (!apiKey || !publicApiKey) {

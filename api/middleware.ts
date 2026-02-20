@@ -25,6 +25,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { jwtVerify } from 'jose';
 
 // ============================================================================
 // TYPES
@@ -160,15 +161,41 @@ function getClientIdentifier(req: VercelRequest): string {
 }
 
 /**
- * Get user ID from request (JWT, session, etc.)
+ * Cryptographically verify Supabase JWT and extract user ID.
+ * Falls back to undefined on any failure — callers should treat
+ * a missing userId as unauthenticated.
  */
-function extractUserId(req: VercelRequest): string | undefined {
-  // Check Authorization header
+async function verifyAndExtractUserId(req: VercelRequest): Promise<string | undefined> {
   const auth = req.headers.authorization;
+  if (!auth?.startsWith('Bearer ')) return undefined;
 
+  const token = auth.split(' ')[1];
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+
+  if (jwtSecret) {
+    try {
+      const secret = new TextEncoder().encode(jwtSecret);
+      const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
+      return (payload.sub as string) || undefined;
+    } catch {
+      // Signature invalid or token expired
+      return undefined;
+    }
+  }
+
+  // No JWT secret configured — reject (do NOT fall back to base64)
+  console.warn('[middleware] SUPABASE_JWT_SECRET not set — cannot verify tokens');
+  return undefined;
+}
+
+/**
+ * Insecure user ID extraction for logging / rate-limit keys only.
+ * NEVER use this to authorize an action.
+ */
+function extractUserIdUnsafe(req: VercelRequest): string | undefined {
+  const auth = req.headers.authorization;
   if (auth?.startsWith('Bearer ')) {
     try {
-      // Simple JWT payload extraction (not verification - that should be done separately)
       const token = auth.split(' ')[1];
       const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
       return payload.sub || payload.user_id || payload.id;
@@ -176,12 +203,7 @@ function extractUserId(req: VercelRequest): string | undefined {
       // Invalid token format
     }
   }
-
-  // Check query params (for webhooks)
-  if (typeof req.query.user_id === 'string') {
-    return req.query.user_id;
-  }
-
+  if (typeof req.query.user_id === 'string') return req.query.user_id;
   return undefined;
 }
 
@@ -358,8 +380,14 @@ export function createProtectedHandler(
         });
       }
 
-      // Extract user ID
-      const userId = extractUserId(req);
+      // Extract user ID (cryptographic verification for auth-required routes)
+      let userId: string | undefined;
+      if (requireAuth) {
+        userId = await verifyAndExtractUserId(req);
+      } else {
+        // For non-auth routes, use fast extraction for logging/rate-limiting only
+        userId = extractUserIdUnsafe(req);
+      }
 
       // Check authentication if required
       if (requireAuth && !userId) {

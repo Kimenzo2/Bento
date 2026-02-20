@@ -1,6 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-// @ts-ignore
-import Bytez from 'bytez.js';
 import {
   type BookProject,
   type BrandStoryConfig,
@@ -23,159 +20,14 @@ import {
   retryWithBackoff,
   setCachedImageUrl,
 } from './performanceOptimizations';
-
-// Helper to safely get env vars in both Vite and Node environments
-const getEnv = (key: string) => {
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-ignore
-    return import.meta.env[key];
-  }
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key];
-  }
-  return undefined;
-};
+import { authenticatedFetch } from './api/authenticatedFetch';
 
 // ============================================================================
-// GEMINI API KEYS: Loaded from env for both text + image generation
+// TEXT GENERATION: Routed through server-side /api/ai-generate proxy
 // ============================================================================
-
-const geminiApiKeys = [
-  getEnv('VITE_GEMINI_API_KEY_1'),
-  getEnv('VITE_GEMINI_API_KEY_2'),
-  getEnv('VITE_GEMINI_API_KEY_3'),
-  getEnv('VITE_GEMINI_API_KEY_4'),
-  getEnv('VITE_GEMINI_API_KEY_5'),
-  getEnv('VITE_GEMINI_API_KEY_6'),
-  getEnv('VITE_GEMINI_API_KEY_7'),
-  getEnv('VITE_GEMINI_API_KEY_8'),
-  getEnv('VITE_GEMINI_API_KEY_9'),
-  getEnv('VITE_GEMINI_API_KEY_10'),
-  getEnv('VITE_GEMINI_API_KEY_11'),
-].filter((key) => key && key.length > 0);
-
-let currentKeyIndex = 0;
-
-if (geminiApiKeys.length === 0) {
-  if (import.meta.env.DEV) console.warn('⚠️ No Gemini API Keys found. Check your .env file.');
-} else {
-  console.log(`✅ Gemini AI configured with ${geminiApiKeys.length} API key(s) for text generation`);
-}
-
-// Function to get next available Gemini key (rotates through keys)
-function getNextGeminiKey(): string {
-  if (geminiApiKeys.length === 0) throw new Error('No Gemini API keys available');
-  const key = geminiApiKeys[currentKeyIndex];
-  currentKeyIndex = (currentKeyIndex + 1) % geminiApiKeys.length;
-  return key;
-}
-
-// Get a GoogleGenAI client with the next rotated key
-function getGeminiClient(): GoogleGenAI {
-  return new GoogleGenAI({ apiKey: getNextGeminiKey() });
-}
-
-// Function to retry operation with next key on failure
-async function retryWithNextKey<T>(
-  operation: (client: GoogleGenAI) => Promise<T>,
-  maxRetries: number = geminiApiKeys.length
-): Promise<T> {
-  let lastError: any;
-
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const client = getGeminiClient();
-      const result = await operation(client);
-
-      if (i > 0) {
-        console.log(`✅ Succeeded with Gemini key #${currentKeyIndex === 0 ? geminiApiKeys.length : currentKeyIndex}`);
-      }
-
-      return result;
-    } catch (error: any) {
-      lastError = error;
-      const keyNum = currentKeyIndex === 0 ? geminiApiKeys.length : currentKeyIndex;
-      console.warn(`⚠️ Gemini key #${keyNum} failed, trying next...`);
-
-      // If it's not a quota/rate limit/server error, don't retry
-      const status = error?.status || error?.httpStatusCode || error?.code;
-      if (status && ![429, 403, 500, 502, 503].includes(status)) {
-        throw error;
-      }
-    }
-  }
-
-  console.error('❌ All Gemini API keys exhausted');
-  throw lastError;
-}
-
+// API keys are server-side only (GEMINI_API_KEY_1 to _20, no VITE_ prefix)
+// Client calls authenticatedFetch → /api/ai-generate → Gemini API
 // ============================================================================
-// BYTEZ SDK: Used for IMAGE generation (Imagen API requires billed Google accounts)
-// Text generation uses Gemini API keys above; images go through Bytez
-// ============================================================================
-
-const bytezApiKeys = [
-  getEnv('VITE_BYTEZ_API_KEY_1'),
-  getEnv('VITE_BYTEZ_API_KEY_2'),
-  getEnv('VITE_BYTEZ_API_KEY_3'),
-  getEnv('VITE_BYTEZ_API_KEY_4'),
-  getEnv('VITE_BYTEZ_API_KEY_5'),
-  getEnv('VITE_BYTEZ_API_KEY_6'),
-  getEnv('VITE_BYTEZ_API_KEY_7'),
-  getEnv('VITE_BYTEZ_API_KEY_8'),
-  getEnv('VITE_BYTEZ_API_KEY_9'),
-  getEnv('VITE_BYTEZ_API_KEY_10'),
-  getEnv('VITE_BYTEZ_API_KEY_11'),
-].filter((key) => key && key.length > 0);
-
-let currentBytezKeyIndex = 0;
-
-if (bytezApiKeys.length === 0) {
-  if (import.meta.env.DEV) console.warn('⚠️ No Bytez API Keys found for image generation.');
-} else {
-  console.log(`✅ Bytez configured with ${bytezApiKeys.length} API key(s) for image generation`);
-}
-
-function getNextBytezKey(): string {
-  if (bytezApiKeys.length === 0) throw new Error('No Bytez API keys available for images');
-  const key = bytezApiKeys[currentBytezKeyIndex];
-  currentBytezKeyIndex = (currentBytezKeyIndex + 1) % bytezApiKeys.length;
-  return key;
-}
-
-// Retry image operation with next Bytez key on failure
-async function retryImageWithNextKey<T>(
-  operation: (sdk: any) => Promise<T>,
-  maxRetries: number = bytezApiKeys.length
-): Promise<T> {
-  let lastError: any;
-
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const sdk = new Bytez(getNextBytezKey());
-      const result = await operation(sdk);
-
-      if (i > 0) {
-        console.log(`✅ Succeeded with Bytez key #${currentBytezKeyIndex === 0 ? bytezApiKeys.length : currentBytezKeyIndex}`);
-      }
-
-      return result;
-    } catch (error: any) {
-      lastError = error;
-      const keyNum = currentBytezKeyIndex === 0 ? bytezApiKeys.length : currentBytezKeyIndex;
-      console.warn(`⚠️ Bytez key #${keyNum} failed for image, trying next...`);
-
-      const status = error?.error?.code || error?.status;
-      if (status && ![429, 403, 500, 502, 503].includes(status)) {
-        throw error;
-      }
-    }
-  }
-
-  console.error('❌ All Bytez API keys exhausted for image generation');
-  throw lastError;
-}
 
 // Helper function to get Imagen model ID based on tier (Bytez model names)
 function getModelId(tier: UserTier): string {
@@ -260,49 +112,57 @@ const rateLimiter = {
   },
 };
 
-// ============================================================================
-// TEXT GENERATION: Google Gemini API directly (gemini-2.0-flash)
-// ============================================================================
-// Uses Gemini API keys (VITE_GEMINI_API_KEY_1 to _11) for both:
-//   - Text generation (Gemini 2.0 Flash) — fast, free tier generous
-//   - Image generation (Imagen 3) — via generateImages API
-// ============================================================================
-
 const GEMINI_TEXT_MODEL = 'gemini-2.0-flash';
 
-// Helper function to call Gemini API directly for text generation
+// Helper: call Gemini text generation via the server-side proxy
 async function callGeminiAPI(
   prompt: string,
   modelName: string = GEMINI_TEXT_MODEL,
   maxTokens = 4096
 ): Promise<string> {
-  try {
-    console.log(`🔄 Calling Gemini API (${modelName}) for text generation...`);
+  console.log(`🔄 Calling Gemini API (${modelName}) via proxy...`);
 
-    const client = getGeminiClient();
-
-    const response = await client.models.generateContent({
+  const res = await authenticatedFetch('/api/ai-generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: `You are a JSON generator. Always respond with valid JSON only. No markdown code blocks, no explanations, just pure JSON.\n\n${prompt}\n\nRespond with valid JSON only.`,
       model: modelName,
-      contents: `You are a JSON generator. Always respond with valid JSON only. No markdown code blocks, no explanations, just pure JSON.\n\n${prompt}\n\nRespond with valid JSON only.`,
-      config: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.7,
-      },
-    });
+      maxTokens,
+    }),
+  });
 
-    const content = response.text;
-
-    if (!content) {
-      console.error('❌ No output from Gemini API');
-      throw new Error('No output received from Gemini API');
-    }
-
-    console.log('✅ Gemini API response received');
-    return content;
-  } catch (error: any) {
-    console.error('❌ Gemini API call failed:', error);
-    throw error;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Gemini proxy request failed');
   }
+
+  const data = await res.json();
+  if (!data.text) throw new Error('No output received from Gemini API');
+  console.log('✅ Gemini API response received');
+  return data.text;
+}
+
+// Helper: call Bytez image generation via the server-side proxy
+async function callBytezImageProxy(
+  prompt: string,
+  modelId: string
+): Promise<string | null> {
+  console.log(`🎨 Calling Bytez image proxy (${modelId})...`);
+
+  const res = await authenticatedFetch('/api/ai-bytez', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model: modelId }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Bytez proxy request failed');
+  }
+
+  const data = await res.json();
+  return data.output ?? null;
 }
 
 const SYSTEM_INSTRUCTION_ARCHITECT = `You are an AI ebook generation engine for a web/mobile application. Your responses must be valid JSON that the application can parse and render. Generate engaging, age-appropriate stories with consistent formatting for programmatic consumption.
@@ -995,10 +855,6 @@ export const generateBrandContent = async (
   settings: GenerationSettings,
   brandConfig: BrandStoryConfig
 ): Promise<Partial<BookProject>> => {
-  if (geminiApiKeys.length === 0) {
-    throw new Error('Gemini API Keys are missing. Please configure VITE_GEMINI_API_KEY_1 etc. in your .env file.');
-  }
-
   // Apply rate limiting
   await rateLimiter.throttle();
 
@@ -1097,10 +953,6 @@ IMPORTANT:
 export const generateBookStructure = async (
   settings: GenerationSettings
 ): Promise<Partial<BookProject>> => {
-  if (geminiApiKeys.length === 0) {
-    throw new Error('Gemini API Keys are missing. Please configure VITE_GEMINI_API_KEY_1 etc. in your .env file.');
-  }
-
   // Apply rate limiting
   await rateLimiter.throttle();
 
@@ -1388,10 +1240,6 @@ export const generateStructuredContent = async <T>(
   schema?: any,
   systemInstruction?: string
 ): Promise<T> => {
-  if (geminiApiKeys.length === 0) {
-    throw new Error('Gemini API Keys are missing');
-  }
-
   // Apply rate limiting
   await rateLimiter.throttle();
 
@@ -1482,18 +1330,7 @@ export const generateIllustration = async (
           }
 
           const output = await retryWithBackoff(
-            async () => {
-              return retryImageWithNextKey(async (sdk) => {
-                const model = sdk.model(modelId);
-                const { error, output } = await model.run(fullPrompt);
-
-                if (error) {
-                  throw { error };
-                }
-
-                return output;
-              });
-            },
+            async () => callBytezImageProxy(fullPrompt, modelId),
             {
               maxRetries: 2,
               initialDelayMs: 2000,
@@ -1617,16 +1454,7 @@ ${styleAConfig?.avoidances || 'No muddy colors, no inconsistent lighting, no ana
 `;
 
   try {
-    const output = await retryImageWithNextKey(async (sdk) => {
-      const model = sdk.model(modelId);
-      const { error, output } = await model.run(fullPrompt);
-
-      if (error) {
-        throw { error };
-      }
-
-      return output;
-    });
+    const output = await callBytezImageProxy(fullPrompt, modelId);
 
     console.log('✅ Bytez image generation successful - geminiService.ts:1378');
     return output;

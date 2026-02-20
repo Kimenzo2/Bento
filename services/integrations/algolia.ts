@@ -115,7 +115,8 @@ class AlgoliaService {
     this.config = {
       appId,
       searchApiKey,
-      writeApiKey: config?.writeApiKey || import.meta.env.VITE_ALGOLIA_WRITE_API_KEY,
+      // Write key is server-only — never exposed to client bundle
+      writeApiKey: config?.writeApiKey,
       indexPrefix: config?.indexPrefix || 'genesis_',
     };
 

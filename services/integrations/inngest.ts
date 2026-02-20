@@ -104,7 +104,8 @@ class InngestService {
    * Initialize Inngest
    */
   initialize(config?: Partial<InngestConfig>): boolean {
-    const eventKey = config?.eventKey || import.meta.env.VITE_INNGEST_EVENT_KEY;
+    // Server secret — never exposed to client bundle (no VITE_ prefix)
+    const eventKey = config?.eventKey;
 
     if (!eventKey) {
       return false;
@@ -112,7 +113,8 @@ class InngestService {
 
     this.config = {
       eventKey,
-      signingKey: config?.signingKey || import.meta.env.VITE_INNGEST_SIGNING_KEY,
+      // Signing key is server-only — never exposed to client bundle
+      signingKey: config?.signingKey,
       baseUrl: config?.baseUrl || this.baseUrl,
     };
 

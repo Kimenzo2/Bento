@@ -111,7 +111,8 @@ class ElevenLabsService {
    * Initialize ElevenLabs with API key
    */
   initialize(config?: Partial<ElevenLabsConfig>): boolean {
-    const apiKey = config?.apiKey || import.meta.env.VITE_ELEVENLABS_API_KEY;
+    // Server secret — never exposed to client bundle (no VITE_ prefix)
+    const apiKey = config?.apiKey;
 
     if (!apiKey) {
       return false;

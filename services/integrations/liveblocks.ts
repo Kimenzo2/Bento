@@ -122,7 +122,8 @@ class LiveblocksService {
 
     this.config = {
       publicKey,
-      secretKey: config?.secretKey || import.meta.env.VITE_LIVEBLOCKS_SECRET_KEY,
+      // Secret key is server-only — never exposed to client bundle
+      secretKey: config?.secretKey,
     };
 
     // Assign random color for this user

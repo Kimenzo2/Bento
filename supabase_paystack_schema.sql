@@ -59,6 +59,7 @@ BEGIN
   UPDATE public.profiles
   SET user_tier = CASE
     WHEN p_plan_code = 'PLN_zbnzvdqjsdxfcqc' THEN 'CREATOR'
+    WHEN p_plan_code = 'PLN_sx952147c601pnd' THEN 'CREATOR'  -- Onboarding Exclusive
     WHEN p_plan_code = 'PLN_09zg1ly5kg57niz' THEN 'STUDIO'
     WHEN p_plan_code = 'PLN_tv2y349z88b1bd8' THEN 'EMPIRE'
     ELSE 'SPARK'
@@ -96,6 +97,11 @@ CREATE INDEX IF NOT EXISTS idx_subscription_events_user_id
 
 CREATE INDEX IF NOT EXISTS idx_subscription_events_created_at 
   ON public.subscription_events(created_at DESC);
+
+-- Unique index to guarantee webhook idempotency (prevents duplicate processing)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_events_idempotency
+  ON public.subscription_events(paystack_reference, event_type)
+  WHERE paystack_reference IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_profiles_subscription_status 
   ON public.profiles(subscription_status);

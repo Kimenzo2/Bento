@@ -12,6 +12,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createAuthenticatedHandler, type ApiContext } from './middleware';
 
 // ============================================================================
 // TYPES
@@ -262,38 +263,31 @@ async function handleDeleteAsset(req: VercelRequest, res: VercelResponse): Promi
 // MAIN HANDLER
 // ============================================================================
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  // CORS headers — restrict to app origin in production
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '*');
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+export default createAuthenticatedHandler(
+  async (ctx: ApiContext) => {
+    const { req, res } = ctx;
+    const path = req.url?.replace('/api/storage', '') || '';
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+    // Route requests
+    if (req.method === 'POST' && path === '/presign') {
+      return handlePresign(req, res);
+    }
 
-  const path = req.url?.replace('/api/storage', '') || '';
+    if (req.method === 'POST' && path === '/upload-from-url') {
+      return handleUploadFromUrl(req, res);
+    }
 
-  // Route requests
-  if (req.method === 'POST' && path === '/presign') {
-    return handlePresign(req, res);
-  }
+    if (req.method === 'GET' && path.startsWith('/asset/')) {
+      req.query.key = path.replace('/asset/', '');
+      return handleGetAsset(req, res);
+    }
 
-  if (req.method === 'POST' && path === '/upload-from-url') {
-    return handleUploadFromUrl(req, res);
-  }
+    if (req.method === 'DELETE' && path.startsWith('/asset/')) {
+      req.query.key = path.replace('/asset/', '');
+      return handleDeleteAsset(req, res);
+    }
 
-  if (req.method === 'GET' && path.startsWith('/asset/')) {
-    req.query.key = path.replace('/asset/', '');
-    return handleGetAsset(req, res);
-  }
-
-  if (req.method === 'DELETE' && path.startsWith('/asset/')) {
-    req.query.key = path.replace('/asset/', '');
-    return handleDeleteAsset(req, res);
-  }
-
-  res.status(404).json({ error: 'Not found' });
-}
+    res.status(404).json({ error: 'Not found' });
+  },
+  { cors: true }
+);

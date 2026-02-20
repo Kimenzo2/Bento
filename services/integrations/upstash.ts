@@ -750,9 +750,9 @@ export function initializeUpstash(config?: UpstashConfig): UpstashRedis {
   if (upstashInstance) return upstashInstance;
 
   const finalConfig = config ?? {
-    url: import.meta.env.VITE_UPSTASH_REDIS_REST_URL ?? process.env.UPSTASH_REDIS_REST_URL ?? '',
-    token:
-      import.meta.env.VITE_UPSTASH_REDIS_REST_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
+    // Server secrets — never exposed to client bundle (no VITE_ prefix)
+    url: process.env.UPSTASH_REDIS_REST_URL ?? '',
+    token: process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
   };
 
   if (!finalConfig.url || !finalConfig.token) {

@@ -10,8 +10,6 @@
  * - Scene context visuals
  */
 
-// @ts-ignore
-import Bytez from 'bytez.js';
 import { UserTier } from '../types';
 import type { Character } from '../types';
 import {
@@ -20,70 +18,16 @@ import {
   extractVisualProfile,
 } from './characterConsistencyService';
 import { generateIllustration } from './geminiService';
-
-// Helper to safely get env vars in both Vite and Node environments
-const getEnv = (key: string) => {
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-ignore
-    return import.meta.env[key];
-  }
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key];
-  }
-  return undefined;
-};
-
-// Dedicated Bytez API keys for Green Room (separate from storybook generation)
-const GREEN_ROOM_API_KEYS = [
-  getEnv('VITE_BYTEZ_API_KEY_1'),
-  getEnv('VITE_BYTEZ_API_KEY_2'),
-  getEnv('VITE_BYTEZ_API_KEY_3'),
-  getEnv('VITE_BYTEZ_API_KEY_4'),
-  getEnv('VITE_BYTEZ_API_KEY_5'),
-  getEnv('VITE_BYTEZ_API_KEY_6'),
-  getEnv('VITE_BYTEZ_API_KEY_7'),
-  getEnv('VITE_BYTEZ_API_KEY_8'),
-  getEnv('VITE_BYTEZ_API_KEY_9'),
-  getEnv('VITE_BYTEZ_API_KEY_10'),
-  getEnv('VITE_BYTEZ_API_KEY_11'),
-].filter((key) => key && key.length > 0);
+import { authenticatedFetch } from './api/authenticatedFetch';
 
 // Use Gemini 2.5 Pro via Bytez for high-quality character conversations
 const GREEN_ROOM_MODEL = 'google/gemini-2.5-pro';
 
-// Current key index for rotation
-let currentKeyIndex = 0;
-
-// Validate API keys at module load
-if (GREEN_ROOM_API_KEYS.length === 0) {
-  console.warn('⚠️ No Bytez API keys configured for Green Room. Character conversations will not work.');
-  console.warn('Add VITE_BYTEZ_API_KEY_1, VITE_BYTEZ_API_KEY_2, etc. to your .env file');
-} else {
-  console.log(
-    `✅ Green Room AI configured with ${GREEN_ROOM_API_KEYS.length} Bytez API key(s)`
-  );
-}
-
 /**
- * Get the next API key in rotation
- */
-function getNextAPIKey(): string {
-  if (GREEN_ROOM_API_KEYS.length === 0) {
-    throw new Error('No Green Room API keys configured');
-  }
-
-  const key = GREEN_ROOM_API_KEYS[currentKeyIndex];
-  currentKeyIndex = (currentKeyIndex + 1) % GREEN_ROOM_API_KEYS.length;
-
-  return key;
-}
-
-/**
- * Check if Green Room AI is available
+ * Check if Green Room AI is available (always true — server proxy handles keys)
  */
 export const isGreenRoomAIAvailable = (): boolean => {
-  return GREEN_ROOM_API_KEYS.length > 0;
+  return true;
 };
 
 export interface GreenRoomMessage {
@@ -93,77 +37,52 @@ export interface GreenRoomMessage {
 
 /**
 /**
- * Call Green Room AI with dedicated Bytez API keys
- * Automatically rotates through available keys and models for reliability
+ * Call Green Room AI via server-side Bytez proxy
  */
 export async function callGreenRoomAI(messages: GreenRoomMessage[]): Promise<string> {
-  const maxRetries = GREEN_ROOM_API_KEYS.length;
-  let lastError: Error | null = null;
+  const formattedMessages = messages.map((msg) => ({
+    role: msg.role,
+    content: msg.content,
+  }));
 
-  // Try each API key in rotation
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const apiKey = getNextAPIKey();
-    const maskedKey = apiKey
-      ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
-      : 'undefined';
+  console.log(`🎭 Green Room AI: Calling ${GREEN_ROOM_MODEL} via proxy...`);
 
-    try {
-      const sdk = new Bytez(apiKey);
-      const model = sdk.model(GREEN_ROOM_MODEL);
+  const resp = await authenticatedFetch('/api/ai-bytez', {
+    method: 'POST',
+    body: JSON.stringify({
+      model: GREEN_ROOM_MODEL,
+      messages: formattedMessages,
+    }),
+  });
 
-      // Convert messages to the format expected by Bytez
-      const formattedMessages = messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
-      console.log(
-        `🎭 Green Room AI: Calling ${GREEN_ROOM_MODEL} via Bytez (Key: ${maskedKey}, Attempt ${attempt + 1}/${maxRetries})...`
-      );
-
-      const { error, output } = await model.run(formattedMessages);
-
-      if (error) {
-        throw new Error(`Bytez API error: ${JSON.stringify(error)}`);
-      }
-
-      if (!output) {
-        throw new Error('Empty response received from Bytez');
-      }
-
-      // Handle different output formats
-      let text: string;
-      if (typeof output === 'string') {
-        text = output.trim();
-      } else if (output.content) {
-        text = output.content.trim();
-      } else if (output.message?.content) {
-        text = output.message.content.trim();
-      } else if (Array.isArray(output) && output[0]?.content) {
-        text = output[0].content.trim();
-      } else {
-        text = JSON.stringify(output);
-      }
-
-      if (!text || text.length === 0) {
-        throw new Error('Empty text in response');
-      }
-
-      console.log(`✅ Green Room AI response received from Bytez (${GREEN_ROOM_MODEL})`);
-      return text;
-    } catch (error: any) {
-      console.warn(
-        `⚠️ Green Room AI failed with Bytez (Key: ${maskedKey}):`,
-        error.message
-      );
-      lastError = error;
-      // Loop continues to next key
-    }
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || `Green Room proxy returned ${resp.status}`);
   }
 
-  // All keys exhausted
-  console.error('❌ All Green Room Bytez API keys exhausted');
-  throw lastError || new Error('All Green Room Bytez API keys failed');
+  const data = await resp.json();
+
+  let text: string;
+  if (typeof data.output === 'string') {
+    text = data.output.trim();
+  } else if (data.output?.content) {
+    text = data.output.content.trim();
+  } else if (data.output?.message?.content) {
+    text = data.output.message.content.trim();
+  } else if (Array.isArray(data.output) && data.output[0]?.content) {
+    text = data.output[0].content.trim();
+  } else if (data.text) {
+    text = data.text.trim();
+  } else {
+    text = JSON.stringify(data.output || data);
+  }
+
+  if (!text || text.length === 0) {
+    throw new Error('Empty response from Green Room AI');
+  }
+
+  console.log(`✅ Green Room AI response received via proxy (${GREEN_ROOM_MODEL})`);
+  return text;
 }
 
 /**

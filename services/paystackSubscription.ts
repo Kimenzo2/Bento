@@ -1,5 +1,5 @@
 import { UserTier } from '../types';
-import { detectUserCountry, getRecommendedChannels, initializePayment, verifyTransaction, type PaymentChannel, PaystackCurrency } from './paystackService';
+import type { PaystackCurrency } from './paystackService';
 import { supabase } from './supabaseClient';
 
 interface SubscriptionPlan {
@@ -9,6 +9,7 @@ interface SubscriptionPlan {
   amount: number; // Monthly price in dollars
   annualPrice: number; // Annual billing amount
   currency: PaystackCurrency;
+  paymentUrl: string; // Paystack hosted Payment Page URL
   features: string[];
 }
 
@@ -20,6 +21,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     amount: 16.41, // $16.41/mo
     annualPrice: 197, // Billed $197/yr
     currency: 'USD',
+    paymentUrl: 'https://paystack.shop/pay/fan-nihu8w', // TEMP TEST — production: https://paystack.shop/pay/mfkoveuu1o
     features: [
       '30 ebooks per month',
       'Up to 12 pages/book',
@@ -36,6 +38,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     amount: 49.92, // $49.92/mo
     annualPrice: 600, // Billed $600/yr
     currency: 'USD',
+    paymentUrl: 'https://paystack.shop/pay/akv70alb1x',
     features: [
       'Everything in Creator',
       '5 team seats',
@@ -52,6 +55,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     amount: 166.58, // $166.58/mo
     annualPrice: 1999, // Billed $1999/yr
     currency: 'USD',
+    paymentUrl: 'https://paystack.shop/pay/uvcz30todn',
     features: [
       'Everything in Studio',
       'Unlimited team members',
@@ -75,88 +79,9 @@ export const initiateSubscription = async (
     throw new Error('Invalid plan selected');
   }
 
-  console.log(`Initiating ${plan.name} subscription for user ${userId}`);
-
-  // Detect user's country and get recommended payment channels
-  const userCountry = detectUserCountry();
-  const channels: PaymentChannel[] = userCountry 
-    ? getRecommendedChannels(userCountry, true) as PaymentChannel[]
-    : ['card', 'mobile_money', 'bank_transfer', 'ussd', 'bank', 'apple_pay'];
-  
-  if (import.meta.env.DEV) console.log(`Detected country: ${userCountry}, Available channels:`, channels);
-
-  // Initialize Paystack payment with subscription plan
-  await initializePayment({
-    email: userEmail,
-    amount: plan.amount,
-    currency: plan.currency,
-    plan: plan.planCode, // Creates a recurring subscription on Paystack
-    channels, // Show all available payment methods
-    firstName: userName?.split(' ')[0],
-    lastName: userName?.split(' ').slice(1).join(' '),
-    metadata: {
-      user_id: userId,
-      plan_code: plan.planCode,
-      plan_name: plan.name,
-      plan_tier: plan.tier,
-      subscription: true,
-      custom_fields: [
-        {
-          display_name: 'Plan',
-          variable_name: 'plan',
-          value: plan.name,
-        },
-        {
-          display_name: 'User ID',
-          variable_name: 'user_id',
-          value: userId,
-        },
-      ],
-    },
-    onSuccess: async (transaction) => {
-      if (import.meta.env.DEV) console.log('Payment successful:', transaction);
-
-      try {
-        // Server-side verification before trusting the callback
-        const verified = await verifyTransaction(transaction.reference);
-        if (!verified) {
-          console.error('Transaction verification failed for:', transaction.reference);
-          alert('Payment could not be verified. Please contact support with reference: ' + transaction.reference);
-          return;
-        }
-
-        // Log the subscription event
-        await supabase.from('subscription_events').insert({
-          user_id: userId,
-          event_type: 'payment_success',
-          paystack_reference: transaction.reference,
-          plan_code: plan.planCode,
-          amount: Math.round(plan.amount * 100), // Convert to cents
-          status: 'success',
-          metadata: { ...transaction, verified: true },
-        });
-
-        alert(
-          `🎉 Payment verified! Your ${plan.name} subscription is being activated. The page will refresh shortly.`
-        );
-
-        // Wait for webhook to process, then reload
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      } catch (error) {
-        console.error('Error logging subscription event:', error);
-        setTimeout(() => window.location.reload(), 3000);
-      }
-    },
-    onCancel: () => {
-      if (import.meta.env.DEV) console.log('Payment cancelled by user');
-    },
-    onError: (error) => {
-      console.error('Payment error:', error);
-      alert('Payment failed. Please try again or contact support if the issue persists.');
-    },
-  });
+  // Redirect directly to Paystack-hosted Payment Page
+  // Paystack handles email collection, payment, and confirmation
+  window.location.href = plan.paymentUrl;
 };
 
 export const cancelSubscription = async (userId: string): Promise<void> => {

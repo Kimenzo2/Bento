@@ -97,8 +97,9 @@ class MuxService {
    * Initialize Mux with API tokens
    */
   initialize(config?: Partial<MuxConfig>): boolean {
-    const tokenId = config?.tokenId || import.meta.env.VITE_MUX_TOKEN_ID;
-    const tokenSecret = config?.tokenSecret || import.meta.env.VITE_MUX_TOKEN_SECRET;
+    // Server secrets — never exposed to client bundle (no VITE_ prefix)
+    const tokenId = config?.tokenId;
+    const tokenSecret = config?.tokenSecret;
 
     if (!tokenId || !tokenSecret) {
       return false;

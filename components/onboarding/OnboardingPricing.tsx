@@ -61,7 +61,7 @@ const tiers: PricingTier[] = [
     glowColor: 'shadow-blue-500/30',
     borderColor: 'border-blue-400/30',
     saveLabel: 'Save 18%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/mfkoveuu1o',
+    paystackPaymentUrl: 'https://paystack.shop/pay/fan-nihu8w', // TEMP TEST — production: https://paystack.shop/pay/mfkoveuu1o
     planCode: 'PLN_zbnzvdqjsdxfcqc',
     features: [
       '30 ebooks per month',
@@ -160,7 +160,7 @@ export const OnboardingPricing: React.FC = () => {
     }
   };
 
-  const handleSubscribe = async (tier: typeof tiers[0]) => {
+  const handleSubscribe = (tier: typeof tiers[0]) => {
     if (tier.priceMonthly === 0) {
       // Free tier - continue to tour
       addSparkPoints(5);
@@ -168,80 +168,14 @@ export const OnboardingPricing: React.FC = () => {
       return;
     }
 
-    if (!tier.planCode) {
+    if (!tier.paystackPaymentUrl) {
       alert('This plan is not available for subscription.');
       return;
     }
 
-    setProcessingTier(tier.name);
-    setSelectedTier(tier.name);
-
-    // Resolve email: state → Supabase auth → localStorage → prompt
-    let email = userEmail;
-    if (!email) {
-      try {
-        const { supabase } = await import('../../services/supabaseClient');
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        email = authUser?.email || authUser?.user_metadata?.email || '';
-      } catch (_) { /* fallback below */ }
-    }
-    if (!email) {
-      try {
-        const saved = localStorage.getItem('genesis_settings');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.email) email = parsed.email;
-        }
-      } catch (_) { /* fallback below */ }
-    }
-    if (!email) {
-      const prompted = prompt('Please enter your email address to continue with payment:');
-      if (!prompted || !prompted.includes('@')) {
-        alert('A valid email address is required for payment.');
-        setProcessingTier(null);
-        return;
-      }
-      email = prompted.trim();
-    }
-    if (email && email !== userEmail) setUserEmail(email);
-
-    const userId = await getUserId();
-
-    try {
-      // Use Paystack Inline SDK with plan parameter for subscription
-      const { initializePayment, verifyTransaction } = await import('../../services/paystackService');
-      await initializePayment({
-        email,
-        amount: tier.priceMonthly * 100,
-        plan: tier.planCode!,
-        metadata: {
-          user_id: userId,
-          plan_code: tier.planCode,
-          tier: tier.name,
-          source: 'onboarding',
-        },
-        onSuccess: async (transaction: any) => {
-          try {
-            const verification = await verifyTransaction(transaction.reference);
-            if (verification?.status === 'success') {
-              window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
-            } else {
-              alert('Payment verification pending. Your account will be updated shortly.');
-              setProcessingTier(null);
-            }
-          } catch (_) {
-            window.location.href = `/payment-callback?trxref=${transaction.reference}&reference=${transaction.reference}`;
-          }
-        },
-        onCancel: () => {
-          setProcessingTier(null);
-        },
-      });
-    } catch (error: any) {
-      console.error('Payment initialization failed:', error);
-      alert(`Unable to start payment. ${error.message || 'Please try again.'}`);
-      setProcessingTier(null);
-    }
+    // Redirect directly to Paystack-hosted Payment Page
+    // Paystack handles email collection, payment methods, and confirmation
+    window.location.href = tier.paystackPaymentUrl;
   };
 
   const handleSkip = () => {

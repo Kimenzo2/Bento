@@ -634,7 +634,8 @@ export const arcjet = new ArcjetService();
  */
 export function initializeArcjet(config?: Partial<ArcjetConfig>): Promise<void> {
   const finalConfig: ArcjetConfig = {
-    key: config?.key ?? import.meta.env.VITE_ARCJET_KEY ?? '',
+    // Server secret — never exposed to client bundle (no VITE_ prefix)
+    key: config?.key ?? '',
     environment: (config?.environment ??
       import.meta.env.VITE_APP_ENVIRONMENT ??
       'development') as ArcjetConfig['environment'],
