@@ -293,13 +293,33 @@ async function handleSubscriptionCreate(data: any) {
       return;
     }
 
-    // Update subscription details
+    // Update user tier based on plan (critical — was missing!)
+    const planCode = data.plan?.plan_code;
+    if (planCode) {
+      const { error: rpcError } = await supabase.rpc('update_user_tier_from_plan', {
+        p_user_id: profile.id,
+        p_plan_code: planCode,
+      });
+      if (rpcError) {
+        console.error('[webhook:subscription.create] RPC tier update error:', rpcError.message);
+        throw rpcError;
+      }
+      console.log(`[webhook:subscription.create] Tier updated for user ${profile.id} via plan ${planCode}`);
+    } else {
+      console.warn(`[webhook:subscription.create] No plan_code in event data — tier not updated`);
+    }
+
+    // Update subscription details + customer_code (important for recurring lookups)
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
         paystack_subscription_code: subscriptionCode,
+        paystack_customer_code: customerCode,
+        subscription_plan_code: planCode || null,
+        subscription_start_date: new Date().toISOString(),
         subscription_end_date: data.next_payment_date,
         subscription_status: 'active',
+        cancel_at_period_end: false,
       })
       .eq('id', profile.id);
 
@@ -313,16 +333,17 @@ async function handleSubscriptionCreate(data: any) {
       user_id: profile.id,
       event_type: 'subscription_create',
       paystack_reference: subscriptionCode,
-      plan_code: data.plan?.plan_code,
+      plan_code: planCode,
       status: 'success',
       metadata: {
         plan_name: data.plan?.name,
         plan_interval: data.plan?.interval,
         next_payment_date: data.next_payment_date,
+        customer_code: customerCode,
       },
     });
 
-    console.log(`[webhook:subscription.create] Subscription ${subscriptionCode} linked to user ${profile.id}`);
+    console.log(`[webhook:subscription.create] Subscription ${subscriptionCode} linked to user ${profile.id}, tier updated`);
   } catch (error) {
     console.error('[webhook:subscription.create] Error:', error instanceof Error ? error.message : error);
     throw error;
