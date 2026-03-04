@@ -160,7 +160,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       case 'collab_joined':
         return 'bg-green-100 text-green-600';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-peach-soft/30 text-cocoa-light';
     }
   };
 
@@ -267,14 +267,14 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl border border-white overflow-hidden h-full flex flex-col">
+    <div className="bg-surface rounded-xl sm:rounded-2xl border border-white overflow-hidden h-full flex flex-col">
       {showHeader && (
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-peach-soft/50 shrink-0">
           <h3 className="font-heading font-bold text-sm sm:text-base text-charcoal-soft flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-coral-burst" />
             Activity
           </h3>
-          <span className="text-[10px] sm:text-xs text-gray-400">
+          <span className="text-[10px] sm:text-xs text-cocoa-light/60">
             {scope === 'session' ? 'This session' : 'Global'}
           </span>
         </div>
@@ -290,7 +290,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
             <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-coral-burst animate-spin" />
           </div>
         ) : activities.length === 0 ? (
-          <div className="text-center py-6 sm:py-8 text-gray-400">
+          <div className="text-center py-6 sm:py-8 text-cocoa-light/60">
             <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 opacity-50" />
             <p className="text-xs sm:text-sm">No activity yet</p>
             <p className="text-[10px] sm:text-xs">Be the first to create something!</p>
@@ -302,7 +302,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 key={activity.id}
                 className={`
                                     flex items-start gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 
-                                    hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer
+                                    hover:bg-surface/50 active:bg-peach-soft/30 transition-colors cursor-pointer
                                     animate-fadeIn
                                 `}
                 style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
@@ -337,7 +337,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   <p className="text-xs sm:text-sm text-charcoal-soft line-clamp-2">
                     {getActivityText(activity)}
                   </p>
-                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-cocoa-light/60 mt-0.5">
                     {formatTimeAgo(activity.created_at)}
                   </p>
                 </div>
@@ -402,7 +402,7 @@ export const ActivityNotification: React.FC<ActivityNotificationProps> = ({
       className="fixed bottom-28 sm:bottom-24 left-2 sm:left-4 right-2 sm:right-auto z-50 animate-slideUp"
       style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
     >
-      <div className="bg-white rounded-xl border border-gray-200 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-75">
+      <div className="bg-surface rounded-xl border border-peach-soft p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-75">
         <img
           src={
             activity.user?.avatar_url ||

@@ -86,7 +86,7 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
   const phaseInfo = getPhaseInfo(currentPhase);
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center backdrop-blur-md bg-white/90 animate-fadeIn">
+    <div className="fixed inset-0 z-100 flex items-center justify-center  bg-surface/90 animate-fadeIn">
       {/* Animated gradient background */}
       <div
         className={`absolute inset-0 bg-linear-to-br ${phaseInfo.gradient} opacity-30 transition-all duration-1000`}
@@ -155,7 +155,7 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
 
         {/* Rainbow progress bar */}
         <div className="w-full max-w-md">
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden relative">
+          <div className="h-3 bg-peach-light/50 rounded-full overflow-hidden relative">
             <motion.div
               className="h-full bg-linear-to-r from-coral-burst via-gold-sunshine to-mint-breeze relative"
               initial={{ width: 0 }}

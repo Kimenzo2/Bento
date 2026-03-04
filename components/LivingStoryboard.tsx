@@ -30,7 +30,7 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
 
   if (!beats || beats.length === 0) {
     return (
-      <div className="w-full h-64 flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-8 text-center">
+      <div className="w-full h-64 flex flex-col items-center justify-center bg-slate-900/50  rounded-xl border border-slate-700/50 p-8 text-center">
         <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4">
           <Film className="w-8 h-8 text-indigo-400" />
         </div>
@@ -103,7 +103,7 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
                 <div className="absolute top-1/2 left-full w-4 h-0.5 bg-slate-700/50 -translate-y-1/2 z-0" />
               )}
 
-              <div className="relative z-10 h-full bg-slate-800/40 backdrop-blur-md border border-slate-700/50 hover:border-indigo-500/50 rounded-xl p-4 transition-all duration-300 hover:-translate-y-1">
+              <div className="relative z-10 h-full bg-slate-800/40  border border-slate-700/50 hover:border-indigo-500/50 rounded-xl p-4 transition-all duration-300 hover:-translate-y-1">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">

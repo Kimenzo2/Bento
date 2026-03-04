@@ -28,13 +28,13 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
   };
 
   return (
-    <div className="absolute z-50 bg-white dark:bg-[#1A1A1A] rounded-2xl border border-peach-soft p-4 w-72 animate-fadeIn">
+    <div className="absolute z-50 bg-surface dark:bg-[#1A1A1A] rounded-2xl border border-peach-soft p-4 w-72 animate-fadeIn">
       {/* Close button */}
       <Button
         onClick={onClose}
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        className="absolute top-2 right-2 text-cocoa-light/60 hover:text-cocoa-light dark:hover:text-cocoa-light/60"
       >
         ✕
       </Button>
@@ -42,7 +42,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
       {/* Avatar and Name */}
       <div className="flex items-start gap-3 mb-3">
         <div className="relative">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 dark:bg-[#2D2D2D]">
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-peach-soft/30 dark:bg-[#2D2D2D]">
             <img
               src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
               alt={user.display_name || user.email}
@@ -56,11 +56,11 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate">
+          <h3 className="font-bold text-lg text-charcoal-soft dark:text-white truncate">
             {user.display_name || 'Anonymous'}
           </h3>
           {user.status && (
-            <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1 text-sm text-cocoa-light dark:text-cocoa-light/60">
               <Circle className={`w-2 h-2 ${statusColors[user.status]}`} />
               {statusText[user.status]}
             </div>
@@ -69,15 +69,15 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
       </div>
 
       {/* Email */}
-      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
+      <div className="flex items-center gap-2 text-sm text-cocoa-light dark:text-cocoa-light/60 mb-3">
         <Mail className="w-4 h-4" />
         <span className="truncate">{user.email}</span>
       </div>
 
       {/* Bio */}
       {user.bio && (
-        <div className="mb-3 p-3 bg-gray-50 dark:bg-[#2D2D2D] rounded-lg">
-          <p className="text-sm text-gray-700 dark:text-gray-300">{user.bio}</p>
+        <div className="mb-3 p-3 bg-surface/50 dark:bg-[#2D2D2D] rounded-lg">
+          <p className="text-sm text-cocoa-light dark:text-cocoa-light/60">{user.bio}</p>
         </div>
       )}
 
@@ -86,7 +86,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
         <Button variant="default" size="sm" className="flex-1 px-3 py-2 bg-coral-burst text-white font-medium hover:bg-coral-hover">
           Send Message
         </Button>
-        <Button variant="secondary" size="icon" className="px-3 py-2 bg-gray-100 dark:bg-[#2D2D2D] text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-[#3D3D3D]">
+        <Button variant="secondary" size="icon" className="px-3 py-2 bg-peach-soft/30 dark:bg-[#2D2D2D] text-cocoa-light dark:text-cocoa-light/60 font-medium hover:bg-peach-light/50 dark:hover:bg-[#3D3D3D]">
           <User className="w-4 h-4" />
         </Button>
       </div>

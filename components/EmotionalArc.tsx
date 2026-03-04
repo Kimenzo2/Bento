@@ -84,7 +84,7 @@ const EmotionalArc: React.FC<EmotionalArcProps> = ({
       default:
         return {
           icon: <Activity className="w-4 h-4" />,
-          color: 'text-gray-400',
+          color: 'text-cocoa-light/60',
           bg: 'bg-gray-500/20',
         };
     }
@@ -94,7 +94,7 @@ const EmotionalArc: React.FC<EmotionalArcProps> = ({
 
   if (arc.length === 0) {
     return (
-      <div className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-6 text-center">
+      <div className="bg-slate-800/40  rounded-xl p-6 text-center">
         <Activity className="w-8 h-8 text-slate-500 mx-auto mb-2" />
         <p className="text-slate-400 text-sm">No emotional arc data available</p>
       </div>
@@ -102,7 +102,7 @@ const EmotionalArc: React.FC<EmotionalArcProps> = ({
   }
 
   return (
-    <div className="bg-slate-800/40 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+    <div className="bg-slate-800/40  rounded-xl border border-slate-700/50 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
         <div className="flex items-center gap-2">

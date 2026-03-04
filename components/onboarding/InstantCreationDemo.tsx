@@ -112,7 +112,7 @@ const TypewriterText = memo(({ text, onComplete }: { text: string; onComplete: (
   return (
     <span>
       {displayedText}
-      <span className="inline-block w-0.5 h-6 bg-white ml-1 align-middle animate-pulse" />
+      <span className="inline-block w-0.5 h-6 bg-surface ml-1 align-middle animate-pulse" />
     </span>
   );
 });
@@ -122,7 +122,7 @@ TypewriterText.displayName = 'TypewriterText';
 const AmbientStar = memo(
   ({ x, y, delay, duration }: { x: string; y: string; delay: number; duration: number }) => (
     <div
-      className="absolute w-1 h-1 bg-white rounded-full animate-pulse pointer-events-none"
+      className="absolute w-1 h-1 bg-surface rounded-full animate-pulse pointer-events-none"
       style={{
         left: x,
         top: y,
@@ -235,7 +235,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             className="absolute top-4 right-3 md:top-24 md:right-6 z-20"
             style={GPU_STYLE}
           >
-            <div className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-linear-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-400/30">
+            <div className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-linear-to-r from-amber-500/20 to-orange-500/20  rounded-full border border-amber-400/30">
               <Star className="w-4 h-4 md:w-5 md:h-5 text-amber-400 fill-amber-400" />
               <span className="text-white font-bold text-sm md:text-base">{sparkPoints}</span>
               <span className="text-white/60 text-xs md:text-sm hidden md:inline">Sparks</span>
@@ -275,7 +275,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             initial={reducedMotion ? {} : { scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, ...FAST_TRANSITION }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-surface/5  rounded-full border border-white/10 mb-3 md:mb-6"
           >
             <Wand2 className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
             <span className="text-white/70 text-xs md:text-sm font-medium">
@@ -298,7 +298,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
           initial={reducedMotion ? {} : { opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, ...FAST_TRANSITION }}
-          className={`relative bg-white/5 backdrop-blur-xl rounded-2xl md:rounded-3xl border border-white/10 p-4 md:p-8 lg:p-10 ${phase === 'revealed' || phase === 'complete' ? content.glowColor : ''}`}
+          className={`relative bg-surface/5  rounded-2xl md:rounded-3xl border border-white/10 p-4 md:p-8 lg:p-10 ${phase === 'revealed' || phase === 'complete' ? content.glowColor : ''}`}
           style={GPU_STYLE}
         >
           {/* Particle explosion container */}
@@ -463,7 +463,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                 onClick={handleContinue}
                 whileHover={reducedMotion ? {} : { scale: 1.02 }}
                 whileTap={reducedMotion ? {} : { scale: 0.98 }}
-                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-white text-slate-900 rounded-full font-bold text-base md:text-lg border border-peach-soft duration-200 transform-gpu"
+                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-surface text-slate-900 rounded-full font-bold text-base md:text-lg border border-peach-soft duration-200 transform-gpu"
               >
                 See What Else is Possible
                 <ArrowRight className="w-5 h-5" />

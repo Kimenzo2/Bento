@@ -37,8 +37,8 @@ const tiers: TierData[] = [
     priceAnnual: 0,
     description: 'The Hook That Gets You Addicted',
     icon: Zap,
-    color: 'bg-gray-100 text-gray-600',
-    buttonColor: 'bg-gray-200 text-charcoal-soft hover:bg-gray-300',
+    color: 'bg-peach-soft/30 text-cocoa-light',
+    buttonColor: 'bg-peach-light/50 text-charcoal-soft hover:bg-gray-300',
     paystackPaymentUrl: null,
     planCode: null,
     features: [
@@ -215,7 +215,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`relative bg-white rounded-3xl p-8 border transition-all duration-300 flex flex-col h-full
+              className={`relative bg-surface rounded-3xl p-8 border transition-all duration-300 flex flex-col h-full
                 ${
                   tier.isPopular
                     ? 'border-gold-sunshine transform scale-105 z-10'
@@ -279,7 +279,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                   }}
                   variant="ghost"
                   size="sm"
-                  className="w-full py-2 font-medium text-cocoa-light hover:text-charcoal-soft hover:bg-gray-100 mb-6 border border-transparent hover:border-gray-200"
+                  className="w-full py-2 font-medium text-cocoa-light hover:text-charcoal-soft hover:bg-peach-soft/30 mb-6 border border-transparent hover:border-peach-soft"
                 >
                   Why {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}?
                 </Button>

@@ -49,7 +49,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
   }, [booksPerMonth, pagesPerBook, hourlyRate, tier.price.monthly]);
 
   return (
-    <div className="bg-white rounded-xl md:rounded-2xl border border-peach-soft overflow-hidden my-8 md:my-16">
+    <div className="bg-surface rounded-xl md:rounded-2xl border border-peach-soft overflow-hidden my-8 md:my-16">
       <div className={`bg-linear-to-r ${tier.gradient} p-1`}></div>
       <div className="p-4 sm:p-6 md:p-8 lg:p-12 grid lg:grid-cols-2 gap-6 md:gap-12">
         {/* Left: Inputs */}
@@ -83,7 +83,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
               value={booksPerMonth}
               onChange={(e) => setBooksPerMonth(Number(e.target.value))}
               aria-label="Books to create per month"
-              className={`w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 accent-${tier.accentColor}-500`}
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer bg-peach-light/50 accent-${tier.accentColor}-500`}
             />
             <div className="flex justify-between text-xs text-charcoal-soft/40">
               <span>1 book</span>
@@ -100,7 +100,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setHourlyRate(30)}
-                  className="text-gray-400 hover:text-gray-600 underline"
+                  className="text-cocoa-light/60 hover:text-cocoa-light underline"
                 >
                   Junior ($30)
                 </Button>
@@ -108,7 +108,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setHourlyRate(100)}
-                  className="text-gray-400 hover:text-gray-600 underline"
+                  className="text-cocoa-light/60 hover:text-cocoa-light underline"
                 >
                   Pro ($100)
                 </Button>
@@ -127,7 +127,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
               value={hourlyRate}
               onChange={(e) => setHourlyRate(Number(e.target.value))}
               aria-label="Your hourly rate in dollars"
-              className={`w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 accent-${tier.accentColor}-500`}
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer bg-peach-light/50 accent-${tier.accentColor}-500`}
             />
           </div>
         </div>
@@ -136,7 +136,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
         <div className={`rounded-xl p-4 sm:p-6 md:p-8 ${tier.bgClass} relative`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 relative z-10">
             {/* Metric 1 */}
-            <div className="bg-white rounded-lg p-4 border border-peach-soft/50">
+            <div className="bg-surface rounded-lg p-4 border border-peach-soft/50">
               <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                 <Clock className="w-4 h-4" /> Time Saved
               </div>
@@ -147,7 +147,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
             </div>
 
             {/* Metric 2 */}
-            <div className="bg-white rounded-lg p-4 border border-peach-soft/50">
+            <div className="bg-surface rounded-lg p-4 border border-peach-soft/50">
               <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                 <DollarSign className="w-4 h-4" /> Monthly Value
               </div>
@@ -159,7 +159,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
             </div>
 
             {/* Metric 3 */}
-            <div className="bg-white rounded-lg p-4 border border-peach-soft/50">
+            <div className="bg-surface rounded-lg p-4 border border-peach-soft/50">
               <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                 <TrendingUp className="w-4 h-4" /> Cost Per Book
               </div>

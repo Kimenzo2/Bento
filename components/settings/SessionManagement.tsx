@@ -102,7 +102,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="bg-white border border-peach-soft rounded-xl p-3 md:p-4 hover:border-coral-burst/50 transition-all"
+              className="bg-surface border border-peach-soft rounded-xl p-3 md:p-4 hover:border-coral-burst/50 transition-all"
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 md:gap-4">
                 <div className="flex items-start gap-2 md:gap-3 flex-1">

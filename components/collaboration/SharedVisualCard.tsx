@@ -109,7 +109,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
   if (variant === 'grid') {
     return (
       <div
-        className="group relative bg-white rounded-xl sm:rounded-2xl border border-peach-soft overflow-hidden transition-all duration-300 active:scale-[0.98] sm:hover:-translate-y-1"
+        className="group relative bg-surface rounded-xl sm:rounded-2xl border border-peach-soft overflow-hidden transition-all duration-300 active:scale-[0.98] sm:hover:-translate-y-1"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onTouchStart={() => setIsHovered(true)}
@@ -158,7 +158,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                   e.stopPropagation();
                   onExpand?.(visual);
                 }}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white active:scale-95 flex"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/90 hover:bg-surface active:scale-95 flex"
                 title="Expand"
               >
                 <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-charcoal-soft" />
@@ -170,7 +170,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                   e.stopPropagation();
                   setShowMenu(!showMenu);
                 }}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white active:scale-95 flex"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/90 hover:bg-surface active:scale-95 flex"
                 title="More options"
               >
                 <MoreHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-charcoal-soft" />
@@ -203,7 +203,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                       e.stopPropagation();
                       handleDownload();
                     }}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 flex"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-surface/20 hover:bg-surface/30 active:bg-surface/40 flex"
                     title="Download"
                   >
                     <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
@@ -220,14 +220,14 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                 className="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute top-10 sm:top-12 right-1.5 sm:right-2 z-50 bg-white rounded-xl border border-gray-200 py-1 min-w-[140px] sm:min-w-40 animate-fadeIn">
+              <div className="absolute top-10 sm:top-12 right-1.5 sm:right-2 z-50 bg-surface rounded-xl border border-peach-soft py-1 min-w-[140px] sm:min-w-40 animate-fadeIn">
                 <Button
                   variant="ghost"
                   onClick={() => {
                     handleCopyPrompt();
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-surface/50 active:bg-peach-soft/30 flex"
                 >
                   <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Copy prompt
                 </Button>
@@ -237,7 +237,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                     handleShare();
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-surface/50 active:bg-peach-soft/30 flex"
                 >
                   <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Share
                 </Button>
@@ -248,16 +248,16 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                       onViewLineage?.(visual);
                       setShowMenu(false);
                     }}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-surface/50 active:bg-peach-soft/30 flex"
                   >
                     <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> View lineage
                   </Button>
                 )}
-                <div className="border-t border-gray-100 my-1" />
-                <Button variant="ghost" className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex text-gray-400">
+                <div className="border-t border-peach-soft/50 my-1" />
+                <Button variant="ghost" className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-surface/50 active:bg-peach-soft/30 flex text-cocoa-light/60">
                   <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Save
                 </Button>
-                <Button variant="ghost" className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex text-red-400">
+                <Button variant="ghost" className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-surface/50 active:bg-peach-soft/30 flex text-red-400">
                   <Flag className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Report
                 </Button>
               </div>
@@ -284,7 +284,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
               <span className="text-sm font-medium text-charcoal-soft truncate">
                 {visual.user.display_name}
               </span>
-              <span className="text-xs text-gray-400 ml-auto">
+              <span className="text-xs text-cocoa-light/60 ml-auto">
                 {formatTimeAgo(visual.created_at)}
               </span>
             </div>
@@ -292,7 +292,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
           {/* Stats row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-400">
+            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-cocoa-light/60">
               <span className="flex items-center gap-0.5 sm:gap-1">
                 <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 {formatCount(visual.view_count)}
@@ -319,7 +319,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
           {/* Full reaction bar - show on tap/hover */}
           {showReactions && isHovered && (
-            <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100 animate-fadeIn">
+            <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-peach-soft/50 animate-fadeIn">
               <ReactionBar
                 visualId={visual.id}
                 initialReactions={reactions}
@@ -341,7 +341,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
   if (variant === 'compact') {
     return (
       <div
-        className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-xl hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors"
+        className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 rounded-xl hover:bg-surface/50 active:bg-peach-soft/30 cursor-pointer transition-colors"
         onClick={() => onExpand?.(visual)}
       >
         <img
@@ -353,7 +353,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
           <p className="text-xs sm:text-sm font-medium text-charcoal-soft truncate">
             {visual.title || visual.prompt.slice(0, 40)}...
           </p>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-cocoa-light/60">
             <span>{formatTimeAgo(visual.created_at)}</span>
             {visual.reaction_count > 0 && (
               <>
@@ -428,7 +428,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
   // Default/Detail variant
   return (
-    <div className="bg-white rounded-2xl border border-peach-soft overflow-hidden">
+    <div className="bg-surface rounded-2xl border border-peach-soft overflow-hidden">
       <img src={visual.image_url} alt={visual.title || visual.prompt} className="w-full" />
       <div className="p-4">
         {showReactions && (

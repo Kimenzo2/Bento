@@ -79,7 +79,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
                 className={`p-3 sm:p-4 rounded-xl border transition-all text-left min-h-11 active:scale-95 ${
                   request.style === style.id
                     ? 'border-coral-burst'
-                    : 'border-peach-soft bg-white hover:border-coral-burst/50'
+                    : 'border-peach-soft bg-surface hover:border-coral-burst/50'
                 }`}
               >
                 <div
@@ -108,7 +108,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
                 className={`p-3 sm:p-4 lg:p-5 rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 sm:gap-2 aspect-square min-h-11 active:scale-95 ${
                   request.guideCharacter === char.id
                     ? 'border-gold-sunshine bg-gold-sunshine/10'
-                    : 'border-peach-soft bg-white hover:border-gold-sunshine/50'
+                    : 'border-peach-soft bg-surface hover:border-gold-sunshine/50'
                 }`}
               >
                 <div className="text-2xl sm:text-3xl lg:text-4xl">{char.icon}</div>
@@ -145,7 +145,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
             title="Toggle interactive elements"
             aria-label="Toggle interactive elements"
           />
-          <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-mint-breeze/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-mint-breeze"></div>
+          <div className="w-14 h-7 bg-peach-light/50 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-mint-breeze/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-peach-soft after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-mint-breeze"></div>
         </Label>
       </div>
 

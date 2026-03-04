@@ -74,9 +74,9 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
           A Day in the Life
         </h3>
 
-        <div className="inline-flex bg-gray-100 p-1 rounded-full relative">
+        <div className="inline-flex bg-peach-soft/30 p-1 rounded-full relative">
           <div
-            className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-white border border-peach-soft transition-all duration-300 ${activeTab === 'with' ? 'left-1' : 'left-[49%]'}`}
+            className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-surface border border-peach-soft transition-all duration-300 ${activeTab === 'with' ? 'left-1' : 'left-[49%]'}`}
           />
           <Button
             variant="ghost"
@@ -97,7 +97,7 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
 
       <div className="relative max-w-4xl mx-auto">
         {/* Central Line */}
-        <div className="absolute left-1/2 -translate-x-px w-0.5 h-full bg-gray-100 hidden md:block" />
+        <div className="absolute left-1/2 -translate-x-px w-0.5 h-full bg-peach-soft/30 hidden md:block" />
 
         <div className="space-y-12">
           {timelineEvents.map((event, index) => {
@@ -114,7 +114,7 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
                 className="relative flex flex-col md:flex-row items-center gap-8 group"
               >
                 {/* Time Badge */}
-                <div className="md:absolute left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-full border border-peach-soft/50 text-xs font-mono font-bold text-charcoal-soft z-10">
+                <div className="md:absolute left-1/2 -translate-x-1/2 bg-surface px-3 py-1 rounded-full border border-peach-soft/50 text-xs font-mono font-bold text-charcoal-soft z-10">
                   {event.time}
                 </div>
 
@@ -122,19 +122,19 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
                 <div
                   className={`w-full md:w-1/2 p-6 rounded-2xl border transition-all duration-500 ${
                     isWith
-                      ? `bg-white border border-${tier.accentColor}-200 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
-                      : `bg-gray-50 border-gray-200 grayscale opacity-80 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
+                      ? `bg-surface border border-${tier.accentColor}-200 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
+                      : `bg-surface/50 border-peach-soft grayscale opacity-80 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isWith ? `bg-${tier.accentColor}-100 text-${tier.accentColor}-600` : 'bg-gray-200 text-gray-500'}`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isWith ? `bg-${tier.accentColor}-100 text-${tier.accentColor}-600` : 'bg-peach-light/50 text-cocoa-light'}`}
                     >
                       <data.icon className="w-5 h-5" />
                     </div>
                     <div>
                       <h4
-                        className={`font-bold text-lg mb-1 ${isWith ? 'text-charcoal-soft' : 'text-gray-500'}`}
+                        className={`font-bold text-lg mb-1 ${isWith ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
                       >
                         {isWith ? 'Productive & Creative' : 'Frustrating & Slow'}
                       </h4>

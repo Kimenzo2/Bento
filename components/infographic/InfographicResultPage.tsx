@@ -83,7 +83,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-cream-base overflow-y-auto animate-slideUp">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-peach-soft/30">
+      <div className="sticky top-0 z-40 bg-surface/80  border-b border-peach-soft/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
@@ -114,7 +114,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
               className={`${
                 isSaved
                   ? 'bg-green-500 text-white'
-                  : 'bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50 hover:border-coral-burst'
+                  : 'bg-surface border border-peach-soft text-charcoal-soft hover:bg-surface/50 hover:border-coral-burst'
               }`}
               title={isSaved ? 'Saved to Library' : 'Save to Library'}
             >
@@ -156,7 +156,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
               onClick={() => handleExport('png')}
               disabled={isExporting}
               variant="outline"
-              className="bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50"
+              className="bg-surface border border-peach-soft text-charcoal-soft hover:bg-surface/50"
             >
               <FileImage className="w-4 h-4" />
               <span className="hidden sm:inline">PNG</span>
@@ -178,9 +178,9 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="bg-white rounded-4xl border border-white/50 p-4 sm:p-8 md:p-12 min-h-[800px] flex justify-center relative">
+        <div className="bg-surface rounded-4xl border border-white/50 p-4 sm:p-8 md:p-12 min-h-[800px] flex justify-center relative">
           {/* Zoom Controls (Floating) */}
-          <div className="absolute bottom-8 right-8 flex flex-col gap-2 bg-white rounded-xl border border-peach-soft/30 p-2 z-10">
+          <div className="absolute bottom-8 right-8 flex flex-col gap-2 bg-surface rounded-xl border border-peach-soft/30 p-2 z-10">
             <Button
               onClick={() => setZoom((z) => Math.min(z + 0.1, 2))}
               variant="ghost"
@@ -190,7 +190,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
             >
               <ZoomIn className="w-5 h-5 text-charcoal-soft" />
             </Button>
-            <div className="text-xs text-center font-bold text-cocoa-light py-1 border-y border-gray-100">
+            <div className="text-xs text-center font-bold text-cocoa-light py-1 border-y border-peach-soft/50">
               {Math.round(zoom * 100)}%
             </div>
             <Button

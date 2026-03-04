@@ -287,7 +287,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
 
   if (isSaving) {
     return (
-      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm">
+      <div className="flex items-center gap-2 text-cocoa-light dark:text-cocoa-light/60 text-sm">
         <Loader2 className="w-4 h-4 animate-spin" />
         <span>Saving...</span>
       </div>
@@ -304,7 +304,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({
   }
 
   return (
-    <div className="flex items-center gap-2 text-gray-400 text-sm">
+    <div className="flex items-center gap-2 text-cocoa-light/60 text-sm">
       <Cloud className="w-4 h-4" />
       <span>Auto-save enabled</span>
     </div>

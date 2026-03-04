@@ -271,7 +271,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 md:py-2 px-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation order-2 sm:order-1"
+                className="flex-1 bg-surface border border-peach-soft text-cocoa-light font-bold py-3 md:py-2 px-4 rounded-xl hover:bg-surface/50 active:bg-peach-soft/30 transition-colors touch-manipulation order-2 sm:order-1"
               >
                 Cancel
               </button>

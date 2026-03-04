@@ -271,7 +271,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
         <div className="overflow-hidden font-body min-h-screen relative">
           {/* Header */}
           <div className="relative z-10 border-b border-peach-soft/30">
-            <div className="bg-white/80">
+            <div className="bg-surface/80">
               <div className="max-w-4xl mx-auto flex items-center justify-between p-4 md:p-6">
                 <div>
                   <h2 className="text-xl md:text-2xl font-heading font-bold text-charcoal-soft flex items-center gap-2 md:gap-3">
@@ -308,9 +308,9 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
 
           {/* Tabs */}
           <div className="relative z-10">
-            <div className="backdrop-blur-md bg-white/50">
+            <div className=" bg-surface/50">
               <div className="max-w-4xl mx-auto flex px-4 md:px-6 pt-3 md:pt-4">
-                <div className="flex bg-white/60 backdrop-blur-sm p-1 rounded-t-2xl border-t border-x border-white/50 gap-0.5 md:gap-1 w-full overflow-x-auto">
+                <div className="flex bg-surface/60  p-1 rounded-t-2xl border-t border-x border-white/50 gap-0.5 md:gap-1 w-full overflow-x-auto">
                   {[
                     { id: 'basics', label: 'Basics', icon: '📝' },
                     { id: 'standards', label: 'Standards', icon: '📋' },
@@ -323,8 +323,8 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                       onClick={() => setActiveTab(tab.id as 'basics' | 'standards' | 'students' | 'options')}
                       className={`flex-1 min-w-0 px-2 md:px-4 py-2.5 md:py-3 text-xs md:text-sm whitespace-nowrap ${
                         activeTab === tab.id
-                          ? 'bg-white text-coral-burst'
-                          : 'text-cocoa-dark hover:text-charcoal-soft hover:bg-white/70'
+                          ? 'bg-surface text-coral-burst'
+                          : 'text-cocoa-dark hover:text-charcoal-soft hover:bg-surface/70'
                       }`}
                     >
                       <span className="mr-1 md:mr-2">{tab.icon}</span>
@@ -339,7 +339,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
           {/* Content - Glassmorphism Card */}
           <div className="relative z-10 pt-2">
             <div className="max-w-4xl mx-auto px-4 md:px-6 pb-6">
-              <div className="backdrop-blur-xl bg-white/80 rounded-2xl border border-white/50 p-4 md:p-6">
+              <div className=" bg-surface/80 rounded-2xl border border-white/50 p-4 md:p-6">
                 {/* Basics Tab */}
                 {activeTab === 'basics' && (
                   <div className="space-y-5 md:space-y-6">
@@ -357,7 +357,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             className={`flex flex-col items-center p-3 w-20 h-20 rounded-2xl border ${
                               framework === fw
                                 ? 'border-coral-burst bg-linear-to-br from-coral-light/30 to-coral-burst/10 text-coral-burst scale-105'
-                                : 'border-peach-soft/50 bg-white/80 text-cocoa-light hover:border-coral-light hover:text-charcoal-soft'
+                                : 'border-peach-soft/50 bg-surface/80 text-cocoa-light hover:border-coral-light hover:text-charcoal-soft'
                             }`}
                           >
                             <div className="text-2xl mb-1">
@@ -426,7 +426,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
                         placeholder="e.g., Understanding fractions through a pizza party adventure..."
-                        className="max-w-xl bg-white/80 border-peach-soft/50 focus:ring-1 focus:ring-coral-burst transition-colors"
+                        className="max-w-xl bg-surface/80 border-peach-soft/50 focus:ring-1 focus:ring-coral-burst transition-colors"
                         rows={3}
                       />
                     </div>
@@ -445,7 +445,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             className={`px-4 py-2.5 border text-left ${
                               pedagogicalApproach === approach.value
                                 ? 'border-coral-burst bg-linear-to-br from-coral-light/30 to-coral-burst/10 scale-[1.02]'
-                                : 'border-peach-soft/50 bg-white/80 hover:border-coral-light'
+                                : 'border-peach-soft/50 bg-surface/80 hover:border-coral-light'
                             }`}
                           >
                             <div
@@ -490,7 +490,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                 {/* Standards Tab */}
                 {activeTab === 'standards' && (
                   <div className="space-y-4 md:space-y-6">
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-peach-soft/30">
+                    <div className="bg-surface/60  rounded-xl p-3 md:p-4 border border-peach-soft/30">
                       <p className="text-cocoa-dark text-xs md:text-sm font-medium">
                         Select the standards your curriculum should address. The AI will align all
                         content and assessments to these standards.
@@ -538,7 +538,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             className={`w-full p-3 text-left border ${
                               selectedStandards.includes(standard.code)
                                 ? 'bg-coral-light/10 border-coral-burst'
-                                : 'bg-white border-peach-soft/50 hover:border-coral-light hover:bg-cream-base'
+                                : 'bg-surface border-peach-soft/50 hover:border-coral-light hover:bg-cream-base'
                             }`}
                           >
                             <div className="flex items-center gap-3">
@@ -628,7 +628,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         }`}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full bg-white transform transition-transform ${
+                          className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                             showStudentProfile ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
@@ -786,7 +786,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                               }`}
                             >
                               <div
-                                className={`w-5 h-5 rounded-full bg-white transform transition-transform ${
+                                className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                                   isEL ? 'translate-x-6' : 'translate-x-1'
                                 }`}
                               />
@@ -842,7 +842,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                           }`}
                         >
                           <div
-                            className={`w-5 h-5 rounded-full bg-white transform transition-transform ${
+                            className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                               includeSEL ? 'translate-x-6' : 'translate-x-1'
                             }`}
                           />
@@ -862,7 +862,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                                 onClick={() => setSelCompetency(key)}
                                 className={`p-3 text-left border ${
                                   selCompetency === key
-                                    ? 'bg-white border-coral-burst'
+                                    ? 'bg-surface border-coral-burst'
                                     : 'bg-cream-base border-peach-soft/50 hover:border-coral-light'
                                 }`}
                               >
@@ -897,7 +897,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         }`}
                       >
                         <div
-                            className={`w-5 h-5 rounded-full bg-white transform transition-transform ${
+                            className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                             includeAssessments ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
@@ -920,7 +920,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         }`}
                       >
                         <div
-                            className={`w-5 h-5 rounded-full bg-white transform transition-transform ${
+                            className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                             includeFamilyEngagement ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
@@ -954,10 +954,10 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
           {/* Footer / Generate Button - Glassmorphism */}
           <div className="relative z-10 mt-4">
             <div className="max-w-4xl mx-auto px-4 md:px-6 pb-6">
-              <div className="backdrop-blur-xl bg-linear-to-r from-gold-sunshine/90 to-coral-burst/90 rounded-2xl border border-white/30 p-4">
+              <div className=" bg-linear-to-r from-gold-sunshine/90 to-coral-burst/90 rounded-2xl border border-white/30 p-4">
                 {/* Error Display */}
                 {error && (
-                  <div className="mb-4 p-3 md:p-4 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-xl text-red-600 text-xs md:text-sm font-medium">
+                  <div className="mb-4 p-3 md:p-4 bg-red-50/90  border border-red-200 rounded-xl text-red-600 text-xs md:text-sm font-medium">
                     {error}
                   </div>
                 )}
@@ -971,9 +971,9 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         {generationStage}
                       </span>
                     </div>
-                    <div className="h-2 bg-white/30 rounded-full overflow-hidden">
+                    <div className="h-2 bg-surface/30 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-white transition-all duration-500"
+                        className="h-full bg-surface transition-all duration-500"
                         style={{ width: `${generationProgress}%` }}
                       />
                     </div>
@@ -988,8 +988,8 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                   className={`w-full py-3 md:py-4 font-heading text-base md:text-lg
                   ${
                     isGenerating
-                      ? 'bg-white/50 text-cocoa-light'
-                      : 'bg-white text-coral-burst hover:scale-[1.02] active:scale-100'
+                      ? 'bg-surface/50 text-cocoa-light'
+                      : 'bg-surface text-coral-burst hover:scale-[1.02] active:scale-100'
                   }`}
                 >
                   {isGenerating ? 'Generating Curriculum...' : '✨ Generate Curriculum Ebook'}

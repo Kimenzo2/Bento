@@ -607,7 +607,7 @@ const MainAppContent: React.FC = () => {
       </main>
 
       {isGenerating && (
-        <Suspense fallback={<div className="fixed inset-0 z-100 flex items-center justify-center bg-white/90"><Loader2 className="w-8 h-8 animate-spin text-coral-burst" /></div>}>
+        <Suspense fallback={<div className="fixed inset-0 z-100 flex items-center justify-center bg-surface/90"><Loader2 className="w-8 h-8 animate-spin text-coral-burst" /></div>}>
           <GenerationTheater progress={generationProgress} status={generationStatus} onCancel={() => { setIsGenerating(false); setGenerationStatus(''); setGenerationProgress(0); }} />
         </Suspense>
       )}

@@ -102,9 +102,9 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
           className="mt-4 relative"
         >
           {/* Bubble arrow */}
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/10 backdrop-blur-xl rotate-45 border-t border-l border-white/20" />
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface/10  rotate-45 border-t border-l border-white/20" />
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-5 py-4 border border-white/20 max-w-50">
+          <div className="bg-surface/10  rounded-2xl px-5 py-4 border border-white/20 max-w-50">
             <p className="text-white/90 text-sm font-medium leading-relaxed">"{message}"</p>
             <p className="text-white/40 text-xs mt-2 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
@@ -214,10 +214,10 @@ export const FeatureStorybook: React.FC = () => {
                   title={`Go to feature ${idx + 1}`}
                   className={`h-1.5 rounded-full transition-all duration-500 ${
                     idx === currentIndex
-                      ? 'w-10 bg-white'
+                      ? 'w-10 bg-surface'
                       : idx < currentIndex
-                        ? 'w-6 bg-white/50'
-                        : 'w-2 bg-white/20'
+                        ? 'w-6 bg-surface/50'
+                        : 'w-2 bg-surface/20'
                   }`}
                 />
               ))}
@@ -236,7 +236,7 @@ export const FeatureStorybook: React.FC = () => {
                   transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute inset-0"
                 >
-                  <div className="h-full bg-white/5 backdrop-blur-2xl rounded-2xl md:rounded-3xl border border-white/10 p-4 md:p-8 lg:p-10 flex flex-col items-center text-center">
+                  <div className="h-full bg-surface/5  rounded-2xl md:rounded-3xl border border-white/10 p-4 md:p-8 lg:p-10 flex flex-col items-center text-center">
                     {/* Feature Image - Large and prominent */}
                     <motion.div
                       initial={{ scale: 0, rotate: -10 }}
@@ -285,7 +285,7 @@ export const FeatureStorybook: React.FC = () => {
                       {['Instant', 'Professional', 'Easy'].map((tag) => (
                         <span
                           key={tag}
-                          className="px-4 py-1.5 bg-white/5 rounded-full text-white/50 text-sm border border-white/10"
+                          className="px-4 py-1.5 bg-surface/5 rounded-full text-white/50 text-sm border border-white/10"
                         >
                           {tag}
                         </span>
@@ -307,7 +307,7 @@ export const FeatureStorybook: React.FC = () => {
                 className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${
                   isFirst
                     ? 'text-white/20 cursor-not-allowed'
-                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                    : 'text-white/70 hover:text-white hover:bg-surface/5'
                 }`}
               >
                 <ChevronLeft className="w-5 h-5" />

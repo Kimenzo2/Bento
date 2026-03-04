@@ -106,7 +106,7 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
 
   if (sortedUsers.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-gray-400">
+      <div className="flex items-center gap-2 text-cocoa-light/60">
         <Users className="w-4 h-4" />
         <span className={config.text}>Just you</span>
       </div>
@@ -160,9 +160,9 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
             <div
               className={`
                             ${config.avatar} rounded-full 
-                            bg-gray-200 ${config.ring} ring-white
+                            bg-peach-light/50 ${config.ring} ring-white
                             flex items-center justify-center
-                            font-bold ${config.text} text-gray-600
+                            font-bold ${config.text} text-cocoa-light
                         `}
             >
               +{remainingCount}
@@ -171,7 +171,7 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
         </div>
 
         {/* Online count label */}
-        <span className={`ml-2 ${config.text} text-gray-500`}>{sortedUsers.length} online</span>
+        <span className={`ml-2 ${config.text} text-cocoa-light`}>{sortedUsers.length} online</span>
       </div>
 
       {/* Expanded user list */}
@@ -179,9 +179,9 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsExpanded(false)} />
           <div className="absolute top-full left-0 mt-2 z-50 animate-fadeIn">
-            <div className="bg-white rounded-xl border border-gray-200 py-2 min-w-50 max-h-75 overflow-y-auto">
-              <div className="px-3 py-1 border-b border-gray-100 mb-1">
-                <span className="text-xs font-bold text-gray-400 uppercase">
+            <div className="bg-surface rounded-xl border border-peach-soft py-2 min-w-50 max-h-75 overflow-y-auto">
+              <div className="px-3 py-1 border-b border-peach-soft/50 mb-1">
+                <span className="text-xs font-bold text-cocoa-light/60 uppercase">
                   {sortedUsers.length} Collaborators Online
                 </span>
               </div>
@@ -189,7 +189,7 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
               {sortedUsers.map((user) => (
                 <div
                   key={user.user_id}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50"
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-surface/50"
                 >
                   <div className="relative">
                     <img
@@ -211,7 +211,7 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
                     <p className="text-sm font-medium text-charcoal-soft truncate">
                       {user.display_name}
                     </p>
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-1 text-xs text-cocoa-light/60">
                       {getStatusIcon(user.status)}
                       <span>{getStatusLabel(user.status)}</span>
                     </div>
@@ -325,7 +325,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ typingUsers, m
   };
 
   return (
-    <div className="flex items-center gap-2 text-gray-500 text-sm">
+    <div className="flex items-center gap-2 text-cocoa-light text-sm">
       <div className="flex -space-x-1">
         {visible.map((user) => (
           <img

@@ -145,7 +145,7 @@ export const TierMatchQuiz: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   if (result) {
     const content = getResultContent();
     return (
-      <div className="bg-white rounded-2xl p-8 text-center max-w-md mx-auto border border-peach-soft relative overflow-hidden">
+      <div className="bg-surface rounded-2xl p-8 text-center max-w-md mx-auto border border-peach-soft relative overflow-hidden">
         <div className={`absolute top-0 left-0 w-full h-2 bg-linear-to-r ${content.gradient}`} />
         <h3 className="text-2xl font-bold font-heading mb-4 text-charcoal-soft">{content.title}</h3>
         <p className="text-charcoal-soft/70 mb-8">{content.desc}</p>
@@ -163,23 +163,23 @@ export const TierMatchQuiz: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const question = questions[currentStep];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-soft/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-soft/50 ">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl w-full max-w-lg border border-peach-soft overflow-hidden"
+        className="bg-surface rounded-2xl w-full max-w-lg border border-peach-soft overflow-hidden"
       >
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="p-6 border-b border-peach-soft/50 flex justify-between items-center bg-surface/50">
+          <span className="text-xs font-bold text-cocoa-light/60 uppercase tracking-widest">
             Question {currentStep + 1} of {questions.length}
           </span>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="hover:bg-gray-200 rounded-full"
+            className="hover:bg-peach-light/50 rounded-full"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-cocoa-light/60" />
           </Button>
         </div>
 
@@ -198,10 +198,10 @@ export const TierMatchQuiz: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => handleOptionSelect(option.score)}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-transparent bg-gray-50 hover:bg-white hover:border-coral-burst/30 transition-all group text-left"
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-transparent bg-surface/50 hover:bg-surface hover:border-coral-burst/30 transition-all group text-left"
                   >
-                    <div className="w-10 h-10 rounded-full bg-white group-hover:bg-coral-burst/10 flex items-center justify-center shrink-0 border border-gray-100">
-                      <Icon className="w-5 h-5 text-gray-400 group-hover:text-coral-burst" />
+                    <div className="w-10 h-10 rounded-full bg-surface group-hover:bg-coral-burst/10 flex items-center justify-center shrink-0 border border-peach-soft/50">
+                      <Icon className="w-5 h-5 text-cocoa-light/60 group-hover:text-coral-burst" />
                     </div>
                     <span className="font-semibold text-charcoal-soft group-hover:text-coral-burst transition-colors">
                       {option.label}
@@ -213,7 +213,7 @@ export const TierMatchQuiz: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           </div>
         </div>
 
-        <div className="h-1 bg-gray-100 w-full">
+        <div className="h-1 bg-peach-soft/30 w-full">
           <motion.div
             className="h-full bg-coral-burst"
             initial={{ width: '0%' }}

@@ -303,7 +303,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
                       <div className="flex items-center gap-1">
                         {shortcut.keys.map((key, keyIdx) => (
                           <React.Fragment key={keyIdx}>
-                            <kbd className="px-2.5 py-1 bg-white border border-peach-soft rounded-lg text-xs font-mono text-charcoal-soft">
+                            <kbd className="px-2.5 py-1 bg-surface border border-peach-soft rounded-lg text-xs font-mono text-charcoal-soft">
                               {key}
                             </kbd>
                             {keyIdx < shortcut.keys.length - 1 && (
@@ -330,11 +330,11 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
         {/* Footer */}
         <DialogFooter className="flex-row items-center justify-between p-4 border-t-2 border-peach-soft/30 bg-cream-soft/50">
           <div className="flex items-center gap-2 text-sm text-cocoa-light">
-            <kbd className="px-2 py-1 bg-white border border-peach-soft rounded text-xs">
+            <kbd className="px-2 py-1 bg-surface border border-peach-soft rounded text-xs">
               Ctrl/⌘
             </kbd>
             <span>+</span>
-            <kbd className="px-2 py-1 bg-white border border-peach-soft rounded text-xs">
+            <kbd className="px-2 py-1 bg-surface border border-peach-soft rounded text-xs">
               ?
             </kbd>
             <span>to open this panel anytime</span>

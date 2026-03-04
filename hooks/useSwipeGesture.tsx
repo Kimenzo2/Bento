@@ -360,7 +360,7 @@ export const PullIndicator: React.FC<PullIndicatorProps> = ({
       <motion.div
         className={`
                     w-10 h-10 rounded-full flex items-center justify-center
-                    ${refreshing ? 'bg-coral-burst' : 'bg-gray-200 dark:bg-gray-700'}
+                    ${refreshing ? 'bg-coral-burst' : 'bg-peach-light/50 dark:bg-gray-700'}
                 `}
         animate={refreshing ? { rotate: 360 } : { rotate: progress * 360 }}
         transition={
@@ -368,7 +368,7 @@ export const PullIndicator: React.FC<PullIndicatorProps> = ({
         }
       >
         <svg
-          className={`w-5 h-5 ${refreshing ? 'text-white' : 'text-gray-500'}`}
+          className={`w-5 h-5 ${refreshing ? 'text-white' : 'text-cocoa-light'}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

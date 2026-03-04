@@ -1034,7 +1034,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     return (
       <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto bg-linear-to-br from-cream-base via-peach-soft/20 to-cream-base">
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-peach-soft/50 px-6 py-4">
+        <div className="sticky top-0 z-20 bg-surface/80  border-b border-peach-soft/50 px-6 py-4">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               {onBack && (
@@ -1075,7 +1075,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           {/* Feature Cards Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {/* Create a Book Card */}
-            <div className="bg-white rounded-2xl p-6 border border-peach-soft transition-all group">
+            <div className="bg-surface rounded-2xl p-6 border border-peach-soft transition-all group">
               <div className="w-14 h-14 rounded-xl bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <PenTool className="w-7 h-7 text-white" />
               </div>
@@ -1097,7 +1097,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             </div>
 
             {/* Green Room Card */}
-            <div className="bg-white rounded-2xl p-6 border border-peach-soft transition-all group">
+            <div className="bg-surface rounded-2xl p-6 border border-peach-soft transition-all group">
               <div className="w-14 h-14 rounded-xl bg-linear-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
@@ -1118,7 +1118,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             </div>
 
             {/* Remix Studio Card */}
-            <div className="bg-white rounded-2xl p-6 border border-peach-soft transition-all group">
+            <div className="bg-surface rounded-2xl p-6 border border-peach-soft transition-all group">
               <div className="w-14 h-14 rounded-xl bg-linear-to-br from-purple-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <GitFork className="w-7 h-7 text-white" />
               </div>
@@ -1160,7 +1160,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     setSelectedDemoCharacter(char);
                     setShowGreenRoomStandalone(true);
                   }}
-                  className="bg-white p-4 rounded-xl border border-peach-soft/50 hover:border-emerald-300 group text-left flex flex-col cursor-pointer transition-all w-full"
+                  className="bg-surface p-4 rounded-xl border border-peach-soft/50 hover:border-emerald-300 group text-left flex flex-col cursor-pointer transition-all w-full"
                 >
                   <div className="w-12 h-12 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative shrink-0">
                     {char.imageUrl ? (
@@ -1186,7 +1186,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           <div className="bg-linear-to-r from-charcoal-soft to-charcoal-soft/90 rounded-2xl p-8 text-white">
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div>
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
                   <Star className="w-6 h-6 text-gold-sunshine" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">AI-Powered</div>
@@ -1195,14 +1195,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 </div>
               </div>
               <div>
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
                   <Globe className="w-6 h-6 text-coral-burst" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">Community</div>
                 <div className="text-white/70 text-sm">Discover worlds from other creators</div>
               </div>
               <div>
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
                   <BookOpen className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">Story Bible</div>
@@ -1251,13 +1251,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   return (
     <div className="h-[calc(100dvh-80px)] w-full flex flex-col lg:flex-row bg-cream-base relative overflow-x-hidden overflow-y-auto lg:overflow-hidden">
       {/* Mobile Tab Toggle */}
-      <div className="lg:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30">
+      <div className="lg:hidden h-16 bg-surface border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30">
         <div className="flex p-1 bg-cream-soft rounded-xl w-full max-w-xs border border-peach-soft/50">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setMobileView('edit')}
-            className={`flex-1 ${mobileView === 'edit' ? 'bg-white text-coral-burst border border-peach-soft/50' : 'text-cocoa-light'}`}
+            className={`flex-1 ${mobileView === 'edit' ? 'bg-surface text-coral-burst border border-peach-soft/50' : 'text-cocoa-light'}`}
           >
             <Edit3 className="w-3.5 h-3.5" /> Editor
           </Button>
@@ -1265,7 +1265,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => setMobileView('preview')}
-            className={`flex-1 ${mobileView === 'preview' ? 'bg-white text-coral-burst border border-peach-soft/50' : 'text-cocoa-light'}`}
+            className={`flex-1 ${mobileView === 'preview' ? 'bg-surface text-coral-burst border border-peach-soft/50' : 'text-cocoa-light'}`}
           >
             <Eye className="w-3.5 h-3.5" /> Preview
           </Button>
@@ -1307,7 +1307,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           </div>
           <div className="flex gap-2 items-center">
             {/* Undo/Redo */}
-            <div className="hidden sm:flex items-center bg-white/50 rounded-lg p-1 mr-2 border border-peach-soft/30">
+            <div className="hidden sm:flex items-center bg-surface/50 rounded-lg p-1 mr-2 border border-peach-soft/30">
               <Button
                 variant="ghost"
                 size="icon"
@@ -1432,7 +1432,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         </div>
 
         {/* Deep Quality Panels */}
-        <div className="flex flex-col bg-slate-900/5 backdrop-blur-sm">
+        <div className="flex flex-col bg-slate-900/5 ">
           {/* HIDDEN FOR SIMPLICITY
                     {showStoryboard && (
                         <div className="border-b border-peach-soft/30">
@@ -1538,7 +1538,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     {isImproving ? 'Improving...' : 'AI Improve'}
                   </Button>
                   {showImproveOptions && (
-                    <div className="absolute right-0 top-full mt-2 bg-white rounded-xl border border-peach-soft p-2 z-50 min-w-40">
+                    <div className="absolute right-0 top-full mt-2 bg-surface rounded-xl border border-peach-soft p-2 z-50 min-w-40">
                       {['more dramatic', 'funnier', 'simpler', 'more descriptive'].map((tone) => (
                         <Button
                           variant="ghost"
@@ -1597,7 +1597,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 </div>
 
                 {activePage.learningContent.mentorDialogue && (
-                  <div className="bg-white rounded-xl p-4 mb-3 border border-emerald-100">
+                  <div className="bg-surface rounded-xl p-4 mb-3 border border-emerald-100">
                     <div className="flex items-start gap-3">
                       <span className="text-xl">🦉</span>
                       <div>
@@ -1611,7 +1611,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 )}
 
                 {activePage.learningContent.quiz && (
-                  <div className="bg-white rounded-xl p-4 border border-emerald-100">
+                  <div className="bg-surface rounded-xl p-4 border border-emerald-100">
                     <p className="text-xs font-bold text-emerald-700 mb-2">📝 Quiz Question:</p>
                     <p className="text-sm text-charcoal-soft font-medium mb-3">
                       {activePage.learningContent.quiz.question}
@@ -1624,7 +1624,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                             className={`px-3 py-2 rounded-lg text-xs font-medium ${
                               option === activePage.learningContent?.quiz?.correctAnswer
                                 ? 'bg-green-100 text-green-800 border border-green-300'
-                                : 'bg-gray-100 text-gray-700'
+                                : 'bg-peach-soft/30 text-cocoa-light'
                             }`}
                           >
                             {option}{' '}
@@ -1654,7 +1654,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 </div>
                 <div className="space-y-2">
                   {suggestions.map((sug, i) => (
-                    <div key={i} className="bg-white rounded-lg p-3 text-xs">
+                    <div key={i} className="bg-surface rounded-lg p-3 text-xs">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-bold text-charcoal-soft capitalize">{sug.type}</span>
                         <Button
@@ -1713,7 +1713,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               </div>
               <div className="space-y-3">
                 {consistencyReport.characters.map((char: ConsistencyCharacter, i: number) => (
-                  <div key={i} className="bg-white rounded-xl p-4">
+                  <div key={i} className="bg-surface rounded-xl p-4">
                     <h4 className="font-heading font-bold text-sm text-charcoal-soft mb-2">
                       {char.name}
                     </h4>
@@ -1758,7 +1758,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
           {/* CYOA Choices */}
           {project.isBranching && activePage.choices && (
-            <div className="bg-white rounded-2xl p-6 border border-peach-soft/50">
+            <div className="bg-surface rounded-2xl p-6 border border-peach-soft/50">
               <Label className="uppercase tracking-wider mb-4 flex items-center gap-2">
                 <GitFork className="w-4 h-4 text-gold-sunshine" /> Branching Choices
               </Label>
@@ -1797,7 +1797,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         </div>
 
         {/* Bottom Navigation Strip */}
-        <div className="h-24 bg-white border-t border-peach-soft/50 flex items-center gap-3 px-6 overflow-x-auto pb-2 pt-2 shrink-0">
+        <div className="h-24 bg-surface border-t border-peach-soft/50 flex items-center gap-3 px-6 overflow-x-auto pb-2 pt-2 shrink-0">
           {allPages.map((p, idx) => (
             <Button
               variant="ghost"
@@ -1833,7 +1833,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none z-10"></div>
 
           {/* Illustration */}
-          <div className="relative h-[55%] w-full bg-gray-100 overflow-hidden group">
+          <div className="relative h-[55%] w-full bg-peach-soft/30 overflow-hidden group">
             {activePage.imageUrl ? (
               <>
                 <img
@@ -1844,7 +1844,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 {/* Text-to-Visual Ripple: Outdated Image Warning */}
                 {activePage.isImageOutdated && (
                   <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
-                    <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-center border border-peach-soft">
+                    <div className="bg-surface/90  rounded-2xl px-6 py-4 text-center border border-peach-soft">
                       <RefreshCw className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                       <p className="text-sm font-bold text-orange-700">Image may be outdated</p>
                       <p className="text-xs text-orange-600 mb-3">
@@ -1879,7 +1879,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 <Button
                   variant="outline"
                   onClick={handleGenerateImage}
-                  className="rounded-full bg-white text-coral-burst font-heading hover:border-coral-burst hover:scale-105 z-20"
+                  className="rounded-full bg-surface text-coral-burst font-heading hover:border-coral-burst hover:scale-105 z-20"
                 >
                   {isGeneratingImage ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1908,7 +1908,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     variant="outline"
                     key={idx}
                     onClick={() => jumpToPageNumber(choice.targetPageNumber)}
-                    className="w-full border-charcoal-soft/10 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft font-heading justify-between group"
+                    className="w-full border-charcoal-soft/10 bg-surface hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft font-heading justify-between group"
                   >
                     {choice.text}
                     <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -1926,7 +1926,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         </div>
 
         {/* Floating Action Bar */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full px-6 py-3 flex items-center gap-6 border border-peach-soft z-30">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-surface/90  rounded-full px-6 py-3 flex items-center gap-6 border border-peach-soft z-30">
           <Button
             variant="ghost"
             size="icon"

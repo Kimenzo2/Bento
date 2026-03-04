@@ -116,7 +116,7 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
                     ${
                       isActive
                         ? `bg-linear-to-r ${tier.gradient} text-white transform scale-105`
-                        : 'bg-white text-charcoal-soft hover:bg-gray-50 border border-charcoal-soft/10'
+                        : 'bg-surface text-charcoal-soft hover:bg-surface/50 border border-charcoal-soft/10'
                     }
                   `}
                 >
@@ -134,7 +134,7 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
         </div>
 
         {/* Right Side: Big Numbers */}
-        <div className="w-full md:w-1/2 bg-white/60 backdrop-blur-md rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/50 text-center relative overflow-hidden group">
+        <div className="w-full md:w-1/2 bg-surface/60  rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/50 text-center relative overflow-hidden group">
           <div
             className={`absolute inset-0 bg-linear-to-br ${tier.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
           />

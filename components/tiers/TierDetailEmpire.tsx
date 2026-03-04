@@ -561,7 +561,7 @@ const TierDetailEmpire: React.FC = () => {
         <FeatureExplorer tier={tierConfig} />
 
         {/* Includes Everything */}
-        <div className="mt-12 bg-white rounded-2xl p-8 border border-peach-soft">
+        <div className="mt-12 bg-surface rounded-2xl p-8 border border-peach-soft">
           <h3 className="font-heading font-bold text-xl text-center mb-6">
             Plus Everything in Studio
           </h3>
@@ -590,13 +590,13 @@ const TierDetailEmpire: React.FC = () => {
         id="how"
         title="Your Partnership Journey"
         subtitle="From evaluation to enterprise deployment"
-        background="bg-white"
+        background="bg-surface"
       >
         <DayInLifeTimeline tier={tierConfig} />
         <WorkflowSteps steps={workflowSteps} gradient={tierConfig.gradient} />
 
         {/* Implementation Timeline */}
-        <div className="mt-16 bg-white rounded-2xl p-8 border border-peach-soft">
+        <div className="mt-16 bg-surface rounded-2xl p-8 border border-peach-soft">
           <h3 className="font-heading font-bold text-xl text-center mb-8">
             Typical Implementation Timeline
           </h3>
@@ -647,7 +647,7 @@ const TierDetailEmpire: React.FC = () => {
         id="switch"
         title="Enterprise-Grade Transition"
         subtitle="Dedicated support for your migration"
-        background="bg-white"
+        background="bg-surface"
       >
         <PeerComparison tier={tierConfig} />
 
@@ -694,7 +694,7 @@ const TierDetailEmpire: React.FC = () => {
         background="bg-slate-50"
       >
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-8 border border-peach-soft">
+          <div className="bg-surface rounded-2xl p-8 border border-peach-soft">
             <h3 className="font-heading font-bold text-xl mb-6 flex items-center gap-2">
               <Shield className="w-6 h-6 text-gold-sunshine" />
               Certifications & Compliance
@@ -717,7 +717,7 @@ const TierDetailEmpire: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border border-peach-soft">
+          <div className="bg-surface rounded-2xl p-8 border border-peach-soft">
             <h3 className="font-heading font-bold text-xl mb-6 flex items-center gap-2">
               <Lock className="w-6 h-6 text-gold-sunshine" />
               Security Features
@@ -768,7 +768,7 @@ const TierDetailEmpire: React.FC = () => {
       >
         <FAQAccordion faqs={faqs} />
 
-        <div className="mt-12 bg-white rounded-2xl p-8 border border-charcoal-soft/5 text-center">
+        <div className="mt-12 bg-surface rounded-2xl p-8 border border-charcoal-soft/5 text-center">
           <h3 className="font-heading font-bold text-xl mb-4">Need More Information?</h3>
           <p className="text-charcoal-soft/70 mb-6">
             Download our enterprise documentation package including security whitepaper, compliance

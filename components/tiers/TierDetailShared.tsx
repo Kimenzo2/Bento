@@ -219,7 +219,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div
             className={`absolute inset-0 bg-linear-to-br ${tier.gradient} opacity-20 rounded-3xl blur-2xl`}
           />
-          <div className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-8 border border-peach-soft">
+          <div className="relative bg-surface/50  rounded-3xl p-8 border border-peach-soft">
             {heroImage ? (
               <img
                 src={heroImage}
@@ -306,7 +306,7 @@ export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, gradient }) 
     {features.map((feature, index) => (
       <div
         key={index}
-        className="group bg-white rounded-2xl p-6 transition-all duration-300 border border-peach-soft hover:border-coral-burst/20"
+        className="group bg-surface rounded-2xl p-6 transition-all duration-300 border border-peach-soft hover:border-coral-burst/20"
       >
         <div
           className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
@@ -343,7 +343,7 @@ export const TestimonialCard: React.FC<{ testimonial: Testimonial; gradient: str
   testimonial,
   gradient,
 }) => (
-  <div className="bg-white rounded-2xl p-6 border border-peach-soft">
+  <div className="bg-surface rounded-2xl p-6 border border-peach-soft">
     <Quote
       className={`w-8 h-8 mb-4 bg-linear-to-br ${gradient} bg-clip-text text-coral-burst/30`}
     />
@@ -412,7 +412,7 @@ export const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ steps, gradient })
 
         {/* Image */}
         <div className="flex-1">
-          <div className="bg-white rounded-2xl p-4 border border-peach-soft">
+          <div className="bg-surface rounded-2xl p-4 border border-peach-soft">
             {step.image ? (
               <img src={step.image} alt={step.title} className="w-full rounded-xl" />
             ) : (
@@ -441,7 +441,7 @@ export const PersonaCards: React.FC<PersonaCardsProps> = ({ personas, gradient }
     {personas.map((persona, index) => (
       <div
         key={index}
-        className="bg-white rounded-2xl overflow-hidden border border-peach-soft"
+        className="bg-surface rounded-2xl overflow-hidden border border-peach-soft"
       >
         <div className={`h-2 bg-linear-to-r ${gradient}`} />
         <div className="p-6">
@@ -497,7 +497,7 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({
       {caseStudies.map((study, index) => (
         <div
           key={index}
-          className="bg-white rounded-2xl overflow-hidden border border-peach-soft"
+          className="bg-surface rounded-2xl overflow-hidden border border-peach-soft"
         >
           {/* Header */}
           <Button
@@ -590,7 +590,7 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
         <span className="text-5xl font-heading font-bold">${tier.price.annual}</span>
         <span className="text-white/70">/month</span>
       </div>
-      <div className="bg-white/20 rounded-xl p-4 mb-6">
+      <div className="bg-surface/20 rounded-xl p-4 mb-6">
         <div className="text-sm">Billed annually at ${Math.round(tier.price.annual * 12)}/year</div>
         <div className="text-lg font-bold">
           Save ${Math.round((tier.price.monthly - tier.price.annual) * 12)}/year
@@ -618,7 +618,7 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
       {competitors.map((comp, i) => (
         <div
           key={i}
-          className="flex items-center justify-between p-4 bg-white rounded-xl border border-charcoal-soft/10"
+          className="flex items-center justify-between p-4 bg-surface rounded-xl border border-charcoal-soft/10"
         >
           <div>
             <div className="font-medium text-charcoal-soft">{comp.name}</div>
@@ -695,7 +695,7 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({ faqs }) => {
             className={`rounded-full ${
               filter === cat
                 ? 'bg-coral-burst text-white'
-                : 'bg-white text-charcoal-soft/70 hover:bg-charcoal-soft/5'
+                : 'bg-surface text-charcoal-soft/70 hover:bg-charcoal-soft/5'
             }`}
           >
             {cat === 'all' ? 'All Questions' : categoryLabels[cat]}
@@ -710,7 +710,7 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({ faqs }) => {
           return (
             <div
               key={index}
-              className="bg-white rounded-xl overflow-hidden border border-charcoal-soft/5"
+              className="bg-surface rounded-xl overflow-hidden border border-charcoal-soft/5"
             >
               <Button
                 variant="ghost"
@@ -750,7 +750,7 @@ export const TrustBadges: React.FC<TrustBadgesProps> = ({ badges }) => (
     {badges.map((badge, index) => (
       <div
         key={index}
-        className="bg-white rounded-xl p-4 text-center border border-charcoal-soft/5"
+        className="bg-surface rounded-xl p-4 text-center border border-charcoal-soft/5"
       >
         <badge.icon className="w-8 h-8 mx-auto mb-2 text-coral-burst" />
         <div className="font-bold text-charcoal-soft text-sm">{badge.label}</div>
@@ -798,7 +798,7 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
             variant="ghost"
             size="lg"
             onClick={onContactSales}
-            className="bg-white/20 text-white border border-white/30 hover:bg-white/30"
+            className="bg-surface/20 text-white border border-white/30 hover:bg-surface/30"
           >
             <Phone className="w-5 h-5" />
             Talk to Our Team
@@ -833,7 +833,7 @@ export const BackToPricing: React.FC<{ onBack: () => void }> = ({ onBack }) => (
     variant="outline"
     size="sm"
     onClick={onBack}
-    className="fixed top-6 left-6 z-50 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white"
+    className="fixed top-6 left-6 z-50 bg-surface/90  rounded-full hover:bg-surface"
   >
     <ChevronRight className="w-4 h-4 rotate-180" />
     <span className="text-sm font-medium">Back to Pricing</span>

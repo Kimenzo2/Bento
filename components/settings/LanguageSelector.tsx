@@ -103,7 +103,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             <h2 className="font-heading font-bold text-xl text-charcoal-soft">
               {t('language', 'Language')}
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-cocoa-light">
               {t('languageDescription', 'Choose your preferred language')}
             </p>
           </div>
@@ -113,8 +113,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <button
           onClick={handleReset}
           disabled={isLoading}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 
-            hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-cocoa-light hover:text-charcoal-soft 
+            hover:bg-peach-soft/30 rounded-lg transition-colors disabled:opacity-50"
           title={t('resetLanguage', 'Reset to browser default')}
         >
           <RotateCcw className="w-4 h-4" />
@@ -137,13 +137,13 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cocoa-light/60" />
           <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('searchLanguages', 'Search languages...')}
-            className="pl-10 pr-4 border-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-coral-burst focus:border-transparent"
+            className="pl-10 pr-4 border-peach-soft placeholder:text-cocoa-light/60 focus:ring-2 focus:ring-coral-burst focus:border-transparent"
             aria-label={t('searchLanguages', 'Search languages')}
           />
         </div>
@@ -158,7 +158,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 ${
                   filter === filterOption
                     ? 'bg-coral-burst text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-peach-soft/30 text-cocoa-light hover:bg-peach-light/50'
                 }`}
               aria-pressed={filter === filterOption ? 'true' : 'false'}
             >
@@ -186,8 +186,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       {/* No results */}
       {filteredLanguages.length === 0 && (
         <div className="text-center py-12">
-          <Globe className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">{t('noLanguagesFound', 'No languages found')}</p>
+          <Globe className="w-12 h-12 text-cocoa-light/60 mx-auto mb-3" />
+          <p className="text-cocoa-light">{t('noLanguagesFound', 'No languages found')}</p>
           <button
             onClick={() => {
               setSearchQuery('');
@@ -201,7 +201,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       )}
 
       {/* Language stats */}
-      <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
+      <div className="flex flex-wrap gap-4 pt-4 border-t border-peach-soft/50 text-sm text-cocoa-light">
         <span>
           {t('totalLanguages', '{{count}} languages available', {
             count: SUPPORTED_LANGUAGES.length,

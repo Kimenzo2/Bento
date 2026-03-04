@@ -307,8 +307,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       className={`shrink-0 md:w-full md:gap-3 px-4 md:px-4 py-3 touch-manipulation min-w-30 md:min-w-0
         ${
           activeTab === id
-            ? 'bg-white text-coral-burst font-bold border border-peach-soft'
-            : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft border border-transparent'
+            ? 'bg-surface text-coral-burst font-bold border border-peach-soft'
+            : 'bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft border border-transparent'
         }`}
     >
       <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
@@ -335,7 +335,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">
           {label}
         </span>
-        {description && <span className="text-xs text-gray-500 mt-1">{description}</span>}
+        {description && <span className="text-xs text-cocoa-light mt-1">{description}</span>}
       </div>
       <Switch
         checked={checked}
@@ -394,7 +394,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               href="https://genesis-1765265007.documentationai.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft"
             >
               <BookOpen className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
               <span className="text-sm md:text-base whitespace-nowrap">Help Center</span>
@@ -403,7 +403,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-white rounded-2xl md:rounded-3xl border border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-[500px] relative">
+        <div className="flex-1 bg-surface rounded-2xl md:rounded-3xl border border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-[500px] relative">
           {/* Content Area */}
           <div className="space-y-6">
             {activeTab === 'profile' && (
@@ -444,7 +444,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           <span
                             className={`font-bold ${
                               actualUserTier === UserTier.SPARK
-                                ? 'text-gray-600'
+                                ? 'text-cocoa-light'
                                 : actualUserTier === UserTier.CREATOR
                                   ? 'text-blue-600'
                                   : actualUserTier === UserTier.STUDIO
@@ -603,7 +603,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {activeTab === 'themes' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl p-6 border border-peach-soft/50">
+                <div className="bg-surface rounded-2xl p-6 border border-peach-soft/50">
                   <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
                     Display Settings
                   </h3>
@@ -689,7 +689,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     </div>
 
                     {/* Card chip effect */}
-                    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-gold-sunshine/30 to-coral-burst/30 rounded-lg backdrop-blur-sm border border-white/10"></div>
+                    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-gold-sunshine/30 to-coral-burst/30 rounded-lg  border border-white/10"></div>
                   </div>
                 </div>
 
@@ -705,7 +705,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <Button
                     variant="outline"
                     onClick={() => onNavigate?.(AppMode.PRICING)}
-                    className="bg-white text-coral-burst hover:bg-white/90 rounded-full border border-white"
+                    className="bg-surface text-coral-burst hover:bg-surface/90 rounded-full border border-white"
                   >
                     View Plans
                   </Button>

@@ -39,17 +39,17 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
             {label}
           </span>
           {description && (
-            <span className="text-xs text-gray-500 mt-0.5 md:mt-1 line-clamp-2">{description}</span>
+            <span className="text-xs text-cocoa-light mt-0.5 md:mt-1 line-clamp-2">{description}</span>
           )}
         </div>
       </div>
       <button
         className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 shrink-0 ml-3 md:ml-4 ${
-          checked ? 'bg-coral-burst' : 'bg-gray-200'
+          checked ? 'bg-coral-burst' : 'bg-peach-light/50'
         }`}
       >
         <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full transform transition-transform duration-300 ${
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-surface rounded-full transform transition-transform duration-300 ${
             checked ? 'translate-x-[22px]' : 'translate-x-0'
           }`}
         />
@@ -129,7 +129,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
                   className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${
                     settings.fontSize === size
                       ? 'border-coral-burst bg-coral-burst text-white'
-                      : 'border-peach-soft bg-white text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'
+                      : 'border-peach-soft bg-surface text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'
                   }`}
                 >
                   {size}

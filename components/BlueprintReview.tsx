@@ -44,7 +44,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
         <div className="w-24"></div> {/* Spacer */}
       </div>
 
-      <div className="bg-white rounded-4xl overflow-hidden border border-peach-soft">
+      <div className="bg-surface rounded-4xl overflow-hidden border border-peach-soft">
         {/* Tabs */}
         <div className="flex border-b border-peach-soft/30">
           <Button
@@ -161,7 +161,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
               {editedBlueprint.characterNeeds.map((char, idx) => (
                 <div
                   key={idx}
-                  className="bg-white border border-peach-soft rounded-2xl p-6 hover:border-coral-burst transition-colors group"
+                  className="bg-surface border border-peach-soft rounded-2xl p-6 hover:border-coral-burst transition-colors group"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <Input
@@ -216,7 +216,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                   key={idx}
                   className="flex gap-4 p-4 bg-cream-base/30 rounded-2xl border border-transparent hover:border-peach-soft transition-colors"
                 >
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-heading font-bold text-coral-burst border border-peach-soft/50 shrink-0">
+                  <div className="w-12 h-12 bg-surface rounded-xl flex items-center justify-center font-heading font-bold text-coral-burst border border-peach-soft/50 shrink-0">
                     {page.pageNumber}
                   </div>
                   <div className="flex-1 space-y-3">
@@ -224,7 +224,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                       <span className="font-bold text-charcoal-soft">
                         Page {page.pageNumber}: {page.scene.substring(0, 50)}...
                       </span>
-                      <span className="text-xs text-cocoa-light bg-white px-2 py-1 rounded border border-peach-soft">
+                      <span className="text-xs text-cocoa-light bg-surface px-2 py-1 rounded border border-peach-soft">
                         {page.layoutTemplate}
                       </span>
                     </div>

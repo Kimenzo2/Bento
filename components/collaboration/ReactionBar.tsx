@@ -143,7 +143,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                             ${
                               myReactions.has(type)
                                 ? 'bg-coral-burst/20 ring-2 ring-coral-burst'
-                                : 'bg-gray-100 hover:bg-gray-200'
+                                : 'bg-peach-soft/30 hover:bg-peach-light/50'
                             }
                             ${animatingReaction === type ? 'scale-125' : 'hover:scale-110'}
                             ${isLoading ? 'cursor-wait opacity-75' : ''}
@@ -177,8 +177,8 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
           onClick={() => setIsExpanded(!isExpanded)}
           className={`
                         ${config.button} rounded-full flex
-                        bg-gray-100 hover:bg-gray-200
-                        hover:scale-110 text-gray-500
+                        bg-peach-soft/30 hover:bg-peach-light/50
+                        hover:scale-110 text-cocoa-light
                     `}
           title={isExpanded ? 'Show less' : 'Add reaction'}
         >
@@ -189,7 +189,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
       {/* Expanded reaction picker */}
       {isExpanded && (
         <div className="absolute top-full left-0 mt-2 z-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl border border-gray-200 p-3">
+          <div className="bg-surface rounded-2xl border border-peach-soft p-3">
             <div className="grid grid-cols-5 gap-2">
               {allReactions.map((type) => (
                 <Button
@@ -205,7 +205,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                                         ${
                                           myReactions.has(type)
                                             ? 'bg-coral-burst/20 ring-2 ring-coral-burst'
-                                            : 'hover:bg-gray-100'
+                                            : 'hover:bg-peach-soft/30'
                                         }
                                         hover:scale-110
                                     `}
@@ -213,7 +213,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                 >
                   <span className="text-xl">{REACTION_EMOJIS[type]}</span>
                   {showLabels && (
-                    <span className="text-[8px] text-gray-500 mt-0.5 truncate w-full text-center">
+                    <span className="text-[8px] text-cocoa-light mt-0.5 truncate w-full text-center">
                       {REACTION_LABELS[type]}
                     </span>
                   )}
@@ -222,8 +222,8 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
             </div>
 
             {/* Quick reaction row */}
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-              <span className="text-xs text-gray-400">Pick a reaction</span>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-peach-soft/50">
+              <span className="text-xs text-cocoa-light/60">Pick a reaction</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -268,13 +268,13 @@ export const MiniReactionDisplay: React.FC<MiniReactionDisplayProps> = ({
         {visible.map(({ type }) => (
           <span
             key={type}
-            className="text-sm bg-white rounded-full w-5 h-5 flex items-center justify-center border border-peach-soft/50"
+            className="text-sm bg-surface rounded-full w-5 h-5 flex items-center justify-center border border-peach-soft/50"
           >
             {REACTION_EMOJIS[type]}
           </span>
         ))}
       </div>
-      <span className="text-xs text-gray-500 ml-1">{totalCount}</span>
+      <span className="text-xs text-cocoa-light ml-1">{totalCount}</span>
     </div>
   );
 };

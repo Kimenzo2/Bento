@@ -60,7 +60,7 @@ const LiveUpgradeCounter = () => {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30"
+      className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20  rounded-full border border-emerald-400/30"
     >
       <div className="relative">
         <Users className="w-4 h-4 text-emerald-400" />
@@ -151,7 +151,7 @@ const FeatureComparison = () => {
             className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${
               feature.highlight
                 ? 'bg-linear-to-r from-purple-500/10 to-amber-500/10 border border-white/10'
-                : 'bg-white/5'
+                : 'bg-surface/5'
             }`}
           >
             <div className="text-white/80 text-sm">{feature.name}</div>
@@ -341,7 +341,7 @@ export const ProRevealMoment: React.FC = () => {
           transition={{ delay: 0.7 }}
           className="flex justify-center mb-8"
         >
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-linear-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-400/30">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-linear-to-r from-amber-500/20 to-orange-500/20  rounded-full border border-amber-400/30">
             <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
             <span className="text-white font-bold text-lg">{sparkPoints} Sparks</span>
             <span className="text-amber-300/70">earned so far</span>
@@ -366,7 +366,7 @@ export const ProRevealMoment: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="relative bg-linear-to-br from-purple-900/40 to-amber-900/30 backdrop-blur-xl rounded-3xl border border-white/10 p-6 mb-8 overflow-hidden"
+          className="relative bg-linear-to-br from-purple-900/40 to-amber-900/30  rounded-3xl border border-white/10 p-6 mb-8 overflow-hidden"
         >
           {/* Animated border glow */}
           <motion.div

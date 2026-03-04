@@ -63,7 +63,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
         {/* Body */}
         <div className="pt-12 pb-8 px-8">
           <div className="bg-mint-breeze/30 rounded-xl p-4 mb-6 flex items-center gap-4 border border-mint-breeze">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-peach-soft/50 shrink-0">
+            <div className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-peach-soft/50 shrink-0">
               <Zap className="w-5 h-5 text-green-600 fill-current" />
             </div>
             <div>

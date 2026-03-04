@@ -172,7 +172,7 @@ class ErrorBoundary extends Component<Props, State> {
       // Default error UI
       return (
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-cream-base to-peach-soft p-4">
-            <div className="bg-white rounded-3xl border border-peach-soft p-8 max-w-lg w-full text-center">
+            <div className="bg-surface rounded-3xl border border-peach-soft p-8 max-w-lg w-full text-center">
             <div className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
@@ -186,15 +186,15 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
 
             {/* Error ID for support */}
-            <div className="mb-6 px-4 py-2 bg-gray-50 rounded-lg inline-block">
-              <span className="text-xs text-gray-500">Error ID: </span>
-              <code className="text-xs font-mono text-gray-700">{errorId}</code>
+            <div className="mb-6 px-4 py-2 bg-surface/50 rounded-lg inline-block">
+              <span className="text-xs text-cocoa-light">Error ID: </span>
+              <code className="text-xs font-mono text-cocoa-light">{errorId}</code>
             </div>
 
             {/* Error details */}
             {showErrorDetails && error && (
-              <details className="mb-6 text-left bg-gray-50 rounded-xl p-4">
-                <summary className="cursor-pointer text-sm font-bold text-gray-600 mb-2 flex items-center gap-2">
+              <details className="mb-6 text-left bg-surface/50 rounded-xl p-4">
+                <summary className="cursor-pointer text-sm font-bold text-cocoa-light mb-2 flex items-center gap-2">
                   <Bug className="w-4 h-4" />
                   Error Details {import.meta.env.DEV && '(Dev Mode)'}
                 </summary>
@@ -206,7 +206,7 @@ class ErrorBoundary extends Component<Props, State> {
                   variant="ghost"
                   size="sm"
                   onClick={this.handleCopyError}
-                  className="mt-3 text-gray-500 hover:text-gray-700 flex gap-1"
+                  className="mt-3 text-cocoa-light hover:text-cocoa-light flex gap-1"
                 >
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   {copied ? 'Copied!' : 'Copy error report'}
@@ -245,7 +245,7 @@ class ErrorBoundary extends Component<Props, State> {
               <Button
                 variant="secondary"
                 onClick={this.handleGoHome}
-                className="flex px-6 py-3 bg-gray-100 text-charcoal-soft hover:bg-gray-200"
+                className="flex px-6 py-3 bg-peach-soft/30 text-charcoal-soft hover:bg-peach-light/50"
               >
                 <Home className="w-4 h-4" />
                 Go Home

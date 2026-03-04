@@ -27,8 +27,8 @@ const ThemeSelector: React.FC = () => {
               className={`relative group text-left rounded-2xl p-4 transition-all duration-300 border touch-manipulation
                 ${
                   isActive
-                    ? 'border-coral-burst bg-white scale-[1.02]'
-                    : 'border-transparent bg-white/50 hover:bg-white hover:scale-[1.01]'
+                    ? 'border-coral-burst bg-surface scale-[1.02]'
+                    : 'border-transparent bg-surface/50 hover:bg-surface hover:scale-[1.01]'
                 }
               `}
             >
@@ -40,7 +40,7 @@ const ThemeSelector: React.FC = () => {
                 }}
               >
                 <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-white text-xs font-bold">
+                  <div className="bg-surface/20  px-3 py-1 rounded-full text-white text-xs font-bold">
                     Preview
                   </div>
                 </div>
@@ -72,7 +72,7 @@ const ThemeSelector: React.FC = () => {
                   title="Accent 2"
                 ></div>
                 <div
-                  className="w-4 h-4 rounded-full border border-gray-200"
+                  className="w-4 h-4 rounded-full border border-peach-soft"
                   style={{ background: theme.colors.background }}
                   title="Background"
                 ></div>

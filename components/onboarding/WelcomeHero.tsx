@@ -301,7 +301,7 @@ export const WelcomeHero: React.FC = memo(() => {
                     style={GPU_STYLE}
                   >
                     {/* Card Background */}
-                    <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-surface/5 " />
 
                     {/* Gradient on hover */}
                     <div

@@ -192,7 +192,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
               <span className="font-bold text-red-400">LIVE</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-cocoa-light/60">
               <Radio className="w-5 h-5 opacity-50" />
               <span>Offline</span>
             </div>
@@ -200,11 +200,11 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
 
           {isLive && session && (
             <>
-              <div className="flex items-center gap-2 text-gray-300">
+              <div className="flex items-center gap-2 text-cocoa-light/60">
                 <Clock className="w-4 h-4" />
                 <span className="font-mono">{formatDuration(stats.duration)}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-300">
+              <div className="flex items-center gap-2 text-cocoa-light/60">
                 <Users className="w-4 h-4" />
                 <span>{session.viewer_count}</span>
               </div>
@@ -219,18 +219,18 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                 variant="ghost"
                 size="icon"
                 onClick={copyShareLink}
-                className="p-2 hover:bg-white/10"
+                className="p-2 hover:bg-surface/10"
                 title="Copy share link"
               >
-                <Share2 className="w-5 h-5 text-gray-400" />
+                <Share2 className="w-5 h-5 text-cocoa-light/60" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSettings(!showSettings)}
-                className="p-2 hover:bg-white/10"
+                className="p-2 hover:bg-surface/10"
               >
-                <Settings className="w-5 h-5 text-gray-400" />
+                <Settings className="w-5 h-5 text-cocoa-light/60" />
               </Button>
             </>
           )}
@@ -239,9 +239,9 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-white/10"
+              className="p-2 hover:bg-surface/10"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5 text-cocoa-light/60" />
             </Button>
           )}
         </div>
@@ -254,9 +254,9 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
           {isLive ? (
             /* Live broadcast info */
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="bg-white/5 rounded-2xl p-6 mb-6">
+              <div className="bg-surface/5 rounded-2xl p-6 mb-6">
                 <h3 className="text-xl font-bold text-white mb-2">{session?.title}</h3>
-                {session?.description && <p className="text-gray-400">{session.description}</p>}
+                {session?.description && <p className="text-cocoa-light/60">{session.description}</p>}
               </div>
 
               {/* Stats cards */}
@@ -307,12 +307,12 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                       <Radio className="w-10 h-10 text-white" />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">Go Live</h2>
-                    <p className="text-gray-400">Share your creative process with the community</p>
+                    <p className="text-cocoa-light/60">Share your creative process with the community</p>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <Label className="text-gray-300 mb-2">
+                      <Label className="text-cocoa-light/60 mb-2">
                         Broadcast Title *
                       </Label>
                       <Input
@@ -320,12 +320,12 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="What are you creating today?"
-                        className="py-3 bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-purple-500"
+                        className="py-3 bg-surface/5 border-white/10 text-white placeholder-gray-500 focus:border-purple-500"
                       />
                     </div>
 
                     <div>
-                      <Label className="text-gray-300 mb-2">
+                      <Label className="text-cocoa-light/60 mb-2">
                         Description (optional)
                       </Label>
                       <Textarea
@@ -333,7 +333,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Tell viewers what to expect..."
                         rows={3}
-                        className="bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-purple-500 transition-colors"
+                        className="bg-surface/5 border-white/10 text-white placeholder-gray-500 focus:border-purple-500 transition-colors"
                       />
                     </div>
 
@@ -341,8 +341,8 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                     <div className="space-y-3 pt-4 border-t border-white/10">
                       <Label className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-3">
-                          <MessageSquare className="w-5 h-5 text-gray-400" />
-                          <span className="text-gray-300">Enable chat</span>
+                          <MessageSquare className="w-5 h-5 text-cocoa-light/60" />
+                          <span className="text-cocoa-light/60">Enable chat</span>
                         </div>
                         <div
                           onClick={() =>
@@ -354,15 +354,15 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         >
                           <motion.div
                             animate={{ x: settings.chatEnabled ? 20 : 2 }}
-                            className="w-5 h-5 bg-white rounded-full mt-0.5"
+                            className="w-5 h-5 bg-surface rounded-full mt-0.5"
                           />
                         </div>
                       </Label>
 
                       <Label className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-3">
-                          <AlertCircle className="w-5 h-5 text-gray-400" />
-                          <span className="text-gray-300">Allow questions</span>
+                          <AlertCircle className="w-5 h-5 text-cocoa-light/60" />
+                          <span className="text-cocoa-light/60">Allow questions</span>
                         </div>
                         <div
                           onClick={() =>
@@ -374,15 +374,15 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         >
                           <motion.div
                             animate={{ x: settings.questionsEnabled ? 20 : 2 }}
-                            className="w-5 h-5 bg-white rounded-full mt-0.5"
+                            className="w-5 h-5 bg-surface rounded-full mt-0.5"
                           />
                         </div>
                       </Label>
 
                       <Label className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-3">
-                          <Copy className="w-5 h-5 text-gray-400" />
-                          <span className="text-gray-300">Allow copying settings</span>
+                          <Copy className="w-5 h-5 text-cocoa-light/60" />
+                          <span className="text-cocoa-light/60">Allow copying settings</span>
                         </div>
                         <div
                           onClick={() =>
@@ -397,7 +397,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         >
                           <motion.div
                             animate={{ x: settings.copySettingsEnabled ? 20 : 2 }}
-                            className="w-5 h-5 bg-white rounded-full mt-0.5"
+                            className="w-5 h-5 bg-surface rounded-full mt-0.5"
                           />
                         </div>
                       </Label>
@@ -405,11 +405,11 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                       <Label className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-3">
                           {settings.isPrivate ? (
-                            <EyeOff className="w-5 h-5 text-gray-400" />
+                            <EyeOff className="w-5 h-5 text-cocoa-light/60" />
                           ) : (
-                            <Eye className="w-5 h-5 text-gray-400" />
+                            <Eye className="w-5 h-5 text-cocoa-light/60" />
                           )}
-                          <span className="text-gray-300">Private broadcast</span>
+                          <span className="text-cocoa-light/60">Private broadcast</span>
                         </div>
                         <div
                           onClick={() => setSettings((s) => ({ ...s, isPrivate: !s.isPrivate }))}
@@ -419,7 +419,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         >
                           <motion.div
                             animate={{ x: settings.isPrivate ? 20 : 2 }}
-                            className="w-5 h-5 bg-white rounded-full mt-0.5"
+                            className="w-5 h-5 bg-surface rounded-full mt-0.5"
                           />
                         </div>
                       </Label>
@@ -451,7 +451,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                 variant="ghost"
                 onClick={() => setActiveTab('chat')}
                 className={`flex-1 py-3 font-medium relative ${
-                  activeTab === 'chat' ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                  activeTab === 'chat' ? 'text-purple-400' : 'text-cocoa-light/60 hover:text-white'
                 }`}
               >
                 Chat
@@ -466,7 +466,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                 variant="ghost"
                 onClick={() => setActiveTab('questions')}
                 className={`flex-1 py-3 font-medium relative ${
-                  activeTab === 'questions' ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                  activeTab === 'questions' ? 'text-purple-400' : 'text-cocoa-light/60 hover:text-white'
                 }`}
               >
                 Questions
@@ -486,7 +486,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                 variant="ghost"
                 onClick={() => setActiveTab('viewers')}
                 className={`flex-1 py-3 font-medium relative ${
-                  activeTab === 'viewers' ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                  activeTab === 'viewers' ? 'text-purple-400' : 'text-cocoa-light/60 hover:text-white'
                 }`}
               >
                 Viewers
@@ -516,7 +516,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                         className={`p-3 rounded-lg ${
                           msg.is_pinned
                             ? 'bg-yellow-500/10 border border-yellow-500/30'
-                            : 'bg-white/5'
+                            : 'bg-surface/5'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -527,14 +527,14 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                             variant="ghost"
                             size="icon"
                             onClick={() => handlePinMessage(msg.id, msg.is_pinned)}
-                            className={`p-1 rounded hover:bg-white/10 ${
-                              msg.is_pinned ? 'text-yellow-400' : 'text-gray-500'
+                            className={`p-1 rounded hover:bg-surface/10 ${
+                              msg.is_pinned ? 'text-yellow-400' : 'text-cocoa-light'
                             }`}
                           >
                             <Pin className="w-3 h-3" />
                           </Button>
                         </div>
-                        <p className="text-sm text-gray-300">{msg.message}</p>
+                        <p className="text-sm text-cocoa-light/60">{msg.message}</p>
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
@@ -565,14 +565,14 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                               variant="ghost"
                               size="icon"
                               onClick={() => handleAnswerQuestion(q.id)}
-                              className="p-1 text-gray-400 hover:text-green-400 rounded hover:bg-white/10"
+                              className="p-1 text-cocoa-light/60 hover:text-green-400 rounded hover:bg-surface/10"
                               title="Mark as answered"
                             >
                               <Check className="w-4 h-4" />
                             </Button>
                           )}
                         </div>
-                        <p className="text-sm text-gray-300">{q.message}</p>
+                        <p className="text-sm text-cocoa-light/60">{q.message}</p>
                         {q.is_answered && (
                           <span className="text-xs text-green-400 mt-1 flex items-center gap-1">
                             <Check className="w-3 h-3" /> Answered
@@ -581,7 +581,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                       </div>
                     ))}
                     {questions.length === 0 && (
-                      <div className="text-center text-gray-500 py-8">
+                      <div className="text-center text-cocoa-light py-8">
                         <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No questions yet</p>
                       </div>
@@ -600,7 +600,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                     {viewers.map((viewer) => (
                       <div
                         key={viewer.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5"
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface/5"
                       >
                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                           {(viewer.viewer as unknown as Record<string, string>)?.avatar_url ? (
@@ -615,13 +615,13 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                             </span>
                           )}
                         </div>
-                        <span className="text-sm text-gray-300">
+                        <span className="text-sm text-cocoa-light/60">
                           {(viewer.viewer as unknown as Record<string, string>)?.full_name || 'Anonymous'}
                         </span>
                       </div>
                     ))}
                     {viewers.length === 0 && (
-                      <div className="text-center text-gray-500 py-8">
+                      <div className="text-center text-cocoa-light py-8">
                         <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No viewers yet</p>
                       </div>
@@ -641,7 +641,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Send a message..."
-                    className="flex-1 py-2 bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-purple-500"
+                    className="flex-1 py-2 bg-surface/5 border-white/10 text-white placeholder-gray-500 focus:border-purple-500"
                   />
                   <Button
                     variant="default"

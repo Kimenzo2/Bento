@@ -29,7 +29,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-2xl overflow-hidden transition-all duration-300 border border-peach-soft/50 group outline-none focus:ring-2 focus:ring-coral-burst/50"
+      className="bg-surface rounded-2xl overflow-hidden transition-all duration-300 border border-peach-soft/50 group outline-none focus:ring-2 focus:ring-coral-burst/50"
       tabIndex={0}
       role="article"
     >
@@ -44,10 +44,10 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
         )}
 
         {/* Hover Overlay - Action Buttons */}
-        <div className="absolute inset-0 z-20 bg-black/80 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-center justify-center gap-3 backdrop-blur-sm pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
+        <div className="absolute inset-0 z-20 bg-black/80 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-center justify-center gap-3  pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
           <button
             onClick={() => onEdit(book)}
-            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+            className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Edit"
             aria-label="Edit book"
           >
@@ -55,7 +55,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
           </button>
           <button
             onClick={() => onRead(book)}
-            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+            className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Read"
             aria-label="Read book"
           >
@@ -64,7 +64,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
           {onShare && (
             <button
               onClick={() => onShare(book)}
-              className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+              className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
               title="Share"
               aria-label="Share book"
             >
@@ -78,7 +78,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
                 onDelete(book.id);
               }
             }}
-            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+            className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Delete"
             aria-label="Delete book"
           >

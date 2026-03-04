@@ -37,7 +37,7 @@ export const UsageHeatmap: React.FC<UsageHeatmapProps> = ({ tier }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-full border border-peach-soft p-1 pr-4 flex items-center gap-3"
+        className="bg-surface rounded-full border border-peach-soft p-1 pr-4 flex items-center gap-3"
       >
         <div
           className={`w-10 h-10 rounded-full bg-linear-to-br ${tier.gradient} flex items-center justify-center text-white`}
@@ -62,7 +62,7 @@ export const UsageHeatmap: React.FC<UsageHeatmapProps> = ({ tier }) => {
 
         <button
           onClick={() => setIsVisible(false)}
-          className="ml-2 p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+          className="ml-2 p-1 hover:bg-peach-soft/30 rounded-full text-cocoa-light/60 hover:text-cocoa-light transition-colors"
         >
           <X className="w-4 h-4" />
         </button>

@@ -30,7 +30,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       {/* Main Navigation Bar */}
-      <div className="mx-2 mb-1 bg-charcoal-soft/95 backdrop-blur-xl rounded-2xl border border-white/10 p-2 flex items-center justify-between relative overflow-hidden">
+      <div className="mx-2 mb-1 bg-charcoal-soft/95  rounded-2xl border border-white/10 p-2 flex items-center justify-between relative overflow-hidden">
         {/* Optional Mode Toggle Button */}
         {onModeToggle && (
           <Button
@@ -69,7 +69,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               onClick={() => onTabChange(tab.id)}
               className={`
                                 relative flex flex-col gap-0.5 flex-1 h-12 min-h-[52px]
-                                ${isActive ? 'bg-white/10 text-gold-sunshine' : 'text-gray-400 active:text-white active:bg-white/5'}
+                                ${isActive ? 'bg-surface/10 text-gold-sunshine' : 'text-cocoa-light/60 active:text-white active:bg-surface/5'}
                             `}
               aria-label={tab.label}
               style={{ WebkitTapHighlightColor: 'transparent' }}

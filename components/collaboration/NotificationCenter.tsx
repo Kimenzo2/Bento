@@ -138,7 +138,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
       mentorship_accepted: <BookOpen className="w-4 h-4 text-green-500" />,
     };
 
-    return iconMap[type] || <Bell className="w-4 h-4 text-gray-400" />;
+    return iconMap[type] || <Bell className="w-4 h-4 text-cocoa-light/60" />;
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -175,7 +175,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="fixed inset-x-4 top-20 bottom-auto max-h-[80vh] md:absolute md:inset-auto md:right-0 md:top-12 md:w-96 md:max-h-150 bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 z-50 overflow-hidden flex flex-col"
+          className="fixed inset-x-4 top-20 bottom-auto max-h-[80vh] md:absolute md:inset-auto md:right-0 md:top-12 md:w-96 md:max-h-150 bg-gray-900/95  rounded-2xl border border-white/10 z-50 overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
@@ -193,10 +193,10 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                 variant="ghost"
                 size="icon"
                 onClick={handleMarkAllAsRead}
-                className="p-1.5 hover:bg-white/10"
+                className="p-1.5 hover:bg-surface/10"
                 title="Mark all as read"
               >
-                <CheckCheck className="w-4 h-4 text-gray-400" />
+                <CheckCheck className="w-4 h-4 text-cocoa-light/60" />
               </Button>
               <Button
                 variant="ghost"
@@ -204,18 +204,18 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                 onClick={() => {
                   /* Open settings */
                 }}
-                className="p-1.5 hover:bg-white/10"
+                className="p-1.5 hover:bg-surface/10"
                 title="Notification settings"
               >
-                <Settings className="w-4 h-4 text-gray-400" />
+                <Settings className="w-4 h-4 text-cocoa-light/60" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="p-1.5 hover:bg-white/10"
+                className="p-1.5 hover:bg-surface/10"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-cocoa-light/60" />
               </Button>
             </div>
           </div>
@@ -229,7 +229,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
               className={`px-3 py-1.5 ${
                 filter === 'all'
                   ? 'bg-purple-500/20 text-purple-400'
-                  : 'text-gray-400 hover:bg-white/5'
+                  : 'text-cocoa-light/60 hover:bg-surface/5'
               }`}
             >
               All
@@ -241,7 +241,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
               className={`px-3 py-1.5 ${
                 filter === 'unread'
                   ? 'bg-purple-500/20 text-purple-400'
-                  : 'text-gray-400 hover:bg-white/5'
+                  : 'text-cocoa-light/60 hover:bg-surface/5'
               }`}
             >
               Unread
@@ -259,7 +259,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                 />
               </div>
             ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+              <div className="flex flex-col items-center justify-center py-12 text-cocoa-light/60">
                 <BellOff className="w-12 h-12 mb-3 opacity-50" />
                 <p className="text-sm">No notifications yet</p>
               </div>
@@ -273,7 +273,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ delay: index * 0.05 }}
                     className={`
-                                            group px-4 py-3 border-l-2 hover:bg-white/5 transition-all cursor-pointer
+                                            group px-4 py-3 border-l-2 hover:bg-surface/5 transition-all cursor-pointer
                                             ${notification.is_read ? '' : 'bg-purple-500/5'}
                                             ${getPriorityColor(notification.priority)}
                                         `}
@@ -286,7 +286,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                   >
                     <div className="flex items-start gap-3">
                       {/* Icon */}
-                      <div className="mt-0.5 p-2 bg-white/5 rounded-lg">
+                      <div className="mt-0.5 p-2 bg-surface/5 rounded-lg">
                         {getNotificationIcon(notification.type)}
                       </div>
 
@@ -300,12 +300,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                             <div className="w-2 h-2 bg-purple-500 rounded-full shrink-0 mt-1.5" />
                           )}
                         </div>
-                        <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">
+                        <p className="text-cocoa-light/60 text-sm mt-0.5 line-clamp-2">
                           {notification.message}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Clock className="w-3 h-3 text-gray-500" />
-                          <span className="text-xs text-gray-500">
+                          <Clock className="w-3 h-3 text-cocoa-light" />
+                          <span className="text-xs text-cocoa-light">
                             {formatTimeAgo(notification.created_at)}
                           </span>
                         </div>
@@ -321,10 +321,10 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                               e.stopPropagation();
                               handleMarkAsRead(notification.id);
                             }}
-                            className="p-1.5 hover:bg-white/10"
+                            className="p-1.5 hover:bg-surface/10"
                             title="Mark as read"
                           >
-                            <Check className="w-4 h-4 text-gray-400" />
+                            <Check className="w-4 h-4 text-cocoa-light/60" />
                           </Button>
                         )}
                         <Button
@@ -337,7 +337,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                           className="p-1.5 hover:bg-red-500/20"
                           title="Delete"
                         >
-                          <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
+                          <Trash2 className="w-4 h-4 text-cocoa-light/60 hover:text-red-400" />
                         </Button>
                       </div>
                     </div>
@@ -381,10 +381,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onClick, unr
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="relative p-2 hover:bg-white/10 group"
+      className="relative p-2 hover:bg-surface/10 group"
       title="Notifications"
     >
-      <Bell className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+      <Bell className="w-5 h-5 text-cocoa-light/60 group-hover:text-white transition-colors" />
       {unreadCount > 0 && (
         <motion.span
           initial={{ scale: 0 }}

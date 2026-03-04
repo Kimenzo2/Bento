@@ -23,7 +23,7 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ data }) => {
             >
               {/* Content Side */}
               <div className={`flex-1 ${index % 2 === 0 ? 'text-right' : 'text-left'}`}>
-                <div className="bg-white p-5 rounded-2xl border border-peach-soft/30 hover:scale-105 transition-transform duration-300">
+                <div className="bg-surface p-5 rounded-2xl border border-peach-soft/30 hover:scale-105 transition-transform duration-300">
                   <span className="inline-block px-3 py-1 bg-gold-sunshine/20 text-gold-sunshine font-bold rounded-full text-xs mb-2">
                     {event.date}
                   </span>
@@ -35,7 +35,7 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ data }) => {
               </div>
 
               {/* Center Dot */}
-              <div className="relative z-10 w-4 h-4 rounded-full bg-white border-4 border-coral-burst shrink-0">
+              <div className="relative z-10 w-4 h-4 rounded-full bg-surface border-4 border-coral-burst shrink-0">
                 <div className="absolute inset-0 bg-coral-burst rounded-full animate-ping opacity-20"></div>
               </div>
 

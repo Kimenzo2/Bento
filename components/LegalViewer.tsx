@@ -105,7 +105,7 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
                   ${
                     isActive
                       ? `${doc.bgColor} ${doc.color} border border-current`
-                      : 'bg-white text-cocoa-light hover:bg-cream-soft border border-transparent'
+                      : 'bg-surface text-cocoa-light hover:bg-cream-soft border border-transparent'
                   }`}
               >
                 <Icon className="w-4 h-4" />
@@ -116,7 +116,7 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
         </div>
 
         {/* Document Content */}
-        <div className="bg-white rounded-2xl md:rounded-3xl border border-white/50 p-6 md:p-10">
+        <div className="bg-surface rounded-2xl md:rounded-3xl border border-white/50 p-6 md:p-10">
           <article
             className="prose prose-sm md:prose-base max-w-none
             prose-headings:font-heading prose-headings:text-charcoal-soft

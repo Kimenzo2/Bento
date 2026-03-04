@@ -40,7 +40,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
         ${
           isActive
             ? 'border-coral-burst bg-linear-to-br from-coral-burst/10 to-gold-sunshine/10'
-            : 'border-gray-200 bg-white hover:border-gray-300'
+            : 'border-peach-soft bg-surface hover:border-peach-soft'
         }
       `}
       aria-pressed={isActive ? 'true' : 'false'}
@@ -71,7 +71,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       </h3>
 
       {/* Language name (English) */}
-      <p className="text-sm text-gray-500 mb-3">{language.englishName}</p>
+      <p className="text-sm text-cocoa-light mb-3">{language.englishName}</p>
 
       {/* RTL indicator */}
       {language.isRTL && (
@@ -83,11 +83,11 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
 
       {/* Completion progress */}
       <div className="w-full">
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+        <div className="flex items-center justify-between text-xs text-cocoa-light mb-1">
           <span>Translation</span>
           <span>{language.completionPercentage}%</span>
         </div>
-        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-peach-soft/30 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${completionColor}`}
             style={{ width: `${language.completionPercentage}%` }}
@@ -97,7 +97,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
 
       {/* Loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center">
+        <div className="absolute inset-0 bg-surface/80 rounded-xl flex items-center justify-center">
           <div className="w-6 h-6 border border-coral-burst border-t-transparent rounded-full animate-spin" />
         </div>
       )}

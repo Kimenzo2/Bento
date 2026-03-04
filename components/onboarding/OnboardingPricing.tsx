@@ -224,7 +224,7 @@ export const OnboardingPricing: React.FC = () => {
               variant="ghost"
               onClick={() => setIsAnnual(!isAnnual)}
               aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
-              className="relative w-14 h-7 bg-white/10 rounded-full p-1 border border-white/20"
+              className="relative w-14 h-7 bg-surface/10 rounded-full p-1 border border-white/20"
             >
               <motion.div
                 animate={{ x: isAnnual ? 26 : 0 }}
@@ -253,7 +253,7 @@ export const OnboardingPricing: React.FC = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`relative bg-white/5 backdrop-blur-xl rounded-2xl border p-3 md:p-5 flex flex-col transition-all duration-300 ${
+                className={`relative bg-surface/5  rounded-2xl border p-3 md:p-5 flex flex-col transition-all duration-300 ${
                   tier.isPopular 
                     ? `border-amber-400/50` 
                     : `${tier.borderColor} hover:border-white/20`
@@ -319,8 +319,8 @@ export const OnboardingPricing: React.FC = () => {
                     tier.isPopular
                       ? `bg-linear-to-r ${tier.gradient} text-white border border-white/20`
                       : tier.priceMonthly === 0
-                        ? 'bg-white/10 text-white/70 hover:bg-white/20'
-                        : 'bg-white/10 text-white hover:bg-white/20'
+                        ? 'bg-surface/10 text-white/70 hover:bg-surface/20'
+                        : 'bg-surface/10 text-white hover:bg-surface/20'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isProcessing ? (
@@ -344,7 +344,7 @@ export const OnboardingPricing: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/tier/${tier.name.toLowerCase()}`)}
-                    className="w-full mt-2 py-2 font-medium text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent hover:border-white/10"
+                    className="w-full mt-2 py-2 font-medium text-white/40 hover:text-white/70 hover:bg-surface/5 border border-transparent hover:border-white/10"
                   >
                     Why {tier.displayName}?
                   </Button>

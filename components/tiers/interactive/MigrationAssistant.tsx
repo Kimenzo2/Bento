@@ -52,8 +52,8 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
                 onClick={() => setCurrentStep(step.id)}
                 className={`w-full flex gap-4 p-4 text-left ${
                   currentStep === step.id
-                    ? `bg-white border border-${tier.accentColor}-200`
-                    : 'bg-transparent hover:bg-gray-50 border border-transparent'
+                    ? `bg-surface border border-${tier.accentColor}-200`
+                    : 'bg-transparent hover:bg-surface/50 border border-transparent'
                 }`}
               >
                 <div
@@ -62,14 +62,14 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
                       ? `bg-${tier.accentColor}-100 text-${tier.accentColor}-600`
                       : currentStep > step.id
                         ? 'bg-green-100 text-green-600'
-                        : 'bg-gray-100 text-gray-400'
+                        : 'bg-peach-soft/30 text-cocoa-light/60'
                   }`}
                 >
                   {currentStep > step.id ? <CheckCircle2 className="w-5 h-5" /> : step.id}
                 </div>
                 <div>
                   <h4
-                    className={`font-bold ${currentStep === step.id ? 'text-charcoal-soft' : 'text-gray-500'}`}
+                    className={`font-bold ${currentStep === step.id ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
                   >
                     {step.title}
                   </h4>

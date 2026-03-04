@@ -113,7 +113,7 @@ export const PaymentCallback: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base flex items-center justify-center px-6">
-      <div className="max-w-md w-full bg-white rounded-3xl border border-peach-soft p-10 text-center">
+      <div className="max-w-md w-full bg-surface rounded-3xl border border-peach-soft p-10 text-center">
         {/* Icon */}
         <div className="mb-6">
           {(status === 'verifying' || status === 'activating') && (
@@ -143,7 +143,7 @@ export const PaymentCallback: React.FC = () => {
 
         {/* Reference */}
         {reference && (
-          <div className="bg-gray-50 rounded-xl px-4 py-3 mb-6">
+          <div className="bg-surface/50 rounded-xl px-4 py-3 mb-6">
             <p className="text-xs text-cocoa-light">Transaction Reference</p>
             <p className="font-mono text-sm text-charcoal-soft font-medium break-all">{reference}</p>
           </div>

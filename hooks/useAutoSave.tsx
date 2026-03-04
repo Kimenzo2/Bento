@@ -232,7 +232,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({ state, cla
     if (state.lastSaved) {
       return <Check className="w-4 h-4 text-green-500" />;
     }
-    return <CloudOff className="w-4 h-4 text-gray-400" />;
+    return <CloudOff className="w-4 h-4 text-cocoa-light/60" />;
   };
 
   const getStatusText = () => {
@@ -258,7 +258,7 @@ export const AutoSaveIndicator: React.FC<AutoSaveIndicatorProps> = ({ state, cla
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 10 }}
-        className={`flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 ${className}`}
+        className={`flex items-center gap-2 text-xs text-cocoa-light dark:text-cocoa-light/60 ${className}`}
       >
         {getStatusIcon()}
         <span>{getStatusText()}</span>
@@ -304,7 +304,7 @@ export const DraftRecoveryBanner: React.FC<DraftRecoveryBannerProps> = ({
           <Button
             variant="ghost"
             onClick={onDiscard}
-            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="px-4 py-2 text-cocoa-light dark:text-cocoa-light/60 hover:bg-peach-soft/30 dark:hover:bg-gray-800"
           >
             Discard
           </Button>

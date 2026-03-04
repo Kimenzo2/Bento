@@ -16,7 +16,7 @@ const badgeVariants = cva(
         primary:
           "border-coral-burst/20 bg-coral-burst/10 text-coral-burst",
         secondary:
-          "border-peach-soft bg-white text-cocoa-light",
+          "border-peach-soft bg-surface text-cocoa-light",
         success:
           "border-green-200 bg-green-50 text-green-700",
         warning:

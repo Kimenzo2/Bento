@@ -244,8 +244,8 @@ export const PersonalizationQuiz: React.FC = () => {
                 idx < currentQuestion
                   ? 'w-8 bg-purple-500'
                   : idx === currentQuestion
-                    ? 'w-8 bg-white'
-                    : 'w-2 bg-white/20'
+                    ? 'w-8 bg-surface'
+                    : 'w-2 bg-surface/20'
               }`}
             />
           ))}
@@ -267,7 +267,7 @@ export const PersonalizationQuiz: React.FC = () => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
+                className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-surface/5  rounded-full border border-white/10 mb-3 md:mb-6"
               >
                 <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
                 <span className="text-white/70 text-xs md:text-sm font-medium">
@@ -296,7 +296,7 @@ export const PersonalizationQuiz: React.FC = () => {
                     transition={{ delay: 0.3 + idx * 0.1 }}
                     onClick={() => handleSelect(option.value)}
                     className={`group relative w-full ob-p-card rounded-xl md:rounded-2xl text-left transition-all duration-300 overflow-hidden ${
-                      isSelected ? 'ring-2 ring-white/40' : 'hover:bg-white/5'
+                      isSelected ? 'ring-2 ring-white/40' : 'hover:bg-surface/5'
                     }`}
                   >
                     {/* Background gradient on selection */}
@@ -305,7 +305,7 @@ export const PersonalizationQuiz: React.FC = () => {
                     />
 
                     {/* Glass effect */}
-                    <div className="absolute inset-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl" />
+                    <div className="absolute inset-0 bg-surface/5  border border-white/10 rounded-2xl" />
 
                     {/* Shimmer on hover */}
                     <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
@@ -337,7 +337,7 @@ export const PersonalizationQuiz: React.FC = () => {
                       {/* Selection indicator */}
                       <div
                         className={`shrink-0 w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300 ${
-                          isSelected ? 'border-white bg-white' : 'border-white/30'
+                          isSelected ? 'border-white bg-surface' : 'border-white/30'
                         }`}
                       >
                         {isSelected && (

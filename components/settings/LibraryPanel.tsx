@@ -135,7 +135,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
       <span>{label}</span>
       <span
         className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-          activeTab === id ? 'bg-white/20' : 'bg-peach-soft'
+          activeTab === id ? 'bg-surface/20' : 'bg-peach-soft'
         }`}
       >
         {count}
@@ -251,7 +251,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                               e.stopPropagation();
                               onViewBook?.(book);
                             }}
-                            className="px-3 py-1.5 bg-white text-coral-burst hover:bg-coral-burst hover:text-white"
+                            className="px-3 py-1.5 bg-surface text-coral-burst hover:bg-coral-burst hover:text-white"
                           >
                             <Eye className="w-3 h-3" />
                             View
@@ -264,7 +264,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                               handleDeleteBook(book.id);
                             }}
                             disabled={deletingId === book.id}
-                            className="px-3 py-1.5 bg-white text-red-500 hover:bg-red-500 hover:text-white"
+                            className="px-3 py-1.5 bg-surface text-red-500 hover:bg-red-500 hover:text-white"
                           >
                             {deletingId === book.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -329,7 +329,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                               e.stopPropagation();
                               setViewingInfographic(infographic);
                             }}
-                            className="px-3 py-1.5 bg-white text-purple-600 hover:bg-purple-600 hover:text-white"
+                            className="px-3 py-1.5 bg-surface text-purple-600 hover:bg-purple-600 hover:text-white"
                           >
                             <Eye className="w-3 h-3" />
                             View
@@ -342,7 +342,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                               handleDeleteInfographic(infographic.id);
                             }}
                             disabled={deletingId === infographic.id}
-                            className="px-3 py-1.5 bg-white text-red-500 hover:bg-red-500 hover:text-white"
+                            className="px-3 py-1.5 bg-surface text-red-500 hover:bg-red-500 hover:text-white"
                           >
                             {deletingId === infographic.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -395,7 +395,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                             e.stopPropagation();
                             setViewingImage(image);
                           }}
-                          className="px-2 py-1 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30"
+                          className="px-2 py-1 bg-surface/20  text-white hover:bg-surface/30"
                         >
                           <Eye className="w-3 h-3" />
                         </Button>
@@ -403,7 +403,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                           href={image.imageUrl}
                           download={`${image.title}.png`}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1 px-2 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-xs text-white hover:bg-white/30 transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 bg-surface/20  rounded-lg text-xs text-white hover:bg-surface/30 transition-colors"
                         >
                           <Download className="w-3 h-3" />
                         </a>
@@ -415,7 +415,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                             handleDeleteImage(image.id);
                           }}
                           disabled={deletingId === image.id}
-                          className="px-2 py-1 bg-red-500/80 backdrop-blur-sm text-white hover:bg-red-500"
+                          className="px-2 py-1 bg-red-500/80  text-white hover:bg-red-500"
                         >
                           {deletingId === image.id ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -447,7 +447,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white z-10"
+              className="absolute top-4 right-4 p-3 bg-surface/10 hover:bg-surface/20 text-white z-10"
               onClick={() => {
                 setViewingImage(null);
                 setImageZoom(1);
@@ -457,7 +457,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
             </Button>
 
             {/* Zoom controls */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 z-10">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-surface/10  rounded-full px-4 py-2 z-10">
               <Button
                 variant="ghost"
                 size="icon"
@@ -465,7 +465,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                   e.stopPropagation();
                   setImageZoom((z) => Math.max(0.5, z - 0.25));
                 }}
-                className="p-2 hover:bg-white/20 text-white"
+                className="p-2 hover:bg-surface/20 text-white"
               >
                 <ZoomOut className="w-5 h-5" />
               </Button>
@@ -479,16 +479,16 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                   e.stopPropagation();
                   setImageZoom((z) => Math.min(3, z + 0.25));
                 }}
-                className="p-2 hover:bg-white/20 text-white"
+                className="p-2 hover:bg-surface/20 text-white"
               >
                 <ZoomIn className="w-5 h-5" />
               </Button>
-              <div className="w-px h-6 bg-white/30 mx-1"></div>
+              <div className="w-px h-6 bg-surface/30 mx-1"></div>
               <a
                 href={viewingImage.imageUrl}
                 download={`${viewingImage.title}.png`}
                 onClick={(e) => e.stopPropagation()}
-                className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                className="p-2 hover:bg-surface/20 rounded-full text-white transition-colors"
               >
                 <Download className="w-5 h-5" />
               </a>
@@ -530,7 +530,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white z-10"
+              className="absolute top-4 right-4 p-3 bg-surface/10 hover:bg-surface/20 text-white z-10"
               onClick={() => setViewingInfographic(null)}
             >
               <X className="w-6 h-6" />
@@ -552,12 +552,12 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
 
             {/* Content card */}
             <div
-              className="bg-white rounded-2xl border border-peach-soft max-w-3xl w-full mx-4 my-16 p-8 max-h-[80vh] overflow-auto"
+              className="bg-surface rounded-2xl border border-peach-soft max-w-3xl w-full mx-4 my-16 p-8 max-h-[80vh] overflow-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-6">
                 {/* Header */}
-                <div className="text-center border-b border-gray-100 pb-6">
+                <div className="text-center border-b border-peach-soft/50 pb-6">
                   <h2 className="font-heading font-bold text-2xl text-charcoal-soft">
                     {viewingInfographic.data.title}
                   </h2>

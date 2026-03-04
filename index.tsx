@@ -95,7 +95,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <p className="mb-4 opacity-80 max-w-md">
             We encountered an unexpected error while loading Genesis.
           </p>
-          <div className="bg-white p-4 rounded-xl border border-[#FFE4CC] text-left overflow-auto max-w-lg max-h-40 mb-6 w-full text-sm font-mono text-red-500">
+          <div className="bg-surface p-4 rounded-xl border border-[#FFE4CC] text-left overflow-auto max-w-lg max-h-40 mb-6 w-full text-sm font-mono text-red-500">
             {import.meta.env.DEV ? (this.state.error?.message || 'Unknown error') : 'An unexpected error occurred. Please reload the page.'}
           </div>
           <Button

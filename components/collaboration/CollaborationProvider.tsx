@@ -51,7 +51,7 @@ interface RoomCollaborationProps {
 
 function CollaborationLoading() {
   return (
-    <div className="flex items-center justify-center p-4 text-sm text-gray-500">
+    <div className="flex items-center justify-center p-4 text-sm text-cocoa-light">
       <div className="animate-pulse flex items-center gap-2">
         <div
           className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
@@ -113,7 +113,7 @@ export function ConnectionStatus() {
   const config = statusConfig[status] || statusConfig.initial;
 
   return (
-    <div className="flex items-center gap-2 text-xs text-gray-600">
+    <div className="flex items-center gap-2 text-xs text-cocoa-light">
       <div className={`w-2 h-2 rounded-full ${config.color}`} />
       <span>{config.label}</span>
     </div>
@@ -128,7 +128,7 @@ export function PresenceAvatars({ maxVisible = 5 }: { maxVisible?: number }) {
   const others = useOthers();
 
   if (others.length === 0) {
-    return <div className="text-xs text-gray-400 italic">No other collaborators</div>;
+    return <div className="text-xs text-cocoa-light/60 italic">No other collaborators</div>;
   }
 
   const visibleUsers = others.slice(0, maxVisible);
@@ -170,7 +170,7 @@ export function PresenceAvatars({ maxVisible = 5 }: { maxVisible?: number }) {
       ))}
 
       {remainingCount > 0 && (
-        <div className="w-8 h-8 rounded-full bg-gray-200 border border-white flex items-center justify-center text-gray-600 text-xs font-medium">
+        <div className="w-8 h-8 rounded-full bg-peach-light/50 border border-white flex items-center justify-center text-cocoa-light text-xs font-medium">
           +{remainingCount}
         </div>
       )}

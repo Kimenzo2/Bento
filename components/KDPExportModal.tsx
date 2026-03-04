@@ -116,7 +116,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
         {/* Header */}
         <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-6 text-white relative">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-surface/20 rounded-2xl flex items-center justify-center">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
@@ -247,7 +247,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
             </button>
 
             {showAdvanced && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-xl space-y-3">
+              <div className="mt-4 p-4 bg-surface/50 rounded-xl space-y-3">
                 <div className="text-sm">
                   <div className="font-bold text-charcoal-soft mb-2">Advanced Settings</div>
                   <div className="space-y-2 text-cocoa-light">
@@ -387,13 +387,13 @@ const QualityMetric: React.FC<{ label: string; score: number; icon: string }> = 
   };
 
   return (
-    <div className="bg-white rounded-xl p-3 border border-gray-200">
+    <div className="bg-surface rounded-xl p-3 border border-peach-soft">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">{icon}</span>
         <span className="text-xs font-bold text-cocoa-light">{label}</span>
       </div>
       <div className={`text-2xl font-bold ${getColor(score)}`}>{score}%</div>
-      <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+      <div className="w-full h-2 bg-peach-light/50 rounded-full mt-2 overflow-hidden">
         <div
           className={`h-full transition-all ${
             score >= 90 ? 'bg-green-500' : score >= 70 ? 'bg-yellow-500' : 'bg-red-500'

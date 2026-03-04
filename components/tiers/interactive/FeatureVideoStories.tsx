@@ -39,7 +39,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier: _tie
 
               {/* Play Button */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-surface/20  flex items-center justify-center">
                   <Play className="w-4 h-4 text-white fill-white" />
                 </div>
               </div>
@@ -59,7 +59,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier: _tie
       {/* Expanded Modal (Mockup) */}
       {activeStory && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 "
           onClick={() => setActiveStory(null)}
         >
           <motion.div
@@ -86,7 +86,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier: _tie
               ) : (
                 <div className="text-center p-8">
                   <div className="w-20 h-20 rounded-full border-4 border-white/20 flex items-center justify-center mx-auto mb-4 animate-pulse relative">
-                    <div className="absolute inset-0 bg-white/10 rounded-full animate-ping" />
+                    <div className="absolute inset-0 bg-surface/10 rounded-full animate-ping" />
                     <Play className="w-8 h-8 text-white/50 relative z-10" />
                   </div>
                   <p className="text-white font-bold text-lg mb-2">

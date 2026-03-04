@@ -201,7 +201,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
           {/* Speaking indicator - animated mouth overlay */}
           {isSpeaking && (
             <motion.div
-              className="absolute bottom-12 left-1/2 -translate-x-1/2 w-16 h-8 bg-white/40 rounded-full backdrop-blur-sm"
+              className="absolute bottom-12 left-1/2 -translate-x-1/2 w-16 h-8 bg-surface/40 rounded-full "
               animate={{
                 scaleY: [1, 1.3, 0.8, 1.2, 1],
                 scaleX: [1, 0.9, 1.1, 0.95, 1],
@@ -271,7 +271,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-md bg-white rounded-2xl p-6 border border-blue-200"
+            className="w-full max-w-md bg-surface rounded-2xl p-6 border border-blue-200"
           >
             <p className="text-lg font-bold text-charcoal-soft mb-4">
               {learningContent.quiz.question}
@@ -292,7 +292,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
                         : 'border-red-500 bg-red-50 text-red-800'
                       : option === learningContent.quiz?.correctAnswer && quizFeedback
                         ? 'border-green-500 bg-green-50'
-                        : 'border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50'
+                        : 'border-blue-200 bg-surface hover:border-blue-400 hover:bg-blue-50'
                   }`}
                 >
                   <span className="font-bold mr-2">{String.fromCharCode(65 + index)}.</span>

@@ -92,7 +92,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
       case 'expert':
         return { color: 'bg-red-100 text-red-600', label: 'Expert', stars: 4 };
       default:
-        return { color: 'bg-gray-100 text-gray-600', label: 'Unknown', stars: 0 };
+        return { color: 'bg-peach-soft/30 text-cocoa-light', label: 'Unknown', stars: 0 };
     }
   };
 
@@ -139,7 +139,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   if (variant === 'banner') {
     return (
       <div className="relative rounded-3xl overflow-hidden bg-linear-to-r from-purple-600 via-pink-500 to-orange-500 p-1">
-        <div className="bg-white rounded-[22px] p-6 relative overflow-hidden">
+        <div className="bg-surface rounded-[22px] p-6 relative overflow-hidden">
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0 bg-linear-to-br from-purple-500 to-pink-500" />
@@ -164,7 +164,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 {challenge.title}
               </h2>
 
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">{challenge.description}</p>
+              <p className="text-cocoa-light text-sm mb-3 line-clamp-2">{challenge.description}</p>
 
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 {/* Difficulty */}
@@ -181,7 +181,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 </span>
 
                 {/* Participants */}
-                <span className="flex items-center gap-1 text-gray-500">
+                <span className="flex items-center gap-1 text-cocoa-light">
                   <Users className="w-4 h-4" />
                   {challenge.participant_count} joined
                 </span>
@@ -219,8 +219,8 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
           {/* Prompt hint */}
           {challenge.prompt_hint && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-sm text-gray-500">
+            <div className="mt-4 pt-4 border-t border-peach-soft/50">
+              <p className="text-sm text-cocoa-light">
                 <span className="font-bold text-coral-burst">💡 Hint:</span> {challenge.prompt_hint}
               </p>
             </div>
@@ -236,7 +236,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   if (variant === 'compact') {
     return (
       <div
-        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+        className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface/50 cursor-pointer transition-colors"
         onClick={() => onViewDetails?.(challenge)}
       >
         {/* Icon */}
@@ -249,7 +249,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="font-bold text-charcoal-soft truncate">{challenge.title}</p>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-cocoa-light">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {formatTime}
@@ -263,7 +263,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         </div>
 
         {/* Arrow */}
-        <ChevronRight className="w-5 h-5 text-gray-400" />
+        <ChevronRight className="w-5 h-5 text-cocoa-light/60" />
       </div>
     );
   }
@@ -272,7 +272,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   // DEFAULT CARD VARIANT
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100">
+    <div className="bg-surface rounded-2xl overflow-hidden border border-peach-soft/50">
       {/* Cover image or gradient */}
       <div className="relative h-32 bg-linear-to-br from-purple-500 via-pink-500 to-orange-500">
         {challenge.cover_image_url && (
@@ -293,7 +293,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         </div>
 
         {/* Timer */}
-        <div className="absolute top-3 right-3 bg-black/50 text-white px-3 py-1 rounded-full flex items-center gap-1.5 backdrop-blur-sm">
+        <div className="absolute top-3 right-3 bg-black/50 text-white px-3 py-1 rounded-full flex items-center gap-1.5 ">
           <Clock className="w-3 h-3" />
           <span className="font-mono text-sm font-bold">{formatTime}</span>
         </div>
@@ -307,7 +307,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
       {/* Content */}
       <div className="p-4">
         {/* Description */}
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{challenge.description}</p>
+        <p className="text-sm text-cocoa-light mb-3 line-clamp-2">{challenge.description}</p>
 
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -324,7 +324,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
             <Zap className="w-3 h-3" />+{challenge.xp_reward} XP
           </span>
 
-          <span className="flex items-center gap-1 text-xs text-gray-500">
+          <span className="flex items-center gap-1 text-xs text-cocoa-light">
             <Users className="w-3 h-3" />
             {challenge.submission_count} entries
           </span>
@@ -333,7 +333,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         {/* Top submissions preview */}
         {showSubmissions && submissions.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Top Entries</p>
+            <p className="text-xs font-bold text-cocoa-light/60 uppercase mb-2">Top Entries</p>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {submissions.slice(0, 5).map((sub, index) => (
                 <div key={sub.id} className="relative shrink-0">
@@ -402,7 +402,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
           <Button
             variant="secondary"
             onClick={() => onViewDetails?.(challenge)}
-            className="px-4 py-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200"
+            className="px-4 py-2.5 bg-peach-soft/30 text-cocoa-light hover:bg-peach-light/50"
           >
             Details
           </Button>
@@ -436,17 +436,17 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
       case 0:
         return 'text-yellow-500';
       case 1:
-        return 'text-gray-400';
+        return 'text-cocoa-light/60';
       case 2:
         return 'text-amber-600';
       default:
-        return 'text-gray-300';
+        return 'text-cocoa-light/60';
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden">
-      <div className="p-4 border-b border-gray-100">
+    <div className="bg-surface rounded-2xl overflow-hidden">
+      <div className="p-4 border-b border-peach-soft/50">
         <h3 className="font-heading font-bold text-charcoal-soft flex items-center gap-2">
           <Crown className="w-5 h-5 text-yellow-500" />
           Leaderboard
@@ -457,14 +457,14 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
         {sortedSubmissions.map((submission, index) => (
           <div
             key={submission.id}
-            className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-3 p-4 hover:bg-surface/50 transition-colors"
           >
             {/* Rank */}
             <div className="w-8 text-center">
               {index < 3 ? (
                 <Medal className={`w-6 h-6 mx-auto ${getMedalColor(index)}`} />
               ) : (
-                <span className="text-gray-400 font-bold">{index + 1}</span>
+                <span className="text-cocoa-light/60 font-bold">{index + 1}</span>
               )}
             </div>
 
@@ -493,7 +493,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => onVote?.(submission)}
-                className="p-2 rounded-full hover:bg-coral-burst/10 text-gray-400 hover:text-coral-burst"
+                className="p-2 rounded-full hover:bg-coral-burst/10 text-cocoa-light/60 hover:text-coral-burst"
                 title="Vote"
               >
                 <ThumbsUp className="w-4 h-4" />
@@ -503,7 +503,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
         ))}
 
         {sortedSubmissions.length === 0 && (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-cocoa-light/60">
             <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No submissions yet</p>
             <p className="text-xs">Be the first to submit!</p>

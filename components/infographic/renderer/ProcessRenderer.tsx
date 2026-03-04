@@ -9,7 +9,7 @@ const ProcessRenderer: React.FC<ProcessRendererProps> = ({ data }) => {
   const steps = data.content.steps || [];
 
   return (
-    <div className="w-full h-full p-8 flex flex-col items-center justify-center bg-white/50 rounded-xl">
+    <div className="w-full h-full p-8 flex flex-col items-center justify-center bg-surface/50 rounded-xl">
       <div className="grid gap-8 w-full max-w-2xl">
         {steps.map((step, index) => (
           <div key={index} className="relative flex items-start gap-6 group">
@@ -19,14 +19,14 @@ const ProcessRenderer: React.FC<ProcessRendererProps> = ({ data }) => {
             )}
 
             {/* Step Number */}
-            <div className="relative z-10 w-12 h-12 rounded-full bg-white border-4 border-peach-soft flex items-center justify-center shrink-0 group-hover:border-coral-burst group-hover:scale-110 transition-all duration-300">
+            <div className="relative z-10 w-12 h-12 rounded-full bg-surface border-4 border-peach-soft flex items-center justify-center shrink-0 group-hover:border-coral-burst group-hover:scale-110 transition-all duration-300">
               <span className="font-heading font-bold text-xl text-charcoal-soft">
                 {step.order}
               </span>
             </div>
 
             {/* Content Card */}
-            <div className="flex-1 bg-white p-6 rounded-2xl border border-peach-soft/30 hover:-translate-y-1 transition-all duration-300">
+            <div className="flex-1 bg-surface p-6 rounded-2xl border border-peach-soft/30 hover:-translate-y-1 transition-all duration-300">
               <div className="flex items-center gap-3 mb-2">
                 <div className="text-2xl">{step.icon || '📌'}</div>
                 <h3 className="font-heading font-bold text-lg text-charcoal-soft">{step.title}</h3>

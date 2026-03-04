@@ -47,7 +47,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   if (overlay) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-40 rounded-inherit">
+      <div className="absolute inset-0 flex items-center justify-center bg-surface/80  z-40 rounded-inherit">
         {spinner}
       </div>
     );
@@ -72,7 +72,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height,
   animation = 'pulse',
 }) => {
-  const baseClasses = 'bg-gray-200';
+  const baseClasses = 'bg-peach-light/50';
 
   const variantClasses = {
     text: 'rounded h-4',
@@ -101,7 +101,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
 // Card skeleton for loading states
 export const CardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`bg-white rounded-2xl border border-peach-soft p-4 ${className}`}>
+  <div className={`bg-surface rounded-2xl border border-peach-soft p-4 ${className}`}>
     <div className="flex items-center gap-3 mb-4">
       <Skeleton variant="circular" width={40} height={40} />
       <div className="flex-1">

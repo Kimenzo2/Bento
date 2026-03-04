@@ -30,17 +30,17 @@ const ComparisonRenderer: React.FC<ComparisonRendererProps> = ({ data }) => {
         {points.map((point, index) => (
           <div key={index} className="flex items-stretch gap-4">
             {/* Left Side */}
-            <div className="flex-1 bg-white p-4 rounded-l-xl border-r-4 border-blue-200 text-right flex items-center justify-end">
+            <div className="flex-1 bg-surface p-4 rounded-l-xl border-r-4 border-blue-200 text-right flex items-center justify-end">
               <span className="text-sm text-charcoal-soft font-medium">{point.itemA}</span>
             </div>
 
             {/* Center Label */}
-            <div className="w-24 flex items-center justify-center bg-gray-100 rounded-lg text-xs font-bold text-gray-500 uppercase tracking-wider px-2 text-center">
+            <div className="w-24 flex items-center justify-center bg-peach-soft/30 rounded-lg text-xs font-bold text-cocoa-light uppercase tracking-wider px-2 text-center">
               {point.category}
             </div>
 
             {/* Right Side */}
-            <div className="flex-1 bg-white p-4 rounded-r-xl border-l-4 border-red-200 flex items-center">
+            <div className="flex-1 bg-surface p-4 rounded-r-xl border-l-4 border-red-200 flex items-center">
               <span className="text-sm text-charcoal-soft font-medium">{point.itemB}</span>
             </div>
           </div>

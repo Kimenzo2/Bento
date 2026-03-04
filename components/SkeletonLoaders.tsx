@@ -9,7 +9,7 @@ const shimmerTransition: Transition = {
 };
 
 export const SkeletonBase: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`relative overflow-hidden bg-gray-200 dark:bg-gray-700 rounded ${className}`}>
+  <div className={`relative overflow-hidden bg-peach-light/50 dark:bg-gray-700 rounded ${className}`}>
     <motion.div
       className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent"
       initial={{ x: '-100%' }}
@@ -21,7 +21,7 @@ export const SkeletonBase: React.FC<{ className?: string }> = ({ className = '' 
 
 // Book Card Skeleton
 export const BookCardSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-peach-soft overflow-hidden">
+  <div className="bg-surface dark:bg-gray-800 rounded-2xl border border-peach-soft overflow-hidden">
     <SkeletonBase className="h-48 w-full rounded-none" />
     <div className="p-4 space-y-3">
       <SkeletonBase className="h-6 w-3/4" />
@@ -60,7 +60,7 @@ export const PageContentSkeleton: React.FC = () => (
 export const EditorSkeleton: React.FC = () => (
   <div className="flex h-full">
     {/* Sidebar */}
-    <div className="w-64 border-r border-gray-200 dark:border-gray-700 p-4 space-y-3">
+    <div className="w-64 border-r border-peach-soft dark:border-gray-700 p-4 space-y-3">
       <SkeletonBase className="h-8 w-full" />
       <div className="space-y-2 mt-6">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -83,7 +83,7 @@ export const EditorSkeleton: React.FC = () => (
 
 // Profile Card Skeleton
 export const ProfileCardSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-peach-soft">
+  <div className="bg-surface dark:bg-gray-800 rounded-2xl p-6 border border-peach-soft">
     <div className="flex items-center gap-4">
       <SkeletonBase className="w-16 h-16 rounded-full" />
       <div className="space-y-2">
@@ -120,7 +120,7 @@ export const IllustrationSkeleton: React.FC<{ aspectRatio?: string }> = ({
 
 // Generation Progress Skeleton
 export const GenerationProgressSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-peach-soft max-w-md mx-auto">
+  <div className="bg-surface dark:bg-gray-800 rounded-2xl p-6 border border-peach-soft max-w-md mx-auto">
     <div className="text-center space-y-4">
       <SkeletonBase className="w-20 h-20 rounded-full mx-auto" />
       <SkeletonBase className="h-6 w-48 mx-auto" />

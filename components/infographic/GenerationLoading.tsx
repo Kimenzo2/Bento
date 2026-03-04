@@ -61,7 +61,7 @@ const GenerationLoading: React.FC<GenerationLoadingProps> = ({ topic }) => {
         ></div>
       </div>
       {/* Fun Fact Card */}
-      <div className="bg-white border border-mint-breeze rounded-2xl p-4 sm:p-6 max-w-md w-full animate-slideUp">
+      <div className="bg-surface border border-mint-breeze rounded-2xl p-4 sm:p-6 max-w-md w-full animate-slideUp">
         <div className="flex items-start gap-3">
           <div className="bg-yellow-butter/20 p-2 rounded-full shrink-0">
             <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-gold-sunshine" />

@@ -152,7 +152,7 @@ export const SaveMasterpieceModal: React.FC = () => {
           successMessage ? (
             <button
               onClick={() => setSuccessMessage(null)}
-              className="w-full h-14 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all"
+              className="w-full h-14 bg-surface/10 hover:bg-surface/20 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all"
             >
               Resend Email
             </button>
@@ -166,13 +166,13 @@ export const SaveMasterpieceModal: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  className="h-14 pl-12 pr-4 bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-white/30 focus:bg-white/10"
+                  className="h-14 pl-12 pr-4 bg-surface/5 border-white/10 text-white placeholder-white/20 focus:border-white/30 focus:bg-surface/10"
                 />
               </div>
               <button
                 type="submit"
                 disabled={isLoading || !email}
-                className="w-full h-14 bg-white text-slate-900 font-bold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+                className="w-full h-14 bg-surface text-slate-900 font-bold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
               >
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Magic Link'}
               </button>
@@ -183,7 +183,7 @@ export const SaveMasterpieceModal: React.FC = () => {
             <button
               onClick={handleGoogleSignIn}
               disabled={isLoading}
-              className="w-full h-14 bg-white hover:bg-slate-100 rounded-xl flex items-center justify-center gap-3 text-slate-900 font-bold transition-all active:scale-95"
+              className="w-full h-14 bg-surface hover:bg-slate-100 rounded-xl flex items-center justify-center gap-3 text-slate-900 font-bold transition-all active:scale-95"
             >
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -195,7 +195,7 @@ export const SaveMasterpieceModal: React.FC = () => {
 
             <button
               onClick={() => setShowEmailForm(true)}
-              className="w-full h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all active:scale-95"
+              className="w-full h-14 bg-surface/5 hover:bg-surface/10 border border-white/10 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all active:scale-95"
             >
               <Mail className="w-5 h-5" />
               Use Email Instead

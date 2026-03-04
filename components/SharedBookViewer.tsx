@@ -141,10 +141,10 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-surface/50 dark:bg-gray-900 flex items-center justify-center z-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral-burst mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-400">Loading shared book...</p>
+          <p className="text-cocoa-light dark:text-cocoa-light/60">Loading shared book...</p>
         </div>
       </div>
     );
@@ -152,19 +152,19 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-peach-soft max-w-md w-full text-center">
+      <div className="fixed inset-0 bg-surface/50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
+        <div className="bg-surface dark:bg-gray-800 p-8 rounded-2xl border border-peach-soft max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-xl font-bold text-charcoal-soft dark:text-white mb-2">
             Unable to View Book
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">{error}</p>
+          <p className="text-cocoa-light dark:text-cocoa-light/60 mb-6">{error}</p>
           <Button
             variant="default"
             onClick={handleClose}
-            className="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium hover:opacity-90 transition-opacity"
+            className="px-6 py-2 bg-gray-900 dark:bg-surface text-white dark:text-charcoal-soft font-medium hover:opacity-90 transition-opacity"
           >
             Go Home
           </Button>
@@ -175,15 +175,15 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
 
   if (isPasswordRequired) {
     return (
-      <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-peach-soft max-w-md w-full">
+      <div className="fixed inset-0 bg-surface/50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
+        <div className="bg-surface dark:bg-gray-800 p-8 rounded-2xl border border-peach-soft max-w-md w-full">
           <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-amber-500" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+          <h2 className="text-xl font-bold text-charcoal-soft dark:text-white mb-2 text-center">
             Password Protected
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 text-center">
+          <p className="text-cocoa-light dark:text-cocoa-light/60 mb-6 text-center">
             This book is password protected. Please enter the password to view it.
           </p>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
@@ -192,7 +192,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Enter password"
-              className="py-3 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-coral-burst bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+              className="py-3 border-peach-soft dark:border-gray-700 focus:ring-2 focus:ring-coral-burst bg-surface/50 dark:bg-gray-900 text-charcoal-soft dark:text-white"
               autoFocus
             />
             <Button
@@ -207,7 +207,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
           <Button
             variant="ghost"
             onClick={handleClose}
-            className="w-full mt-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            className="w-full mt-4 py-2 text-cocoa-light dark:text-cocoa-light/60 hover:text-charcoal-soft dark:hover:text-white"
           >
             Cancel
           </Button>
@@ -235,24 +235,24 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-100 dark:bg-gray-900 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-peach-soft/30 dark:bg-gray-900 flex flex-col">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10">
+      <div className="bg-surface dark:bg-gray-800 border-b border-peach-soft dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+            className="p-2 hover:bg-peach-soft/30 dark:hover:bg-gray-700 rounded-full"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <ArrowLeft className="w-5 h-5 text-cocoa-light dark:text-cocoa-light/60" />
           </Button>
           <div>
-            <h1 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className="font-bold text-charcoal-soft dark:text-white flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-coral-burst" />
               {book.title}
             </h1>
-            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-3 text-xs text-cocoa-light dark:text-cocoa-light/60">
               <span className="flex items-center gap-1">
                 <User className="w-3 h-3" />
                 by {shareInfo?.sharerName || 'Unknown Author'}
@@ -270,14 +270,14 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             <Button
               variant="ghost"
               onClick={handleDownload}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex"
+              className="p-2 text-cocoa-light dark:text-cocoa-light/60 hover:bg-peach-soft/30 dark:hover:bg-gray-700 flex"
               title="Download Book"
             >
               <Download className="w-5 h-5" />
               <span className="hidden sm:inline text-sm">Download</span>
             </Button>
           )}
-          <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+          <div className="h-6 w-px bg-peach-light/50 dark:bg-gray-700 mx-2"></div>
           <a
             href="/"
             target="_blank"
@@ -294,9 +294,9 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
       <div className="flex-1 overflow-hidden relative flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-5xl h-full flex flex-col">
           {/* Page Viewer */}
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl border border-peach-soft overflow-hidden relative flex flex-col md:flex-row">
+          <div className="flex-1 bg-surface dark:bg-gray-800 rounded-2xl border border-peach-soft overflow-hidden relative flex flex-col md:flex-row">
             {/* Image Section */}
-            <div className="w-full md:w-1/2 h-1/2 md:h-full bg-gray-100 dark:bg-gray-900 relative">
+            <div className="w-full md:w-1/2 h-1/2 md:h-full bg-peach-soft/30 dark:bg-gray-900 relative">
               {currentPage?.imageUrl ? (
                 <img
                   src={currentPage.imageUrl}
@@ -304,7 +304,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <div className="w-full h-full flex items-center justify-center text-cocoa-light/60">
                   <div className="text-center">
                     <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p>No image available</p>
@@ -313,7 +313,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               )}
 
               {/* Page Number Badge */}
-              <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
+              <div className="absolute bottom-4 right-4 bg-black/50  text-white px-3 py-1 rounded-full text-sm font-medium">
                 {currentPageIndex + 1} / {pages.length}
               </div>
             </div>
@@ -321,7 +321,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             {/* Text Section */}
             <div className="w-full md:w-1/2 h-1/2 md:h-full p-8 md:p-12 overflow-y-auto flex flex-col justify-center">
               <div className="prose dark:prose-invert max-w-none">
-                <p className="text-lg md:text-xl leading-relaxed text-gray-800 dark:text-gray-200 font-serif whitespace-pre-wrap">
+                <p className="text-lg md:text-xl leading-relaxed text-charcoal-soft dark:text-surface font-serif whitespace-pre-wrap">
                   {currentPage?.text}
                 </p>
               </div>
@@ -339,8 +339,8 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                                 flex px-6 py-3
                                 ${
                                   currentPageIndex === 0
-                                    ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
+                                    ? 'bg-peach-light/50 dark:bg-gray-800 text-cocoa-light/60 cursor-not-allowed'
+                                    : 'bg-surface dark:bg-gray-800 text-charcoal-soft dark:text-white border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
                                 }
                             `}
             >
@@ -377,8 +377,8 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                                 flex px-6 py-3
                                 ${
                                   currentPageIndex === pages.length - 1
-                                    ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
+                                    ? 'bg-peach-light/50 dark:bg-gray-800 text-cocoa-light/60 cursor-not-allowed'
+                                    : 'bg-surface dark:bg-gray-800 text-charcoal-soft dark:text-white border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
                                 }
                             `}
             >

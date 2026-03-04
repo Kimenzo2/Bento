@@ -18,7 +18,7 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
   const [selectedLevel, setSelectedLevel] = useState('beginner');
 
   return (
-    <div className="bg-white rounded-2xl p-8 border border-peach-soft my-12">
+    <div className="bg-surface rounded-2xl p-8 border border-peach-soft my-12">
       <div className="text-center mb-8">
         <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
           See Where You Stand
@@ -37,7 +37,7 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
             className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
               selectedLevel === level.id
                 ? `bg-charcoal-soft text-white`
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                : 'bg-peach-soft/30 text-cocoa-light hover:bg-peach-light/50'
             }`}
           >
             {level.label}
@@ -48,14 +48,14 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
       {/* Comparison Viz */}
       <div className="grid md:grid-cols-2 gap-8 items-center">
         {/* Your current path */}
-        <div className="p-6 bg-gray-50 rounded-xl border border-gray-100 md:text-right">
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+        <div className="p-6 bg-surface/50 rounded-xl border border-peach-soft/50 md:text-right">
+          <div className="text-xs font-bold text-cocoa-light/60 uppercase tracking-wider mb-2">
             Traditional Path
           </div>
-          <div className="text-gray-500 text-sm mb-4">
+          <div className="text-cocoa-light text-sm mb-4">
             Without Genesis, creators at this stage typically produce:
           </div>
-          <div className="text-3xl font-bold text-gray-400 flex items-center justify-end gap-2">
+          <div className="text-3xl font-bold text-cocoa-light/60 flex items-center justify-end gap-2">
             {levels.find((l) => l.id === selectedLevel)?.books} Books/yr
             <Users className="w-6 h-6" />
           </div>

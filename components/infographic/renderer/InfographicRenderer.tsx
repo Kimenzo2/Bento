@@ -30,7 +30,7 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
   return (
     <div
       id="infographic-canvas"
-      className="bg-white transition-transform duration-200 origin-center w-full max-w-200 mx-auto relative"
+      className="bg-surface transition-transform duration-200 origin-center w-full max-w-200 mx-auto relative"
       style={{
         height: 'auto',
         minHeight: '800px',
@@ -88,14 +88,14 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
             </div>
           )}
         </div>
-        <div className="text-center mt-6 text-[10px] text-gray-400 uppercase tracking-widest">
+        <div className="text-center mt-6 text-[10px] text-cocoa-light/60 uppercase tracking-widest">
           Created with Genesis AI
         </div>
       </div>
 
       {/* Guide Character Overlay */}
       {data.guideCharacter !== 'NONE' && (
-        <div className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full border-4 border-white flex items-center justify-center text-4xl transform rotate-12 z-20">
+        <div className="absolute bottom-4 right-4 w-24 h-24 bg-surface rounded-full border-4 border-white flex items-center justify-center text-4xl transform rotate-12 z-20">
           {data.guideCharacter === 'OWL' && '🦉'}
           {data.guideCharacter === 'MOUSE' && '🐭'}
           {data.guideCharacter === 'FOX' && '🦊'}

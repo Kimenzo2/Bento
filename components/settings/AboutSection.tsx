@@ -10,7 +10,7 @@ const AboutSection: React.FC = () => {
       {/* App Info */}
       <div className="bg-linear-to-br from-coral-burst to-gold-sunshine rounded-xl md:rounded-2xl p-4 md:p-6 text-white">
         <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
-          <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-surface rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
             <span className="text-2xl md:text-3xl">📚</span>
           </div>
           <div className="min-w-0">
@@ -102,7 +102,7 @@ const AboutSection: React.FC = () => {
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           <a
             href="/legal/privacy"
-            className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
+            className="flex items-center gap-2 p-3 md:p-3 bg-surface border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
           >
             <Shield className="w-4 h-4 md:w-5 md:h-5 text-coral-burst shrink-0" />
             <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
@@ -112,7 +112,7 @@ const AboutSection: React.FC = () => {
 
           <a
             href="/legal/terms"
-            className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
+            className="flex items-center gap-2 p-3 md:p-3 bg-surface border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
           >
             <FileText className="w-4 h-4 md:w-5 md:h-5 text-coral-burst shrink-0" />
             <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
@@ -122,7 +122,7 @@ const AboutSection: React.FC = () => {
 
           <a
             href="/legal/acceptable-use"
-            className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
+            className="flex items-center gap-2 p-3 md:p-3 bg-surface border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
           >
             <Info className="w-4 h-4 md:w-5 md:h-5 text-coral-burst shrink-0" />
             <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
@@ -134,7 +134,7 @@ const AboutSection: React.FC = () => {
             href="https://genesis-1765265007.documentationai.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 p-3 md:p-3 bg-white border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
+            className="flex items-center gap-2 p-3 md:p-3 bg-surface border border-peach-soft rounded-xl hover:border-coral-burst active:bg-cream-base transition-all group touch-manipulation"
           >
             <FileText className="w-4 h-4 md:w-5 md:h-5 text-coral-burst shrink-0" />
             <span className="text-xs md:text-sm font-medium text-charcoal-soft group-hover:text-coral-burst truncate">
@@ -178,7 +178,7 @@ const AboutSection: React.FC = () => {
 
       {/* Copyright */}
       <div className="text-center pt-4 border-t border-peach-soft/50">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-cocoa-light">
           © {new Date().getFullYear()} Genesis. All rights reserved.
         </p>
       </div>

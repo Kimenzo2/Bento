@@ -202,10 +202,10 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <motion.div className="absolute inset-0 bg-black/60 " onClick={onClose} />
 
         <motion.div
-          className="relative bg-white rounded-2xl border border-peach-soft w-full max-w-sm overflow-hidden"
+          className="relative bg-surface rounded-2xl border border-peach-soft w-full max-w-sm overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -327,7 +327,7 @@ export const SelectableCard: React.FC<SelectableCardProps> = ({
                             ${
                               isSelected
                                 ? 'bg-coral-burst text-white'
-                                : 'bg-white border border-peach-soft'
+                                : 'bg-surface border border-peach-soft'
                             }
                         `}
             >

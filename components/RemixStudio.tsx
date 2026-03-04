@@ -226,7 +226,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="relative w-full max-w-7xl h-[90vh] mx-4 bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-purple-500/20 overflow-hidden flex flex-col"
+          className="relative w-full max-w-7xl h-[90vh] mx-4 bg-slate-900/95  rounded-3xl border border-purple-500/20 overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -246,7 +246,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
               <div className="flex items-center gap-4">
                 {/* Tabs */}
-                <div className="flex bg-white/5 rounded-xl p-1">
+                <div className="flex bg-surface/5 rounded-xl p-1">
                   <Button
                     onClick={() => setActiveTab('discover')}
                     variant="ghost"
@@ -285,7 +285,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                   onClick={onClose}
                   variant="ghost"
                   size="icon"
-                  className="text-white/40 hover:text-white hover:bg-white/10"
+                  className="text-white/40 hover:text-white hover:bg-surface/10"
                 >
                   <X className="w-5 h-5" />
                 </Button>
@@ -309,7 +309,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Search worlds..."
-                          className="pl-10 pr-4 py-3 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
+                          className="pl-10 pr-4 py-3 bg-surface/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                         />
                       </div>
                       <Button
@@ -319,7 +319,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         className={`${
                           showFilters
                             ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                            : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5'
+                            : 'border-white/10 text-white/60 hover:text-white hover:bg-surface/5'
                         }`}
                       >
                         <Filter className="w-5 h-5" />
@@ -422,7 +422,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               setSelectedWorld(world);
                               remixService.viewWorld(world.id);
                             }}
-                            className={`p-4 bg-white/5 hover:bg-white/10 rounded-xl border transition-all text-left ${
+                            className={`p-4 bg-surface/5 hover:bg-surface/10 rounded-xl border transition-all text-left ${
                               selectedWorld?.id === world.id
                                 ? 'border-purple-500/50 bg-purple-500/10'
                                 : 'border-white/10 hover:border-white/20'
@@ -463,7 +463,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                                 </div>
                               </div>
                               <div
-                                className={`${LICENSE_ICONS[world.license]?.color || 'text-gray-400'}`}
+                                className={`${LICENSE_ICONS[world.license]?.color || 'text-cocoa-light/60'}`}
                               >
                                 {LICENSE_ICONS[world.license]?.icon}
                               </div>
@@ -555,7 +555,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             {selectedWorld.era}
                           </span>
                           <span
-                            className={`px-3 py-1 bg-white/5 rounded-full text-xs flex items-center gap-1 ${LICENSE_ICONS[selectedWorld.license]?.color}`}
+                            className={`px-3 py-1 bg-surface/5 rounded-full text-xs flex items-center gap-1 ${LICENSE_ICONS[selectedWorld.license]?.color}`}
                           >
                             {LICENSE_ICONS[selectedWorld.license]?.icon}
                             {LICENSE_ICONS[selectedWorld.license]?.label}
@@ -582,7 +582,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             </h4>
                             <div className="space-y-2">
                               {selectedWorld.locations.slice(0, 3).map((loc) => (
-                                <div key={loc.id} className="p-2 bg-white/5 rounded-lg">
+                                <div key={loc.id} className="p-2 bg-surface/5 rounded-lg">
                                   <p className="text-sm text-white/80 font-medium">{loc.name}</p>
                                   <p className="text-xs text-white/40 line-clamp-2">
                                     {loc.description}
@@ -712,7 +712,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             setPublishSettings((s) => ({ ...s, name: e.target.value }))
                           }
                           placeholder={`${currentProject?.title} World`}
-                          className="py-3 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
+                          className="py-3 bg-surface/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                         />
                       </div>
 
@@ -728,7 +728,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                           }
                           placeholder="Describe what makes this world unique..."
                           rows={3}
-                          className="bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
+                          className="bg-surface/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                         />
                       </div>
 
@@ -762,7 +762,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               setPublishSettings((s) => ({ ...s, magicSystem: e.target.value }))
                             }
                             placeholder="e.g., Elemental magic"
-                            className="py-3 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
+                            className="py-3 bg-surface/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                           />
                         </div>
                       </div>
@@ -777,7 +777,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             onChange={(e) => setNewTag(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && addTag()}
                             placeholder="Add a tag..."
-                            className="flex-1 py-2 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
+                            className="flex-1 py-2 bg-surface/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                           />
                           <Button
                             onClick={addTag}
@@ -828,7 +828,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               className={`p-3 text-left h-auto ${
                                 publishSettings.license === key
                                   ? 'bg-purple-500/20 border-purple-500/50'
-                                  : 'bg-white/5 border-white/10 hover:border-white/20'
+                                  : 'bg-surface/5 border-white/10 hover:border-white/20'
                               }`}
                             >
                               <div className={`flex items-center gap-2 ${color}`}>
@@ -842,7 +842,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
                       {/* Settings Toggles */}
                       <div className="space-y-3">
-                        <Label className="flex items-center justify-between p-3 bg-white/5 rounded-xl cursor-pointer">
+                        <Label className="flex items-center justify-between p-3 bg-surface/5 rounded-xl cursor-pointer">
                           <span className="text-white/80">Allow remixing</span>
                           <input
                             type="checkbox"
@@ -851,10 +851,10 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               setPublishSettings((s) => ({ ...s, allowRemix: e.target.checked }))
                             }
                             aria-label="Allow remixing"
-                            className="w-5 h-5 rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
+                            className="w-5 h-5 rounded bg-surface/10 border-white/20 text-purple-500 focus:ring-purple-500"
                           />
                         </Label>
-                        <Label className="flex items-center justify-between p-3 bg-white/5 rounded-xl cursor-pointer">
+                        <Label className="flex items-center justify-between p-3 bg-surface/5 rounded-xl cursor-pointer">
                           <span className="text-white/80">Require attribution</span>
                           <input
                             type="checkbox"
@@ -863,7 +863,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               setPublishSettings((s) => ({ ...s, requireCredit: e.target.checked }))
                             }
                             aria-label="Require attribution"
-                            className="w-5 h-5 rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
+                            className="w-5 h-5 rounded bg-surface/10 border-white/20 text-purple-500 focus:ring-purple-500"
                           />
                         </Label>
                       </div>

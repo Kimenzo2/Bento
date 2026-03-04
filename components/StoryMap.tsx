@@ -81,7 +81,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-60 flex flex-col animate-fadeIn">
+    <div className="fixed inset-0 bg-slate-900/95  z-60 flex flex-col animate-fadeIn">
       {/* Header */}
       <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900">
         <div className="flex items-center gap-3">
@@ -101,7 +101,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
               onClick={() => setScale(Math.max(0.5, scale - 0.1))}
               variant="ghost"
               size="icon"
-              className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white min-h-9 min-w-9"
+              className="p-2 hover:bg-surface/10 rounded-md text-slate-400 hover:text-white min-h-9 min-w-9"
               title="Zoom out (-)"
             >
               <ZoomOut className="w-4 h-4" />
@@ -110,7 +110,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
               onClick={() => setScale(1)}
               variant="ghost"
               size="sm"
-              className="px-3 py-1 text-xs text-slate-400 hover:text-white hover:bg-white/10 rounded-md min-h-9"
+              className="px-3 py-1 text-xs text-slate-400 hover:text-white hover:bg-surface/10 rounded-md min-h-9"
               title="Reset zoom (0)"
             >
               {Math.round(scale * 100)}%
@@ -119,7 +119,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
               onClick={() => setScale(Math.min(2, scale + 0.1))}
               variant="ghost"
               size="icon"
-              className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white min-h-9 min-w-9"
+              className="p-2 hover:bg-surface/10 rounded-md text-slate-400 hover:text-white min-h-9 min-w-9"
               title="Zoom in (+)"
             >
               <ZoomIn className="w-4 h-4" />
@@ -208,7 +208,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
                         <span className="text-xs font-medium">No Image</span>
                       </div>
                     )}
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] font-bold text-white border border-white/10">
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/60  rounded text-[10px] font-bold text-white border border-white/10">
                       Scene {index + 1}
                     </div>
                   </div>

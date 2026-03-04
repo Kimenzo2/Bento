@@ -87,7 +87,7 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
             onClick={handlePrint}
             variant="outline"
             size="sm"
-            className="bg-white border border-peach-soft text-charcoal-soft hover:border-coral-burst min-h-11"
+            className="bg-surface border border-peach-soft text-charcoal-soft hover:border-coral-burst min-h-11"
             title="Print"
           >
             <Printer className="w-4 h-4" />
@@ -100,7 +100,7 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
               disabled={isExporting}
               variant="outline"
               size="sm"
-              className="bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50 flex-1 sm:flex-initial min-h-11"
+              className="bg-surface border border-peach-soft text-charcoal-soft hover:bg-surface/50 flex-1 sm:flex-initial min-h-11"
               title="Export as PNG"
             >
               <FileImage className="w-4 h-4" />
@@ -124,7 +124,7 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
       {/* Canvas Area */}
       <div className="flex-1 bg-cream-base/50 rounded-2xl border border-peach-soft overflow-hidden relative flex items-center justify-center p-2 sm:p-4 md:p-8">
         {/* Zoom Controls */}
-        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex flex-col gap-1 sm:gap-2 bg-white rounded-lg border border-peach-soft/50 p-1 z-10">
+        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex flex-col gap-1 sm:gap-2 bg-surface rounded-lg border border-peach-soft/50 p-1 z-10">
           <Button
             onClick={() => setZoom((z) => Math.min(z + 0.1, 2))}
             variant="ghost"
@@ -145,7 +145,7 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
           >
             <ZoomOut className="w-4 h-4 text-charcoal-soft" />
           </Button>
-          <div className="text-[10px] text-center font-bold text-gray-400 py-1">
+          <div className="text-[10px] text-center font-bold text-cocoa-light/60 py-1">
             {Math.round(zoom * 100)}%
           </div>
         </div>

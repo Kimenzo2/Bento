@@ -43,7 +43,7 @@ const AchievementBadge = ({ icon: Icon, label, value, delay, gradient }: {
     initial={{ opacity: 0, y: 20, scale: 0.8 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ delay, type: "spring", bounce: 0.4 }}
-    className="flex items-center gap-4 p-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10"
+    className="flex items-center gap-4 p-4 bg-surface/5  rounded-2xl border border-white/10"
   >
     <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center`}>
       <Icon className="w-6 h-6 text-white" />
@@ -147,7 +147,7 @@ export const WelcomeSuccess: React.FC = () => {
           </motion.div>
           
           {/* Inner circle */}
-          <div className="relative w-28 h-28 rounded-full bg-linear-to-br from-purple-600/30 to-pink-600/30 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+          <div className="relative w-28 h-28 rounded-full bg-linear-to-br from-purple-600/30 to-pink-600/30  border border-white/10 flex items-center justify-center">
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}

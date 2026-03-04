@@ -89,7 +89,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full border border-peach-soft"
+        className="flex items-center gap-2 px-3 py-2 bg-surface/90  rounded-full border border-peach-soft"
       >
         <Button
           variant="primary"
@@ -152,7 +152,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/95 backdrop-blur-lg rounded-2xl border border-peach-soft p-4"
+      className="bg-surface/95  rounded-2xl border border-peach-soft p-4"
     >
       {/* Main Controls */}
       <div className="flex items-center gap-4">

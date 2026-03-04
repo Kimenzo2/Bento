@@ -395,7 +395,7 @@ const TierDetailCreator: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-body selection:bg-emerald-200 selection:text-emerald-900">
+    <div className="min-h-screen bg-surface font-body selection:bg-emerald-200 selection:text-emerald-900">
       <UsageHeatmap tier={tierConfig} />
       <BackToPricing onBack={handleBack} />
 
@@ -472,7 +472,7 @@ const TierDetailCreator: React.FC = () => {
           </div>
 
           {/* Upgrade Comparison */}
-          <div className="bg-white rounded-2xl p-8 border border-charcoal-soft/10">
+          <div className="bg-surface rounded-2xl p-8 border border-charcoal-soft/10">
             <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-6 text-center">
               Why Upgrade from Spark (Free)?
             </h3>
@@ -586,7 +586,7 @@ const TierDetailCreator: React.FC = () => {
         id="switch"
         title="Risk-Free Transition"
         subtitle="Moving to Genesis is easier than you think"
-        background="bg-white"
+        background="bg-surface"
       >
         <MigrationAssistant tier={tierConfig} />
         <div className="mt-20">

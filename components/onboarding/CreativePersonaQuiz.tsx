@@ -111,7 +111,7 @@ export const CreativePersonaQuiz: React.FC = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 mb-3 md:mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-surface/5  rounded-full border border-white/10 mb-3 md:mb-6"
           >
             <Users className="w-3 h-3 md:w-4 md:h-4 text-purple-400" />
             <span className="text-white/70 text-xs md:text-sm font-medium">Choose Your Path</span>
@@ -145,7 +145,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                 disabled={isTransitioning}
                 whileHover={{ y: -5 }}
                 className={`group relative p-3 md:p-4 md:ob-p-card rounded-xl md:rounded-2xl text-center transition-all duration-300 ${
-                  isSelected ? `${role.glow} ring-2 ring-white/30` : 'hover:bg-white/5'
+                  isSelected ? `${role.glow} ring-2 ring-white/30` : 'hover:bg-surface/5'
                 } overflow-hidden ${isLastOdd ? 'col-span-2 md:col-span-1 max-w-[75%] md:max-w-none mx-auto' : ''}`}
               >
                 {/* Background */}
@@ -154,7 +154,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                 />
 
                 {/* Glass border */}
-                <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10" />
+                <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-surface/5  border border-white/10" />
 
                 {/* Shimmer on hover */}
                 <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
@@ -194,7 +194,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                   {/* Selection indicator */}
                   <div
                     className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border flex items-center justify-center transition-all duration-300 ${
-                      isSelected ? 'border-white bg-white' : 'border-white/20'
+                      isSelected ? 'border-white bg-surface' : 'border-white/20'
                     }`}
                   >
                     {isSelected && (

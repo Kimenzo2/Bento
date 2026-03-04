@@ -546,26 +546,26 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <motion.div className="absolute inset-0 bg-black/60 " onClick={onClose} />
 
         <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="relative bg-surface dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           {/* Header */}
-          <div className="shrink-0 p-4 border-b border-gray-200 md:p-6 dark:border-gray-700">
+          <div className="shrink-0 p-4 border-b border-peach-soft md:p-6 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-linear-to-br from-coral-burst to-sunset-coral rounded-xl">
                   <Wand2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 md:text-2xl dark:text-white">
+                  <h2 className="text-lg font-bold text-charcoal-soft md:text-2xl dark:text-white">
                     Template Library
                   </h2>
-                  <p className="text-xs text-gray-500 md:text-sm dark:text-gray-400">
+                  <p className="text-xs text-cocoa-light md:text-sm dark:text-cocoa-light/60">
                     Start with a proven story structure
                   </p>
                 </div>
@@ -575,9 +575,9 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                 title="Close"
                 variant="ghost"
                 size="icon"
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 hover:bg-peach-soft/30 dark:hover:bg-gray-800"
               >
-                <X className="w-6 h-6 text-gray-500" />
+                <X className="w-6 h-6 text-cocoa-light" />
               </Button>
             </div>
 
@@ -594,7 +594,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                                         ${
                                           selectedCategory === cat
                                             ? 'bg-coral-burst text-white'
-                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                            : 'bg-peach-soft/30 dark:bg-gray-800 text-cocoa-light dark:text-cocoa-light/60 hover:bg-peach-light/50 dark:hover:bg-gray-700'
                                         }
                                     `}
                 >
@@ -620,7 +620,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                                         ${
                                           selectedTemplate?.id === template.id
                                             ? 'border-coral-burst bg-coral-burst/5'
-                                            : 'border-gray-200 dark:border-gray-700 hover:border-coral-burst/50'
+                                            : 'border-peach-soft dark:border-gray-700 hover:border-coral-burst/50'
                                         }
                                     `}
                 >
@@ -649,13 +649,13 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   </div>
 
                   {/* Info */}
-                  <h3 className="mb-1 font-bold text-gray-900 dark:text-white">{template.name}</h3>
-                  <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+                  <h3 className="mb-1 font-bold text-charcoal-soft dark:text-white">{template.name}</h3>
+                  <p className="mb-3 text-sm text-cocoa-light dark:text-cocoa-light/60">
                     {template.description}
                   </p>
 
                   {/* Meta */}
-                  <div className="flex items-center gap-4 text-xs text-gray-400">
+                  <div className="flex items-center gap-4 text-xs text-cocoa-light/60">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-3 h-3" />
                       {template.pageCount} pages
@@ -686,15 +686,15 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+                className="shrink-0 border-t border-peach-soft dark:border-gray-700 bg-surface/50 dark:bg-gray-800/50"
               >
                 <div className="p-4 md:p-6">
                   <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:gap-6">
                     <div className="flex-1 w-full">
-                      <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">
+                      <h3 className="mb-2 text-lg font-bold text-charcoal-soft dark:text-white">
                         {selectedTemplate.name} Structure
                       </h3>
-                      <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                      <p className="mb-4 text-sm text-cocoa-light dark:text-cocoa-light/60">
                         Example prompt: "{selectedTemplate.samplePrompt}"
                       </p>
 
@@ -703,19 +703,19 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                         {selectedTemplate.structure.slice(0, 6).map((page, i) => (
                           <div
                             key={i}
-                            className="shrink-0 w-24 p-2 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                            className="shrink-0 w-24 p-2 bg-surface border border-peach-soft rounded-lg dark:bg-gray-800 dark:border-gray-700"
                           >
                             <div className="mb-1 text-xs font-bold text-coral-burst">
                               Page {page.pageNumber}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            <div className="text-xs text-cocoa-light dark:text-cocoa-light/60 line-clamp-2">
                               {page.suggestedContent}
                             </div>
                           </div>
                         ))}
                         {selectedTemplate.structure.length > 6 && (
-                          <div className="flex items-center justify-center shrink-0 w-24 p-2 bg-gray-100 rounded-lg dark:bg-gray-700">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center justify-center shrink-0 w-24 p-2 bg-peach-soft/30 rounded-lg dark:bg-gray-700">
+                            <span className="text-xs text-cocoa-light dark:text-cocoa-light/60">
                               +{selectedTemplate.structure.length - 6} more
                             </span>
                           </div>

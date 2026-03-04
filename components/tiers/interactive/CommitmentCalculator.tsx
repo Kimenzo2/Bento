@@ -46,12 +46,12 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
               max="50"
               value={booksPerYear}
               onChange={(e) => setBooksPerYear(Number(e.target.value))}
-              className={`w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-${tier.accentColor}-500`}
+              className={`w-full h-2 bg-surface/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-${tier.accentColor}-500`}
             />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-            <div className={`p-3 md:p-4 rounded-xl bg-white/10 border border-white/10 flex-1`}>
+            <div className={`p-3 md:p-4 rounded-xl bg-surface/10 border border-white/10 flex-1`}>
               <div className="text-[10px] sm:text-xs text-white/50 uppercase tracking-wider mb-1">
                 Break Even
               </div>
@@ -75,14 +75,14 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
         </div>
 
         {/* Timeline Visualization */}
-        <div className="bg-white/5 rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/10">
+        <div className="bg-surface/5 rounded-xl md:rounded-2xl p-4 md:p-6 border border-white/10">
           <h4 className="font-bold text-white/90 mb-6 flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Profit Timeline
           </h4>
 
           <div className="space-y-6 relative">
-            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-white/10" />
+            <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-surface/10" />
 
             {/* Cost Start */}
             <div className="flex items-center gap-4 relative">

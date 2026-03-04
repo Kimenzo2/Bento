@@ -19,8 +19,8 @@ const FontSelector: React.FC = () => {
 
       {/* Loading State Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-white/50 z-50 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white p-4 rounded-2xl border border-peach-soft flex items-center gap-3">
+        <div className="fixed inset-0 bg-surface/50 z-50 flex items-center justify-center ">
+          <div className="bg-surface p-4 rounded-2xl border border-peach-soft flex items-center gap-3">
             <Loader2 className="w-6 h-6 text-coral-burst animate-spin" />
             <span className="font-bold text-charcoal-soft">Updating fonts...</span>
           </div>

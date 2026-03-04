@@ -35,7 +35,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
           {/* Progress bar container */}
           <div className="flex-1 relative">
             {/* Background track */}
-            <div className="h-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
+            <div className="h-2 rounded-full bg-surface/5  border border-white/10 overflow-hidden">
               {/* Progress fill */}
               <motion.div
                 initial={{ width: 0 }}
@@ -77,8 +77,8 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
                         isCompleted
                           ? 'bg-linear-to-br from-purple-400 to-pink-400'
                           : isCurrent
-                            ? 'bg-white'
-                            : 'bg-white/20'
+                            ? 'bg-surface'
+                            : 'bg-surface/20'
                       }`}
                     />
                   </div>
@@ -88,7 +88,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
           </div>
 
           {/* Step counter */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-surface/5 rounded-full border border-white/10 ">
             <span className="text-white font-bold text-sm">{currentStep}</span>
             <span className="text-white/40 text-sm">/</span>
             <span className="text-white/40 text-sm">{totalSteps}</span>

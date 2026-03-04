@@ -323,7 +323,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-4xl font-bold text-white">{results.score}%</div>
-                  <div className="text-sm text-gray-400">Score</div>
+                  <div className="text-sm text-cocoa-light/60">Score</div>
                 </div>
               </div>
             </div>
@@ -333,18 +333,18 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-gray-800/50 rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-green-400">{results.correctAnswers}</div>
-              <div className="text-sm text-gray-400">Correct</div>
+              <div className="text-sm text-cocoa-light/60">Correct</div>
             </div>
             <div className="bg-gray-800/50 rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-gray-300">{results.totalQuestions}</div>
-              <div className="text-sm text-gray-400">Total Questions</div>
+              <div className="text-2xl font-bold text-cocoa-light/60">{results.totalQuestions}</div>
+              <div className="text-sm text-cocoa-light/60">Total Questions</div>
             </div>
             <div className="bg-gray-800/50 rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-purple-400">
                 {Math.floor(results.timeSpent / 60)}:
                 {(results.timeSpent % 60).toString().padStart(2, '0')}
               </div>
-              <div className="text-sm text-gray-400">Time Spent</div>
+              <div className="text-sm text-cocoa-light/60">Time Spent</div>
             </div>
             <div className="bg-gray-800/50 rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-amber-400">
@@ -358,7 +358,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                         ? 'D'
                         : 'F'}
               </div>
-              <div className="text-sm text-gray-400">Grade</div>
+              <div className="text-sm text-cocoa-light/60">Grade</div>
             </div>
           </div>
 
@@ -381,7 +381,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-cocoa-light/60 mt-1">
                       {data.correct}/{data.total} ({percentage}%)
                     </div>
                   </div>
@@ -401,7 +401,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                     <div key={standard} className="bg-gray-800/50 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-purple-400 font-mono text-sm">{standard}</span>
-                        <span className="text-gray-400 text-sm">{percentage}%</span>
+                        <span className="text-cocoa-light/60 text-sm">{percentage}%</span>
                       </div>
                       <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                         <div
@@ -461,7 +461,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
         <div className="bg-gray-800 rounded-xl p-8">
           <div className="text-4xl mb-4">📋</div>
           <h3 className="text-xl font-semibold text-white mb-2">No Assessments Available</h3>
-          <p className="text-gray-400">
+          <p className="text-cocoa-light/60">
             This curriculum ebook doesn't have any assessment questions yet.
           </p>
         </div>
@@ -486,7 +486,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                 {currentQuestion.bloomsLevel || 'remember'}
               </span>
               {currentQuestion.dokLevel && (
-                <span className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-300">
+                <span className="px-2 py-1 rounded text-xs bg-gray-700 text-cocoa-light/60">
                   DOK {currentQuestion.dokLevel}
                 </span>
               )}
@@ -519,7 +519,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
           {/* Stimulus Text (if any) */}
           {currentQuestion.stimulusText && (
             <div className="bg-gray-800/50 rounded-xl p-4 mb-6 border-l-4 border-purple-500">
-              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+              <p className="text-cocoa-light/60 text-sm leading-relaxed whitespace-pre-wrap">
                 {currentQuestion.stimulusText}
               </p>
             </div>
@@ -576,7 +576,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                           </div>
                           <div>
                             <span className="font-medium text-purple-400 mr-2">{choice.id}.</span>
-                            <span className="text-gray-200">{choice.text}</span>
+                            <span className="text-surface">{choice.text}</span>
                           </div>
                         </div>
                       </Button>
@@ -596,7 +596,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                     rows={6}
                   />
                   {currentQuestion.rubric && (
-                    <div className="mt-3 text-sm text-gray-400">
+                    <div className="mt-3 text-sm text-cocoa-light/60">
                       <span className="text-purple-400">Rubric:</span> This question is worth up to{' '}
                       {currentQuestion.rubric.maxPoints} points
                     </div>
@@ -623,9 +623,9 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                   >
                     {getFeedback().isCorrect ? 'Correct!' : 'Not quite right'}
                   </div>
-                  <div className="text-gray-300 text-sm mt-1">{getFeedback().message}</div>
+                  <div className="text-cocoa-light/60 text-sm mt-1">{getFeedback().message}</div>
                   {!getFeedback().isCorrect && currentQuestion.answerChoices && (
-                    <div className="text-sm text-gray-400 mt-2">
+                    <div className="text-sm text-cocoa-light/60 mt-2">
                       <span className="text-purple-400">Correct answer:</span>{' '}
                       {currentQuestion.answerChoices.find((c) => c.isCorrect)?.text}
                     </div>
@@ -633,7 +633,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                   {currentQuestion.exemplarResponse && !getFeedback().isCorrect && (
                     <div className="mt-3 p-3 bg-gray-800/50 rounded-lg">
                       <div className="text-purple-400 text-xs mb-1">Model Response:</div>
-                      <div className="text-gray-300 text-sm">
+                      <div className="text-cocoa-light/60 text-sm">
                         {currentQuestion.exemplarResponse}
                       </div>
                     </div>
@@ -658,7 +658,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                 }
               }}
               disabled={currentIndex === 0}
-              className="px-4 py-2 text-gray-400 hover:text-white"
+              className="px-4 py-2 text-cocoa-light/60 hover:text-white"
             >
               ← Previous
             </Button>
@@ -729,7 +729,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                     ? isCorrect
                       ? 'bg-green-500 text-white'
                       : 'bg-red-500 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    : 'bg-gray-700 text-cocoa-light/60 hover:bg-gray-600'
               }`}
             >
               {idx + 1}

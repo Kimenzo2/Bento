@@ -129,7 +129,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
       </div>
 
       {/* Narrative Content */}
-      <div className="bg-white rounded-3xl p-6 md:p-8 border border-peach-soft/30">
+      <div className="bg-surface rounded-3xl p-6 md:p-8 border border-peach-soft/30">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-heading font-bold text-coral-burst flex items-center gap-2">
             <span>📖</span> Story
@@ -168,7 +168,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             ).map((vocab, idx: number) => (
               <div
                 key={idx}
-                className="bg-white rounded-xl p-4 border border-peach-soft/20"
+                className="bg-surface rounded-xl p-4 border border-peach-soft/20"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-charcoal-soft text-lg">{vocab.term}</span>
@@ -192,16 +192,16 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             <span>💜</span> Social-Emotional Check-In
           </h4>
           <div className="space-y-4">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full w-fit border border-purple-100">
+            <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-full w-fit border border-purple-100">
               <span className="text-xs font-bold text-cocoa-light uppercase">Competency:</span>
               <span className="text-purple-600 font-bold text-sm">
                 {currentPage.selIntegration.competency}
               </span>
             </div>
-            <p className="text-charcoal-soft text-sm bg-white p-4 rounded-xl border border-purple-100">
+            <p className="text-charcoal-soft text-sm bg-surface p-4 rounded-xl border border-purple-100">
               {currentPage.selIntegration.scenario}
             </p>
-            <div className="bg-white rounded-xl p-4 border border-purple-100">
+            <div className="bg-surface rounded-xl p-4 border border-purple-100">
               <p className="text-purple-600 text-sm font-bold mb-2">🤔 Reflection:</p>
               <p className="text-charcoal-soft text-sm">
                 {currentPage.selIntegration.reflectionPrompt}
@@ -227,7 +227,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             <div key={idx} className="space-y-3">
               <p className="text-charcoal-soft font-medium text-lg">{element.prompt}</p>
               {element.type === 'checkForUnderstanding' && (
-                <div className="bg-white rounded-xl p-4 border border-green-100 flex items-center gap-3">
+                <div className="bg-surface rounded-xl p-4 border border-green-100 flex items-center gap-3">
                   <span className="text-2xl">🤝</span>
                   <p className="text-cocoa-light text-sm font-medium">
                     Think about this, then share with a partner!
@@ -267,7 +267,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                   {currentPage.instructionalContent.examples.map((example, idx) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-3 bg-white p-3 rounded-xl border border-green-100"
+                      className="flex items-start gap-3 bg-surface p-3 rounded-xl border border-green-100"
                     >
                       <span className="text-green-500 mt-1">•</span>
                       <span className="text-charcoal-soft">{example}</span>
@@ -288,7 +288,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                   (example: string, idx: number) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-3 bg-white p-3 rounded-xl border border-red-100"
+                      className="flex items-start gap-3 bg-surface p-3 rounded-xl border border-red-100"
                     >
                       <span className="text-red-500 mt-1">•</span>
                       <span className="text-charcoal-soft">{example}</span>
@@ -310,7 +310,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                   (step: string, idx: number) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-3 bg-white p-3 rounded-xl border border-purple-100"
+                      className="flex items-start gap-3 bg-surface p-3 rounded-xl border border-purple-100"
                     >
                       <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                         {idx + 1}
@@ -337,7 +337,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
           ) : (
             <div className="space-y-4">
               {isNonEmptyArray(safeGet(currentPage.teacherNotes, 'anticipatedMisconceptions')) && (
-                <div className="bg-white rounded-xl p-4 border border-peach-soft/30">
+                <div className="bg-surface rounded-xl p-4 border border-peach-soft/30">
                   <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
                     Anticipated Misconceptions:
                   </p>
@@ -355,7 +355,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
               )}
 
               {isNonEmptyArray(safeGet(currentPage.teacherNotes, 'discussionStarters')) && (
-                <div className="bg-white rounded-xl p-4 border border-peach-soft/30">
+                <div className="bg-surface rounded-xl p-4 border border-peach-soft/30">
                   <p className="text-sm font-bold text-cocoa-light uppercase mb-2">
                     Discussion Starters:
                   </p>
@@ -374,7 +374,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
 
               {typeof safeGet(currentPage.teacherNotes, 'pacing') === 'string' &&
               safeGet(currentPage.teacherNotes, 'pacing') ? (
-                <div className="flex items-center gap-2 text-cocoa-light text-sm font-medium bg-white px-4 py-2 rounded-xl w-fit border border-peach-soft/30">
+                <div className="flex items-center gap-2 text-cocoa-light text-sm font-medium bg-surface px-4 py-2 rounded-xl w-fit border border-peach-soft/30">
                   <span>⏱️</span>
                   Estimated Time: {String(safeGet(currentPage.teacherNotes, 'pacing'))}
                 </div>
@@ -422,7 +422,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
               {Object.entries(lessonPlanOutline!).map(([phase, description]) => (
                 <div
                   key={phase}
-                  className="flex items-start gap-3 bg-white p-3 rounded-xl border border-blue-100"
+                  className="flex items-start gap-3 bg-surface p-3 rounded-xl border border-blue-100"
                 >
                   <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 shrink-0" />
                   <div>
@@ -479,7 +479,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                     ).map((std: string, idx: number) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-white text-cocoa-light rounded-lg text-xs font-bold font-mono border border-peach-soft/30"
+                        className="px-3 py-1 bg-surface text-cocoa-light rounded-lg text-xs font-bold font-mono border border-peach-soft/30"
                       >
                         {std}
                       </span>
@@ -501,7 +501,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 safeGet(ebook.teacherResources, 'differentiationStrategies', 'elSupports') ||
                   safeGet(ebook.teacherResources, 'differentiationGuide', 'universalDesign')
               ) ? (
-                <div className="bg-white rounded-xl p-4 border border-green-100">
+                <div className="bg-surface rounded-xl p-4 border border-green-100">
                   <p className="text-sm font-bold text-blue-500 uppercase mb-2">
                     🌐 English Learner Supports:
                   </p>
@@ -526,7 +526,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 safeGet(ebook.teacherResources, 'differentiationStrategies', 'giftedEnrichment') ||
                   safeGet(ebook.teacherResources, 'extensions')
               ) ? (
-                <div className="bg-white rounded-xl p-4 border border-green-100">
+                <div className="bg-surface rounded-xl p-4 border border-green-100">
                   <p className="text-sm font-bold text-amber-500 uppercase mb-2">
                     ⭐ Gifted/Advanced:
                   </p>
@@ -563,7 +563,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
             </h4>
 
             {ebook.familyEngagement?.parentLetter || ebook.familyEngagement?.welcomeLetter ? (
-              <div className="mb-4 bg-white rounded-xl p-4 border border-pink-100">
+              <div className="mb-4 bg-surface rounded-xl p-4 border border-pink-100">
                 <p className="text-charcoal-soft text-sm mb-4 leading-relaxed italic">
                   "
                   {typeof ebook.familyEngagement?.parentLetter === 'string'
@@ -610,7 +610,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                   ).map((activity: AnyRecord, idx: number) => (
                     <div
                       key={idx}
-                      className="bg-white rounded-xl p-4 border border-pink-100"
+                      className="bg-surface rounded-xl p-4 border border-pink-100"
                     >
                       <p className="text-charcoal-soft text-sm font-bold mb-1">
                         {String(activity.title || activity.activity || activity.description || '')}
@@ -641,7 +641,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
   if (viewMode === 'assessment') {
     return (
       <div className="min-h-screen bg-cream-base font-body text-charcoal-soft">
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-peach-soft/50 p-4">
+        <div className="sticky top-0 z-10 bg-surface/95  border-b border-peach-soft/50 p-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <Button
               variant="ghost"
@@ -673,7 +673,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
   return (
     <div className="min-h-screen bg-cream-base font-body text-charcoal-soft">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-peach-soft/50">
+      <div className="sticky top-0 z-10 bg-surface/95  border-b border-peach-soft/50">
         <div className="max-w-4xl mx-auto">
           {/* Title Bar */}
           <div className="flex items-center justify-between p-4">
@@ -735,8 +735,8 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                     onClick={() => setViewMode(tab.id as ViewMode)}
                     className={`flex-1 md:flex-none px-4 py-2.5 font-heading ${
                       viewMode === tab.id
-                        ? 'bg-white text-coral-burst'
-                        : 'text-cocoa-light hover:text-charcoal-soft hover:bg-white/50'
+                        ? 'bg-surface text-coral-burst'
+                        : 'text-cocoa-light hover:text-charcoal-soft hover:bg-surface/50'
                     }`}
                   >
                     {tab.label}
@@ -747,7 +747,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
 
           {/* Differentiation Selector */}
           {(viewMode === 'story' || viewMode === 'instruction') && (
-            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-white border-b border-peach-soft/30 gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-surface border-b border-peach-soft/30 gap-3">
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <span className="text-xs font-bold text-cocoa-light uppercase whitespace-nowrap">
                   Level:
@@ -761,7 +761,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                       onClick={() => setDifferentiationTier(tier)}
                       className={`flex-1 sm:flex-none px-3 py-1.5 text-xs rounded-md ${
                         differentiationTier === tier
-                          ? 'bg-white text-coral-burst'
+                          ? 'bg-surface text-coral-burst'
                           : 'text-cocoa-light hover:text-charcoal-soft'
                       }`}
                     >
@@ -811,7 +811,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
 
       {/* Page Navigation */}
       {(viewMode === 'story' || viewMode === 'instruction') && pages.length > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-peach-soft/50 p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-surface/95  border-t border-peach-soft/50 p-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-3">
               <Button

@@ -47,17 +47,17 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             )}
           </div>
           {description && (
-            <span className="text-xs text-gray-500 mt-0.5 md:mt-1 line-clamp-2">{description}</span>
+            <span className="text-xs text-cocoa-light mt-0.5 md:mt-1 line-clamp-2">{description}</span>
           )}
         </div>
       </div>
       <button
         className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 shrink-0 ml-3 md:ml-4 ${
-          checked ? 'bg-coral-burst' : 'bg-gray-200'
+          checked ? 'bg-coral-burst' : 'bg-peach-light/50'
         }`}
       >
         <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full transform transition-transform duration-300 ${
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-surface rounded-full transform transition-transform duration-300 ${
             checked ? 'translate-x-[22px]' : 'translate-x-0'
           }`}
         />
@@ -210,7 +210,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <div className="space-y-3">
           <button
             onClick={handleResetSettings}
-            className="w-full flex items-center justify-between p-3 md:p-4 bg-white border border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 active:bg-orange-100 transition-all group touch-manipulation"
+            className="w-full flex items-center justify-between p-3 md:p-4 bg-surface border border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 active:bg-orange-100 transition-all group touch-manipulation"
           >
             <div className="flex items-center gap-2 md:gap-3">
               <RefreshCw className="w-5 h-5 text-orange-600" />
@@ -218,7 +218,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
                 <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-orange-700">
                   Reset Settings
                 </div>
-                <div className="text-xs text-gray-500">Restore defaults</div>
+                <div className="text-xs text-cocoa-light">Restore defaults</div>
               </div>
             </div>
             <span className="text-sm font-bold text-orange-600">Reset</span>
@@ -226,7 +226,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
 
           <button
             onClick={handleClearAllData}
-            className="w-full flex items-center justify-between p-3 md:p-4 bg-white border border-red-200 rounded-xl hover:border-red-400 hover:bg-red-50 active:bg-red-100 transition-all group touch-manipulation"
+            className="w-full flex items-center justify-between p-3 md:p-4 bg-surface border border-red-200 rounded-xl hover:border-red-400 hover:bg-red-50 active:bg-red-100 transition-all group touch-manipulation"
           >
             <div className="flex items-center gap-2 md:gap-3">
               <Terminal className="w-5 h-5 text-red-600" />
@@ -234,7 +234,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
                 <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-red-700">
                   Clear All Data
                 </div>
-                <div className="text-xs text-gray-500">Remove local storage</div>
+                <div className="text-xs text-cocoa-light">Remove local storage</div>
               </div>
             </div>
             <span className="text-sm font-bold text-red-600">Clear</span>

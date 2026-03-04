@@ -151,7 +151,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center ${
+      className={`fixed inset-0 bg-black/50  z-50 flex items-center justify-center ${
         isFullscreen ? 'p-0' : 'p-4'
       }`}
     >
@@ -169,7 +169,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Version History</h2>
-              <p className="text-gray-400 text-sm">
+              <p className="text-cocoa-light/60 text-sm">
                 {versions.length} versions • {branches.length} branches
               </p>
             </div>
@@ -191,7 +191,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                   className={`flex gap-1.5 px-3 py-1.5 ${
                     viewMode === mode.id
                       ? 'bg-gray-700 text-white'
-                      : 'text-gray-400 hover:text-gray-300'
+                      : 'text-cocoa-light/60 hover:text-cocoa-light/60'
                   }`}
                 >
                   <mode.icon className="w-4 h-4" />
@@ -208,9 +208,9 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                 onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
                 className="p-1.5 hover:bg-gray-800"
               >
-                <ZoomOut className="w-4 h-4 text-gray-400" />
+                <ZoomOut className="w-4 h-4 text-cocoa-light/60" />
               </Button>
-              <span className="text-xs text-gray-500 w-12 text-center">
+              <span className="text-xs text-cocoa-light w-12 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <Button
@@ -219,7 +219,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                 onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
                 className="p-1.5 hover:bg-gray-800"
               >
-                <ZoomIn className="w-4 h-4 text-gray-400" />
+                <ZoomIn className="w-4 h-4 text-cocoa-light/60" />
               </Button>
             </div>
 
@@ -230,9 +230,9 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
               className="p-2 hover:bg-gray-800"
             >
               {isFullscreen ? (
-                <Minimize2 className="w-5 h-5 text-gray-400" />
+                <Minimize2 className="w-5 h-5 text-cocoa-light/60" />
               ) : (
-                <Maximize2 className="w-5 h-5 text-gray-400" />
+                <Maximize2 className="w-5 h-5 text-cocoa-light/60" />
               )}
             </Button>
 
@@ -242,7 +242,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
               onClick={onClose}
               className="p-2 hover:bg-gray-800"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5 text-cocoa-light/60" />
             </Button>
           </div>
         </div>
@@ -295,9 +295,9 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
 
                     {versions.length === 0 && (
                       <div className="text-center py-12">
-                        <GitCommit className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                        <p className="text-gray-400">No versions yet</p>
-                        <p className="text-sm text-gray-500">
+                        <GitCommit className="w-12 h-12 text-cocoa-light mx-auto mb-4" />
+                        <p className="text-cocoa-light/60">No versions yet</p>
+                        <p className="text-sm text-cocoa-light">
                           Versions are created when you save changes
                         </p>
                       </div>
@@ -318,7 +318,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                           <div className="flex items-center gap-3">
                             <GitBranch className="w-5 h-5 text-green-400" />
                             <span className="font-medium text-white">{branchName}</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-cocoa-light">
                               {branchVersions.length} versions
                             </span>
                             {branchName === 'main' && (
@@ -328,9 +328,9 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                             )}
                           </div>
                           {expandedBranches.has(branchName) ? (
-                            <ChevronDown className="w-5 h-5 text-gray-400" />
+                            <ChevronDown className="w-5 h-5 text-cocoa-light/60" />
                           ) : (
-                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                            <ChevronRight className="w-5 h-5 text-cocoa-light/60" />
                           )}
                         </Button>
 
@@ -347,12 +347,12 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                                 onClick={() => setSelectedVersion(version)}
                               >
                                 <div className="flex items-center gap-3">
-                                  <GitCommit className="w-4 h-4 text-gray-500" />
+                                  <GitCommit className="w-4 h-4 text-cocoa-light" />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-white text-sm font-medium truncate">
                                       {version.version_name || `Version ${version.version_number}`}
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-cocoa-light">
                                       {formatDate(version.created_at)}
                                     </p>
                                   </div>
@@ -469,15 +469,15 @@ const VersionCard: React.FC<VersionCardProps> = ({
                 {version.version_name || `Version ${version.version_number}`}
               </h4>
               {version.is_auto_save && (
-                <span className="px-1.5 py-0.5 bg-gray-700 text-gray-400 text-xs rounded">
+                <span className="px-1.5 py-0.5 bg-gray-700 text-cocoa-light/60 text-xs rounded">
                   Auto
                 </span>
               )}
               {version.is_starred && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
             </div>
-            <p className="text-sm text-gray-400 mt-1">{formatDate(version.created_at)}</p>
+            <p className="text-sm text-cocoa-light/60 mt-1">{formatDate(version.created_at)}</p>
             {version.description && (
-              <p className="text-sm text-gray-500 mt-2 line-clamp-2">{version.description}</p>
+              <p className="text-sm text-cocoa-light mt-2 line-clamp-2">{version.description}</p>
             )}
             {version.changes_summary && (
               <div className="flex gap-2 mt-2 text-xs">
@@ -590,9 +590,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, selectedId, onSelect }
             className="p-0.5"
           >
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-cocoa-light/60" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-cocoa-light/60" />
             )}
           </Button>
         )}
@@ -652,7 +652,7 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-white">Version Details</h3>
         <Button variant="ghost" size="icon" onClick={onClose} className="p-1 hover:bg-gray-800">
-          <X className="w-4 h-4 text-gray-400" />
+          <X className="w-4 h-4 text-cocoa-light/60" />
         </Button>
       </div>
 
@@ -677,19 +677,19 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
       {/* Info */}
       <div className="space-y-3">
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Name</p>
+          <p className="text-xs text-cocoa-light uppercase tracking-wide">Name</p>
           <p className="text-white">
             {version.version_name || `Version ${version.version_number}`}
           </p>
         </div>
 
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Created</p>
+          <p className="text-xs text-cocoa-light uppercase tracking-wide">Created</p>
           <p className="text-white">{new Date(version.created_at).toLocaleString()}</p>
         </div>
 
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Branch</p>
+          <p className="text-xs text-cocoa-light uppercase tracking-wide">Branch</p>
           <p className="text-white flex items-center gap-2">
             <GitBranch className="w-4 h-4 text-green-400" />
             {version.branch_name || 'main'}
@@ -698,24 +698,24 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
 
         {version.description && (
           <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Description</p>
-            <p className="text-gray-300 text-sm">{version.description}</p>
+            <p className="text-xs text-cocoa-light uppercase tracking-wide">Description</p>
+            <p className="text-cocoa-light/60 text-sm">{version.description}</p>
           </div>
         )}
 
         {version.data && (
           <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Settings</p>
+            <p className="text-xs text-cocoa-light uppercase tracking-wide mb-2">Settings</p>
             <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
               {!!(version.data as Record<string, unknown>).prompt && (
                 <div>
-                  <span className="text-gray-400">Prompt:</span>
+                  <span className="text-cocoa-light/60">Prompt:</span>
                   <p className="text-white line-clamp-3">{String((version.data as Record<string, unknown>).prompt)}</p>
                 </div>
               )}
               {!!(version.data as Record<string, unknown>).style && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Style:</span>
+                  <span className="text-cocoa-light/60">Style:</span>
                   <span className="text-white">{String((version.data as Record<string, unknown>).style)}</span>
                 </div>
               )}

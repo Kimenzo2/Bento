@@ -32,14 +32,14 @@ const InstallPWA: React.FC = () => {
 
   return (
     <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 z-100 animate-fadeIn">
-      <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-4 max-w-sm ml-auto">
+      <div className="bg-surface/90  border border-peach-soft rounded-2xl p-4 flex items-center justify-between gap-4 max-w-sm ml-auto">
         <div className="flex items-center gap-3">
           <div className="bg-coral-burst/10 p-2 rounded-xl">
             <Download className="w-6 h-6 text-coral-burst" />
           </div>
           <div>
             <h3 className="font-bold text-charcoal-soft text-sm">Install App</h3>
-            <p className="text-xs text-gray-500">Add to home screen for better experience</p>
+            <p className="text-xs text-cocoa-light">Add to home screen for better experience</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -47,7 +47,7 @@ const InstallPWA: React.FC = () => {
             onClick={() => setSupportsPWA(false)}
             variant="ghost"
             size="icon"
-            className="p-2 hover:bg-gray-100 rounded-full text-gray-400"
+            className="p-2 hover:bg-peach-soft/30 rounded-full text-cocoa-light/60"
           >
             <X size={18} />
           </Button>

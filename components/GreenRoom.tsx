@@ -242,7 +242,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="relative w-full max-w-6xl h-[90vh] mx-4 bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-emerald-500/20 overflow-hidden flex flex-col"
+          className="relative w-full max-w-6xl h-[90vh] mx-4 bg-slate-900/95  rounded-3xl border border-emerald-500/20 overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -319,7 +319,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                   onClick={onClose}
                   variant="ghost"
                   size="icon"
-                  className="text-white/40 hover:text-white hover:bg-white/10"
+                  className="text-white/40 hover:text-white hover:bg-surface/10"
                 >
                   <X className="w-5 h-5" />
                 </Button>
@@ -452,7 +452,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                           onClick={() => handleSuggestionClick(q)}
                           variant="outline"
                           size="sm"
-                          className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 rounded-full text-white/70 hover:text-white"
+                          className="bg-surface/5 hover:bg-surface/10 border border-white/10 hover:border-yellow-500/30 rounded-full text-white/70 hover:text-white"
                         >
                           {q}
                         </Button>
@@ -473,7 +473,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                       placeholder={`Ask ${persona?.name || 'the character'} anything...`}
-                      className="py-3 text-white bg-white/5 border-white/10 placeholder-white/30 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+                      className="py-3 text-white bg-surface/5 border-white/10 placeholder-white/30 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
                       disabled={isTyping}
                     />
                   </div>
@@ -566,7 +566,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                         className={`p-3 rounded-lg border transition-all ${
                           newFactHighlight === fact.id
                             ? 'bg-yellow-500/20 border-yellow-500/50'
-                            : 'bg-white/5 border-white/10 hover:border-emerald-500/30'
+                            : 'bg-surface/5 border-white/10 hover:border-emerald-500/30'
                         }`}
                       >
                         <div className="flex items-start gap-2">
@@ -631,7 +631,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                               setShowHistory(false);
                             }}
                             variant="ghost"
-                            className="w-full p-3 text-left bg-white/5 hover:bg-white/10 h-auto flex-col items-start"
+                            className="w-full p-3 text-left bg-surface/5 hover:bg-surface/10 h-auto flex-col items-start"
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <Clock className="w-3 h-3 text-white/40" />

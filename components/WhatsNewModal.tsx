@@ -149,7 +149,7 @@ const getTypeIcon = (type: string) => {
     case 'breaking':
       return <Wrench className="w-4 h-4 text-red-500" />;
     default:
-      return <Star className="w-4 h-4 text-gray-500" />;
+      return <Star className="w-4 h-4 text-cocoa-light" />;
   }
 };
 
@@ -160,7 +160,7 @@ const _getTypeBadge = (type: string) => {
     fix: 'bg-green-500/10 text-green-600',
     breaking: 'bg-red-500/10 text-red-600',
   };
-  return colors[type as keyof typeof colors] || 'bg-gray-500/10 text-gray-600';
+  return colors[type as keyof typeof colors] || 'bg-gray-500/10 text-cocoa-light';
 };
 
 interface WhatsNewModalProps {
@@ -202,8 +202,8 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
                 onClick={() => setActiveVersion(idx)}
                 className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   activeVersion === idx
-                    ? 'bg-white text-coral-burst'
-                    : 'bg-white/20 hover:bg-white/30'
+                    ? 'bg-surface text-coral-burst'
+                    : 'bg-surface/20 hover:bg-surface/30'
                 }`}
               >
                 v{entry.version}

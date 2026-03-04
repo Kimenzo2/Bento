@@ -3,6 +3,8 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   Menu,
+  Moon,
+  Sun,
   PenTool,
   Trophy,
   User,
@@ -11,6 +13,7 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useUserSettings } from '../hooks/useUserSettings';
 import { getUserProfile, type UserProfile } from '../services/profileService';
 import { AppMode, UserTier } from '../types';
@@ -25,6 +28,7 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
   const { user, signOut: _signOut } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const { displayName, avatarUrl } = useUserSettings();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
@@ -78,7 +82,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
     <>
       <nav
         className="fixed top-0 left-0 w-full z-60 px-4 md:px-12 flex items-center justify-between transition-all duration-300
-        bg-cream-base/85 backdrop-blur-md border-b-2 border-peach-soft"
+        bg-cream-base/85  border-b-2 border-peach-soft"
         style={{ paddingTop: 'calc(0.5rem + var(--safe-area-inset-top))', paddingBottom: '0.5rem' }}
       >
         {/* Logo */}
@@ -95,7 +99,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
         </div>
 
         {/* Desktop Nav Items */}
-        <div className="hidden lg:flex items-center gap-1 bg-white/50 p-1.5 rounded-full border border-peach-soft/50 backdrop-blur-sm">
+        <div className="hidden lg:flex items-center gap-1 bg-surface/50 p-1.5 rounded-full border border-peach-soft/50 ">
           {menuItems.map((item) => (
             <Button
               key={item.mode}
@@ -116,11 +120,26 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3 md:gap-4">
+          {/* Light/Dark Mode Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleDarkMode}
+            className="rounded-full w-10 h-10 bg-surface/50 border-peach-soft hover:bg-surface"
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDarkMode ? (
+              <Sun className="w-5 h-5 text-gold-sunshine" />
+            ) : (
+              <Moon className="w-5 h-5 text-charcoal-soft" />
+            )}
+          </Button>
+
           {/* Tier Badge */}
           <Button
             variant="outline"
             onClick={() => handleModeChange(AppMode.GAMIFICATION)}
-            className="hidden md:flex px-3 py-1.5 bg-white border border-peach-soft hover:border-gold-sunshine"
+            className="hidden md:flex px-3 py-1.5 bg-surface border border-peach-soft hover:border-gold-sunshine"
             title={`You are on the ${tierBadge.label} plan`}
           >
             <Badge
@@ -162,7 +181,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
               console.warn('Navigating to SETTINGS');
               handleModeChange(AppMode.SETTINGS);
             }}
-            className="flex p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 group min-h-11"
+            className="flex p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-surface border border-peach-soft hover:border-coral-burst/30 group min-h-11"
             aria-label="Account"
           >
             <Avatar className="w-8 h-8 group-hover:scale-110 transition-transform">
@@ -191,7 +210,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
       {/* Mobile Navigation Overlay */}
       <div
-        className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 z-40 bg-cream-base/95  transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <Button
           variant="primary"
@@ -207,7 +226,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
         <Button
           variant="outline"
           onClick={() => handleModeChange(AppMode.GAMIFICATION)}
-          className="w-full flex justify-between px-6 py-4 bg-white border border-peach-soft rounded-2xl min-h-16"
+          className="w-full flex justify-between px-6 py-4 bg-surface border border-peach-soft rounded-2xl min-h-16"
           aria-label="Open gamification"
         >
           <div className="flex items-center gap-3">
@@ -230,8 +249,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             className={`flex gap-4 px-6 py-4 rounded-2xl font-heading text-lg min-h-14
               ${
                 currentMode === item.mode
-                  ? 'bg-white text-coral-burst border border-peach-soft'
-                  : 'text-cocoa-light hover:bg-white/50'
+                  ? 'bg-surface text-coral-burst border border-peach-soft'
+                  : 'text-cocoa-light hover:bg-surface/50'
               }`}
           >
             <item.icon

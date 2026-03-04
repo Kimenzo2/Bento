@@ -96,7 +96,7 @@ const AuthPage: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl border border-peach-soft/40">
+            <div className="flex items-start gap-4 p-4 bg-surface/50 rounded-2xl border border-peach-soft/40">
               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
@@ -110,7 +110,7 @@ const AuthPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl border border-peach-soft/40">
+            <div className="flex items-start gap-4 p-4 bg-surface/50 rounded-2xl border border-peach-soft/40">
               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
                 <Cloud className="w-5 h-5 text-white" />
               </div>
@@ -122,7 +122,7 @@ const AuthPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl border border-peach-soft/40">
+            <div className="flex items-start gap-4 p-4 bg-surface/50 rounded-2xl border border-peach-soft/40">
               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
                 <Zap className="w-5 h-5 text-white" />
               </div>
@@ -137,7 +137,7 @@ const AuthPage: React.FC = () => {
         </div>
 
         {/* Right Side - Auth Form */}
-        <div className="bg-white rounded-3xl border border-peach-soft p-8 lg:p-12">
+        <div className="bg-surface rounded-3xl border border-peach-soft p-8 lg:p-12">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-linear-to-br from-gold-sunshine to-coral-burst rounded-2xl mx-auto mb-6 flex items-center justify-center border border-white/30 transform rotate-3">
               <span className="text-3xl">✨</span>
@@ -203,7 +203,7 @@ const AuthPage: React.FC = () => {
               <div className="w-full border-t border-peach-soft"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-cocoa-light font-medium">
+              <span className="px-4 bg-surface text-cocoa-light font-medium">
                 Or continue with email
               </span>
             </div>

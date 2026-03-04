@@ -573,7 +573,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative bg-white p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
+        className="relative bg-surface p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
       >
         {/* Cursor Glow Effect - Vercel Marketplace Style */}
         <div
@@ -740,7 +740,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                     flex px-4 py-2
                                     ${
                                       isSelectionMode
-                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        ? 'bg-peach-light/50 text-cocoa-light hover:bg-gray-300'
                                         : 'text-coral-burst hover:bg-coral-burst/10'
                                     }
                                 `}
@@ -790,10 +790,10 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
       {/* Main Wizard Card */}
       <div className="w-full max-w-4xl px-2 sm:px-4">
-        <div className="bg-white rounded-2xl sm:rounded-4xl p-6 sm:p-8 md:p-12 border border-peach-soft relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
+        <div className="bg-surface rounded-2xl sm:rounded-4xl p-6 sm:p-8 md:p-12 border border-peach-soft relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
           {/* Loading Overlay */}
           {isGenerating && (
-            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fadeIn">
+            <div className="absolute inset-0 z-50 bg-surface/90  flex flex-col items-center justify-center animate-fadeIn">
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-coral-burst rounded-full animate-ping opacity-20"></div>
                 <div className="w-20 h-20 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center animate-bounce-slow relative z-10">
@@ -817,7 +817,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 onClick={() => setCreationMode('book')}
                 className={`px-6 py-2 rounded-full ${
                   creationMode === 'book'
-                    ? 'bg-white text-coral-burst border border-peach-soft/50'
+                    ? 'bg-surface text-coral-burst border border-peach-soft/50'
                     : 'text-cocoa-light hover:text-charcoal-soft'
                 }`}
               >
@@ -828,7 +828,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 onClick={() => setCreationMode('feature')}
                 className={`px-6 py-2 rounded-full relative ${
                   creationMode === 'feature'
-                    ? 'bg-white text-coral-burst border border-peach-soft/50'
+                    ? 'bg-surface text-coral-burst border border-peach-soft/50'
                     : 'text-cocoa-light hover:text-charcoal-soft'
                 }`}
               >
@@ -848,7 +848,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   onClick={resetForm}
                   className="mb-6 flex text-cocoa-light hover:text-coral-burst group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white border border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-surface border border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </div>
                   Back to Home
@@ -962,7 +962,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       <Palette className="w-5 h-5 text-coral-burst" />
                       {style}
                     </span>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight className="w-5 h-5 text-cocoa-light/60 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
 
@@ -1010,7 +1010,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   <Label className="text-cocoa-light uppercase tracking-wide">
                     Length: {pageCount} Pages
                   </Label>
-                  <div className="flex items-center gap-4 bg-white border border-peach-soft rounded-2xl p-4">
+                  <div className="flex items-center gap-4 bg-surface border border-peach-soft rounded-2xl p-4">
                     <Clock className="text-coral-burst w-5 h-5" />
                     <Slider
                       min={4}
@@ -1057,7 +1057,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                           className={`p-3 ${
                             brandContentType === type.id
                               ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                              : 'bg-white text-charcoal-soft hover:bg-emerald-100'
+                              : 'bg-surface text-charcoal-soft hover:bg-emerald-100'
                           }`}
                         >
                           <span className="mr-1">{type.icon}</span> {type.label}
@@ -1193,7 +1193,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                           className={`px-4 py-2 rounded-full ${
                             brandTone === tone.id
                               ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                              : 'bg-white text-charcoal-soft hover:bg-emerald-100 border border-emerald-200'
+                              : 'bg-surface text-charcoal-soft hover:bg-emerald-100 border border-emerald-200'
                           }`}
                         >
                           {tone.label}
@@ -1226,7 +1226,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                           className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                             brandSections[section.key as keyof typeof brandSections]
                               ? 'bg-emerald-100 border border-emerald-400'
-                              : 'bg-white border border-gray-200 hover:border-emerald-300'
+                              : 'bg-surface border border-peach-soft hover:border-emerald-300'
                           }`}
                         >
                           <input
@@ -1321,7 +1321,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             className={`p-3 text-left ${
                               integrationMode === mode.id
                                 ? 'border-blue-400 bg-blue-100'
-                                : 'border-blue-100 bg-white hover:border-blue-300'
+                                : 'border-blue-100 bg-surface hover:border-blue-300'
                             }`}
                           >
                             <div
@@ -1345,7 +1345,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         Select a character to guide the learning journey. They'll teach concepts in
                         their unique voice!
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-150 overflow-y-auto p-2 border border-blue-100 rounded-xl bg-white/50">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-150 overflow-y-auto p-2 border border-blue-100 rounded-xl bg-surface/50">
                         {teachingCharacters.map((char) => (
                           <button
                             type="button"
@@ -1358,7 +1358,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                                                       selectedTeacher?.id ===
                                                                       char.id
                                                                         ? 'border-blue-500 bg-linear-to-br from-blue-100 to-purple-100'
-                                                                        : 'border-blue-100 bg-white hover:border-blue-300'
+                                                                        : 'border-blue-100 bg-surface hover:border-blue-300'
                                                                     }`}
                           >
                             {/* Character Image */}

@@ -83,7 +83,7 @@ const TopicInputStep: React.FC<TopicInputStepProps> = ({ request, onChange, onNe
               className={`p-3 sm:p-4 rounded-xl border transition-all text-left group relative overflow-hidden min-h-11 active:scale-95 ${
                 request.ageGroup === age.id
                   ? 'border-coral-burst bg-coral-burst/5'
-                  : 'border-peach-soft bg-white hover:border-coral-burst/50'
+                  : 'border-peach-soft bg-surface hover:border-coral-burst/50'
               }`}
             >
               <div className="text-xl sm:text-2xl mb-2">{age.icon}</div>
@@ -113,7 +113,7 @@ const TopicInputStep: React.FC<TopicInputStepProps> = ({ request, onChange, onNe
               className={`p-2.5 sm:p-3 rounded-xl border transition-all text-center text-xs sm:text-sm font-medium min-h-11 active:scale-95 ${
                 request.type === type.id
                   ? 'border-gold-sunshine bg-gold-sunshine/10 text-charcoal-soft'
-                  : 'border-peach-soft bg-white text-cocoa-light hover:border-gold-sunshine/50'
+                  : 'border-peach-soft bg-surface text-cocoa-light hover:border-gold-sunshine/50'
               }`}
             >
               <div className="font-bold mb-1">{type.label}</div>

@@ -99,11 +99,11 @@ function RoomContent({
     <div className={`relative ${className || ''}`}>
       {/* Header with presence and status */}
       {(showPresence || showStatus) && (
-        <div className="flex items-center justify-between p-3 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between p-3 bg-surface border-b border-peach-soft">
           <div className="flex items-center gap-4">
             {showPresence && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-cocoa-light font-medium">
                   {others.length + 1} online
                 </span>
                 <PresenceAvatars maxVisible={5} />
@@ -154,7 +154,7 @@ function DefaultLoading() {
             style={{ animationDelay: '300ms' }}
           />
         </div>
-        <span className="text-sm text-gray-500">Connecting to collaboration room...</span>
+        <span className="text-sm text-cocoa-light">Connecting to collaboration room...</span>
       </div>
     </div>
   );

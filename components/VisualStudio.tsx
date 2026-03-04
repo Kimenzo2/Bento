@@ -249,7 +249,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             variant="ghost"
             size="icon"
             onClick={() => userProfile && setShowNotificationCenter(!showNotificationCenter)}
-            className={`relative p-2 border border-peach-soft/50 min-h-11 min-w-11 ${userProfile ? 'bg-white/80 hover:bg-white text-gray-600 hover:text-coral-burst' : 'bg-gray-100 text-gray-300'}`}
+            className={`relative p-2 border border-peach-soft/50 min-h-11 min-w-11 ${userProfile ? 'bg-surface/80 hover:bg-surface text-cocoa-light hover:text-coral-burst' : 'bg-peach-soft/30 text-cocoa-light/60'}`}
             title={userProfile ? 'Notifications' : 'Login to access notifications'}
           >
             <Bell className="w-4 h-4 md:w-5 md:h-5" />
@@ -259,7 +259,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
           <Button
             variant="destructive"
             onClick={() => userProfile && setShowBroadcastStudio(true)}
-            className={`hidden xs:flex px-2 md:px-4 py-2 border border-white/20 min-h-11 ${userProfile ? 'bg-linear-to-r from-red-500 to-pink-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400'}`}
+            className={`hidden xs:flex px-2 md:px-4 py-2 border border-white/20 min-h-11 ${userProfile ? 'bg-linear-to-r from-red-500 to-pink-500 text-white hover:scale-105 active:scale-95' : 'bg-peach-light/50 text-cocoa-light/60'}`}
             disabled={!userProfile}
           >
             <Radio className="w-4 h-4 animate-pulse" />
@@ -274,7 +274,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             onClick={() => setViewMode('individual')}
             className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
               viewMode === 'individual'
-                ? 'bg-white text-coral-burst border border-peach-soft'
+                ? 'bg-surface text-coral-burst border border-peach-soft'
                 : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
             }`}
           >
@@ -287,7 +287,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             onClick={() => setViewMode('storymap')}
             className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
               viewMode === 'storymap'
-                ? 'bg-white text-emerald-500 border border-peach-soft'
+                ? 'bg-surface text-emerald-500 border border-peach-soft'
                 : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
             }`}
           >
@@ -311,7 +311,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
         {viewMode === 'individual' && (
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
             {/* Control Panel - Left Side (40%) */}
-            <div className="bg-white rounded-3xl border border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-[680px] panel-breathing">
+            <div className="bg-surface rounded-3xl border border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-[680px] panel-breathing">
               {/* Tabs */}
               <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
                 {['character', 'scene', 'style'].map((tab) => (
@@ -323,7 +323,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       setSettings(prev => ({ ...prev, generatedImage: null }));
                     }}
                     className={`flex-1 py-2 md:py-2.5 font-heading capitalize
-                                ${activeTab === tab ? 'bg-white text-coral-burst border border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'}`}
+                                ${activeTab === tab ? 'bg-surface text-coral-burst border border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'}`}
                   >
                     {tab}
                   </Button>
@@ -357,7 +357,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                                             ${
                                               settings.selectedCharacterId === char.id
                                                 ? 'border-coral-burst bg-cream-base'
-                                                : 'border-transparent hover:bg-gray-50'
+                                                : 'border-transparent hover:bg-surface/50'
                                             }`}
                         >
                           <div
@@ -372,7 +372,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                                 `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`
                               }
                               alt={char.name}
-                              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border border-peach-soft/50 object-cover"
+                              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface border border-peach-soft/50 object-cover"
                             />
                             <div className="min-w-0 flex-1">
                               <div className="font-bold text-xs md:text-sm text-charcoal-soft truncate">
@@ -391,7 +391,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                               setEditingCharacterId(char.id);
                               setShowCharacterDepth(true);
                             }}
-                            className="absolute top-1 right-1 p-1 bg-white hover:bg-emerald-50 opacity-0 group-hover:opacity-100 border border-peach-soft/50"
+                            className="absolute top-1 right-1 p-1 bg-surface hover:bg-emerald-50 opacity-0 group-hover:opacity-100 border border-peach-soft/50"
                             title="Edit character depth"
                           >
                             <Edit2 className="w-3 h-3 text-emerald-600" />
@@ -399,7 +399,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         </div>
                       ))}
                       {availableCharacters.length === 0 && (
-                        <div className="col-span-2 text-center py-8 text-gray-400 text-sm">
+                        <div className="col-span-2 text-center py-8 text-cocoa-light/60 text-sm">
                           No characters yet. Click "New" to create one!
                         </div>
                       )}
@@ -585,13 +585,13 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             </div>
 
             {/* Preview Panel - Right Side (60%) */}
-            <div className="w-full lg:w-3/5 h-100 lg:h-[680px] bg-white rounded-3xl border border-peach-soft overflow-hidden relative group">
+            <div className="w-full lg:w-3/5 h-100 lg:h-[680px] bg-surface rounded-3xl border border-peach-soft overflow-hidden relative group">
               {settings.generatedImage ? (
                 <>
                   <img
                     src={settings.generatedImage}
                     alt="Generated result"
-                    className="w-full h-full object-contain bg-gray-50"
+                    className="w-full h-full object-contain bg-surface/50"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end">
                     <div className="flex gap-2">
@@ -599,7 +599,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowShareModal(true)}
-                        className="p-2 bg-white/20 backdrop-blur-md text-white hover:bg-white/40"
+                        className="p-2 bg-surface/20  text-white hover:bg-surface/40"
                         title="Share"
                       >
                         <Share2 className="w-5 h-5" />
@@ -613,7 +613,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                           link.download = `genesis-${Date.now()}.png`;
                           link.click();
                         }}
-                        className="p-2 bg-white/20 backdrop-blur-md text-white hover:bg-white/40"
+                        className="p-2 bg-surface/20  text-white hover:bg-surface/40"
                         title="Download"
                       >
                         <Download className="w-5 h-5" />
@@ -623,7 +623,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => setExpandedVisual('current')}
-                      className="p-2 bg-white/20 backdrop-blur-md text-white hover:bg-white/40"
+                      className="p-2 bg-surface/20  text-white hover:bg-surface/40"
                       title="Expand"
                     >
                       <Maximize2 className="w-5 h-5" />
@@ -648,7 +648,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-4 opacity-60">
-                      <div className="w-20 h-20 rounded-full bg-white border border-peach-soft/50 flex items-center justify-center mb-2">
+                      <div className="w-20 h-20 rounded-full bg-surface border border-peach-soft/50 flex items-center justify-center mb-2">
                         <Wand2 className="w-10 h-10 text-coral-burst/50" />
                       </div>
                       <div>
@@ -705,7 +705,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
 
       {/* Broadcast Studio Modal */}
       {showBroadcastStudio && userProfile && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-70 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50  z-70 flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-3xl w-full max-w-6xl h-[90vh] overflow-hidden animate-fadeIn flex flex-col">
             <BroadcastStudio onClose={() => setShowBroadcastStudio(false)} />
           </div>

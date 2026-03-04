@@ -49,8 +49,8 @@ const FontPreviewCard: React.FC<FontPreviewCardProps> = ({ pairing, isActive, on
       className={`relative w-full text-left group transition-all duration-300 rounded-2xl border overflow-hidden
         ${
           isActive
-            ? 'border-coral-burst bg-white scale-[1.02]'
-            : 'border-transparent bg-cream-soft hover:bg-white hover:border-peach-soft'
+            ? 'border-coral-burst bg-surface scale-[1.02]'
+            : 'border-transparent bg-cream-soft hover:bg-surface hover:border-peach-soft'
         }`}
     >
       {/* Active Indicator */}
@@ -107,7 +107,7 @@ const FontPreviewCard: React.FC<FontPreviewCardProps> = ({ pairing, isActive, on
             {pairing.bestFor.slice(0, 2).map((tag, i) => (
               <span
                 key={i}
-                className="text-[10px] text-cocoa-light bg-white px-1.5 py-0.5 rounded border border-peach-soft/30"
+                className="text-[10px] text-cocoa-light bg-surface px-1.5 py-0.5 rounded border border-peach-soft/30"
               >
                 {tag}
               </span>

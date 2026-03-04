@@ -212,7 +212,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                 onClick={handleRetry}
                 disabled={isChecking}
                 title="Retry connection"
-                className="bg-white/20 hover:bg-white/30"
+                className="bg-surface/20 hover:bg-surface/30"
               >
                 <RefreshCw className={`w-5 h-5 ${isChecking ? 'animate-spin' : ''}`} />
               </Button>

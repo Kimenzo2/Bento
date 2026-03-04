@@ -113,7 +113,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
   const _getChangeIndicator = (change: number) => {
     if (change > 0) return { icon: ArrowUp, color: 'text-green-400', bg: 'bg-green-500/20' };
     if (change < 0) return { icon: ArrowDown, color: 'text-red-400', bg: 'bg-red-500/20' };
-    return { icon: Minus, color: 'text-gray-400', bg: 'bg-gray-500/20' };
+    return { icon: Minus, color: 'text-cocoa-light/60', bg: 'bg-gray-500/20' };
   };
 
   const getStreakEmoji = (days: number): string => {
@@ -127,7 +127,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50  z-50 flex items-center justify-center p-4">
       <div
         className="bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -140,11 +140,11 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Creative Insights</h2>
-              <p className="text-gray-400 text-sm">Your weekly analytics & trends</p>
+              <p className="text-cocoa-light/60 text-sm">Your weekly analytics & trends</p>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="p-2 hover:bg-gray-800">
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-cocoa-light/60" />
           </Button>
         </div>
 
@@ -163,7 +163,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
               className={`flex px-4 py-3 border-b-2 ${
                 activeTab === tab.id
                   ? 'border-purple-500 text-purple-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  : 'border-transparent text-cocoa-light/60 hover:text-cocoa-light/60'
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -201,7 +201,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-400">Best Streak</p>
+                          <p className="text-sm text-cocoa-light/60">Best Streak</p>
                           <p className="text-xl font-bold text-orange-400">
                             {insights.streaks.longest_streak} days
                           </p>
@@ -253,7 +253,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                       <div className="grid md:grid-cols-2 gap-4">
                         {/* Top Style */}
                         <div className="bg-gray-900/50 rounded-lg p-4">
-                          <p className="text-sm text-gray-400 mb-1">Most Used Style</p>
+                          <p className="text-sm text-cocoa-light/60 mb-1">Most Used Style</p>
                           <p className="text-xl font-bold text-white">
                             {weeklySummary.top_style || 'None yet'}
                           </p>
@@ -262,7 +262,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                         {/* Best Performing */}
                         {weeklySummary.best_performing && (
                           <div className="bg-gray-900/50 rounded-lg p-4">
-                            <p className="text-sm text-gray-400 mb-1">Best Performing</p>
+                            <p className="text-sm text-cocoa-light/60 mb-1">Best Performing</p>
                             <div className="flex items-center gap-2">
                               <div
                                 className="w-10 h-10 rounded-lg bg-cover bg-center"
@@ -274,7 +274,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                                 <p className="text-white font-medium">
                                   {weeklySummary.best_performing.reactions} reactions
                                 </p>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-cocoa-light/60">
                                   {weeklySummary.best_performing.style}
                                 </p>
                               </div>
@@ -296,7 +296,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                                   .map((tip: string, i: number) => (
                                     <li
                                       key={i}
-                                      className="text-gray-300 text-sm flex items-start gap-2"
+                                      className="text-cocoa-light/60 text-sm flex items-start gap-2"
                                     >
                                       <span className="text-purple-400">•</span>
                                       {tip}
@@ -319,14 +319,14 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                       <div className="space-y-3">
                         {insights.style_diversity.slice(0, 5).map((style: { style: string; percentage: number }, _index: number) => (
                           <div key={style.style} className="flex items-center gap-3">
-                            <div className="w-24 text-sm text-gray-300">{style.style}</div>
+                            <div className="w-24 text-sm text-cocoa-light/60">{style.style}</div>
                             <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-linear-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
                                 style={{ width: `${style.percentage}%` }}
                               />
                             </div>
-                            <div className="w-12 text-right text-sm text-gray-400">
+                            <div className="w-12 text-right text-sm text-cocoa-light/60">
                               {style.percentage.toFixed(0)}%
                             </div>
                           </div>
@@ -348,9 +348,9 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
 
                   {trendingStyles.length === 0 && (
                     <div className="text-center py-12">
-                      <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">No trending styles yet</p>
-                      <p className="text-sm text-gray-500">Check back later for community trends</p>
+                      <TrendingUp className="w-12 h-12 text-cocoa-light mx-auto mb-4" />
+                      <p className="text-cocoa-light/60">No trending styles yet</p>
+                      <p className="text-sm text-cocoa-light">Check back later for community trends</p>
                     </div>
                   )}
                 </div>
@@ -376,9 +376,9 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
 
                   {recommendations.length === 0 && (
                     <div className="text-center py-12">
-                      <Lightbulb className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">No recommendations yet</p>
-                      <p className="text-sm text-gray-500">
+                      <Lightbulb className="w-12 h-12 text-cocoa-light mx-auto mb-4" />
+                      <p className="text-cocoa-light/60">No recommendations yet</p>
+                      <p className="text-sm text-cocoa-light">
                         Create more to get personalized suggestions
                       </p>
                     </div>
@@ -398,9 +398,9 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
 
                   {insights.achievements.length === 0 && (
                     <div className="text-center py-12">
-                      <Award className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">No achievements yet</p>
-                      <p className="text-sm text-gray-500">Keep creating to unlock achievements</p>
+                      <Award className="w-12 h-12 text-cocoa-light mx-auto mb-4" />
+                      <p className="text-cocoa-light/60">No achievements yet</p>
+                      <p className="text-sm text-cocoa-light">Keep creating to unlock achievements</p>
                     </div>
                   )}
 
@@ -422,7 +422,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                           style={{ width: `${(insights.xp_progress || 0) * 100}%` }}
                         />
                       </div>
-                      <p className="text-sm text-gray-400 mt-2">
+                      <p className="text-sm text-cocoa-light/60 mt-2">
                         {Math.round((insights.xp_progress || 0) * 100)}% to next level
                       </p>
                     </div>
@@ -476,7 +476,7 @@ const StatCard: React.FC<StatCardProps> = ({
         )}
       </div>
       <p className="text-2xl font-bold text-white">{value}</p>
-      <p className="text-sm text-gray-400">{label}</p>
+      <p className="text-sm text-cocoa-light/60">{label}</p>
     </div>
   );
 };
@@ -484,7 +484,7 @@ const StatCard: React.FC<StatCardProps> = ({
 const getChangeIndicator = (change: number) => {
   if (change > 0) return { icon: ArrowUp, color: 'text-green-400' };
   if (change < 0) return { icon: ArrowDown, color: 'text-red-400' };
-  return { icon: Minus, color: 'text-gray-400' };
+  return { icon: Minus, color: 'text-cocoa-light/60' };
 };
 
 interface TrendCardProps {
@@ -493,7 +493,7 @@ interface TrendCardProps {
 }
 
 const TrendCard: React.FC<TrendCardProps> = ({ trend, rank }) => {
-  const rankColors = ['text-yellow-400', 'text-gray-300', 'text-orange-400'];
+  const rankColors = ['text-yellow-400', 'text-cocoa-light/60', 'text-orange-400'];
   const rankBgs = ['bg-yellow-500/20', 'bg-gray-500/20', 'bg-orange-500/20'];
 
   return (
@@ -502,11 +502,11 @@ const TrendCard: React.FC<TrendCardProps> = ({ trend, rank }) => {
         <div
           className={`w-8 h-8 rounded-lg ${rankBgs[rank - 1] || 'bg-gray-600'} flex items-center justify-center`}
         >
-          <span className={`font-bold ${rankColors[rank - 1] || 'text-gray-400'}`}>#{rank}</span>
+          <span className={`font-bold ${rankColors[rank - 1] || 'text-cocoa-light/60'}`}>#{rank}</span>
         </div>
         <div className="flex-1">
           <h4 className="font-semibold text-white">{trend.style}</h4>
-          <p className="text-sm text-gray-400">{trend.usage_count} uses this week</p>
+          <p className="text-sm text-cocoa-light/60">{trend.usage_count} uses this week</p>
           <div className="flex items-center gap-2 mt-2">
             <div
               className={`flex items-center gap-1 text-xs ${
@@ -514,7 +514,7 @@ const TrendCard: React.FC<TrendCardProps> = ({ trend, rank }) => {
                   ? 'text-green-400'
                   : trend.trend_direction === 'falling'
                     ? 'text-red-400'
-                    : 'text-gray-400'
+                    : 'text-cocoa-light/60'
               }`}
             >
               {trend.trend_direction === 'rising' && <TrendingUp className="w-3 h-3" />}
@@ -570,10 +570,10 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
           <div className="flex items-start justify-between">
             <div>
               <h4 className="font-semibold text-white">{recommendation.title}</h4>
-              <p className="text-sm text-gray-400 mt-1">{recommendation.description}</p>
+              <p className="text-sm text-cocoa-light/60 mt-1">{recommendation.description}</p>
             </div>
             <Button variant="ghost" size="icon" onClick={onDismiss} className="p-1 hover:bg-gray-700 rounded">
-              <X className="w-4 h-4 text-gray-500" />
+              <X className="w-4 h-4 text-cocoa-light" />
             </Button>
           </div>
 
@@ -586,7 +586,7 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
               Try it
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-cocoa-light">
               {Math.round(recommendation.confidence_score * 100)}% match
             </span>
           </div>
@@ -610,10 +610,10 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement }) => {
       }`}
     >
       <div className="text-3xl mb-2">{achievement.icon || '🏆'}</div>
-      <h4 className={`font-semibold ${achievement.unlocked_at ? 'text-white' : 'text-gray-400'}`}>
+      <h4 className={`font-semibold ${achievement.unlocked_at ? 'text-white' : 'text-cocoa-light/60'}`}>
         {achievement.achievement_name}
       </h4>
-      <p className="text-xs text-gray-400 mt-1">{achievement.description || ''}</p>
+      <p className="text-xs text-cocoa-light/60 mt-1">{achievement.description || ''}</p>
 
       {!achievement.unlocked_at && achievement.progress !== undefined && achievement.target && (
         <div className="mt-3">
@@ -623,7 +623,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement }) => {
               style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-cocoa-light mt-1">
             {achievement.progress} / {achievement.target}
           </p>
         </div>
