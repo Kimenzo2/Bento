@@ -567,14 +567,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     };
 
     return (
-      <Button
+      <button
         ref={cardRef}
-        variant="outline"
         onClick={onClick}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative p-8 hover:-translate-y-2 text-left group flex flex-col h-full hover:border-peach-soft overflow-hidden"
+        className="relative bg-white p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
       >
         {/* Cursor Glow Effect - Vercel Marketplace Style */}
         <div
@@ -603,7 +602,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             Start Creating <ChevronRight className="w-4 h-4" />
           </div>
         </div>
-      </Button>
+      </button>
     );
   };
 
