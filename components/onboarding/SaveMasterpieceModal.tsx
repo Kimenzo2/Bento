@@ -3,6 +3,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { Input } from '../ui/input';
 import { useOnboarding } from './OnboardingState';
 
 export const SaveMasterpieceModal: React.FC = () => {
@@ -24,8 +25,8 @@ export const SaveMasterpieceModal: React.FC = () => {
         setError(error.message || 'Failed to connect with Google');
         setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err?.message || 'An unexpected error occurred');
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'An unexpected error occurred');
       setIsLoading(false);
     }
   };
@@ -46,9 +47,9 @@ export const SaveMasterpieceModal: React.FC = () => {
 
       if (error) throw error;
       setSuccessMessage('Check your email for the magic link! ✨');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Magic link error:', err);
-      setError(err?.message || 'Failed to send magic link. Please try again.');
+      setError((err as Error)?.message || 'Failed to send magic link. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -94,14 +95,14 @@ export const SaveMasterpieceModal: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full h-full min-h-full max-w-lg mx-auto px-[var(--ob-container-padding)] py-8 flex flex-col items-center overflow-y-auto">
+    <div className="relative w-full h-full min-h-full max-w-lg mx-auto px-(--ob-container-padding) py-8 flex flex-col items-center overflow-y-auto">
       {/* Background - matches onboarding gradient */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900 -z-10" />
       <div className="absolute inset-0 bg-linear-to-br from-purple-900/20 via-transparent to-blue-900/20 -z-10" />
 
       {/* Ambient orbs for visual consistency */}
       <div
-        className="absolute w-[400px] h-[400px] rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10"
+        className="absolute w-100 h-100 rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10"
         style={{ top: '10%', left: '-15%' }}
       />
       <div
@@ -114,6 +115,7 @@ export const SaveMasterpieceModal: React.FC = () => {
         <button
           onClick={() => setShowEmailForm(false)}
           className="absolute top-8 left-4 p-2 text-white/40 hover:text-white transition-colors"
+          title="Go back"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -121,7 +123,7 @@ export const SaveMasterpieceModal: React.FC = () => {
 
       {/* Creation Icon/Emoji */}
       <div
-        className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${getThemeGradient()} flex items-center justify-center text-4xl shadow-xl mb-6`}
+        className={`w-20 h-20 rounded-2xl bg-linear-to-br ${getThemeGradient()} flex items-center justify-center text-4xl mb-6`}
       >
         {getThemeEmoji()}
       </div>
@@ -158,13 +160,13 @@ export const SaveMasterpieceModal: React.FC = () => {
             <form onSubmit={handleMagicLink} className="space-y-4">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
-                <input
+                <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  className="w-full h-14 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:border-white/30 focus:bg-white/10 outline-none transition-all"
+                  className="h-14 pl-12 pr-4 bg-white/5 border-white/10 text-white placeholder-white/20 focus:border-white/30 focus:bg-white/10"
                 />
               </div>
               <button

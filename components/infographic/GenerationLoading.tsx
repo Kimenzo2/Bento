@@ -40,7 +40,7 @@ const GenerationLoading: React.FC<GenerationLoadingProps> = ({ topic }) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-4 animate-fadeIn">
+    <div className="flex flex-col items-center justify-center h-full min-h-100 px-4 animate-fadeIn">
       {/* Main Animation */}
       <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-6 sm:mb-8">
         <div className="absolute inset-0 border-4 border-peach-soft rounded-full opacity-30"></div>
@@ -56,21 +56,21 @@ const GenerationLoading: React.FC<GenerationLoadingProps> = ({ topic }) => {
 
       <div className="w-full max-w-md bg-peach-soft/30 rounded-full h-2 mb-6 sm:mb-8 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine transition-all duration-300 ease-out"
+          className="h-full bg-linear-to-r from-coral-burst to-gold-sunshine transition-all duration-300 ease-out"
           style={{ width: `${progress}%` } as React.CSSProperties}
         ></div>
       </div>
       {/* Fun Fact Card */}
-      <div className="bg-white border border-mint-breeze rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-soft-md animate-slideUp">
+      <div className="bg-white border border-mint-breeze rounded-2xl p-4 sm:p-6 max-w-md w-full animate-slideUp">
         <div className="flex items-start gap-3">
-          <div className="bg-yellow-butter/20 p-2 rounded-full flex-shrink-0">
+          <div className="bg-yellow-butter/20 p-2 rounded-full shrink-0">
             <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-gold-sunshine" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-heading font-bold text-charcoal-soft text-xs sm:text-sm mb-1">
               Did you know?
             </div>
-            <p className="text-cocoa-light text-xs sm:text-sm italic transition-opacity duration-500 min-h-[40px]">
+            <p className="text-cocoa-light text-xs sm:text-sm italic transition-opacity duration-500 min-h-10">
               {facts[factIndex]}
             </p>
           </div>

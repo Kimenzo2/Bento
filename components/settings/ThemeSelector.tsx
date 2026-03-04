@@ -22,18 +22,18 @@ const ThemeSelector: React.FC = () => {
           return (
             <button
               key={theme.id}
-              onClick={() => setTheme(theme.id as any)}
+              onClick={() => setTheme(theme.id as string)}
               className={`relative group text-left rounded-2xl p-4 transition-all duration-300 border-2 touch-manipulation
                 ${
                   isActive
-                    ? 'border-coral-burst bg-white shadow-soft-md scale-[1.02]'
-                    : 'border-transparent bg-white/50 hover:bg-white hover:shadow-soft-sm hover:scale-[1.01]'
+                    ? 'border-coral-burst bg-white scale-[1.02]'
+                    : 'border-transparent bg-white/50 hover:bg-white hover:scale-[1.01]'
                 }
               `}
             >
               {/* Gradient Preview */}
               <div
-                className="h-24 rounded-xl mb-4 w-full shadow-inner"
+                className="h-24 rounded-xl mb-4 w-full"
                 style={{
                   background: `linear-gradient(135deg, ${theme.colors.primary[0]}, ${theme.colors.primary[1]})`,
                 }}
@@ -55,7 +55,7 @@ const ThemeSelector: React.FC = () => {
                   </h4>
                   <p className="text-xs text-cocoa-light mt-1 line-clamp-2">{theme.description}</p>
                 </div>
-                {isActive && <CheckCircle className="w-5 h-5 text-coral-burst flex-shrink-0" />}
+                {isActive && <CheckCircle className="w-5 h-5 text-coral-burst shrink-0" />}
               </div>
 
               {/* Color Swatches */}

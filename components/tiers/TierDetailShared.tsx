@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { type ReactNode, useState } from 'react';
+import { Button } from '@components/ui/button';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -114,9 +115,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 }) => (
   <section className="relative min-h-[90vh] flex items-center overflow-hidden">
     {/* Background Gradient */}
-    <div className={`absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-5`} />
+    <div className={`absolute inset-0 bg-linear-to-br ${tier.gradient} opacity-5`} />
     <div
-      className={`absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-${tier.bgClass.replace('bg-', '')}`}
+      className={`absolute inset-0 bg-linear-to-b from-transparent via-transparent to-${tier.bgClass.replace('bg-', '')}`}
     />
 
     {/* Decorative Elements */}
@@ -134,7 +135,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Tier Badge */}
           <div className="inline-flex items-center gap-2">
             <span
-              className={`px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r ${tier.gradient} text-white`}
+              className={`px-4 py-1.5 rounded-full text-sm font-bold bg-linear-to-r ${tier.gradient} text-white`}
             >
               {tier.name} Tier
             </span>
@@ -148,7 +149,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 key={i}
                 className={
                   i === headline.split(' ').length - 1
-                    ? `bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`
+                    ? `bg-linear-to-r ${tier.gradient} bg-clip-text text-transparent`
                     : ''
                 }
               >
@@ -163,7 +164,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Hero Stat */}
           <div className="flex items-center gap-6">
             <div
-              className={`text-4xl font-heading font-bold bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}
+              className={`text-4xl font-heading font-bold bg-linear-to-r ${tier.gradient} bg-clip-text text-transparent`}
             >
               {tier.heroStat.value}
             </div>
@@ -173,20 +174,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* CTAs */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4">
-              <button
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={onStartTrial}
-                className={`px-8 py-4 rounded-2xl font-bold text-white bg-gradient-to-r ${tier.gradient} shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2`}
+                className={`${tier.gradient} border-2 hover:scale-105`}
               >
                 {ctaText}
                 <ArrowRight className="w-5 h-5" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={onDownloadPDF}
-                className="px-8 py-4 rounded-2xl font-bold text-charcoal-soft bg-white border-2 border-charcoal-soft/10 hover:border-charcoal-soft/30 transition-all flex items-center gap-2"
+                className="border-charcoal-soft/10 hover:border-charcoal-soft/30"
               >
                 <Download className="w-5 h-5" />
                 {secondaryCtaText}
-              </button>
+              </Button>
             </div>
             {children}
           </div>
@@ -212,9 +217,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Right: Hero Image */}
         <div className="relative hidden lg:block">
           <div
-            className={`absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-20 rounded-3xl blur-2xl`}
+            className={`absolute inset-0 bg-linear-to-br ${tier.gradient} opacity-20 rounded-3xl blur-2xl`}
           />
-          <div className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-white/50">
+          <div className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-8 border-2 border-peach-soft">
             {heroImage ? (
               <img
                 src={heroImage}
@@ -223,7 +228,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               />
             ) : (
               <div
-                className={`aspect-[4/3] bg-gradient-to-br from-${tier.bgClass.replace('bg-', '')} to-white rounded-2xl flex items-center justify-center`}
+                className={`aspect-4/3 bg-linear-to-br from-${tier.bgClass.replace('bg-', '')} to-white rounded-2xl flex items-center justify-center`}
               >
                 <Sparkles className="w-24 h-24 text-charcoal-soft/10" />
               </div>
@@ -301,10 +306,10 @@ export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, gradient }) 
     {features.map((feature, index) => (
       <div
         key={index}
-        className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-charcoal-soft/5 hover:border-coral-burst/20"
+        className="group bg-white rounded-2xl p-6 transition-all duration-300 border-2 border-peach-soft hover:border-coral-burst/20"
       >
         <div
-          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+          className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
         >
           <feature.icon className="w-6 h-6 text-white" />
         </div>
@@ -320,7 +325,7 @@ export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, gradient }) 
         <ul className="space-y-2">
           {feature.items.map((item, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-charcoal-soft/80">
-              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
               {item}
             </li>
           ))}
@@ -338,15 +343,15 @@ export const TestimonialCard: React.FC<{ testimonial: Testimonial; gradient: str
   testimonial,
   gradient,
 }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-lg border border-charcoal-soft/5">
+  <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
     <Quote
-      className={`w-8 h-8 mb-4 bg-gradient-to-br ${gradient} bg-clip-text text-coral-burst/30`}
+      className={`w-8 h-8 mb-4 bg-linear-to-br ${gradient} bg-clip-text text-coral-burst/30`}
     />
     <p className="text-charcoal-soft/80 mb-6 italic">"{testimonial.quote}"</p>
 
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coral-burst to-gold-sunshine flex items-center justify-center text-white font-bold">
+        <div className="w-12 h-12 rounded-full bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center text-white font-bold">
           {testimonial.name.charAt(0)}
         </div>
         <div>
@@ -360,7 +365,7 @@ export const TestimonialCard: React.FC<{ testimonial: Testimonial; gradient: str
       {testimonial.metric && (
         <div className="text-right">
           <div
-            className={`text-2xl font-heading font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}
+            className={`text-2xl font-heading font-bold bg-linear-to-r ${gradient} bg-clip-text text-transparent`}
           >
             {testimonial.metric}
           </div>
@@ -397,7 +402,7 @@ export const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ steps, gradient })
         {/* Content */}
         <div className="flex-1 space-y-4">
           <div
-            className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br ${gradient} text-white font-bold text-lg`}
+            className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-linear-to-br ${gradient} text-white font-bold text-lg`}
           >
             {step.number}
           </div>
@@ -407,11 +412,11 @@ export const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ steps, gradient })
 
         {/* Image */}
         <div className="flex-1">
-          <div className="bg-white rounded-2xl p-4 shadow-lg border border-charcoal-soft/5">
+          <div className="bg-white rounded-2xl p-4 border-2 border-peach-soft">
             {step.image ? (
               <img src={step.image} alt={step.title} className="w-full rounded-xl" />
             ) : (
-              <div className="aspect-video bg-gradient-to-br from-cream-base to-peach-soft rounded-xl flex items-center justify-center">
+              <div className="aspect-video bg-linear-to-br from-cream-base to-peach-soft rounded-xl flex items-center justify-center">
                 <Play className="w-16 h-16 text-coral-burst/30" />
               </div>
             )}
@@ -436,12 +441,12 @@ export const PersonaCards: React.FC<PersonaCardsProps> = ({ personas, gradient }
     {personas.map((persona, index) => (
       <div
         key={index}
-        className="bg-white rounded-2xl overflow-hidden shadow-lg border border-charcoal-soft/5 hover:shadow-xl transition-shadow"
+        className="bg-white rounded-2xl overflow-hidden border-2 border-peach-soft"
       >
-        <div className={`h-2 bg-gradient-to-r ${gradient}`} />
+        <div className={`h-2 bg-linear-to-r ${gradient}`} />
         <div className="p-6">
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-coral-burst/20 to-gold-sunshine/20 flex items-center justify-center text-2xl font-bold text-coral-burst">
+            <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-coral-burst/20 to-gold-sunshine/20 flex items-center justify-center text-2xl font-bold text-coral-burst">
               {persona.name.charAt(0)}
             </div>
             <div>
@@ -460,7 +465,7 @@ export const PersonaCards: React.FC<PersonaCardsProps> = ({ personas, gradient }
             <div>
               <span className="text-xs font-bold text-charcoal-soft/50 uppercase">Results</span>
               <p
-                className={`text-sm font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}
+                className={`text-sm font-bold bg-linear-to-r ${gradient} bg-clip-text text-transparent`}
               >
                 {persona.results}
               </p>
@@ -492,12 +497,13 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({
       {caseStudies.map((study, index) => (
         <div
           key={index}
-          className="bg-white rounded-2xl overflow-hidden shadow-sm border border-charcoal-soft/5"
+          className="bg-white rounded-2xl overflow-hidden border-2 border-peach-soft"
         >
           {/* Header */}
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setOpenIndex(openIndex === index ? null : index)}
-            className="w-full px-6 py-5 flex items-center justify-between hover:bg-cream-base/50 transition-colors"
+            className="w-full px-6 py-5 flex justify-between hover:bg-cream-base/50"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-charcoal-soft/5 flex items-center justify-center">
@@ -511,7 +517,7 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({
             <ChevronDown
               className={`w-5 h-5 text-charcoal-soft/50 transition-transform ${openIndex === index ? 'rotate-180' : ''}`}
             />
-          </button>
+          </Button>
 
           {/* Content */}
           {openIndex === index && (
@@ -534,7 +540,7 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({
                   {study.results.map((result, i) => (
                     <div key={i} className="text-center p-4 bg-cream-base rounded-xl">
                       <div
-                        className={`text-2xl font-heading font-bold bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}
+                        className={`text-2xl font-heading font-bold bg-linear-to-r ${gradient} bg-clip-text text-transparent`}
                       >
                         {result.metric}
                       </div>
@@ -578,7 +584,7 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
 }) => (
   <div className="grid lg:grid-cols-2 gap-8">
     {/* Main Price Card */}
-    <div className={`bg-gradient-to-br ${tier.gradient} rounded-3xl p-8 text-white`}>
+    <div className={`bg-linear-to-br ${tier.gradient} rounded-3xl p-8 text-white`}>
       <h3 className="text-xl font-bold mb-2">Genesis {tier.name}</h3>
       <div className="flex items-baseline gap-2 mb-6">
         <span className="text-5xl font-heading font-bold">${tier.price.annual}</span>
@@ -625,7 +631,7 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
       ))}
 
       <div
-        className={`flex items-center justify-between p-4 bg-gradient-to-r ${tier.gradient} rounded-xl text-white`}
+        className={`flex items-center justify-between p-4 bg-linear-to-r ${tier.gradient} rounded-xl text-white`}
       >
         <div>
           <div className="font-bold">Genesis {tier.name}</div>
@@ -681,17 +687,19 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({ faqs }) => {
       {/* Category Filter */}
       <div className="flex flex-wrap gap-2 justify-center">
         {categories.map((cat) => (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             key={cat}
             onClick={() => setFilter(cat)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`rounded-full ${
               filter === cat
                 ? 'bg-coral-burst text-white'
                 : 'bg-white text-charcoal-soft/70 hover:bg-charcoal-soft/5'
             }`}
           >
             {cat === 'all' ? 'All Questions' : categoryLabels[cat]}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -704,16 +712,17 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({ faqs }) => {
               key={index}
               className="bg-white rounded-xl overflow-hidden border border-charcoal-soft/5"
             >
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-6 py-4 flex items-center gap-4 text-left hover:bg-cream-base/50 transition-colors"
+                className="w-full px-6 py-4 flex gap-4 text-left hover:bg-cream-base/50"
               >
-                <Icon className="w-5 h-5 text-coral-burst flex-shrink-0" />
+                <Icon className="w-5 h-5 text-coral-burst shrink-0" />
                 <span className="flex-1 font-medium text-charcoal-soft">{faq.question}</span>
                 <ChevronDown
                   className={`w-5 h-5 text-charcoal-soft/50 transition-transform ${openIndex === index ? 'rotate-180' : ''}`}
                 />
-              </button>
+              </Button>
 
               {openIndex === index && (
                 <div className="overflow-hidden">
@@ -770,26 +779,30 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
   onContactSales,
   ctaText = 'Start Your 14-Day Free Trial',
 }) => (
-  <section className={`py-20 bg-gradient-to-br ${tier.gradient}`}>
+  <section className={`py-20 bg-linear-to-br ${tier.gradient}`}>
     <div className="container mx-auto px-6">
       <div className="max-w-3xl mx-auto text-center text-white">
         <h2 className="text-3xl md:text-4xl font-heading font-bold mb-6">{headline}</h2>
 
         <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <button
+          <Button
+            variant="outline"
+            size="lg"
             onClick={onStartTrial}
-            className="px-8 py-4 rounded-2xl font-bold bg-white text-charcoal-soft shadow-lg hover:shadow-xl transform hover:scale-105 transition-all flex items-center gap-2"
+            className="hover:scale-105"
           >
             {ctaText}
             <ArrowRight className="w-5 h-5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
             onClick={onContactSales}
-            className="px-8 py-4 rounded-2xl font-bold bg-white/20 text-white border-2 border-white/30 hover:bg-white/30 transition-all flex items-center gap-2"
+            className="bg-white/20 text-white border-2 border-white/30 hover:bg-white/30"
           >
             <Phone className="w-5 h-5" />
             Talk to Our Team
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-wrap justify-center gap-6 text-sm text-white/70">
@@ -816,11 +829,13 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
 // ============================================================================
 
 export const BackToPricing: React.FC<{ onBack: () => void }> = ({ onBack }) => (
-  <button
+  <Button
+    variant="outline"
+    size="sm"
     onClick={onBack}
-    className="fixed top-6 left-6 z-50 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-charcoal-soft/10 flex items-center gap-2 text-charcoal-soft hover:bg-white transition-colors"
+    className="fixed top-6 left-6 z-50 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white"
   >
     <ChevronRight className="w-4 h-4 rotate-180" />
     <span className="text-sm font-medium">Back to Pricing</span>
-  </button>
+  </Button>
 );

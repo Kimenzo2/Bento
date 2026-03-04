@@ -307,20 +307,23 @@ export class TieredRateLimiter {
 
   constructor() {
     this.limiters = {
+      // Max requests aligned to highest tier to avoid internal limiter
+      // silently rejecting before tier-based check runs.
+      // Tier-specific limits enforced in check() via getLimitForCategory().
       books: new SlidingWindowRateLimiter({
         name: 'books',
         windowMs: 60 * 60 * 1000, // 1 hour
-        maxRequests: 1000, // Will be overridden per-tier
+        maxRequests: 100, // Aligned to max tier (enterprise=1000 books, but capped for memory)
       }),
       ai: new SlidingWindowRateLimiter({
         name: 'ai-calls',
         windowMs: 60 * 1000, // 1 minute
-        maxRequests: 1000,
+        maxRequests: 200, // Aligned to max tier
       }),
       uploads: new SlidingWindowRateLimiter({
         name: 'uploads',
         windowMs: 60 * 60 * 1000, // 1 hour
-        maxRequests: 5000,
+        maxRequests: 500, // Reduced from 5000 to realistic max
       }),
       api: new SlidingWindowRateLimiter({
         name: 'api',

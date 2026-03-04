@@ -204,6 +204,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, Check, Cloud, CloudOff, Loader } from 'lucide-react';
 // Auto-save indicator component
 import type React from 'react';
+import { Button } from '../components/ui/button';
 
 interface AutoSaveIndicatorProps {
   state: AutoSaveState;
@@ -300,18 +301,20 @@ export const DraftRecoveryBanner: React.FC<DraftRecoveryBannerProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
             onClick={onDiscard}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             Discard
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
             onClick={onRestore}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
           >
             Restore
-          </button>
+          </Button>
         </div>
       </div>
     </motion.div>

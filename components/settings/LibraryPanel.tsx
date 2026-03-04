@@ -25,6 +25,7 @@ import {
 } from '../../services/libraryService';
 import { deleteBook, getAllBooks } from '../../services/storageService';
 import type { SavedBook } from '../../types';
+import { Button } from '../ui/button';
 
 type LibraryTab = 'books' | 'infographics' | 'images';
 
@@ -33,7 +34,7 @@ interface LibraryPanelProps {
   onNavigate?: (mode: string) => void;
 }
 
-const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) => {
+const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _onNavigate }) => {
   const [activeTab, setActiveTab] = useState<LibraryTab>('books');
   const [books, setBooks] = useState<SavedBook[]>([]);
   const [infographics, setInfographics] = useState<SavedInfographic[]>([]);
@@ -121,11 +122,12 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
     label,
     count,
   }: { id: LibraryTab; icon: any; label: string; count: number }) => (
-    <button
+    <Button
+      variant={activeTab === id ? 'primary' : 'secondary'}
       onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+      className={`px-4 py-3 ${
         activeTab === id
-          ? 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white shadow-md'
+          ? 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border-2 border-white/20'
           : 'bg-cream-soft text-cocoa-light hover:bg-peach-soft/50 hover:text-charcoal-soft'
       }`}
     >
@@ -138,7 +140,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
       >
         {count}
       </span>
-    </button>
+    </Button>
   );
 
   const EmptyState = ({
@@ -195,7 +197,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
       </div>
 
       {/* Content Area */}
-      <div className="min-h-[300px]">
+      <div className="min-h-75">
         {/* Books Tab */}
         {activeTab === 'books' && (
           <div className="space-y-4">
@@ -210,12 +212,12 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                 {books.map((book) => (
                   <div
                     key={book.id}
-                    className="group bg-cream-soft rounded-2xl p-4 border border-peach-soft/30 hover:border-coral-burst/30 hover:shadow-lg transition-all cursor-pointer"
+                    className="group bg-cream-soft rounded-2xl p-4 border border-peach-soft/30 hover:border-coral-burst/30 transition-all cursor-pointer"
                     onClick={() => onViewBook?.(book)}
                   >
                     <div className="flex gap-4">
                       {/* Cover */}
-                      <div className="w-20 h-28 rounded-xl bg-gradient-to-br from-coral-burst/20 to-gold-sunshine/20 flex-shrink-0 overflow-hidden">
+                      <div className="w-20 h-28 rounded-xl bg-linear-to-br from-coral-burst/20 to-gold-sunshine/20 shrink-0 overflow-hidden">
                         {book.coverImage ? (
                           <img
                             src={book.coverImage}
@@ -242,23 +244,27 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                         </div>
                         {/* Actions */}
                         <div className="flex gap-2 mt-3">
-                          <button
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               onViewBook?.(book);
                             }}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-coral-burst hover:bg-coral-burst hover:text-white transition-colors"
+                            className="px-3 py-1.5 bg-white text-coral-burst hover:bg-coral-burst hover:text-white"
                           >
                             <Eye className="w-3 h-3" />
                             View
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteBook(book.id);
                             }}
                             disabled={deletingId === book.id}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 bg-white text-red-500 hover:bg-red-500 hover:text-white"
                           >
                             {deletingId === book.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -266,7 +272,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                               <Trash2 className="w-3 h-3" />
                             )}
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -291,12 +297,12 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                 {infographics.map((infographic) => (
                   <div
                     key={infographic.id}
-                    className="group bg-cream-soft rounded-2xl p-4 border border-peach-soft/30 hover:border-coral-burst/30 hover:shadow-lg transition-all cursor-pointer"
+                    className="group bg-cream-soft rounded-2xl p-4 border border-peach-soft/30 hover:border-coral-burst/30 transition-all cursor-pointer"
                     onClick={() => setViewingInfographic(infographic)}
                   >
                     <div className="flex gap-4">
                       {/* Thumbnail */}
-                      <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex-shrink-0 flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-xl bg-linear-to-br from-blue-100 to-purple-100 shrink-0 flex items-center justify-center">
                         <BarChart3 className="w-8 h-8 text-purple-500/50" />
                       </div>
                       {/* Info */}
@@ -316,23 +322,27 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                         </div>
                         {/* Actions */}
                         <div className="flex gap-2 mt-3">
-                          <button
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               setViewingInfographic(infographic);
                             }}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-purple-600 hover:bg-purple-600 hover:text-white transition-colors"
+                            className="px-3 py-1.5 bg-white text-purple-600 hover:bg-purple-600 hover:text-white"
                           >
                             <Eye className="w-3 h-3" />
                             View
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteInfographic(infographic.id);
                             }}
                             disabled={deletingId === infographic.id}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 bg-white text-red-500 hover:bg-red-500 hover:text-white"
                           >
                             {deletingId === infographic.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -340,7 +350,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                               <Trash2 className="w-3 h-3" />
                             )}
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -365,7 +375,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                 {images.map((image) => (
                   <div
                     key={image.id}
-                    className="group relative rounded-2xl overflow-hidden border border-peach-soft/30 hover:border-coral-burst/30 hover:shadow-lg transition-all aspect-square cursor-pointer"
+                    className="group relative rounded-2xl overflow-hidden border border-peach-soft/30 hover:border-coral-burst/30 transition-all aspect-square cursor-pointer"
                     onClick={() => setViewingImage(image)}
                   >
                     <img
@@ -374,19 +384,21 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                       className="w-full h-full object-cover"
                     />
                     {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                       <p className="text-white text-sm font-bold truncate">{image.title}</p>
                       <p className="text-white/70 text-xs truncate">{image.prompt}</p>
                       <div className="flex gap-2 mt-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             setViewingImage(image);
                           }}
-                          className="flex items-center gap-1 px-2 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-xs text-white hover:bg-white/30 transition-colors"
+                          className="px-2 py-1 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30"
                         >
                           <Eye className="w-3 h-3" />
-                        </button>
+                        </Button>
                         <a
                           href={image.imageUrl}
                           download={`${image.title}.png`}
@@ -395,20 +407,22 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                         >
                           <Download className="w-3 h-3" />
                         </a>
-                        <button
+                        <Button
+                          variant="destructive"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteImage(image.id);
                           }}
                           disabled={deletingId === image.id}
-                          className="flex items-center gap-1 px-2 py-1 bg-red-500/80 backdrop-blur-sm rounded-lg text-xs text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+                          className="px-2 py-1 bg-red-500/80 backdrop-blur-sm text-white hover:bg-red-500"
                         >
                           {deletingId === image.id ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
                             <Trash2 className="w-3 h-3" />
                           )}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -423,46 +437,52 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
       {viewingImage &&
         createPortal(
           <div
-            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-fadeIn"
+            className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center animate-fadeIn"
             onClick={() => {
               setViewingImage(null);
               setImageZoom(1);
             }}
           >
             {/* Close button */}
-            <button
-              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white z-10"
               onClick={() => {
                 setViewingImage(null);
                 setImageZoom(1);
               }}
             >
               <X className="w-6 h-6" />
-            </button>
+            </Button>
 
             {/* Zoom controls */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 z-10">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   setImageZoom((z) => Math.max(0.5, z - 0.25));
                 }}
-                className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                className="p-2 hover:bg-white/20 text-white"
               >
                 <ZoomOut className="w-5 h-5" />
-              </button>
+              </Button>
               <span className="text-white text-sm font-bold min-w-[60px] text-center">
                 {Math.round(imageZoom * 100)}%
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   setImageZoom((z) => Math.min(3, z + 0.25));
                 }}
-                className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+                className="p-2 hover:bg-white/20 text-white"
               >
                 <ZoomIn className="w-5 h-5" />
-              </button>
+              </Button>
               <div className="w-px h-6 bg-white/30 mx-1"></div>
               <a
                 href={viewingImage.imageUrl}
@@ -491,7 +511,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
               <img
                 src={viewingImage.imageUrl}
                 alt={viewingImage.title}
-                className="rounded-lg shadow-2xl transition-transform duration-300"
+                className="rounded-lg transition-transform duration-300"
                 style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center' }}
               />
             </div>
@@ -503,16 +523,18 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
       {viewingInfographic &&
         createPortal(
           <div
-            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-fadeIn overflow-auto"
+            className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center animate-fadeIn overflow-auto"
             onClick={() => setViewingInfographic(null)}
           >
             {/* Close button */}
-            <button
-              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white z-10"
               onClick={() => setViewingInfographic(null)}
             >
               <X className="w-6 h-6" />
-            </button>
+            </Button>
 
             {/* Infographic info */}
             <div className="absolute top-4 left-4 max-w-md z-10">
@@ -530,7 +552,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
 
             {/* Content card */}
             <div
-              className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 my-16 p-8 max-h-[80vh] overflow-auto"
+              className="bg-white rounded-2xl border-2 border-peach-soft max-w-3xl w-full mx-4 my-16 p-8 max-h-[80vh] overflow-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-6">
@@ -550,7 +572,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                       <ul className="space-y-2">
                         {viewingInfographic.data.content.mainPoints.map((point, idx) => (
                           <li key={idx} className="flex items-start gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white text-xs font-bold flex items-center justify-center">
+                            <span className="shrink-0 w-6 h-6 rounded-full bg-linear-to-r from-coral-burst to-gold-sunshine text-white text-xs font-bold flex items-center justify-center">
                               {idx + 1}
                             </span>
                             <span className="text-cocoa-light">{point}</span>
@@ -568,7 +590,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
                       <div className="space-y-3">
                         {viewingInfographic.data.content.steps.map((step, idx) => (
                           <div key={idx} className="flex gap-4 p-4 bg-cream-soft rounded-xl">
-                            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white font-bold flex items-center justify-center">
+                            <span className="shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white font-bold flex items-center justify-center">
                               {step.order}
                             </span>
                             <div>
@@ -605,7 +627,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate }) =
 
                 {/* Fun Fact */}
                 {viewingInfographic.data.content.funFact && (
-                  <div className="bg-gradient-to-r from-gold-sunshine/10 to-coral-burst/10 rounded-xl p-4 border border-gold-sunshine/20">
+                  <div className="bg-linear-to-r from-gold-sunshine/10 to-coral-burst/10 rounded-xl p-4 border border-gold-sunshine/20">
                     <h3 className="font-bold text-charcoal-soft flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-gold-sunshine" />
                       Fun Fact

@@ -172,6 +172,7 @@ export function useSwipeGesture(config: SwipeConfig = {}) {
 import { AnimatePresence, type PanInfo, motion } from 'framer-motion';
 // Swipeable Page Navigator Component
 import type React from 'react';
+import { Button } from '../components/ui/button';
 
 interface SwipeablePageProps {
   currentPage: number;
@@ -247,11 +248,12 @@ export const SwipeDots: React.FC<SwipeDotsProps> = ({
   return (
     <div className={`flex items-center justify-center gap-2 ${className}`}>
       {Array.from({ length: total }).map((_, i) => (
-        <button
+        <Button
+          variant="ghost"
           key={i}
           onClick={() => onDotClick?.(i)}
           className={`
-                        w-2 h-2 rounded-full transition-all duration-300
+                        w-2 h-2 rounded-full
                         ${
                           i === current
                             ? 'w-6 bg-coral-burst'
@@ -325,8 +327,8 @@ export function usePullToRefresh({ onRefresh, threshold = 80 }: PullToRefreshCon
     progress,
     shouldRefresh,
     handlers: {
-      onTouchStart: handleTouchStart as any,
-      onTouchMove: handleTouchMove as any,
+      onTouchStart: handleTouchStart as unknown as React.TouchEventHandler,
+      onTouchMove: handleTouchMove as unknown as React.TouchEventHandler,
       onTouchEnd: handleTouchEnd,
     },
   };

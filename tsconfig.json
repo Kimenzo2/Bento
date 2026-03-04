@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    /* Ignore deprecation warnings for TS 6.0 compat */
+    /* Ignore deprecation warnings for TS compat */
     "ignoreDeprecations": "5.0",
     
     /* Language and Environment */
@@ -28,7 +28,6 @@
     "forceConsistentCasingInFileNames": true,
 
     /* Paths */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@components/*": ["./components/*"],

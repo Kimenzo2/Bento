@@ -38,7 +38,7 @@ class Logger {
 
   debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
-      console.log(this.formatMessage('debug', message), ...args);
+      console.warn(this.formatMessage('debug', message), ...args);
     }
   }
 

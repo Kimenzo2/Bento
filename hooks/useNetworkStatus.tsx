@@ -24,9 +24,9 @@ export function useNetworkStatus(): NetworkStatus & {
   // Get connection info from Network Information API
   const getConnectionInfo = useCallback(() => {
     const connection =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+      (navigator as unknown as Record<string, unknown>).connection ||
+      (navigator as unknown as Record<string, unknown>).mozConnection ||
+      (navigator as unknown as Record<string, unknown>).webkitConnection;
 
     if (connection) {
       return {
@@ -93,9 +93,9 @@ export function useNetworkStatus(): NetworkStatus & {
 
     // Listen for connection changes
     const connection =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+      (navigator as unknown as Record<string, unknown>).connection ||
+      (navigator as unknown as Record<string, unknown>).mozConnection ||
+      (navigator as unknown as Record<string, unknown>).webkitConnection;
 
     if (connection) {
       connection.addEventListener('change', updateStatus);
@@ -120,6 +120,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 // React component for offline indicator
 import React from 'react';
+import { Button } from '../components/ui/button';
 
 interface OfflineIndicatorProps {
   position?: 'top' | 'bottom';
@@ -174,7 +175,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                           ? 'bg-amber-500'
                           : 'bg-red-500'
                     }
-                    text-white rounded-2xl shadow-lg
+                    text-white rounded-2xl
                     flex items-center gap-3 px-4 py-3
                 `}
         >
@@ -195,14 +196,16 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
                 <p className="font-medium">You're offline</p>
                 <p className="text-sm text-white/80">Some features may not be available</p>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleRetry}
                 disabled={isChecking}
                 title="Retry connection"
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-50"
+                className="bg-white/20 hover:bg-white/30"
               >
                 <RefreshCw className={`w-5 h-5 ${isChecking ? 'animate-spin' : ''}`} />
-              </button>
+              </Button>
             </>
           )}
         </div>

@@ -3,6 +3,7 @@ import { Palette, Users, Wand2 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
+import { Button } from '@components/ui/button';
 
 interface FeatureExplorerProps {
   tier: TierConfig;
@@ -25,7 +26,7 @@ const features = [
             Cyberpunk
           </div>
         </div>
-        <div className="w-40 h-10 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-lg flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
+        <div className="w-40 h-10 bg-linear-to-r from-emerald-500 to-teal-400 rounded-lg flex items-center justify-center font-bold border-2 border-white/20">
           Resulting Style
         </div>
         <p className="mt-4 text-xs text-gray-400">Seamlessly blend any two art styles</p>
@@ -63,7 +64,7 @@ const features = [
     label: 'Smart Editor',
     icon: Wand2,
     content: (
-      <div className="p-6 bg-white border border-gray-200 rounded-xl h-64 shadow-inner relative">
+      <div className="p-6 bg-white border border-gray-200 rounded-xl h-64 relative">
         <div className="h-2 w-24 bg-gray-200 rounded mb-4" />
         <div className="space-y-2">
           <div className="h-2 w-full bg-gray-100 rounded" />
@@ -71,7 +72,7 @@ const features = [
           <div className="h-2 w-5/6 bg-gray-100 rounded" />
         </div>
         <div className="absolute bottom-6 right-6">
-          <div className="bg-charcoal-soft text-white text-xs px-3 py-2 rounded-lg shadow-xl flex items-center gap-2">
+          <div className="bg-charcoal-soft text-white text-xs px-3 py-2 rounded-lg flex items-center gap-2">
             <Wand2 className="w-3 h-3 text-gold-sunshine" />
             Rewrite for younger audience...
           </div>
@@ -87,7 +88,7 @@ export const FeatureExplorer: React.FC<FeatureExplorerProps> = ({ tier }) => {
   const activeContent = features.find((f) => f.id === activeFeature)?.content;
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 bg-white rounded-2xl p-8 border border-charcoal-soft/5 shadow-lg">
+    <div className="flex flex-col md:flex-row gap-8 bg-white rounded-2xl p-8 border-2 border-peach-soft">
       <div className="w-full md:w-1/3 space-y-2">
         <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-6">
           Interactive Preview
@@ -96,12 +97,13 @@ export const FeatureExplorer: React.FC<FeatureExplorerProps> = ({ tier }) => {
           const isActive = activeFeature === feature.id;
           const Icon = feature.icon;
           return (
-            <button
+            <Button
+              variant="ghost"
               key={feature.id}
               onClick={() => setActiveFeature(feature.id)}
-              className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all ${
+              className={`w-full flex gap-4 p-4 text-left ${
                 isActive
-                  ? `bg-${tier.accentColor}-50 border border-${tier.accentColor}-200 shadow-sm`
+                  ? `bg-${tier.accentColor}-50 border-2 border-${tier.accentColor}-200`
                   : 'hover:bg-gray-50 border border-transparent'
               }`}
             >
@@ -113,7 +115,7 @@ export const FeatureExplorer: React.FC<FeatureExplorerProps> = ({ tier }) => {
               <span className={`font-medium ${isActive ? 'text-charcoal-soft' : 'text-gray-500'}`}>
                 {feature.label}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

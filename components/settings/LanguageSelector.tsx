@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, getLanguageByCode } from '../../src/config/languages';
 import { useLanguage } from '../../src/hooks/useLanguage';
 import type { LanguageCode } from '../../src/types/language.d';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { LanguageCard } from './LanguageCard';
 
 interface LanguageSelectorProps {
@@ -73,25 +75,18 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   // Compact mode - just a dropdown
   if (showCompact) {
     return (
-      <div className="relative">
-        <select
-          value={currentLanguage.code}
-          onChange={(e) => handleLanguageSelect(e.target.value as LanguageCode)}
-          disabled={isLoading}
-          className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 
-            text-sm font-medium text-charcoal-soft cursor-pointer
-            hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-coral-burst focus:border-transparent
-            disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label={t('selectLanguage', 'Select language')}
-        >
+      <Select value={currentLanguage.code} onValueChange={(v) => handleLanguageSelect(v as LanguageCode)} disabled={isLoading}>
+        <SelectTrigger aria-label={t('selectLanguage', 'Select language')}>
+          <SelectValue placeholder="Select language" />
+        </SelectTrigger>
+        <SelectContent>
           {SUPPORTED_LANGUAGES.map((lang) => (
-            <option key={lang.code} value={lang.code}>
+            <SelectItem key={lang.code} value={lang.code}>
               {lang.flag} {lang.name}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-        <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-      </div>
+        </SelectContent>
+      </Select>
     );
   }
 
@@ -101,7 +96,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral-burst to-gold-sunshine flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center">
             <Globe className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -128,7 +123,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       </div>
 
       {/* Current selection indicator */}
-      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-coral-burst/10 to-gold-sunshine/10 rounded-lg border border-coral-burst/20">
+      <div className="flex items-center gap-2 p-3 bg-linear-to-r from-coral-burst/10 to-gold-sunshine/10 rounded-lg border border-coral-burst/20">
         <Check className="w-5 h-5 text-coral-burst" />
         <span className="text-sm text-charcoal-soft">
           {t('currentLanguage', 'Current language:')}
@@ -143,14 +138,12 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('searchLanguages', 'Search languages...')}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg
-              text-sm text-charcoal-soft placeholder:text-gray-400
-              focus:outline-none focus:ring-2 focus:ring-coral-burst focus:border-transparent"
+            className="pl-10 pr-4 border-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-coral-burst focus:border-transparent"
             aria-label={t('searchLanguages', 'Search languages')}
           />
         </div>

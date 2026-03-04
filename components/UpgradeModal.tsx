@@ -1,5 +1,7 @@
-import { Check, Rocket, X, Zap } from 'lucide-react';
+import { Check, Rocket, Zap } from 'lucide-react';
 import type React from 'react';
+import { Button } from './ui/button';
+import { Dialog, DialogContent } from './ui/dialog';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -8,39 +10,20 @@ interface UpgradeModalProps {
 }
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-charcoal-soft/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      ></div>
-
-      {/* Modal Content */}
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* Header */}
         <div className="bg-charcoal-soft pt-12 pb-16 px-8 text-center relative overflow-hidden">
-          {/* Background Pattern */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
               backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
               backgroundSize: '20px 20px',
             }}
-          ></div>
+          />
 
-          {/* Floating Icon */}
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 bg-charcoal-soft rounded-2xl flex items-center justify-center border-4 border-white shadow-lg z-10 overflow-hidden">
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 bg-charcoal-soft rounded-2xl flex items-center justify-center border-4 border-white z-10 overflow-hidden">
             <svg
               viewBox="0 0 24 24"
               className="w-10 h-10 text-gold-sunshine"
@@ -79,9 +62,8 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
 
         {/* Body */}
         <div className="pt-12 pb-8 px-8">
-          {/* Highlight Box */}
-          <div className="bg-mint-breeze/30 rounded-xl p-4 mb-6 flex items-center gap-4 border border-mint-breeze">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
+          <div className="bg-mint-breeze/30 rounded-xl p-4 mb-6 flex items-center gap-4 border-2 border-mint-breeze">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-peach-soft/50 shrink-0">
               <Zap className="w-5 h-5 text-green-600 fill-current" />
             </div>
             <div>
@@ -92,7 +74,6 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
             </div>
           </div>
 
-          {/* Benefits List */}
           <div className="space-y-3 mb-8">
             {[
               'Create UNLIMITED books per month',
@@ -110,22 +91,17 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade 
             ))}
           </div>
 
-          {/* CTA Button */}
-          <button
-            onClick={onUpgrade}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-heading font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-          >
+          <Button onClick={onUpgrade} size="xl" className="w-full rounded-xl text-lg group">
             Upgrade to Creator
             <Rocket className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </Button>
 
-          {/* Footer */}
           <p className="text-center text-xs text-cocoa-light mt-4">
             Cancel anytime • No hidden fees
           </p>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

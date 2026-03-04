@@ -205,7 +205,7 @@ export function initPerformanceMonitoring(): void {
     // Log report every 10 seconds in dev
     setInterval(() => {
       const report = getPerformanceReport();
-      console.log('[Perf Report]', report);
+      console.warn('[Perf Report]', report);
     }, 10000);
   }
 }

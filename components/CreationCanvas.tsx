@@ -1,6 +1,5 @@
 import {
   ArrowLeft,
-  BookType,
   Briefcase,
   Building2,
   ChevronRight,
@@ -17,7 +16,7 @@ import {
   Users,
   Wand2,
 } from 'lucide-react';
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
 import { deleteBook, getAllBooks } from '../services/storageService';
 import { getAvailableStyles } from '../services/tierLimits';
@@ -32,6 +31,10 @@ import {
 } from '../types';
 import SavedBookCard from './SavedBookCard';
 import InfographicWizard from './infographic/InfographicWizard';
+import { Button } from './ui/button';
+import { Input, Label, Textarea } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Slider } from './ui/slider';
 
 import BookSharingPkg from './BookSharing';
 import {
@@ -146,9 +149,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   const [educational, setEducational] = useState(false);
   const [showBrandPanel, setShowBrandPanel] = useState(false);
   const [brandName, setBrandName] = useState('');
-  const [brandGuidelines, setBrandGuidelines] = useState('');
+  const [brandGuidelines, _setBrandGuidelines] = useState('');
   const [brandColors, setBrandColors] = useState('#FF9B71, #FFF4A3');
-  const [brandSample, setBrandSample] = useState('');
+  const [brandSample, _setBrandSample] = useState('');
 
   // Brand Story Configuration
   const [brandContentType, setBrandContentType] = useState<
@@ -343,7 +346,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   }, []);
 
   // Template State
-  const [selectedTemplateStructure, setSelectedTemplateStructure] = useState<any[] | undefined>(
+  const [selectedTemplateStructure, setSelectedTemplateStructure] = useState<BookTemplate['structure'] | undefined>(
     undefined
   );
 
@@ -364,14 +367,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     clearSelection,
     isSelected,
     enterSelectionMode,
-    hasSelection,
+    hasSelection: _hasSelection,
     isAllSelected,
   } = useBulkSelection(savedBooks);
-
-  // Load saved books on mount
-  useEffect(() => {
-    loadSavedBooks();
-  }, []);
 
   const loadSavedBooks = useCallback(async () => {
     setIsLoadingBooks(true);
@@ -384,6 +382,11 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       setIsLoadingBooks(false);
     }
   }, []);
+
+  // Load saved books on mount
+  useEffect(() => {
+    loadSavedBooks();
+  }, [loadSavedBooks]);
 
   const handleDeleteBook = useCallback(
     async (id: string) => {
@@ -430,8 +433,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   };
 
   // Memoize expensive computations
-  const allStyles = useMemo(() => Object.values(ArtStyle), []);
-  const availableStyles = useMemo(() => getAvailableStyles(userTier), [userTier]);
+  const _allStyles = useMemo(() => Object.values(ArtStyle), []);
+  const _availableStyles = useMemo(() => getAvailableStyles(userTier), [userTier]);
   const tones = useMemo(() => Object.values(BookTone), []);
 
   const handleGenerate = useCallback(() => {
@@ -542,7 +545,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     colorClass,
     glowColor = 'rgba(255, 155, 113, 0.35)',
     onClick,
-  }: any) => {
+  }: {
+    icon: React.ElementType;
+    title: string;
+    desc: string;
+    colorClass: string;
+    glowColor?: string;
+    onClick: () => void;
+  }) => {
     const cardRef = React.useRef<HTMLButtonElement>(null);
     const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
     const [isHovered, setIsHovered] = React.useState(false);
@@ -557,13 +567,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     };
 
     return (
-      <button
+      <Button
         ref={cardRef}
+        variant="outline"
         onClick={onClick}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative bg-white p-8 rounded-3xl shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
+        className="relative p-8 hover:-translate-y-2 text-left group flex flex-col h-full hover:border-peach-soft overflow-hidden"
       >
         {/* Cursor Glow Effect - Vercel Marketplace Style */}
         <div
@@ -576,13 +587,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
         {/* Corner Gradient Decoration */}
         <div
-          className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorClass} opacity-25 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700 z-0`}
+          className={`absolute top-0 right-0 w-32 h-32 bg-linear-to-br ${colorClass} opacity-25 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700 z-0`}
         ></div>
 
         {/* Card Content */}
         <div className="relative z-10">
           <div
-            className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white shadow-md mb-6 group-hover:rotate-12 transition-transform`}
+            className={`w-16 h-16 rounded-2xl bg-linear-to-br ${colorClass} flex items-center justify-center text-white mb-6 group-hover:rotate-12 transition-transform`}
           >
             <Icon className="w-8 h-8" />
           </div>
@@ -592,7 +603,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             Start Creating <ChevronRight className="w-4 h-4" />
           </div>
         </div>
-      </button>
+      </Button>
     );
   };
 
@@ -647,7 +658,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       <div className="text-center space-y-4 mb-12 mt-16">
         <h1 className="font-heading font-bold text-5xl md:text-6xl text-charcoal-soft mb-4">
           Create Your{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-coral-burst to-gold-sunshine">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-coral-burst to-gold-sunshine">
             Masterpiece
           </span>
         </h1>
@@ -722,10 +733,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
             {/* Bulk Selection Toggle */}
             {!isLoadingBooks && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={isSelectionMode ? clearSelection : enterSelectionMode}
                 className={`
-                                    px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2
+                                    flex px-4 py-2
                                     ${
                                       isSelectionMode
                                         ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -741,7 +754,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     Select Books
                   </>
                 )}
-              </button>
+              </Button>
             )}
           </div>
 
@@ -778,13 +791,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
       {/* Main Wizard Card */}
       <div className="w-full max-w-4xl px-2 sm:px-4">
-        <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-soft-lg p-6 sm:p-8 md:p-12 border border-white/50 relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
+        <div className="bg-white rounded-2xl sm:rounded-4xl p-6 sm:p-8 md:p-12 border-2 border-peach-soft relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
           {/* Loading Overlay */}
           {isGenerating && (
             <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fadeIn">
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-coral-burst rounded-full animate-ping opacity-20"></div>
-                <div className="w-20 h-20 bg-gradient-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center shadow-lg animate-bounce-slow relative z-10">
+                <div className="w-20 h-20 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center animate-bounce-slow relative z-10">
                   <Sparkles className="w-10 h-10 text-white animate-pulse" />
                 </div>
               </div>
@@ -799,55 +812,59 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
           {/* Mode Toggle */}
           <div className="flex justify-center mb-8">
-            <div className="bg-cream-soft p-1 rounded-full flex items-center shadow-inner">
-              <button
+            <div className="bg-cream-soft p-1 rounded-full flex items-center border border-peach-soft/50">
+              <Button
+                variant="ghost"
                 onClick={() => setCreationMode('book')}
-                className={`px-6 py-2 rounded-full font-heading font-bold text-sm transition-all ${
+                className={`px-6 py-2 rounded-full ${
                   creationMode === 'book'
-                    ? 'bg-white text-coral-burst shadow-sm'
+                    ? 'bg-white text-coral-burst border border-peach-soft/50'
                     : 'text-cocoa-light hover:text-charcoal-soft'
                 }`}
               >
                 Create Book
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setCreationMode('feature')}
-                className={`px-6 py-2 rounded-full font-heading font-bold text-sm transition-all relative ${
+                className={`px-6 py-2 rounded-full relative ${
                   creationMode === 'feature'
-                    ? 'bg-white text-coral-burst shadow-sm'
+                    ? 'bg-white text-coral-burst border border-peach-soft/50'
                     : 'text-cocoa-light hover:text-charcoal-soft'
                 }`}
               >
                 Infographics
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="absolute -top-1 -right-1 bg-linear-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                   BETA
                 </span>
-              </button>
+              </Button>
             </div>
           </div>
 
           {creationMode === 'book' ? (
             <>
               {prompt && (
-                <button
+                <Button
+                  variant="ghost"
                   onClick={resetForm}
-                  className="mb-6 flex items-center gap-2 text-cocoa-light hover:text-coral-burst transition-colors font-bold group"
+                  className="mb-6 flex text-cocoa-light hover:text-coral-burst group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white border border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-white border-2 border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </div>
                   Back to Home
-                </button>
+                </Button>
               )}
 
               {/* Advanced Toggles */}
               <div className="flex flex-col md:flex-row gap-4 mb-10">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setIsBranching(!isBranching)}
-                  className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${
+                  className={`flex-1 p-4 flex gap-4 group ${
                     isBranching
                       ? 'border-gold-sunshine bg-yellow-butter/20'
-                      : 'border-peach-soft bg-white hover:border-gold-sunshine/50'
+                      : 'hover:border-gold-sunshine/50'
                   }`}
                 >
                   <div
@@ -861,14 +878,15 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     </div>
                     <div className="text-xs text-cocoa-light">Choose-your-own-adventure</div>
                   </div>
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setEducational(!educational)}
-                  className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${
+                  className={`flex-1 p-4 flex gap-4 group ${
                     educational
                       ? 'border-blue-400 bg-blue-50'
-                      : 'border-peach-soft bg-white hover:border-blue-400/50'
+                      : 'hover:border-blue-400/50'
                   }`}
                 >
                   <div
@@ -880,15 +898,16 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     <div className="font-heading font-bold text-charcoal-soft">Educational</div>
                     <div className="text-xs text-cocoa-light">Learning & Vocabulary</div>
                   </div>
-                </button>
+                </Button>
 
                 {showBrandPanel && (
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => setShowBrandPanel(!showBrandPanel)}
-                    className={`flex-1 p-4 rounded-2xl border-2 transition-all flex items-center gap-4 group ${
+                    className={`flex-1 p-4 flex gap-4 group ${
                       showBrandPanel
                         ? 'border-mint-breeze bg-mint-breeze/20'
-                        : 'border-peach-soft bg-white hover:border-mint-breeze/50'
+                        : 'hover:border-mint-breeze/50'
                     }`}
                   >
                     <div
@@ -900,29 +919,31 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       <div className="font-heading font-bold text-charcoal-soft">Brand Voice</div>
                       <div className="text-xs text-cocoa-light">Custom guidelines & style</div>
                     </div>
-                  </button>
+                  </Button>
                 )}
               </div>
 
               <div ref={promptSectionRef} className="mb-10">
                 <div className="flex items-center justify-between mb-3">
-                  <label className="block font-heading font-bold text-lg text-charcoal-soft flex items-center gap-2">
+                  <Label className="text-lg flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-gold-sunshine" />
                     Tell us about your book idea
-                  </label>
-                  <button
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setIsTemplateLibraryOpen(true)}
-                    className="text-sm font-bold text-coral-burst hover:text-coral-burst/80 flex items-center gap-1 transition-colors"
+                    className="text-coral-burst hover:text-coral-burst/80 flex gap-1"
                   >
                     <LayoutTemplate className="w-4 h-4" />
                     Use Template
-                  </button>
+                  </Button>
                 </div>
-                <textarea
+                <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Once upon a time, in a land made of candy..."
-                  className="w-full bg-cream-soft border-2 border-peach-soft rounded-3xl p-6 text-lg font-body text-charcoal-soft placeholder-cocoa-light/50 focus:outline-none focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 transition-all resize-none h-40 shadow-inner"
+                  className="bg-cream-soft rounded-3xl p-6 text-lg h-40"
                 />
               </div>
 
@@ -930,84 +951,74 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                 {/* Style */}
                 <div className="space-y-3">
-                  <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide">
+                  <Label className="text-cocoa-light uppercase tracking-wide">
                     Visual Style
-                  </label>
-                  <button
+                  </Label>
+                  <Button
+                    variant="outline"
                     onClick={() => setIsStylePresetsOpen(true)}
-                    className="w-full bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst hover:border-coral-burst/50 transition-all text-left flex items-center justify-between group"
+                    className="w-full p-4 font-body focus:border-coral-burst hover:border-coral-burst/50 text-left flex justify-between group"
                   >
                     <span className="flex items-center gap-2">
                       <Palette className="w-5 h-5 text-coral-burst" />
                       {style}
                     </span>
                     <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Tone */}
                 <div className="space-y-3">
-                  <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide">
+                  <Label className="text-cocoa-light uppercase tracking-wide">
                     Narrative Tone
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={tone}
-                      onChange={(e) => setTone(e.target.value as BookTone)}
-                      className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor-pointer hover:border-coral-burst/50 transition-colors"
-                      title="Select narrative tone"
-                      aria-label="Narrative tone"
-                    >
+                  </Label>
+                  <Select value={tone} onValueChange={(v) => setTone(v as BookTone)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select tone" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {tones.map((t) => (
-                        <option key={t} value={t}>
+                        <SelectItem key={t} value={t}>
                           {t}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                    <BookType className="absolute right-4 top-1/2 -translate-y-1/2 text-coral-burst w-5 h-5 pointer-events-none" />
-                  </div>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Audience */}
                 <div className="space-y-3">
-                  <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide">
+                  <Label className="text-cocoa-light uppercase tracking-wide">
                     Target Audience
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                      className="w-full appearance-none bg-white border-2 border-peach-soft rounded-2xl p-4 font-body text-charcoal-soft focus:outline-none focus:border-coral-burst cursor-pointer hover:border-coral-burst/50 transition-colors"
-                      title="Select target audience"
-                      aria-label="Target audience"
-                    >
-                      <option>Toddlers 1-3</option>
-                      <option>Children 4-6</option>
-                      <option>Children 7-9</option>
-                      <option>Pre-teens 10-12</option>
-                      <option>Young Adult</option>
-                      <option>Stakeholders</option>
-                    </select>
-                    <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-coral-burst w-5 h-5 pointer-events-none" />
-                  </div>
+                  </Label>
+                  <Select value={audience} onValueChange={setAudience}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Toddlers 1-3">Toddlers 1-3</SelectItem>
+                      <SelectItem value="Children 4-6">Children 4-6</SelectItem>
+                      <SelectItem value="Children 7-9">Children 7-9</SelectItem>
+                      <SelectItem value="Pre-teens 10-12">Pre-teens 10-12</SelectItem>
+                      <SelectItem value="Young Adult">Young Adult</SelectItem>
+                      <SelectItem value="Stakeholders">Stakeholders</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Length */}
                 <div className="space-y-3">
-                  <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide">
+                  <Label className="text-cocoa-light uppercase tracking-wide">
                     Length: {pageCount} Pages
-                  </label>
+                  </Label>
                   <div className="flex items-center gap-4 bg-white border-2 border-peach-soft rounded-2xl p-4">
                     <Clock className="text-coral-burst w-5 h-5" />
-                    <input
-                      type="range"
-                      min="4"
-                      max="50"
-                      step="2"
-                      value={pageCount}
-                      onChange={(e) => setPageCount(Number.parseInt(e.target.value))}
-                      className="w-full accent-coral-burst h-2 bg-peach-soft rounded-lg appearance-none cursor-pointer"
-                      title={`Page count: ${pageCount}`}
+                    <Slider
+                      min={4}
+                      max={50}
+                      step={2}
+                      value={[pageCount]}
+                      onValueChange={(value) => setPageCount(value[0])}
                       aria-label="Page count"
                     />
                   </div>
@@ -1016,7 +1027,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
               {/* Brand Panel Expansion */}
               {showBrandPanel && (
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl p-8 mb-10 animate-fadeIn">
+                <div className="bg-linear-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl p-8 mb-10 animate-fadeIn">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2 text-emerald-600">
                       <Briefcase className="w-5 h-5" />
@@ -1029,9 +1040,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
                   {/* Content Type Selection */}
                   <div className="mb-6">
-                    <label className="block text-xs font-bold text-cocoa-light uppercase mb-3">
+                    <Label className="text-xs text-cocoa-light uppercase mb-3">
                       Document Type
-                    </label>
+                    </Label>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                       {[
                         { id: 'brand-story', label: 'Brand Story', icon: '📖' },
@@ -1040,17 +1051,18 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         { id: 'product-launch', label: 'Product Launch', icon: '🚀' },
                         { id: 'investor-pitch', label: 'Investor Pitch', icon: '💼' },
                       ].map((type) => (
-                        <button
+                        <Button
+                          variant="ghost"
                           key={type.id}
-                          onClick={() => setBrandContentType(type.id as any)}
-                          className={`p-3 rounded-xl text-sm font-bold transition-all ${
+                          onClick={() => setBrandContentType(type.id as typeof brandContentType)}
+                          className={`p-3 ${
                             brandContentType === type.id
-                              ? 'bg-emerald-500 text-white shadow-lg'
+                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                               : 'bg-white text-charcoal-soft hover:bg-emerald-100'
                           }`}
                         >
                           <span className="mr-1">{type.icon}</span> {type.label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -1058,85 +1070,86 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   {/* Company Info Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Company Name *
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="text"
                         value={brandName}
                         onChange={(e) => setBrandName(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
                         placeholder="Acme Corporation"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Industry
-                      </label>
-                      <select
-                        value={brandIndustry}
-                        onChange={(e) => setBrandIndustry(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-                      >
-                        <option value="Technology">Technology</option>
-                        <option value="Healthcare">Healthcare</option>
-                        <option value="Finance">Finance & Banking</option>
-                        <option value="Retail">Retail & E-commerce</option>
-                        <option value="Manufacturing">Manufacturing</option>
-                        <option value="Education">Education</option>
-                        <option value="Real Estate">Real Estate</option>
-                        <option value="Media">Media & Entertainment</option>
-                        <option value="Energy">Energy & Utilities</option>
-                        <option value="Non-Profit">Non-Profit</option>
-                        <option value="Other">Other</option>
-                      </select>
+                      </Label>
+                      <Select value={brandIndustry} onValueChange={setBrandIndustry}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Technology">Technology</SelectItem>
+                          <SelectItem value="Healthcare">Healthcare</SelectItem>
+                          <SelectItem value="Finance">Finance & Banking</SelectItem>
+                          <SelectItem value="Retail">Retail & E-commerce</SelectItem>
+                          <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                          <SelectItem value="Education">Education</SelectItem>
+                          <SelectItem value="Real Estate">Real Estate</SelectItem>
+                          <SelectItem value="Media">Media & Entertainment</SelectItem>
+                          <SelectItem value="Energy">Energy & Utilities</SelectItem>
+                          <SelectItem value="Non-Profit">Non-Profit</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Founded
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="text"
                         value={brandFounded}
                         onChange={(e) => setBrandFounded(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
                         placeholder="2010"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Headquarters
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="text"
                         value={brandHeadquarters}
                         onChange={(e) => setBrandHeadquarters(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
                         placeholder="San Francisco, CA"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Brand Colors
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="text"
                         value={brandColors}
                         onChange={(e) => setBrandColors(e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
                         placeholder="#FF9B71, #10B981"
                       />
                     </div>
                     {brandContentType === 'annual-report' && (
                       <div>
-                        <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                        <Label className="text-xs text-cocoa-light uppercase mb-2">
                           Fiscal Year
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                           type="text"
                           value={brandFiscalYear}
                           onChange={(e) => setBrandFiscalYear(e.target.value)}
-                          className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                          className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
                           placeholder="2024"
                         />
                       </div>
@@ -1145,22 +1158,22 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
                   {/* Company Description */}
                   <div className="mb-6">
-                    <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                    <Label className="text-xs text-cocoa-light uppercase mb-2">
                       Company Description
-                    </label>
-                    <textarea
+                    </Label>
+                    <Textarea
                       value={brandDescription}
                       onChange={(e) => setBrandDescription(e.target.value)}
-                      className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                      className="border-emerald-200 p-3 h-20 focus:ring-2 focus:ring-emerald-300"
                       placeholder="Describe your company's mission, what you do, and what makes you unique..."
                     />
                   </div>
 
                   {/* Tone Selection */}
                   <div className="mb-6">
-                    <label className="block text-xs font-bold text-cocoa-light uppercase mb-3">
+                    <Label className="text-xs text-cocoa-light uppercase mb-3">
                       Content Tone
-                    </label>
+                    </Label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { id: 'professional', label: 'Professional', desc: 'Business formal' },
@@ -1173,26 +1186,28 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         { id: 'formal', label: 'Formal', desc: 'Corporate & traditional' },
                         { id: 'bold', label: 'Bold', desc: 'Confident & disruptive' },
                       ].map((tone) => (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           key={tone.id}
-                          onClick={() => setBrandTone(tone.id as any)}
-                          className={`px-4 py-2 rounded-full text-sm transition-all ${
+                          onClick={() => setBrandTone(tone.id as typeof brandTone)}
+                          className={`px-4 py-2 rounded-full ${
                             brandTone === tone.id
-                              ? 'bg-emerald-500 text-white'
+                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                               : 'bg-white text-charcoal-soft hover:bg-emerald-100 border border-emerald-200'
                           }`}
                         >
                           {tone.label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
 
                   {/* Sections to Include */}
                   <div>
-                    <label className="block text-xs font-bold text-cocoa-light uppercase mb-3">
+                    <Label className="text-xs text-cocoa-light uppercase mb-3">
                       Sections to Include
-                    </label>
+                    </Label>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
                         { key: 'cover', label: 'Cover Page' },
@@ -1207,7 +1222,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                         { key: 'futureOutlook', label: 'Future Outlook' },
                         { key: 'callToAction', label: 'Call to Action' },
                       ].map((section) => (
-                        <label
+                        <Label
                           key={section.key}
                           className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                             brandSections[section.key as keyof typeof brandSections]
@@ -1224,12 +1239,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 [section.key]: e.target.checked,
                               }))
                             }
+                            aria-label={section.label}
                             className="w-4 h-4 accent-emerald-500"
                           />
                           <span className="text-sm font-medium text-charcoal-soft">
                             {section.label}
                           </span>
-                        </label>
+                        </Label>
                       ))}
                     </div>
                   </div>
@@ -1245,62 +1261,65 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Subject
-                      </label>
-                      <select
-                        value={learningSubject}
-                        onChange={(e) => setLearningSubject(e.target.value)}
-                        className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      >
-                        <option value="Math">Math</option>
-                        <option value="Science">Science</option>
-                        <option value="Language Arts">Language Arts</option>
-                        <option value="Social Studies">Social Studies</option>
-                        <option value="SEL">Social-Emotional Learning</option>
-                        <option value="History">History</option>
-                        <option value="Geography">Geography</option>
-                      </select>
+                      </Label>
+                      <Select value={learningSubject} onValueChange={setLearningSubject}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Math">Math</SelectItem>
+                          <SelectItem value="Science">Science</SelectItem>
+                          <SelectItem value="Language Arts">Language Arts</SelectItem>
+                          <SelectItem value="Social Studies">Social Studies</SelectItem>
+                          <SelectItem value="SEL">Social-Emotional Learning</SelectItem>
+                          <SelectItem value="History">History</SelectItem>
+                          <SelectItem value="Geography">Geography</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Difficulty
-                      </label>
-                      <select
-                        value={learningDifficulty}
-                        onChange={(e) => setLearningDifficulty(e.target.value as any)}
-                        className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                      </select>
+                      </Label>
+                      <Select value={learningDifficulty} onValueChange={(v: string) => setLearningDifficulty(v as typeof learningDifficulty)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="beginner">Beginner</SelectItem>
+                          <SelectItem value="intermediate">Intermediate</SelectItem>
+                          <SelectItem value="advanced">Advanced</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Learning Objectives
-                      </label>
-                      <textarea
+                      </Label>
+                      <Textarea
                         value={learningObjectives}
                         onChange={(e) => setLearningObjectives(e.target.value)}
-                        className="w-full bg-white border border-blue-200 rounded-xl p-3 text-sm h-20 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        className="border-blue-200 p-3 h-20 focus:ring-2 focus:ring-blue-300"
                         placeholder="e.g., Counting to 10, Understanding Photosynthesis, Managing Anger..."
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2">
                         Integration Mode
-                      </label>
+                      </Label>
                       <div className="grid grid-cols-3 gap-3">
                         {[
                           { id: 'integrated', label: 'Integrated', desc: 'Woven into story' },
                           { id: 'after-chapter', label: 'After Chapter', desc: 'Review at end' },
                           { id: 'dedicated-section', label: 'Dedicated', desc: 'Separate section' },
                         ].map((mode) => (
-                          <button
+                          <Button
+                            variant="outline"
                             key={mode.id}
-                            onClick={() => setIntegrationMode(mode.id as any)}
-                            className={`p-3 rounded-xl border-2 text-left transition-all ${
+                            onClick={() => setIntegrationMode(mode.id as typeof integrationMode)}
+                            className={`p-3 text-left ${
                               integrationMode === mode.id
                                 ? 'border-blue-400 bg-blue-100'
                                 : 'border-blue-100 bg-white hover:border-blue-300'
@@ -1312,33 +1331,34 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                               {mode.label}
                             </div>
                             <div className="text-xs text-cocoa-light">{mode.desc}</div>
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
 
                     {/* Choose Your Guide - Character Teacher Selection */}
                     <div className="md:col-span-2 mt-4 pt-4 border-t border-blue-200">
-                      <label className="block text-xs font-bold text-blue-700 uppercase mb-3 flex items-center gap-2">
+                      <Label className="text-xs text-blue-700 uppercase mb-3 flex items-center gap-2">
                         <Users className="w-4 h-4" />
                         Choose Your Teaching Guide
-                      </label>
+                      </Label>
                       <p className="text-sm text-blue-600 mb-4">
                         Select a character to guide the learning journey. They'll teach concepts in
                         their unique voice!
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto p-2 border border-blue-100 rounded-xl bg-white/50">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-150 overflow-y-auto p-2 border border-blue-100 rounded-xl bg-white/50">
                         {teachingCharacters.map((char) => (
-                          <button
+                          <Button
+                            variant="outline"
                             key={char.id}
                             onClick={() =>
                               setSelectedTeacher(selectedTeacher?.id === char.id ? null : char)
                             }
-                            className={`relative p-4 rounded-2xl border-2 transition-all text-left group hover:shadow-lg
+                            className={`relative p-4 text-left group
                                                                     ${
                                                                       selectedTeacher?.id ===
                                                                       char.id
-                                                                        ? 'border-blue-500 bg-gradient-to-br from-blue-100 to-purple-100 shadow-md'
+                                                                        ? 'border-blue-500 bg-linear-to-br from-blue-100 to-purple-100'
                                                                         : 'border-blue-100 bg-white hover:border-blue-300'
                                                                     }`}
                           >
@@ -1396,7 +1416,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             </div>
 
                             {/* Teaching Style Tooltip on Hover */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-blue-600/95 to-purple-600/95 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-center text-white text-center pointer-events-none">
+                            <div className="absolute inset-0 bg-linear-to-b from-blue-600/95 to-purple-600/95 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-center text-white text-center pointer-events-none">
                               <div className="font-bold text-sm mb-1">{char.name}</div>
                               <div className="text-xs opacity-90 mb-2">
                                 {char.teachingStyle?.teachingApproach === 'nurturing' &&
@@ -1412,18 +1432,18 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 "{char.voiceProfile?.catchphrases?.[0]}"
                               </div>
                             </div>
-                          </button>
+                          </Button>
                         ))}
                       </div>
 
                       {/* Selected Teacher Preview */}
                       {selectedTeacher && (
-                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl border border-blue-200 animate-fadeIn">
+                        <div className="mt-4 p-4 bg-linear-to-r from-blue-100 to-purple-100 rounded-2xl border border-blue-200 animate-fadeIn">
                           <div className="flex items-start gap-4">
                             <img
                               src={selectedTeacher.imageUrl}
                               alt={selectedTeacher.name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                              className="w-12 h-12 rounded-full object-cover border-2 border-white"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTeacher.name}`;
@@ -1459,23 +1479,27 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           {creationMode === 'book' && (
             <div className="flex flex-col sm:flex-row justify-end gap-3 mt-10">
               {/* Conversation Mode Button */}
-              <button
+              <Button
+                variant="outline"
+                size="xl"
                 onClick={() => setIsConversationModeOpen(true)}
-                className="px-8 py-4 rounded-full font-heading font-bold text-lg transition-all shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center justify-center gap-3 border-2 border-coral-burst text-coral-burst hover:bg-coral-burst/10"
+                className="rounded-full transform hover:-translate-y-1 flex gap-3 border-coral-burst text-coral-burst hover:bg-coral-burst/10"
               >
                 <MessageCircle className="w-5 h-5" />
                 Chat to Create
-              </button>
+              </Button>
 
               {/* Main Generate Button */}
-              <button
+              <Button
+                variant="primary"
+                size="xl"
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
-                className={`px-12 py-4 rounded-full font-heading font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-3
+                className={`px-12 rounded-full transform hover:-translate-y-1 flex gap-3
                                 ${
                                   isGenerating
-                                    ? 'bg-cocoa-light cursor-not-allowed text-white opacity-70'
-                                    : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:scale-105'
+                                    ? 'bg-cocoa-light text-white opacity-70'
+                                    : 'hover:scale-105'
                                 }`}
               >
                 {isGenerating ? (
@@ -1489,7 +1513,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     Generate Masterpiece
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           )}
         </div>

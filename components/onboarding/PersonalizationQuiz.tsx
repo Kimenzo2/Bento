@@ -155,7 +155,7 @@ export const PersonalizationQuiz: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 md:pt-16 md:pb-10 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center px-(--ob-container-padding) py-6 md:pt-16 md:pb-10 overflow-x-hidden overflow-y-auto">
       {/* Premium Background - opaque base + tinted overlay */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
       <div className="absolute inset-0 bg-linear-to-br from-purple-900/20 via-transparent to-blue-900/20" />
@@ -283,7 +283,7 @@ export const PersonalizationQuiz: React.FC = () => {
 
             {/* Options with Images */}
             <div
-              className={`grid gap-[var(--ob-card-gap)] ${question.options.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}
+              className={`grid gap-(--ob-card-gap) ${question.options.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}
             >
               {question.options.map((option, idx) => {
                 const isSelected = currentAnswer === option.value;
@@ -301,19 +301,19 @@ export const PersonalizationQuiz: React.FC = () => {
                   >
                     {/* Background gradient on selection */}
                     <div
-                      className={`absolute inset-0 bg-gradient-to-r ${option.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`}
+                      className={`absolute inset-0 bg-linear-to-r ${option.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`}
                     />
 
                     {/* Glass effect */}
                     <div className="absolute inset-0 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl" />
 
                     {/* Shimmer on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                     <div className="relative flex items-center gap-3 md:gap-5">
                       {/* Image */}
                       <motion.div
-                        className="flex-shrink-0"
+                        className="shrink-0"
                         whileHover={{ scale: 1.1, rotate: 5 }}
                         transition={{ duration: 0.3 }}
                       >
@@ -336,7 +336,7 @@ export const PersonalizationQuiz: React.FC = () => {
 
                       {/* Selection indicator */}
                       <div
-                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                        className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                           isSelected ? 'border-white bg-white' : 'border-white/30'
                         }`}
                       >
@@ -374,13 +374,13 @@ export const PersonalizationQuiz: React.FC = () => {
                 className="group relative px-8 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-lg overflow-hidden"
               >
                 {/* Button gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500" />
 
                 {/* Shimmer */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 {/* Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
 
                 <span className="relative flex items-center gap-3 text-white">
                   Begin the Magic

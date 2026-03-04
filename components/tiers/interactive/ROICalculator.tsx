@@ -2,6 +2,8 @@ import { Calculator, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
+import { Button } from '@components/ui/button';
+import { Label } from '@components/ui/input';
 
 interface ROICalculatorProps {
   tier: TierConfig;
@@ -10,7 +12,7 @@ interface ROICalculatorProps {
 export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
   // Inputs
   const [booksPerMonth, setBooksPerMonth] = useState(5);
-  const [pagesPerBook, setPagesPerBook] = useState(12);
+  const [pagesPerBook, _setPagesPerBook] = useState(12);
   const [hourlyRate, setHourlyRate] = useState(50);
 
   // Computed Values
@@ -47,8 +49,8 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
   }, [booksPerMonth, pagesPerBook, hourlyRate, tier.price.monthly]);
 
   return (
-    <div className="bg-white rounded-xl md:rounded-2xl shadow-xl border border-charcoal-soft/5 overflow-hidden my-8 md:my-16">
-      <div className={`bg-gradient-to-r ${tier.gradient} p-1`}></div>
+    <div className="bg-white rounded-xl md:rounded-2xl border-2 border-peach-soft overflow-hidden my-8 md:my-16">
+      <div className={`bg-linear-to-r ${tier.gradient} p-1`}></div>
       <div className="p-4 sm:p-6 md:p-8 lg:p-12 grid lg:grid-cols-2 gap-6 md:gap-12">
         {/* Left: Inputs */}
         <div className="space-y-8">
@@ -65,9 +67,9 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
           {/* Slider 1: Books per Month */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <label className="font-bold text-charcoal-soft text-sm">
+              <Label>
                 Books to Create / Month
-              </label>
+              </Label>
               <span
                 className={`px-3 py-1 rounded-full bg-${tier.accentColor}-100 text-${tier.accentColor}-700 font-bold font-mono`}
               >
@@ -80,6 +82,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
               max="100"
               value={booksPerMonth}
               onChange={(e) => setBooksPerMonth(Number(e.target.value))}
+              aria-label="Books to create per month"
               className={`w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 accent-${tier.accentColor}-500`}
             />
             <div className="flex justify-between text-xs text-charcoal-soft/40">
@@ -91,20 +94,24 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
           {/* Slider 2: Hourly Rate */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <label className="font-bold text-charcoal-soft text-sm">Your Hourly Value ($)</label>
+              <Label>Your Hourly Value ($)</Label>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setHourlyRate(30)}
-                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  className="text-gray-400 hover:text-gray-600 underline"
                 >
                   Junior ($30)
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setHourlyRate(100)}
-                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  className="text-gray-400 hover:text-gray-600 underline"
                 >
                   Pro ($100)
-                </button>
+                </Button>
                 <span
                   className={`ml-2 px-3 py-1 rounded-full bg-${tier.accentColor}-100 text-${tier.accentColor}-700 font-bold font-mono`}
                 >
@@ -119,6 +126,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
               step="5"
               value={hourlyRate}
               onChange={(e) => setHourlyRate(Number(e.target.value))}
+              aria-label="Your hourly rate in dollars"
               className={`w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 accent-${tier.accentColor}-500`}
             />
           </div>
@@ -128,7 +136,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
         <div className={`rounded-xl p-4 sm:p-6 md:p-8 ${tier.bgClass} relative`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 relative z-10">
             {/* Metric 1 */}
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-white/50">
+            <div className="bg-white rounded-lg p-4 border border-peach-soft/50">
               <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                 <Clock className="w-4 h-4" /> Time Saved
               </div>
@@ -139,19 +147,19 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
             </div>
 
             {/* Metric 2 */}
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-white/50">
+            <div className="bg-white rounded-lg p-4 border border-peach-soft/50">
               <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                 <DollarSign className="w-4 h-4" /> Monthly Value
               </div>
               <div
-                className={`text-xl sm:text-2xl md:text-3xl font-heading font-black bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}
+                className={`text-xl sm:text-2xl md:text-3xl font-heading font-black bg-linear-to-r ${tier.gradient} bg-clip-text text-transparent`}
               >
                 ${monthlyValue.toLocaleString()}
               </div>
             </div>
 
             {/* Metric 3 */}
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-white/50">
+            <div className="bg-white rounded-lg p-4 border border-peach-soft/50">
               <div className="flex items-center gap-2 mb-2 text-charcoal-soft/60 text-xs font-bold uppercase">
                 <TrendingUp className="w-4 h-4" /> Cost Per Book
               </div>
@@ -161,11 +169,11 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
             </div>
 
             {/* Metric 4 (Big Annual) */}
-            <div className="sm:col-span-2 bg-charcoal-soft rounded-xl p-4 sm:p-6 text-white shadow-lg sm:transform sm:scale-105 border border-white/10">
+            <div className="sm:col-span-2 bg-charcoal-soft rounded-xl p-4 sm:p-6 text-white sm:transform sm:scale-105 border border-white/10">
               <div className="text-white/60 text-xs sm:text-sm font-bold uppercase tracking-wider mb-1 sm:mb-2">
                 Projected Annual Profit
               </div>
-              <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-mint-fresh to-white">
+              <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-transparent bg-clip-text bg-linear-to-r from-mint-fresh to-white">
                 ${annualProfit.toLocaleString()}
               </div>
               <div className="mt-2 text-xs text-white/40">

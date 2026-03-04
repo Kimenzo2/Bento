@@ -52,7 +52,7 @@ function openDatabase(): Promise<IDBDatabase> {
 export function useOfflineFirst<T extends { id: string }>(
   storeName: string,
   onlineSync?: (items: T[]) => Promise<void>,
-  onlineFetch?: () => Promise<T[]>
+  _onlineFetch?: () => Promise<T[]>
 ) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);

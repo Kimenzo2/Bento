@@ -2,6 +2,7 @@ import { Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
+import { Label } from '@components/ui/input';
 
 interface CommitmentCalculatorProps {
   tier: TierConfig;
@@ -18,10 +19,10 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
   const totalProfit = booksPerYear * avgProfitPerBook - annualCost;
 
   return (
-    <div className="bg-gradient-to-br from-charcoal-soft to-black rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden">
+    <div className="bg-linear-to-br from-charcoal-soft to-black rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden">
       {/* Background blobs */}
       <div
-        className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${tier.gradient} opacity-20 blur-3xl rounded-full`}
+        className={`absolute top-0 right-0 w-64 h-64 bg-linear-to-br ${tier.gradient} opacity-20 blur-3xl rounded-full`}
       />
 
       <div className="relative z-10 grid lg:grid-cols-2 gap-6 md:gap-12 items-center">
@@ -34,11 +35,11 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
           </p>
 
           <div className="mb-4 md:mb-8">
-            <label className="block text-xs sm:text-sm font-bold text-white/80 mb-2 md:mb-4">
+            <Label className="text-xs sm:text-sm text-white/80 mb-2 md:mb-4">
               I plan to publish{' '}
               <span className="text-base sm:text-lg md:text-xl text-white">{booksPerYear}</span>{' '}
               books this year
-            </label>
+            </Label>
             <input
               type="range"
               min="1"
@@ -60,7 +61,7 @@ export const CommitmentCalculator: React.FC<CommitmentCalculatorProps> = ({ tier
               </div>
             </div>
             <div
-              className={`p-3 md:p-4 rounded-xl bg-gradient-to-br ${tier.gradient} border border-white/10 flex-1`}
+              className={`p-3 md:p-4 rounded-xl bg-linear-to-br ${tier.gradient} border border-white/10 flex-1`}
             >
               <div className="text-[10px] sm:text-xs text-white/80 uppercase tracking-wider mb-1">
                 Projected Profit

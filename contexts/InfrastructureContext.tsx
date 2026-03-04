@@ -31,6 +31,7 @@
  */
 
 import type React from 'react';
+import { Button } from '../components/ui/button';
 import {
   type ReactNode,
   createContext,
@@ -265,12 +266,13 @@ export function InfrastructureProvider({
           <div className="text-destructive text-5xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold mb-2">Initialization Failed</h2>
           <p className="text-muted-foreground mb-4">{error.message}</p>
-          <button
+          <Button
+            variant="default"
             onClick={reinitialize}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
+            className="hover:opacity-90"
           >
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );

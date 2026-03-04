@@ -88,8 +88,8 @@ export const PaymentCallback: React.FC = () => {
                 setStatus('success');
                 setMessage('Your subscription is active! Redirecting to your dashboard...');
               } else {
-                setStatus('success');
-                setMessage('Payment confirmed! Your dashboard is being updated. Redirecting...');
+                setStatus('pending' as 'pending');
+                setMessage('Payment is still being processed. Your subscription will activate shortly. You can safely go to your dashboard.');
               }
               setTimeout(() => { window.location.href = '/'; }, 1500);
             } else {
@@ -113,7 +113,7 @@ export const PaymentCallback: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base flex items-center justify-center px-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-lg p-10 text-center">
+      <div className="max-w-md w-full bg-white rounded-3xl border-2 border-peach-soft p-10 text-center">
         {/* Icon */}
         <div className="mb-6">
           {(status === 'verifying' || status === 'activating') && (

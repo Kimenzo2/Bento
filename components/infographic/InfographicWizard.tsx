@@ -15,6 +15,7 @@ import CustomizationStep from './CustomizationStep.tsx';
 import GenerationLoading from './GenerationLoading.tsx';
 import InfographicResultPage from './InfographicResultPage.tsx';
 import TopicInputStep from './TopicInputStep.tsx';
+import { Button } from '@components/ui/button';
 
 interface InfographicWizardProps {
   onClose: () => void;
@@ -47,7 +48,7 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
     setStep(3); // Loading state
 
     try {
-      console.log('🚀 Starting infographic generation for topic:', request.topic);
+      console.warn('🚀 Starting infographic generation for topic:', request.topic);
       const data = await InfographicService.generate(request);
 
       // Validate generated data
@@ -55,7 +56,7 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
         throw new Error('Generated data is incomplete');
       }
 
-      console.log('✅ Infographic generated successfully:', data.title);
+      console.warn('✅ Infographic generated successfully:', data.title);
       setGeneratedData(data);
       setStep(4); // Preview state
     } catch (error) {
@@ -90,21 +91,23 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
       {/* Error Banner */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-fadeIn">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-red-700 font-medium text-sm">{error}</p>
-            <button
+            <Button
               onClick={() => setError(null)}
-              className="text-red-500 text-xs mt-1 hover:underline"
+              variant="ghost"
+              size="sm"
+              className="text-red-500 mt-1 hover:underline"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {/* Content */}
-      <div className="min-h-[400px]">
+      <div className="min-h-100">
         {step === 1 && (
           <TopicInputStep request={request} onChange={setRequest} onNext={handleNext} />
         )}

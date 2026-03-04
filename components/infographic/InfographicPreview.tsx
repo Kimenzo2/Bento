@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { InfographicData } from '../../types/infographic';
 import { exportToPDF, exportToPNG, printElement } from './exportService';
 import InfographicRenderer from './renderer/InfographicRenderer';
+import { Button } from '@components/ui/button';
 
 // Preview component for generated infographics
 
@@ -51,13 +52,15 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
         <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-          <button
+          <Button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0 active:scale-95"
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
             title="Close"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6 text-cocoa-light" />
-          </button>
+          </Button>
           <div className="flex-1 min-w-0">
             <h3 className="font-heading font-bold text-lg sm:text-xl text-charcoal-soft truncate">
               {data.title}
@@ -69,43 +72,51 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
+          <Button
             onClick={onRegenerate}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-cocoa-light hover:text-coral-burst flex-shrink-0 active:scale-95"
+            variant="ghost"
+            size="icon"
+            className="text-cocoa-light hover:text-coral-burst shrink-0"
             title="Start Over"
           >
             <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+          </Button>
           <div className="h-6 w-px bg-peach-soft mx-1 sm:mx-2 hidden sm:block"></div>
 
-          <button
+          <Button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-peach-soft rounded-lg text-xs sm:text-sm font-bold text-charcoal-soft hover:border-coral-burst transition-colors shadow-sm active:scale-95 min-h-[44px]"
+            variant="outline"
+            size="sm"
+            className="bg-white border border-peach-soft text-charcoal-soft hover:border-coral-burst min-h-11"
             title="Print"
           >
             <Printer className="w-4 h-4" />
             <span className="hidden md:inline">Print</span>
-          </button>
+          </Button>
 
           <div className="flex gap-2 flex-1 sm:flex-initial">
-            <button
+            <Button
               onClick={() => handleExport('png')}
               disabled={isExporting}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-peach-soft text-charcoal-soft rounded-lg text-xs sm:text-sm font-bold shadow-sm hover:bg-gray-50 transition-all flex-1 sm:flex-initial active:scale-95 min-h-[44px]"
+              variant="outline"
+              size="sm"
+              className="bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50 flex-1 sm:flex-initial min-h-11"
               title="Export as PNG"
             >
               <FileImage className="w-4 h-4" />
               <span className="hidden sm:inline">PNG</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleExport('pdf')}
               disabled={isExporting}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white rounded-lg text-xs sm:text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex-1 sm:flex-initial active:scale-95 min-h-[44px]"
+              variant="primary"
+              size="sm"
+              className="hover:-translate-y-0.5 flex-1 sm:flex-initial min-h-11"
               title="Export as PDF"
             >
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">PDF</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -113,23 +124,27 @@ const InfographicPreview: React.FC<InfographicPreviewProps> = ({ data, onClose, 
       {/* Canvas Area */}
       <div className="flex-1 bg-cream-base/50 rounded-2xl border border-peach-soft overflow-hidden relative flex items-center justify-center p-2 sm:p-4 md:p-8">
         {/* Zoom Controls */}
-        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex flex-col gap-1 sm:gap-2 bg-white rounded-lg shadow-md p-1 z-10">
-          <button
+        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 flex flex-col gap-1 sm:gap-2 bg-white rounded-lg border border-peach-soft/50 p-1 z-10">
+          <Button
             onClick={() => setZoom((z) => Math.min(z + 0.1, 2))}
-            className="p-2 hover:bg-gray-100 rounded transition-colors active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            variant="ghost"
+            size="icon"
+            className="min-h-11 min-w-11"
             title="Zoom in"
             aria-label="Zoom in"
           >
             <ZoomIn className="w-4 h-4 text-charcoal-soft" />
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setZoom((z) => Math.max(z - 0.1, 0.5))}
-            className="p-2 hover:bg-gray-100 rounded transition-colors active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            variant="ghost"
+            size="icon"
+            className="min-h-11 min-w-11"
             title="Zoom out"
             aria-label="Zoom out"
           >
             <ZoomOut className="w-4 h-4 text-charcoal-soft" />
-          </button>
+          </Button>
           <div className="text-[10px] text-center font-bold text-gray-400 py-1">
             {Math.round(zoom * 100)}%
           </div>

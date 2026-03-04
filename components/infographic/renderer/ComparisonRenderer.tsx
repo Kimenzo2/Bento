@@ -17,7 +17,7 @@ const ComparisonRenderer: React.FC<ComparisonRendererProps> = ({ data }) => {
         <div className="text-center flex-1 bg-blue-50 p-4 rounded-xl border border-blue-100">
           <h3 className="font-heading font-bold text-xl text-blue-800">{itemA}</h3>
         </div>
-        <div className="w-12 h-12 rounded-full bg-charcoal-soft text-white flex items-center justify-center font-bold text-sm shadow-lg z-10 -mx-6">
+        <div className="w-12 h-12 rounded-full bg-charcoal-soft text-white flex items-center justify-center font-bold text-sm z-10 -mx-6">
           VS
         </div>
         <div className="text-center flex-1 bg-red-50 p-4 rounded-xl border border-red-100">
@@ -30,7 +30,7 @@ const ComparisonRenderer: React.FC<ComparisonRendererProps> = ({ data }) => {
         {points.map((point, index) => (
           <div key={index} className="flex items-stretch gap-4">
             {/* Left Side */}
-            <div className="flex-1 bg-white p-4 rounded-l-xl border-r-4 border-blue-200 shadow-sm text-right flex items-center justify-end">
+            <div className="flex-1 bg-white p-4 rounded-l-xl border-r-4 border-blue-200 text-right flex items-center justify-end">
               <span className="text-sm text-charcoal-soft font-medium">{point.itemA}</span>
             </div>
 
@@ -40,7 +40,7 @@ const ComparisonRenderer: React.FC<ComparisonRendererProps> = ({ data }) => {
             </div>
 
             {/* Right Side */}
-            <div className="flex-1 bg-white p-4 rounded-r-xl border-l-4 border-red-200 shadow-sm flex items-center">
+            <div className="flex-1 bg-white p-4 rounded-r-xl border-l-4 border-red-200 flex items-center">
               <span className="text-sm text-charcoal-soft font-medium">{point.itemB}</span>
             </div>
           </div>

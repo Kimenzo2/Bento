@@ -37,6 +37,8 @@ import type {
   GreenRoomMessage,
   GreenRoomSession,
 } from '../types';
+import { Button } from '@components/ui/button';
+import { Input } from '@components/ui/input';
 
 interface GreenRoomProps {
   isOpen: boolean;
@@ -130,7 +132,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
         }
       );
 
-      console.log('✅ Green Room response received:', newMessage);
+      console.warn('✅ Green Room response received:', newMessage);
 
       setSession(updatedSession);
       setPersona(updatedPersona);
@@ -196,13 +198,13 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center"
+        className="fixed inset-0 z-100 flex items-center justify-center"
       >
         {/* Backdrop with ambient effect */}
         <div
           className={`absolute inset-0 transition-all duration-1000 ${
             ambientMode
-              ? 'bg-gradient-to-br from-emerald-950 via-slate-950 to-purple-950'
+              ? 'bg-linear-to-br from-emerald-950 via-slate-950 to-purple-950'
               : 'bg-slate-950'
           }`}
           onClick={onClose}
@@ -240,16 +242,16 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="relative w-full max-w-6xl h-[90vh] mx-4 bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-emerald-500/20 shadow-2xl shadow-emerald-500/10 overflow-hidden flex flex-col"
+          className="relative w-full max-w-6xl h-[90vh] mx-4 bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-emerald-500/20 overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="relative px-6 py-4 border-b border-white/10 bg-gradient-to-r from-emerald-900/30 via-transparent to-purple-900/30">
+          <div className="relative px-6 py-4 border-b border-white/10 bg-linear-to-r from-emerald-900/30 via-transparent to-purple-900/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {/* Character Avatar */}
                 <div className="relative">
-                  <div className="flex items-center justify-center overflow-hidden border-2 shadow-lg w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400/50 shadow-emerald-500/30">
+                  <div className="flex items-center justify-center overflow-hidden border-2 w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-600 border-emerald-400/50">
                     {persona?.avatarUrl ? (
                       <img
                         src={persona.avatarUrl}
@@ -283,9 +285,11 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
 
               <div className="flex items-center gap-2">
                 {/* Ambient Toggle */}
-                <button
+                <Button
                   onClick={() => setAmbientMode(!ambientMode)}
-                  className={`p-2 rounded-lg transition-colors ${
+                  variant="ghost"
+                  size="icon"
+                  className={`${
                     ambientMode
                       ? 'bg-emerald-500/20 text-emerald-400'
                       : 'text-white/40 hover:text-white/60'
@@ -293,12 +297,14 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                   title="Toggle ambient mode"
                 >
                   <Sparkles className="w-5 h-5" />
-                </button>
+                </Button>
 
                 {/* History Toggle */}
-                <button
+                <Button
                   onClick={() => setShowHistory(!showHistory)}
-                  className={`p-2 rounded-lg transition-colors ${
+                  variant="ghost"
+                  size="icon"
+                  className={`${
                     showHistory
                       ? 'bg-purple-500/20 text-purple-400'
                       : 'text-white/40 hover:text-white/60'
@@ -306,15 +312,17 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                   title="View session history"
                 >
                   <History className="w-5 h-5" />
-                </button>
+                </Button>
 
                 {/* Close */}
-                <button
+                <Button
                   onClick={onClose}
-                  className="p-2 transition-colors rounded-lg text-white/40 hover:text-white hover:bg-white/10"
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/40 hover:text-white hover:bg-white/10"
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -338,8 +346,8 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                       <div
                         className={`rounded-2xl px-4 py-3 ${
                           msg.role === 'author'
-                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-md'
-                            : 'bg-gradient-to-r from-emerald-800/50 to-teal-800/50 text-white border border-emerald-500/20 rounded-bl-md'
+                            ? 'bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-br-md'
+                            : 'bg-linear-to-r from-emerald-800/50 to-teal-800/50 text-white border border-emerald-500/20 rounded-bl-md'
                         }`}
                       >
                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -428,22 +436,26 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                       <span className="text-xs font-medium text-yellow-400/80">
                         Suggested Questions
                       </span>
-                      <button
+                      <Button
                         onClick={() => setShowSuggestions(false)}
+                        variant="ghost"
+                        size="icon"
                         className="ml-auto text-white/30 hover:text-white/50"
                       >
                         <ChevronUp className="w-4 h-4" />
-                      </button>
+                      </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {suggestedQuestions.slice(0, 3).map((q, i) => (
-                        <button
+                        <Button
                           key={i}
                           onClick={() => handleSuggestionClick(q)}
-                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 rounded-full text-xs text-white/70 hover:text-white transition-all"
+                          variant="outline"
+                          size="sm"
+                          className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 rounded-full text-white/70 hover:text-white"
                         >
                           {q}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </motion.div>
@@ -454,14 +466,14 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
               <div className="p-4 border-t border-white/10 bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1">
-                    <input
+                    <Input
                       ref={inputRef}
                       type="text"
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                       placeholder={`Ask ${persona?.name || 'the character'} anything...`}
-                      className="w-full px-4 py-3 text-white transition-all border bg-white/5 border-white/10 rounded-xl placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+                      className="py-3 text-white bg-white/5 border-white/10 placeholder-white/30 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
                       disabled={isTyping}
                     />
                   </div>
@@ -471,7 +483,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSend}
                     disabled={!inputValue.trim() || isTyping}
-                    className="p-3 text-white transition-all shadow-lg bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-3 text-white transition-all bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl border-2 border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-5 h-5" />
                   </motion.button>
@@ -483,9 +495,9 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
             <div className="flex-col hidden border-l lg:flex w-80 border-white/10 bg-slate-900/30">
               {/* Character Card */}
               <div className="p-4 border-b border-white/10">
-                <div className="p-4 border bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-xl border-emerald-500/20">
+                <div className="p-4 border bg-linear-to-br from-emerald-900/30 to-teal-900/30 rounded-xl border-emerald-500/20">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center justify-center w-12 h-12 overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
+                    <div className="flex items-center justify-center w-12 h-12 overflow-hidden rounded-xl bg-linear-to-br from-emerald-500 to-teal-600">
                       {persona?.avatarUrl ? (
                         <img
                           src={persona.avatarUrl}
@@ -533,12 +545,14 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     <Star className="w-4 h-4 text-yellow-400" />
                     Discovered Facts
                   </h4>
-                  <button
+                  <Button
                     onClick={() => setShowFacts(!showFacts)}
+                    variant="ghost"
+                    size="icon"
                     className="text-white/30 hover:text-white/50"
                   >
                     {showFacts ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  </Button>
                 </div>
 
                 {showFacts && persona?.extractedFacts && persona.extractedFacts.length > 0 ? (
@@ -610,13 +624,14 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     {previousSessions.length > 0 ? (
                       <div className="space-y-2">
                         {previousSessions.map((s) => (
-                          <button
+                          <Button
                             key={s.id}
                             onClick={() => {
                               setSession(s);
                               setShowHistory(false);
                             }}
-                            className="w-full p-3 text-left transition-colors rounded-lg bg-white/5 hover:bg-white/10"
+                            variant="ghost"
+                            className="w-full p-3 text-left bg-white/5 hover:bg-white/10 h-auto flex-col items-start"
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <Clock className="w-3 h-3 text-white/40" />
@@ -628,7 +643,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                             <p className="text-xs text-emerald-400/60">
                               {s.totalFactsExtracted} facts discovered
                             </p>
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     ) : (
@@ -636,18 +651,19 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     )}
 
                     {/* New Session Button */}
-                    <button
+                    <Button
                       onClick={() => {
                         if (persona) {
                           setSession(greenRoomService.createSession(project.id, persona));
                         }
                         setShowHistory(false);
                       }}
-                      className="flex items-center justify-center w-full gap-2 py-2 mt-4 text-sm transition-colors border rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/30 text-emerald-400"
+                      variant="outline"
+                      className="w-full mt-4 bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/30 text-emerald-400"
                     >
                       <Plus className="w-4 h-4" />
                       New Session
-                    </button>
+                    </Button>
                   </div>
                 </motion.div>
               )}

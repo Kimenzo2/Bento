@@ -6,7 +6,6 @@ import {
   FileText,
   Info,
   Settings,
-  X,
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -14,6 +13,10 @@ import { downloadKDP, previewKDPExport } from '../services/export/kdpExportServi
 import type { TrimSize } from '../services/export/kdpTypes';
 import { getQualityAssessment } from '../services/export/kdpValidation';
 import { type BookProject, UserTier } from '../types';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogFooter } from './ui/dialog';
+import { Label } from './ui/input';
+import { ScrollArea } from './ui/scroll-area';
 
 interface KDPExportModalProps {
   project: BookProject;
@@ -108,16 +111,10 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-coral-burst to-gold-sunshine p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-6 text-white relative">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
               <BookOpen className="w-6 h-6" />
@@ -130,10 +127,11 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <ScrollArea className="flex-1">
+          <div className="p-6">
           {/* Quality Dashboard */}
           {preview && preview.quality && (
-            <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
+            <div className="mb-6 p-6 bg-linear-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-heading font-bold text-charcoal-soft">
                   Quality Assessment
@@ -196,9 +194,9 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 
             {/* Trim Size Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-bold text-cocoa-light mb-2">
+              <Label className="mb-2">
                 Book Size (Trim Size)
-              </label>
+              </Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { value: '6x9', label: '6" × 9"', desc: 'Standard Novel' },
@@ -211,7 +209,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
                     onClick={() => setTrimSize(size.value as TrimSize)}
                     className={`p-4 rounded-xl border-2 transition-all text-left ${
                       trimSize === size.value
-                        ? 'border-coral-burst bg-coral-burst/10 shadow-md'
+                        ? 'border-coral-burst bg-coral-burst/10'
                         : 'border-peach-soft hover:border-coral-burst/50'
                     }`}
                   >
@@ -231,12 +229,12 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
                 onChange={(e) => setIncludeBleed(e.target.checked)}
                 className="mt-1 w-5 h-5 text-coral-burst rounded focus:ring-coral-burst"
               />
-              <label htmlFor="includeBleed" className="flex-1 cursor-pointer">
+              <Label htmlFor="includeBleed" className="flex-1 cursor-pointer">
                 <div className="font-bold text-charcoal-soft">Include Bleed (Recommended)</div>
                 <div className="text-sm text-cocoa-light mt-1">
                   Extends images 0.125" past trim edge for professional full-page illustrations
                 </div>
-              </label>
+              </Label>
             </div>
 
             {/* Advanced Options */}
@@ -321,7 +319,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 
           {/* Tier Restriction */}
           {userTier === UserTier.SPARK && (
-            <div className="mb-6 p-6 bg-gradient-to-r from-gold-sunshine/20 to-coral-burst/20 border-2 border-gold-sunshine rounded-2xl">
+            <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border-2 border-gold-sunshine rounded-2xl">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
                   <FileText className="w-5 h-5 text-white" />
@@ -340,22 +338,20 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
               </ul>
             </div>
           )}
-        </div>
+          </div>
+        </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t border-peach-soft p-6 bg-cream-base flex items-center justify-between gap-4">
-          <button
-            onClick={onClose}
-            className="px-6 py-3 rounded-xl border-2 border-peach-soft hover:border-coral-burst transition-colors font-bold text-charcoal-soft"
-            disabled={isExporting}
-          >
+        <DialogFooter className="border-t-2 border-peach-soft/30 p-6 bg-cream-base flex-row items-center justify-between gap-4">
+          <Button variant="outline" onClick={onClose} disabled={isExporting}>
             Cancel
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={handleExport}
             disabled={isExporting || userTier === UserTier.SPARK}
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-heading font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            size="lg"
+            className="gap-2"
           >
             {isExporting ? (
               <>
@@ -371,10 +367,10 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
                 {userTier === UserTier.SPARK ? 'Upgrade to Export' : 'Export for Amazon KDP'}
               </>
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

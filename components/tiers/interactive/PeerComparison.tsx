@@ -18,7 +18,7 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
   const [selectedLevel, setSelectedLevel] = useState('beginner');
 
   return (
-    <div className="bg-white rounded-2xl p-8 border border-charcoal-soft/5 shadow-lg my-12">
+    <div className="bg-white rounded-2xl p-8 border-2 border-peach-soft my-12">
       <div className="text-center mb-8">
         <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
           See Where You Stand
@@ -36,7 +36,7 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
             onClick={() => setSelectedLevel(level.id)}
             className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
               selectedLevel === level.id
-                ? `bg-charcoal-soft text-white shadow-lg`
+                ? `bg-charcoal-soft text-white`
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}
           >
@@ -77,7 +77,7 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
 
           <div className="flex items-center gap-3">
             <span
-              className={`text-4xl font-heading font-bold bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent`}
+              className={`text-4xl font-heading font-bold bg-linear-to-r ${tier.gradient} bg-clip-text text-transparent`}
             >
               {selectedLevel === 'beginner'
                 ? '5-8'

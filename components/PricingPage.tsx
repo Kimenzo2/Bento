@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
+import { Button } from './ui/button';
 
 interface PricingPageProps {
   onUpgrade?: (tier: UserTier) => void;
@@ -58,7 +59,7 @@ const tiers: TierData[] = [
     color: 'bg-blue-50 text-blue-600',
     buttonColor: 'bg-blue-500 text-white hover:bg-blue-600',
     saveLabel: 'Save 18%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/fan-nihu8w', // TEMP TEST — production: https://paystack.shop/pay/mfkoveuu1o
+    paystackPaymentUrl: 'https://paystack.shop/pay/mfkoveuu1o', // Production URL
     planCode: 'PLN_zbnzvdqjsdxfcqc',
     features: [
       '30 ebooks per month',
@@ -78,7 +79,7 @@ const tiers: TierData[] = [
     icon: Briefcase,
     color: 'bg-coral-burst/10 text-coral-burst',
     buttonColor:
-      'bg-linear-to-r from-coral-burst to-gold-sunshine text-white shadow-lg hover:scale-105',
+      'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border-2 border-white/20 hover:scale-105',
     saveLabel: 'Save 17%',
     paystackPaymentUrl: 'https://paystack.shop/pay/akv70alb1x',
     planCode: 'PLN_09zg1ly5kg57niz',
@@ -120,7 +121,7 @@ const tiers: TierData[] = [
 const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [processingTier, setProcessingTier] = useState<string | null>(null);
+  const [processingTier, _setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
 
   // Set email from auth context
@@ -141,7 +142,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
         // Ignore parse errors
       }
     }
-  }, []);
+  }, [userEmail]);
 
   const handleSubscribe = (tier: TierData) => {
     if (tier.priceMonthly === 0) {
@@ -183,10 +184,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
             >
               Monthly
             </span>
-            <button
+            <Button
               type="button"
               onClick={() => setIsAnnual(!isAnnual)}
-              className="relative w-16 h-8 bg-peach-soft rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst"
+              variant="ghost"
+              className="relative w-16 h-8 bg-peach-soft rounded-full p-1"
               aria-label={
                 isAnnual
                   ? 'Currently annual billing, click to switch to monthly'
@@ -194,9 +196,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               }
             >
               <div
-                className={`w-6 h-6 bg-coral-burst rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`}
+                className={`w-6 h-6 bg-coral-burst rounded-full transform transition-transform duration-300 ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`}
               />
-            </button>
+            </Button>
             <span
               className={`font-heading font-bold flex items-center gap-2 ${isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
             >
@@ -216,12 +218,12 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               className={`relative bg-white rounded-3xl p-8 border-2 transition-all duration-300 flex flex-col h-full
                 ${
                   tier.isPopular
-                    ? 'border-gold-sunshine shadow-glow transform scale-105 z-10'
-                    : 'border-peach-soft/50 shadow-soft-md hover:shadow-soft-lg hover:-translate-y-2'
+                    ? 'border-gold-sunshine transform scale-105 z-10'
+                    : 'border-peach-soft/50 hover:-translate-y-2'
                 }`}
             >
               {tier.isPopular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-linear-to-r from-coral-burst to-gold-sunshine text-white px-4 py-1 rounded-full font-heading font-bold text-sm shadow-md whitespace-nowrap">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-linear-to-r from-coral-burst to-gold-sunshine text-white px-4 py-1 rounded-full font-heading font-bold text-sm whitespace-nowrap">
                   Most Popular ⭐
                 </div>
               )}
@@ -251,10 +253,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                 )}
               </div>
 
-              <button
+              <Button
                 onClick={() => handleSubscribe(tier)}
                 disabled={processingTier !== null}
-                className={`w-full py-3 rounded-xl font-heading font-bold transition-all mb-4 ${tier.buttonColor} flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed`}
+                className={`w-full py-3 mb-4 ${tier.buttonColor}`}
               >
                 {processingTier === tier.name ? (
                   <>
@@ -266,19 +268,21 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                 ) : (
                   'Upgrade now'
                 )}
-              </button>
+              </Button>
 
               {/* Why This Tier Button */}
               {tier.priceMonthly > 0 && (
-                <button
+                <Button
                   onClick={() => {
                     const el = document.getElementById('pricing-faq');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="w-full py-2 rounded-lg font-medium text-sm text-cocoa-light hover:text-charcoal-soft hover:bg-gray-100 transition-all mb-6 border border-transparent hover:border-gray-200"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full py-2 font-medium text-cocoa-light hover:text-charcoal-soft hover:bg-gray-100 mb-6 border border-transparent hover:border-gray-200"
                 >
                   Why {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}?
-                </button>
+                </Button>
               )}
               {tier.priceMonthly === 0 && <div className="mb-4" />}
 
@@ -316,7 +320,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
           <img
             src="/assets/mascots/8k_3d_pixar_202512022053.jpeg"
             alt="Genesis Community"
-            className="w-full max-w-7xl h-auto object-contain object-bottom max-h-[400px] min-h-[200px]"
+            className="w-full max-w-7xl h-auto object-contain object-bottom max-h-100 min-h-50"
             loading="lazy"
           />
         </div>

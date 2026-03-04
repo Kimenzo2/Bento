@@ -81,7 +81,7 @@ export function initializeSentry(): void {
     },
   });
 
-  console.log(`[Sentry] Initialized in ${SENTRY_ENVIRONMENT} mode`);
+  console.warn(`[Sentry] Initialized in ${SENTRY_ENVIRONMENT} mode`);
 }
 
 /**

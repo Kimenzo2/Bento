@@ -1,7 +1,11 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { Bug, ChevronRight, Gift, Sparkles, Star, Wrench, X, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Bug, ChevronRight, Gift, Sparkles, Star, Wrench, Zap } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogFooter } from './ui/dialog';
+import { ScrollArea } from './ui/scroll-area';
 
 interface ChangelogEntry {
   version: string;
@@ -149,7 +153,7 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const getTypeBadge = (type: string) => {
+const _getTypeBadge = (type: string) => {
   const colors = {
     feature: 'bg-coral-burst/10 text-coral-burst',
     improvement: 'bg-amber-500/10 text-amber-600',
@@ -165,7 +169,7 @@ interface WhatsNewModalProps {
   forceShow?: boolean;
 }
 
-const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceShow = false }) => {
+const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceShow: _forceShow = false }) => {
   const [activeVersion, setActiveVersion] = useState(0);
 
   useEffect(() => {
@@ -180,88 +184,57 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
   const currentEntry = CHANGELOG[activeVersion];
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        {/* Backdrop */}
-        <motion.div
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={onClose}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        />
-
-        {/* Modal */}
-        <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden"
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        >
-          {/* Header */}
-          <div className="relative bg-gradient-to-r from-coral-burst to-orange-500 p-6 text-white">
-            <button
-              onClick={onClose}
-              title="Close"
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-2">
-              <Gift className="w-8 h-8" />
-              <h2 className="text-2xl font-bold">What's New in Genesis</h2>
-            </div>
-            <p className="text-white/80">Check out the latest features and improvements</p>
-
-            {/* Version Tabs */}
-            <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
-              {CHANGELOG.map((entry, idx) => (
-                <button
-                  key={entry.version}
-                  onClick={() => setActiveVersion(idx)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                    activeVersion === idx
-                      ? 'bg-white text-coral-burst'
-                      : 'bg-white/20 hover:bg-white/30'
-                  }`}
-                >
-                  v{entry.version}
-                </button>
-              ))}
-            </div>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[85vh]">
+        {/* Header */}
+        <div className="relative bg-linear-to-r from-coral-burst to-orange-500 p-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <Gift className="w-8 h-8" />
+            <h2 className="text-2xl font-bold">What's New in Genesis</h2>
           </div>
+          <p className="text-white/80">Check out the latest features and improvements</p>
 
-          {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[50vh]">
+          {/* Version Tabs */}
+          <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
+            {CHANGELOG.map((entry, idx) => (
+              <button
+                key={entry.version}
+                onClick={() => setActiveVersion(idx)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  activeVersion === idx
+                    ? 'bg-white text-coral-burst'
+                    : 'bg-white/20 hover:bg-white/30'
+                }`}
+              >
+                v{entry.version}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <ScrollArea className="max-h-[50vh]">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h3 className="text-xl font-bold text-charcoal-soft">
                   Version {currentEntry.version}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{currentEntry.date}</p>
+                <p className="text-sm text-cocoa-light">{currentEntry.date}</p>
               </div>
             </div>
 
             {/* Highlights */}
             {currentEntry.highlights.length > 0 && (
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                <h4 className="text-sm font-semibold text-cocoa-light uppercase tracking-wider mb-3">
                   Highlights
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {currentEntry.highlights.map((highlight, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1.5 bg-gradient-to-r from-coral-burst/10 to-orange-500/10 text-coral-burst rounded-full text-sm font-medium"
-                    >
+                    <Badge key={idx} variant="primary" className="text-sm">
                       ✨ {highlight}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -275,22 +248,25 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="flex items-start gap-3 p-3 rounded-xl bg-cream-soft/50 border-2 border-peach-soft/30 hover:border-peach-soft transition-colors"
                 >
                   <div className="mt-0.5">{getTypeIcon(change.type)}</div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="font-medium text-charcoal-soft">
                         {change.title}
                       </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTypeBadge(change.type)}`}
-                      >
+                      <Badge variant={
+                        change.type === 'feature' ? 'primary' :
+                        change.type === 'improvement' ? 'warning' :
+                        change.type === 'fix' ? 'success' :
+                        'destructive'
+                      }>
                         {change.type}
-                      </span>
+                      </Badge>
                     </div>
                     {change.description && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-cocoa-light mt-1">
                         {change.description}
                       </p>
                     )}
@@ -299,28 +275,20 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
               ))}
             </div>
           </div>
+        </ScrollArea>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={onClose}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm"
-              >
-                Close
-              </button>
-              <button
-                onClick={onClose}
-                className="flex items-center gap-2 px-4 py-2 bg-coral-burst text-white rounded-xl font-medium hover:bg-coral-burst/90 transition-colors"
-              >
-                Got it, let's go!
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        {/* Footer */}
+        <DialogFooter className="flex-row items-center justify-between p-4 border-t-2 border-peach-soft/30 bg-cream-soft/50">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <Button onClick={onClose}>
+            Got it, let's go!
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

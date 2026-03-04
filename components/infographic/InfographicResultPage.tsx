@@ -16,6 +16,7 @@ import { saveInfographic } from '../../services/libraryService';
 import type { InfographicData } from '../../types/infographic';
 import { exportToPDF, exportToPNG, printElement } from './exportService';
 import InfographicRenderer from './renderer/InfographicRenderer';
+import { Button } from '@components/ui/button';
 
 interface InfographicResultPageProps {
   data: InfographicData;
@@ -82,16 +83,18 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-cream-base overflow-y-auto animate-slideUp">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-peach-soft/30 shadow-sm">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-peach-soft/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
+            <Button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+              variant="ghost"
+              size="icon"
+              className="group"
               title="Back to Editor"
             >
               <ArrowLeft className="w-6 h-6 text-charcoal-soft group-hover:-translate-x-1 transition-transform" />
-            </button>
+            </Button>
             <div>
               <h1 className="font-heading font-bold text-xl sm:text-2xl text-charcoal-soft flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-gold-sunshine" />
@@ -104,10 +107,11 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
+            <Button
               onClick={handleSave}
               disabled={isSaving}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95 ${
+              variant="outline"
+              className={`${
                 isSaved
                   ? 'bg-green-500 text-white'
                   : 'bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50 hover:border-coral-burst'
@@ -122,74 +126,82 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
                 <Bookmark className="w-4 h-4" />
               )}
               <span className="hidden sm:inline">{isSaved ? 'Saved!' : 'Save'}</span>
-            </button>
+            </Button>
 
             <div className="h-8 w-px bg-peach-soft mx-1 hidden sm:block"></div>
 
-            <button
+            <Button
               onClick={onRegenerate}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-cocoa-light hover:text-coral-burst"
+              variant="ghost"
+              size="icon"
+              className="text-cocoa-light hover:text-coral-burst"
               title="Regenerate"
             >
               <RefreshCw className="w-5 h-5" />
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={handlePrint}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-cocoa-light hover:text-charcoal-soft"
+              variant="ghost"
+              size="icon"
+              className="text-cocoa-light hover:text-charcoal-soft"
               title="Print"
             >
               <Printer className="w-5 h-5" />
-            </button>
+            </Button>
 
             <div className="h-8 w-px bg-peach-soft mx-1 hidden sm:block"></div>
 
-            <button
+            <Button
               onClick={() => handleExport('png')}
               disabled={isExporting}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-peach-soft text-charcoal-soft rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+              variant="outline"
+              className="bg-white border border-peach-soft text-charcoal-soft hover:bg-gray-50"
             >
               <FileImage className="w-4 h-4" />
               <span className="hidden sm:inline">PNG</span>
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => handleExport('pdf')}
               disabled={isExporting}
-              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+              variant="primary"
+              className="hover:-translate-y-0.5"
             >
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">PDF</span>
               <span className="sm:hidden">Save</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="bg-white rounded-[32px] shadow-xl border border-white/50 p-4 sm:p-8 md:p-12 min-h-[800px] flex justify-center relative">
+        <div className="bg-white rounded-4xl border border-white/50 p-4 sm:p-8 md:p-12 min-h-[800px] flex justify-center relative">
           {/* Zoom Controls (Floating) */}
-          <div className="absolute bottom-8 right-8 flex flex-col gap-2 bg-white rounded-xl shadow-lg border border-peach-soft/30 p-2 z-10">
-            <button
+          <div className="absolute bottom-8 right-8 flex flex-col gap-2 bg-white rounded-xl border border-peach-soft/30 p-2 z-10">
+            <Button
               onClick={() => setZoom((z) => Math.min(z + 0.1, 2))}
-              className="p-2 hover:bg-gray-50 rounded-lg transition-colors active:scale-95"
+              variant="ghost"
+              size="icon"
               title="Zoom in"
               aria-label="Zoom in"
             >
               <ZoomIn className="w-5 h-5 text-charcoal-soft" />
-            </button>
+            </Button>
             <div className="text-xs text-center font-bold text-cocoa-light py-1 border-y border-gray-100">
               {Math.round(zoom * 100)}%
             </div>
-            <button
+            <Button
               onClick={() => setZoom((z) => Math.max(z - 0.1, 0.5))}
-              className="p-2 hover:bg-gray-50 rounded-lg transition-colors active:scale-95"
+              variant="ghost"
+              size="icon"
               title="Zoom out"
               aria-label="Zoom out"
             >
               <ZoomOut className="w-5 h-5 text-charcoal-soft" />
-            </button>
+            </Button>
           </div>
 
           {/* Renderer Container */}

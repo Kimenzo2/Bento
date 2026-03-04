@@ -51,6 +51,7 @@ import { ROICalculator } from './interactive/ROICalculator';
 import { SavingsCounter } from './interactive/SavingsCounter';
 import { TierMatchQuiz } from './interactive/TierMatchQuiz';
 import { UsageHeatmap } from './interactive/UsageHeatmap';
+import { Button } from '@components/ui/button';
 
 // ============================================================================
 // TIER CONFIGURATION
@@ -381,7 +382,7 @@ const TierDetailCreator: React.FC = () => {
   };
 
   const handleDownloadPDF = () => {
-    console.log('Download creator PDF');
+    console.warn('Download creator PDF');
   };
 
   const handleContactSales = () => {
@@ -410,12 +411,14 @@ const TierDetailCreator: React.FC = () => {
         onDownloadPDF={handleDownloadPDF}
       >
         <div className="mt-4 flex justify-center">
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setShowQuiz(true)}
-            className="text-sm font-semibold text-charcoal-soft/60 hover:text-emerald-600 underline decoration-dotted underline-offset-4"
+            className="text-charcoal-soft/60 hover:text-emerald-600 underline decoration-dotted"
           >
             Not sure? Take the 1-minute tier quiz
-          </button>
+          </Button>
         </div>
       </HeroSection>
 
@@ -548,12 +551,12 @@ const TierDetailCreator: React.FC = () => {
             Watch how Sarah created her first children's book in under 15 minutes—from concept to
             Amazon-ready PDF.
           </p>
-          <button className="px-8 py-4 bg-white text-charcoal-soft rounded-xl font-bold hover:bg-cream-base transition-colors inline-flex items-center gap-2">
+          <Button variant="outline" size="lg">
             <div className="w-10 h-10 rounded-full bg-coral-burst flex items-center justify-center">
               <div className="w-0 h-0 border-l-[8px] border-l-white border-y-[6px] border-y-transparent ml-1" />
             </div>
             Watch 2-Minute Demo
-          </button>
+          </Button>
         </div>
       </SectionWrapper>
 
@@ -562,7 +565,7 @@ const TierDetailCreator: React.FC = () => {
         id="who"
         title="Who Creator Is For"
         subtitle="Real creators building real businesses with Genesis"
-        className="bg-gradient-to-b from-white to-emerald-50/30"
+        className="bg-linear-to-b from-white to-emerald-50/30"
         background="bg-emerald-50/30"
       >
         <PersonaCards personas={personas} gradient={tierConfig.gradient} />
@@ -596,7 +599,7 @@ const TierDetailCreator: React.FC = () => {
         id="pricing"
         title="Simple, Transparent Pricing"
         subtitle="Know exactly what you're paying—and what you're saving"
-        className="bg-gradient-to-b from-emerald-50/30 to-white"
+        className="bg-linear-to-b from-emerald-50/30 to-white"
         background="bg-emerald-50/30"
       >
         <PricingBreakdown tier={tierConfig} costPerUnit={costBreakdown} competitors={competitors} />
@@ -627,7 +630,7 @@ const TierDetailCreator: React.FC = () => {
         id="faq"
         title="Frequently Asked Questions"
         subtitle="Everything you need to know about Creator tier"
-        className="bg-gradient-to-b from-white to-emerald-50/30"
+        className="bg-linear-to-b from-white to-emerald-50/30"
         background="bg-emerald-50/30"
       >
         <FAQAccordion faqs={faqs} />
@@ -649,31 +652,34 @@ const TierDetailCreator: React.FC = () => {
               <h4 className="font-bold mb-4">Compare Tiers</h4>
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/welcome?step=pricing')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Spark (Free)
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/tier/studio')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Studio ($49.92/mo)
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/tier/empire')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Empire ($166.58/mo)
-                  </button>
+                  </Button>
                 </li>
               </ul>
             </div>
@@ -681,31 +687,34 @@ const TierDetailCreator: React.FC = () => {
               <h4 className="font-bold mb-4">Resources</h4>
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/welcome?step=tour')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Getting Started Guide
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('features')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Style Gallery
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('how')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Publishing Tutorials
-                  </button>
+                  </Button>
                 </li>
               </ul>
             </div>

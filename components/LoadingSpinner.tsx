@@ -30,15 +30,16 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   className = '',
 }) => {
   const spinner = (
-    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
+    <div role="status" aria-label="Loading" className={`flex flex-col items-center justify-center gap-3 ${className}`}>
       <Loader2 className={`${sizeClasses[size]} text-coral-burst animate-spin`} />
       {text && <p className="text-cocoa-light font-body text-sm animate-pulse">{text}</p>}
+      {!text && <span className="sr-only">Loading...</span>}
     </div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-cream-base to-peach-soft z-50">
+      <div className="fixed inset-0 flex items-center justify-center bg-linear-to-br from-cream-base to-peach-soft z-50">
         {spinner}
       </div>
     );
@@ -100,7 +101,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
 // Card skeleton for loading states
 export const CardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`bg-white rounded-2xl shadow-md p-4 ${className}`}>
+  <div className={`bg-white rounded-2xl border-2 border-peach-soft p-4 ${className}`}>
     <div className="flex items-center gap-3 mb-4">
       <Skeleton variant="circular" width={40} height={40} />
       <div className="flex-1">

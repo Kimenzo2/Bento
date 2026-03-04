@@ -180,14 +180,14 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl">
+    <div className="relative w-full h-full flex flex-col items-center justify-center p-6 bg-linear-to-br from-blue-50 to-purple-50 rounded-3xl">
       {/* Character Avatar with Expressions */}
       <motion.div
         className={`relative mb-6 transition-all duration-300 ${getExpressionClasses()}`}
         animate={getSpeakingAnimation()}
       >
         {/* Main Character Image */}
-        <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-white shadow-2xl">
+        <div className="relative w-48 h-48 rounded-full overflow-hidden border-8 border-white">
           <img
             src={character.imageUrl}
             alt={character.name}
@@ -222,7 +222,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               exit={{ scale: 0, rotate: 180 }}
-              className="absolute -top-4 -right-4 w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center text-3xl shadow-lg border-4 border-white"
+              className="absolute -top-4 -right-4 w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center text-3xl border-4 border-white"
             >
               {expression === 'happy' && '😊'}
               {expression === 'thinking' && '🤔'}
@@ -238,7 +238,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
             {[...Array(5)].map((_, i) => (
               <motion.div
                 key={i}
-                className="w-1 bg-gradient-to-t from-blue-500 to-purple-500 rounded-full"
+                className="w-1 bg-linear-to-t from-blue-500 to-purple-500 rounded-full"
                 animate={{
                   height: ['8px', '24px', '8px'],
                 }}
@@ -271,7 +271,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200"
+            className="w-full max-w-md bg-white rounded-2xl p-6 border-2 border-blue-200"
           >
             <p className="text-lg font-bold text-charcoal-soft mb-4">
               {learningContent.quiz.question}
@@ -331,7 +331,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={togglePause}
-              className="p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+              className="p-3 bg-blue-500 text-white rounded-full border-2 border-white/20 hover:bg-blue-600 transition-colors"
               title={isPaused ? 'Resume' : 'Pause'}
             >
               {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
@@ -340,7 +340,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={stopTutoring}
-              className="p-3 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+              className="p-3 bg-red-500 text-white rounded-full border-2 border-white/20 hover:bg-red-600 transition-colors"
               title="Stop"
             >
               <VolumeX className="w-5 h-5" />
@@ -349,7 +349,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={restartTutoring}
-              className="p-3 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-colors"
+              className="p-3 bg-purple-500 text-white rounded-full border-2 border-white/20 hover:bg-purple-600 transition-colors"
               title="Restart"
             >
               <RotateCcw className="w-5 h-5" />
@@ -360,7 +360,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={startTutoring}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all font-bold flex items-center gap-2"
+            className="px-6 py-3 bg-linear-to-r from-blue-500 to-purple-500 text-white rounded-full border-2 border-white/20 transition-all font-bold flex items-center gap-2"
           >
             <Volume2 className="w-5 h-5" />
             Start Learning

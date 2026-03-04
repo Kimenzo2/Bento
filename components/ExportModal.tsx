@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   AlertCircle,
   Book,
@@ -8,11 +8,15 @@ import {
   Image,
   Loader,
   Settings,
-  X,
 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import type { SavedBook } from '../types';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Label } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Switch } from './ui/switch';
 
 interface ExportOptions {
   format: 'epub' | 'pdf' | 'html';
@@ -98,217 +102,184 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
   if (!isOpen || !book) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-        <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-        >
-          {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-coral-burst to-sunset-coral rounded-xl">
-                  <Download className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Export Book</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{book.title}</p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                title="Close"
-                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-lg p-0 overflow-hidden">
+        {/* Header */}
+        <DialogHeader className="p-6 border-b-2 border-peach-soft/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-linear-to-br from-coral-burst to-sunset-coral rounded-xl">
+              <Download className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <DialogTitle>Export Book</DialogTitle>
+              <DialogDescription>{book.title}</DialogDescription>
             </div>
           </div>
+        </DialogHeader>
 
-          {/* Content */}
-          <div className="p-6 space-y-6">
-            {/* Format Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Export Format
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: 'epub', label: 'EPUB', icon: Book, desc: 'E-readers' },
-                  { id: 'pdf', label: 'PDF', icon: FileText, desc: 'Print & share' },
-                  { id: 'html', label: 'HTML', icon: Settings, desc: 'Web viewing' },
-                ].map(({ id, label, icon: Icon, desc }) => (
-                  <button
-                    key={id}
-                    onClick={() =>
-                      setOptions((prev) => ({ ...prev, format: id as ExportOptions['format'] }))
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Format Selection */}
+          <div>
+            <Label className="mb-3">
+              Export Format
+            </Label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 'epub', label: 'EPUB', icon: Book, desc: 'E-readers' },
+                { id: 'pdf', label: 'PDF', icon: FileText, desc: 'Print & share' },
+                { id: 'html', label: 'HTML', icon: Settings, desc: 'Web viewing' },
+              ].map(({ id, label, icon: Icon, desc }) => (
+                <Button
+                  key={id}
+                  onClick={() =>
+                    setOptions((prev) => ({ ...prev, format: id as ExportOptions['format'] }))
+                  }
+                  variant="outline"
+                  className={`
+                    p-4 h-auto border-2 text-center flex-col
+                    ${
+                      options.format === id
+                        ? 'border-coral-burst bg-coral-burst/5'
+                        : 'border-peach-soft hover:border-coral-burst/50'
                     }
-                    className={`
-                                            p-4 rounded-xl border-2 transition-all text-center
-                                            ${
-                                              options.format === id
-                                                ? 'border-coral-burst bg-coral-burst/5'
-                                                : 'border-gray-200 dark:border-gray-700 hover:border-coral-burst/50'
-                                            }
-                                        `}
-                  >
-                    <Icon
-                      className={`w-6 h-6 mx-auto mb-2 ${options.format === id ? 'text-coral-burst' : 'text-gray-400'}`}
-                    />
-                    <div className="font-medium text-gray-900 dark:text-white">{label}</div>
-                    <div className="text-xs text-gray-500">{desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Include Images */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Image className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Include Illustrations</p>
-                  <p className="text-xs text-gray-500">Embed all generated images</p>
-                </div>
-              </div>
-              <button
-                onClick={() =>
-                  setOptions((prev) => ({ ...prev, includeImages: !prev.includeImages }))
-                }
-                title="Toggle include illustrations"
-                className={`
-                                    relative w-12 h-6 rounded-full transition-colors
-                                    ${options.includeImages ? 'bg-coral-burst' : 'bg-gray-300 dark:bg-gray-600'}
-                                `}
-              >
-                <motion.div
-                  className="absolute top-1 w-4 h-4 bg-white rounded-full shadow"
-                  animate={{ left: options.includeImages ? '28px' : '4px' }}
-                />
-              </button>
-            </div>
-
-            {/* Font Size */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Font Size
-              </label>
-              <div className="flex gap-2">
-                {(['small', 'medium', 'large'] as const).map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setOptions((prev) => ({ ...prev, fontSize: size }))}
-                    className={`
-                                            flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors capitalize
-                                            ${
-                                              options.fontSize === size
-                                                ? 'bg-coral-burst text-white'
-                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
-                                            }
-                                        `}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Font Family */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Font Family
-              </label>
-              <select
-                value={options.fontFamily}
-                onChange={(e) => setOptions((prev) => ({ ...prev, fontFamily: e.target.value }))}
-                title="Select font family"
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
-                <option value="Georgia">Georgia (Serif)</option>
-                <option value="Arial">Arial (Sans-serif)</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Comic Sans MS">Comic Sans (Playful)</option>
-                <option value="Verdana">Verdana</option>
-              </select>
-            </div>
-
-            {/* Export Error */}
-            {exportError && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg">
-                <AlertCircle className="w-5 h-5" />
-                <span>{exportError}</span>
-              </div>
-            )}
-
-            {/* Export Progress */}
-            {isExporting && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                  <span>Exporting...</span>
-                  <span>{exportProgress}%</span>
-                </div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-coral-burst to-sunset-coral"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${exportProgress}%` }}
+                  `}
+                >
+                  <Icon
+                    className={`w-6 h-6 mx-auto mb-2 ${options.format === id ? 'text-coral-burst' : 'text-cocoa-light'}`}
                   />
-                </div>
+                  <div className="font-medium text-charcoal-soft">{label}</div>
+                  <div className="text-xs text-cocoa-light">{desc}</div>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Include Images */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Image className="w-5 h-5 text-cocoa-light" />
+              <div>
+                <p className="font-medium text-charcoal-soft">Include Illustrations</p>
+                <p className="text-xs text-cocoa-light">Embed all generated images</p>
               </div>
-            )}
-
-            {/* Success Message */}
-            {exportSuccess && (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="flex items-center justify-center gap-2 p-4 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg"
-              >
-                <Check className="w-5 h-5" />
-                <span className="font-medium">Export successful!</span>
-              </motion.div>
-            )}
+            </div>
+            <Switch
+              checked={options.includeImages}
+              onCheckedChange={(checked) =>
+                setOptions((prev) => ({ ...prev, includeImages: checked }))
+              }
+            />
           </div>
 
-          {/* Footer */}
-          <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={isExporting}
-              className="px-6 py-2 rounded-xl bg-gradient-to-r from-coral-burst to-sunset-coral text-white font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {isExporting ? (
-                <>
-                  <Loader className="w-4 h-4 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Export {options.format.toUpperCase()}
-                </>
-              )}
-            </button>
+          {/* Font Size */}
+          <div>
+            <Label className="mb-2">
+              Font Size
+            </Label>
+            <div className="flex gap-2">
+              {(['small', 'medium', 'large'] as const).map((size) => (
+                <Button
+                  key={size}
+                  onClick={() => setOptions((prev) => ({ ...prev, fontSize: size }))}
+                  variant="outline"
+                  size="sm"
+                  className={`
+                    flex-1 py-2 px-4 font-medium capitalize border-2
+                    ${
+                      options.fontSize === size
+                        ? 'bg-coral-burst text-white border-coral-burst'
+                        : 'border-peach-soft text-cocoa-light hover:border-coral-burst/50'
+                    }
+                  `}
+                >
+                  {size}
+                </Button>
+              ))}
+            </div>
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+
+          {/* Font Family */}
+          <div>
+            <Label className="mb-2">
+              Font Family
+            </Label>
+            <Select value={options.fontFamily} onValueChange={(v) => setOptions((prev) => ({ ...prev, fontFamily: v }))}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select font" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Georgia">Georgia (Serif)</SelectItem>
+                <SelectItem value="Arial">Arial (Sans-serif)</SelectItem>
+                <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                <SelectItem value="Comic Sans MS">Comic Sans (Playful)</SelectItem>
+                <SelectItem value="Verdana">Verdana</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Export Error */}
+          {exportError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl border-2 border-red-100">
+              <AlertCircle className="w-5 h-5" />
+              <span>{exportError}</span>
+            </div>
+          )}
+
+          {/* Export Progress */}
+          {isExporting && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-cocoa-light">
+                <span>Exporting...</span>
+                <span>{exportProgress}%</span>
+              </div>
+              <div className="h-2 bg-peach-soft/30 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-linear-to-r from-coral-burst to-gold-sunshine rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${exportProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {exportSuccess && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex items-center justify-center gap-2 p-4 bg-green-50 text-green-600 rounded-xl border-2 border-green-100"
+            >
+              <Check className="w-5 h-5" />
+              <span className="font-medium">Export successful!</span>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <DialogFooter className="p-6 border-t-2 border-peach-soft/30">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <>
+                <Loader className="w-4 h-4 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Export {options.format.toUpperCase()}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -403,7 +374,7 @@ function generateFullHTML(book: SavedBook, options: ExportOptions): string {
             margin: 0 auto;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            box-shadow: none;
             overflow: hidden;
         }
         .cover {
@@ -431,7 +402,7 @@ function generateFullHTML(book: SavedBook, options: ExportOptions): string {
         .page-image {
             width: 100%;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: none;
         }
         .footer {
             text-align: center;

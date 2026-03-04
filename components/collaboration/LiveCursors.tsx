@@ -16,7 +16,7 @@ interface CursorProps {
 function Cursor({ x, y, color, name }: CursorProps) {
   return (
     <div
-      className="pointer-events-none absolute z-[9999] transition-transform duration-[20ms]"
+      className="pointer-events-none absolute z-9999 transition-transform duration-20"
       style={{
         transform: `translate(${x}px, ${y}px)`,
       }}
@@ -41,7 +41,7 @@ function Cursor({ x, y, color, name }: CursorProps) {
 
       {/* Name badge */}
       <div
-        className="absolute left-4 top-4 px-2 py-1 rounded-full text-[11px] font-medium text-white whitespace-nowrap shadow-md"
+        className="absolute left-4 top-4 px-2 py-1 rounded-full text-[11px] font-medium text-white whitespace-nowrap"
         style={{ backgroundColor: color }}
       >
         {name}
@@ -55,7 +55,7 @@ interface LiveCursorsProps {
   containerRef?: React.RefObject<HTMLElement | null>;
 }
 
-export function LiveCursors({ containerRef }: LiveCursorsProps) {
+export function LiveCursors({ containerRef: _containerRef }: LiveCursorsProps) {
   const others = useOthers();
 
   return (
@@ -79,7 +79,7 @@ export function LiveCursors({ containerRef }: LiveCursorsProps) {
  * Hook to track cursor position and update presence
  */
 export function useCursorTracking(containerRef: React.RefObject<HTMLElement | null>) {
-  const self = useSelf();
+  const _self = useSelf();
 
   React.useEffect(() => {
     const container = containerRef.current;

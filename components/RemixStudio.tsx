@@ -30,9 +30,13 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useState } from 'react';
-import { type WorldSearchFilters, remixService } from '../services/remixService';
+import { useCallback, useEffect, useState } from 'react';
+import { remixService, type WorldSearchFilters } from '../services/remixService';
 import type { BookProject, RemixableWorld } from '../types';
+import { Button } from '@components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import { Input, Label } from '@components/ui/input';
+import { Textarea } from '@components/ui/input';
 
 interface RemixStudioProps {
   isOpen: boolean;
@@ -98,7 +102,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
     isPublic: true,
     allowRemix: true,
     requireCredit: true,
-    license: 'attribution' as const,
+    license: 'attribution' as 'open' | 'attribution' | 'non-commercial' | 'restricted',
   });
   const [newTag, setNewTag] = useState('');
   const [newRule, setNewRule] = useState('');
@@ -106,13 +110,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
   const [publishSuccess, setPublishSuccess] = useState(false);
 
   // Load worlds
-  useEffect(() => {
-    if (isOpen) {
-      loadWorlds();
-    }
-  }, [isOpen, filters]);
-
-  const loadWorlds = async () => {
+  const loadWorlds = useCallback(async () => {
     setLoading(true);
     try {
       const [allWorlds, featured] = await Promise.all([
@@ -126,7 +124,13 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadWorlds();
+    }
+  }, [isOpen, filters, loadWorlds]);
 
   // Handle fork
   const handleFork = async (world: RemixableWorld) => {
@@ -191,7 +195,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
   };
 
   // Add rule
-  const addRule = () => {
+  const _addRule = () => {
     if (newRule.trim() && !publishSettings.rules.includes(newRule.trim())) {
       setPublishSettings((prev) => ({
         ...prev,
@@ -209,11 +213,11 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center"
+        className="fixed inset-0 z-100 flex items-center justify-center"
       >
         {/* Backdrop */}
         <div
-          className="absolute inset-0 bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-950"
+          className="absolute inset-0 bg-linear-to-br from-purple-950 via-slate-950 to-indigo-950"
           onClick={onClose}
         />
 
@@ -222,14 +226,14 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="relative w-full max-w-7xl h-[90vh] mx-4 bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-purple-500/20 shadow-2xl shadow-purple-500/10 overflow-hidden flex flex-col"
+          className="relative w-full max-w-7xl h-[90vh] mx-4 bg-slate-900/95 backdrop-blur-xl rounded-3xl border border-purple-500/20 overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-purple-900/30 via-transparent to-indigo-900/30">
+          <div className="px-6 py-4 border-b border-white/10 bg-linear-to-r from-purple-900/30 via-transparent to-indigo-900/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
                   <GitFork className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -243,9 +247,11 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
               <div className="flex items-center gap-4">
                 {/* Tabs */}
                 <div className="flex bg-white/5 rounded-xl p-1">
-                  <button
+                  <Button
                     onClick={() => setActiveTab('discover')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    variant="ghost"
+                    size="sm"
+                    className={`font-medium ${
                       activeTab === 'discover'
                         ? 'bg-purple-500 text-white'
                         : 'text-white/60 hover:text-white'
@@ -255,11 +261,13 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                       <Globe className="w-4 h-4" />
                       Discover
                     </span>
-                  </button>
+                  </Button>
                   {currentProject && (
-                    <button
+                    <Button
                       onClick={() => setActiveTab('publish')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      variant="ghost"
+                      size="sm"
+                      className={`font-medium ${
                         activeTab === 'publish'
                           ? 'bg-purple-500 text-white'
                           : 'text-white/60 hover:text-white'
@@ -269,16 +277,18 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         <Sparkles className="w-4 h-4" />
                         Publish
                       </span>
-                    </button>
+                    </Button>
                   )}
                 </div>
 
-                <button
+                <Button
                   onClick={onClose}
-                  className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/40 hover:text-white hover:bg-white/10"
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -294,24 +304,26 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                     <div className="flex gap-3">
                       <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
-                        <input
+                        <Input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Search worlds..."
-                          className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                          className="pl-10 pr-4 py-3 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                         />
                       </div>
-                      <button
+                      <Button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`px-4 py-2 rounded-xl border transition-colors ${
+                        variant="outline"
+                        size="icon"
+                        className={`${
                           showFilters
                             ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
                             : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5'
                         }`}
                       >
                         <Filter className="w-5 h-5" />
-                      </button>
+                      </Button>
                     </div>
 
                     {/* Filters Panel */}
@@ -325,38 +337,30 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         >
                           <div className="pt-4 flex flex-wrap gap-3">
                             {/* Era Filter */}
-                            <select
-                              value={filters.era || ''}
-                              onChange={(e) =>
-                                setFilters((f) => ({ ...f, era: e.target.value || undefined }))
-                              }
-                              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500/50"
-                            >
-                              {ERA_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value} className="bg-slate-800">
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
+                            <Select value={filters.era || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, era: v === 'all' ? undefined : v }))}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="All Eras" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ERA_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value || 'all'} value={opt.value || 'all'}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
 
                             {/* Sort By */}
-                            <select
-                              value={filters.sortBy || 'trending'}
-                              onChange={(e) =>
-                                setFilters((f) => ({ ...f, sortBy: e.target.value as any }))
-                              }
-                              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500/50"
-                            >
-                              <option value="trending" className="bg-slate-800">
-                                🔥 Trending
-                              </option>
-                              <option value="popular" className="bg-slate-800">
-                                ⭐ Most Remixed
-                              </option>
-                              <option value="recent" className="bg-slate-800">
-                                🕐 Recent
-                              </option>
-                            </select>
+                            <Select value={filters.sortBy || 'trending'} onValueChange={(v) => setFilters((f) => ({ ...f, sortBy: v as WorldSearchFilters['sortBy'] }))}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sort by" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="trending">🔥 Trending</SelectItem>
+                                <SelectItem value="popular">⭐ Most Remixed</SelectItem>
+                                <SelectItem value="recent">🕐 Recent</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </motion.div>
                       )}
@@ -372,10 +376,11 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                       </h3>
                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
                         {featuredWorlds.slice(0, 4).map((world) => (
-                          <button
+                          <Button
                             key={world.id}
                             onClick={() => setSelectedWorld(world)}
-                            className="flex-shrink-0 w-48 p-3 bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all text-left"
+                            variant="ghost"
+                            className="shrink-0 w-48 p-3 bg-linear-to-br from-purple-900/30 to-indigo-900/30 border border-purple-500/20 hover:border-purple-500/40 text-left h-auto flex-col items-start"
                           >
                             <div className="w-full h-20 rounded-lg bg-purple-800/30 mb-2 overflow-hidden">
                               {world.coverImage ? (
@@ -394,7 +399,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               {world.name}
                             </h4>
                             <p className="text-xs text-white/40 truncate">{world.creatorName}</p>
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -424,7 +429,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             }`}
                           >
                             <div className="flex gap-3">
-                              <div className="w-16 h-16 rounded-lg bg-purple-800/30 flex-shrink-0 overflow-hidden">
+                              <div className="w-16 h-16 rounded-lg bg-purple-800/30 shrink-0 overflow-hidden">
                                 {world.coverImage ? (
                                   <img
                                     src={world.coverImage}
@@ -502,7 +507,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600/30 to-indigo-600/30">
+                            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-purple-600/30 to-indigo-600/30">
                               <Globe className="w-12 h-12 text-purple-400/50" />
                             </div>
                           )}
@@ -637,7 +642,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                           whileTap={{ scale: 0.98 }}
                           onClick={() => handleFork(selectedWorld)}
                           disabled={forking || !userId}
-                          className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full py-4 bg-linear-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {forking ? (
                             <>
@@ -697,90 +702,90 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
                       {/* World Name */}
                       <div>
-                        <label className="block text-sm font-medium text-white/80 mb-2">
+                        <Label className="text-white/80 mb-2">
                           World Name *
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                           type="text"
                           value={publishSettings.name}
                           onChange={(e) =>
                             setPublishSettings((s) => ({ ...s, name: e.target.value }))
                           }
                           placeholder={`${currentProject?.title} World`}
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                          className="py-3 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                         />
                       </div>
 
                       {/* Description */}
                       <div>
-                        <label className="block text-sm font-medium text-white/80 mb-2">
+                        <Label className="text-white/80 mb-2">
                           Description
-                        </label>
-                        <textarea
+                        </Label>
+                        <Textarea
                           value={publishSettings.description}
                           onChange={(e) =>
                             setPublishSettings((s) => ({ ...s, description: e.target.value }))
                           }
                           placeholder="Describe what makes this world unique..."
                           rows={3}
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 resize-none"
+                          className="bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                         />
                       </div>
 
                       {/* Era & Magic */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-white/80 mb-2">
+                          <Label className="text-white/80 mb-2">
                             Era
-                          </label>
-                          <select
-                            value={publishSettings.era}
-                            onChange={(e) =>
-                              setPublishSettings((s) => ({ ...s, era: e.target.value }))
-                            }
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500/50"
-                          >
-                            {ERA_OPTIONS.slice(1).map((opt) => (
-                              <option key={opt.value} value={opt.value} className="bg-slate-800">
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
+                          </Label>
+                          <Select value={publishSettings.era} onValueChange={(v) => setPublishSettings((s) => ({ ...s, era: v }))}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select era" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ERA_OPTIONS.slice(1).map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-white/80 mb-2">
+                          <Label className="text-white/80 mb-2">
                             Magic System (optional)
-                          </label>
-                          <input
+                          </Label>
+                          <Input
                             type="text"
                             value={publishSettings.magicSystem}
                             onChange={(e) =>
                               setPublishSettings((s) => ({ ...s, magicSystem: e.target.value }))
                             }
                             placeholder="e.g., Elemental magic"
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                            className="py-3 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                           />
                         </div>
                       </div>
 
                       {/* Tags */}
                       <div>
-                        <label className="block text-sm font-medium text-white/80 mb-2">Tags</label>
+                        <Label className="text-white/80 mb-2">Tags</Label>
                         <div className="flex gap-2 mb-2">
-                          <input
+                          <Input
                             type="text"
                             value={newTag}
                             onChange={(e) => setNewTag(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && addTag()}
                             placeholder="Add a tag..."
-                            className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                            className="flex-1 py-2 bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-purple-500/50"
                           />
-                          <button
+                          <Button
                             onClick={addTag}
-                            className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-xl text-purple-300"
+                            variant="ghost"
+                            className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300"
                           >
                             Add
-                          </button>
+                          </Button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {publishSettings.tags.map((tag) => (
@@ -789,17 +794,19 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                               className="px-2 py-1 bg-purple-500/20 rounded-full text-xs text-purple-300 flex items-center gap-1"
                             >
                               #{tag}
-                              <button
+                              <Button
                                 onClick={() =>
                                   setPublishSettings((s) => ({
                                     ...s,
                                     tags: s.tags.filter((t) => t !== tag),
                                   }))
                                 }
-                                className="hover:text-white"
+                                variant="ghost"
+                                size="icon"
+                                className="hover:text-white h-auto w-auto p-0"
                               >
                                 <X className="w-3 h-3" />
-                              </button>
+                              </Button>
                             </span>
                           ))}
                         </div>
@@ -807,17 +814,18 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
                       {/* License */}
                       <div>
-                        <label className="block text-sm font-medium text-white/80 mb-2">
+                        <Label className="text-white/80 mb-2">
                           License
-                        </label>
+                        </Label>
                         <div className="grid grid-cols-2 gap-2">
                           {Object.entries(LICENSE_ICONS).map(([key, { icon, label, color }]) => (
-                            <button
+                            <Button
                               key={key}
                               onClick={() =>
-                                setPublishSettings((s) => ({ ...s, license: key as any }))
+                                setPublishSettings((s) => ({ ...s, license: key as 'open' | 'attribution' | 'non-commercial' | 'restricted' }))
                               }
-                              className={`p-3 rounded-xl border text-left transition-all ${
+                              variant="outline"
+                              className={`p-3 text-left h-auto ${
                                 publishSettings.license === key
                                   ? 'bg-purple-500/20 border-purple-500/50'
                                   : 'bg-white/5 border-white/10 hover:border-white/20'
@@ -827,14 +835,14 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                                 {icon}
                                 <span className="text-sm font-medium">{label}</span>
                               </div>
-                            </button>
+                            </Button>
                           ))}
                         </div>
                       </div>
 
                       {/* Settings Toggles */}
                       <div className="space-y-3">
-                        <label className="flex items-center justify-between p-3 bg-white/5 rounded-xl cursor-pointer">
+                        <Label className="flex items-center justify-between p-3 bg-white/5 rounded-xl cursor-pointer">
                           <span className="text-white/80">Allow remixing</span>
                           <input
                             type="checkbox"
@@ -842,10 +850,11 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             onChange={(e) =>
                               setPublishSettings((s) => ({ ...s, allowRemix: e.target.checked }))
                             }
+                            aria-label="Allow remixing"
                             className="w-5 h-5 rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
                           />
-                        </label>
-                        <label className="flex items-center justify-between p-3 bg-white/5 rounded-xl cursor-pointer">
+                        </Label>
+                        <Label className="flex items-center justify-between p-3 bg-white/5 rounded-xl cursor-pointer">
                           <span className="text-white/80">Require attribution</span>
                           <input
                             type="checkbox"
@@ -853,9 +862,10 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             onChange={(e) =>
                               setPublishSettings((s) => ({ ...s, requireCredit: e.target.checked }))
                             }
+                            aria-label="Require attribution"
                             className="w-5 h-5 rounded bg-white/10 border-white/20 text-purple-500 focus:ring-purple-500"
                           />
-                        </label>
+                        </Label>
                       </div>
 
                       {/* Publish Button */}
@@ -864,7 +874,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         whileTap={{ scale: 0.98 }}
                         onClick={handlePublish}
                         disabled={publishing || !publishSettings.name.trim()}
-                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-4 bg-linear-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {publishing ? (
                           <>

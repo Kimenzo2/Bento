@@ -1,5 +1,6 @@
 import { Contrast, Keyboard, Monitor, Moon, Volume } from 'lucide-react';
 import type React from 'react';
+import { Label } from '@components/ui/input';
 
 interface AccessibilitySettingsProps {
   settings: {
@@ -32,7 +33,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
       onClick={() => onChange(!checked)}
     >
       <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-        <Icon className="w-5 h-5 text-coral-burst flex-shrink-0" />
+        <Icon className="w-5 h-5 text-coral-burst shrink-0" />
         <div className="flex flex-col min-w-0">
           <span className="text-charcoal-soft font-medium text-sm md:text-sm group-hover:text-coral-burst transition-colors truncate">
             {label}
@@ -43,12 +44,12 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         </div>
       </div>
       <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 shrink-0 ml-3 md:ml-4 ${
           checked ? 'bg-coral-burst' : 'bg-gray-200'
         }`}
       >
         <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full transform transition-transform duration-300 ${
             checked ? 'translate-x-[22px]' : 'translate-x-0'
           }`}
         />
@@ -113,9 +114,9 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-cocoa-light uppercase mb-2 block">
+            <Label className="text-xs uppercase mb-2">
               Font Size
-            </label>
+            </Label>
             <div className="flex gap-2">
               {['small', 'medium', 'large'].map((size) => (
                 <button

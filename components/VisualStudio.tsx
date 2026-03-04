@@ -23,6 +23,10 @@ import CharacterDepthPanel from './CharacterDepthPanel';
 import MobileBottomNav from './MobileBottomNav';
 import StoryMap from './StoryMap';
 import { BroadcastStudio, NotificationCenter } from './collaboration';
+import { Button } from './ui/button';
+import { Label, Textarea } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { toast } from './ui/sonner';
 
 interface VisualStudioProps {
   project: BookProject | null;
@@ -39,7 +43,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   userProfile,
   onNavigate,
   onUpdateProject,
-  onToast,
 }) => {
   const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -69,9 +72,9 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   });
 
   // UI State
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [expandedVisual, setExpandedVisual] = useState<'current' | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [_showShareModal, setShowShareModal] = useState(false);
+  const [_expandedVisual, setExpandedVisual] = useState<'current' | null>(null);
+  const [unreadCount, _setUnreadCount] = useState(0);
   const [mobileActiveTab, setMobileActiveTab] = useState<'character' | 'scene' | 'style' | 'chat'>(
     'character'
   );
@@ -85,7 +88,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   // Handle generation
   const handleGenerate = async () => {
     if (!settings.prompt && !settings.selectedCharacterId) {
-      onToast?.('Please enter a prompt or select a character', 'info');
+      toast.info('Please enter a prompt or select a character');
       return;
     }
 
@@ -156,7 +159,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
       }
     } catch (error) {
       console.error('Generation failed:', error);
-      onToast?.('Failed to generate image. Please try again.', 'error');
+      toast.error('Failed to generate image. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -220,72 +223,78 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
 
   return (
     <div
-      className={`w-full mx-auto animate-fadeIn ${viewMode === 'storymap' ? 'h-[100dvh] flex flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      className={`w-full mx-auto animate-fadeIn ${viewMode === 'storymap' ? 'h-dvh flex flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}
     >
       {/* Header with Mode Switcher */}
       <div
-        className={`relative text-center mb-4 md:mb-6 flex-shrink-0 ${viewMode === 'storymap' ? 'px-2 sm:px-4 md:px-8 pt-2 md:pt-4' : 'px-10 sm:px-12 md:px-20'}`}
+        className={`relative text-center mb-4 md:mb-6 shrink-0 ${viewMode === 'storymap' ? 'px-2 sm:px-4 md:px-8 pt-2 md:pt-4' : 'px-10 sm:px-12 md:px-20'}`}
       >
         {onBack && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onBack}
-            className="absolute left-1 md:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="absolute left-1 md:left-4 top-1/2 -translate-y-1/2 rounded-full text-cocoa-light hover:text-coral-burst hover:bg-cream-soft z-10 min-h-11 min-w-11"
             aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
-          </button>
+          </Button>
         )}
 
         {/* Right Side Actions - Notifications, Go Live */}
         <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
           {/* Notification Bell Button */}
-          <button
+          <Button
             ref={notificationBtnRef}
+            variant="ghost"
+            size="icon"
             onClick={() => userProfile && setShowNotificationCenter(!showNotificationCenter)}
-            className={`relative p-2 rounded-xl transition-all shadow-sm border border-gray-200 min-h-[44px] min-w-[44px] flex items-center justify-center ${userProfile ? 'bg-white/80 hover:bg-white text-gray-600 hover:text-coral-burst' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+            className={`relative p-2 border border-peach-soft/50 min-h-11 min-w-11 ${userProfile ? 'bg-white/80 hover:bg-white text-gray-600 hover:text-coral-burst' : 'bg-gray-100 text-gray-300'}`}
             title={userProfile ? 'Notifications' : 'Login to access notifications'}
           >
             <Bell className="w-4 h-4 md:w-5 md:h-5" />
-          </button>
+          </Button>
 
           {/* Go Live Button - Always visible if user is logged in */}
-          <button
+          <Button
+            variant="destructive"
             onClick={() => userProfile && setShowBroadcastStudio(true)}
-            className={`hidden xs:flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-transform shadow-lg min-h-[44px] ${userProfile ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            className={`hidden xs:flex px-2 md:px-4 py-2 border border-white/20 min-h-11 ${userProfile ? 'bg-linear-to-r from-red-500 to-pink-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-200 text-gray-400'}`}
             disabled={!userProfile}
           >
             <Radio className="w-4 h-4 animate-pulse" />
             <span className="hidden sm:inline">Live</span>
-          </button>
+          </Button>
         </div>
 
         {/* Mode Switcher */}
-        <div className="inline-flex bg-cream-soft p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-peach-soft/50 shadow-sm">
-          <button
+        <div className="inline-flex bg-cream-soft p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-peach-soft/50">
+          <Button
+            variant="ghost"
             onClick={() => setViewMode('individual')}
-            className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center gap-1.5 md:gap-2 transition-all min-h-[40px] ${
+            className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
               viewMode === 'individual'
-                ? 'bg-white text-coral-burst shadow-sm'
-                : 'text-cocoa-light hover:text-charcoal-soft'
+                ? 'bg-white text-coral-burst border-2 border-peach-soft'
+                : 'text-cocoa-light hover:text-charcoal-soft border-2 border-transparent'
             }`}
           >
             <Wand2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
             <span className="hidden xs:inline">Individual</span>
             <span className="xs:hidden">Solo</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setViewMode('storymap')}
-            className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 rounded-lg md:rounded-xl font-heading font-bold text-xs sm:text-sm flex items-center gap-1.5 md:gap-2 transition-all min-h-[40px] ${
+            className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
               viewMode === 'storymap'
-                ? 'bg-white text-emerald-500 shadow-sm'
-                : 'text-cocoa-light hover:text-charcoal-soft'
+                ? 'bg-white text-emerald-500 border-2 border-peach-soft'
+                : 'text-cocoa-light hover:text-charcoal-soft border-2 border-transparent'
             }`}
           >
             <Map className="w-3.5 h-3.5 md:w-4 md:h-4" />
             <span className="hidden xs:inline">Story Map</span>
             <span className="xs:hidden">Map</span>
-          </button>
+          </Button>
         </div>
 
         <p className="text-cocoa-light font-body text-xs sm:text-sm mt-2 md:mt-3 px-2 line-clamp-2">
@@ -302,21 +311,22 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
         {viewMode === 'individual' && (
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
             {/* Control Panel - Left Side (40%) */}
-            <div className="bg-white rounded-3xl shadow-soft-lg border border-white overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-[500px] lg:max-h-[680px] panel-breathing">
+            <div className="bg-white rounded-3xl border-2 border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-[680px] panel-breathing">
               {/* Tabs */}
               <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
                 {['character', 'scene', 'style'].map((tab) => (
-                  <button
+                  <Button
                     key={tab}
+                    variant="ghost"
                     onClick={() => {
-                      setActiveTab(tab as any);
-                      setSettings({ ...settings, generatedImage: null });
+                      setActiveTab(tab as 'character' | 'scene' | 'style');
+                      setSettings(prev => ({ ...prev, generatedImage: null }));
                     }}
-                    className={`flex-1 py-2 md:py-2.5 rounded-xl font-heading font-bold text-xs md:text-sm capitalize transition-all
-                                ${activeTab === tab ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light hover:text-charcoal-soft'}`}
+                    className={`flex-1 py-2 md:py-2.5 font-heading capitalize
+                                ${activeTab === tab ? 'bg-white text-coral-burst border-2 border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border-2 border-transparent'}`}
                   >
                     {tab}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -325,32 +335,34 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 <div className="space-y-4 md:space-y-6 animate-fadeIn">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-cocoa-light uppercase">
+                      <Label className="text-xs text-cocoa-light uppercase">
                         Select Character
-                      </label>
-                      <button
+                      </Label>
+                      <Button
+                        variant="default"
+                        size="sm"
                         onClick={handleCreateNewCharacter}
-                        className="flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors text-xs font-bold"
+                        className="flex px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                         title="Create new character"
                       >
                         <Plus className="w-3 h-3" />
                         New
-                      </button>
+                      </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-[200px] md:max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-50 md:max-h-75 overflow-y-auto pr-1 custom-scrollbar">
                       {availableCharacters.map((char) => (
                         <div
                           key={char.id}
                           className={`p-2 rounded-xl border-2 cursor-pointer transition-all relative group
                                             ${
                                               settings.selectedCharacterId === char.id
-                                                ? 'border-coral-burst bg-cream-base shadow-sm'
+                                                ? 'border-coral-burst bg-cream-base'
                                                 : 'border-transparent hover:bg-gray-50'
                                             }`}
                         >
                           <div
                             onClick={() =>
-                              setSettings({ ...settings, selectedCharacterId: char.id })
+                              setSettings(prev => ({ ...prev, selectedCharacterId: char.id }))
                             }
                             className="flex items-center gap-2 md:gap-3"
                           >
@@ -360,7 +372,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                                 `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`
                               }
                               alt={char.name}
-                              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white shadow-sm object-cover"
+                              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border border-peach-soft/50 object-cover"
                             />
                             <div className="min-w-0 flex-1">
                               <div className="font-bold text-xs md:text-sm text-charcoal-soft truncate">
@@ -371,17 +383,19 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                               </div>
                             </div>
                           </div>
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingCharacterId(char.id);
                               setShowCharacterDepth(true);
                             }}
-                            className="absolute top-1 right-1 p-1 bg-white hover:bg-emerald-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                            className="absolute top-1 right-1 p-1 bg-white hover:bg-emerald-50 opacity-0 group-hover:opacity-100 border border-peach-soft/50"
                             title="Edit character depth"
                           >
                             <Edit2 className="w-3 h-3 text-emerald-600" />
-                          </button>
+                          </Button>
                         </div>
                       ))}
                       {availableCharacters.length === 0 && (
@@ -393,38 +407,36 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label className="text-xs text-cocoa-light uppercase">
                       Expression & Pose
-                    </label>
+                    </Label>
                     <div className="grid grid-cols-2 gap-3">
-                      <select
-                        value={settings.expression}
-                        onChange={(e) => setSettings({ ...settings, expression: e.target.value })}
-                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
-                        title="Character expression"
-                        aria-label="Character expression"
-                      >
-                        <option value="neutral">Neutral</option>
-                        <option value="happy">Happy</option>
-                        <option value="sad">Sad</option>
-                        <option value="angry">Angry</option>
-                        <option value="surprised">Surprised</option>
-                        <option value="determined">Determined</option>
-                      </select>
-                      <select
-                        value={settings.pose}
-                        onChange={(e) => setSettings({ ...settings, pose: e.target.value })}
-                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
-                        title="Character pose"
-                        aria-label="Character pose"
-                      >
-                        <option value="standing">Standing</option>
-                        <option value="sitting">Sitting</option>
-                        <option value="walking">Walking</option>
-                        <option value="running">Running</option>
-                        <option value="fighting">Fighting</option>
-                        <option value="flying">Flying</option>
-                      </select>
+                      <Select value={settings.expression} onValueChange={(v) => setSettings(prev => ({ ...prev, expression: v }))}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Expression" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="neutral">Neutral</SelectItem>
+                          <SelectItem value="happy">Happy</SelectItem>
+                          <SelectItem value="sad">Sad</SelectItem>
+                          <SelectItem value="angry">Angry</SelectItem>
+                          <SelectItem value="surprised">Surprised</SelectItem>
+                          <SelectItem value="determined">Determined</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={settings.pose} onValueChange={(v) => setSettings(prev => ({ ...prev, pose: v }))}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Pose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standing">Standing</SelectItem>
+                          <SelectItem value="sitting">Sitting</SelectItem>
+                          <SelectItem value="walking">Walking</SelectItem>
+                          <SelectItem value="running">Running</SelectItem>
+                          <SelectItem value="fighting">Fighting</SelectItem>
+                          <SelectItem value="flying">Flying</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -434,49 +446,47 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               {activeTab === 'scene' && (
                 <div className="space-y-4 md:space-y-6 animate-fadeIn">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label className="text-xs text-cocoa-light uppercase">
                       Lighting & Angle
-                    </label>
+                    </Label>
                     <div className="grid grid-cols-2 gap-3">
-                      <select
-                        value={settings.lighting}
-                        onChange={(e) => setSettings({ ...settings, lighting: e.target.value })}
-                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
-                        title="Lighting style"
-                        aria-label="Lighting style"
-                      >
-                        <option value="natural">Natural Light</option>
-                        <option value="golden-hour">Golden Hour</option>
-                        <option value="night">Night / Dark</option>
-                        <option value="studio">Studio Lighting</option>
-                        <option value="neon">Neon / Cyberpunk</option>
-                        <option value="dramatic">Dramatic Shadows</option>
-                      </select>
-                      <select
-                        value={settings.cameraAngle}
-                        onChange={(e) => setSettings({ ...settings, cameraAngle: e.target.value })}
-                        className="w-full bg-cream-base border border-peach-soft rounded-xl p-2 text-xs md:text-sm outline-none focus:border-coral-burst"
-                        title="Camera angle"
-                        aria-label="Camera angle"
-                      >
-                        <option value="eye-level">Eye Level</option>
-                        <option value="low-angle">Low Angle</option>
-                        <option value="high-angle">High Angle</option>
-                        <option value="wide-shot">Wide Shot</option>
-                        <option value="close-up">Close Up</option>
-                        <option value="aerial">Aerial View</option>
-                      </select>
+                      <Select value={settings.lighting} onValueChange={(v) => setSettings(prev => ({ ...prev, lighting: v }))}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Lighting" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="natural">Natural Light</SelectItem>
+                          <SelectItem value="golden-hour">Golden Hour</SelectItem>
+                          <SelectItem value="night">Night / Dark</SelectItem>
+                          <SelectItem value="studio">Studio Lighting</SelectItem>
+                          <SelectItem value="neon">Neon / Cyberpunk</SelectItem>
+                          <SelectItem value="dramatic">Dramatic Shadows</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={settings.cameraAngle} onValueChange={(v) => setSettings(prev => ({ ...prev, cameraAngle: v }))}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Camera angle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="eye-level">Eye Level</SelectItem>
+                          <SelectItem value="low-angle">Low Angle</SelectItem>
+                          <SelectItem value="high-angle">High Angle</SelectItem>
+                          <SelectItem value="wide-shot">Wide Shot</SelectItem>
+                          <SelectItem value="close-up">Close Up</SelectItem>
+                          <SelectItem value="aerial">Aerial View</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label className="text-xs text-cocoa-light uppercase">
                       Scene Description
-                    </label>
-                    <textarea
+                    </Label>
+                    <Textarea
                       value={settings.prompt}
-                      onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
-                      className="w-full h-24 md:h-32 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
+                      onChange={(e) => setSettings(prev => ({ ...prev, prompt: e.target.value }))}
+                      className="h-24 md:h-32 bg-cream-base p-2.5 md:p-3 md:text-base"
                       placeholder="Describe the setting, props, and atmosphere..."
                     />
                   </div>
@@ -487,29 +497,26 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               {activeTab === 'style' && (
                 <div className="space-y-4 md:space-y-6 animate-fadeIn">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase flex items-center gap-2">
+                    <Label className="text-xs text-cocoa-light uppercase flex items-center gap-2">
                       <Palette className="w-4 h-4" /> Style Alchemy
-                    </label>
+                    </Label>
                     <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
                       <div>
                         <div className="text-xs text-cocoa-light mb-1">
                           Primary Style ({settings.mixRatio}%)
                         </div>
-                        <select
-                          value={settings.styleA}
-                          onChange={(e) =>
-                            setSettings({ ...settings, styleA: e.target.value as ArtStyle })
-                          }
-                          className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
-                          title="Select primary style"
-                          aria-label="Primary style"
-                        >
-                          {styles.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                        <Select value={settings.styleA} onValueChange={(v) => setSettings(prev => ({ ...prev, styleA: v as ArtStyle }))}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Primary style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {styles.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -520,7 +527,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                           max="100"
                           value={settings.mixRatio}
                           onChange={(e) =>
-                            setSettings({ ...settings, mixRatio: Number.parseInt(e.target.value) })
+                            setSettings(prev => ({ ...prev, mixRatio: Number.parseInt(e.target.value) }))
                           }
                           title={`Mix ratio: ${settings.mixRatio}%`}
                           aria-label="Style mix ratio"
@@ -532,43 +539,41 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         <div className="text-xs text-cocoa-light mb-1">
                           Secondary Style ({100 - settings.mixRatio}%)
                         </div>
-                        <select
-                          value={settings.styleB}
-                          onChange={(e) =>
-                            setSettings({ ...settings, styleB: e.target.value as ArtStyle })
-                          }
-                          className="w-full bg-white border border-peach-soft rounded-xl p-2 text-xs md:text-sm"
-                          title="Select secondary style"
-                          aria-label="Secondary style"
-                        >
-                          {styles.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                        <Select value={settings.styleB} onValueChange={(v) => setSettings(prev => ({ ...prev, styleB: v as ArtStyle }))}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Secondary style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {styles.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label className="text-xs text-cocoa-light uppercase">
                       Test Prompt
-                    </label>
-                    <textarea
+                    </Label>
+                    <Textarea
                       value={settings.prompt}
-                      onChange={(e) => setSettings({ ...settings, prompt: e.target.value })}
-                      className="w-full h-20 md:h-24 bg-cream-base border border-peach-soft rounded-xl p-2.5 md:p-3 font-body text-sm md:text-base text-charcoal-soft focus:border-coral-burst outline-none resize-none"
+                      onChange={(e) => setSettings(prev => ({ ...prev, prompt: e.target.value }))}
+                      className="h-20 md:h-24 bg-cream-base p-2.5 md:p-3 md:text-base"
                       placeholder="A landscape with a castle..."
                     />
                   </div>
                 </div>
               )}
 
-              <button
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className={`w-full mt-4 py-3 md:py-4 rounded-xl font-heading font-bold text-sm md:text-base text-white shadow-lg transition-all flex items-center justify-center gap-2
-                            ${isGenerating ? 'bg-cocoa-light cursor-not-allowed' : 'bg-gradient-to-r from-coral-burst to-gold-sunshine hover:scale-[1.02]'}`}
+                className="w-full mt-4"
               >
                 {isGenerating ? (
                   <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
@@ -576,11 +581,11 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                   <Wand2 className="w-4 h-4 md:w-5 md:h-5" />
                 )}
                 {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
-              </button>
+              </Button>
             </div>
 
             {/* Preview Panel - Right Side (60%) */}
-            <div className="w-full lg:w-3/5 h-[400px] lg:h-[680px] bg-white rounded-3xl shadow-soft-lg border border-white overflow-hidden relative group">
+            <div className="w-full lg:w-3/5 h-100 lg:h-[680px] bg-white rounded-3xl border-2 border-peach-soft overflow-hidden relative group">
               {settings.generatedImage ? (
                 <>
                   <img
@@ -588,35 +593,41 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                     alt="Generated result"
                     className="w-full h-full object-contain bg-gray-50"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end">
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setShowShareModal(true)}
-                        className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors"
+                        className="p-2 bg-white/20 backdrop-blur-md text-white hover:bg-white/40"
                         title="Share"
                       >
                         <Share2 className="w-5 h-5" />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           const link = document.createElement('a');
                           link.href = settings.generatedImage!;
                           link.download = `genesis-${Date.now()}.png`;
                           link.click();
                         }}
-                        className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors"
+                        className="p-2 bg-white/20 backdrop-blur-md text-white hover:bg-white/40"
                         title="Download"
                       >
                         <Download className="w-5 h-5" />
-                      </button>
+                      </Button>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setExpandedVisual('current')}
-                      className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors"
+                      className="p-2 bg-white/20 backdrop-blur-md text-white hover:bg-white/40"
                       title="Expand"
                     >
                       <Maximize2 className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 </>
               ) : (
@@ -637,7 +648,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-4 opacity-60">
-                      <div className="w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center mb-2">
+                      <div className="w-20 h-20 rounded-full bg-white border border-peach-soft/50 flex items-center justify-center mb-2">
                         <Wand2 className="w-10 h-10 text-coral-burst/50" />
                       </div>
                       <div>
@@ -672,12 +683,13 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               <p className="text-slate-500 max-w-md">
                 Please open a project from the Dashboard to view its Story Map.
               </p>
-              <button
+              <Button
+                variant="primary"
                 onClick={onBack}
-                className="mt-6 px-6 py-2 bg-coral-burst text-white rounded-xl font-bold hover:bg-coral-burst/90 transition-colors"
+                className="mt-6"
               >
                 Go to Dashboard
-              </button>
+              </Button>
             </div>
           ))}
       </div>
@@ -693,8 +705,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
 
       {/* Broadcast Studio Modal */}
       {showBroadcastStudio && userProfile && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden animate-fadeIn flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-70 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-3xl w-full max-w-6xl h-[90vh] overflow-hidden animate-fadeIn flex flex-col">
             <BroadcastStudio onClose={() => setShowBroadcastStudio(false)} />
           </div>
         </div>

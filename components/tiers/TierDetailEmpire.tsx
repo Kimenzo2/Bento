@@ -55,6 +55,7 @@ import { ROICalculator } from './interactive/ROICalculator';
 import { SavingsCounter } from './interactive/SavingsCounter';
 import { TierMatchQuiz } from './interactive/TierMatchQuiz';
 import { UsageHeatmap } from './interactive/UsageHeatmap';
+import { Button } from '@components/ui/button';
 
 // ============================================================================
 // TIER CONFIGURATION
@@ -412,7 +413,7 @@ const TierDetailEmpire: React.FC = () => {
   };
 
   const handleDownloadPDF = () => {
-    console.log('Download enterprise PDF');
+    console.warn('Download enterprise PDF');
   };
 
   const handleContactSales = () => {
@@ -443,12 +444,14 @@ const TierDetailEmpire: React.FC = () => {
         secondaryCtaText="Download Enterprise Overview"
       >
         <div className="mt-4 flex justify-center">
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setShowQuiz(true)}
-            className="text-sm font-semibold text-charcoal-soft/60 hover:text-slate-600 underline decoration-dotted underline-offset-4"
+            className="text-charcoal-soft/60 hover:text-slate-600 underline decoration-dotted"
           >
             Not sure? Take the 1-minute tier quiz
-          </button>
+          </Button>
         </div>
       </HeroSection>
 
@@ -467,28 +470,28 @@ const TierDetailEmpire: React.FC = () => {
         <div className="space-y-12">
           {/* Value Grid */}
           <div className="grid md:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
+            <div className="bg-linear-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
               <Crown className="w-10 h-10 text-gold-sunshine mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Competitive Moat</h3>
               <p className="text-charcoal-soft/70 text-sm">
                 Custom AI trained on your styles creates capabilities competitors can't replicate.
               </p>
             </div>
-            <div className="bg-gradient-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
+            <div className="bg-linear-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
               <Infinity className="w-10 h-10 text-gold-sunshine mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Infinite Scale</h3>
               <p className="text-charcoal-soft/70 text-sm">
                 No limits on team, content, or API usage. Grow without constraints.
               </p>
             </div>
-            <div className="bg-gradient-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
+            <div className="bg-linear-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
               <Shield className="w-10 h-10 text-gold-sunshine mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Enterprise Ready</h3>
               <p className="text-charcoal-soft/70 text-sm">
                 SOC 2, HIPAA, GDPR—compliance that satisfies your most demanding stakeholders.
               </p>
             </div>
-            <div className="bg-gradient-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
+            <div className="bg-linear-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
               <Rocket className="w-10 h-10 text-gold-sunshine mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Strategic Partner</h3>
               <p className="text-charcoal-soft/70 text-sm">
@@ -513,25 +516,25 @@ const TierDetailEmpire: React.FC = () => {
             <h3 className="font-heading font-bold text-2xl text-center mb-8">Enterprise Impact</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-4xl font-heading font-bold bg-gradient-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
+                <div className="text-4xl font-heading font-bold bg-linear-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
                   $50M+
                 </div>
                 <div className="text-white/60 text-sm mt-1">Customer Revenue Generated</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-heading font-bold bg-gradient-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
+                <div className="text-4xl font-heading font-bold bg-linear-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
                   99.9%
                 </div>
                 <div className="text-white/60 text-sm mt-1">Uptime SLA</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-heading font-bold bg-gradient-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
+                <div className="text-4xl font-heading font-bold bg-linear-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
                   500+
                 </div>
                 <div className="text-white/60 text-sm mt-1">Enterprise Customers</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-heading font-bold bg-gradient-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
+                <div className="text-4xl font-heading font-bold bg-linear-to-r from-gold-sunshine to-coral-burst bg-clip-text text-transparent">
                   &lt;1hr
                 </div>
                 <div className="text-white/60 text-sm mt-1">Support Response SLA</div>
@@ -546,7 +549,7 @@ const TierDetailEmpire: React.FC = () => {
         id="features"
         title="Enterprise Capabilities"
         subtitle="Everything from Studio, plus exclusive enterprise features"
-        className="bg-gradient-to-b from-slate-50 to-white"
+        className="bg-linear-to-b from-slate-50 to-white"
         background="bg-slate-50"
       >
         <FeatureVideoStories tier={tierConfig} />
@@ -558,7 +561,7 @@ const TierDetailEmpire: React.FC = () => {
         <FeatureExplorer tier={tierConfig} />
 
         {/* Includes Everything */}
-        <div className="mt-12 bg-white rounded-2xl p-8 border border-charcoal-soft/5 shadow-sm">
+        <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-peach-soft">
           <h3 className="font-heading font-bold text-xl text-center mb-6">
             Plus Everything in Studio
           </h3>
@@ -593,12 +596,12 @@ const TierDetailEmpire: React.FC = () => {
         <WorkflowSteps steps={workflowSteps} gradient={tierConfig.gradient} />
 
         {/* Implementation Timeline */}
-        <div className="mt-16 bg-white rounded-2xl p-8 border border-charcoal-soft/5 shadow-lg">
+        <div className="mt-16 bg-white rounded-2xl p-8 border-2 border-peach-soft">
           <h3 className="font-heading font-bold text-xl text-center mb-8">
             Typical Implementation Timeline
           </h3>
           <div className="relative">
-            <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-gold-sunshine to-coral-burst rounded-full" />
+            <div className="absolute top-6 left-0 right-0 h-1 bg-linear-to-r from-gold-sunshine to-coral-burst rounded-full" />
             <div className="grid grid-cols-4 relative">
               {[
                 { week: 'Week 1', label: 'Discovery & Planning' },
@@ -622,7 +625,7 @@ const TierDetailEmpire: React.FC = () => {
         id="who"
         title="Who Empire Is For"
         subtitle="Organizations building the future of content"
-        className="bg-gradient-to-b from-white to-slate-50"
+        className="bg-linear-to-b from-white to-slate-50"
         background="bg-slate-50"
       >
         <PersonaCards personas={personas} gradient={tierConfig.gradient} />
@@ -660,7 +663,7 @@ const TierDetailEmpire: React.FC = () => {
         id="pricing"
         title="Enterprise Investment"
         subtitle="Transparent pricing with flexible terms"
-        className="bg-gradient-to-b from-slate-50 to-white"
+        className="bg-linear-to-b from-slate-50 to-white"
         background="bg-slate-50"
       >
         <PricingBreakdown tier={tierConfig} costPerUnit={costBreakdown} competitors={competitors} />
@@ -672,12 +675,13 @@ const TierDetailEmpire: React.FC = () => {
           <p className="text-charcoal-soft/70">
             Enterprise pricing available for multi-year commitments, volume, and custom
             requirements.
-            <button
+            <Button
+              variant="link"
               onClick={handleContactSales}
-              className="text-coral-burst font-semibold ml-2 hover:underline"
+              className="ml-2"
             >
               Let's discuss your needs →
-            </button>
+            </Button>
           </p>
         </div>
       </SectionWrapper>
@@ -690,7 +694,7 @@ const TierDetailEmpire: React.FC = () => {
         background="bg-slate-50"
       >
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-8 border border-charcoal-soft/5 shadow-sm">
+          <div className="bg-white rounded-2xl p-8 border-2 border-peach-soft">
             <h3 className="font-heading font-bold text-xl mb-6 flex items-center gap-2">
               <Shield className="w-6 h-6 text-gold-sunshine" />
               Certifications & Compliance
@@ -713,7 +717,7 @@ const TierDetailEmpire: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border border-charcoal-soft/5 shadow-sm">
+          <div className="bg-white rounded-2xl p-8 border-2 border-peach-soft">
             <h3 className="font-heading font-bold text-xl mb-6 flex items-center gap-2">
               <Lock className="w-6 h-6 text-gold-sunshine" />
               Security Features
@@ -743,7 +747,7 @@ const TierDetailEmpire: React.FC = () => {
         id="trust"
         title="Enterprise Confidence"
         subtitle="Backed by industry-leading guarantees"
-        className="bg-gradient-to-b from-white to-cream-base"
+        className="bg-linear-to-b from-white to-cream-base"
       >
         <TrustBadges badges={trustBadges} />
 
@@ -770,9 +774,9 @@ const TierDetailEmpire: React.FC = () => {
             Download our enterprise documentation package including security whitepaper, compliance
             certifications, and technical specifications.
           </p>
-          <button className="px-8 py-4 bg-charcoal-soft text-white rounded-xl font-bold hover:bg-charcoal-soft/90 transition-colors inline-flex items-center gap-2">
+          <Button variant="default" size="lg">
             Download Enterprise Package
-          </button>
+          </Button>
         </div>
       </SectionWrapper>
 
@@ -793,31 +797,34 @@ const TierDetailEmpire: React.FC = () => {
               <h4 className="font-bold mb-4">Compare Tiers</h4>
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/tier/creator')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Creator ($16.41/mo)
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/tier/studio')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Studio ($49.92/mo)
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/welcome?step=pricing')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Full Comparison
-                  </button>
+                  </Button>
                 </li>
               </ul>
             </div>
@@ -825,13 +832,14 @@ const TierDetailEmpire: React.FC = () => {
               <h4 className="font-bold mb-4">Resources</h4>
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('security')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Security Whitepaper
-                  </button>
+                  </Button>
                 </li>
                 <li>
                   <a
@@ -842,13 +850,14 @@ const TierDetailEmpire: React.FC = () => {
                   </a>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('case-studies')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Enterprise Case Studies
-                  </button>
+                  </Button>
                 </li>
               </ul>
             </div>

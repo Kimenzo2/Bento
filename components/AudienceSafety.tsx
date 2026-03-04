@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
+import { Button } from './ui/button';
 
 interface SafetyWarning {
   type: 'vocabulary' | 'theme' | 'intensity' | 'content';
@@ -126,20 +127,24 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
 
         <div className="flex items-center gap-2">
           {onAnalyze && !isAnalyzing && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onAnalyze}
-              className="px-3 py-1.5 text-xs bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+              className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
             >
               Re-analyze
-            </button>
+            </Button>
           )}
           {onDismiss && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onDismiss}
-              className="p-1 text-slate-400 hover:text-slate-300 transition-colors"
+              className="p-1 text-slate-400 hover:text-slate-300"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>

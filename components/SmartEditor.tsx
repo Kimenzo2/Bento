@@ -51,6 +51,9 @@ import type { StoryBible } from '../types';
 import AudienceSafety from './AudienceSafety';
 import GreenRoom from './GreenRoom';
 import RemixStudio from './RemixStudio';
+import { toast } from './ui/sonner';
+import { Button } from '@components/ui/button';
+import { Label, Textarea } from '@components/ui/input';
 
 interface SmartEditorProps {
   project: BookProject | null;
@@ -61,6 +64,24 @@ interface SmartEditorProps {
   onBack?: () => void;
   onNavigateToCreate?: () => void;
   onToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+}
+
+interface WritingSuggestion {
+  type: string;
+  original: string;
+  suggestion: string;
+  reason: string;
+}
+
+interface ConsistencyCharacter {
+  name: string;
+  inconsistencies: string[];
+  suggestions: string[];
+}
+
+interface ConsistencyReport {
+  overallScore: number;
+  characters: ConsistencyCharacter[];
 }
 
 // Default characters for standalone Green Room access
@@ -632,7 +653,6 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   onSave,
   onBack,
   onNavigateToCreate,
-  onToast,
 }) => {
   const { userProfile } = useAuth();
   const [activePageIndex, setActivePageIndex] = useState(0);
@@ -655,14 +675,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     workingProject.storyBible || null
   );
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showStoryboard, setShowStoryboard] = useState(false);
-  const [showEmotionalArc, setShowEmotionalArc] = useState(false);
+  const [_showStoryboard, _setShowStoryboard] = useState(false);
+  const [_showEmotionalArc, _setShowEmotionalArc] = useState(false);
   const [showAudienceSafety, setShowAudienceSafety] = useState(false);
   const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
 
   // Green Room & Remix State
   const [showGreenRoom, setShowGreenRoom] = useState(false);
-  const [selectedCharacterForInterview, setSelectedCharacterForInterview] = useState<any>(null);
+  const [selectedCharacterForInterview, setSelectedCharacterForInterview] = useState<Character | null>(null);
   const [showRemixStudio, setShowRemixStudio] = useState(false);
 
   // Undo/Redo
@@ -676,7 +696,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   } = useUndoRedo<BookProject>(workingProject);
 
   // AutoSave (only for real projects)
-  const { state: autoSaveState, save: triggerSave } = useAutoSave({
+  const { state: autoSaveState, save: _triggerSave } = useAutoSave({
     key: `book-${currentProject.id}`,
     data: currentProject,
     onSave: async (data) => {
@@ -693,7 +713,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     if (!isStandaloneMode && currentProject !== project) {
       onUpdateProject(currentProject);
     }
-  }, [currentProject, onUpdateProject, isStandaloneMode]);
+  }, [currentProject, onUpdateProject, isStandaloneMode, project]);
 
   // Feature #1: AI Improve
   const [isImproving, setIsImproving] = useState(false);
@@ -702,10 +722,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   // Feature #2: Character Consistency
   const [showConsistencyPanel, setShowConsistencyPanel] = useState(false);
   const [isCheckingConsistency, setIsCheckingConsistency] = useState(false);
-  const [consistencyReport, setConsistencyReport] = useState<any>(null);
+  const [consistencyReport, setConsistencyReport] = useState<ConsistencyReport | null>(null);
 
   // Feature #3: Writing Suggestions
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<WritingSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -718,7 +738,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     };
   }, []);
 
-  const handleAnalyzeStory = async () => {
+  const _handleAnalyzeStory = async () => {
     setIsAnalyzing(true);
     try {
       const bible = await storyBibleService.analyzeStory(currentProject);
@@ -731,7 +751,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         lastBibleUpdate: Date.now(),
       }));
 
-      setShowStoryboard(true);
+      _setShowStoryboard(true);
     } catch (error) {
       console.error('Failed to analyze story:', error);
       // Show error toast
@@ -740,7 +760,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     }
   };
 
-  const handleGenerateStoryboard = async () => {
+  const _handleGenerateStoryboard = async () => {
     if (!storyBible) return;
     setIsAnalyzing(true);
     try {
@@ -758,7 +778,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     }
   };
 
-  const handleAnalyzeEmotionalArc = async () => {
+  const _handleAnalyzeEmotionalArc = async () => {
     setIsAnalyzing(true);
     try {
       const arcData = await storyBibleService.generateEmotionalArc(currentProject);
@@ -810,7 +830,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     }, 2000); // Check 2 seconds after typing stops
 
     return () => clearTimeout(timer);
-  }, [activePage.text, storyBible]);
+  }, [activePage.text, storyBible, activePage.pageNumber]);
 
   // Helper to detect significant text changes that would invalidate image
   const detectSignificantChange = useCallback((oldText: string, newText: string): boolean => {
@@ -845,7 +865,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     const wasSignificantChange = detectSignificantChange(lastSavedTextRef.current, text);
 
     setProjectHistory((prevProject) => {
-      const newProject = JSON.parse(JSON.stringify(prevProject)) as BookProject;
+      // Use structuredClone for efficient deep copy (preserves Date objects, avoids JSON overhead)
+      const newProject = structuredClone(prevProject);
       newProject.chapters.forEach((ch) => {
         const page = ch.pages.find((p) => p.pageNumber === activePage.pageNumber);
         if (page) {
@@ -879,8 +900,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         currentProject.targetAudience || 'children'
       );
       handleTextChange(improved);
-    } catch (error) {
-      onToast?.('Failed to improve text. Please try again.', 'error');
+    } catch (_error) {
+      toast.error('Failed to improve text. Please try again.');
     } finally {
       setIsImproving(false);
     }
@@ -909,8 +930,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         setConsistencyReport(report);
         setShowConsistencyPanel(true);
       }
-    } catch (error) {
-      onToast?.('Failed to check character consistency. Please try again.', 'error');
+    } catch (_error) {
+      toast.error('Failed to check character consistency. Please try again.');
     } finally {
       setIsCheckingConsistency(false);
     }
@@ -937,7 +958,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   };
 
   // Apply a suggestion
-  const applySuggestion = (suggestion: any) => {
+  const applySuggestion = (suggestion: WritingSuggestion) => {
     const newText = activePage.text.replace(suggestion.original, suggestion.suggestion);
     handleTextChange(newText);
     setSuggestions(suggestions.filter((s) => s !== suggestion));
@@ -971,9 +992,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         if (onShowUpgrade) {
           onShowUpgrade();
         } else {
-          onToast?.(
-            "You've reached the limit of 5 AI illustrations per book on the Spark plan. Upgrade to Creator for unlimited magic!",
-            'info'
+          toast.info(
+            "You've reached the limit of 5 AI illustrations per book on the Spark plan. Upgrade to Creator for unlimited magic!"
           );
         }
         return;
@@ -984,7 +1004,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     try {
       const base64Image = await generateIllustration(activePage.imagePrompt, currentProject.style);
       if (base64Image) {
-        const newProject = JSON.parse(JSON.stringify(currentProject)) as BookProject;
+        const newProject = structuredClone(currentProject);
 
         // Increment count
         newProject.aiImagesGenerated = (newProject.aiImagesGenerated || 0) + 1;
@@ -995,8 +1015,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         });
         onUpdateProject(newProject);
       }
-    } catch (e) {
-      onToast?.('Failed to generate image. Please try again.', 'error');
+    } catch (_e) {
+      toast.error('Failed to generate image. Please try again.');
     } finally {
       setIsGeneratingImage(false);
     }
@@ -1012,18 +1032,20 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   // ============================================
   if (isStandaloneMode) {
     return (
-      <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto bg-gradient-to-br from-cream-base via-peach-soft/20 to-cream-base" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto bg-linear-to-br from-cream-base via-peach-soft/20 to-cream-base">
         {/* Header */}
         <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-peach-soft/50 px-6 py-4">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               {onBack && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={onBack}
-                  className="p-2 hover:bg-cream-soft rounded-full transition-colors"
+                  className="rounded-full"
                 >
                   <ArrowLeft className="w-5 h-5 text-charcoal-soft" />
-                </button>
+                </Button>
               )}
               <div>
                 <h1 className="font-heading font-bold text-2xl text-charcoal-soft">Creative Hub</h1>
@@ -1037,7 +1059,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         <div className="max-w-6xl mx-auto px-6 py-8">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-sunshine/20 to-coral-burst/20 rounded-full text-sm font-bold text-coral-burst mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 rounded-full text-sm font-bold text-coral-burst mb-4">
               <Sparkles className="w-4 h-4" />
               Welcome to the Creative Hub
             </div>
@@ -1053,8 +1075,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           {/* Feature Cards Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {/* Create a Book Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-soft-lg border border-peach-soft/50 hover:shadow-soft-xl transition-all group">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-coral-burst to-gold-sunshine flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <PenTool className="w-7 h-7 text-white" />
               </div>
               <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">
@@ -1064,18 +1086,19 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 Start your storytelling journey. Generate a complete illustrated book with AI
                 assistance.
               </p>
-              <button
+              <Button
+                variant="primary"
                 onClick={onNavigateToCreate}
-                className="w-full py-3 px-4 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                className="w-full font-heading hover:opacity-90"
               >
                 <Zap className="w-4 h-4" />
                 Start Creating
-              </button>
+              </Button>
             </div>
 
             {/* Green Room Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-soft-lg border border-peach-soft/50 hover:shadow-soft-xl transition-all group">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
               <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">
@@ -1085,18 +1108,18 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 Interview characters to discover their personalities, backstories, and hidden
                 depths.
               </p>
-              <button
+              <Button
                 onClick={() => setShowGreenRoomStandalone(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-emerald-500 to-teal-500 text-white font-heading hover:opacity-90"
               >
                 <Users className="w-4 h-4" />
                 Enter Green Room
-              </button>
+              </Button>
             </div>
 
             {/* Remix Studio Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-soft-lg border border-peach-soft/50 hover:shadow-soft-xl transition-all group">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft transition-all group">
+              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-purple-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <GitFork className="w-7 h-7 text-white" />
               </div>
               <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">
@@ -1106,13 +1129,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 Discover and fork magical worlds created by other storytellers. Build upon shared
                 universes.
               </p>
-              <button
+              <Button
                 onClick={() => setShowRemixStudioStandalone(true)}
-                className="w-full py-3 px-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-heading font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-purple-500 to-indigo-500 text-white font-heading hover:opacity-90"
               >
                 <Compass className="w-4 h-4" />
                 Explore Worlds
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -1130,15 +1153,16 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {defaultCharacters.map((char) => (
-                <button
+                <Button
+                  variant="outline"
                   key={char.id}
                   onClick={() => {
                     setSelectedDemoCharacter(char);
                     setShowGreenRoomStandalone(true);
                   }}
-                  className="bg-white rounded-xl p-4 shadow-soft-md border border-peach-soft/50 hover:shadow-soft-lg hover:border-emerald-300 transition-all group text-left"
+                  className="bg-white p-4 border-peach-soft/50 hover:border-emerald-300 group text-left h-auto"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative">
+                  <div className="w-12 h-12 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative">
                     {char.imageUrl ? (
                       <img
                         src={char.imageUrl}
@@ -1153,13 +1177,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     {char.name}
                   </h4>
                   <p className="text-xs text-cocoa-light line-clamp-2">{char.description}</p>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
           {/* Stats/Features Section */}
-          <div className="bg-gradient-to-r from-charcoal-soft to-charcoal-soft/90 rounded-2xl p-8 text-white">
+          <div className="bg-linear-to-r from-charcoal-soft to-charcoal-soft/90 rounded-2xl p-8 text-white">
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div>
                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
@@ -1209,7 +1233,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           userId={userProfile?.id}
           userName={userProfile?.display_name || userProfile?.email}
           onForkWorld={(world) => {
-            console.log('Forked world in standalone mode:', world);
+            console.warn('Forked world in standalone mode:', world);
             setShowRemixStudioStandalone(false);
           }}
         />
@@ -1225,22 +1249,26 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     );
 
   return (
-    <div className="h-[calc(100dvh-80px)] w-full flex flex-col lg:flex-row bg-cream-base relative overflow-x-hidden overflow-y-auto lg:overflow-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="h-[calc(100dvh-80px)] w-full flex flex-col lg:flex-row bg-cream-base relative overflow-x-hidden overflow-y-auto lg:overflow-hidden">
       {/* Mobile Tab Toggle */}
-      <div className="lg:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30 shadow-sm">
+      <div className="lg:hidden h-16 bg-white border-b border-peach-soft flex items-center justify-center px-4 shrink-0 z-30">
         <div className="flex p-1 bg-cream-soft rounded-xl w-full max-w-xs border border-peach-soft/50">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setMobileView('edit')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${mobileView === 'edit' ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light'}`}
+            className={`flex-1 ${mobileView === 'edit' ? 'bg-white text-coral-burst border border-peach-soft/50' : 'text-cocoa-light'}`}
           >
             <Edit3 className="w-3.5 h-3.5" /> Editor
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setMobileView('preview')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${mobileView === 'preview' ? 'bg-white text-coral-burst shadow-sm' : 'text-cocoa-light'}`}
+            className={`flex-1 ${mobileView === 'preview' ? 'bg-white text-coral-burst border border-peach-soft/50' : 'text-cocoa-light'}`}
           >
             <Eye className="w-3.5 h-3.5" /> Preview
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1252,16 +1280,18 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-peach-soft/30 shrink-0 gap-4">
           <div className="flex items-center gap-3 overflow-hidden">
             {onBack && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onBack}
-                className="p-2 -ml-2 rounded-full hover:bg-white/50 text-cocoa-light hover:text-coral-burst transition-colors shrink-0"
+                className="-ml-2 rounded-full text-cocoa-light hover:text-coral-burst shrink-0"
                 aria-label="Go back"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </Button>
             )}
             <div className="overflow-hidden">
-              <h2 className="font-heading font-bold text-xl text-charcoal-soft truncate max-w-[200px]">
+              <h2 className="font-heading font-bold text-xl text-charcoal-soft truncate max-w-50">
                 {project.title}
               </h2>
               <div className="flex items-center gap-2 text-xs text-cocoa-light mt-1">
@@ -1278,23 +1308,27 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           <div className="flex gap-2 items-center">
             {/* Undo/Redo */}
             <div className="hidden sm:flex items-center bg-white/50 rounded-lg p-1 mr-2 border border-peach-soft/30">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={undo}
                 disabled={!canUndo}
-                className="p-1.5 text-cocoa-light hover:text-coral-burst disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 text-cocoa-light hover:text-coral-burst disabled:opacity-30"
                 title="Undo"
               >
                 <Undo className="w-4 h-4" />
-              </button>
+              </Button>
               <div className="w-px h-4 bg-peach-soft/50 mx-1" />
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={redo}
                 disabled={!canRedo}
-                className="p-1.5 text-cocoa-light hover:text-coral-burst disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 text-cocoa-light hover:text-coral-burst disabled:opacity-30"
                 title="Redo"
               >
                 <Redo className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
 
             {/* AutoSave Indicator */}
@@ -1315,10 +1349,12 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               )}
             </div>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleSave}
               disabled={isSaving}
-              className="p-2 text-cocoa-light hover:text-coral-burst transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-cocoa-light hover:text-coral-burst"
               title={isSaving ? 'Saving...' : 'Save'}
             >
               {isSaving ? (
@@ -1326,60 +1362,70 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               ) : (
                 <Save className="w-5 h-5" />
               )}
-            </button>
+            </Button>
 
             {/* Deep Quality Toggles */}
             <div className="flex items-center gap-1 border-l border-peach-soft/30 pl-2 ml-2">
               {/* HIDDEN FOR SIMPLICITY
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setShowStoryboard(!showStoryboard)}
-                                className={`p-2 rounded-lg transition-colors ${showStoryboard ? 'bg-purple-100 text-purple-600' : 'text-cocoa-light hover:text-purple-500'}`}
+                                className={`p-2 ${showStoryboard ? 'bg-purple-100 text-purple-600' : 'text-cocoa-light hover:text-purple-500'}`}
                                 title="Living Storyboard"
                             >
                                 <LayoutTemplate className="w-5 h-5" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setShowEmotionalArc(!showEmotionalArc)}
-                                className={`p-2 rounded-lg transition-colors ${showEmotionalArc ? 'bg-blue-100 text-blue-600' : 'text-cocoa-light hover:text-blue-500'}`}
+                                className={`p-2 ${showEmotionalArc ? 'bg-blue-100 text-blue-600' : 'text-cocoa-light hover:text-blue-500'}`}
                                 title="Emotional Arc"
                             >
                                 <Activity className="w-5 h-5" />
-                            </button>
+                            </Button>
                             */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowAudienceSafety(!showAudienceSafety)}
-                className={`p-2 rounded-lg transition-colors ${showAudienceSafety ? 'bg-green-100 text-green-600' : 'text-cocoa-light hover:text-green-500'}`}
+                className={`p-2 ${showAudienceSafety ? 'bg-green-100 text-green-600' : 'text-cocoa-light hover:text-green-500'}`}
                 title="Audience Safety"
               >
                 <ShieldCheck className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
 
             {/* Green Room & Remix Toggles */}
             <div className="flex items-center gap-1 border-l border-peach-soft/30 pl-2 ml-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   // Open Green Room with first character if available
                   if (currentProject.characters.length > 0) {
                     setSelectedCharacterForInterview(currentProject.characters[0]);
                     setShowGreenRoom(true);
                   } else {
-                    onToast?.('Add a character to your story first!', 'info');
+                    toast.info('Add a character to your story first!');
                   }
                 }}
-                className={`p-2 rounded-lg transition-colors ${showGreenRoom ? 'bg-emerald-100 text-emerald-600' : 'text-cocoa-light hover:text-emerald-500'}`}
+                className={`p-2 ${showGreenRoom ? 'bg-emerald-100 text-emerald-600' : 'text-cocoa-light hover:text-emerald-500'}`}
                 title="Green Room - Interview Characters"
               >
                 <MessageCircle className="w-5 h-5" />
-              </button>
+              </Button>
               {/* HIDDEN FOR SIMPLICITY
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setShowRemixStudio(true)}
-                                className={`p-2 rounded-lg transition-colors ${showRemixStudio ? 'bg-indigo-100 text-indigo-600' : 'text-cocoa-light hover:text-indigo-500'}`}
+                                className={`p-2 ${showRemixStudio ? 'bg-indigo-100 text-indigo-600' : 'text-cocoa-light hover:text-indigo-500'}`}
                                 title="Remix Studio - Share & Discover Worlds"
                             >
                                 <Globe className="w-5 h-5" />
-                            </button>
+                            </Button>
                             */}
             </div>
           </div>
@@ -1413,13 +1459,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                             ) : (
                                 <div className="text-center py-8">
                                     <p className="text-cocoa-light mb-4">Visualize the emotional journey of your story.</p>
-                                    <button
+                                    <Button
                                         onClick={handleAnalyzeEmotionalArc}
                                         disabled={isAnalyzing}
-                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                                        className="bg-blue-500 text-white hover:bg-blue-600"
                                     >
                                         {isAnalyzing ? 'Analyzing...' : 'Generate Emotional Arc'}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -1442,13 +1488,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                   <p className="text-cocoa-light mb-4">
                     Check content safety and age appropriateness.
                   </p>
-                  <button
+                  <Button
                     onClick={handleAnalyzeAudienceSafety}
                     disabled={isAnalyzing}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                    className="bg-green-500 text-white hover:bg-green-600"
                   >
                     {isAnalyzing ? 'Analyzing...' : 'Check Safety'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -1458,13 +1504,15 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
           <div className="space-y-3">
-            <label className="font-heading font-bold text-sm text-cocoa-light uppercase tracking-wider flex justify-between items-center">
+            <Label className="uppercase tracking-wider flex justify-between items-center">
               Story Text
               <div className="flex gap-2 items-center">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleCheckConsistency}
                   disabled={isCheckingConsistency}
-                  className="text-purple-600 hover:underline text-xs capitalize flex items-center gap-1 disabled:opacity-50"
+                  className="text-purple-600 hover:underline capitalize gap-1"
                   title="Check Character Consistency"
                 >
                   {isCheckingConsistency ? (
@@ -1473,12 +1521,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     <CheckCircle2 className="w-3 h-3" />
                   )}
                   {isCheckingConsistency ? 'Checking...' : 'Check Characters'}
-                </button>
+                </Button>
                 <div className="relative">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowImproveOptions(!showImproveOptions)}
                     disabled={isImproving}
-                    className="text-coral-burst hover:underline text-xs capitalize flex items-center gap-1 disabled:opacity-50"
+                    className="text-coral-burst hover:underline capitalize gap-1"
                   >
                     {isImproving ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
@@ -1486,28 +1536,30 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                       <Wand className="w-3 h-3" />
                     )}
                     {isImproving ? 'Improving...' : 'AI Improve'}
-                  </button>
+                  </Button>
                   {showImproveOptions && (
-                    <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-peach-soft p-2 z-50 min-w-[160px]">
+                    <div className="absolute right-0 top-full mt-2 bg-white rounded-xl border-2 border-peach-soft p-2 z-50 min-w-40">
                       {['more dramatic', 'funnier', 'simpler', 'more descriptive'].map((tone) => (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           key={tone}
                           onClick={() => handleImproveText(tone)}
-                          className="w-full text-left px-3 py-2 text-xs text-charcoal-soft hover:bg-cream-base rounded-lg transition-colors capitalize"
+                          className="w-full text-left text-charcoal-soft capitalize"
                         >
                           {tone}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
-            </label>
-            <textarea
-              className={`w-full h-[200px] bg-white border rounded-2xl p-6 font-body text-lg text-charcoal-soft leading-loose focus:outline-none focus:ring-4 transition-all resize-none shadow-sm ${
+            </Label>
+            <Textarea
+              className={`h-50 rounded-2xl p-6 text-lg leading-loose ${
                 consistencyIssues.length > 0
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10'
-                  : 'border-peach-soft focus:border-coral-burst focus:ring-coral-burst/10'
+                  : ''
               }`}
               value={activePage.text}
               onChange={(e) => handleTextChange(e.target.value)}
@@ -1531,7 +1583,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
             {/* Learning Content Display */}
             {activePage.learningContent && (
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 border border-emerald-200 mt-4">
+              <div className="bg-linear-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 border border-emerald-200 mt-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-2xl">🎓</span>
                   <h4 className="font-heading font-bold text-sm text-emerald-900 uppercase">
@@ -1605,12 +1657,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     <div key={i} className="bg-white rounded-lg p-3 text-xs">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-bold text-charcoal-soft capitalize">{sug.type}</span>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => applySuggestion(sug)}
-                          className="text-blue-600 hover:underline font-bold"
+                          className="text-blue-600 hover:underline"
                         >
                           Apply
-                        </button>
+                        </Button>
                       </div>
                       <p className="text-cocoa-light mb-1">
                         <span className="line-through">{sug.original}</span> →{' '}
@@ -1640,12 +1694,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     Character Consistency Report
                   </h3>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setShowConsistencyPanel(false)}
                   className="text-purple-600 hover:text-purple-800"
                 >
                   ×
-                </button>
+                </Button>
               </div>
               <div className="mb-4">
                 <div className="flex items-center gap-2">
@@ -1656,7 +1712,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 </div>
               </div>
               <div className="space-y-3">
-                {consistencyReport.characters.map((char: any, i: number) => (
+                {consistencyReport.characters.map((char: ConsistencyCharacter, i: number) => (
                   <div key={i} className="bg-white rounded-xl p-4">
                     <h4 className="font-heading font-bold text-sm text-charcoal-soft mb-2">
                       {char.name}
@@ -1702,16 +1758,17 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
           {/* CYOA Choices */}
           {project.isBranching && activePage.choices && (
-            <div className="bg-white rounded-2xl p-6 border border-peach-soft/50 shadow-soft-sm">
-              <label className="font-heading font-bold text-sm text-cocoa-light uppercase tracking-wider mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-6 border border-peach-soft/50">
+              <Label className="uppercase tracking-wider mb-4 flex items-center gap-2">
                 <GitFork className="w-4 h-4 text-gold-sunshine" /> Branching Choices
-              </label>
+              </Label>
               <div className="space-y-3">
                 {activePage.choices.map((choice, i) => (
-                  <button
+                  <Button
+                    variant="outline"
                     key={i}
                     onClick={() => jumpToPageNumber(choice.targetPageNumber)}
-                    className="w-full flex items-center justify-between bg-cream-base p-4 rounded-xl border border-peach-soft/30 hover:bg-peach-soft hover:border-coral-burst transition-all group text-left"
+                    className="w-full justify-between bg-cream-base p-4 border-peach-soft/30 hover:bg-peach-soft hover:border-coral-burst group text-left h-auto"
                   >
                     <span className="text-charcoal-soft font-medium text-sm flex-1 mr-3 group-hover:text-charcoal-soft/90 transition-colors">
                       {choice.text}
@@ -1722,7 +1779,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                       </span>
                       <ChevronRight className="w-4 h-4 text-coral-burst opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -1730,9 +1787,9 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
           {/* Image Prompt */}
           <div className="bg-cream-base rounded-2xl p-6 border border-peach-soft/50">
-            <label className="font-heading font-bold text-sm text-cocoa-light uppercase tracking-wider mb-2 block">
+            <Label className="uppercase tracking-wider mb-2">
               Visual Description
-            </label>
+            </Label>
             <p className="text-sm text-charcoal-soft/80 leading-relaxed italic">
               "{activePage.imagePrompt}"
             </p>
@@ -1742,13 +1799,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         {/* Bottom Navigation Strip */}
         <div className="h-24 bg-white border-t border-peach-soft/50 flex items-center gap-3 px-6 overflow-x-auto pb-2 pt-2 shrink-0">
           {allPages.map((p, idx) => (
-            <button
+            <Button
+              variant="ghost"
               key={p.id}
               onClick={() => setActivePageIndex(idx)}
-              className={`flex-shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center font-heading font-bold text-lg transition-all
+              className={`shrink-0 w-14 h-14 flex flex-col font-heading text-lg
                         ${
                           activePageIndex === idx
-                            ? 'bg-coral-burst text-white shadow-lg scale-110'
+                            ? 'bg-coral-burst text-white border-2 border-white/20 scale-110'
                             : 'bg-cream-base text-cocoa-light hover:bg-peach-soft'
                         }`}
             >
@@ -1756,7 +1814,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               {p.choices && p.choices.length > 0 && (
                 <div className="w-1.5 h-1.5 rounded-full bg-gold-sunshine mt-1" />
               )}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -1766,15 +1824,11 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         className={`w-full lg:w-[60%] bg-peach-soft/20 items-center justify-center p-4 lg:p-8 pt-12 lg:pt-16 relative overflow-hidden ${mobileView === 'edit' ? 'hidden lg:flex' : 'flex min-h-[50vh] lg:h-full'}`}
       >
         <div
-          className="absolute inset-0 pointer-events-none opacity-30"
-          style={{
-            backgroundImage: 'radial-gradient(#FF9B71 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
+          className="absolute inset-0 pointer-events-none opacity-30 bg-[radial-gradient(#FF9B71_1px,transparent_1px)] bg-size-[24px_24px]"
         ></div>
 
         {/* Book Page Container */}
-        <div className="w-full max-w-md md:max-w-2xl aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-[4px] relative flex flex-col overflow-hidden transform transition-transform duration-500 hover:scale-[1.01]">
+        <div className="w-full max-w-md md:max-w-2xl aspect-3/4 bg-[#FFFCF8] border-2 border-peach-soft rounded-sm relative flex flex-col overflow-hidden transform transition-transform duration-500 hover:scale-[1.01]">
           {/* Texture Overlay */}
           <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none z-10"></div>
 
@@ -1790,18 +1844,18 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 {/* Text-to-Visual Ripple: Outdated Image Warning */}
                 {activePage.isImageOutdated && (
                   <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
-                    <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-center shadow-lg">
+                    <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-center border-2 border-peach-soft">
                       <RefreshCw className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                       <p className="text-sm font-bold text-orange-700">Image may be outdated</p>
                       <p className="text-xs text-orange-600 mb-3">
                         Your text has changed significantly
                       </p>
-                      <button
+                      <Button
                         onClick={() => {
                           handleGenerateImage();
                           // Clear the outdated flag
                           setProjectHistory((prev) => {
-                            const newProject = JSON.parse(JSON.stringify(prev)) as BookProject;
+                            const newProject = structuredClone(prev);
                             newProject.chapters.forEach((ch) => {
                               const page = ch.pages.find(
                                 (p) => p.pageNumber === activePage.pageNumber
@@ -1811,10 +1865,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                             return newProject;
                           });
                         }}
-                        className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors"
+                        className="bg-orange-500 text-white hover:bg-orange-600"
                       >
                         Regenerate
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1822,9 +1876,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-cream-base/50 text-cocoa-light gap-4">
                 <ImageIcon className="w-12 h-12 opacity-20" />
-                <button
+                <Button
+                  variant="outline"
                   onClick={handleGenerateImage}
-                  className="px-6 py-3 rounded-full bg-white shadow-soft-md text-coral-burst font-heading font-bold text-sm hover:shadow-soft-lg hover:scale-105 transition-all flex items-center gap-2 z-20"
+                  className="rounded-full bg-white text-coral-burst font-heading hover:border-coral-burst hover:scale-105 z-20"
                 >
                   {isGeneratingImage ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1832,11 +1887,11 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     <Wand className="w-4 h-4" />
                   )}
                   Generate Illustration
-                </button>
+                </Button>
               </div>
             )}
             {/* Gradient overlay for text readability if needed */}
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#FFFCF8] to-transparent opacity-50"></div>
+            <div className="absolute bottom-0 left-0 w-full h-24 bg-linear-to-t from-[#FFFCF8] to-transparent opacity-50"></div>
           </div>
 
           {/* Text Content */}
@@ -1849,14 +1904,15 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             {project.isBranching && activePage.choices && (
               <div className="mt-8 space-y-3">
                 {activePage.choices.map((choice, idx) => (
-                  <button
+                  <Button
+                    variant="outline"
                     key={idx}
                     onClick={() => jumpToPageNumber(choice.targetPageNumber)}
-                    className="w-full py-3 px-6 rounded-xl border-2 border-charcoal-soft/10 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft font-heading font-bold text-sm transition-all flex justify-between items-center group shadow-sm"
+                    className="w-full border-charcoal-soft/10 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft font-heading justify-between group"
                   >
                     {choice.text}
                     <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -1870,26 +1926,30 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         </div>
 
         {/* Floating Action Bar */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full shadow-soft-lg px-6 py-3 flex items-center gap-6 border border-white z-30">
-          <button
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md rounded-full px-6 py-3 flex items-center gap-6 border-2 border-peach-soft z-30">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))}
-            className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors"
+            className="rounded-full text-charcoal-soft"
             aria-label="Previous page"
             title="Previous page"
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
+          </Button>
           <span className="font-heading font-bold text-charcoal-soft text-sm whitespace-nowrap">
             Preview Mode
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))}
-            className="p-2 hover:bg-cream-base rounded-full text-charcoal-soft transition-colors"
+            className="rounded-full text-charcoal-soft"
             aria-label="Next page"
             title="Next page"
           >
             <ChevronRight className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1932,7 +1992,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         currentProject={currentProject}
         onForkWorld={(world) => {
           // Handle forked world - could create a new project based on it
-          console.log('Forked world:', world);
+          console.warn('Forked world:', world);
           setShowRemixStudio(false);
         }}
       />

@@ -104,7 +104,7 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
           {/* Bubble arrow */}
           <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/10 backdrop-blur-xl rotate-45 border-t border-l border-white/20" />
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-5 py-4 border border-white/20 max-w-[200px]">
+          <div className="bg-white/10 backdrop-blur-xl rounded-2xl px-5 py-4 border border-white/20 max-w-50">
             <p className="text-white/90 text-sm font-medium leading-relaxed">"{message}"</p>
             <p className="text-white/40 text-xs mt-2 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
@@ -162,7 +162,7 @@ export const FeatureStorybook: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-[var(--ob-container-padding)] py-6 md:p-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-(--ob-container-padding) py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Animated background */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
 
@@ -190,7 +190,7 @@ export const FeatureStorybook: React.FC = () => {
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
-        className={`absolute w-96 h-96 rounded-full bg-gradient-to-br ${currentFeature.gradient} blur-3xl opacity-20`}
+        className={`absolute w-96 h-96 rounded-full bg-linear-to-br ${currentFeature.gradient} blur-3xl opacity-20`}
         style={{ top: '10%', right: '-10%' }}
       />
 
@@ -211,6 +211,7 @@ export const FeatureStorybook: React.FC = () => {
                     setDirection(idx > currentIndex ? 1 : -1);
                     setCurrentIndex(idx);
                   }}
+                  title={`Go to feature ${idx + 1}`}
                   className={`h-1.5 rounded-full transition-all duration-500 ${
                     idx === currentIndex
                       ? 'w-10 bg-white'
@@ -251,7 +252,7 @@ export const FeatureStorybook: React.FC = () => {
 
                       {/* Glow behind image */}
                       <div
-                        className={`absolute inset-0 bg-gradient-to-br ${currentFeature.gradient} blur-3xl opacity-40 -z-10 scale-75`}
+                        className={`absolute inset-0 bg-linear-to-br ${currentFeature.gradient} blur-3xl opacity-40 -z-10 scale-75`}
                       />
                     </motion.div>
 
@@ -262,7 +263,7 @@ export const FeatureStorybook: React.FC = () => {
                       transition={{ delay: 0.3 }}
                     >
                       <p
-                        className={`text-xs md:text-sm font-medium mb-1 md:mb-2 bg-gradient-to-r ${currentFeature.gradient} bg-clip-text text-transparent`}
+                        className={`text-xs md:text-sm font-medium mb-1 md:mb-2 bg-linear-to-r ${currentFeature.gradient} bg-clip-text text-transparent`}
                       >
                         {currentFeature.subtitle}
                       </p>
@@ -328,10 +329,10 @@ export const FeatureStorybook: React.FC = () => {
                 className="group relative px-5 py-3 md:px-8 md:py-4 rounded-full font-bold text-sm md:text-lg overflow-hidden"
               >
                 {/* Button gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-r ${currentFeature.gradient}`} />
+                <div className={`absolute inset-0 bg-linear-to-r ${currentFeature.gradient}`} />
 
                 {/* Shimmer */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 <span className="relative flex items-center gap-2 text-white">
                   {isLast ? 'Complete Tour' : 'Next'}

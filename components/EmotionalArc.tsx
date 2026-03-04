@@ -185,7 +185,7 @@ const EmotionalArc: React.FC<EmotionalArcProps> = ({
 
                   {/* Tooltip */}
                   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                    <div className="bg-slate-900 text-white text-xs rounded-lg px-2 py-1 whitespace-nowrap shadow-lg border border-slate-700">
+                    <div className="bg-slate-900 text-white text-xs rounded-lg px-2 py-1 whitespace-nowrap border border-slate-700">
                       <div className="font-bold">Page {point.pageNumber}</div>
                       <div className="text-slate-400">{point.label}</div>
                       <div className="text-[10px] mt-1">Tension: {point.tension}/10</div>

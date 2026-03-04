@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { type UserProfile, getUserProfile, updateUserProfile, invalidateProfileCache } from '../services/profileService';
+import { type UserProfile, getUserProfile, updateUserProfile } from '../services/profileService';
 import { getTierLimits } from '../services/tierLimits';
 import { AppMode, type SavedBook, UserTier } from '../types';
 import AboutSection from './settings/AboutSection';
@@ -34,6 +34,13 @@ import { LanguageSelector } from './settings/LanguageSelector';
 import LibraryPanel from './settings/LibraryPanel';
 import SessionManagement from './settings/SessionManagement';
 import ThemeSelector from './settings/ThemeSelector';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Button } from './ui/button';
+import { Input, Label, Textarea } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Slider } from './ui/slider';
+import { Switch } from './ui/switch';
+import { toast } from './ui/sonner';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
@@ -92,7 +99,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     try {
       // Try localStorage first, then fall back to user's avatar
       return localStorage.getItem('genesis_avatar') || null;
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
   });
@@ -132,7 +139,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         return { ...defaults, ...JSON.parse(saved) };
       }
       return defaults;
-    } catch (e) {
+    } catch (_e) {
       return defaults;
     }
   });
@@ -254,11 +261,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       }
     } catch (e) {
       console.error('Failed to save settings:', e);
+      setIsSaving(false);
+      // Show error feedback instead of falsely showing success
+      alert('Failed to save some settings. Please try again.');
+      return;
     }
 
     setIsSaving(false);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    toast.success('Settings saved successfully');
   };
 
   const handleAvatarClick = () => {
@@ -268,6 +278,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file.');
+        return;
+      }
+      // Validate file size (max 2MB to stay within localStorage limits)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image must be smaller than 2MB. Please choose a smaller file.');
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -281,18 +301,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     icon: Icon,
     label,
   }: { id: typeof activeTab; icon: any; label: string }) => (
-    <button
+    <Button
+      variant="ghost"
       onClick={() => setActiveTab(id)}
-      className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-[120px] md:min-w-0
+      className={`shrink-0 md:w-full md:gap-3 px-4 md:px-4 py-3 touch-manipulation min-w-30 md:min-w-0
         ${
           activeTab === id
-            ? 'bg-white shadow-soft-sm text-coral-burst font-bold border border-peach-soft'
-            : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft'
+            ? 'bg-white text-coral-burst font-bold border-2 border-peach-soft'
+            : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft border-2 border-transparent'
         }`}
     >
-      <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+      <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
       <span className="text-sm md:text-base whitespace-nowrap">{label}</span>
-    </button>
+    </Button>
   );
 
   const Toggle = ({
@@ -316,38 +337,30 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </span>
         {description && <span className="text-xs text-gray-500 mt-1">{description}</span>}
       </div>
-      <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-4 ${checked ? 'bg-coral-burst' : 'bg-gray-200'}`}
-      >
-        <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-[22px]' : 'translate-x-0'}`}
-        ></div>
-      </button>
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        onClick={(e) => e.stopPropagation()}
+        className="ml-4 shrink-0"
+      />
     </div>
   );
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 pb-24 animate-fadeIn relative">
-      {/* Success Toast */}
-      {showSuccess && (
-        <div className="fixed top-20 md:top-24 left-4 right-4 md:left-auto md:right-6 z-50 bg-white border border-green-200 text-green-700 px-4 md:px-6 py-3 md:py-4 rounded-xl shadow-soft-lg flex items-center gap-3 animate-fadeIn">
-          <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-500 flex-shrink-0" />
-          <div>
-            <h4 className="font-bold text-sm">Success</h4>
-            <p className="text-xs">Settings saved successfully.</p>
-          </div>
-        </div>
-      )}
+
 
       <div className="mb-6 md:mb-10 flex items-center gap-3 md:gap-4">
         {onNavigate && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onNavigate(AppMode.DASHBOARD)}
-            className="p-2 -ml-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors touch-manipulation"
+            className="p-2 -ml-2 hover:bg-cream-soft text-cocoa-light hover:text-coral-burst touch-manipulation"
             aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
-          </button>
+          </Button>
         )}
         <div>
           <h1 className="font-heading font-bold text-2xl md:text-4xl text-charcoal-soft mb-1 md:mb-2">
@@ -381,38 +394,37 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               href="https://genesis-1765265007.documentationai.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-[120px] md:min-w-0 bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft"
             >
-              <BookOpen className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+              <BookOpen className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
               <span className="text-sm md:text-base whitespace-nowrap">Help Center</span>
             </a>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-white rounded-2xl md:rounded-3xl shadow-soft-lg border border-white/50 p-4 md:p-8 min-h-[400px] md:min-h-[500px] relative">
+        <div className="flex-1 bg-white rounded-2xl md:rounded-3xl border-2 border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-[500px] relative">
           {/* Content Area */}
           <div className="space-y-6">
             {activeTab === 'profile' && (
               <div className="animate-fadeIn space-y-6 md:space-y-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-lg text-white relative group overflow-hidden flex-shrink-0">
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Avatar"
-                        className="w-full h-full object-cover scale-110"
-                      />
-                    ) : (
-                      <User className="w-8 h-8 md:w-10 md:h-10" />
-                    )}
-                    <button
+                  <div className="relative group shrink-0">
+                    <Avatar className="w-20 h-20 md:w-24 md:h-24 border-2 border-gold-sunshine">
+                      <AvatarImage src={avatarPreview || undefined} alt="Avatar" />
+                      <AvatarFallback className="bg-linear-to-br from-gold-sunshine to-coral-burst text-white">
+                        <User className="w-8 h-8 md:w-10 md:h-10" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={handleAvatarClick}
-                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer touch-manipulation"
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 touch-manipulation"
                     >
                       <Upload className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    </button>
-                    <input
+                    </Button>
+                    <Input
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileChange}
@@ -446,87 +458,90 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                         </>
                       )}
                     </p>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleAvatarClick}
-                      className="mt-2 text-sm font-bold text-coral-burst hover:underline flex items-center gap-1 mx-auto sm:mx-0 touch-manipulation"
+                      className="mt-2 text-coral-burst hover:underline mx-auto sm:mx-0 touch-manipulation"
                     >
                       <ImageIcon className="w-3 h-3" /> Change Avatar
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="h-px bg-peach-soft/50 w-full"></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label>
                       Display Name
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="text"
                       value={formData.displayName}
                       onChange={(e) => handleChange('displayName', e.target.value)}
-                      className="w-full bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft focus:border-coral-burst outline-none transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label>
                       Email Address
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="email"
                       value={formData.email}
                       onChange={(e) => handleChange('email', e.target.value)}
-                      className="w-full bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft focus:border-coral-burst outline-none transition-colors"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-cocoa-light uppercase">
+                  <Label>
                     Bio / Author Note
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     value={formData.bio}
                     onChange={(e) => handleChange('bio', e.target.value)}
-                    className="w-full h-24 bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft resize-none focus:border-coral-burst outline-none transition-colors"
+                    className="h-24"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-cocoa-light uppercase">
+                  <Label>
                     Default Art Style
-                  </label>
-                  <select
+                  </Label>
+                  <Select
                     value={formData.defaultStyle}
-                    onChange={(e) => handleChange('defaultStyle', e.target.value)}
-                    className="w-full bg-cream-base border border-peach-soft rounded-xl p-3 text-charcoal-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all cursor-pointer"
+                    onValueChange={(value) => handleChange('defaultStyle', value)}
                   >
-                    <option value="Watercolor">Watercolor</option>
-                    <option value="3D Render (Pixar Style)">3D Render (Pixar Style)</option>
-                    <option value="Japanese Manga">Japanese Manga</option>
-                    <option value="Corporate Minimalist">Corporate Minimalist</option>
-                    <option value="Cyberpunk Neon">Cyberpunk Neon</option>
-                    <option value="Vintage Illustration">Vintage Illustration</option>
-                    <option value="Paper Cutout Art">Paper Cutout Art</option>
-                    <option value="Flat Design">Flat Design</option>
-                    <option value="Modern Infographic">Modern Infographic</option>
-                    <option value="Technical Blueprint">Technical Blueprint</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose art style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Watercolor">Watercolor</SelectItem>
+                      <SelectItem value="3D Render (Pixar Style)">3D Render (Pixar Style)</SelectItem>
+                      <SelectItem value="Japanese Manga">Japanese Manga</SelectItem>
+                      <SelectItem value="Corporate Minimalist">Corporate Minimalist</SelectItem>
+                      <SelectItem value="Cyberpunk Neon">Cyberpunk Neon</SelectItem>
+                      <SelectItem value="Vintage Illustration">Vintage Illustration</SelectItem>
+                      <SelectItem value="Paper Cutout Art">Paper Cutout Art</SelectItem>
+                      <SelectItem value="Flat Design">Flat Design</SelectItem>
+                      <SelectItem value="Modern Infographic">Modern Infographic</SelectItem>
+                      <SelectItem value="Technical Blueprint">Technical Blueprint</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <label className="text-xs font-bold text-cocoa-light uppercase">
+                    <Label className="text-xs text-cocoa-light uppercase">
                       Creativity (Temperature)
-                    </label>
+                    </Label>
                     <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded">
                       {formData.temperature}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={formData.temperature}
-                    onChange={(e) => handleChange('temperature', Number.parseFloat(e.target.value))}
-                    className="w-full accent-coral-burst h-2 bg-peach-soft rounded-lg appearance-none cursor-pointer hover:bg-peach-light transition-colors"
+                  <Slider
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={[formData.temperature]}
+                    onValueChange={([val]) => handleChange('temperature', val)}
+                    className="w-full"
                   />
                   <div className="flex justify-between text-xs text-cocoa-light">
                     <span>Precise</span>
@@ -572,21 +587,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 />
                 <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100">
                   <h4 className="text-sm font-bold text-red-800 mb-2">Danger Zone</h4>
-                  <button
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() =>
                       alert('Account deletion requested. Please contact support to finalize.')
                     }
-                    className="text-xs text-red-600 hover:underline font-bold hover:text-red-800 transition-colors"
+                    className="text-red-600 hover:underline hover:text-red-800"
                   >
                     Delete Account & All Data
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
 
             {activeTab === 'themes' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft/50">
                   <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
                     Display Settings
                   </h3>
@@ -617,16 +634,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
 
                 {/* Premium Black Card */}
-                <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl overflow-hidden">
+                <div className="relative bg-linear-to-br from-gray-900 via-gray-800 to-black rounded-2xl md:rounded-3xl p-6 md:p-8 overflow-hidden">
                   {/* Card shine effect */}
-                  <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl"></div>
+                  <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-linear-to-br from-white/10 to-transparent rounded-full blur-3xl"></div>
 
                   {/* Card Content */}
                   <div className="relative z-10">
                     <div className="flex items-start justify-between mb-6 md:mb-8">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center">
                             <span className="text-white font-heading font-bold text-base md:text-lg">
                               G
                             </span>
@@ -658,26 +675,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-white/80">
-                        <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                         <span>5 illustration styles</span>
                       </div>
                       <div className="flex items-center gap-2 text-white/80">
-                        <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                         <span>Standard templates</span>
                       </div>
                       <div className="flex items-center gap-2 text-white/80">
-                        <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                         <span>Community support</span>
                       </div>
                     </div>
 
                     {/* Card chip effect */}
-                    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gold-sunshine/30 to-coral-burst/30 rounded-lg backdrop-blur-sm border border-white/10"></div>
+                    <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 w-10 h-10 md:w-12 md:h-12 bg-linear-to-br from-gold-sunshine/30 to-coral-burst/30 rounded-lg backdrop-blur-sm border border-white/10"></div>
                   </div>
                 </div>
 
                 {/* Upgrade CTA */}
-                <div className="bg-gradient-to-r from-coral-burst to-gold-sunshine p-5 md:p-6 rounded-2xl text-white">
+                <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-5 md:p-6 rounded-2xl text-white">
                   <h4 className="font-heading font-bold text-lg md:text-xl mb-2">
                     Unlock Premium Features
                   </h4>
@@ -685,12 +702,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     Upgrade to Creator (10 ebooks/month) or Visionary (unlimited) for advanced AI
                     and priority support
                   </p>
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => onNavigate?.(AppMode.PRICING)}
-                    className="px-6 py-3 bg-white text-coral-burst rounded-full font-bold hover:scale-105 transition-transform shadow-lg touch-manipulation"
+                    className="bg-white text-coral-burst hover:bg-white/90 rounded-full border-2 border-white"
                   >
                     View Plans
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Billing History */}
@@ -701,7 +719,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-4 bg-cream-base rounded-xl">
                       <div className="flex items-center gap-3">
-                        <Calendar className="w-5 h-5 text-cocoa-light flex-shrink-0" />
+                        <Calendar className="w-5 h-5 text-cocoa-light shrink-0" />
                         <div>
                           <p className="font-bold text-sm text-charcoal-soft">Spark Plan</p>
                           <p className="text-xs text-cocoa-light">Free tier - No charges</p>
@@ -722,7 +740,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {activeTab === 'data' && (
               <DataManagement
-                onShowSuccess={(msg) => {
+                onShowSuccess={(_msg) => {
                   setShowSuccess(true);
                   setTimeout(() => setShowSuccess(false), 3000);
                 }}
@@ -731,7 +749,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {activeTab === 'sessions' && (
               <SessionManagement
-                onShowSuccess={(msg) => {
+                onShowSuccess={(_msg) => {
                   setShowSuccess(true);
                   setTimeout(() => setShowSuccess(false), 3000);
                 }}
@@ -748,18 +766,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           {/* Footer */}
           <div className="mt-8 md:mt-10 pt-5 md:pt-6 border-t border-peach-soft/50">
             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4 mb-4">
-              <button
+              <Button
+                variant="ghost"
                 onClick={async () => {
                   await signOut();
                   window.location.href = '/auth';
                 }}
-                className="flex items-center justify-center md:justify-start gap-2 text-cocoa-light font-bold hover:text-red-500 text-sm px-4 py-3 md:py-2 rounded-lg hover:bg-red-50 transition-colors touch-manipulation">
+                className="md:justify-start text-cocoa-light hover:text-red-500 px-4 py-3 md:py-2 hover:bg-red-50 touch-manipulation">
                 <LogOut className="w-4 h-4" /> Sign Out
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full md:w-auto px-6 md:px-8 py-3.5 md:py-3 bg-coral-burst text-white rounded-full font-heading font-bold shadow-soft-md hover:shadow-soft-lg hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed touch-manipulation"
+                className="w-full md:w-auto rounded-full"
               >
                 {isSaving ? (
                   <>
@@ -772,38 +792,46 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     Save Changes
                   </>
                 )}
-              </button>
+              </Button>
             </div>
 
             {/* Legal Links */}
             <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs text-cocoa-light/70 pt-3 border-t border-peach-soft/30">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst transition-colors"
+                className="hover:text-coral-burst"
               >
                 Privacy Policy
-              </button>
+              </Button>
               <span className="text-peach-soft">•</span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst transition-colors"
+                className="hover:text-coral-burst"
               >
                 Terms of Service
-              </button>
+              </Button>
               <span className="text-peach-soft">•</span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst transition-colors"
+                className="hover:text-coral-burst"
               >
                 Cookie Policy
-              </button>
+              </Button>
               <span className="text-peach-soft">•</span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst transition-colors"
+                className="hover:text-coral-burst"
               >
                 Acceptable Use
-              </button>
+              </Button>
             </div>
           </div>
         </div>

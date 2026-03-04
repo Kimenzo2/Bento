@@ -2,6 +2,9 @@ import { ArrowRight, Cloud, Loader2, Sparkles, Zap } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import { Input, Label } from './ui/input';
+import { Alert, AlertDescription } from './ui/alert';
 
 const AuthPage: React.FC = () => {
   const {
@@ -38,7 +41,7 @@ const AuthPage: React.FC = () => {
     try {
       const { error } = await signInWithGoogle(returnTo);
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Error logging in with Google:', error);
       setError('Failed to log in with Google. Please try again.');
       setIsLoading(false);
@@ -62,7 +65,7 @@ const AuthPage: React.FC = () => {
         if (error) throw error;
         // User state will update automatically, component will re-render
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Authentication error:', error);
       setError('Authentication failed. Please check your credentials and try again.');
       setIsLoading(false);
@@ -70,13 +73,13 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-base via-peach-soft/20 to-gold-sunshine/10 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-cream-base via-peach-soft/20 to-gold-sunshine/10 flex items-center justify-center p-4">
       <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-8 items-center">
         {/* Left Side - Branding */}
         <div className="hidden lg:block space-y-8 px-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-glow">
+              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center border-2 border-white/30">
                 <span className="text-white font-heading font-bold text-2xl">G</span>
               </div>
               <span className="font-heading font-bold text-4xl text-charcoal-soft tracking-tight">
@@ -93,8 +96,8 @@ const AuthPage: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center flex-shrink-0">
+            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl border border-peach-soft/40">
+              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -107,8 +110,8 @@ const AuthPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center flex-shrink-0">
+            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl border border-peach-soft/40">
+              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
                 <Cloud className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -119,8 +122,8 @@ const AuthPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center flex-shrink-0">
+            <div className="flex items-start gap-4 p-4 bg-white/50 rounded-2xl border border-peach-soft/40">
+              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -134,9 +137,9 @@ const AuthPage: React.FC = () => {
         </div>
 
         {/* Right Side - Auth Form */}
-        <div className="bg-white rounded-3xl shadow-soft-xl p-8 lg:p-12">
+        <div className="bg-white rounded-3xl border-2 border-peach-soft p-8 lg:p-12">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-gold-sunshine to-coral-burst rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg transform rotate-3">
+            <div className="w-16 h-16 bg-linear-to-br from-gold-sunshine to-coral-burst rounded-2xl mx-auto mb-6 flex items-center justify-center border-2 border-white/30 transform rotate-3">
               <span className="text-3xl">✨</span>
             </div>
 
@@ -149,22 +152,24 @@ const AuthPage: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
-              {error}
-            </div>
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           {successMessage && (
-            <div className="mb-6 p-3 bg-green-50 text-green-600 text-sm rounded-xl border border-green-100">
-              {successMessage}
-            </div>
+            <Alert variant="success" className="mb-6">
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
           )}
 
           {/* Google Sign In */}
-          <button
+          <Button
+            variant="outline"
+            size="lg"
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-peach-soft hover:border-coral-burst text-charcoal-soft font-bold py-3 px-6 rounded-xl transition-all hover:shadow-md hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed mb-6"
+            className="w-full gap-3 mb-6"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-coral-burst" />
@@ -191,7 +196,7 @@ const AuthPage: React.FC = () => {
                 <span>Continue with Google</span>
               </>
             )}
-          </button>
+          </Button>
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
@@ -207,52 +212,45 @@ const AuthPage: React.FC = () => {
           {/* Email/Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
             {isSignUp && (
-              <div>
-                <label className="block text-xs font-bold text-cocoa-light uppercase mb-1 ml-1">
-                  Full Name
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label>Full Name</Label>
+                <Input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-cream-base border border-peach-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all"
                   placeholder="Your name"
                 />
               </div>
             )}
-            <div>
-              <label className="block text-xs font-bold text-cocoa-light uppercase mb-1 ml-1">
-                Email Address
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label>Email Address</Label>
+              <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-cream-base border border-peach-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all"
                 placeholder="you@example.com"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-cocoa-light uppercase mb-1 ml-1">
-                Password
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label>Password</Label>
+              <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 rounded-xl bg-cream-base border border-peach-soft focus:border-coral-burst focus:ring-2 focus:ring-coral-burst/20 outline-none transition-all"
                 placeholder="••••••••"
               />
             </div>
 
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="lg"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gold-sunshine to-coral-burst text-white font-bold py-3 px-6 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -262,21 +260,22 @@ const AuthPage: React.FC = () => {
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <button
+            <Button
+              variant="link"
               type="button"
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError(null);
                 setSuccessMessage(null);
               }}
-              className="text-coral-burst font-bold hover:text-gold-sunshine transition-colors"
+              className="text-coral-burst hover:text-gold-sunshine"
             >
               {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-            </button>
+            </Button>
           </div>
 
           <p className="mt-8 text-xs text-center text-cocoa-light/70">

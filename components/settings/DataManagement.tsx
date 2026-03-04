@@ -162,7 +162,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
         <p className="text-sm text-cocoa-light mb-4">Monitor your account storage and data</p>
 
         <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 md:p-4 border border-blue-200">
+          <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl p-3 md:p-4 border border-blue-200">
             <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
               <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
               <span className="text-xs font-bold text-blue-900 uppercase hidden sm:block">
@@ -173,7 +173,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
             <p className="text-xs text-blue-700 mt-0.5 md:mt-1 truncate">Saved books</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 md:p-4 border border-purple-200">
+          <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl p-3 md:p-4 border border-purple-200">
             <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
               <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
               <span className="text-xs font-bold text-purple-900 uppercase hidden sm:block">
@@ -184,7 +184,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
             <p className="text-xs text-purple-700 mt-0.5 md:mt-1 truncate">Visuals</p>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 md:p-4 border border-orange-200">
+          <div className="bg-linear-to-br from-orange-50 to-orange-100 rounded-xl p-3 md:p-4 border border-orange-200">
             <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
               <HardDrive className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
               <span className="text-xs font-bold text-orange-900 uppercase hidden sm:block">
@@ -251,7 +251,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
         {showDeleteConfirm ? (
           <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
             <div className="flex items-start gap-2 md:gap-3">
-              <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600 shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <h4 className="font-bold text-red-900 mb-1 text-sm md:text-base">
                   Are you absolutely sure?

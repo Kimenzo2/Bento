@@ -27,6 +27,7 @@ import {
   REACTION_EMOJIS,
   type ReactionType,
 } from '../../types/collaboration';
+import { Button } from '@components/ui/button';
 
 interface ActivityFeedProps {
   sessionId?: string;
@@ -266,9 +267,9 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl shadow-soft-lg border border-white overflow-hidden h-full flex flex-col">
+    <div className="bg-white rounded-xl sm:rounded-2xl border border-white overflow-hidden h-full flex flex-col">
       {showHeader && (
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 shrink-0">
           <h3 className="font-heading font-bold text-sm sm:text-base text-charcoal-soft flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-coral-burst" />
             Activity
@@ -308,7 +309,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 onClick={() => onActivityClick?.(activity)}
               >
                 {/* User avatar */}
-                <div className="relative flex-shrink-0">
+                <div className="relative shrink-0">
                   <img
                     src={
                       activity.user?.avatar_url ||
@@ -346,7 +347,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   <img
                     src={activity.visual.thumbnail_url || activity.visual.image_url}
                     alt="Visual"
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover flex-shrink-0"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover shrink-0"
                   />
                 )}
               </div>
@@ -354,10 +355,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
             {/* Load more button */}
             {hasMore && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => loadActivities(true)}
                 disabled={isLoadingMore}
-                className="w-full py-3 text-center text-xs sm:text-sm text-coral-burst hover:bg-coral-burst/5 active:bg-coral-burst/10 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
+                className="w-full py-3 text-center text-xs sm:text-sm text-coral-burst hover:bg-coral-burst/5 active:bg-coral-burst/10 flex min-h-11"
               >
                 {isLoadingMore ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -367,7 +369,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     Load more
                   </>
                 )}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -400,14 +402,14 @@ export const ActivityNotification: React.FC<ActivityNotificationProps> = ({
       className="fixed bottom-28 sm:bottom-24 left-2 sm:left-4 right-2 sm:right-auto z-50 animate-slideUp"
       style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
     >
-      <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-[300px]">
+      <div className="bg-white rounded-xl border border-gray-200 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 max-w-full sm:max-w-75">
         <img
           src={
             activity.user?.avatar_url ||
             `https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.user_id}`
           }
           alt=""
-          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
+          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0"
         />
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm text-charcoal-soft truncate">
@@ -421,7 +423,7 @@ export const ActivityNotification: React.FC<ActivityNotificationProps> = ({
           <img
             src={activity.visual.thumbnail_url || activity.visual.image_url}
             alt=""
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover flex-shrink-0"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover shrink-0"
           />
         )}
       </div>

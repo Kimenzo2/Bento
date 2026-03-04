@@ -14,6 +14,7 @@ import {
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import type { BookProject, Page } from '../types';
+import { Button } from './ui/button';
 
 interface StoryMapProps {
   project: BookProject;
@@ -30,7 +31,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
 }) => {
   const [scale, setScale] = useState(1);
   const [selectedNode, setSelectedNode] = useState<number | null>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [_position, _setPosition] = useState({ x: 0, y: 0 });
 
   // Calculate grid layout
   // We'll use a simple flow layout: Start -> Middle -> End
@@ -80,7 +81,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-[60] flex flex-col animate-fadeIn">
+    <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-60 flex flex-col animate-fadeIn">
       {/* Header */}
       <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-slate-900">
         <div className="flex items-center gap-3">
@@ -96,48 +97,58 @@ const StoryMap: React.FC<StoryMapProps> = ({
         <div className="flex items-center gap-4">
           {/* Zoom Controls */}
           <div className="flex items-center bg-slate-800 rounded-lg p-1 border border-white/10 gap-1">
-            <button
+            <Button
               onClick={() => setScale(Math.max(0.5, scale - 0.1))}
-              className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+              variant="ghost"
+              size="icon"
+              className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white min-h-9 min-w-9"
               title="Zoom out (-)"
             >
               <ZoomOut className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setScale(1)}
-              className="px-3 py-1 text-xs text-slate-400 hover:text-white hover:bg-white/10 rounded-md transition-colors min-h-[36px]"
+              variant="ghost"
+              size="sm"
+              className="px-3 py-1 text-xs text-slate-400 hover:text-white hover:bg-white/10 rounded-md min-h-9"
               title="Reset zoom (0)"
             >
               {Math.round(scale * 100)}%
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setScale(Math.min(2, scale + 0.1))}
-              className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+              variant="ghost"
+              size="icon"
+              className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white min-h-9 min-w-9"
               title="Zoom in (+)"
             >
               <ZoomIn className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
 
           {/* Edit in Editor Button */}
           {onNavigateToEditor && (
-            <button
+            <Button
               onClick={onNavigateToEditor}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium text-sm min-h-[36px]"
+              variant="default"
+              size="sm"
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium min-h-9"
               title="Edit pages in Editor"
             >
               <Edit className="w-4 h-4" />
               <span className="hidden md:inline">Edit Pages</span>
-            </button>
+            </Button>
           )}
 
-          <button
+          <Button
             onClick={onClose}
-            className="p-2 hover:bg-red-500/20 hover:text-red-400 text-slate-400 rounded-full transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
+            variant="ghost"
+            size="icon"
+            className="p-2 hover:bg-red-500/20 hover:text-red-400 text-slate-400 rounded-full min-h-9 min-w-9"
             title="Close (Esc)"
           >
             <X className="w-6 h-6" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -179,11 +190,11 @@ const StoryMap: React.FC<StoryMapProps> = ({
                     setSelectedNode(index);
                   }}
                   className={`
-                                        w-64 bg-slate-800 rounded-xl border-2 overflow-hidden cursor-pointer transition-all shadow-xl flex-shrink-0
+                                        w-64 bg-slate-800 rounded-xl border-2 overflow-hidden cursor-pointer transition-all shrink-0
                                         ${
                                           selectedNode === index
-                                            ? 'border-emerald-500 shadow-emerald-500/20 ring-2 ring-emerald-500/30'
-                                            : 'border-slate-700 hover:border-emerald-500/50 hover:shadow-emerald-500/10'
+                                            ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                                            : 'border-slate-700 hover:border-emerald-500/50'
                                         }
                                     `}
                 >
@@ -205,7 +216,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
                   {/* Content Preview */}
                   <div className="p-4">
                     <div className="flex items-start gap-2 mb-2">
-                      <Type className="w-3 h-3 text-slate-500 mt-1 flex-shrink-0" />
+                      <Type className="w-3 h-3 text-slate-500 mt-1 shrink-0" />
                       <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
                         {page.text || <span className="italic text-slate-600">Empty page...</span>}
                       </p>
@@ -225,16 +236,18 @@ const StoryMap: React.FC<StoryMapProps> = ({
                           </span>
                         )}
                       </div>
-                      <button
+                      <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           onNavigateToEditor?.();
                         }}
-                        className="p-1.5 hover:bg-emerald-500/20 rounded-md text-slate-500 hover:text-emerald-400 transition-colors"
+                        variant="ghost"
+                        size="icon"
+                        className="p-1.5 hover:bg-emerald-500/20 rounded-md text-slate-500 hover:text-emerald-400"
                         title="View/Edit this page"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </motion.div>

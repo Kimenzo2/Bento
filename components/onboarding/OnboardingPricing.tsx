@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from './OnboardingState';
 import { UserTier } from '../../types';
 import type { LucideIcon } from 'lucide-react';
+import { Button } from '@components/ui/button';
 
 // Type for pricing tier
 interface PricingTier {
@@ -35,7 +36,7 @@ const tiers: PricingTier[] = [
     description: 'Start Free',
     icon: Zap,
     gradient: 'from-slate-500 to-slate-600',
-    glowColor: 'shadow-slate-500/20',
+    glowColor: '',
     borderColor: 'border-white/10',
     paystackPaymentUrl: null,
     planCode: null,
@@ -58,7 +59,7 @@ const tiers: PricingTier[] = [
     description: 'Most Popular',
     icon: Star,
     gradient: 'from-blue-500 to-cyan-500',
-    glowColor: 'shadow-blue-500/30',
+    glowColor: '',
     borderColor: 'border-blue-400/30',
     saveLabel: 'Save 18%',
     paystackPaymentUrl: 'https://paystack.shop/pay/fan-nihu8w', // TEMP TEST — production: https://paystack.shop/pay/mfkoveuu1o
@@ -81,7 +82,7 @@ const tiers: PricingTier[] = [
     description: 'Professional',
     icon: Briefcase,
     gradient: 'from-purple-500 via-pink-500 to-amber-500',
-    glowColor: 'shadow-purple-500/40',
+    glowColor: '',
     borderColor: 'border-amber-400/40',
     saveLabel: 'Save 17%',
     paystackPaymentUrl: 'https://paystack.shop/pay/akv70alb1x',
@@ -104,7 +105,7 @@ const tiers: PricingTier[] = [
     description: 'Enterprise',
     icon: Crown,
     gradient: 'from-amber-400 to-yellow-500',
-    glowColor: 'shadow-amber-500/30',
+    glowColor: '',
     borderColor: 'border-amber-400/30',
     saveLabel: 'Save 17%',
     paystackPaymentUrl: 'https://paystack.shop/pay/uvcz30todn',
@@ -125,9 +126,9 @@ export const OnboardingPricing: React.FC = () => {
   const { setStep, addSparkPoints } = useOnboarding();
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [processingTier, setProcessingTier] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState('');
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [processingTier, _setProcessingTier] = useState<string | null>(null);
+  const [_userEmail, setUserEmail] = useState('');
+  const [selectedTier, _setSelectedTier] = useState<string | null>(null);
 
   // Load email from localStorage on mount
   useEffect(() => {
@@ -143,7 +144,7 @@ export const OnboardingPricing: React.FC = () => {
   }, []);
 
   // Helper to get user ID
-  const getUserId = async (): Promise<string> => {
+  const _getUserId = async (): Promise<string> => {
     try {
       const { supabase } = await import('../../services/supabaseClient');
       const { data: { user } } = await supabase.auth.getUser();
@@ -183,7 +184,7 @@ export const OnboardingPricing: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center px-(--ob-container-padding) py-6 overflow-x-hidden overflow-y-auto">
       {/* Background */}
       <div className="absolute inset-0 bg-linear-to-br from-purple-950/30 via-[#0d0d1a] to-blue-950/30" />
       
@@ -219,17 +220,18 @@ export const OnboardingPricing: React.FC = () => {
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-3">
             <span className={`text-sm font-medium ${!isAnnual ? 'text-white' : 'text-white/40'}`}>Monthly</span>
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setIsAnnual(!isAnnual)}
               aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
-              className="relative w-14 h-7 bg-white/10 rounded-full p-1 transition-colors border border-white/20"
+              className="relative w-14 h-7 bg-white/10 rounded-full p-1 border border-white/20"
             >
               <motion.div
                 animate={{ x: isAnnual ? 26 : 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                className="w-5 h-5 bg-linear-to-r from-purple-500 to-pink-500 rounded-full shadow-lg"
+                className="w-5 h-5 bg-linear-to-r from-purple-500 to-pink-500 rounded-full"
               />
-            </button>
+            </Button>
             <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}>
               Annual
               <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-400/30">
@@ -253,7 +255,7 @@ export const OnboardingPricing: React.FC = () => {
                 transition={{ delay: index * 0.1 }}
                 className={`relative bg-white/5 backdrop-blur-xl rounded-2xl border p-3 md:p-5 flex flex-col transition-all duration-300 ${
                   tier.isPopular 
-                    ? `border-amber-400/50 ${tier.glowColor} shadow-xl` 
+                    ? `border-amber-400/50` 
                     : `${tier.borderColor} hover:border-white/20`
                 } ${isSelected ? 'ring-2 ring-purple-500' : ''}`}
               >
@@ -315,7 +317,7 @@ export const OnboardingPricing: React.FC = () => {
                   whileTap={{ scale: processingTier ? 1 : 0.98 }}
                   className={`w-full py-2.5 md:py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                     tier.isPopular
-                      ? `bg-linear-to-r ${tier.gradient} text-white shadow-lg`
+                      ? `bg-linear-to-r ${tier.gradient} text-white border-2 border-white/20`
                       : tier.priceMonthly === 0
                         ? 'bg-white/10 text-white/70 hover:bg-white/20'
                         : 'bg-white/10 text-white hover:bg-white/20'
@@ -338,12 +340,14 @@ export const OnboardingPricing: React.FC = () => {
 
                 {/* Why This Tier Button */}
                 {tier.priceMonthly > 0 && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => navigate(`/tier/${tier.name.toLowerCase()}`)}
-                    className="w-full mt-2 py-2 rounded-lg font-medium text-xs text-white/40 hover:text-white/70 hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
+                    className="w-full mt-2 py-2 font-medium text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent hover:border-white/10"
                   >
                     Why {tier.displayName}?
-                  </button>
+                  </Button>
                 )}
               </motion.div>
             );

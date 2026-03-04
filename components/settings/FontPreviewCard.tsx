@@ -49,8 +49,8 @@ const FontPreviewCard: React.FC<FontPreviewCardProps> = ({ pairing, isActive, on
       className={`relative w-full text-left group transition-all duration-300 rounded-2xl border-2 overflow-hidden
         ${
           isActive
-            ? 'border-coral-burst bg-white shadow-soft-md scale-[1.02]'
-            : 'border-transparent bg-cream-soft hover:bg-white hover:shadow-soft-sm hover:border-peach-soft'
+            ? 'border-coral-burst bg-white scale-[1.02]'
+            : 'border-transparent bg-cream-soft hover:bg-white hover:border-peach-soft'
         }`}
     >
       {/* Active Indicator */}

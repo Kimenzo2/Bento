@@ -121,7 +121,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         // Apply to document
         applyLanguageToDocument(targetLanguage);
 
-        console.log(`[LanguageContext] Language changed to: ${targetLanguage.name}`);
+        console.warn(`[LanguageContext] Language changed to: ${targetLanguage.name}`);
       } catch (error) {
         console.error(`[LanguageContext] Failed to change language:`, error);
         // Fallback to English

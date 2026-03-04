@@ -3,6 +3,7 @@ import { AlertCircle, Check, Clock, Coffee, Zap } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
+import { Button } from '@components/ui/button';
 
 interface DayInLifeTimelineProps {
   tier: TierConfig;
@@ -75,20 +76,22 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
 
         <div className="inline-flex bg-gray-100 p-1 rounded-full relative">
           <div
-            className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-white shadow-md transition-all duration-300 ${activeTab === 'with' ? 'left-1' : 'left-[49%]'}`}
+            className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-white border-2 border-peach-soft transition-all duration-300 ${activeTab === 'with' ? 'left-1' : 'left-[49%]'}`}
           />
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('without')}
-            className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors ${activeTab === 'without' ? 'text-charcoal-soft' : 'text-charcoal-soft/50'}`}
+            className={`relative z-10 px-6 py-2 rounded-full ${activeTab === 'without' ? 'text-charcoal-soft' : 'text-charcoal-soft/50'}`}
           >
             Typically
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('with')}
-            className={`relative z-10 px-6 py-2 rounded-full text-sm font-bold transition-colors ${activeTab === 'with' ? `text-${tier.accentColor}-600 bg-gradient-to-r ${tier.gradient} bg-clip-text text-transparent` : 'text-charcoal-soft/50'}`}
+            className={`relative z-10 px-6 py-2 rounded-full ${activeTab === 'with' ? `text-${tier.accentColor}-600 bg-linear-to-r ${tier.gradient} bg-clip-text text-transparent` : 'text-charcoal-soft/50'}`}
           >
             With Genesis
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -111,7 +114,7 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
                 className="relative flex flex-col md:flex-row items-center gap-8 group"
               >
                 {/* Time Badge */}
-                <div className="md:absolute left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-full border border-gray-100 text-xs font-mono font-bold text-charcoal-soft shadow-sm z-10">
+                <div className="md:absolute left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-full border border-peach-soft/50 text-xs font-mono font-bold text-charcoal-soft z-10">
                   {event.time}
                 </div>
 
@@ -119,7 +122,7 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
                 <div
                   className={`w-full md:w-1/2 p-6 rounded-2xl border transition-all duration-500 ${
                     isWith
-                      ? `bg-white border-${tier.accentColor}-200 shadow-xl md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
+                      ? `bg-white border-2 border-${tier.accentColor}-200 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
                       : `bg-gray-50 border-gray-200 grayscale opacity-80 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
                   }`}
                 >

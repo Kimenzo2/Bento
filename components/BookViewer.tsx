@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import type { BookProject } from '../types';
 import ExportModal from './ExportModal';
+import { Button } from './ui/button';
 
 interface BookViewerProps {
   project: BookProject;
@@ -49,17 +50,19 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-charcoal-soft via-charcoal-soft to-coral-burst/20 z-50 overflow-hidden">
+    <div className="fixed inset-0 bg-linear-to-br from-charcoal-soft via-charcoal-soft to-coral-burst/20 z-50 overflow-hidden">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 h-14 sm:h-16 bg-charcoal-soft/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-3 sm:px-6 z-10">
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+            className="p-2 hover:bg-white/10 rounded-full shrink-0"
             title="Exit"
           >
             <X className="w-5 h-5 text-white" />
-          </button>
+          </Button>
           <div className="min-w-0 flex-1">
             <h1 className="text-white font-heading font-bold text-sm sm:text-lg truncate">
               {project.title}
@@ -70,20 +73,24 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowExportModal(true)}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
+            className="p-2 hover:bg-white/10 rounded-full text-white"
             title="Export Book"
           >
             <Share2 className="w-5 h-5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm font-medium transition-colors flex-shrink-0"
+            className="hidden sm:flex px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white shrink-0"
           >
             <Home className="w-4 h-4" />
             Back to Dashboard
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -94,19 +101,19 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
       >
         <div className="w-full max-w-4xl h-full flex items-center justify-center">
           {/* Book Page - Mobile: Full height vertical stack, Desktop: Aspect ratio card */}
-          <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-[3/4] bg-[#FFFCF8] shadow-2xl rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
+          <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-3/4 bg-[#FFFCF8] border-2 border-peach-soft rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
             {/* Texture Overlay */}
             <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none"></div>
 
             {/* Image Section - Mobile: Takes 60% height, Desktop: 55% */}
             {currentPage.imageUrl && (
-              <div className="relative h-[60%] sm:h-[55%] w-full overflow-hidden flex-shrink-0">
+              <div className="relative h-[60%] sm:h-[55%] w-full overflow-hidden shrink-0">
                 <img
                   src={currentPage.imageUrl}
                   alt={`Page ${currentPage.pageNumber}`}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute bottom-0 left-0 w-full h-16 sm:h-24 bg-gradient-to-t from-[#FFFCF8] to-transparent"></div>
+                <div className="absolute bottom-0 left-0 w-full h-16 sm:h-24 bg-linear-to-t from-[#FFFCF8] to-transparent"></div>
               </div>
             )}
 
@@ -122,14 +129,15 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
               {currentPage.choices && currentPage.choices.length > 0 && (
                 <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
                   {currentPage.choices.map((choice, idx) => (
-                    <button
+                    <Button
+                      variant="outline"
                       key={idx}
                       onClick={() => handleChoice(choice.targetPageNumber)}
-                      className="w-full py-3 sm:py-3 px-4 sm:px-6 rounded-xl border-2 border-charcoal-soft/20 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft font-heading font-bold text-sm sm:text-base transition-all flex justify-between items-center group shadow-sm active:scale-95"
+                      className="w-full py-3 sm:py-3 px-4 sm:px-6 border-2 border-charcoal-soft/20 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft sm:text-base flex justify-between group active:scale-95"
                     >
                       {choice.text}
                       <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -147,29 +155,31 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
 
       {/* Navigation Controls */}
       <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-charcoal-soft/90 backdrop-blur-md border-t border-white/10 flex items-center justify-center gap-3 sm:gap-6 px-3 sm:px-6">
-        <button
+        <Button
+          variant="ghost"
           onClick={goToPrevPage}
           disabled={currentPageIndex === 0}
-          className="flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded-full text-white text-sm sm:text-base font-medium transition-colors active:scale-95"
+          className="flex gap-1 px-4 sm:px-6 py-2 sm:py-3 bg-white/10 hover:bg-white/20 disabled:opacity-30 rounded-full text-white sm:text-base active:scale-95"
         >
           <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="hidden xs:inline">Previous</span>
           <span className="xs:hidden">Prev</span>
-        </button>
+        </Button>
 
         <div className="text-white text-xs sm:text-sm font-medium bg-white/10 px-3 sm:px-4 py-2 rounded-full">
           {currentPageIndex + 1} / {allPages.length}
         </div>
 
-        <button
+        <Button
+          variant="ghost"
           onClick={goToNextPage}
           disabled={currentPageIndex === allPages.length - 1}
-          className="flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded-full text-white text-sm sm:text-base font-medium transition-colors active:scale-95"
+          className="flex gap-1 px-4 sm:px-6 py-2 sm:py-3 bg-white/10 hover:bg-white/20 disabled:opacity-30 rounded-full text-white sm:text-base active:scale-95"
         >
           <span className="hidden xs:inline">Next</span>
           <span className="xs:hidden">Next</span>
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
+        </Button>
       </div>
 
       {showExportModal && (

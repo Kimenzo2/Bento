@@ -1,6 +1,7 @@
 import { Download, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { Button } from './ui/button';
 
 const InstallPWA: React.FC = () => {
   const [supportsPWA, setSupportsPWA] = useState(false);
@@ -30,8 +31,8 @@ const InstallPWA: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 z-[100] animate-fadeIn">
-      <div className="bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-4 flex items-center justify-between gap-4 max-w-sm ml-auto">
+    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 z-100 animate-fadeIn">
+      <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-4 max-w-sm ml-auto">
         <div className="flex items-center gap-3">
           <div className="bg-coral-burst/10 p-2 rounded-xl">
             <Download className="w-6 h-6 text-coral-burst" />
@@ -42,18 +43,22 @@ const InstallPWA: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => setSupportsPWA(false)}
+            variant="ghost"
+            size="icon"
             className="p-2 hover:bg-gray-100 rounded-full text-gray-400"
           >
             <X size={18} />
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onClick}
-            className="bg-coral-burst text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-coral-hover transition-colors"
+            variant="default"
+            size="sm"
+            className="bg-coral-burst text-white px-4 py-2 text-xs hover:bg-coral-hover border-2 border-white/20"
           >
             Install
-          </button>
+          </Button>
         </div>
       </div>
     </div>

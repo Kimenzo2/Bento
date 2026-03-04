@@ -18,14 +18,16 @@ import {
   Zap,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { insightsService } from '../../services/insightsService';
 import type {
+  AchievementProgress,
   PersonalRecommendation,
   TrendingStyle,
   UserInsights,
   WeeklyInsightsSummary,
 } from '../../types/advanced';
+import { Button } from '@components/ui/button';
 
 interface InsightsDashboardProps {
   userId: string;
@@ -47,13 +49,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
   >('overview');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isOpen && userId) {
-      loadInsights();
-    }
-  }, [isOpen, userId]);
-
-  const loadInsights = async () => {
+  const loadInsights = useCallback(async () => {
     setLoading(true);
     try {
       const [userInsights, trends, recs] = await Promise.all([
@@ -100,7 +96,13 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      loadInsights();
+    }
+  }, [isOpen, userId, loadInsights]);
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -108,7 +110,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
     return num.toString();
   };
 
-  const getChangeIndicator = (change: number) => {
+  const _getChangeIndicator = (change: number) => {
     if (change > 0) return { icon: ArrowUp, color: 'text-green-400', bg: 'bg-green-500/20' };
     if (change < 0) return { icon: ArrowDown, color: 'text-red-400', bg: 'bg-red-500/20' };
     return { icon: Minus, color: 'text-gray-400', bg: 'bg-gray-500/20' };
@@ -133,7 +135,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
         {/* Header */}
         <div className="p-6 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-linear-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -141,9 +143,9 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
               <p className="text-gray-400 text-sm">Your weekly analytics & trends</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+          <Button variant="ghost" size="icon" onClick={onClose} className="p-2 hover:bg-gray-800">
             <X className="w-5 h-5 text-gray-400" />
-          </button>
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -154,10 +156,11 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
             { id: 'recommendations', label: 'For You', icon: Lightbulb },
             { id: 'achievements', label: 'Achievements', icon: Award },
           ].map((tab) => (
-            <button
+            <Button
               key={tab.id}
+              variant="ghost"
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+              className={`flex px-4 py-3 border-b-2 ${
                 activeTab === tab.id
                   ? 'border-purple-500 text-purple-400'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
@@ -165,7 +168,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -182,7 +185,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                 <div className="space-y-6">
                   {/* Streak Card */}
                   {insights?.streaks && (
-                    <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl p-6 border border-orange-500/30">
+                    <div className="bg-linear-to-r from-orange-500/20 to-red-500/20 rounded-xl p-6 border border-orange-500/30">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="text-4xl">
@@ -282,7 +285,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                         {/* Improvement Tips */}
                         {weeklySummary.improvement_tips &&
                           weeklySummary.improvement_tips.length > 0 && (
-                            <div className="md:col-span-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
+                            <div className="md:col-span-2 bg-linear-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
                               <p className="text-sm text-purple-300 mb-2 flex items-center gap-2">
                                 <Sparkles className="w-4 h-4" />
                                 Tips to Improve
@@ -314,12 +317,12 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                         Your Style Mix
                       </h3>
                       <div className="space-y-3">
-                        {insights.style_diversity.slice(0, 5).map((style: any, index: number) => (
+                        {insights.style_diversity.slice(0, 5).map((style: { style: string; percentage: number }, _index: number) => (
                           <div key={style.style} className="flex items-center gap-3">
                             <div className="w-24 text-sm text-gray-300">{style.style}</div>
                             <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                                className="h-full bg-linear-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
                                 style={{ width: `${style.percentage}%` }}
                               />
                             </div>
@@ -362,7 +365,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                       recommendation={rec}
                       onTry={() => {
                         // Handle trying recommendation - just log for now
-                        console.log('Applying recommendation:', rec.id);
+                        console.warn('Applying recommendation:', rec.id);
                       }}
                       onDismiss={() => {
                         // Remove from local state
@@ -388,7 +391,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                 <div className="space-y-6">
                   {/* Achievement Categories */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {insights.achievements.map((achievement: any) => (
+                    {insights.achievements.map((achievement) => (
                       <AchievementCard key={achievement.id} achievement={achievement} />
                     ))}
                   </div>
@@ -415,7 +418,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                       </div>
                       <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
+                          className="h-full bg-linear-to-r from-yellow-500 to-orange-500 rounded-full"
                           style={{ width: `${(insights.xp_progress || 0) * 100}%` }}
                         />
                       </div>
@@ -462,7 +465,7 @@ const StatCard: React.FC<StatCardProps> = ({
   const indicator = getChangeIndicator(change);
 
   return (
-    <div className={`bg-gradient-to-br ${colorStyles[color]} rounded-xl p-4 border`}>
+    <div className={`bg-linear-to-br ${colorStyles[color]} rounded-xl p-4 border`}>
       <div className="flex items-center justify-between mb-2">
         <Icon className="w-5 h-5" />
         {!hideChange && change !== 0 && (
@@ -569,19 +572,20 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
               <h4 className="font-semibold text-white">{recommendation.title}</h4>
               <p className="text-sm text-gray-400 mt-1">{recommendation.description}</p>
             </div>
-            <button onClick={onDismiss} className="p-1 hover:bg-gray-700 rounded">
+            <Button variant="ghost" size="icon" onClick={onDismiss} className="p-1 hover:bg-gray-700 rounded">
               <X className="w-4 h-4 text-gray-500" />
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center gap-3 mt-3">
-            <button
+            <Button
+              variant="default"
               onClick={onTry}
-              className="px-4 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+              className="px-4 py-1.5 bg-purple-500 hover:bg-purple-600 text-white flex"
             >
               Try it
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </Button>
             <span className="text-xs text-gray-500">
               {Math.round(recommendation.confidence_score * 100)}% match
             </span>
@@ -593,34 +597,25 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
 };
 
 interface AchievementCardProps {
-  achievement: {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    unlocked: boolean;
-    unlocked_at?: string;
-    progress?: number;
-    target?: number;
-  };
+  achievement: AchievementProgress;
 }
 
 const AchievementCard: React.FC<AchievementCardProps> = ({ achievement }) => {
   return (
     <div
       className={`rounded-xl p-4 border transition-all ${
-        achievement.unlocked
-          ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+        achievement.unlocked_at
+          ? 'bg-linear-to-br from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
           : 'bg-gray-800/30 border-gray-700/30 opacity-60'
       }`}
     >
-      <div className="text-3xl mb-2">{achievement.icon}</div>
-      <h4 className={`font-semibold ${achievement.unlocked ? 'text-white' : 'text-gray-400'}`}>
-        {achievement.name}
+      <div className="text-3xl mb-2">{achievement.icon || '🏆'}</div>
+      <h4 className={`font-semibold ${achievement.unlocked_at ? 'text-white' : 'text-gray-400'}`}>
+        {achievement.achievement_name}
       </h4>
-      <p className="text-xs text-gray-400 mt-1">{achievement.description}</p>
+      <p className="text-xs text-gray-400 mt-1">{achievement.description || ''}</p>
 
-      {!achievement.unlocked && achievement.progress !== undefined && achievement.target && (
+      {!achievement.unlocked_at && achievement.progress !== undefined && achievement.target && (
         <div className="mt-3">
           <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
             <div
@@ -634,7 +629,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({ achievement }) => {
         </div>
       )}
 
-      {achievement.unlocked && achievement.unlocked_at && (
+      {achievement.unlocked_at && (
         <p className="text-xs text-yellow-400/70 mt-2">
           Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
         </p>

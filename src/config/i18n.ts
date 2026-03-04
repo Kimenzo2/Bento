@@ -133,7 +133,7 @@ const initPromise = i18n
     saveMissing: import.meta.env.DEV,
 
     // Missing key handler (for development)
-    missingKeyHandler: (lngs, ns, key, fallbackValue) => {
+    missingKeyHandler: (lngs, ns, key, _fallbackValue) => {
       if (import.meta.env.DEV) {
         console.warn(`[i18n] Missing translation: ${ns}:${key} for languages: ${lngs.join(', ')}`);
       }

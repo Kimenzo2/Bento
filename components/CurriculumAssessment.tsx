@@ -8,6 +8,8 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import type { AssessmentQuestion, BloomsTaxonomyLevel, CurriculumEbook } from '../types/curriculum';
+import { Button } from '@components/ui/button';
+import { Textarea } from '@components/ui/input';
 
 interface CurriculumAssessmentProps {
   ebook: CurriculumEbook;
@@ -284,7 +286,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
   if (isComplete && results) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-8 shadow-2xl border border-purple-500/20">
+        <div className="bg-linear-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-8 border border-purple-500/20">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">
@@ -422,7 +424,8 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-4">
-            <button
+            <Button
+              variant="default"
               onClick={() => {
                 setIsComplete(false);
                 setCurrentIndex(0);
@@ -435,16 +438,17 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                 );
                 setResults(null);
               }}
-              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-colors"
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white"
             >
               Try Again
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="default"
               onClick={() => window.print()}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors"
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white"
             >
               Print Results
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -467,7 +471,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6">
-      <div className="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl shadow-2xl border border-purple-500/20 overflow-hidden">
+      <div className="bg-linear-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border border-purple-500/20 overflow-hidden">
         {/* Progress Header */}
         <div className="p-4 bg-gray-900/50 border-b border-purple-500/20">
           <div className="flex items-center justify-between mb-2">
@@ -490,7 +494,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
           </div>
           <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+              className="h-full bg-linear-to-r from-purple-500 to-pink-500 transition-all duration-300"
               style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
             />
           </div>
@@ -536,10 +540,11 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                 currentQuestion.answerChoices && (
                   <div className="space-y-3">
                     {currentQuestion.answerChoices.map((choice) => (
-                      <button
+                      <Button
+                        variant="outline"
                         key={choice.id}
                         onClick={() => handleChoiceSelect(choice.id)}
-                        className={`w-full p-4 rounded-xl text-left transition-all border-2 ${
+                        className={`w-full p-4 text-left border-2 h-auto ${
                           selectedChoices.includes(choice.id)
                             ? 'border-purple-500 bg-purple-500/20'
                             : 'border-gray-600 bg-gray-800/50 hover:border-purple-400'
@@ -547,7 +552,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
                               selectedChoices.includes(choice.id)
                                 ? 'border-purple-500 bg-purple-500'
                                 : 'border-gray-500'
@@ -574,7 +579,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                             <span className="text-gray-200">{choice.text}</span>
                           </div>
                         </div>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -583,11 +588,11 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
               {(currentQuestion.questionType === 'openEnded' ||
                 currentQuestion.questionType === 'constructedResponse') && (
                 <div>
-                  <textarea
+                  <Textarea
                     value={openResponse}
                     onChange={(e) => setOpenResponse(e.target.value)}
                     placeholder="Type your response here..."
-                    className="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none"
+                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                     rows={6}
                   />
                   {currentQuestion.rubric && (
@@ -642,7 +647,8 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
         {/* Action Buttons */}
         <div className="p-4 bg-gray-900/50 border-t border-purple-500/20">
           <div className="flex items-center justify-between">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => {
                 if (currentIndex > 0) {
                   setCurrentIndex(currentIndex - 1);
@@ -652,31 +658,34 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                 }
               }}
               disabled={currentIndex === 0}
-              className="px-4 py-2 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-gray-400 hover:text-white"
             >
               ← Previous
-            </button>
+            </Button>
 
             <div className="flex gap-3">
               {showFeedback ? (
                 <>
                   {!getFeedback().isCorrect && allowRetry && (
-                    <button
+                    <Button
+                      variant="default"
                       onClick={retryQuestion}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white"
                     >
                       Try Again
-                    </button>
+                    </Button>
                   )}
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={goToNext}
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all"
+                    className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                   >
                     {currentIndex < questions.length - 1 ? 'Next Question →' : 'Finish Assessment'}
-                  </button>
+                  </Button>
                 </>
               ) : (
-                <button
+                <Button
+                  variant="primary"
                   onClick={submitAnswer}
                   disabled={
                     (currentQuestion.questionType === 'multipleChoice' &&
@@ -685,10 +694,10 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                       currentQuestion.questionType === 'constructedResponse') &&
                       !openResponse.trim())
                   }
-                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                 >
                   Submit Answer
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -703,7 +712,9 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
           const isCorrect = isAnswered && checkAnswer(questions[idx], answer.answer);
 
           return (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               key={idx}
               onClick={() => {
                 setCurrentIndex(idx);
@@ -711,7 +722,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                 setSelectedChoices([]);
                 setOpenResponse('');
               }}
-              className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
+              className={`w-8 h-8 rounded-full ${
                 idx === currentIndex
                   ? 'bg-purple-500 text-white ring-2 ring-purple-300 ring-offset-2 ring-offset-gray-900'
                   : isAnswered
@@ -722,7 +733,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
               }`}
             >
               {idx + 1}
-            </button>
+            </Button>
           );
         })}
       </div>

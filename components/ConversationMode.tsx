@@ -14,6 +14,8 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { type GrokMessage, callAPI } from '../services/grokService';
 import { ArtStyle, BookTone, type GenerationSettings } from '../types';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
 interface Message {
   id: string;
@@ -180,13 +182,13 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="w-full max-w-2xl h-[80vh] bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-700/50"
+          className="w-full max-w-2xl h-[80vh] bg-linear-to-br from-slate-900 to-slate-800 rounded-3xl overflow-hidden flex flex-col border border-slate-700/50"
         >
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50">
@@ -199,12 +201,14 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                 <p className="text-xs text-slate-400">Tell me about your book idea</p>
               </div>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-700/50"
             >
               <X className="w-5 h-5 text-slate-400" />
-            </button>
+            </Button>
           </div>
 
           {/* Messages */}
@@ -303,32 +307,34 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
           {/* Input */}
           <div className="p-4 border-t border-slate-700/50 bg-slate-800/50">
             <div className="flex gap-3">
-              <input
+              <Input
                 ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Describe your story idea..."
-                className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-colors"
+                className="flex-1 py-3 bg-slate-700/50 border-slate-600/50 text-white placeholder-slate-400 focus:border-purple-500"
                 disabled={isThinking}
               />
               {extractedSettings.complete ? (
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleGenerate}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium flex items-center gap-2 hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg shadow-purple-500/25"
+                  className="px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white flex hover:from-purple-600 hover:to-pink-600 border-2 border-white/20"
                 >
                   <Wand2 className="w-5 h-5" />
                   Create Book
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
+                  variant="default"
                   onClick={handleSend}
                   disabled={!input.trim() || isThinking}
-                  className="px-4 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-3 bg-purple-500 text-white hover:bg-purple-600"
                 >
                   <Send className="w-5 h-5" />
-                </button>
+                </Button>
               )}
             </div>
           </div>

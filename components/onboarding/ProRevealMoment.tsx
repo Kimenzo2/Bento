@@ -150,7 +150,7 @@ const FeatureComparison = () => {
             transition={{ delay: idx * 0.1 }}
             className={`grid grid-cols-3 gap-2 p-3 rounded-xl ${
               feature.highlight
-                ? 'bg-gradient-to-r from-purple-500/10 to-amber-500/10 border border-white/10'
+                ? 'bg-linear-to-r from-purple-500/10 to-amber-500/10 border border-white/10'
                 : 'bg-white/5'
             }`}
           >
@@ -271,7 +271,7 @@ export const ProRevealMoment: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center px-[var(--ob-container-padding)] py-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center px-(--ob-container-padding) py-6 overflow-x-hidden overflow-y-auto">
       {/* Premium Background */}
       <div className="absolute inset-0 bg-linear-to-br from-purple-950/50 via-[#0d0d1a] to-amber-950/30" />
 
@@ -323,7 +323,7 @@ export const ProRevealMoment: React.FC = () => {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 font-heading">
             You just created
             <br />
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
               something magical.
             </span>
           </h1>
@@ -341,7 +341,7 @@ export const ProRevealMoment: React.FC = () => {
           transition={{ delay: 0.7 }}
           className="flex justify-center mb-8"
         >
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-400/30">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-linear-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-full border border-amber-400/30">
             <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
             <span className="text-white font-bold text-lg">{sparkPoints} Sparks</span>
             <span className="text-amber-300/70">earned so far</span>
@@ -366,13 +366,13 @@ export const ProRevealMoment: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="relative bg-gradient-to-br from-purple-900/40 to-amber-900/30 backdrop-blur-xl rounded-3xl border border-white/10 p-6 mb-8 overflow-hidden"
+          className="relative bg-linear-to-br from-purple-900/40 to-amber-900/30 backdrop-blur-xl rounded-3xl border border-white/10 p-6 mb-8 overflow-hidden"
         >
           {/* Animated border glow */}
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
-            className="absolute -inset-1 bg-conic from-purple-500 via-amber-400 via-pink-500 to-purple-500 rounded-3xl opacity-20 blur-sm"
+            className="absolute -inset-1 bg-conic from-purple-500 via-pink-500 to-purple-500 rounded-3xl opacity-20 blur-sm"
           />
 
           <div className="relative">
@@ -423,14 +423,14 @@ export const ProRevealMoment: React.FC = () => {
                     backgroundPosition: isHovering ? ['0% 50%', '100% 50%', '0% 50%'] : '0% 50%',
                   }}
                   transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
-                  className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 via-amber-500 to-purple-600 bg-[length:200%_100%]"
+                  className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-500 to-purple-600 bg-size-[200%_100%]"
                 />
 
                 {/* Shimmer effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 {/* Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-500 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
 
                 <span className="relative flex items-center justify-center gap-2 text-white">
                   <Crown className="w-5 h-5" />

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Activity, Film, Sparkles } from 'lucide-react';
 import type React from 'react';
+import { Button } from '@components/ui/button';
 import type { StoryBeat } from '../types';
 
 interface LivingStoryboardProps {
@@ -39,10 +40,11 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
           maintain pacing.
         </p>
         {onGenerate && (
-          <button
+          <Button
+            variant="primary"
             onClick={onGenerate}
             disabled={isGenerating}
-            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-indigo-500/25 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium border-2 border-white/20 flex disabled:cursor-not-allowed"
           >
             {isGenerating ? (
               <>
@@ -60,7 +62,7 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
                 Generate Storyboard
               </>
             )}
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -94,21 +96,21 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05, duration: 0.4 }}
               onClick={() => onBeatClick(beat.pageNumber)}
-              className="group relative w-64 flex-shrink-0 cursor-pointer"
+              className="group relative w-64 shrink-0 cursor-pointer"
             >
               {/* Connector Line */}
               {index < beats.length - 1 && (
                 <div className="absolute top-1/2 left-full w-4 h-0.5 bg-slate-700/50 -translate-y-1/2 z-0" />
               )}
 
-              <div className="relative z-10 h-full bg-slate-800/40 backdrop-blur-md border border-slate-700/50 hover:border-indigo-500/50 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1">
+              <div className="relative z-10 h-full bg-slate-800/40 backdrop-blur-md border border-slate-700/50 hover:border-indigo-500/50 rounded-xl p-4 transition-all duration-300 hover:-translate-y-1">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">
                     Page {beat.pageNumber}
                   </span>
                   <div
-                    className={`w-2 h-2 rounded-full ${getToneColor(beat.emotionalTone)} shadow-[0_0_8px_rgba(0,0,0,0.5)]`}
+                    className={`w-2 h-2 rounded-full ${getToneColor(beat.emotionalTone)}`}
                     title={`Tone: ${beat.emotionalTone}`}
                   />
                 </div>
@@ -141,7 +143,7 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
                 </div>
 
                 {/* Hover Effect Overlay */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="absolute inset-0 rounded-xl bg-linear-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               </div>
             </motion.div>
           ))}

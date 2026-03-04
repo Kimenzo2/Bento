@@ -12,6 +12,9 @@ import {
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { type NarrationOptions, useAudioImmersion } from '../services/audioImmersionService';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AudioPlayerProps {
   pages: string[];
@@ -86,18 +89,20 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full border border-peach-soft shadow-soft-sm"
+        className="flex items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-sm rounded-full border border-peach-soft"
       >
-        <button
+        <Button
+          variant="primary"
+          size="icon"
           onClick={handlePlayPause}
-          className="p-2 rounded-full bg-coral-burst hover:bg-coral-hover text-white transition-colors"
+          className="p-2 rounded-full bg-coral-burst hover:bg-coral-hover text-white"
         >
           {audio.isPlaying && !audio.isPaused ? (
             <Pause className="w-4 h-4" />
           ) : (
             <Play className="w-4 h-4" />
           )}
-        </button>
+        </Button>
 
         {audio.isPlaying && (
           <motion.div
@@ -105,32 +110,38 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             animate={{ width: 'auto' }}
             className="flex items-center gap-2"
           >
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={audio.previousPage}
               disabled={audio.currentPage === 0}
-              className="p-1.5 rounded-full hover:bg-peach-soft/50 text-cocoa-light disabled:opacity-50 transition-colors"
+              className="p-1.5 rounded-full hover:bg-peach-soft/50 text-cocoa-light"
             >
               <SkipBack className="w-3.5 h-3.5" />
-            </button>
+            </Button>
 
-            <span className="text-xs text-cocoa-light min-w-[40px] text-center">
+            <span className="text-xs text-cocoa-light min-w-10 text-center">
               {audio.currentPage + 1}/{pages.length}
             </span>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={audio.nextPage}
               disabled={audio.currentPage >= pages.length - 1}
-              className="p-1.5 rounded-full hover:bg-peach-soft/50 text-cocoa-light disabled:opacity-50 transition-colors"
+              className="p-1.5 rounded-full hover:bg-peach-soft/50 text-cocoa-light"
             >
               <SkipForward className="w-3.5 h-3.5" />
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleStop}
-              className="p-1.5 rounded-full hover:bg-peach-soft/50 text-cocoa-light transition-colors"
+              className="p-1.5 rounded-full hover:bg-peach-soft/50 text-cocoa-light"
             >
               <Square className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           </motion.div>
         )}
       </motion.div>
@@ -141,21 +152,23 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/95 backdrop-blur-lg rounded-2xl border border-peach-soft p-4 shadow-soft-lg"
+      className="bg-white/95 backdrop-blur-lg rounded-2xl border border-peach-soft p-4"
     >
       {/* Main Controls */}
       <div className="flex items-center gap-4">
         {/* Play/Pause */}
-        <button
+        <Button
+          variant="primary"
+          size="icon"
           onClick={handlePlayPause}
-          className="p-3 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine hover:from-coral-hover hover:to-gold-sunshine text-white transition-all shadow-soft-md"
+          className="p-3 rounded-full bg-linear-to-r from-coral-burst to-gold-sunshine hover:from-coral-hover hover:to-gold-sunshine text-white border-2 border-white/20"
         >
           {audio.isPlaying && !audio.isPaused ? (
             <Pause className="w-6 h-6" />
           ) : (
             <Play className="w-6 h-6 ml-0.5" />
           )}
-        </button>
+        </Button>
 
         {/* Progress Bar */}
         <div className="flex-1">
@@ -167,7 +180,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           </div>
           <div className="h-1.5 bg-peach-soft rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-coral-burst to-gold-sunshine"
+              className="h-full bg-linear-to-r from-coral-burst to-gold-sunshine"
               initial={{ width: 0 }}
               animate={{ width: `${audio.progress * 100}%` }}
               transition={{ duration: 0.1 }}
@@ -177,44 +190,54 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         {/* Navigation */}
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={audio.previousPage}
             disabled={audio.currentPage === 0}
-            className="p-2 rounded-lg hover:bg-peach-soft/50 text-cocoa-light disabled:opacity-50 transition-colors"
+            className="p-2 hover:bg-peach-soft/50 text-cocoa-light"
           >
             <SkipBack className="w-5 h-5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={audio.nextPage}
             disabled={audio.currentPage >= pages.length - 1}
-            className="p-2 rounded-lg hover:bg-peach-soft/50 text-cocoa-light disabled:opacity-50 transition-colors"
+            className="p-2 hover:bg-peach-soft/50 text-cocoa-light"
           >
             <SkipForward className="w-5 h-5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleStop}
-            className="p-2 rounded-lg hover:bg-peach-soft/50 text-cocoa-light transition-colors"
+            className="p-2 hover:bg-peach-soft/50 text-cocoa-light"
           >
             <Square className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Volume & Settings */}
         <div className="flex items-center gap-1 border-l border-peach-soft pl-3">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleMuteToggle}
-            className="p-2 rounded-lg hover:bg-peach-soft/50 text-cocoa-light transition-colors"
+            className="p-2 hover:bg-peach-soft/50 text-cocoa-light"
           >
             {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowSettings(!showSettings)}
-            className={`p-2 rounded-lg hover:bg-peach-soft/50 transition-colors ${
+            className={`p-2 hover:bg-peach-soft/50 ${
               showSettings ? 'text-coral-burst bg-peach-soft/50' : 'text-cocoa-light'
             }`}
           >
             <Settings className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -231,7 +254,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               {/* Speed */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-cocoa-light">Reading Speed</label>
+                  <Label className="text-cocoa-light">Reading Speed</Label>
                   <span className="text-xs text-cocoa-light">{settings.rate}x</span>
                 </div>
                 <input
@@ -248,7 +271,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               {/* Pitch */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-cocoa-light">Voice Pitch</label>
+                  <Label className="text-cocoa-light">Voice Pitch</Label>
                   <span className="text-xs text-cocoa-light">{settings.pitch}</span>
                 </div>
                 <input
@@ -265,7 +288,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               {/* Volume */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-cocoa-light">Volume</label>
+                  <Label className="text-cocoa-light">Volume</Label>
                   <span className="text-xs text-cocoa-light">
                     {Math.round(settings.volume! * 100)}%
                   </span>
@@ -284,22 +307,23 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               {/* Voice Selection */}
               {audio.childFriendlyVoices.length > 0 && (
                 <div>
-                  <label className="text-sm text-cocoa-light mb-2 block">Voice</label>
-                  <select
-                    onChange={(e) => {
-                      const voice = audio.voices.find((v) => v.name === e.target.value);
-                      if (voice) audio.setOptions({ voice });
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-peach-soft rounded-lg text-charcoal-soft text-sm focus:outline-none focus:border-coral-burst"
-                    title="Select voice"
-                  >
-                    <option value="">Auto-select</option>
-                    {audio.childFriendlyVoices.map((voice) => (
-                      <option key={voice.name} value={voice.name}>
-                        {voice.name} ({voice.lang})
-                      </option>
-                    ))}
-                  </select>
+                  <Label className="text-cocoa-light mb-2">Voice</Label>
+                  <Select onValueChange={(v) => {
+                    const voice = audio.voices.find((voice) => voice.name === v);
+                    if (voice) audio.setOptions({ voice });
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Auto-select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto-select</SelectItem>
+                      {audio.childFriendlyVoices.map((voice) => (
+                        <SelectItem key={voice.name} value={voice.name}>
+                          {voice.name} ({voice.lang})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>

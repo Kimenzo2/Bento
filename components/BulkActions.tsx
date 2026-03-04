@@ -3,8 +3,9 @@ import { AlertTriangle, Check, CheckSquare, Copy, Download, Square, Trash2, X } 
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import type { SavedBook } from '../types';
+import { Button } from './ui/button';
 
-interface BulkActionsProps {
+interface _BulkActionsProps {
   books: SavedBook[];
   selectedIds: Set<string>;
   onSelect: (id: string) => void;
@@ -91,21 +92,23 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-100"
     >
-      <div className="bg-charcoal-soft text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-4">
+      <div className="bg-charcoal-soft text-white rounded-2xl border-2 border-peach-soft px-4 py-3 flex items-center gap-4">
         {/* Selection info */}
         <div className="flex items-center gap-3 pr-4 border-r border-gray-700">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={isAllSelected ? onClearSelection : onSelectAll}
-            className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+            className="p-1.5 hover:bg-gray-700"
           >
             {isAllSelected ? (
               <CheckSquare className="w-5 h-5 text-coral-burst" />
             ) : (
               <Square className="w-5 h-5" />
             )}
-          </button>
+          </Button>
           <span className="text-sm font-medium">
             {selectedCount} of {totalCount} selected
           </span>
@@ -114,29 +117,35 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
         {/* Actions */}
         <div className="flex items-center gap-2">
           {onDuplicate && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onDuplicate}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              className="flex px-3 py-1.5 hover:bg-gray-700"
             >
               <Copy className="w-4 h-4" />
               Duplicate
-            </button>
+            </Button>
           )}
 
           {onExport && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onExport}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              className="flex px-3 py-1.5 hover:bg-gray-700"
             >
               <Download className="w-4 h-4" />
               Export
-            </button>
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={onDelete}
             disabled={isDeleting}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 transition-colors text-sm disabled:opacity-50"
+            className="flex px-3 py-1.5"
           >
             {isDeleting ? (
               <motion.div
@@ -149,17 +158,19 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
               <Trash2 className="w-4 h-4" />
             )}
             Delete
-          </button>
+          </Button>
         </div>
 
         {/* Close button */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClearSelection}
           title="Clear selection"
-          className="p-1.5 rounded-lg hover:bg-gray-700 transition-colors ml-2"
+          className="p-1.5 hover:bg-gray-700 ml-2"
         >
           <X className="w-5 h-5" />
-        </button>
+        </Button>
       </div>
     </motion.div>
   );
@@ -186,7 +197,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        className="fixed inset-0 z-200 flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -194,7 +205,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+          className="relative bg-white rounded-2xl border-2 border-peach-soft w-full max-w-sm overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -214,17 +225,19 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             </p>
 
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="outline"
                 onClick={onClose}
                 disabled={isDeleting}
-                className="flex-1 py-3 rounded-xl border border-peach-soft text-charcoal-soft font-medium hover:bg-cream-base transition-colors disabled:opacity-50"
+                className="flex-1 py-3"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={onConfirm}
                 disabled={isDeleting}
-                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 flex"
               >
                 {isDeleting ? (
                   <>
@@ -242,7 +255,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                     Delete
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </motion.div>
@@ -310,7 +323,7 @@ export const SelectableCard: React.FC<SelectableCardProps> = ({
             <div
               className={`
                             w-6 h-6 rounded-full flex items-center justify-center
-                            transition-colors shadow-lg
+                            transition-colors
                             ${
                               isSelected
                                 ? 'bg-coral-burst text-white'

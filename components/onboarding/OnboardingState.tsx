@@ -110,7 +110,7 @@ function setStepInURL(step: OnboardingStep, replace = false): void {
 }
 
 // Step ordering for determining forward/back direction
-const STEP_ORDER: Record<OnboardingStep, number> = {
+const _STEP_ORDER: Record<OnboardingStep, number> = {
   spark: 0, quiz: 1, magic: 2, proreveal: 3, pricing: 4,
   tour: 5, identity: 6, cliffhanger: 7, welcome: 8,
 };

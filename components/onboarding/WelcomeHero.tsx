@@ -126,7 +126,7 @@ const THEME_CARDS = [
     desc: 'Explore galaxies, supernovas & celestial wonders',
     image: THEME_IMAGES.cosmos,
     gradient: 'from-indigo-600 via-purple-600 to-blue-700',
-    glow: 'shadow-[0_0_60px_rgba(99,102,241,0.4)]',
+    glow: '',
     particle: '✨',
   },
   {
@@ -135,7 +135,7 @@ const THEME_CARDS = [
     desc: 'Knights, dragons & enchanted realms await',
     image: THEME_IMAGES.kingdom,
     gradient: 'from-amber-500 via-orange-500 to-red-600',
-    glow: 'shadow-[0_0_60px_rgba(245,158,11,0.4)]',
+    glow: '',
     particle: '👑',
   },
   {
@@ -144,7 +144,7 @@ const THEME_CARDS = [
     desc: 'Dive into the microscopic universe of life',
     image: THEME_IMAGES.cell,
     gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
-    glow: 'shadow-[0_0_60px_rgba(16,185,129,0.4)]',
+    glow: '',
     particle: '🧬',
   },
 ] as const;

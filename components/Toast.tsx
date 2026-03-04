@@ -40,11 +40,13 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border-2 shadow-lg ${colors[type]} animate-slideIn max-w-md`}
+      role="alert"
+      aria-live="assertive"
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${colors[type]} animate-slideIn max-w-md`}
     >
       <div className={iconColors[type]}>{icons[type]}</div>
       <p className="font-medium text-sm flex-1">{message}</p>
-      <button onClick={onClose} className="hover:opacity-70 transition-opacity">
+      <button onClick={onClose} className="hover:opacity-70 transition-opacity" aria-label="Dismiss notification">
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -58,7 +60,7 @@ interface ToastContainerProps {
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) => {
   return (
-    <div className="fixed top-4 right-4 z-[70] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-70 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <Toast message={toast.message} type={toast.type} onClose={() => removeToast(toast.id)} />

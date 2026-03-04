@@ -81,12 +81,19 @@ export async function deduplicateRequest<T>(
   }
 
   // Create new request
-  const request = requestFn().finally(() => {
-    // Remove after TTL
-    setTimeout(() => {
+  const request = requestFn()
+    .then((result) => {
+      // On success, keep in cache for TTL to deduplicate subsequent calls
+      setTimeout(() => {
+        pendingRequests.delete(key);
+      }, ttlMs);
+      return result;
+    })
+    .catch((error) => {
+      // On failure, remove immediately so retries can succeed
       pendingRequests.delete(key);
-    }, ttlMs);
-  });
+      throw error;
+    });
 
   pendingRequests.set(key, request);
   return request;
@@ -286,6 +293,14 @@ export class ConnectionManager {
     this.maxConnections = maxConnections;
     this.idleTimeoutMs = idleTimeoutMs;
     this.startCleanupInterval();
+
+    // Auto-cleanup on HMR/page unload to prevent interval leaks
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => this.destroy());
+    }
+    if (typeof import.meta !== 'undefined' && (import.meta as any).hot) {
+      (import.meta as any).hot.dispose(() => this.destroy());
+    }
   }
 
   private startCleanupInterval(): void {

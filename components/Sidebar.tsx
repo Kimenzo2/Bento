@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { AppMode } from '../types';
+import { Button } from './ui/button';
 
 interface SidebarProps {
   currentMode: AppMode;
@@ -29,23 +30,24 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
     <div className="fixed left-0 top-0 h-full w-20 md:w-64 bg-black/40 backdrop-blur-xl border-r border-glassBorder z-50 flex flex-col justify-between">
       <div>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-purple to-brand-cyan flex items-center justify-center shadow-[0_0_15px_rgba(124,58,237,0.5)]">
+          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-brand-purple to-brand-cyan flex items-center justify-center">
             <span className="text-white font-bold text-lg">G</span>
           </div>
-          <span className="font-bold text-xl tracking-wide hidden md:block bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+          <span className="font-bold text-xl tracking-wide hidden md:block bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400">
             GENESIS
           </span>
         </div>
 
         <nav className="mt-8 px-3 space-y-2">
           {menuItems.map((item) => (
-            <button
+            <Button
+              variant="ghost"
               key={item.mode}
               onClick={() => setMode(item.mode)}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group
+              className={`w-full flex gap-3 px-3 py-3 group
                 ${
                   currentMode === item.mode
-                    ? 'bg-white/10 text-brand-cyan shadow-[0_0_20px_rgba(34,211,238,0.1)] border border-brand-cyan/20'
+                    ? 'bg-white/10 text-brand-cyan border border-brand-cyan/20'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
             >
@@ -54,18 +56,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
               />
               <span className="hidden md:block font-medium">{item.label}</span>
               {currentMode === item.mode && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-cyan shadow-[0_0_10px_#22d3ee] hidden md:block"></div>
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-cyan hidden md:block"></div>
               )}
-            </button>
+            </Button>
           ))}
         </nav>
       </div>
 
       <div className="p-4 border-t border-glassBorder">
-        <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+        <Button variant="ghost" className="w-full flex gap-3 px-3 py-3 text-gray-400 hover:text-white hover:bg-white/5">
           <Settings className="w-5 h-5" />
           <span className="hidden md:block">System Config</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

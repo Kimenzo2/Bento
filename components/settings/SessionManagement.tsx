@@ -25,7 +25,7 @@ interface SessionManagementProps {
 }
 
 const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) => {
-  const { user, signOut } = useAuth();
+  const { user: _user, signOut } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -102,7 +102,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
           {sessions.map((session) => (
             <div
               key={session.id}
-              className="bg-white border border-peach-soft rounded-xl p-3 md:p-4 hover:border-coral-burst/50 hover:shadow-soft-sm transition-all"
+              className="bg-white border border-peach-soft rounded-xl p-3 md:p-4 hover:border-coral-burst/50 transition-all"
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 md:gap-4">
                 <div className="flex items-start gap-2 md:gap-3 flex-1">
@@ -179,7 +179,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
       {/* Security Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
           <div>
             <h4 className="font-bold text-blue-900 mb-1">Security Tips</h4>
             <ul className="text-sm text-blue-800 space-y-1">
@@ -195,7 +195,7 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
       {/* Account Activity */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
           <div>
             <h4 className="font-bold text-yellow-900 mb-1">Suspicious Activity?</h4>
             <p className="text-sm text-yellow-800 mb-2">

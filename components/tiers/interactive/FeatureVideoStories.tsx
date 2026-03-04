@@ -19,20 +19,20 @@ const stories: VideoStory[] = [
   { id: '4', title: 'Character Design', thumbnail: 'bg-gold-sunshine/10', duration: '0:55' },
 ];
 
-export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier }) => {
+export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier: _tier }) => {
   const [activeStory, setActiveStory] = useState<string | null>(null);
 
   return (
     <div className="py-8 overflow-x-auto">
       <div className="flex gap-4 md:grid md:grid-cols-4 min-w-[600px] md:min-w-0 px-4 md:px-0">
         {stories.map((story) => {
-          const isActive = activeStory === story.id;
+          const _isActive = activeStory === story.id;
           return (
             <motion.div
               key={story.id}
               layoutId={`story-${story.id}`}
               onClick={() => setActiveStory(story.id)}
-              className={`relative rounded-2xl overflow-hidden cursor-pointer group aspect-[9/16] transition-all duration-300 ${story.thumbnail}`}
+              className={`relative rounded-2xl overflow-hidden cursor-pointer group aspect-9/16 transition-all duration-300 ${story.thumbnail}`}
             >
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
@@ -45,7 +45,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier }) =>
               </div>
 
               {/* Info */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
                 <div className="text-white font-bold text-sm mb-1">{story.title}</div>
                 <div className="text-white/60 text-xs flex items-center gap-1">
                   <Play className="w-3 h-3" /> {story.duration}
@@ -64,7 +64,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier }) =>
         >
           <motion.div
             layoutId={`story-${activeStory}`}
-            className="relative w-full max-w-md bg-charcoal-soft rounded-3xl overflow-hidden aspect-[9/16] shadow-2xl border border-white/10"
+            className="relative w-full max-w-md bg-charcoal-soft rounded-3xl overflow-hidden aspect-9/16 border-2 border-white/20"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -75,7 +75,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier }) =>
             </button>
 
             {/* Mock Player */}
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+            <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-800 to-gray-900">
               {startStory(activeStory)?.videoUrl ? (
                 <video
                   src={startStory(activeStory)?.videoUrl}

@@ -205,7 +205,7 @@ async function loadTranslations(language: SupportedLanguage): Promise<Translatio
       translationCache.set(language, merged);
       return merged;
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn(`Failed to load translations for ${language}, falling back to English`);
   }
 
@@ -213,20 +213,20 @@ async function loadTranslations(language: SupportedLanguage): Promise<Translatio
 }
 
 // Deep merge helper
-function deepMerge<T extends Record<string, any>>(target: T, source: DeepPartial<T>): T {
-  const result = { ...target } as T;
+function deepMerge<T extends Record<string, unknown>>(target: T, source: DeepPartial<T>): T {
+  const result = { ...target } as Record<string, unknown>;
 
   for (const key in source) {
     if (source[key] !== undefined) {
       if (typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        (result as any)[key] = deepMerge((result as any)[key] || {}, source[key] as any);
+        result[key] = deepMerge((result[key] || {}) as Record<string, unknown>, source[key] as DeepPartial<Record<string, unknown>>);
       } else {
-        (result as any)[key] = source[key];
+        result[key] = source[key];
       }
     }
   }
 
-  return result;
+  return result as T;
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {

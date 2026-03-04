@@ -26,6 +26,7 @@ import type {
   ChallengeDifficulty,
   ChallengeSubmission,
 } from '../../types/collaboration';
+import { Button } from '@components/ui/button';
 
 interface ChallengeCardProps {
   challenge: Challenge;
@@ -114,7 +115,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   };
 
   // Handle vote
-  const handleVote = async (submission: ChallengeSubmission) => {
+  const _handleVote = async (submission: ChallengeSubmission) => {
     if (isLoading) return;
     setIsLoading(true);
 
@@ -137,11 +138,11 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   // ─────────────────────────────────────────────────────────────────────────
   if (variant === 'banner') {
     return (
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 p-1">
+      <div className="relative rounded-3xl overflow-hidden bg-linear-to-r from-purple-600 via-pink-500 to-orange-500 p-1">
         <div className="bg-white rounded-[22px] p-6 relative overflow-hidden">
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500" />
+            <div className="absolute inset-0 bg-linear-to-br from-purple-500 to-pink-500" />
           </div>
 
           <div className="relative flex flex-col md:flex-row items-start md:items-center gap-4">
@@ -197,13 +198,14 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
               {/* Join button */}
               {challenge.status === 'active' && !challenge.user_has_submitted && (
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => onJoin?.(challenge)}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full font-bold hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg"
+                  className="bg-linear-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full hover:opacity-90 transition-opacity flex border-2 border-white/20"
                 >
                   <Trophy className="w-5 h-5" />
                   Join Challenge
-                </button>
+                </Button>
               )}
 
               {challenge.user_has_submitted && (
@@ -270,9 +272,9 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   // DEFAULT CARD VARIANT
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-2xl shadow-soft-lg overflow-hidden border border-gray-100">
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100">
       {/* Cover image or gradient */}
-      <div className="relative h-32 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500">
+      <div className="relative h-32 bg-linear-to-br from-purple-500 via-pink-500 to-orange-500">
         {challenge.cover_image_url && (
           <img
             src={challenge.cover_image_url}
@@ -297,7 +299,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         </div>
 
         {/* Title overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/70 to-transparent">
           <h3 className="text-white font-heading font-bold text-lg">{challenge.title}</h3>
         </div>
       </div>
@@ -334,7 +336,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
             <p className="text-xs font-bold text-gray-400 uppercase mb-2">Top Entries</p>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {submissions.slice(0, 5).map((sub, index) => (
-                <div key={sub.id} className="relative flex-shrink-0">
+                <div key={sub.id} className="relative shrink-0">
                   <img
                     src={sub.visual?.thumbnail_url || sub.visual?.image_url}
                     alt=""
@@ -362,13 +364,14 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         {/* Action buttons */}
         <div className="flex gap-2">
           {challenge.status === 'active' && (
-            <button
+            <Button
+              variant="primary"
               onClick={() => onJoin?.(challenge)}
               disabled={challenge.user_has_submitted}
-              className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 py-2.5 flex ${
                 challenge.user_has_submitted
                   ? 'bg-green-100 text-green-600 cursor-default'
-                  : 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white hover:opacity-90'
+                  : 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white hover:opacity-90'
               }`}
             >
               {challenge.user_has_submitted ? (
@@ -382,25 +385,27 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
                   Join
                 </>
               )}
-            </button>
+            </Button>
           )}
 
           {challenge.status === 'voting' && (
-            <button
+            <Button
+              variant="secondary"
               onClick={() => onViewDetails?.(challenge)}
-              className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 flex bg-purple-100 text-purple-600 hover:bg-purple-200"
             >
               <ThumbsUp className="w-4 h-4" />
               Vote Now
-            </button>
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="secondary"
             onClick={() => onViewDetails?.(challenge)}
-            className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+            className="px-4 py-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200"
           >
             Details
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -419,7 +424,7 @@ interface ChallengeLeaderboardProps {
 }
 
 export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
-  challenge,
+  challenge: _challenge,
   submissions,
   onVote,
   onViewVisual,
@@ -440,7 +445,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft-lg overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden">
       <div className="p-4 border-b border-gray-100">
         <h3 className="font-heading font-bold text-charcoal-soft flex items-center gap-2">
           <Crown className="w-5 h-5 text-yellow-500" />
@@ -484,13 +489,15 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
             {/* Vote count and button */}
             <div className="flex items-center gap-2">
               <span className="font-bold text-charcoal-soft">{submission.vote_count}</span>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => onVote?.(submission)}
-                className="p-2 rounded-full hover:bg-coral-burst/10 text-gray-400 hover:text-coral-burst transition-colors"
+                className="p-2 rounded-full hover:bg-coral-burst/10 text-gray-400 hover:text-coral-burst"
                 title="Vote"
               >
                 <ThumbsUp className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         ))}

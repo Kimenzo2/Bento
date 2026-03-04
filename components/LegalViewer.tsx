@@ -13,7 +13,7 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
   const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | 'cookies' | 'acceptable-use'>(
     initialDoc
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
 
   const documents = {
     privacy: {
@@ -101,10 +101,10 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
               <button
                 key={key}
                 onClick={() => setActiveDoc(key as typeof activeDoc)}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading font-medium text-sm transition-all duration-200 touch-manipulation
+                className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading font-medium text-sm transition-all duration-200 touch-manipulation
                   ${
                     isActive
-                      ? `${doc.bgColor} ${doc.color} shadow-soft-sm border-2 border-current`
+                      ? `${doc.bgColor} ${doc.color} border-2 border-current`
                       : 'bg-white text-cocoa-light hover:bg-cream-soft border-2 border-transparent'
                   }`}
               >
@@ -116,7 +116,7 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
         </div>
 
         {/* Document Content */}
-        <div className="bg-white rounded-2xl md:rounded-3xl shadow-soft-lg border border-white/50 p-6 md:p-10">
+        <div className="bg-white rounded-2xl md:rounded-3xl border border-white/50 p-6 md:p-10">
           <article
             className="prose prose-sm md:prose-base max-w-none
             prose-headings:font-heading prose-headings:text-charcoal-soft

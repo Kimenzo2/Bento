@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, FileText, Sparkles, Upload } from 'lucide-react';
 import React, { useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
+import { Button } from '@components/ui/button';
 
 interface MigrationAssistantProps {
   tier: TierConfig;
@@ -45,12 +46,13 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
 
           <div className="space-y-4">
             {steps.map((step) => (
-              <button
+              <Button
+                variant="ghost"
                 key={step.id}
                 onClick={() => setCurrentStep(step.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all ${
+                className={`w-full flex gap-4 p-4 text-left ${
                   currentStep === step.id
-                    ? `bg-white shadow-md border border-${tier.accentColor}-200`
+                    ? `bg-white border-2 border-${tier.accentColor}-200`
                     : 'bg-transparent hover:bg-gray-50 border border-transparent'
                 }`}
               >
@@ -73,13 +75,13 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
                   </h4>
                   <p className="text-xs text-charcoal-soft/60">{step.desc}</p>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
         {/* Visualizer */}
-        <div className="flex-1 w-full relative h-[300px] bg-charcoal-soft rounded-2xl overflow-hidden flex items-center justify-center">
+        <div className="flex-1 w-full relative h-75 bg-charcoal-soft rounded-2xl overflow-hidden flex items-center justify-center">
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
 
           <AnimatePresence mode="wait">
@@ -91,7 +93,7 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
               className="text-center z-10"
             >
               <div
-                className={`w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${tier.gradient} flex items-center justify-center shadow-2xl`}
+                className={`w-20 h-20 mx-auto mb-4 rounded-2xl bg-linear-to-br ${tier.gradient} flex items-center justify-center border-2 border-white/20`}
               >
                 {React.createElement(steps[currentStep - 1].icon, {
                   className: 'w-10 h-10 text-white',
@@ -100,7 +102,7 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
               <h4 className="text-white font-bold text-xl mb-2">{steps[currentStep - 1].title}</h4>
               <div className="w-32 h-2 bg-gray-700 rounded-full mx-auto overflow-hidden">
                 <motion.div
-                  className={`h-full bg-gradient-to-r ${tier.gradient}`}
+                  className={`h-full bg-linear-to-r ${tier.gradient}`}
                   initial={{ width: '0%' }}
                   animate={{ width: '100%' }}
                   transition={{ duration: 1.5, ease: 'easeInOut' }}

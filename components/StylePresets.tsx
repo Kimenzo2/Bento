@@ -2,6 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Edit2, Heart, Palette, Plus, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input, Label } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/input';
 
 export interface StylePreset {
   id: string;
@@ -231,27 +234,29 @@ export const PresetCard: React.FC<PresetCardProps> = ({
                 ${
                   isSelected
                     ? 'bg-coral-burst text-white ring-2 ring-coral-burst ring-offset-2'
-                    : 'bg-white dark:bg-gray-800 hover:shadow-lg border border-gray-200 dark:border-gray-700'
+                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-peach-soft'
                 }
             `}
       onClick={() => onSelect(preset)}
     >
       {/* Favorite button */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={(e) => {
           e.stopPropagation();
           onToggleFavorite(preset.id);
         }}
         title={preset.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         className={`
-                    absolute top-2 right-2 p-1.5 rounded-lg transition-colors
+                    absolute top-2 right-2 p-1.5
                     ${isSelected ? 'hover:bg-white/20' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}
                 `}
       >
         <Heart
           className={`w-4 h-4 ${preset.isFavorite ? 'fill-red-500 text-red-500' : isSelected ? 'text-white/70' : 'text-gray-400'}`}
         />
-      </button>
+      </Button>
 
       {/* Art style badge */}
       {preset.artStyle && (
@@ -290,28 +295,32 @@ export const PresetCard: React.FC<PresetCardProps> = ({
       {!preset.isBuiltIn && (onEdit || onDelete) && (
         <div className="flex gap-1 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           {onEdit && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(preset);
               }}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+              className="flex-1 flex gap-1 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
             >
               <Edit2 className="w-3 h-3" />
               Edit
-            </button>
+            </Button>
           )}
           {onDelete && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(preset.id);
               }}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+              className="flex-1 flex gap-1 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
             >
               <Trash2 className="w-3 h-3" />
               Delete
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -340,7 +349,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
   onSelect,
   selectedId,
 }) => {
-  const { presets, favorites, recent, toggleFavorite, addPreset, deletePreset } = useStylePresets();
+  const { presets, favorites, recent: _recent, toggleFavorite, addPreset, deletePreset } = useStylePresets();
   const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'custom'>('all');
   const [isCreating, setIsCreating] = useState(false);
   const [newPreset, setNewPreset] = useState({ name: '', style: '', description: '' });
@@ -375,7 +384,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        className="fixed inset-0 z-200 flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -383,13 +392,13 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col"
+          className="relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-peach-soft w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           {/* Header */}
-          <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-coral-burst/10 rounded-xl">
@@ -404,13 +413,15 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                   </p>
                 </div>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onClose}
                 title="Close"
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <X className="w-5 h-5 text-gray-500" />
-              </button>
+              </Button>
             </div>
 
             {/* Tabs */}
@@ -424,11 +435,12 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                   count: presets.filter((p) => !p.isBuiltIn).length,
                 },
               ].map((tab) => (
-                <button
+                <Button
+                  variant="ghost"
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as 'all' | 'favorites' | 'custom')}
                   className={`
-                                        px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
+                                        px-4 py-2 whitespace-nowrap
                                         ${
                                           activeTab === tab.id
                                             ? 'bg-coral-burst text-white'
@@ -437,15 +449,17 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                                     `}
                 >
                   {tab.label} ({tab.count})
-                </button>
+                </Button>
               ))}
-              <button
+              <Button
+                variant="default"
+                size="sm"
                 onClick={() => setIsCreating(true)}
-                className="ml-auto flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors whitespace-nowrap"
+                className="ml-auto flex px-4 py-2 bg-green-500 text-white hover:bg-green-600 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 Create Style
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -457,57 +471,59 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                   Create New Style
                 </h3>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <Label className="text-gray-700 dark:text-gray-300 mb-1">
                     Style Name
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="text"
                     value={newPreset.name}
                     onChange={(e) => setNewPreset((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="My Custom Style"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="py-2 border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <Label className="text-gray-700 dark:text-gray-300 mb-1">
                     Style Description (for AI)
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     value={newPreset.style}
                     onChange={(e) => setNewPreset((prev) => ({ ...prev, style: e.target.value }))}
                     placeholder="Describe the illustration style in detail..."
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="py-2 border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <Label className="text-gray-700 dark:text-gray-300 mb-1">
                     Short Description (optional)
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="text"
                     value={newPreset.description}
                     onChange={(e) =>
                       setNewPreset((prev) => ({ ...prev, description: e.target.value }))
                     }
                     placeholder="A brief description of this style"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="py-2 border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="flex gap-3">
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => setIsCreating(false)}
-                    className="flex-1 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                    className="flex-1 py-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary"
                     onClick={handleCreate}
                     disabled={!newPreset.name || !newPreset.style}
-                    className="flex-1 py-2 rounded-xl bg-coral-burst text-white disabled:opacity-50"
+                    className="flex-1 py-2 bg-coral-burst text-white"
                   >
                     Create Style
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (

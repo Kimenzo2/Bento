@@ -45,6 +45,8 @@ export interface CacheContext {
   subject?: string;
   /** Grade level for age-appropriate responses */
   gradeLevel?: string;
+  /** Topic within the subject for finer-grained partitioning */
+  topic?: string;
   /** Language for internationalization */
   language?: string;
   /** Character persona for Green Room */
@@ -189,12 +191,25 @@ export interface VectorStore {
 /**
  * In-memory vector store for development.
  * In production, use pgvector, Pinecone, or Redis Vector.
+ * Uses context-partitioned index for O(m) search where m << n.
  */
 class InMemoryVectorStore implements VectorStore {
   private entries = new Map<string, CacheEntry>();
+  // Context-partitioned index: avoids scanning ALL entries for every search
+  private contextIndex = new Map<string, Set<string>>();
+
+  private getContextKey(context: CacheContext): string {
+    return `${context.subject || ''}:${context.gradeLevel || ''}:${context.topic || ''}`;
+  }
 
   async store(entry: CacheEntry): Promise<void> {
     this.entries.set(entry.id, entry);
+    // Update context index
+    const ctxKey = this.getContextKey(entry.context);
+    if (!this.contextIndex.has(ctxKey)) {
+      this.contextIndex.set(ctxKey, new Set());
+    }
+    this.contextIndex.get(ctxKey)!.add(entry.id);
   }
 
   async search(
@@ -203,18 +218,41 @@ class InMemoryVectorStore implements VectorStore {
     limit: number
   ): Promise<CacheSearchResult[]> {
     const results: CacheSearchResult[] = [];
+    const now = Date.now();
 
-    for (const entry of this.entries.values()) {
-      // Check context match
-      if (!this.contextMatches(entry.context, context)) continue;
+    // Use context index for O(m) lookup instead of O(n) full scan
+    const ctxKey = this.getContextKey(context);
+    const candidateIds = this.contextIndex.get(ctxKey);
+
+    if (!candidateIds || candidateIds.size === 0) {
+      return results;
+    }
+
+    const expiredIds: string[] = [];
+
+    for (const id of candidateIds) {
+      const entry = this.entries.get(id);
+      if (!entry) {
+        expiredIds.push(id);
+        continue;
+      }
 
       // Check if expired
-      const age = Date.now() - entry.createdAt.getTime();
-      if (age > entry.ttlSeconds * 1000) continue;
+      const age = now - entry.createdAt.getTime();
+      if (age > entry.ttlSeconds * 1000) {
+        expiredIds.push(id);
+        this.entries.delete(id);
+        continue;
+      }
 
       // Calculate cosine similarity
       const similarity = this.cosineSimilarity(embedding, entry.queryEmbedding);
       results.push({ entry, similarity });
+    }
+
+    // Clean stale index entries
+    for (const id of expiredIds) {
+      candidateIds.delete(id);
     }
 
     // Sort by similarity (descending) and take top N

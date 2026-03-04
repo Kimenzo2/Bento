@@ -13,6 +13,7 @@ import {
   type ReactionCount,
   type ReactionType,
 } from '../../types/collaboration';
+import { Button } from '@components/ui/button';
 
 interface ReactionBarProps {
   visualId: string;
@@ -64,7 +65,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
 
   // Sort reactions by count and get visible ones
   const sortedReactions = [...reactions].sort((a, b) => b.count - a.count);
-  const visibleReactions = isExpanded
+  const _visibleReactions = isExpanded
     ? allReactions
     : sortedReactions.slice(0, maxVisible).map((r) => r.type);
 
@@ -121,7 +122,7 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
     [visualId, isLoading, onReactionChange]
   );
 
-  const getReactionCount = (type: ReactionType): number => {
+  const _getReactionCount = (type: ReactionType): number => {
     return reactions.find((r) => r.type === type)?.count || 0;
   };
 
@@ -132,20 +133,20 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
         {/* Existing reactions with counts */}
         {!isExpanded &&
           sortedReactions.slice(0, maxVisible).map(({ type, count }) => (
-            <button
+            <Button
               key={type}
+              variant="ghost"
               onClick={() => handleReaction(type)}
               disabled={isLoading}
               className={`
-                            ${config.button} rounded-full flex items-center justify-center
-                            transition-all duration-200 relative
+                            ${config.button} rounded-full flex relative
                             ${
                               myReactions.has(type)
                                 ? 'bg-coral-burst/20 ring-2 ring-coral-burst'
                                 : 'bg-gray-100 hover:bg-gray-200'
                             }
                             ${animatingReaction === type ? 'scale-125' : 'hover:scale-110'}
-                            ${isLoading ? 'cursor-wait opacity-75' : 'cursor-pointer'}
+                            ${isLoading ? 'cursor-wait opacity-75' : ''}
                         `}
               title={`${REACTION_LABELS[type]} (${count})`}
             >
@@ -159,46 +160,48 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                   className={`
                                 absolute -bottom-1 -right-1 
                                 bg-charcoal-soft text-white rounded-full 
-                                px-1 min-w-[16px] text-center
+                                px-1 min-w-4 text-center
                                 ${config.count}
                             `}
                 >
                   {count > 99 ? '99+' : count}
                 </span>
               )}
-            </button>
+            </Button>
           ))}
 
         {/* Add reaction button (plus) */}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setIsExpanded(!isExpanded)}
           className={`
-                        ${config.button} rounded-full flex items-center justify-center
-                        bg-gray-100 hover:bg-gray-200 transition-all
-                        hover:scale-110 text-gray-500 font-bold
+                        ${config.button} rounded-full flex
+                        bg-gray-100 hover:bg-gray-200
+                        hover:scale-110 text-gray-500
                     `}
           title={isExpanded ? 'Show less' : 'Add reaction'}
         >
           <span className={config.emoji}>{isExpanded ? '−' : '+'}</span>
-        </button>
+        </Button>
       </div>
 
       {/* Expanded reaction picker */}
       {isExpanded && (
         <div className="absolute top-full left-0 mt-2 z-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-3">
+          <div className="bg-white rounded-2xl border border-gray-200 p-3">
             <div className="grid grid-cols-5 gap-2">
               {allReactions.map((type) => (
-                <button
+                <Button
                   key={type}
+                  variant="ghost"
                   onClick={() => {
                     handleReaction(type);
                     setIsExpanded(false);
                   }}
                   disabled={isLoading}
                   className={`
-                                        w-10 h-10 rounded-xl flex flex-col items-center justify-center
-                                        transition-all duration-200
+                                        w-10 h-10 flex flex-col
                                         ${
                                           myReactions.has(type)
                                             ? 'bg-coral-burst/20 ring-2 ring-coral-burst'
@@ -214,19 +217,21 @@ const ReactionBar: React.FC<ReactionBarProps> = ({
                       {REACTION_LABELS[type]}
                     </span>
                   )}
-                </button>
+                </Button>
               ))}
             </div>
 
             {/* Quick reaction row */}
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
               <span className="text-xs text-gray-400">Pick a reaction</span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setIsExpanded(false)}
                 className="text-xs text-coral-burst hover:underline"
               >
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -263,7 +268,7 @@ export const MiniReactionDisplay: React.FC<MiniReactionDisplayProps> = ({
         {visible.map(({ type }) => (
           <span
             key={type}
-            className="text-sm bg-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm"
+            className="text-sm bg-white rounded-full w-5 h-5 flex items-center justify-center border border-peach-soft/50"
           >
             {REACTION_EMOJIS[type]}
           </span>
@@ -293,7 +298,7 @@ export const FloatingReaction: React.FC<FloatingReactionProps> = ({ type, x, y, 
 
   return (
     <div
-      className="fixed pointer-events-none z-[100] text-3xl animate-float-up"
+      className="fixed pointer-events-none z-100 text-3xl animate-float-up"
       style={{ left: x, top: y }}
     >
       {REACTION_EMOJIS[type]}

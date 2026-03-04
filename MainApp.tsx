@@ -19,7 +19,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPWA from './components/InstallPWA';
 import Navigation from './components/Navigation';
-import { ToastContainer, type ToastType } from './components/Toast';
+import { Toaster, toast } from './components/ui/sonner';
 import UpgradeModal from './components/UpgradeModal';
 import { useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -123,16 +123,13 @@ const MainAppContent: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // Toast Notifications
-  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastType }>>([]);
-
-  const addToast = (message: string, type: ToastType) => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  // Toast helper — delegates to Sonner
+  const addToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
+    const fn = type === 'success' ? toast.success
+             : type === 'error' ? toast.error
+             : type === 'warning' ? toast.warning
+             : toast.info;
+    fn(message);
   };
 
   // Listen for theme and language changes
@@ -501,7 +498,6 @@ const MainAppContent: React.FC = () => {
             onSave={(success: boolean, message: string) => addToast(message, success ? 'success' : 'error')}
             onBack={() => setCurrentMode(AppMode.DASHBOARD)}
             onNavigateToCreate={() => setCurrentMode(AppMode.CREATION)}
-            onToast={addToast}
           />
         );
       case AppMode.VISUAL_STUDIO:
@@ -512,7 +508,6 @@ const MainAppContent: React.FC = () => {
             userProfile={userProfile}
             onNavigate={setCurrentMode}
             onUpdateProject={setCurrentProject}
-            onToast={addToast}
           />
         );
       case AppMode.SETTINGS:
@@ -612,7 +607,7 @@ const MainAppContent: React.FC = () => {
       </main>
 
       {isGenerating && (
-        <Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90"><Loader2 className="w-8 h-8 animate-spin text-coral-burst" /></div>}>
+        <Suspense fallback={<div className="fixed inset-0 z-100 flex items-center justify-center bg-white/90"><Loader2 className="w-8 h-8 animate-spin text-coral-burst" /></div>}>
           <GenerationTheater progress={generationProgress} status={generationStatus} onCancel={() => { setIsGenerating(false); setGenerationStatus(''); setGenerationProgress(0); }} />
         </Suspense>
       )}
@@ -626,7 +621,7 @@ const MainAppContent: React.FC = () => {
         }}
       />
 
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <Toaster />
       <Analytics />
       <InstallPWA />
 

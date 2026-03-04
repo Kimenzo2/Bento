@@ -1,5 +1,6 @@
 import { Camera, Palette, User, Users, Wand2 } from 'lucide-react';
 import type React from 'react';
+import { Button } from '@components/ui/button';
 
 interface MobileBottomNavProps {
   activeTab: 'character' | 'scene' | 'style' | 'chat';
@@ -29,13 +30,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       {/* Main Navigation Bar */}
-      <div className="mx-2 mb-1 bg-charcoal-soft/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-2 flex items-center justify-between relative overflow-hidden">
+      <div className="mx-2 mb-1 bg-charcoal-soft/95 backdrop-blur-xl rounded-2xl border border-white/10 p-2 flex items-center justify-between relative overflow-hidden">
         {/* Optional Mode Toggle Button */}
         {onModeToggle && (
-          <button
+          <Button
+            variant="ghost"
             onClick={onModeToggle}
             className={`
-                            flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all duration-300
+                            flex flex-col gap-0.5 w-14 h-12
                             ${
                               isCollaborativeMode
                                 ? 'bg-purple-500/20 text-purple-400'
@@ -52,7 +54,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <span className="text-[8px] font-medium">
               {isCollaborativeMode ? 'Collab' : 'Solo'}
             </span>
-          </button>
+          </Button>
         )}
 
         {/* Tab Buttons */}
@@ -61,11 +63,12 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           const isActive = activeTab === tab.id;
 
           return (
-            <button
+            <Button
+              variant="ghost"
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`
-                                relative flex flex-col items-center justify-center gap-0.5 flex-1 h-12 rounded-xl transition-all duration-300 min-h-[52px]
+                                relative flex flex-col gap-0.5 flex-1 h-12 min-h-[52px]
                                 ${isActive ? 'bg-white/10 text-gold-sunshine' : 'text-gray-400 active:text-white active:bg-white/5'}
                             `}
               aria-label={tab.label}
@@ -79,7 +82,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 />
                 {/* HIDDEN FOR SIMPLICITY
                                 {tab.id === 'chat' && unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1.5 bg-coral-burst text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border border-charcoal-soft shadow-sm">
+                                    <span className="absolute -top-1 -right-1.5 bg-coral-burst text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center border border-charcoal-soft">
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}
@@ -93,9 +96,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
               {/* Active Indicator */}
               {isActive && (
-                <div className="absolute bottom-0.5 w-1 h-1 bg-gold-sunshine rounded-full shadow-[0_0_8px_2px_rgba(252,163,17,0.5)]" />
+                <div className="absolute bottom-0.5 w-1 h-1 bg-gold-sunshine rounded-full" />
               )}
-            </button>
+            </Button>
           );
         })}
       </div>

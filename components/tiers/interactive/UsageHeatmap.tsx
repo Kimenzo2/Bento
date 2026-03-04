@@ -37,10 +37,10 @@ export const UsageHeatmap: React.FC<UsageHeatmapProps> = ({ tier }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-full shadow-2xl border border-charcoal-soft/10 p-1 pr-4 flex items-center gap-3"
+        className="bg-white rounded-full border-2 border-peach-soft p-1 pr-4 flex items-center gap-3"
       >
         <div
-          className={`w-10 h-10 rounded-full bg-gradient-to-br ${tier.gradient} flex items-center justify-center text-white`}
+          className={`w-10 h-10 rounded-full bg-linear-to-br ${tier.gradient} flex items-center justify-center text-white`}
         >
           <Globe className="w-5 h-5 animate-pulse" />
         </div>

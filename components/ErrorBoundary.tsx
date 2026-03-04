@@ -9,6 +9,7 @@
 import { AlertTriangle, Bug, Check, Copy, Home, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Button } from './ui/button';
 
 // Dynamic import to avoid circular dependencies
 const reportError = async (
@@ -127,6 +128,9 @@ class ErrorBoundary extends Component<Props, State> {
     navigator.clipboard.writeText(errorText).then(() => {
       this.setState({ copied: true });
       setTimeout(() => this.setState({ copied: false }), 2000);
+    }).catch(() => {
+      // Clipboard API unavailable (insecure context or permission denied)
+      console.warn('Failed to copy error report to clipboard');
     });
   };
 
@@ -167,8 +171,8 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-base to-peach-soft p-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center">
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-cream-base to-peach-soft p-4">
+            <div className="bg-white rounded-3xl border-2 border-peach-soft p-8 max-w-lg w-full text-center">
             <div className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
@@ -198,13 +202,15 @@ class ErrorBoundary extends Component<Props, State> {
                   {error.toString()}
                   {errorInfo?.componentStack}
                 </pre>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={this.handleCopyError}
-                  className="mt-3 text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  className="mt-3 text-gray-500 hover:text-gray-700 flex gap-1"
                 >
                   {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   {copied ? 'Copied!' : 'Copy error report'}
-                </button>
+                </Button>
               </details>
             )}
 
@@ -217,30 +223,33 @@ class ErrorBoundary extends Component<Props, State> {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               {canRetry ? (
-                <button
+                <Button
+                  variant="primary"
                   onClick={this.handleRetry}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-md"
+                  className="flex px-6 py-3 hover:scale-105 border-2 border-white/20"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Try Again
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
+                  variant="primary"
                   onClick={this.handleRefresh}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-md"
+                  className="flex px-6 py-3 hover:scale-105 border-2 border-white/20"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Refresh Page
-                </button>
+                </Button>
               )}
 
-              <button
+              <Button
+                variant="secondary"
                 onClick={this.handleGoHome}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-charcoal-soft font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                className="flex px-6 py-3 bg-gray-100 text-charcoal-soft hover:bg-gray-200"
               >
                 <Home className="w-4 h-4" />
                 Go Home
-              </button>
+              </Button>
             </div>
           </div>
         </div>

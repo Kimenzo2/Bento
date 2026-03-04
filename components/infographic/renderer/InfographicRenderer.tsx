@@ -30,7 +30,7 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
   return (
     <div
       id="infographic-canvas"
-      className="bg-white shadow-xl transition-transform duration-200 origin-center w-full max-w-[800px] mx-auto relative"
+      className="bg-white transition-transform duration-200 origin-center w-full max-w-200 mx-auto relative"
       style={{
         height: 'auto',
         minHeight: '800px',
@@ -39,7 +39,7 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
       }}
     >
       {/* Header */}
-      <div className="p-8 text-center bg-gradient-to-b from-cream-soft to-transparent">
+      <div className="p-8 text-center bg-linear-to-b from-cream-soft to-transparent">
         <h1
           className="font-heading font-bold text-3xl sm:text-4xl text-charcoal-soft mb-2"
           style={{ color: data.colors[0] }}
@@ -56,7 +56,7 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
       {/* Generated Visual */}
       {data.imageUrl && (
         <div className="w-full px-8 mb-8 flex justify-center">
-          <div className="relative rounded-2xl overflow-hidden shadow-lg border-4 border-white transform hover:scale-[1.02] transition-transform duration-500">
+          <div className="relative rounded-2xl overflow-hidden border-4 border-white transform hover:scale-[1.02] transition-transform duration-500">
             <img
               src={data.imageUrl}
               alt={data.title}
@@ -95,7 +95,7 @@ const InfographicRenderer: React.FC<InfographicRendererProps> = ({ data, scale =
 
       {/* Guide Character Overlay */}
       {data.guideCharacter !== 'NONE' && (
-        <div className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full shadow-lg border-4 border-white flex items-center justify-center text-4xl transform rotate-12 z-20">
+        <div className="absolute bottom-4 right-4 w-24 h-24 bg-white rounded-full border-4 border-white flex items-center justify-center text-4xl transform rotate-12 z-20">
           {data.guideCharacter === 'OWL' && '🦉'}
           {data.guideCharacter === 'MOUSE' && '🐭'}
           {data.guideCharacter === 'FOX' && '🦊'}

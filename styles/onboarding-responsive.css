@@ -309,7 +309,7 @@
 .ob-quiz-option-image {
   width: calc(3.5rem * var(--ob-scale));
   height: calc(3.5rem * var(--ob-scale));
-  flex-shrink: 0;
+  shrink: 0;
 }
 
 @media (min-width: 390px) {

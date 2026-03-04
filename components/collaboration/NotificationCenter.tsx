@@ -28,6 +28,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationService } from '../../services/notificationService';
 import type { Notification, NotificationType } from '../../types/advanced';
+import { Button } from '@/components/ui/button';
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -174,7 +175,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="fixed inset-x-4 top-20 bottom-auto max-h-[80vh] md:absolute md:inset-auto md:right-0 md:top-12 md:w-96 md:max-h-[600px] bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col"
+          className="fixed inset-x-4 top-20 bottom-auto max-h-[80vh] md:absolute md:inset-auto md:right-0 md:top-12 md:w-96 md:max-h-150 bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 z-50 overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
@@ -188,53 +189,63 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleMarkAllAsRead}
-                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/10"
                 title="Mark all as read"
               >
                 <CheckCheck className="w-4 h-4 text-gray-400" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   /* Open settings */
                 }}
-                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/10"
                 title="Notification settings"
               >
                 <Settings className="w-4 h-4 text-gray-400" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onClose}
-                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/10"
               >
                 <X className="w-4 h-4 text-gray-400" />
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Filter tabs */}
           <div className="px-4 py-2 flex gap-2 border-b border-white/5">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              className={`px-3 py-1.5 ${
                 filter === 'all'
                   ? 'bg-purple-500/20 text-purple-400'
                   : 'text-gray-400 hover:bg-white/5'
               }`}
             >
               All
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setFilter('unread')}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              className={`px-3 py-1.5 ${
                 filter === 'unread'
                   ? 'bg-purple-500/20 text-purple-400'
                   : 'text-gray-400 hover:bg-white/5'
               }`}
             >
               Unread
-            </button>
+            </Button>
           </div>
 
           {/* Notification list */}
@@ -286,7 +297,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                             {notification.title}
                           </p>
                           {!notification.is_read && (
-                            <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0 mt-1.5" />
+                            <div className="w-2 h-2 bg-purple-500 rounded-full shrink-0 mt-1.5" />
                           )}
                         </div>
                         <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">
@@ -303,27 +314,31 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                       {/* Actions */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {!notification.is_read && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleMarkAsRead(notification.id);
                             }}
-                            className="p-1.5 hover:bg-white/10 rounded-lg"
+                            className="p-1.5 hover:bg-white/10"
                             title="Mark as read"
                           >
                             <Check className="w-4 h-4 text-gray-400" />
-                          </button>
+                          </Button>
                         )}
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDelete(notification.id);
                           }}
-                          className="p-1.5 hover:bg-red-500/20 rounded-lg"
+                          className="p-1.5 hover:bg-red-500/20"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </motion.div>
@@ -335,15 +350,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
           {/* Footer */}
           {notifications.length > 0 && (
             <div className="px-4 py-3 border-t border-white/10 flex justify-between items-center">
-              <button
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleClearAll}
-                className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                className="text-red-400 hover:text-red-300"
               >
                 Clear all
-              </button>
-              <button className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+              </Button>
+              <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300">
                 View all notifications
-              </button>
+              </Button>
             </div>
           )}
         </motion.div>
@@ -360,9 +377,11 @@ interface NotificationBellProps {
 
 export const NotificationBell: React.FC<NotificationBellProps> = ({ onClick, unreadCount = 0 }) => {
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={onClick}
-      className="relative p-2 hover:bg-white/10 rounded-xl transition-all group"
+      className="relative p-2 hover:bg-white/10 group"
       title="Notifications"
     >
       <Bell className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
@@ -375,7 +394,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onClick, unr
           {unreadCount > 99 ? '99+' : unreadCount}
         </motion.span>
       )}
-    </button>
+    </Button>
   );
 };
 

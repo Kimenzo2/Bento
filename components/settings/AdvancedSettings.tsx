@@ -34,7 +34,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
       onClick={() => onChange(!checked)}
     >
       <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-        <Icon className="w-5 h-5 text-coral-burst flex-shrink-0" />
+        <Icon className="w-5 h-5 text-coral-burst shrink-0" />
         <div className="flex flex-col min-w-0">
           <div className="flex flex-wrap items-center gap-1 md:gap-2">
             <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">
@@ -52,12 +52,12 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         </div>
       </div>
       <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 flex-shrink-0 ml-3 md:ml-4 ${
+        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 shrink-0 ml-3 md:ml-4 ${
           checked ? 'bg-coral-burst' : 'bg-gray-200'
         }`}
       >
         <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-300 ${
+          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full transform transition-transform duration-300 ${
             checked ? 'translate-x-[22px]' : 'translate-x-0'
           }`}
         />
@@ -88,7 +88,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
       {/* Warning Banner */}
       <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 md:p-4">
         <div className="flex items-start gap-2 md:gap-3">
-          <Wrench className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <Wrench className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
           <div>
             <h4 className="font-bold text-yellow-900 mb-0.5 md:mb-1 text-sm md:text-base">
               Advanced Settings
@@ -115,7 +115,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             onChange={(val) => {
               onUpdate({ ...settings, developerMode: val });
               if (val) {
-                console.log('[Genesis] Developer mode enabled');
+                console.warn('[Genesis] Developer mode enabled');
               }
             }}
             icon={Code}

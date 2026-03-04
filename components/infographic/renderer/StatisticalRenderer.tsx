@@ -14,11 +14,11 @@ const StatisticalRenderer: React.FC<StatisticalRendererProps> = ({ data }) => {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className={`bg-white p-6 rounded-2xl shadow-soft-md border border-peach-soft/30 flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-transform duration-300 ${
-              index === 0 ? 'sm:col-span-2 bg-gradient-to-br from-white to-cream-soft' : ''
+            className={`bg-white p-6 rounded-2xl border border-peach-soft/30 flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-transform duration-300 ${
+              index === 0 ? 'sm:col-span-2 bg-linear-to-br from-white to-cream-soft' : ''
             }`}
           >
-            <div className="text-5xl sm:text-6xl font-heading font-black text-transparent bg-clip-text bg-gradient-to-r from-coral-burst to-gold-sunshine mb-2">
+            <div className="text-5xl sm:text-6xl font-heading font-black text-transparent bg-clip-text bg-linear-to-r from-coral-burst to-gold-sunshine mb-2">
               {stat.value}
             </div>
             <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2">{stat.label}</h3>
@@ -29,7 +29,7 @@ const StatisticalRenderer: React.FC<StatisticalRendererProps> = ({ data }) => {
         ))}
 
         {/* Placeholder Chart Visualization */}
-        <div className="sm:col-span-2 bg-white p-6 rounded-2xl shadow-soft-md border border-peach-soft/30 mt-4">
+        <div className="sm:col-span-2 bg-white p-6 rounded-2xl border border-peach-soft/30 mt-4">
           <h4 className="font-heading font-bold text-charcoal-soft mb-4 text-center">
             Data Distribution
           </h4>

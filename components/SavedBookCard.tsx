@@ -29,12 +29,12 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-2xl overflow-hidden shadow-soft-md hover:shadow-soft-lg transition-all duration-300 border border-peach-soft/50 group outline-none focus:ring-2 focus:ring-coral-burst/50"
+      className="bg-white rounded-2xl overflow-hidden transition-all duration-300 border border-peach-soft/50 group outline-none focus:ring-2 focus:ring-coral-burst/50"
       tabIndex={0}
       role="article"
     >
       {/* Cover Image */}
-      <div className="relative h-48 bg-gradient-to-br from-coral-burst/20 to-gold-sunshine/20 overflow-hidden">
+      <div className="relative h-48 bg-linear-to-br from-coral-burst/20 to-gold-sunshine/20 overflow-hidden">
         {book.coverImage ? (
           <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
         ) : (
@@ -47,7 +47,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
         <div className="absolute inset-0 z-20 bg-black/80 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-center justify-center gap-3 backdrop-blur-sm pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
           <button
             onClick={() => onEdit(book)}
-            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
+            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Edit"
             aria-label="Edit book"
           >
@@ -55,7 +55,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
           </button>
           <button
             onClick={() => onRead(book)}
-            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
+            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Read"
             aria-label="Read book"
           >
@@ -64,7 +64,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
           {onShare && (
             <button
               onClick={() => onShare(book)}
-              className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
+              className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
               title="Share"
               aria-label="Share book"
             >
@@ -78,7 +78,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
                 onDelete(book.id);
               }
             }}
-            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform shadow-lg"
+            className="p-3 bg-white rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Delete"
             aria-label="Delete book"
           >
@@ -92,7 +92,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
         <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-2 truncate">
           {book.title}
         </h3>
-        <p className="text-sm text-cocoa-light line-clamp-2 mb-4 min-h-[40px]">
+        <p className="text-sm text-cocoa-light line-clamp-2 mb-4 min-h-10">
           {book.synopsis || 'No synopsis available'}
         </p>
 

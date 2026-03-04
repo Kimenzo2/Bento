@@ -19,12 +19,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useBookSwipeNavigation } from '../hooks/useSwipeGesture';
 import { keyboardNav, screenReaderAnnounce } from '../services/accessibilityService';
 import type { BookProject } from '../types';
-import { type Particle, generateParticles, updateParticle } from '../utils/particles';
+import { generateParticles, type Particle, updateParticle } from '../utils/particles';
 import AudioPlayer from './AudioPlayer';
 import { ShareModal } from './BookSharing';
 import ExportModal from './ExportModal';
 import { InteractiveCharacterTutor } from './InteractiveCharacterTutor';
 import KDPExportModal from './KDPExportModal';
+import { Button } from '@components/ui/button';
 
 interface StorybookViewerProps {
   project: BookProject;
@@ -89,7 +90,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         return {
           chapterIndex: i,
           chapterTitle: chapter.title,
-          pageInChapter: pageInChapter,
+          pageInChapter,
           totalPagesInChapter: chapter.pages.length,
         };
       }
@@ -105,31 +106,36 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
   const chapterInfo = getCurrentChapterInfo();
 
-  // Generate floating particles around the book (desktop only)
+  // Particle generation + animation via requestAnimationFrame (desktop only)
   useEffect(() => {
     if (isMobile) return;
-    const interval = setInterval(() => {
-      const newParticles = generateParticles(
-        3,
-        window.innerWidth / 2,
-        window.innerHeight / 2,
-        300,
-        'sparkle'
-      );
-      setParticles((prev) => [...prev, ...newParticles].slice(-30));
-    }, 800);
+    let animId: number;
+    let lastSpawn = 0;
+    let lastUpdate = 0;
 
-    return () => clearInterval(interval);
-  }, [isMobile]);
+    const tick = (time: number) => {
+      // Spawn new particles every 800ms
+      if (time - lastSpawn >= 800) {
+        lastSpawn = time;
+        const newParticles = generateParticles(
+          3,
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+          300,
+          'sparkle'
+        );
+        setParticles((prev) => [...prev, ...newParticles].slice(-30));
+      }
+      // Update particle positions every ~50ms
+      if (time - lastUpdate >= 50) {
+        lastUpdate = time;
+        setParticles((prev) => prev.map((p) => updateParticle(p, 0.5)).filter((p) => p.opacity > 0));
+      }
+      animId = requestAnimationFrame(tick);
+    };
+    animId = requestAnimationFrame(tick);
 
-  // Update particles animation (desktop only)
-  useEffect(() => {
-    if (isMobile) return;
-    const animationFrame = setInterval(() => {
-      setParticles((prev) => prev.map((p) => updateParticle(p, 0.5)).filter((p) => p.opacity > 0));
-    }, 50);
-
-    return () => clearInterval(animationFrame);
+    return () => cancelAnimationFrame(animId);
   }, [isMobile]);
 
   // Swipe gesture support for mobile navigation
@@ -235,7 +241,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     let currentParagraph = '';
 
     sentences.forEach((sentence, idx) => {
-      currentParagraph += sentence + ' ';
+      currentParagraph += `${sentence} `;
       // Create paragraph every 2-3 sentences for readability
       if ((idx + 1) % 3 === 0 || idx === sentences.length - 1) {
         paragraphs.push(currentParagraph.trim());
@@ -253,14 +259,16 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     return (
       <div className="fixed inset-0 z-50 bg-[#1a1a2e] flex flex-col">
         {/* Mobile Header */}
-        <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between border-b border-white/10 bg-[#1a1a2e]/95 backdrop-blur-sm safe-area-top">
-          <button
+        <div className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-white/10 bg-[#1a1a2e]/95 backdrop-blur-sm safe-area-top">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="flex items-center gap-2 text-white/80 hover:text-white transition-colors p-2 -ml-2 touch-manipulation"
+            className="text-white/80 hover:text-white p-2 -ml-2 touch-manipulation"
             title="Close Viewer"
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
+          </Button>
 
           <div className="flex-1 text-center px-4">
             <h1 className="text-amber-400 font-bold text-sm truncate flex items-center justify-center gap-2">
@@ -270,30 +278,36 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
           </div>
 
           <div className="flex items-center gap-1">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleSpeech();
               }}
-              className={`p-2 rounded-full transition-all touch-manipulation ${
+              className={`p-2 touch-manipulation ${
                 isSpeaking ? 'bg-amber-500 text-white' : 'text-white/60 hover:text-white'
               }`}
               title={isSpeaking ? 'Stop Reading' : 'Read Aloud'}
             >
               <Volume2 className="w-5 h-5" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleShare}
-              className="p-2 text-white/60 hover:text-white transition-colors touch-manipulation"
+              className="p-2 text-white/60 hover:text-white touch-manipulation"
               title="Share Story"
             >
               <Share2 className="w-5 h-5" />
-            </button>
+            </Button>
 
             {/* Audio Player Toggle */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setShowAudioPlayer(!showAudioPlayer)}
-              className={`p-2.5 rounded-xl transition-colors ${
+              className={`p-2.5 touch-manipulation ${
                 showAudioPlayer
                   ? 'bg-purple-500/30 text-purple-400'
                   : 'bg-white/10 hover:bg-white/20 text-white'
@@ -301,7 +315,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               title={showAudioPlayer ? 'Hide Audio Player' : 'Read Aloud'}
             >
               {showAudioPlayer ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -336,8 +350,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               (swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
             }
           }}
-          className="flex-1 overflow-y-auto overscroll-contain touch-pan-y"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="flex-1 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]"
           role="region"
           aria-label={`Story content, page ${currentPageIndex + 1} of ${totalPages}`}
         >
@@ -367,7 +380,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
               {/* Image Section */}
               <div className="px-4 pb-5">
-                <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 aspect-[4/3] xs:aspect-[16/10]">
+                <div className="relative rounded-2xl overflow-hidden bg-linear-to-br from-gray-800 to-gray-900 aspect-4/3 xs:aspect-16/10">
                   {currentPage.imageUrl ? (
                     <img
                       src={currentPage.imageUrl}
@@ -385,7 +398,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   )}
 
                   {/* Image overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e] via-transparent to-transparent opacity-40" />
+                  <div className="absolute inset-0 bg-linear-to-t from-[#1a1a2e] via-transparent to-transparent opacity-40" />
                 </div>
               </div>
 
@@ -394,8 +407,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 {getTextParagraphs(currentPage.text).map((paragraph, idx) => (
                   <p
                     key={idx}
-                    className="text-gray-200 text-base xs:text-lg leading-relaxed font-serif"
-                    style={{ textAlign: 'justify', hyphens: 'auto' }}
+                    className="text-gray-200 text-base xs:text-lg leading-relaxed font-serif text-justify [hyphens:auto]"
                   >
                     {paragraph}
                   </p>
@@ -417,59 +429,65 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         </div>
 
         {/* Mobile Bottom Navigation & Actions */}
-        <div className="flex-shrink-0 px-4 py-3 bg-[#1a1a2e]/95 backdrop-blur-lg border-t border-white/10 safe-area-bottom space-y-3">
+        <div className="shrink-0 px-4 py-3 bg-[#1a1a2e]/95 backdrop-blur-lg border-t border-white/10 safe-area-bottom space-y-3">
           {/* Action Buttons Row */}
           <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1">
-            <button
+            <Button
+              variant="primary"
               onClick={onEdit}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-bold text-sm shadow-lg active:scale-95 transition-transform touch-manipulation whitespace-nowrap"
+              className="flex px-4 py-2 border-2 border-white/20 active:scale-95 touch-manipulation whitespace-nowrap"
             >
               <Edit3 className="w-4 h-4" />
               <span>Edit</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={handleDownload}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/20 font-bold text-sm active:scale-95 transition-all touch-manipulation whitespace-nowrap"
+              className="flex px-4 py-2 bg-white/10 text-white hover:bg-white/20 active:scale-95 touch-manipulation whitespace-nowrap"
               title="Save as PDF"
             >
               <Download className="w-4 h-4" />
               <span>Save</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={() => setShowKDPExportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-sm shadow-md active:scale-95 transition-transform touch-manipulation whitespace-nowrap"
+              className="flex px-4 py-2 bg-linear-to-r from-orange-500 to-amber-500 text-white border-2 border-white/20 active:scale-95 touch-manipulation whitespace-nowrap"
               title="Export for Amazon KDP"
             >
               <BookOpen className="w-4 h-4" />
               <span>Amazon</span>
-            </button>
+            </Button>
           </div>
 
           {/* Navigation Row */}
           <div className="flex items-center justify-between gap-4">
             {/* Previous Button */}
-            <button
+            <Button
+              variant="ghost"
               onClick={prevPage}
               disabled={currentPageIndex === 0}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation min-h-[44px] ${
+              className={`flex px-4 py-2.5 touch-manipulation min-h-11 ${
                 currentPageIndex === 0
-                  ? 'text-gray-600 cursor-not-allowed'
+                  ? 'text-gray-600'
                   : 'bg-white/10 text-white hover:bg-white/20 active:scale-95'
               }`}
               title="Previous Page"
             >
               <ChevronLeft className="w-5 h-5" />
               <span className="text-sm font-medium hidden xs:inline">Previous</span>
-            </button>
+            </Button>
 
             {/* Page Indicator */}
             <div className="flex items-center gap-2">
               <div className="flex gap-1.5">
                 {allPages.slice(0, 5).map((_, idx) => (
-                  <button
+                  <Button
                     key={idx}
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setCurrentPageIndex(idx)}
-                    className={`h-2 rounded-full transition-all touch-manipulation ${
+                    className={`h-2 touch-manipulation ${
                       idx === currentPageIndex
                         ? 'w-6 bg-amber-400'
                         : 'w-2 bg-white/30 hover:bg-white/50'
@@ -487,18 +505,19 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             </div>
 
             {/* Next Button */}
-            <button
+            <Button
+              variant="default"
               onClick={nextPage}
               disabled={currentPageIndex === totalPages - 1}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all touch-manipulation min-h-[44px] ${
+              className={`flex px-4 py-2.5 touch-manipulation min-h-11 ${
                 currentPageIndex === totalPages - 1
-                  ? 'text-gray-600 cursor-not-allowed'
+                  ? 'text-gray-600'
                   : 'bg-amber-500 text-white hover:bg-amber-400 active:scale-95'
               }`}
             >
               <span className="text-sm font-medium hidden xs:inline">Next</span>
               <ChevronRight className="w-5 h-5" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -510,7 +529,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   // ============================================
   return (
     <div
-      className={`fixed inset-0 z-50 bg-gradient-to-br ${getBackgroundGradient()} flex flex-col items-center justify-center p-4 sm:p-8 animate-fadeIn transition-all duration-700`}
+      className={`fixed inset-0 z-50 bg-linear-to-br ${getBackgroundGradient()} flex flex-col items-center justify-center p-4 sm:p-8 animate-fadeIn transition-all duration-700`}
     >
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -539,13 +558,13 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
       </div>
 
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-white/60 to-transparent backdrop-blur-sm">
+      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-linear-to-b from-white/60 to-transparent backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClose}
-            className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
+            className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white border border-peach-soft/50 transition-colors backdrop-blur-sm"
           >
             <X className="w-6 h-6" />
           </motion.button>
@@ -557,10 +576,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
       {/* Main Book Container with Floating Effect */}
       <motion.div
-        className="relative w-full max-w-6xl aspect-[3/4] sm:aspect-[4/5] lg:aspect-[16/9] bg-white rounded-[24px] lg:rounded-[32px] overflow-hidden flex flex-col lg:flex-row border-4 border-white/50"
-        style={{
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5)',
-        }}
+        className="relative w-full max-w-6xl aspect-3/4 sm:aspect-4/5 lg:aspect-video bg-white rounded-3xl lg:rounded-4xl overflow-hidden flex flex-col lg:flex-row border-2 border-peach-soft"
         animate={{
           y: [0, -10, 0],
         }}
@@ -596,13 +612,13 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-cocoa-light bg-gradient-to-br from-cream-base to-peach-soft">
+              <div className="w-full h-full flex items-center justify-center text-cocoa-light bg-linear-to-br from-cream-base to-peach-soft">
                 <span className="text-sm font-body">✨ Illustration</span>
               </div>
             )}
 
             {/* Page Number Overlay */}
-            <div className="absolute bottom-6 left-6 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-charcoal-soft font-heading font-bold text-sm shadow-soft-sm">
+            <div className="absolute bottom-6 left-6 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full text-charcoal-soft font-heading font-bold text-sm border border-peach-soft/50">
               {currentPageIndex + 1} / {totalPages}
             </div>
           </motion.div>
@@ -634,7 +650,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             {/* Special Layout for Learning Only */}
             {currentPage.layoutType === 'learning-only' && (
               <div className="flex flex-col items-center max-w-2xl">
-                <div className="w-32 h-32 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center overflow-hidden mb-6">
+                <div className="w-32 h-32 bg-blue-100 rounded-full border-4 border-white flex items-center justify-center overflow-hidden mb-6">
                   {project.characters.find((c) => c.role === 'mentor')?.visualPrompt ? (
                     <img
                       src={`https://api.dicebear.com/7.x/bottts/svg?seed=${project.characters.find((c) => c.role === 'mentor')?.name}`}
@@ -652,14 +668,15 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   {currentPage.learningContent?.mentorDialogue}
                 </p>
                 {currentPage.learningContent?.quiz && (
-                  <div className="w-full bg-white rounded-2xl p-6 shadow-soft-lg text-left">
+                  <div className="w-full bg-white rounded-2xl p-6 border-2 border-peach-soft text-left">
                     <p className="font-bold text-blue-800 text-lg mb-4">
                       {currentPage.learningContent.quiz.question}
                     </p>
                     <div className="space-y-3">
                       {currentPage.learningContent.quiz.options.map((option, idx) => (
-                        <button
+                        <Button
                           key={idx}
+                          variant="outline"
                           onClick={() => {
                             if (option === currentPage.learningContent?.quiz?.correctAnswer) {
                               alert(currentPage.learningContent?.quiz?.explanation);
@@ -667,10 +684,10 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                               alert('Try again!');
                             }
                           }}
-                          className="w-full text-left px-4 py-3 bg-blue-50 rounded-xl text-base text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
+                          className="w-full text-left px-4 py-3 bg-blue-50 text-base text-blue-700 hover:bg-blue-100 border border-blue-100"
                         >
                           {option}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -686,9 +703,9 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 e.stopPropagation();
                 toggleSpeech();
               }}
-              className={`absolute top-8 right-8 p-3 rounded-full transition-all shadow-soft-md ${
+              className={`absolute top-8 right-8 p-3 rounded-full transition-all border border-peach-soft/50 ${
                 isSpeaking
-                  ? 'bg-gradient-to-r from-coral-burst to-gold-sunshine text-white'
+                  ? 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white'
                   : 'bg-white/80 text-cocoa-light hover:text-coral-burst backdrop-blur-sm'
               }`}
             >
@@ -706,7 +723,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               e.stopPropagation();
               prevPage();
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white/80 text-coral-burst hover:bg-white transition-all backdrop-blur-sm shadow-soft-lg"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white/80 text-coral-burst hover:bg-white transition-all backdrop-blur-sm border-2 border-peach-soft"
           >
             <ChevronLeft className="w-8 h-8" />
           </motion.button>
@@ -719,7 +736,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               e.stopPropagation();
               nextPage();
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white/80 text-coral-burst hover:bg-white transition-all backdrop-blur-sm shadow-soft-lg"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white/80 text-coral-burst hover:bg-white transition-all backdrop-blur-sm border-2 border-peach-soft"
           >
             <ChevronRight className="w-8 h-8" />
           </motion.button>
@@ -728,13 +745,13 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
       {/* Bottom Controls */}
       <div className="absolute bottom-6 flex items-center gap-4 z-10">
-        <div className="flex gap-2 p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-soft-lg">
+        <div className="flex gap-2 p-3 bg-white/80 backdrop-blur-sm rounded-full border-2 border-peach-soft">
           {allPages.map((_, idx) => (
             <motion.div
               key={idx}
               className={`h-2 rounded-full transition-all duration-300 ${
                 idx === currentPageIndex
-                  ? 'w-8 bg-gradient-to-r from-coral-burst to-gold-sunshine'
+                  ? 'w-8 bg-linear-to-r from-coral-burst to-gold-sunshine'
                   : 'w-2 bg-cocoa-light/30 hover:bg-cocoa-light/50'
               }`}
               whileHover={{ scale: idx !== currentPageIndex ? 1.2 : 1 }}
@@ -750,7 +767,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onEdit}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-coral-burst to-gold-sunshine text-white font-heading font-bold shadow-soft-lg hover:shadow-soft-xl transition-all"
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-linear-to-r from-coral-burst to-gold-sunshine text-white font-heading font-bold border-2 border-white/20 transition-all"
           >
             <Edit3 className="w-4 h-4" />
             <span className="hidden sm:inline">Edit</span>
@@ -759,7 +776,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onDownload}
-            className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
+            className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white border border-peach-soft/50 transition-colors backdrop-blur-sm"
             title="Download PDF"
           >
             <Download className="w-5 h-5" />
@@ -768,7 +785,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowKDPExportModal(true)}
-            className="flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold shadow-soft-md hover:shadow-soft-lg transition-all"
+            className="flex items-center gap-2 px-4 py-3 rounded-full bg-linear-to-r from-orange-500 to-amber-500 text-white font-bold border-2 border-white/20 transition-all"
             title="Export for Amazon KDP"
           >
             <BookOpen className="w-5 h-5" />
@@ -778,7 +795,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleShare}
-            className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white shadow-soft-md transition-colors backdrop-blur-sm"
+            className="p-3 rounded-full bg-white/80 text-charcoal-soft hover:bg-white border border-peach-soft/50 transition-colors backdrop-blur-sm"
             title="Share"
           >
             <Share2 className="w-5 h-5" />
@@ -788,7 +805,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={toggleFullscreen}
-          className="p-3 rounded-full bg-white/80 text-cocoa-light hover:text-charcoal-soft backdrop-blur-sm shadow-soft-md transition-colors"
+          className="p-3 rounded-full bg-white/80 text-cocoa-light hover:text-charcoal-soft backdrop-blur-sm border border-peach-soft/50 transition-colors"
         >
           {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
         </motion.button>
@@ -801,7 +818,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setLearningMode(!learningMode)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-soft-lg transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border-2 border-peach-soft transition-all ${
               learningMode ? 'bg-blue-500 text-white' : 'bg-white/90 text-blue-500 hover:bg-white'
             }`}
           >
@@ -818,9 +835,9 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setUseVoiceTutor(!useVoiceTutor)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-soft-lg transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full border-2 border-peach-soft transition-all ${
                 useVoiceTutor
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                  ? 'bg-linear-to-r from-green-500 to-emerald-500 text-white'
                   : 'bg-white/90 text-green-600 hover:bg-white'
               }`}
               title="Toggle voice tutoring with animated character"
@@ -841,7 +858,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             className="absolute bottom-24 right-8 max-w-md z-30 pointer-events-none"
           >
-            <div className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-6 border-4 border-blue-200 relative pointer-events-auto">
+            <div className="bg-linear-to-br from-white to-blue-50 rounded-3xl p-6 border-2 border-peach-soft relative pointer-events-auto">
               {/* Teacher Character Avatar - Use actual character if available */}
               {(() => {
                 // Find the teacher character - first check for one with teacher role, then any mentor
@@ -855,7 +872,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   ) || project.characters.find((c) => c.role === 'mentor');
 
                 return (
-                  <div className="absolute -top-14 -left-6 w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gradient-to-br from-blue-100 to-purple-100">
+                  <div className="absolute -top-14 -left-6 w-24 h-24 rounded-full border-2 border-peach-soft overflow-hidden bg-linear-to-br from-blue-100 to-purple-100">
                     {teacherChar?.imageUrl ? (
                       <img
                         src={teacherChar.imageUrl}
@@ -911,15 +928,16 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
                 {/* Quiz Section */}
                 {currentPage.learningContent.quiz && (
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+                  <div className="bg-linear-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
                     <p className="font-bold text-blue-800 text-sm mb-3 flex items-center gap-2">
                       <span className="text-lg">🤔</span>
                       {currentPage.learningContent.quiz.question}
                     </p>
                     <div className="space-y-2">
                       {currentPage.learningContent.quiz.options.map((option, idx) => (
-                        <button
+                        <Button
                           key={idx}
+                          variant="outline"
                           onClick={() => {
                             if (option === currentPage.learningContent?.quiz?.correctAnswer) {
                               // Show success with character's encouragement style
@@ -937,11 +955,11 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                               alert(`💪 ${encouragement}`);
                             }
                           }}
-                          className="w-full text-left px-4 py-3 bg-white rounded-xl text-sm text-blue-700 hover:bg-blue-100 hover:scale-[1.02] transition-all border border-blue-100 shadow-sm"
+                          className="w-full text-left px-4 py-3 bg-white text-blue-700 hover:bg-blue-100 hover:scale-[1.02] border border-peach-soft/50"
                         >
                           <span className="font-medium">{String.fromCharCode(65 + idx)}.</span>{' '}
                           {option}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -992,19 +1010,21 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   learningContent={currentPage.learningContent}
                   onQuizComplete={(isCorrect) => {
                     if (isCorrect) {
-                      console.log('Quiz answered correctly!');
+                      console.warn('Quiz answered correctly!');
                     }
                   }}
                   autoStart={true}
                 />
                 {/* Toggle back to visual mode */}
-                <button
+                <Button
+                  variant="default"
+                  size="icon"
                   onClick={() => setUseVoiceTutor(false)}
-                  className="absolute -top-3 -right-3 w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
+                  className="absolute -top-3 -right-3 w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white border-2 border-white/20 flex hover:scale-110"
                   title="Switch to visual mode"
                 >
                   <VolumeX className="w-4 h-4" />
-                </button>
+                </Button>
               </motion.div>
             ) : null;
           })()}
@@ -1018,7 +1038,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             title: project.title,
             synopsis: project.synopsis || '',
             coverImage: project.chapters[0]?.pages[0]?.imageUrl,
-            project: project,
+            project,
             savedAt: new Date(),
             lastModified: new Date(),
           }}

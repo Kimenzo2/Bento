@@ -19,6 +19,7 @@ import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { versionControlService } from '../../services/versionControlService';
 import type { VersionNode, VisualBranch, VisualVersion } from '../../types/advanced';
+import { Button } from '@/components/ui/button';
 
 interface FamilyTreeViewerProps {
   visualId: string;
@@ -163,7 +164,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-linear-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
               <GitBranch className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -182,10 +183,12 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                 { id: 'branches', label: 'Branches', icon: GitBranch },
                 { id: 'tree', label: 'Tree', icon: GitMerge },
               ].map((mode) => (
-                <button
+                <Button
                   key={mode.id}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setViewMode(mode.id as typeof viewMode)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                  className={`flex gap-1.5 px-3 py-1.5 ${
                     viewMode === mode.id
                       ? 'bg-gray-700 text-white'
                       : 'text-gray-400 hover:text-gray-300'
@@ -193,46 +196,54 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                 >
                   <mode.icon className="w-4 h-4" />
                   {mode.label}
-                </button>
+                </Button>
               ))}
             </div>
 
             {/* Zoom Controls */}
             <div className="flex items-center gap-1 ml-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-                className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+                className="p-1.5 hover:bg-gray-800"
               >
                 <ZoomOut className="w-4 h-4 text-gray-400" />
-              </button>
+              </Button>
               <span className="text-xs text-gray-500 w-12 text-center">
                 {Math.round(zoom * 100)}%
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-                className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+                className="p-1.5 hover:bg-gray-800"
               >
                 <ZoomIn className="w-4 h-4 text-gray-400" />
-              </button>
+              </Button>
             </div>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-800"
             >
               {isFullscreen ? (
                 <Minimize2 className="w-5 h-5 text-gray-400" />
               ) : (
                 <Maximize2 className="w-5 h-5 text-gray-400" />
               )}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-800"
             >
               <X className="w-5 h-5 text-gray-400" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -243,9 +254,9 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
               <span className="font-medium">Compare Mode:</span> Select another version to compare
               with "{compareVersion?.version_name || `v${compareVersion?.version_number}`}"
             </p>
-            <button onClick={cancelCompare} className="text-sm text-blue-400 hover:text-blue-300">
+            <Button variant="ghost" size="sm" onClick={cancelCompare} className="text-blue-400 hover:text-blue-300">
               Cancel
-            </button>
+            </Button>
           </div>
         )}
 
@@ -299,9 +310,10 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                   <div className="space-y-4">
                     {Object.entries(groupedVersions).map(([branchName, branchVersions]) => (
                       <div key={branchName} className="bg-gray-800/50 rounded-xl overflow-hidden">
-                        <button
+                        <Button
+                          variant="ghost"
                           onClick={() => toggleBranch(branchName)}
-                          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-800/70 transition-colors"
+                          className="w-full px-4 py-3 flex justify-between hover:bg-gray-800/70"
                         >
                           <div className="flex items-center gap-3">
                             <GitBranch className="w-5 h-5 text-green-400" />
@@ -320,11 +332,11 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                           ) : (
                             <ChevronRight className="w-5 h-5 text-gray-400" />
                           )}
-                        </button>
+                        </Button>
 
                         {expandedBranches.has(branchName) && (
                           <div className="px-4 pb-4 space-y-2">
-                            {branchVersions.map((version, index) => (
+                            {branchVersions.map((version, _index) => (
                               <div
                                 key={version.id}
                                 className={`p-3 rounded-lg cursor-pointer transition-colors ${
@@ -485,7 +497,7 @@ const VersionCard: React.FC<VersionCardProps> = ({
           {/* Thumbnail */}
           {version.thumbnail_url && (
             <div
-              className="w-16 h-16 rounded-lg bg-cover bg-center ml-4 flex-shrink-0"
+              className="w-16 h-16 rounded-lg bg-cover bg-center ml-4 shrink-0"
               style={{ backgroundImage: `url(${version.thumbnail_url})` }}
             />
           )}
@@ -493,32 +505,38 @@ const VersionCard: React.FC<VersionCardProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-700/50">
-          <button
+          <Button
+            variant="default"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               onRestore();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+            className="flex gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Restore
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               onFork();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+            className="flex gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white"
           >
             <Copy className="w-3.5 h-3.5" />
             Fork
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               onCompare();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`flex gap-1.5 px-3 py-1.5 ${
               isComparing
                 ? 'bg-blue-500 hover:bg-blue-600 text-white'
                 : 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -526,7 +544,7 @@ const VersionCard: React.FC<VersionCardProps> = ({
           >
             <Eye className="w-3.5 h-3.5" />
             Compare
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -562,7 +580,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, selectedId, onSelect }
         onClick={() => onSelect(node.id)}
       >
         {hasChildren && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(!isExpanded);
@@ -574,7 +594,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, selectedId, onSelect }
             ) : (
               <ChevronRight className="w-4 h-4 text-gray-400" />
             )}
-          </button>
+          </Button>
         )}
         {!hasChildren && <div className="w-5" />}
 
@@ -631,9 +651,9 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-white">Version Details</h3>
-        <button onClick={onClose} className="p-1 hover:bg-gray-800 rounded">
+        <Button variant="ghost" size="icon" onClick={onClose} className="p-1 hover:bg-gray-800">
           <X className="w-4 h-4 text-gray-400" />
-        </button>
+        </Button>
       </div>
 
       {/* Preview */}
@@ -687,16 +707,16 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Settings</p>
             <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
-              {(version.data as any).prompt && (
+              {(version.data as Record<string, unknown>).prompt && (
                 <div>
                   <span className="text-gray-400">Prompt:</span>
-                  <p className="text-white line-clamp-3">{String((version.data as any).prompt)}</p>
+                  <p className="text-white line-clamp-3">{String((version.data as Record<string, unknown>).prompt)}</p>
                 </div>
               )}
-              {(version.data as any).style && (
+              {(version.data as Record<string, unknown>).style && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">Style:</span>
-                  <span className="text-white">{String((version.data as any).style)}</span>
+                  <span className="text-white">{String((version.data as Record<string, unknown>).style)}</span>
                 </div>
               )}
             </div>
@@ -706,20 +726,22 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
 
       {/* Actions */}
       <div className="mt-6 space-y-2">
-        <button
+        <Button
+          variant="primary"
           onClick={onRestore}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+          className="w-full flex px-4 py-2.5 bg-purple-500 hover:bg-purple-600 text-white"
         >
           <RotateCcw className="w-4 h-4" />
           Restore This Version
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="default"
           onClick={onFork}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          className="w-full flex px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white"
         >
           <GitBranch className="w-4 h-4" />
           Create Branch From Here
-        </button>
+        </Button>
       </div>
     </div>
   );

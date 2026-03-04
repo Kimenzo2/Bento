@@ -153,7 +153,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
           visualGradient: 'from-blue-400 via-purple-500 to-pink-500',
           bgGradient: 'from-slate-900 via-indigo-950 to-slate-900',
           accentColor: 'text-blue-400',
-          glowColor: 'shadow-[0_0_60px_rgba(99,102,241,0.3)]',
+          glowColor: '',
         };
       case 'kingdom':
         return {
@@ -164,7 +164,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
           visualGradient: 'from-amber-400 via-orange-500 to-red-600',
           bgGradient: 'from-slate-900 via-amber-950 to-slate-900',
           accentColor: 'text-amber-400',
-          glowColor: 'shadow-[0_0_60px_rgba(245,158,11,0.3)]',
+          glowColor: '',
         };
       case 'cell':
         return {
@@ -176,7 +176,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
           visualGradient: 'from-emerald-400 via-teal-500 to-cyan-600',
           bgGradient: 'from-slate-900 via-emerald-950 to-slate-900',
           accentColor: 'text-emerald-400',
-          glowColor: 'shadow-[0_0_60px_rgba(16,185,129,0.3)]',
+          glowColor: '',
         };
       default:
         return {
@@ -187,7 +187,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
           visualGradient: 'from-purple-400 via-pink-500 to-amber-500',
           bgGradient: 'from-slate-900 via-purple-950 to-slate-900',
           accentColor: 'text-purple-400',
-          glowColor: 'shadow-[0_0_60px_rgba(168,85,247,0.3)]',
+          glowColor: '',
         };
     }
   }, [theme]);
@@ -252,7 +252,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.8, y: -30, opacity: 0 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="absolute top-1/4 md:top-1/3 z-30 flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-linear-to-r from-amber-500 to-orange-500 rounded-full shadow-lg shadow-amber-500/30"
+            className="absolute top-1/4 md:top-1/3 z-30 flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-linear-to-r from-amber-500 to-orange-500 rounded-full border-2 border-white/20"
             style={GPU_STYLE}
           >
             <Star className="w-5 h-5 md:w-6 md:h-6 text-white fill-white" />
@@ -401,7 +401,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   style={GPU_STYLE}
                 >
                   <div
-                    className={`overflow-hidden rounded-2xl md:rounded-3xl ${content.glowColor} shadow-xl`}
+                    className={`overflow-hidden rounded-2xl md:rounded-3xl ${content.glowColor}`}
                   >
                     {content.visualVideo ? (
                       <video
@@ -463,7 +463,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                 onClick={handleContinue}
                 whileHover={reducedMotion ? {} : { scale: 1.02 }}
                 whileTap={reducedMotion ? {} : { scale: 0.98 }}
-                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-white text-slate-900 rounded-full font-bold text-base md:text-lg shadow-xl shadow-white/15 hover:shadow-white/25 transition-shadow duration-200 transform-gpu"
+                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-white text-slate-900 rounded-full font-bold text-base md:text-lg border-2 border-peach-soft duration-200 transform-gpu"
               >
                 See What Else is Possible
                 <ArrowRight className="w-5 h-5" />

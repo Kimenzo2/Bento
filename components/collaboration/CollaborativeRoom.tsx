@@ -71,9 +71,9 @@ function RoomContent({
 }: RoomContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const updateMyPresence = useUpdateMyPresence();
-  const self = useSelf();
+  const _self = useSelf();
   const others = useOthers();
-  const status = useStatus();
+  const _status = useStatus();
 
   // Track cursor movement
   const handlePointerMove = useCallback(
@@ -118,7 +118,7 @@ function RoomContent({
       {/* Collaborative canvas */}
       <div
         ref={containerRef}
-        className="relative min-h-[400px]"
+        className="relative min-h-100"
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
       >

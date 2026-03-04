@@ -21,6 +21,7 @@ import type React from 'react';
 import { useCallback, useState } from 'react';
 import { REACTION_EMOJIS, type ReactionCount, type SharedVisual } from '../../types/collaboration';
 import ReactionBar, { MiniReactionDisplay } from './ReactionBar';
+import { Button } from '@components/ui/button';
 
 interface SharedVisualCardProps {
   visual: SharedVisual;
@@ -88,8 +89,8 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
           text: visual.prompt,
           url: window.location.href,
         });
-      } catch (err) {
-        console.log('Share cancelled');
+      } catch (_err) {
+        console.warn('Share cancelled');
       }
     } else {
       // Copy link to clipboard
@@ -108,7 +109,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
   if (variant === 'grid') {
     return (
       <div
-        className="group relative bg-white rounded-xl sm:rounded-2xl shadow-soft overflow-hidden transition-all duration-300 hover:shadow-xl active:scale-[0.98] sm:hover:-translate-y-1"
+        className="group relative bg-white rounded-xl sm:rounded-2xl border-2 border-peach-soft overflow-hidden transition-all duration-300 active:scale-[0.98] sm:hover:-translate-y-1"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onTouchStart={() => setIsHovered(true)}
@@ -125,7 +126,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
           {/* Featured badge */}
           {visual.visibility === 'featured' && (
-            <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex items-center gap-0.5 sm:gap-1">
+            <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 bg-linear-to-r from-yellow-400 to-orange-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex items-center gap-0.5 sm:gap-1">
               <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span className="hidden xs:inline">Featured</span>
             </div>
@@ -142,7 +143,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
           {/* Hover overlay - Always visible on mobile, hover on desktop */}
           <div
             className={`
-                        absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent
+                        absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent
                         transition-opacity duration-300
                         sm:opacity-0 sm:group-hover:opacity-100
                         opacity-100
@@ -150,26 +151,30 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
           >
             {/* Actions - Top */}
             <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 flex gap-1.5 sm:gap-2">
-              <button
+              <Button
+                variant="secondary"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   onExpand?.(visual);
                 }}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white active:scale-95 flex items-center justify-center transition-all"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white active:scale-95 flex"
                 title="Expand"
               >
                 <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-charcoal-soft" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowMenu(!showMenu);
                 }}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white active:scale-95 flex items-center justify-center transition-all"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white active:scale-95 flex"
                 title="More options"
               >
                 <MoreHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-charcoal-soft" />
-              </button>
+              </Button>
             </div>
 
             {/* Bottom info */}
@@ -180,26 +185,29 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
               {showActions && (
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemix?.(visual);
                     }}
-                    className="flex-1 bg-gradient-to-r from-coral-burst to-gold-sunshine text-white text-[11px] sm:text-sm font-bold py-1.5 sm:py-2 rounded-full hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-1 min-h-[36px] sm:min-h-[40px]"
+                    className="flex-1 bg-linear-to-r from-coral-burst to-gold-sunshine text-white text-[11px] py-1.5 sm:py-2 rounded-full hover:opacity-90 active:scale-95 flex gap-1 min-h-9 sm:min-h-10"
                   >
                     <GitFork className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Remix
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload();
                     }}
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 flex"
                     title="Download"
                   >
                     <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -212,43 +220,46 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                 className="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute top-10 sm:top-12 right-1.5 sm:right-2 z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[140px] sm:min-w-[160px] animate-fadeIn">
-                <button
+              <div className="absolute top-10 sm:top-12 right-1.5 sm:right-2 z-50 bg-white rounded-xl border border-gray-200 py-1 min-w-[140px] sm:min-w-40 animate-fadeIn">
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     handleCopyPrompt();
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs sm:text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex"
                 >
                   <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Copy prompt
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     handleShare();
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs sm:text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex"
                 >
                   <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Share
-                </button>
+                </Button>
                 {visual.parent_id && (
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => {
                       onViewLineage?.(visual);
                       setShowMenu(false);
                     }}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs sm:text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex"
                   >
                     <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> View lineage
-                  </button>
+                  </Button>
                 )}
                 <div className="border-t border-gray-100 my-1" />
-                <button className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs sm:text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2 text-gray-400">
+                <Button variant="ghost" className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex text-gray-400">
                   <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Save
-                </button>
-                <button className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs sm:text-sm hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2 text-red-400">
+                </Button>
+                <Button variant="ghost" className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-gray-50 active:bg-gray-100 flex text-red-400">
                   <Flag className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Report
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -336,7 +347,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
         <img
           src={visual.thumbnail_url || visual.image_url}
           alt=""
-          className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover flex-shrink-0"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover shrink-0"
         />
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-medium text-charcoal-soft truncate">
@@ -354,7 +365,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
             )}
           </div>
         </div>
-        {visual.parent_id && <GitFork className="w-4 h-4 text-purple-400 flex-shrink-0" />}
+        {visual.parent_id && <GitFork className="w-4 h-4 text-purple-400 shrink-0" />}
       </div>
     );
   }
@@ -364,7 +375,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
   // ─────────────────────────────────────────────────────────────────────────
   if (variant === 'featured') {
     return (
-      <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+      <div className="relative rounded-3xl overflow-hidden border-2 border-peach-soft">
         <img
           src={visual.image_url}
           alt={visual.title || visual.prompt}
@@ -372,7 +383,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
         />
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent" />
 
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -400,13 +411,14 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
             )}
 
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="primary"
                 onClick={() => onRemix?.(visual)}
-                className="bg-gradient-to-r from-coral-burst to-gold-sunshine text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 hover:opacity-90"
+                className="bg-linear-to-r from-coral-burst to-gold-sunshine text-white px-4 py-2 rounded-full flex hover:opacity-90"
               >
                 <GitFork className="w-4 h-4" />
                 Remix This
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -416,7 +428,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
   // Default/Detail variant
   return (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div className="bg-white rounded-2xl border-2 border-peach-soft overflow-hidden">
       <img src={visual.image_url} alt={visual.title || visual.prompt} className="w-full" />
       <div className="p-4">
         {showReactions && (

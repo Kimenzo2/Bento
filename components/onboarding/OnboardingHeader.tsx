@@ -26,7 +26,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
             transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="hidden sm:block text-white/70 font-semibold">Genesis</span>
@@ -44,17 +44,17 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
                 className="h-full relative"
               >
                 {/* Gradient fill */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-500 via-pink-500 to-amber-500" />
 
                 {/* Shimmer effect */}
                 <motion.div
                   animate={{ x: ['-100%', '200%'] }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2"
+                  className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-1/2"
                 />
 
                 {/* Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-500 blur-sm opacity-50" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-500 via-pink-500 to-amber-500 blur-sm opacity-50" />
               </motion.div>
             </div>
 
@@ -75,7 +75,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
                     <div
                       className={`w-2 h-2 rounded-full transition-all duration-300 ${
                         isCompleted
-                          ? 'bg-gradient-to-br from-purple-400 to-pink-400 shadow-sm shadow-purple-500/50'
+                          ? 'bg-linear-to-br from-purple-400 to-pink-400'
                           : isCurrent
                             ? 'bg-white'
                             : 'bg-white/20'

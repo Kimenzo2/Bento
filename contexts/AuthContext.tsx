@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const hash = window.location.hash;
 
       if (hash && hash.includes('access_token')) {
-        if (import.meta.env.DEV) console.log('[Auth] Processing OAuth callback from URL hash');
+        if (import.meta.env.DEV) console.warn('[Auth] Processing OAuth callback from URL hash');
       }
 
       // Check active sessions and sets the user
@@ -167,14 +167,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithIdToken = async (token: string, nonce?: string | null) => {
-    console.log('[Auth] Starting Google One Tap sign-in with ID token');
+    console.warn('[Auth] Starting Google One Tap sign-in with ID token');
     if (import.meta.env.DEV) {
-      console.log('[Auth] Token length:', token?.length);
-      console.log('[Auth] Nonce provided:', nonce ? 'yes' : 'no');
+      console.warn('[Auth] Token length:', token?.length);
+      console.warn('[Auth] Nonce provided:', nonce ? 'yes' : 'no');
     }
 
     try {
-      if (import.meta.env.DEV) console.log('[Auth] Calling supabase.auth.signInWithIdToken...');
+      if (import.meta.env.DEV) console.warn('[Auth] Calling supabase.auth.signInWithIdToken...');
 
       // Build the request object - only include nonce if provided
       const requestOptions: { provider: 'google'; token: string; nonce?: string } = {
@@ -186,15 +186,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Supabase will verify that the nonce in the ID token matches this nonce
       if (nonce) {
         requestOptions.nonce = nonce;
-        if (import.meta.env.DEV) console.log('[Auth] Including nonce in request');
+        if (import.meta.env.DEV) console.warn('[Auth] Including nonce in request');
       }
 
       const { data, error } = await supabase.auth.signInWithIdToken(requestOptions);
 
       if (import.meta.env.DEV) {
-        console.log('[Auth] signInWithIdToken response received');
-        console.log('[Auth] Response data:', data ? 'Has data' : 'No data');
-        console.log('[Auth] Response error:', error ? error.message : 'No error');
+        console.warn('[Auth] signInWithIdToken response received');
+        console.warn('[Auth] Response data:', data ? 'Has data' : 'No data');
+        console.warn('[Auth] Response error:', error ? error.message : 'No error');
       }
 
       if (error) {
@@ -203,24 +203,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (import.meta.env.DEV) {
-        console.log('[Auth] ID token sign-in successful:', data.user?.email);
-        console.log('[Auth] Session exists:', !!data.session);
+        console.warn('[Auth] ID token sign-in successful:', data.user?.email);
+        console.warn('[Auth] Session exists:', !!data.session);
       }
 
       // Manually update state immediately for faster UI response
       if (data.session) {
-        console.log('[Auth] Setting session and user state...');
+        console.warn('[Auth] Setting session and user state...');
         setSession(data.session);
         setUser(data.user);
-        console.log('[Auth] State updated successfully');
+        console.warn('[Auth] State updated successfully');
       } else {
         console.warn('[Auth] No session in response despite successful sign-in');
       }
 
       return { data, error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[Auth] ID token sign-in exception:', err);
-      console.error('[Auth] Exception message:', err?.message);
+      console.error('[Auth] Exception message:', (err as Error)?.message);
       console.error('[Auth] Exception stack:', err?.stack);
       return { data: null, error: err };
     }

@@ -45,7 +45,7 @@ const AchievementBadge = ({ icon: Icon, label, value, delay, gradient }: {
     transition={{ delay, type: "spring", bounce: 0.4 }}
     className="flex items-center gap-4 p-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10"
   >
-    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
+    <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center`}>
       <Icon className="w-6 h-6 text-white" />
     </div>
     <div>
@@ -93,7 +93,7 @@ export const WelcomeSuccess: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-[var(--ob-container-padding)] py-6 overflow-hidden">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-center px-(--ob-container-padding) py-6 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
       <div className="absolute inset-0 bg-linear-to-br from-purple-950/20 via-transparent to-purple-950/20" />
@@ -118,7 +118,7 @@ export const WelcomeSuccess: React.FC = () => {
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY }}
-        className="absolute w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-3xl"
+        className="absolute w-100 h-100 rounded-full bg-purple-600/20 blur-3xl"
         style={{ top: '20%', left: '-10%' }}
       />
       <motion.div
@@ -147,7 +147,7 @@ export const WelcomeSuccess: React.FC = () => {
           </motion.div>
           
           {/* Inner circle */}
-          <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-purple-600/30 to-pink-600/30 backdrop-blur-xl border border-white/10 flex items-center justify-center">
+          <div className="relative w-28 h-28 rounded-full bg-linear-to-br from-purple-600/30 to-pink-600/30 backdrop-blur-xl border border-white/10 flex items-center justify-center">
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
@@ -173,7 +173,7 @@ export const WelcomeSuccess: React.FC = () => {
           transition={{ delay: 0.3 }}
           className="mb-4"
         >
-          <span className="inline-block px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-white/10 text-white/70 text-sm font-medium">
+          <span className="inline-block px-4 py-2 bg-linear-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-white/10 text-white/70 text-sm font-medium">
             {getRoleTitle()}
           </span>
         </motion.div>
@@ -185,11 +185,11 @@ export const WelcomeSuccess: React.FC = () => {
           transition={{ delay: 0.4 }}
           className="text-5xl md:text-6xl font-bold mb-6 font-heading"
         >
-          <span className="bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">
+          <span className="bg-linear-to-r from-white via-white to-white/60 bg-clip-text text-transparent">
             Welcome to
           </span>
           <br />
-          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+          <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
             Genesis.
           </span>
         </motion.h1>
@@ -246,17 +246,17 @@ export const WelcomeSuccess: React.FC = () => {
             className="group relative inline-flex items-center gap-3 px-12 py-6 rounded-full font-bold text-xl overflow-hidden"
           >
             {/* Button gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />
+            <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500" />
             
             {/* Shimmer */}
             <motion.div
               animate={{ x: ['-100%', '200%'] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-1/2"
+              className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent w-1/2"
             />
             
             {/* Glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
+            <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
             
             <span className="relative flex items-center gap-3 text-white">
               Enter the Studio

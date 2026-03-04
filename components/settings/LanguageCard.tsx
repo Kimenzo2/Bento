@@ -34,12 +34,12 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       disabled={isLoading}
       className={`
         relative p-4 rounded-xl border-2 transition-all duration-200
-        hover:scale-[1.02] hover:shadow-lg
+        hover:scale-[1.02]
         focus:outline-none focus:ring-2 focus:ring-coral-burst focus:ring-offset-2
         disabled:opacity-50 disabled:cursor-not-allowed
         ${
           isActive
-            ? 'border-coral-burst bg-gradient-to-br from-coral-burst/10 to-gold-sunshine/10 shadow-md'
+            ? 'border-coral-burst bg-linear-to-br from-coral-burst/10 to-gold-sunshine/10'
             : 'border-gray-200 bg-white hover:border-gray-300'
         }
       `}

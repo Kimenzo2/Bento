@@ -13,6 +13,10 @@ import {
 import type React from 'react';
 import { useState } from 'react';
 import type { Character } from '../types';
+import { Button } from './ui/button';
+import { Input as ShadcnInput, Label } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/input';
 
 interface CharacterDepthPanelProps {
   character: Character;
@@ -71,9 +75,10 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
 
     return (
       <div className="border border-slate-700 rounded-xl overflow-hidden bg-slate-800/50">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => toggleSection(id)}
-          className="w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors"
+          className="w-full flex justify-between p-4 hover:bg-slate-700/30"
         >
           <div className="flex items-center gap-3">
             <Icon className="w-5 h-5 text-emerald-400" />
@@ -84,7 +89,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
               isExpanded ? 'rotate-180' : ''
             }`}
           />
-        </button>
+        </Button>
 
         <AnimatePresence>
           {isExpanded && (
@@ -116,7 +121,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
   }) => (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <label className="text-sm text-slate-300">{label}</label>
+        <Label className="text-slate-300">{label}</Label>
         <span className="text-xs font-bold text-emerald-400">{value}%</span>
       </div>
       <input
@@ -144,27 +149,27 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
     multiline?: boolean;
   }) => (
     <div className="space-y-2">
-      <label className="text-sm text-slate-300">{label}</label>
+      <Label className="text-slate-300">{label}</Label>
       {multiline ? (
-        <textarea
+        <Textarea
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-slate-900/50 border border-slate-600 rounded-lg p-3 text-white text-sm focus:border-emerald-500 outline-none resize-none h-20"
+          className="bg-slate-900/50 border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 h-20"
         />
       ) : (
-        <input
+        <ShadcnInput
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full bg-slate-900/50 border border-slate-600 rounded-lg p-3 text-white text-sm focus:border-emerald-500 outline-none"
+          className="bg-slate-900/50 border-slate-600 p-3 text-white focus:border-emerald-500"
         />
       )}
     </div>
   );
 
-  const Select = ({
+  const SelectField = ({
     label,
     value,
     onChange,
@@ -176,18 +181,19 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
     options: { value: string; label: string }[];
   }) => (
     <div className="space-y-2">
-      <label className="text-sm text-slate-300">{label}</label>
-      <select
-        value={value || options[0].value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-900/50 border border-slate-600 rounded-lg p-3 text-white text-sm focus:border-emerald-500 outline-none"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <Label className="text-slate-300">{label}</Label>
+      <Select value={value || options[0].value} onValueChange={onChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select..." />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 
@@ -196,7 +202,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-slate-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-slate-900 rounded-3xl border-2 border-peach-soft w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
@@ -212,21 +218,25 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
 
           <div className="flex items-center gap-2">
             {hasChanges && (
-              <button
+              <Button
+                variant="default"
+                size="sm"
                 onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium text-sm"
+                className="flex px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
-              </button>
+              </Button>
             )}
             {onClose && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onClose}
-                className="p-2 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors"
+                className="p-2 hover:bg-red-500/20 text-slate-400 hover:text-red-400"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -386,7 +396,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
           {/* Relationships */}
           <Section id="relationships" title="Relationship Style" icon={Heart}>
             <div className="grid grid-cols-2 gap-4">
-              <Select
+              <SelectField
                 label="Attachment Style"
                 value={localCharacter.relationshipStyle?.attachmentStyle || 'secure'}
                 onChange={(val) => updateField(['relationshipStyle', 'attachmentStyle'], val)}
@@ -397,7 +407,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   { value: 'disorganized', label: 'Disorganized' },
                 ]}
               />
-              <Select
+              <SelectField
                 label="Trust Level"
                 value={localCharacter.relationshipStyle?.trustLevel || 'cautious'}
                 onChange={(val) => updateField(['relationshipStyle', 'trustLevel'], val)}
@@ -408,7 +418,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   { value: 'paranoid', label: 'Paranoid' },
                 ]}
               />
-              <Select
+              <SelectField
                 label="Conflict Style"
                 value={localCharacter.relationshipStyle?.conflictStyle || 'diplomatic'}
                 onChange={(val) => updateField(['relationshipStyle', 'conflictStyle'], val)}
@@ -419,7 +429,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   { value: 'passive-aggressive', label: 'Passive-Aggressive' },
                 ]}
               />
-              <Select
+              <SelectField
                 label="Love Language"
                 value={localCharacter.relationshipStyle?.loveLanguage || 'words'}
                 onChange={(val) => updateField(['relationshipStyle', 'loveLanguage'], val)}
@@ -450,7 +460,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   onChange={(val) => updateField(['voiceProfile', 'tone'], val)}
                   placeholder="Warm, cold, sarcastic..."
                 />
-                <Select
+                <SelectField
                   label="Vocabulary Level"
                   value={localCharacter.voiceProfile?.vocabulary || 'moderate'}
                   onChange={(val) => updateField(['voiceProfile', 'vocabulary'], val)}

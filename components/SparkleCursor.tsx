@@ -11,7 +11,7 @@ interface Sparkle {
 
 const SparkleCursor: React.FC = () => {
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [_mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -56,7 +56,7 @@ const SparkleCursor: React.FC = () => {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
+    <div className="pointer-events-none fixed inset-0 z-9999 overflow-hidden">
       {sparkles.map((s) => (
         <div
           key={s.id}

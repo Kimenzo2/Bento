@@ -30,7 +30,7 @@ const roles: RoleOption[] = [
       "You shape minds and inspire futures. We'll optimize for curriculum integration and classroom tools.",
     image: roleImages.mentor,
     gradient: 'from-indigo-500 via-purple-500 to-violet-600',
-    glow: 'shadow-[0_0_60px_rgba(99,102,241,0.4)]',
+    glow: '',
   },
   {
     id: 'explorer',
@@ -39,7 +39,7 @@ const roles: RoleOption[] = [
     description: "Curiosity is your compass. We'll unlock discovery modes and learning adventures.",
     image: roleImages.explorer,
     gradient: 'from-blue-500 via-cyan-500 to-teal-500',
-    glow: 'shadow-[0_0_60px_rgba(6,182,212,0.4)]',
+    glow: '',
   },
   {
     id: 'guardian',
@@ -49,7 +49,7 @@ const roles: RoleOption[] = [
       "You nurture creativity at home. We'll focus on family-friendly content and shared experiences.",
     image: roleImages.guardian,
     gradient: 'from-amber-500 via-orange-500 to-red-500',
-    glow: 'shadow-[0_0_60px_rgba(245,158,11,0.4)]',
+    glow: '',
   },
 ];
 
@@ -72,7 +72,7 @@ export const CreativePersonaQuiz: React.FC = () => {
   };
 
   return (
-    <div className="relative h-full min-h-full flex flex-col items-center justify-start px-[var(--ob-container-padding)] py-6 md:p-6 overflow-x-hidden overflow-y-auto">
+    <div className="relative h-full min-h-full flex flex-col items-center justify-start px-(--ob-container-padding) py-6 md:p-6 overflow-x-hidden overflow-y-auto">
       {/* Background */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
 
@@ -86,7 +86,7 @@ export const CreativePersonaQuiz: React.FC = () => {
       <motion.div
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY }}
-        className="absolute w-[400px] h-[400px] rounded-full bg-blue-600/20 blur-3xl"
+        className="absolute w-100 h-100 rounded-full bg-blue-600/20 blur-3xl"
         style={{ bottom: '-5%', right: '-10%' }}
       />
 
@@ -120,7 +120,7 @@ export const CreativePersonaQuiz: React.FC = () => {
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4 font-heading">
             Who is the captain
             <br />
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
               of this voyage?
             </span>
           </h1>
@@ -130,7 +130,7 @@ export const CreativePersonaQuiz: React.FC = () => {
         </motion.div>
 
         {/* Role cards with images - 2 up 1 down on mobile/tablet */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-[var(--ob-card-gap)] mb-6 md:mb-10 w-full px-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-(--ob-card-gap) mb-6 md:mb-10 w-full px-2">
           {roles.map((role, index) => {
             const isSelected = selectedRole === role.id;
             const isLastOdd = index === roles.length - 1 && roles.length % 2 === 1;
@@ -150,14 +150,14 @@ export const CreativePersonaQuiz: React.FC = () => {
               >
                 {/* Background */}
                 <div
-                  className={`absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`}
+                  className={`absolute inset-0 rounded-xl md:rounded-2xl bg-linear-to-br ${role.gradient} transition-opacity duration-300 ${isSelected ? 'opacity-20' : 'opacity-0'}`}
                 />
 
                 {/* Glass border */}
                 <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10" />
 
                 {/* Shimmer on hover */}
-                <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 <div className="relative">
                   {/* Role Image - Larger on mobile */}
@@ -174,7 +174,7 @@ export const CreativePersonaQuiz: React.FC = () => {
 
                     {/* Glow behind image */}
                     <div
-                      className={`absolute w-32 h-32 bg-gradient-to-br ${role.gradient} blur-3xl opacity-30 -z-10`}
+                      className={`absolute w-32 h-32 bg-linear-to-br ${role.gradient} blur-3xl opacity-30 -z-10`}
                     />
                   </motion.div>
 
@@ -183,7 +183,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                     {role.title}
                   </h3>
                   <p
-                    className={`text-[10px] md:text-sm mb-1 md:mb-3 bg-gradient-to-r ${role.gradient} bg-clip-text text-transparent font-medium hidden md:block`}
+                    className={`text-[10px] md:text-sm mb-1 md:mb-3 bg-linear-to-r ${role.gradient} bg-clip-text text-transparent font-medium hidden md:block`}
                   >
                     {role.subtitle}
                   </p>
@@ -230,13 +230,13 @@ export const CreativePersonaQuiz: React.FC = () => {
                 className="group relative px-8 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-lg overflow-hidden"
               >
                 {/* Button gradient */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500" />
 
                 {/* Shimmer */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
 
                 {/* Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
+                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
 
                 <span className="relative flex items-center gap-3 text-white">
                   {isTransitioning ? (

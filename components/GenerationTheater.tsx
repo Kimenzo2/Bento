@@ -2,7 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { type Particle, generateParticles, updateParticle } from '../utils/particles';
+import { generateParticles, type Particle, updateParticle } from '../utils/particles';
+import { Button } from './ui/button';
 
 interface GenerationTheaterProps {
   progress: number; // 0-100
@@ -12,39 +13,39 @@ interface GenerationTheaterProps {
 
 const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status, onCancel }) => {
   const [particles, setParticles] = useState<Particle[]>([]);
-  const [currentPhase, setCurrentPhase] = useState(1);
 
-  // Determine current phase based on progress
+  // Derive phase from progress — no state needed
+  const currentPhase = progress <= 25 ? 1 : progress <= 50 ? 2 : progress <= 75 ? 3 : 4;
+
+  // Particle generation + animation via requestAnimationFrame
   useEffect(() => {
-    if (progress <= 25) setCurrentPhase(1);
-    else if (progress <= 50) setCurrentPhase(2);
-    else if (progress <= 75) setCurrentPhase(3);
-    else setCurrentPhase(4);
-  }, [progress]);
+    let animId: number;
+    let lastSpawn = 0;
+    let lastUpdate = 0;
 
-  // Generate particles periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newParticles = generateParticles(
-        5,
-        window.innerWidth / 2,
-        window.innerHeight / 2,
-        200,
-        'sparkle'
-      );
-      setParticles((prev) => [...prev, ...newParticles].slice(-50)); // Keep max 50 particles
-    }, 500);
+    const tick = (time: number) => {
+      // Spawn new particles every 500ms
+      if (time - lastSpawn >= 500) {
+        lastSpawn = time;
+        const newParticles = generateParticles(
+          5,
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+          200,
+          'sparkle'
+        );
+        setParticles((prev) => [...prev, ...newParticles].slice(-50));
+      }
+      // Update particle positions every ~50ms
+      if (time - lastUpdate >= 50) {
+        lastUpdate = time;
+        setParticles((prev) => prev.map((p) => updateParticle(p)).filter((p) => p.opacity > 0));
+      }
+      animId = requestAnimationFrame(tick);
+    };
+    animId = requestAnimationFrame(tick);
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Update particles animation
-  useEffect(() => {
-    const animationFrame = setInterval(() => {
-      setParticles((prev) => prev.map((p) => updateParticle(p)).filter((p) => p.opacity > 0));
-    }, 50);
-
-    return () => clearInterval(animationFrame);
+    return () => cancelAnimationFrame(animId);
   }, []);
 
   const getPhaseInfo = (phase: number) => {
@@ -85,10 +86,10 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
   const phaseInfo = getPhaseInfo(currentPhase);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md bg-white/90 animate-fadeIn">
+    <div className="fixed inset-0 z-100 flex items-center justify-center backdrop-blur-md bg-white/90 animate-fadeIn">
       {/* Animated gradient background */}
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${phaseInfo.gradient} opacity-30 transition-all duration-1000`}
+        className={`absolute inset-0 bg-linear-to-br ${phaseInfo.gradient} opacity-30 transition-all duration-1000`}
       />
 
       {/* Particles */}
@@ -124,7 +125,7 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
           key={currentPhase}
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          className="mb-8 w-32 h-32 bg-gradient-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center shadow-soft-lg relative"
+          className="mb-8 w-32 h-32 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center relative"
         >
           <div className="absolute inset-0 bg-coral-burst/20 rounded-full animate-ping" />
           <span className="text-6xl relative z-10 animate-bounce-slow">{phaseInfo.icon}</span>
@@ -154,15 +155,15 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
 
         {/* Rainbow progress bar */}
         <div className="w-full max-w-md">
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden relative shadow-inner">
+          <div className="h-3 bg-gray-200 rounded-full overflow-hidden relative">
             <motion.div
-              className="h-full bg-gradient-to-r from-coral-burst via-gold-sunshine to-mint-breeze relative"
+              className="h-full bg-linear-to-r from-coral-burst via-gold-sunshine to-mint-breeze relative"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             >
               {/* Shimmer effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
             </motion.div>
           </div>
 
@@ -192,12 +193,13 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
 
         {/* Cancel button */}
         {onCancel && (
-          <button
+          <Button
             onClick={onCancel}
-            className="mt-8 px-6 py-2.5 rounded-full border-2 border-peach-soft text-cocoa-light font-heading font-bold text-sm hover:bg-red-50 hover:border-red-300 hover:text-red-500 transition-all"
+            variant="outline"
+            className="mt-8 px-6 py-2.5 rounded-full border-2 border-peach-soft text-cocoa-light hover:bg-red-50 hover:border-red-300 hover:text-red-500"
           >
             Cancel Generation
-          </button>
+          </Button>
         )}
       </div>
     </div>

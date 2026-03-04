@@ -1,6 +1,7 @@
 import { CheckCircle, Type } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { Button } from '@components/ui/button';
 import type { FontPairing } from '../../types/fonts';
 import { loadFont } from '../../utils/fontLoader';
 
@@ -43,14 +44,15 @@ const FontPreviewCard: React.FC<FontPreviewCardProps> = ({ pairing, isActive, on
   }, [pairing]);
 
   return (
-    <button
+    <Button
+      variant="ghost"
       id={`font-card-${pairing.id}`}
       onClick={onSelect}
-      className={`relative w-full text-left group transition-all duration-300 rounded-2xl border-2 overflow-hidden
+      className={`relative w-full text-left group rounded-2xl border-2 overflow-hidden h-auto p-0
         ${
           isActive
-            ? 'border-coral-burst bg-white shadow-soft-md scale-[1.02]'
-            : 'border-transparent bg-cream-soft hover:bg-white hover:shadow-soft-sm hover:border-peach-soft'
+            ? 'border-coral-burst bg-white scale-[1.02]'
+            : 'border-transparent bg-cream-soft hover:bg-white hover:border-peach-soft'
         }`}
     >
       {/* Active Indicator */}
@@ -115,7 +117,7 @@ const FontPreviewCard: React.FC<FontPreviewCardProps> = ({ pairing, isActive, on
           </div>
         </div>
       </div>
-    </button>
+    </Button>
   );
 };
 

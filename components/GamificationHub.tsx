@@ -1,6 +1,7 @@
 import { Flame, Lock, Star, Target, TrendingUp, Trophy } from 'lucide-react';
 import type React from 'react';
 import { AppMode, type GamificationState } from '../types';
+import { Button } from './ui/button';
 
 interface GamificationHubProps {
   gameState: GamificationState;
@@ -8,7 +9,9 @@ interface GamificationHubProps {
 }
 
 const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode }) => {
-  const progressPercent = (gameState.currentXP / gameState.nextLevelXP) * 100;
+  const progressPercent = gameState.nextLevelXP > 0
+    ? Math.min((gameState.currentXP / gameState.nextLevelXP) * 100, 100)
+    : 0;
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6 pb-24 animate-fadeIn">
@@ -23,12 +26,12 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
       </div>
 
       {/* Level Progress Header */}
-      <div className="bg-white rounded-3xl shadow-soft-lg p-8 mb-10 border border-peach-soft relative overflow-hidden">
+      <div className="bg-white rounded-3xl p-8 mb-10 border-2 border-peach-soft relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gold-sunshine/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
 
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shadow-glow border-4 border-white">
+            <div className="w-32 h-32 rounded-full bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center border-4 border-white">
               <span className="font-heading font-bold text-5xl text-white">{gameState.level}</span>
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-charcoal-soft text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
@@ -43,7 +46,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
             </div>
             <div className="w-full h-6 bg-cream-base rounded-full border border-peach-soft overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-gold-sunshine to-coral-burst transition-all duration-1000 ease-out relative"
+                className="h-full bg-linear-to-r from-gold-sunshine to-coral-burst transition-all duration-1000 ease-out relative"
                 style={{ width: `${progressPercent}%` }}
               >
                 <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_infinite]"></div>
@@ -55,13 +58,13 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
           </div>
 
           <div className="flex gap-4">
-            <div className="text-center bg-cream-base p-4 rounded-2xl border border-peach-soft min-w-[100px]">
+            <div className="text-center bg-cream-base p-4 rounded-2xl border border-peach-soft min-w-25">
               <div className="font-heading font-bold text-2xl text-coral-burst flex items-center justify-center gap-1">
                 <Flame className="w-5 h-5" /> {gameState.currentStreak || 0}
               </div>
               <div className="text-xs font-bold text-cocoa-light uppercase">Day Streak</div>
             </div>
-            <div className="text-center bg-cream-base p-4 rounded-2xl border border-peach-soft min-w-[100px]">
+            <div className="text-center bg-cream-base p-4 rounded-2xl border border-peach-soft min-w-25">
               <div className="font-heading font-bold text-2xl text-charcoal-soft">
                 {gameState.booksCreatedCount}
               </div>
@@ -73,7 +76,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Daily Challenges */}
-        <div className="md:col-span-2 bg-white rounded-3xl shadow-soft-md border border-white p-6">
+        <div className="md:col-span-2 bg-white rounded-3xl border-2 border-peach-soft p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2">
               <Target className="w-6 h-6 text-coral-burst" /> Daily Challenges
@@ -108,12 +111,14 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
                   </div>
                 </div>
                 {!challenge.completed && (
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setMode(AppMode.CREATION)}
-                    className="px-4 py-2 bg-white text-coral-burst text-xs font-bold rounded-lg shadow-sm hover:bg-coral-burst hover:text-white transition-colors"
+                    className="px-4 py-2 bg-white text-coral-burst border border-peach-soft/50 hover:bg-coral-burst hover:text-white"
                   >
                     Go
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
@@ -121,7 +126,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
         </div>
 
         {/* Leaderboard Teaser */}
-        <div className="bg-white rounded-3xl shadow-soft-md border border-white p-6">
+        <div className="bg-white rounded-3xl border-2 border-peach-soft p-6">
           <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2 mb-6">
             <TrendingUp className="w-6 h-6 text-blue-400" /> Top Creators
           </h2>
@@ -129,7 +134,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
             {[1, 2, 3, 4, 5].map((rank) => (
               <div key={rank} className="flex items-center gap-3 p-2">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${rank === 1 ? 'bg-gold-sunshine text-white shadow-glow' : 'bg-cream-base text-cocoa-light'}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${rank === 1 ? 'bg-gold-sunshine text-white' : 'bg-cream-base text-cocoa-light'}`}
                 >
                   {rank}
                 </div>
@@ -141,15 +146,15 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
                 {rank === 1 && <CrownIcon />}
               </div>
             ))}
-            <button className="w-full mt-4 py-2 text-sm text-coral-burst font-bold hover:bg-cream-soft rounded-lg transition-colors">
+            <Button variant="ghost" className="w-full mt-4 py-2 text-coral-burst hover:bg-cream-soft">
               View Full Leaderboard
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Badges Grid */}
-      <div className="mt-8 bg-white rounded-3xl shadow-soft-md border border-white p-8">
+      <div className="mt-8 bg-white rounded-3xl border-2 border-peach-soft p-8">
         <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2 mb-8">
           <Star className="w-6 h-6 text-purple-400" /> Achievements
         </h2>
@@ -160,7 +165,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-3 transition-all duration-300 
                         ${
                           badge.unlocked
-                            ? 'bg-gradient-to-br from-cream-base to-white shadow-soft-md border-2 border-gold-sunshine'
+                            ? 'bg-linear-to-br from-cream-base to-white border-2 border-gold-sunshine'
                             : 'bg-gray-100 border-2 border-transparent grayscale opacity-50'
                         } group-hover:scale-110`}
               >

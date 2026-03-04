@@ -1,5 +1,8 @@
 import { ArrowLeft, BookOpen, Check, Layers, Users, Wand2 } from 'lucide-react';
 import type React from 'react';
+import { Button } from './ui/button';
+import { Input, Label } from './ui/input';
+import { Textarea } from './ui/input';
 import { useState } from 'react';
 import type { ContentStructure } from '../types/generator';
 
@@ -27,40 +30,44 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
     <div className="w-full max-w-6xl mx-auto px-4 pb-20 animate-fadeIn">
       {/* Header */}
       <div className="flex items-center justify-between mb-8 mt-8">
-        <button
+        <Button
+          variant="ghost"
           onClick={onBack}
-          className="flex items-center gap-2 text-cocoa-light hover:text-charcoal-soft transition-colors"
+          className="flex text-cocoa-light hover:text-charcoal-soft"
         >
           <ArrowLeft className="w-5 h-5" />
           Back to Idea
-        </button>
+        </Button>
         <h1 className="font-heading font-bold text-3xl text-charcoal-soft">
           Review Your Blueprint
         </h1>
         <div className="w-24"></div> {/* Spacer */}
       </div>
 
-      <div className="bg-white rounded-[32px] shadow-soft-lg overflow-hidden border border-white/50">
+      <div className="bg-white rounded-4xl overflow-hidden border-2 border-peach-soft">
         {/* Tabs */}
         <div className="flex border-b border-peach-soft/30">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('overview')}
-            className={`flex-1 py-6 font-heading font-bold text-lg flex items-center justify-center gap-2 transition-colors ${activeTab === 'overview' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
+            className={`flex-1 py-6 text-lg flex ${activeTab === 'overview' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
           >
             <Layers className="w-5 h-5" /> Overview
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('characters')}
-            className={`flex-1 py-6 font-heading font-bold text-lg flex items-center justify-center gap-2 transition-colors ${activeTab === 'characters' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
+            className={`flex-1 py-6 text-lg flex ${activeTab === 'characters' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
           >
             <Users className="w-5 h-5" /> Characters
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('chapters')}
-            className={`flex-1 py-6 font-heading font-bold text-lg flex items-center justify-center gap-2 transition-colors ${activeTab === 'chapters' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
+            className={`flex-1 py-6 text-lg flex ${activeTab === 'chapters' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
           >
             <BookOpen className="w-5 h-5" /> Chapters ({editedBlueprint.pages?.length ?? 0} Pages)
-          </button>
+          </Button>
         </div>
 
         {/* Content Area */}
@@ -69,30 +76,30 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-fadeIn">
               <div>
-                <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide mb-2">
+                <Label className="uppercase tracking-wide mb-2">
                   Book Title
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   value={editedBlueprint.title}
                   onChange={(e) =>
                     setEditedBlueprint({ ...editedBlueprint, title: e.target.value })
                   }
-                  className="w-full text-4xl font-heading font-bold text-charcoal-soft bg-transparent border-b-2 border-peach-soft focus:border-coral-burst focus:outline-none pb-2 placeholder-cocoa-light/30"
+                  className="text-4xl font-heading font-bold bg-transparent border-0 border-b-2 border-peach-soft pb-2 placeholder-cocoa-light/30"
                   placeholder="Enter title..."
                 />
               </div>
 
               <div>
-                <label className="block font-heading font-bold text-sm text-cocoa-light uppercase tracking-wide mb-2">
+                <Label className="uppercase tracking-wide mb-2">
                   Synopsis
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                   value={editedBlueprint.synopsis}
                   onChange={(e) =>
                     setEditedBlueprint({ ...editedBlueprint, synopsis: e.target.value })
                   }
-                  className="w-full bg-cream-base rounded-2xl p-6 text-lg font-body text-charcoal-soft border-2 border-transparent focus:border-coral-burst focus:outline-none resize-none h-40"
+                  className="bg-cream-base rounded-2xl p-6 text-lg border-transparent h-40"
                   placeholder="Enter synopsis..."
                 />
               </div>
@@ -137,7 +144,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                     ].map((color, i) => (
                       <div
                         key={i}
-                        className="w-8 h-8 rounded-full shadow-sm border border-white/20"
+                        className="w-8 h-8 rounded-full border-2 border-white/20"
                         style={{ backgroundColor: color }}
                         title={color}
                       ></div>
@@ -157,7 +164,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                   className="bg-white border-2 border-peach-soft rounded-2xl p-6 hover:border-coral-burst transition-colors group"
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <input
+                    <Input
                       type="text"
                       value={char.name}
                       onChange={(e) => {
@@ -165,20 +172,20 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                         newChars[idx].name = e.target.value;
                         setEditedBlueprint({ ...editedBlueprint, characterNeeds: newChars });
                       }}
-                      className="font-heading font-bold text-xl text-charcoal-soft bg-transparent border-b border-transparent focus:border-coral-burst focus:outline-none w-full"
+                      className="font-heading font-bold text-xl bg-transparent border-0 border-b border-transparent"
                     />
                     <span className="bg-cream-base px-3 py-1 rounded-full text-xs font-bold text-cocoa-light uppercase">
                       {char.role}
                     </span>
                   </div>
-                  <textarea
+                  <Textarea
                     value={char.description}
                     onChange={(e) => {
                       const newChars = [...editedBlueprint.characterNeeds];
                       newChars[idx].description = e.target.value;
                       setEditedBlueprint({ ...editedBlueprint, characterNeeds: newChars });
                     }}
-                    className="w-full bg-cream-base/50 rounded-xl p-3 text-sm text-charcoal-soft border border-transparent focus:border-coral-burst focus:outline-none resize-none h-24 mb-4"
+                    className="bg-cream-base/50 p-3 border-transparent h-24 mb-4"
                   />
                   <div className="space-y-2">
                     <div className="text-xs font-bold text-cocoa-light uppercase">
@@ -209,7 +216,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                   key={idx}
                   className="flex gap-4 p-4 bg-cream-base/30 rounded-2xl border border-transparent hover:border-peach-soft transition-colors"
                 >
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-heading font-bold text-coral-burst shadow-sm shrink-0">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-heading font-bold text-coral-burst border border-peach-soft/50 shrink-0">
                     {page.pageNumber}
                   </div>
                   <div className="flex-1 space-y-3">
@@ -221,14 +228,14 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                         {page.layoutTemplate}
                       </span>
                     </div>
-                    <textarea
+                    <Textarea
                       value={page.scene}
                       onChange={(e) => {
                         const newPages = [...editedBlueprint.pages];
                         newPages[idx].scene = e.target.value;
                         setEditedBlueprint({ ...editedBlueprint, pages: newPages });
                       }}
-                      className="w-full bg-white rounded-xl p-3 text-sm text-charcoal-soft border border-peach-soft/50 focus:border-coral-burst focus:outline-none resize-none h-20"
+                      className="p-3 border-peach-soft/50 h-20"
                       placeholder="Describe the scene..."
                     />
                     <div className="flex gap-2 text-xs text-cocoa-light">
@@ -251,14 +258,16 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
           <div className="text-cocoa-light text-sm">
             Make sure everything looks right before we start drawing!
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="lg"
             onClick={handleConfirm}
             disabled={isGenerating}
-            className={`px-8 py-3 rounded-full font-heading font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2
+            className={`rounded-full border-2 border-white/20 hover:-translate-y-1 flex text-lg
                             ${
                               isGenerating
-                                ? 'bg-cocoa-light cursor-not-allowed text-white opacity-70'
-                                : 'bg-gradient-to-r from-emerald-400 to-mint-breeze text-white hover:scale-105'
+                                ? 'bg-cocoa-light text-white opacity-70'
+                                : 'bg-linear-to-r from-emerald-400 to-mint-breeze text-white hover:scale-105'
                             }`}
           >
             {isGenerating ? (
@@ -272,7 +281,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                 Approve Blueprint
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

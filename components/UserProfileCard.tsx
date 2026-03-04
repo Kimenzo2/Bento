@@ -1,5 +1,6 @@
 import { Circle, Mail, User } from 'lucide-react';
 import type React from 'react';
+import { Button } from './ui/button';
 
 interface UserProfileCardProps {
   user: {
@@ -27,14 +28,16 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
   };
 
   return (
-    <div className="absolute z-50 bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-xl border border-gray-200 dark:border-[#333333] p-4 w-72 animate-fadeIn">
+    <div className="absolute z-50 bg-white dark:bg-[#1A1A1A] rounded-2xl border-2 border-peach-soft p-4 w-72 animate-fadeIn">
       {/* Close button */}
-      <button
+      <Button
         onClick={onClose}
+        variant="ghost"
+        size="icon"
         className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
       >
         ✕
-      </button>
+      </Button>
 
       {/* Avatar and Name */}
       <div className="flex items-start gap-3 mb-3">
@@ -80,12 +83,12 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
 
       {/* Actions */}
       <div className="flex gap-2">
-        <button className="flex-1 px-3 py-2 bg-coral-burst text-white rounded-lg text-sm font-medium hover:bg-coral-hover transition-colors">
+        <Button variant="default" size="sm" className="flex-1 px-3 py-2 bg-coral-burst text-white font-medium hover:bg-coral-hover">
           Send Message
-        </button>
-        <button className="px-3 py-2 bg-gray-100 dark:bg-[#2D2D2D] text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-[#3D3D3D] transition-colors">
+        </Button>
+        <Button variant="secondary" size="icon" className="px-3 py-2 bg-gray-100 dark:bg-[#2D2D2D] text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-[#3D3D3D]">
           <User className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

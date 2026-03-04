@@ -257,38 +257,51 @@ class SecurityAuditLogger {
   }
 
   /**
-   * Query audit logs
+   * Query audit logs - uses early termination to avoid loading all events
    */
   query(options: AuditQueryOptions = {}): AuditEvent[] {
-    let results = [...this.events];
-
-    if (options.userId) {
-      results = results.filter((e) => e.userId === options.userId);
-    }
-
-    if (options.type) {
-      const types = Array.isArray(options.type) ? options.type : [options.type];
-      results = results.filter((e) => types.includes(e.type));
-    }
-
-    if (options.severity) {
-      const severities = Array.isArray(options.severity) ? options.severity : [options.severity];
-      results = results.filter((e) => severities.includes(e.severity));
-    }
-
-    if (options.startDate) {
-      results = results.filter((e) => new Date(e.timestamp) >= options.startDate!);
-    }
-
-    if (options.endDate) {
-      results = results.filter((e) => new Date(e.timestamp) <= options.endDate!);
-    }
-
-    // Apply pagination
     const offset = options.offset || 0;
     const limit = options.limit || 100;
+    const target = offset + limit;
 
-    return results.slice(offset, offset + limit);
+    // Build predicate chain for single-pass filtering with early termination
+    const predicates: Array<(e: AuditEvent) => boolean> = [];
+
+    if (options.userId) {
+      predicates.push((e) => e.userId === options.userId);
+    }
+    if (options.type) {
+      const types = Array.isArray(options.type) ? options.type : [options.type];
+      predicates.push((e) => types.includes(e.type));
+    }
+    if (options.severity) {
+      const severities = Array.isArray(options.severity) ? options.severity : [options.severity];
+      predicates.push((e) => severities.includes(e.severity));
+    }
+    if (options.startDate) {
+      predicates.push((e) => new Date(e.timestamp) >= options.startDate!);
+    }
+    if (options.endDate) {
+      predicates.push((e) => new Date(e.timestamp) <= options.endDate!);
+    }
+
+    // Single-pass with early termination: collect only what's needed
+    const matched: AuditEvent[] = [];
+    let matchCount = 0;
+
+    for (const event of this.events) {
+      if (predicates.every((p) => p(event))) {
+        matchCount++;
+        if (matchCount > offset) {
+          matched.push(event);
+        }
+        if (matched.length >= limit) {
+          break; // Early termination - no need to scan further
+        }
+      }
+    }
+
+    return matched;
   }
 
   /**

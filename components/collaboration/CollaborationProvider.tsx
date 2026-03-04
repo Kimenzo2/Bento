@@ -146,12 +146,12 @@ export function PresenceAvatars({ maxVisible = 5 }: { maxVisible?: number }) {
             <img
               src={user.info.avatar}
               alt={user.info?.name || 'Collaborator'}
-              className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+              className="w-8 h-8 rounded-full border-2 border-white"
               style={{ borderColor: user.presence?.color || user.info?.color }}
             />
           ) : (
             <div
-              className="w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white text-xs font-medium"
+              className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-medium"
               style={{
                 backgroundColor: user.presence?.color || user.info?.color || '#64B5F6',
                 borderColor: user.presence?.color || user.info?.color,
@@ -170,7 +170,7 @@ export function PresenceAvatars({ maxVisible = 5 }: { maxVisible?: number }) {
       ))}
 
       {remainingCount > 0 && (
-        <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center text-gray-600 text-xs font-medium">
+        <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-gray-600 text-xs font-medium">
           +{remainingCount}
         </div>
       )}
@@ -278,7 +278,7 @@ function ConnectionListeners() {
         console.warn('[Liveblocks] Connection lost, attempting to reconnect...');
         break;
       case 'restored':
-        console.log('[Liveblocks] Connection restored');
+        console.warn('[Liveblocks] Connection restored');
         break;
       case 'failed':
         console.error('[Liveblocks] Failed to reconnect');
@@ -347,9 +347,9 @@ export function RoomCollaboration({
  */
 export function CollaborationProvider({
   children,
-  userId,
-  displayName,
-  avatarUrl,
+  userId: _userId,
+  displayName: _displayName,
+  avatarUrl: _avatarUrl,
 }: CollaborationProviderProps) {
   return <LiveblocksProvider>{children}</LiveblocksProvider>;
 }

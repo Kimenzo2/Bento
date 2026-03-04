@@ -54,6 +54,7 @@ import { ROICalculator } from './interactive/ROICalculator';
 import { SavingsCounter } from './interactive/SavingsCounter';
 import { TierMatchQuiz } from './interactive/TierMatchQuiz';
 import { UsageHeatmap } from './interactive/UsageHeatmap';
+import { Button } from '@components/ui/button';
 
 // ============================================================================
 // TIER CONFIGURATION
@@ -447,12 +448,14 @@ const TierDetailStudio: React.FC = () => {
         onDownloadPDF={handleDownloadPDF}
       >
         <div className="mt-4 flex justify-center">
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setShowQuiz(true)}
-            className="text-sm font-semibold text-charcoal-soft/60 hover:text-indigo-600 underline decoration-dotted underline-offset-4"
+            className="text-charcoal-soft/60 hover:text-indigo-600 underline decoration-dotted"
           >
             Not sure? Take the 1-minute tier quiz
-          </button>
+          </Button>
         </div>
       </HeroSection>
 
@@ -471,7 +474,7 @@ const TierDetailStudio: React.FC = () => {
         <div className="space-y-12">
           {/* Value Proposition Grid */}
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl p-6 border border-charcoal-soft/5 shadow-sm">
+            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
               <TrendingUp className="w-10 h-10 text-coral-burst mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Scale Revenue</h3>
               <p className="text-charcoal-soft/70 text-sm">
@@ -479,14 +482,14 @@ const TierDetailStudio: React.FC = () => {
                 stream.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-6 border border-charcoal-soft/5 shadow-sm">
+            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
               <Users className="w-10 h-10 text-coral-burst mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Empower Teams</h3>
               <p className="text-charcoal-soft/70 text-sm">
                 5 seats let your whole team create. No bottlenecks, no waiting for one illustrator.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-6 border border-charcoal-soft/5 shadow-sm">
+            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
               <Building2 className="w-10 h-10 text-coral-burst mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Protect Brand</h3>
               <p className="text-charcoal-soft/70 text-sm">
@@ -532,7 +535,7 @@ const TierDetailStudio: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-6 shadow-lg">
+              <div className="bg-white rounded-xl p-6 border-2 border-peach-soft">
                 <div className="text-center">
                   <div className="text-5xl font-heading font-bold bg-linear-to-r from-coral-burst to-gold-sunshine bg-clip-text text-transparent">
                     $180,000+
@@ -584,19 +587,21 @@ const TierDetailStudio: React.FC = () => {
             Studio's team collaboration features.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="px-8 py-4 bg-white text-charcoal-soft rounded-xl font-bold hover:bg-cream-base transition-colors inline-flex items-center gap-2">
+            <Button variant="outline" size="lg">
               <div className="w-10 h-10 rounded-full bg-coral-burst flex items-center justify-center">
                 <div className="w-0 h-0 border-l-8 border-l-white border-y-[6px] border-y-transparent ml-1" />
               </div>
               Watch Demo
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
               onClick={handleContactSales}
-              className="px-8 py-4 bg-white/10 text-white rounded-xl font-bold hover:bg-white/20 transition-colors inline-flex items-center gap-2"
+              className="bg-white/10 text-white hover:bg-white/20"
             >
               <Briefcase className="w-5 h-5" />
               Schedule Live Walkthrough
-            </button>
+            </Button>
           </div>
         </div>
       </SectionWrapper>
@@ -694,31 +699,34 @@ const TierDetailStudio: React.FC = () => {
               <h4 className="font-bold mb-4">Compare Tiers</h4>
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/tier/creator')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Creator ($16.41/mo)
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/tier/empire')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Empire ($166.58/mo)
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => navigate('/welcome?step=pricing')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Full Comparison
-                  </button>
+                  </Button>
                 </li>
               </ul>
             </div>
@@ -726,31 +734,34 @@ const TierDetailStudio: React.FC = () => {
               <h4 className="font-bold mb-4">Resources</h4>
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('who')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Team Setup Guide
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('value-prop')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Brand Hub Tutorial
-                  </button>
+                  </Button>
                 </li>
                 <li>
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
                     onClick={() => scrollToSection('case-studies')}
-                    className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
+                    className="w-full text-left min-h-11 hover:text-white touch-manipulation"
                   >
                     Agency Playbook
-                  </button>
+                  </Button>
                 </li>
               </ul>
             </div>

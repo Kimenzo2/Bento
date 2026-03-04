@@ -179,7 +179,7 @@ const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsExpanded(false)} />
           <div className="absolute top-full left-0 mt-2 z-50 animate-fadeIn">
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 py-2 min-w-[200px] max-h-[300px] overflow-y-auto">
+            <div className="bg-white rounded-xl border border-gray-200 py-2 min-w-50 max-h-75 overflow-y-auto">
               <div className="px-3 py-1 border-b border-gray-100 mb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase">
                   {sortedUsers.length} Collaborators Online
@@ -244,7 +244,7 @@ interface FloatingCursorsProps {
   containerRef: React.RefObject<HTMLElement>;
 }
 
-export const FloatingCursors: React.FC<FloatingCursorsProps> = ({ cursors, containerRef }) => {
+export const FloatingCursors: React.FC<FloatingCursorsProps> = ({ cursors, containerRef: _containerRef }) => {
   const colors = [
     '#FF6B6B',
     '#4ECDC4',
@@ -286,7 +286,7 @@ export const FloatingCursors: React.FC<FloatingCursorsProps> = ({ cursors, conta
 
           {/* Name tag */}
           <div
-            className="absolute top-4 left-3 px-1.5 py-0.5 rounded text-[10px] text-white font-medium whitespace-nowrap shadow-sm"
+            className="absolute top-4 left-3 px-1.5 py-0.5 rounded text-[10px] text-white font-medium whitespace-nowrap"
             style={{ backgroundColor: cursor.color || colors[index % colors.length] }}
           >
             {cursor.display_name}

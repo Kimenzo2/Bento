@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { Button } from './ui/button';
 
 export interface BookTemplate {
   id: string;
@@ -540,7 +541,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        className="fixed inset-0 z-100 flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -548,16 +549,16 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           {/* Header */}
-          <div className="flex-shrink-0 p-4 border-b border-gray-200 md:p-6 dark:border-gray-700">
+          <div className="shrink-0 p-4 border-b border-gray-200 md:p-6 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-coral-burst to-sunset-coral rounded-xl">
+                <div className="p-2 bg-linear-to-br from-coral-burst to-sunset-coral rounded-xl">
                   <Wand2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -569,23 +570,27 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   </p>
                 </div>
               </div>
-              <button
+              <Button
                 onClick={onClose}
                 title="Close"
-                className="p-2 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
+                variant="ghost"
+                size="icon"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <X className="w-6 h-6 text-gray-500" />
-              </button>
+              </Button>
             </div>
 
             {/* Category filters */}
             <div className="flex gap-2 pb-2 mt-4 overflow-x-auto no-scrollbar">
               {categories.map((cat) => (
-                <button
+                <Button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
+                  variant="ghost"
+                  size="sm"
                   className={`
-                                        px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
+                                        px-4 py-2 rounded-full font-medium whitespace-nowrap
                                         ${
                                           selectedCategory === cat
                                             ? 'bg-coral-burst text-white'
@@ -596,7 +601,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   {cat === 'all'
                     ? 'All Templates'
                     : categoryLabels[cat as keyof typeof categoryLabels]}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -636,7 +641,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   {/* Icon */}
                   <div
                     className={`
-                                        w-12 h-12 rounded-xl bg-gradient-to-br ${categoryColors[template.category]}
+                                        w-12 h-12 rounded-xl bg-linear-to-br ${categoryColors[template.category]}
                                         flex items-center justify-center text-white mb-3
                                     `}
                   >
@@ -681,7 +686,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+                className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
               >
                 <div className="p-4 md:p-6">
                   <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:gap-6">
@@ -698,7 +703,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                         {selectedTemplate.structure.slice(0, 6).map((page, i) => (
                           <div
                             key={i}
-                            className="flex-shrink-0 w-24 p-2 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                            className="shrink-0 w-24 p-2 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700"
                           >
                             <div className="mb-1 text-xs font-bold text-coral-burst">
                               Page {page.pageNumber}
@@ -709,7 +714,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                           </div>
                         ))}
                         {selectedTemplate.structure.length > 6 && (
-                          <div className="flex items-center justify-center flex-shrink-0 w-24 p-2 bg-gray-100 rounded-lg dark:bg-gray-700">
+                          <div className="flex items-center justify-center shrink-0 w-24 p-2 bg-gray-100 rounded-lg dark:bg-gray-700">
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               +{selectedTemplate.structure.length - 6} more
                             </span>
@@ -718,13 +723,14 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                       </div>
                     </div>
 
-                    <button
+                    <Button
                       onClick={handleUseTemplate}
-                      className="flex items-center justify-center w-full gap-2 px-6 py-3 font-bold text-white transition-shadow md:w-auto bg-gradient-to-r from-coral-burst to-sunset-coral rounded-xl hover:shadow-lg"
+                      variant="primary"
+                      className="w-full px-6 py-3 text-white md:w-auto bg-linear-to-r from-coral-burst to-sunset-coral border-2 border-white/20"
                     >
                       Use Template
                       <ArrowRight className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </motion.div>
