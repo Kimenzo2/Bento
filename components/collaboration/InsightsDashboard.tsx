@@ -527,7 +527,7 @@ const TrendCard: React.FC<TrendCardProps> = ({ trend, rank }) => {
                 {trend.sample_images.slice(0, 3).map((img: string, i: number) => (
                   <div
                     key={i}
-                    className="w-6 h-6 rounded-full bg-cover bg-center border-2 border-gray-800"
+                    className="w-6 h-6 rounded-full bg-cover bg-center border border-gray-800"
                     style={{ backgroundImage: `url(${img})` }}
                   />
                 ))}

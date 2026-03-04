@@ -274,8 +274,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             onClick={() => setViewMode('individual')}
             className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
               viewMode === 'individual'
-                ? 'bg-white text-coral-burst border-2 border-peach-soft'
-                : 'text-cocoa-light hover:text-charcoal-soft border-2 border-transparent'
+                ? 'bg-white text-coral-burst border border-peach-soft'
+                : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
             }`}
           >
             <Wand2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -287,8 +287,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             onClick={() => setViewMode('storymap')}
             className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
               viewMode === 'storymap'
-                ? 'bg-white text-emerald-500 border-2 border-peach-soft'
-                : 'text-cocoa-light hover:text-charcoal-soft border-2 border-transparent'
+                ? 'bg-white text-emerald-500 border border-peach-soft'
+                : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
             }`}
           >
             <Map className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -311,7 +311,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
         {viewMode === 'individual' && (
           <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
             {/* Control Panel - Left Side (40%) */}
-            <div className="bg-white rounded-3xl border-2 border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-[680px] panel-breathing">
+            <div className="bg-white rounded-3xl border border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-[680px] panel-breathing">
               {/* Tabs */}
               <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
                 {['character', 'scene', 'style'].map((tab) => (
@@ -323,7 +323,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       setSettings(prev => ({ ...prev, generatedImage: null }));
                     }}
                     className={`flex-1 py-2 md:py-2.5 font-heading capitalize
-                                ${activeTab === tab ? 'bg-white text-coral-burst border-2 border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border-2 border-transparent'}`}
+                                ${activeTab === tab ? 'bg-white text-coral-burst border border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'}`}
                   >
                     {tab}
                   </Button>
@@ -353,7 +353,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       {availableCharacters.map((char) => (
                         <div
                           key={char.id}
-                          className={`p-2 rounded-xl border-2 cursor-pointer transition-all relative group
+                          className={`p-2 rounded-xl border cursor-pointer transition-all relative group
                                             ${
                                               settings.selectedCharacterId === char.id
                                                 ? 'border-coral-burst bg-cream-base'
@@ -585,7 +585,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             </div>
 
             {/* Preview Panel - Right Side (60%) */}
-            <div className="w-full lg:w-3/5 h-100 lg:h-[680px] bg-white rounded-3xl border-2 border-peach-soft overflow-hidden relative group">
+            <div className="w-full lg:w-3/5 h-100 lg:h-[680px] bg-white rounded-3xl border border-peach-soft overflow-hidden relative group">
               {settings.generatedImage ? (
                 <>
                   <img
@@ -677,7 +677,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               onUpdateProject={onUpdateProject}
             />
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
               <Map className="w-16 h-16 text-slate-300 mb-4" />
               <h3 className="text-xl font-bold text-slate-600 mb-2">No Project Loaded</h3>
               <p className="text-slate-500 max-w-md">

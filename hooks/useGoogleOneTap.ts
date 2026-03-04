@@ -130,7 +130,7 @@ export const useGoogleOneTap = () => {
         }
       } catch (error: unknown) {
         console.error('[GoogleOneTap] Exception during sign-in:', error);
-        console.error('[GoogleOneTap] Exception stack:', error.stack);
+        console.error('[GoogleOneTap] Exception stack:', (error as Error)?.stack);
         // Silently fail - don't interrupt user experience
       }
     },

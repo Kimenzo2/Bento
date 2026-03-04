@@ -153,7 +153,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
   if (error) {
     return (
       <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-peach-soft max-w-md w-full text-center">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-peach-soft max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
@@ -176,7 +176,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
   if (isPasswordRequired) {
     return (
       <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-peach-soft max-w-md w-full">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-peach-soft max-w-md w-full">
           <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-amber-500" />
           </div>
@@ -294,7 +294,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
       <div className="flex-1 overflow-hidden relative flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-5xl h-full flex flex-col">
           {/* Page Viewer */}
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl border-2 border-peach-soft overflow-hidden relative flex flex-col md:flex-row">
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl border border-peach-soft overflow-hidden relative flex flex-col md:flex-row">
             {/* Image Section */}
             <div className="w-full md:w-1/2 h-1/2 md:h-full bg-gray-100 dark:bg-gray-900 relative">
               {currentPage?.imageUrl ? (
@@ -340,7 +340,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                                 ${
                                   currentPageIndex === 0
                                     ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-peach-soft hover:border-coral-burst hover:-translate-y-1'
+                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
                                 }
                             `}
             >
@@ -378,7 +378,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                                 ${
                                   currentPageIndex === pages.length - 1
                                     ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-peach-soft hover:border-coral-burst hover:-translate-y-1'
+                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
                                 }
                             `}
             >

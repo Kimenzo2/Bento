@@ -172,7 +172,7 @@ class ErrorBoundary extends Component<Props, State> {
       // Default error UI
       return (
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-cream-base to-peach-soft p-4">
-            <div className="bg-white rounded-3xl border-2 border-peach-soft p-8 max-w-lg w-full text-center">
+            <div className="bg-white rounded-3xl border border-peach-soft p-8 max-w-lg w-full text-center">
             <div className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
@@ -226,7 +226,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <Button
                   variant="primary"
                   onClick={this.handleRetry}
-                  className="flex px-6 py-3 hover:scale-105 border-2 border-white/20"
+                  className="flex px-6 py-3 hover:scale-105 border border-white/20"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Try Again
@@ -235,7 +235,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <Button
                   variant="primary"
                   onClick={this.handleRefresh}
-                  className="flex px-6 py-3 hover:scale-105 border-2 border-white/20"
+                  className="flex px-6 py-3 hover:scale-105 border border-white/20"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Refresh Page

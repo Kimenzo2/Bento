@@ -791,7 +791,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
       {/* Main Wizard Card */}
       <div className="w-full max-w-4xl px-2 sm:px-4">
-        <div className="bg-white rounded-2xl sm:rounded-4xl p-6 sm:p-8 md:p-12 border-2 border-peach-soft relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
+        <div className="bg-white rounded-2xl sm:rounded-4xl p-6 sm:p-8 md:p-12 border border-peach-soft relative overflow-hidden min-h-[calc(100vh-250px)] sm:min-h-[600px]">
           {/* Loading Overlay */}
           {isGenerating && (
             <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fadeIn">
@@ -849,7 +849,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   onClick={resetForm}
                   className="mb-6 flex text-cocoa-light hover:text-coral-burst group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white border-2 border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-white border border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </div>
                   Back to Home
@@ -1011,7 +1011,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   <Label className="text-cocoa-light uppercase tracking-wide">
                     Length: {pageCount} Pages
                   </Label>
-                  <div className="flex items-center gap-4 bg-white border-2 border-peach-soft rounded-2xl p-4">
+                  <div className="flex items-center gap-4 bg-white border border-peach-soft rounded-2xl p-4">
                     <Clock className="text-coral-burst w-5 h-5" />
                     <Slider
                       min={4}
@@ -1027,7 +1027,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
               {/* Brand Panel Expansion */}
               {showBrandPanel && (
-                <div className="bg-linear-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl p-8 mb-10 animate-fadeIn">
+                <div className="bg-linear-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl p-8 mb-10 animate-fadeIn">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2 text-emerald-600">
                       <Briefcase className="w-5 h-5" />
@@ -1226,8 +1226,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                           key={section.key}
                           className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                             brandSections[section.key as keyof typeof brandSections]
-                              ? 'bg-emerald-100 border-2 border-emerald-400'
-                              : 'bg-white border-2 border-gray-200 hover:border-emerald-300'
+                              ? 'bg-emerald-100 border border-emerald-400'
+                              : 'bg-white border border-gray-200 hover:border-emerald-300'
                           }`}
                         >
                           <input
@@ -1254,7 +1254,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
               {/* Educational Panel Expansion */}
               {educational && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-3xl p-8 mb-10 animate-fadeIn">
+                <div className="bg-blue-50 border border-blue-200 rounded-3xl p-8 mb-10 animate-fadeIn">
                   <div className="flex items-center gap-2 text-blue-600 mb-6">
                     <Leaf className="w-5 h-5" />
                     <h3 className="font-heading font-bold text-lg">Learning Goals</h3>
@@ -1443,7 +1443,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             <img
                               src={selectedTeacher.imageUrl}
                               alt={selectedTeacher.name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-white"
+                              className="w-12 h-12 rounded-full object-cover border border-white"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTeacher.name}`;
@@ -1504,7 +1504,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               >
                 {isGenerating ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
                     Creating Magic...
                   </>
                 ) : (

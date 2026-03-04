@@ -75,7 +75,7 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl md:rounded-2xl p-4 sm:p-6 md:p-8 mb-6 md:mb-12 border-2 border-white/20 ${tier.bgClass.replace('/30', '/50')}`}
+      className={`relative overflow-hidden rounded-xl md:rounded-2xl p-4 sm:p-6 md:p-8 mb-6 md:mb-12 border border-white/20 ${tier.bgClass.replace('/30', '/50')}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

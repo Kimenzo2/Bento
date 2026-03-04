@@ -126,7 +126,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
                     document.documentElement.style.fontSize =
                       size === 'small' ? '14px' : size === 'large' ? '18px' : '16px';
                   }}
-                  className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border-2 transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${
+                  className={`flex-1 py-3 md:py-2 px-3 md:px-4 rounded-xl border transition-all font-medium capitalize text-sm md:text-base touch-manipulation ${
                     settings.fontSize === size
                       ? 'border-coral-burst bg-coral-burst text-white'
                       : 'border-peach-soft bg-white text-charcoal-soft hover:border-coral-burst/50 active:bg-cream-base'

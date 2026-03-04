@@ -23,7 +23,7 @@ function Toaster() {
         unstyled: true,
         classNames: {
           toast:
-            "flex items-center gap-3 px-4 py-3 rounded-xl border-2 max-w-md font-body text-sm pointer-events-auto bg-white border-peach-soft text-charcoal-soft",
+            "flex items-center gap-3 px-4 py-3 rounded-xl border max-w-md font-body text-sm pointer-events-auto bg-white border-peach-soft text-charcoal-soft",
           title: "font-heading font-bold text-sm",
           description: "text-cocoa-light text-xs",
           actionButton:

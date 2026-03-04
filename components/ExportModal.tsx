@@ -137,7 +137,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
                   }
                   variant="outline"
                   className={`
-                    p-4 h-auto border-2 text-center flex-col
+                    p-4 h-auto border text-center flex-col
                     ${
                       options.format === id
                         ? 'border-coral-burst bg-coral-burst/5'
@@ -185,7 +185,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
                   variant="outline"
                   size="sm"
                   className={`
-                    flex-1 py-2 px-4 font-medium capitalize border-2
+                    flex-1 py-2 px-4 font-medium capitalize border
                     ${
                       options.fontSize === size
                         ? 'bg-coral-burst text-white border-coral-burst'
@@ -220,7 +220,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
 
           {/* Export Error */}
           {exportError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl border-2 border-red-100">
+            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl border border-red-100">
               <AlertCircle className="w-5 h-5" />
               <span>{exportError}</span>
             </div>
@@ -248,7 +248,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center justify-center gap-2 p-4 bg-green-50 text-green-600 rounded-xl border-2 border-green-100"
+              className="flex items-center justify-center gap-2 p-4 bg-green-50 text-green-600 rounded-xl border border-green-100"
             >
               <Check className="w-5 h-5" />
               <span className="font-medium">Export successful!</span>

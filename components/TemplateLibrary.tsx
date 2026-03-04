@@ -549,7 +549,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="relative bg-white dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -616,7 +616,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedTemplate(template)}
                   className={`
-                                        relative p-4 rounded-2xl border-2 cursor-pointer transition-all
+                                        relative p-4 rounded-2xl border cursor-pointer transition-all
                                         ${
                                           selectedTemplate?.id === template.id
                                             ? 'border-coral-burst bg-coral-burst/5'
@@ -726,7 +726,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                     <Button
                       onClick={handleUseTemplate}
                       variant="primary"
-                      className="w-full px-6 py-3 text-white md:w-auto bg-linear-to-r from-coral-burst to-sunset-coral border-2 border-white/20"
+                      className="w-full px-6 py-3 text-white md:w-auto bg-linear-to-r from-coral-burst to-sunset-coral border border-white/20"
                     >
                       Use Template
                       <ArrowRight className="w-5 h-5" />

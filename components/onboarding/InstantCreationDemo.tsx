@@ -252,7 +252,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.8, y: -30, opacity: 0 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="absolute top-1/4 md:top-1/3 z-30 flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-linear-to-r from-amber-500 to-orange-500 rounded-full border-2 border-white/20"
+            className="absolute top-1/4 md:top-1/3 z-30 flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-linear-to-r from-amber-500 to-orange-500 rounded-full border border-white/20"
             style={GPU_STYLE}
           >
             <Star className="w-5 h-5 md:w-6 md:h-6 text-white fill-white" />
@@ -463,7 +463,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                 onClick={handleContinue}
                 whileHover={reducedMotion ? {} : { scale: 1.02 }}
                 whileTap={reducedMotion ? {} : { scale: 0.98 }}
-                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-white text-slate-900 rounded-full font-bold text-base md:text-lg border-2 border-peach-soft duration-200 transform-gpu"
+                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-white text-slate-900 rounded-full font-bold text-base md:text-lg border border-peach-soft duration-200 transform-gpu"
               >
                 See What Else is Possible
                 <ArrowRight className="w-5 h-5" />

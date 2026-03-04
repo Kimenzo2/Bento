@@ -94,7 +94,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-100"
     >
-      <div className="bg-charcoal-soft text-white rounded-2xl border-2 border-peach-soft px-4 py-3 flex items-center gap-4">
+      <div className="bg-charcoal-soft text-white rounded-2xl border border-peach-soft px-4 py-3 flex items-center gap-4">
         {/* Selection info */}
         <div className="flex items-center gap-3 pr-4 border-r border-gray-700">
           <Button
@@ -205,7 +205,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white rounded-2xl border-2 border-peach-soft w-full max-w-sm overflow-hidden"
+          className="relative bg-white rounded-2xl border border-peach-soft w-full max-w-sm overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -327,7 +327,7 @@ export const SelectableCard: React.FC<SelectableCardProps> = ({
                             ${
                               isSelected
                                 ? 'bg-coral-burst text-white'
-                                : 'bg-white border-2 border-peach-soft'
+                                : 'bg-white border border-peach-soft'
                             }
                         `}
             >

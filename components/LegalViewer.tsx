@@ -104,8 +104,8 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
                 className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading font-medium text-sm transition-all duration-200 touch-manipulation
                   ${
                     isActive
-                      ? `${doc.bgColor} ${doc.color} border-2 border-current`
-                      : 'bg-white text-cocoa-light hover:bg-cream-soft border-2 border-transparent'
+                      ? `${doc.bgColor} ${doc.color} border border-current`
+                      : 'bg-white text-cocoa-light hover:bg-cream-soft border border-transparent'
                   }`}
               >
                 <Icon className="w-4 h-4" />

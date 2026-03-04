@@ -221,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: unknown) {
       console.error('[Auth] ID token sign-in exception:', err);
       console.error('[Auth] Exception message:', (err as Error)?.message);
-      console.error('[Auth] Exception stack:', err?.stack);
+      console.error('[Auth] Exception stack:', (err as Error)?.stack);
       return { data: null, error: err };
     }
   };

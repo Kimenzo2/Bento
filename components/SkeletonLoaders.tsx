@@ -21,7 +21,7 @@ export const SkeletonBase: React.FC<{ className?: string }> = ({ className = '' 
 
 // Book Card Skeleton
 export const BookCardSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-peach-soft overflow-hidden">
+  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-peach-soft overflow-hidden">
     <SkeletonBase className="h-48 w-full rounded-none" />
     <div className="p-4 space-y-3">
       <SkeletonBase className="h-6 w-3/4" />
@@ -83,7 +83,7 @@ export const EditorSkeleton: React.FC = () => (
 
 // Profile Card Skeleton
 export const ProfileCardSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-peach-soft">
+  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-peach-soft">
     <div className="flex items-center gap-4">
       <SkeletonBase className="w-16 h-16 rounded-full" />
       <div className="space-y-2">
@@ -120,7 +120,7 @@ export const IllustrationSkeleton: React.FC<{ aspectRatio?: string }> = ({
 
 // Generation Progress Skeleton
 export const GenerationProgressSkeleton: React.FC = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border-2 border-peach-soft max-w-md mx-auto">
+  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-peach-soft max-w-md mx-auto">
     <div className="text-center space-y-4">
       <SkeletonBase className="w-20 h-20 rounded-full mx-auto" />
       <SkeletonBase className="h-6 w-48 mx-auto" />

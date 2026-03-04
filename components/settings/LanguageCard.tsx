@@ -33,7 +33,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       onClick={onClick}
       disabled={isLoading}
       className={`
-        relative p-4 rounded-xl border-2 transition-all duration-200
+        relative p-4 rounded-xl border transition-all duration-200
         hover:scale-[1.02]
         focus:outline-none focus:ring-2 focus:ring-coral-burst focus:ring-offset-2
         disabled:opacity-50 disabled:cursor-not-allowed
@@ -98,7 +98,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-coral-burst border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border border-coral-burst border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </button>

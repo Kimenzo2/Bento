@@ -15,7 +15,7 @@ import { getUserProfile, invalidateProfileCache } from '../services/profileServi
 import { supabase } from '../services/supabaseClient';
 import { UserTier } from '../types';
 
-type CallbackStatus = 'verifying' | 'success' | 'activating' | 'failed' | 'no-reference';
+type CallbackStatus = 'verifying' | 'success' | 'activating' | 'failed' | 'no-reference' | 'pending';
 
 export const PaymentCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -88,7 +88,7 @@ export const PaymentCallback: React.FC = () => {
                 setStatus('success');
                 setMessage('Your subscription is active! Redirecting to your dashboard...');
               } else {
-                setStatus('pending' as 'pending');
+                setStatus('pending');
                 setMessage('Payment is still being processed. Your subscription will activate shortly. You can safely go to your dashboard.');
               }
               setTimeout(() => { window.location.href = '/'; }, 1500);
@@ -113,7 +113,7 @@ export const PaymentCallback: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base flex items-center justify-center px-6">
-      <div className="max-w-md w-full bg-white rounded-3xl border-2 border-peach-soft p-10 text-center">
+      <div className="max-w-md w-full bg-white rounded-3xl border border-peach-soft p-10 text-center">
         {/* Icon */}
         <div className="mb-6">
           {(status === 'verifying' || status === 'activating') && (

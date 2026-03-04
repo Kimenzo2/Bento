@@ -255,7 +255,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
-                  className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full"
+                  className="w-8 h-8 border border-purple-500/30 border-t-purple-500 rounded-full"
                 />
               </div>
             ) : notifications.length === 0 ? (

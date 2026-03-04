@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 
+interface NetworkInformation extends EventTarget {
+  effectiveType?: string;
+  type?: string;
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
+}
+
+interface NavigatorWithConnection extends Navigator {
+  connection?: NetworkInformation;
+  mozConnection?: NetworkInformation;
+  webkitConnection?: NetworkInformation;
+}
+
 interface NetworkStatus {
   isOnline: boolean;
   isSlowConnection: boolean;
@@ -23,10 +37,8 @@ export function useNetworkStatus(): NetworkStatus & {
 
   // Get connection info from Network Information API
   const getConnectionInfo = useCallback(() => {
-    const connection =
-      (navigator as unknown as Record<string, unknown>).connection ||
-      (navigator as unknown as Record<string, unknown>).mozConnection ||
-      (navigator as unknown as Record<string, unknown>).webkitConnection;
+    const nav = navigator as NavigatorWithConnection;
+    const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
 
     if (connection) {
       return {
@@ -37,7 +49,7 @@ export function useNetworkStatus(): NetworkStatus & {
         isSlowConnection:
           connection.effectiveType === 'slow-2g' ||
           connection.effectiveType === '2g' ||
-          (connection.rtt && connection.rtt > 500),
+          Boolean(connection.rtt && connection.rtt > 500),
       };
     }
     return {
@@ -92,10 +104,8 @@ export function useNetworkStatus(): NetworkStatus & {
     window.addEventListener('offline', updateStatus);
 
     // Listen for connection changes
-    const connection =
-      (navigator as unknown as Record<string, unknown>).connection ||
-      (navigator as unknown as Record<string, unknown>).mozConnection ||
-      (navigator as unknown as Record<string, unknown>).webkitConnection;
+    const nav = navigator as NavigatorWithConnection;
+    const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
 
     if (connection) {
       connection.addEventListener('change', updateStatus);

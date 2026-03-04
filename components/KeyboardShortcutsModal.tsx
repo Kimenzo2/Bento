@@ -253,7 +253,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
           <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
             <button
               onClick={() => setActiveCategory(null)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border-2 ${
+              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
                 activeCategory === null
                   ? 'bg-coral-burst text-white border-coral-burst'
                   : 'border-peach-soft text-cocoa-light hover:border-coral-burst/50'
@@ -265,7 +265,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
               <button
                 key={category}
                 onClick={() => setActiveCategory(category)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border-2 ${
+                className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
                   activeCategory === category
                     ? 'bg-coral-burst text-white border-coral-burst'
                     : 'border-peach-soft text-cocoa-light hover:border-coral-burst/50'
@@ -292,7 +292,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.02 }}
-                      className="flex items-center justify-between p-3 rounded-xl bg-cream-soft/50 border-2 border-peach-soft/30 hover:border-peach-soft transition-colors"
+                      className="flex items-center justify-between p-3 rounded-xl bg-cream-soft/50 border border-peach-soft/30 hover:border-peach-soft transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         {shortcut.icon && <span className="text-cocoa-light">{shortcut.icon}</span>}
@@ -303,7 +303,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
                       <div className="flex items-center gap-1">
                         {shortcut.keys.map((key, keyIdx) => (
                           <React.Fragment key={keyIdx}>
-                            <kbd className="px-2.5 py-1 bg-white border-2 border-peach-soft rounded-lg text-xs font-mono text-charcoal-soft">
+                            <kbd className="px-2.5 py-1 bg-white border border-peach-soft rounded-lg text-xs font-mono text-charcoal-soft">
                               {key}
                             </kbd>
                             {keyIdx < shortcut.keys.length - 1 && (
@@ -330,11 +330,11 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
         {/* Footer */}
         <DialogFooter className="flex-row items-center justify-between p-4 border-t-2 border-peach-soft/30 bg-cream-soft/50">
           <div className="flex items-center gap-2 text-sm text-cocoa-light">
-            <kbd className="px-2 py-1 bg-white border-2 border-peach-soft rounded text-xs">
+            <kbd className="px-2 py-1 bg-white border border-peach-soft rounded text-xs">
               Ctrl/⌘
             </kbd>
             <span>+</span>
-            <kbd className="px-2 py-1 bg-white border-2 border-peach-soft rounded text-xs">
+            <kbd className="px-2 py-1 bg-white border border-peach-soft rounded text-xs">
               ?
             </kbd>
             <span>to open this panel anytime</span>

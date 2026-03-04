@@ -193,7 +193,7 @@ export const CreativePersonaQuiz: React.FC = () => {
 
                   {/* Selection indicator */}
                   <div
-                    className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                    className={`absolute top-2 right-2 md:top-4 md:right-4 w-4 h-4 md:w-6 md:h-6 rounded-full border flex items-center justify-center transition-all duration-300 ${
                       isSelected ? 'border-white bg-white' : 'border-white/20'
                     }`}
                   >

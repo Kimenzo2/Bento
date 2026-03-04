@@ -561,7 +561,7 @@ const TierDetailEmpire: React.FC = () => {
         <FeatureExplorer tier={tierConfig} />
 
         {/* Includes Everything */}
-        <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-peach-soft">
+        <div className="mt-12 bg-white rounded-2xl p-8 border border-peach-soft">
           <h3 className="font-heading font-bold text-xl text-center mb-6">
             Plus Everything in Studio
           </h3>
@@ -596,7 +596,7 @@ const TierDetailEmpire: React.FC = () => {
         <WorkflowSteps steps={workflowSteps} gradient={tierConfig.gradient} />
 
         {/* Implementation Timeline */}
-        <div className="mt-16 bg-white rounded-2xl p-8 border-2 border-peach-soft">
+        <div className="mt-16 bg-white rounded-2xl p-8 border border-peach-soft">
           <h3 className="font-heading font-bold text-xl text-center mb-8">
             Typical Implementation Timeline
           </h3>
@@ -694,7 +694,7 @@ const TierDetailEmpire: React.FC = () => {
         background="bg-slate-50"
       >
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-8 border-2 border-peach-soft">
+          <div className="bg-white rounded-2xl p-8 border border-peach-soft">
             <h3 className="font-heading font-bold text-xl mb-6 flex items-center gap-2">
               <Shield className="w-6 h-6 text-gold-sunshine" />
               Certifications & Compliance
@@ -717,7 +717,7 @@ const TierDetailEmpire: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-8 border-2 border-peach-soft">
+          <div className="bg-white rounded-2xl p-8 border border-peach-soft">
             <h3 className="font-heading font-bold text-xl mb-6 flex items-center gap-2">
               <Lock className="w-6 h-6 text-gold-sunshine" />
               Security Features

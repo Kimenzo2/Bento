@@ -64,7 +64,7 @@ export const FeatureVideoStories: React.FC<{ tier: TierConfig }> = ({ tier: _tie
         >
           <motion.div
             layoutId={`story-${activeStory}`}
-            className="relative w-full max-w-md bg-charcoal-soft rounded-3xl overflow-hidden aspect-9/16 border-2 border-white/20"
+            className="relative w-full max-w-md bg-charcoal-soft rounded-3xl overflow-hidden aspect-9/16 border border-white/20"
             onClick={(e) => e.stopPropagation()}
           >
             <button

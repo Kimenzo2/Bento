@@ -49,7 +49,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
   }, [booksPerMonth, pagesPerBook, hourlyRate, tier.price.monthly]);
 
   return (
-    <div className="bg-white rounded-xl md:rounded-2xl border-2 border-peach-soft overflow-hidden my-8 md:my-16">
+    <div className="bg-white rounded-xl md:rounded-2xl border border-peach-soft overflow-hidden my-8 md:my-16">
       <div className={`bg-linear-to-r ${tier.gradient} p-1`}></div>
       <div className="p-4 sm:p-6 md:p-8 lg:p-12 grid lg:grid-cols-2 gap-6 md:gap-12">
         {/* Left: Inputs */}

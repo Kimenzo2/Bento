@@ -109,7 +109,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
   if (variant === 'grid') {
     return (
       <div
-        className="group relative bg-white rounded-xl sm:rounded-2xl border-2 border-peach-soft overflow-hidden transition-all duration-300 active:scale-[0.98] sm:hover:-translate-y-1"
+        className="group relative bg-white rounded-xl sm:rounded-2xl border border-peach-soft overflow-hidden transition-all duration-300 active:scale-[0.98] sm:hover:-translate-y-1"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onTouchStart={() => setIsHovered(true)}
@@ -375,7 +375,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
   // ─────────────────────────────────────────────────────────────────────────
   if (variant === 'featured') {
     return (
-      <div className="relative rounded-3xl overflow-hidden border-2 border-peach-soft">
+      <div className="relative rounded-3xl overflow-hidden border border-peach-soft">
         <img
           src={visual.image_url}
           alt={visual.title || visual.prompt}
@@ -428,7 +428,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
 
   // Default/Detail variant
   return (
-    <div className="bg-white rounded-2xl border-2 border-peach-soft overflow-hidden">
+    <div className="bg-white rounded-2xl border border-peach-soft overflow-hidden">
       <img src={visual.image_url} alt={visual.title || visual.prompt} className="w-full" />
       <div className="p-4">
         {showReactions && (

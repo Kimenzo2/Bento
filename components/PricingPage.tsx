@@ -79,7 +79,7 @@ const tiers: TierData[] = [
     icon: Briefcase,
     color: 'bg-coral-burst/10 text-coral-burst',
     buttonColor:
-      'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border-2 border-white/20 hover:scale-105',
+      'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border border-white/20 hover:scale-105',
     saveLabel: 'Save 17%',
     paystackPaymentUrl: 'https://paystack.shop/pay/akv70alb1x',
     planCode: 'PLN_09zg1ly5kg57niz',
@@ -215,7 +215,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`relative bg-white rounded-3xl p-8 border-2 transition-all duration-300 flex flex-col h-full
+              className={`relative bg-white rounded-3xl p-8 border transition-all duration-300 flex flex-col h-full
                 ${
                   tier.isPopular
                     ? 'border-gold-sunshine transform scale-105 z-10'

@@ -178,7 +178,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 variant="primary"
                 size="lg"
                 onClick={onStartTrial}
-                className={`${tier.gradient} border-2 hover:scale-105`}
+                className={`${tier.gradient} border hover:scale-105`}
               >
                 {ctaText}
                 <ArrowRight className="w-5 h-5" />
@@ -219,7 +219,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div
             className={`absolute inset-0 bg-linear-to-br ${tier.gradient} opacity-20 rounded-3xl blur-2xl`}
           />
-          <div className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-8 border-2 border-peach-soft">
+          <div className="relative bg-white/50 backdrop-blur-sm rounded-3xl p-8 border border-peach-soft">
             {heroImage ? (
               <img
                 src={heroImage}
@@ -306,7 +306,7 @@ export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, gradient }) 
     {features.map((feature, index) => (
       <div
         key={index}
-        className="group bg-white rounded-2xl p-6 transition-all duration-300 border-2 border-peach-soft hover:border-coral-burst/20"
+        className="group bg-white rounded-2xl p-6 transition-all duration-300 border border-peach-soft hover:border-coral-burst/20"
       >
         <div
           className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
@@ -343,7 +343,7 @@ export const TestimonialCard: React.FC<{ testimonial: Testimonial; gradient: str
   testimonial,
   gradient,
 }) => (
-  <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
+  <div className="bg-white rounded-2xl p-6 border border-peach-soft">
     <Quote
       className={`w-8 h-8 mb-4 bg-linear-to-br ${gradient} bg-clip-text text-coral-burst/30`}
     />
@@ -412,7 +412,7 @@ export const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ steps, gradient })
 
         {/* Image */}
         <div className="flex-1">
-          <div className="bg-white rounded-2xl p-4 border-2 border-peach-soft">
+          <div className="bg-white rounded-2xl p-4 border border-peach-soft">
             {step.image ? (
               <img src={step.image} alt={step.title} className="w-full rounded-xl" />
             ) : (
@@ -441,7 +441,7 @@ export const PersonaCards: React.FC<PersonaCardsProps> = ({ personas, gradient }
     {personas.map((persona, index) => (
       <div
         key={index}
-        className="bg-white rounded-2xl overflow-hidden border-2 border-peach-soft"
+        className="bg-white rounded-2xl overflow-hidden border border-peach-soft"
       >
         <div className={`h-2 bg-linear-to-r ${gradient}`} />
         <div className="p-6">
@@ -497,7 +497,7 @@ export const CaseStudyAccordion: React.FC<CaseStudyAccordionProps> = ({
       {caseStudies.map((study, index) => (
         <div
           key={index}
-          className="bg-white rounded-2xl overflow-hidden border-2 border-peach-soft"
+          className="bg-white rounded-2xl overflow-hidden border border-peach-soft"
         >
           {/* Header */}
           <Button
@@ -798,7 +798,7 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
             variant="ghost"
             size="lg"
             onClick={onContactSales}
-            className="bg-white/20 text-white border-2 border-white/30 hover:bg-white/30"
+            className="bg-white/20 text-white border border-white/30 hover:bg-white/30"
           >
             <Phone className="w-5 h-5" />
             Talk to Our Team

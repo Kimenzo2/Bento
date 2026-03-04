@@ -86,7 +86,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Warning Banner */}
-      <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 md:p-4">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 md:p-4">
         <div className="flex items-start gap-2 md:gap-3">
           <Wrench className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
           <div>
@@ -210,7 +210,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         <div className="space-y-3">
           <button
             onClick={handleResetSettings}
-            className="w-full flex items-center justify-between p-3 md:p-4 bg-white border-2 border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 active:bg-orange-100 transition-all group touch-manipulation"
+            className="w-full flex items-center justify-between p-3 md:p-4 bg-white border border-orange-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 active:bg-orange-100 transition-all group touch-manipulation"
           >
             <div className="flex items-center gap-2 md:gap-3">
               <RefreshCw className="w-5 h-5 text-orange-600" />
@@ -226,7 +226,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
 
           <button
             onClick={handleClearAllData}
-            className="w-full flex items-center justify-between p-3 md:p-4 bg-white border-2 border-red-200 rounded-xl hover:border-red-400 hover:bg-red-50 active:bg-red-100 transition-all group touch-manipulation"
+            className="w-full flex items-center justify-between p-3 md:p-4 bg-white border border-red-200 rounded-xl hover:border-red-400 hover:bg-red-50 active:bg-red-100 transition-all group touch-manipulation"
           >
             <div className="flex items-center gap-2 md:gap-3">
               <Terminal className="w-5 h-5 text-red-600" />

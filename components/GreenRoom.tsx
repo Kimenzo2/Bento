@@ -251,7 +251,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
               <div className="flex items-center gap-4">
                 {/* Character Avatar */}
                 <div className="relative">
-                  <div className="flex items-center justify-center overflow-hidden border-2 w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-600 border-emerald-400/50">
+                  <div className="flex items-center justify-center overflow-hidden border w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-600 border-emerald-400/50">
                     {persona?.avatarUrl ? (
                       <img
                         src={persona.avatarUrl}
@@ -262,7 +262,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                       <User className="text-white w-7 h-7" />
                     )}
                   </div>
-                  <div className="absolute w-4 h-4 border-2 rounded-full -bottom-1 -right-1 bg-emerald-500 border-slate-900 animate-pulse" />
+                  <div className="absolute w-4 h-4 border rounded-full -bottom-1 -right-1 bg-emerald-500 border-slate-900 animate-pulse" />
                 </div>
 
                 <div>
@@ -483,7 +483,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     whileTap={{ scale: 0.95 }}
                     onClick={handleSend}
                     disabled={!inputValue.trim() || isTyping}
-                    className="p-3 text-white transition-all bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl border-2 border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-3 text-white transition-all bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-5 h-5" />
                   </motion.button>

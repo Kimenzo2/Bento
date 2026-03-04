@@ -1,6 +1,7 @@
 import { CheckCircle } from 'lucide-react';
 import type React from 'react';
 import { useTheme } from '../../hooks/useTheme';
+import type { ThemeId } from '../../types/theme';
 
 const ThemeSelector: React.FC = () => {
   const { currentTheme, setTheme, availableThemes } = useTheme();
@@ -22,8 +23,8 @@ const ThemeSelector: React.FC = () => {
           return (
             <button
               key={theme.id}
-              onClick={() => setTheme(theme.id as string)}
-              className={`relative group text-left rounded-2xl p-4 transition-all duration-300 border-2 touch-manipulation
+              onClick={() => setTheme(theme.id as ThemeId)}
+              className={`relative group text-left rounded-2xl p-4 transition-all duration-300 border touch-manipulation
                 ${
                   isActive
                     ? 'border-coral-burst bg-white scale-[1.02]'

@@ -101,7 +101,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
       >
         <div className="w-full max-w-4xl h-full flex items-center justify-center">
           {/* Book Page - Mobile: Full height vertical stack, Desktop: Aspect ratio card */}
-          <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-3/4 bg-[#FFFCF8] border-2 border-peach-soft rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
+          <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-3/4 bg-[#FFFCF8] border border-peach-soft rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
             {/* Texture Overlay */}
             <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none"></div>
 
@@ -133,7 +133,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
                       variant="outline"
                       key={idx}
                       onClick={() => handleChoice(choice.targetPageNumber)}
-                      className="w-full py-3 sm:py-3 px-4 sm:px-6 border-2 border-charcoal-soft/20 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft sm:text-base flex justify-between group active:scale-95"
+                      className="w-full py-3 sm:py-3 px-4 sm:px-6 border border-charcoal-soft/20 bg-white hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft sm:text-base flex justify-between group active:scale-95"
                     >
                       {choice.text}
                       <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />

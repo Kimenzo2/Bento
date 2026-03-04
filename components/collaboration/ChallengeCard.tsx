@@ -201,7 +201,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 <Button
                   variant="primary"
                   onClick={() => onJoin?.(challenge)}
-                  className="bg-linear-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full hover:opacity-90 transition-opacity flex border-2 border-white/20"
+                  className="bg-linear-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full hover:opacity-90 transition-opacity flex border border-white/20"
                 >
                   <Trophy className="w-5 h-5" />
                   Join Challenge

@@ -167,7 +167,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
             transition={{ duration: 1, delay: 0.3 }}
             className="inline-block mb-6"
           >
-            <div className="w-24 h-24 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center border-2 border-white/20 relative">
+            <div className="w-24 h-24 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center border border-white/20 relative">
               <div className="absolute inset-0 bg-gold-sunshine/30 rounded-full animate-ping" />
               <PartyPopper className="w-12 h-12 text-white relative z-10" />
             </div>
@@ -192,7 +192,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
           transition={{ duration: 0.8, delay: 0.4 }}
           className="max-w-4xl mx-auto"
         >
-          <div className="bg-white rounded-4xl overflow-hidden border-2 border-peach-soft relative group">
+          <div className="bg-white rounded-4xl overflow-hidden border border-peach-soft relative group">
             {/* Glowing effect on hover */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
               <div className="absolute inset-0 bg-linear-to-r from-coral-burst/10 via-gold-sunshine/10 to-mint-breeze/10 animate-pulse" />
@@ -209,10 +209,10 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                   <img
                     src={project.coverImage}
                     alt={project.title}
-                    className="w-full aspect-3/4 object-cover rounded-2xl border-2 border-peach-soft"
+                    className="w-full aspect-3/4 object-cover rounded-2xl border border-peach-soft"
                   />
                 ) : (
-                  <div className="w-full aspect-3/4 bg-linear-to-br from-peach-soft to-yellow-butter rounded-2xl border-2 border-peach-soft flex items-center justify-center">
+                  <div className="w-full aspect-3/4 bg-linear-to-br from-peach-soft to-yellow-butter rounded-2xl border border-peach-soft flex items-center justify-center">
                     <Gift className="w-20 h-20 text-white opacity-50" />
                   </div>
                 )}
@@ -271,7 +271,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setIsViewerOpen(true)}
-                    className="w-full px-8 py-4 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-lg border-2 border-white/20 transition-all flex items-center justify-center gap-3 group"
+                    className="w-full px-8 py-4 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-lg border border-white/20 transition-all flex items-center justify-center gap-3 group"
                   >
                     <Eye className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     Read Your Story
@@ -282,7 +282,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => onNavigate(AppMode.EDITOR)}
-                      className="px-4 py-3 bg-white border-2 border-peach-soft text-charcoal-soft rounded-full font-heading font-bold hover:border-coral-burst transition-all"
+                      className="px-4 py-3 bg-white border border-peach-soft text-charcoal-soft rounded-full font-heading font-bold hover:border-coral-burst transition-all"
                       title="Edit Story"
                     >
                       <Edit3 className="w-5 h-5 mx-auto" />
@@ -291,7 +291,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleDownload}
-                      className="px-4 py-3 bg-white border-2 border-peach-soft text-charcoal-soft rounded-full font-heading font-bold hover:border-coral-burst transition-all"
+                      className="px-4 py-3 bg-white border border-peach-soft text-charcoal-soft rounded-full font-heading font-bold hover:border-coral-burst transition-all"
                       title="Download PDF"
                     >
                       <Download className="w-5 h-5 mx-auto" />
@@ -300,7 +300,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setShowKDPExportModal(true)}
-                      className="px-4 py-3 bg-linear-to-r from-orange-500 to-amber-500 text-white rounded-full font-heading font-bold border-2 border-white/20 transition-all"
+                      className="px-4 py-3 bg-linear-to-r from-orange-500 to-amber-500 text-white rounded-full font-heading font-bold border border-white/20 transition-all"
                       title="Export for Amazon KDP"
                     >
                       <BookOpen className="w-5 h-5 mx-auto" />
@@ -309,7 +309,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleShare}
-                      className="px-4 py-3 bg-white border-2 border-peach-soft text-charcoal-soft rounded-full font-heading font-bold hover:border-coral-burst transition-all"
+                      className="px-4 py-3 bg-white border border-peach-soft text-charcoal-soft rounded-full font-heading font-bold hover:border-coral-burst transition-all"
                       title="Share Story"
                     >
                       <Share2 className="w-5 h-5 mx-auto" />
@@ -333,7 +333,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onNavigate(AppMode.CREATION)}
-            className="px-8 py-3 bg-white text-coral-burst rounded-full font-heading font-bold transition-all border-2 border-peach-soft hover:border-coral-burst"
+            className="px-8 py-3 bg-white text-coral-burst rounded-full font-heading font-bold transition-all border border-peach-soft hover:border-coral-burst"
           >
             Create Another Masterpiece
           </motion.button>

@@ -354,7 +354,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             key={fw}
                             variant="outline"
                             onClick={() => setFramework(fw)}
-                            className={`flex flex-col items-center p-3 w-20 h-20 rounded-2xl border-2 ${
+                            className={`flex flex-col items-center p-3 w-20 h-20 rounded-2xl border ${
                               framework === fw
                                 ? 'border-coral-burst bg-linear-to-br from-coral-light/30 to-coral-burst/10 text-coral-burst scale-105'
                                 : 'border-peach-soft/50 bg-white/80 text-cocoa-light hover:border-coral-light hover:text-charcoal-soft'
@@ -442,7 +442,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                             key={approach.value}
                             variant="outline"
                             onClick={() => setPedagogicalApproach(approach.value)}
-                            className={`px-4 py-2.5 border-2 text-left ${
+                            className={`px-4 py-2.5 border text-left ${
                               pedagogicalApproach === approach.value
                                 ? 'border-coral-burst bg-linear-to-br from-coral-light/30 to-coral-burst/10 scale-[1.02]'
                                 : 'border-peach-soft/50 bg-white/80 hover:border-coral-light'
@@ -543,7 +543,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                           >
                             <div className="flex items-center gap-3">
                               <div
-                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                                   selectedStandards.includes(standard.code)
                                     ? 'bg-coral-burst border-coral-burst'
                                     : 'border-cocoa-light'
@@ -648,7 +648,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                                 key={level}
                                 variant="outline"
                                 onClick={() => setReadingLevel(level)}
-                                className={`p-3 border-2 ${
+                                className={`p-3 border ${
                                   readingLevel === level
                                     ? 'border-coral-burst bg-coral-light/20 text-coral-burst'
                                     : 'border-peach-soft/50 bg-cream-base text-cocoa-light hover:border-coral-light hover:text-charcoal-soft'
@@ -698,7 +698,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                                 key={style.value}
                                 variant="outline"
                                 onClick={() => toggleLearningStyle(style.value)}
-                                className={`p-3 border-2 text-left ${
+                                className={`p-3 border text-left ${
                                   learningStyles.includes(style.value)
                                     ? 'border-coral-burst bg-coral-light/20'
                                     : 'border-peach-soft/50 bg-cream-base hover:border-coral-light'
@@ -966,7 +966,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                 {isGenerating && (
                   <div className="mb-4">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      <div className="animate-spin w-5 h-5 border border-white border-t-transparent rounded-full" />
                       <span className="text-white text-xs md:text-sm font-bold">
                         {generationStage}
                       </span>

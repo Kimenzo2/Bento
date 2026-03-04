@@ -44,7 +44,7 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
             variant="primary"
             onClick={onGenerate}
             disabled={isGenerating}
-            className="px-6 py-2 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium border-2 border-white/20 flex disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium border border-white/20 flex disabled:cursor-not-allowed"
           >
             {isGenerating ? (
               <>

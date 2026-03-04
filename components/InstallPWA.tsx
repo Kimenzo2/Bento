@@ -55,7 +55,7 @@ const InstallPWA: React.FC = () => {
             onClick={onClick}
             variant="default"
             size="sm"
-            className="bg-coral-burst text-white px-4 py-2 text-xs hover:bg-coral-hover border-2 border-white/20"
+            className="bg-coral-burst text-white px-4 py-2 text-xs hover:bg-coral-hover border border-white/20"
           >
             Install
           </Button>

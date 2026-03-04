@@ -80,7 +80,7 @@ const TopicInputStep: React.FC<TopicInputStepProps> = ({ request, onChange, onNe
             <button
               key={age.id}
               onClick={() => onChange({ ...request, ageGroup: age.id })}
-              className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-left group relative overflow-hidden min-h-11 active:scale-95 ${
+              className={`p-3 sm:p-4 rounded-xl border transition-all text-left group relative overflow-hidden min-h-11 active:scale-95 ${
                 request.ageGroup === age.id
                   ? 'border-coral-burst bg-coral-burst/5'
                   : 'border-peach-soft bg-white hover:border-coral-burst/50'
@@ -110,7 +110,7 @@ const TopicInputStep: React.FC<TopicInputStepProps> = ({ request, onChange, onNe
             <button
               key={type.id}
               onClick={() => onChange({ ...request, type: type.id })}
-              className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all text-center text-xs sm:text-sm font-medium min-h-11 active:scale-95 ${
+              className={`p-2.5 sm:p-3 rounded-xl border transition-all text-center text-xs sm:text-sm font-medium min-h-11 active:scale-95 ${
                 request.type === type.id
                   ? 'border-gold-sunshine bg-gold-sunshine/10 text-charcoal-soft'
                   : 'border-peach-soft bg-white text-cocoa-light hover:border-gold-sunshine/50'
@@ -128,7 +128,7 @@ const TopicInputStep: React.FC<TopicInputStepProps> = ({ request, onChange, onNe
         <button
           onClick={onNext}
           disabled={!request.topic.trim()}
-          className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-sm sm:text-base border-2 border-white/20 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-95 min-h-11"
+          className="flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-sm sm:text-base border border-white/20 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-95 min-h-11"
         >
           Next Step
           <ArrowRight className="w-5 h-5" />

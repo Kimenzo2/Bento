@@ -101,7 +101,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
 // Card skeleton for loading states
 export const CardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`bg-white rounded-2xl border-2 border-peach-soft p-4 ${className}`}>
+  <div className={`bg-white rounded-2xl border border-peach-soft p-4 ${className}`}>
     <div className="flex items-center gap-3 mb-4">
       <Skeleton variant="circular" width={40} height={40} />
       <div className="flex-1">

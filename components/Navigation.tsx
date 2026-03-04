@@ -86,7 +86,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           className="flex items-center gap-3 group cursor-pointer"
           onClick={() => handleModeChange(AppMode.DASHBOARD)}
         >
-          <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-peach-soft group-hover:scale-105 transition-transform">
+          <div className="w-10 h-10 rounded-xl overflow-hidden border border-peach-soft group-hover:scale-105 transition-transform">
             <img src="/genesis-icon.jpg" alt="Genesis" className="w-full h-full object-cover" />
           </div>
           <span className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft tracking-tight">
@@ -120,7 +120,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
           <Button
             variant="outline"
             onClick={() => handleModeChange(AppMode.GAMIFICATION)}
-            className="hidden md:flex px-3 py-1.5 bg-white border-2 border-peach-soft hover:border-gold-sunshine"
+            className="hidden md:flex px-3 py-1.5 bg-white border border-peach-soft hover:border-gold-sunshine"
             title={`You are on the ${tierBadge.label} plan`}
           >
             <Badge
@@ -162,7 +162,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
               console.warn('Navigating to SETTINGS');
               handleModeChange(AppMode.SETTINGS);
             }}
-            className="flex p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border-2 border-peach-soft hover:border-coral-burst/30 group min-h-11"
+            className="flex p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-white border border-peach-soft hover:border-coral-burst/30 group min-h-11"
             aria-label="Account"
           >
             <Avatar className="w-8 h-8 group-hover:scale-110 transition-transform">
@@ -230,7 +230,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
             className={`flex gap-4 px-6 py-4 rounded-2xl font-heading text-lg min-h-14
               ${
                 currentMode === item.mode
-                  ? 'bg-white text-coral-burst border-2 border-peach-soft'
+                  ? 'bg-white text-coral-burst border border-peach-soft'
                   : 'text-cocoa-light hover:bg-white/50'
               }`}
           >

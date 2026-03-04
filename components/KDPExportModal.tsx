@@ -207,7 +207,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
                   <button
                     key={size.value}
                     onClick={() => setTrimSize(size.value as TrimSize)}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                    className={`p-4 rounded-xl border transition-all text-left ${
                       trimSize === size.value
                         ? 'border-coral-burst bg-coral-burst/10'
                         : 'border-peach-soft hover:border-coral-burst/50'
@@ -319,7 +319,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
 
           {/* Tier Restriction */}
           {userTier === UserTier.SPARK && (
-            <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border-2 border-gold-sunshine rounded-2xl">
+            <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border border-gold-sunshine rounded-2xl">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
                   <FileText className="w-5 h-5 text-white" />
@@ -355,7 +355,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
           >
             {isExporting ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border border-white border-t-transparent rounded-full animate-spin" />
                 <div className="flex flex-col items-start">
                   <span>{exportProgress}%</span>
                   <span className="text-xs text-white/80">{progressMessage}</span>

@@ -48,7 +48,7 @@ const FontPreviewCard: React.FC<FontPreviewCardProps> = ({ pairing, isActive, on
       variant="ghost"
       id={`font-card-${pairing.id}`}
       onClick={onSelect}
-      className={`relative w-full text-left group rounded-2xl border-2 overflow-hidden h-auto p-0
+      className={`relative w-full text-left group rounded-2xl border overflow-hidden h-auto p-0
         ${
           isActive
             ? 'border-coral-burst bg-white scale-[1.02]'

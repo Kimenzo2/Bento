@@ -438,7 +438,7 @@ const VersionCard: React.FC<VersionCardProps> = ({
       {/* Timeline Line */}
       <div className="flex flex-col items-center">
         <div
-          className={`w-4 h-4 rounded-full border-2 z-10 ${
+          className={`w-4 h-4 rounded-full border z-10 ${
             isFirst
               ? 'bg-green-500 border-green-400'
               : isCompareTarget
@@ -707,13 +707,13 @@ const VersionDetailPanel: React.FC<VersionDetailPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Settings</p>
             <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
-              {(version.data as Record<string, unknown>).prompt && (
+              {!!(version.data as Record<string, unknown>).prompt && (
                 <div>
                   <span className="text-gray-400">Prompt:</span>
                   <p className="text-white line-clamp-3">{String((version.data as Record<string, unknown>).prompt)}</p>
                 </div>
               )}
-              {(version.data as Record<string, unknown>).style && (
+              {!!(version.data as Record<string, unknown>).style && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">Style:</span>
                   <span className="text-white">{String((version.data as Record<string, unknown>).style)}</span>

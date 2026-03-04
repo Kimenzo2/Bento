@@ -15,7 +15,7 @@ const Input = React.forwardRef<
     <input
       type={type}
       className={cn(
-        "flex h-11 w-full rounded-xl border-2 border-peach-soft bg-white px-4 py-2.5 text-sm font-body text-charcoal-soft transition-all duration-200",
+        "flex h-11 w-full rounded-xl border border-peach-soft bg-white px-4 py-2.5 text-sm font-body text-charcoal-soft transition-all duration-200",
         "placeholder:text-cocoa-light/50",
         "focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 focus:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-cream-base",
@@ -40,7 +40,7 @@ const Textarea = React.forwardRef<
   return (
     <textarea
       className={cn(
-        "flex min-h-[100px] w-full rounded-xl border-2 border-peach-soft bg-white px-4 py-3 text-sm font-body text-charcoal-soft transition-all duration-200 resize-none",
+        "flex min-h-[100px] w-full rounded-xl border border-peach-soft bg-white px-4 py-3 text-sm font-body text-charcoal-soft transition-all duration-200 resize-none",
         "placeholder:text-cocoa-light/50",
         "focus:border-coral-burst focus:ring-4 focus:ring-coral-burst/10 focus:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-cream-base",

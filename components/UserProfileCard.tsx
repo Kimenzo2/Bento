@@ -28,7 +28,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
   };
 
   return (
-    <div className="absolute z-50 bg-white dark:bg-[#1A1A1A] rounded-2xl border-2 border-peach-soft p-4 w-72 animate-fadeIn">
+    <div className="absolute z-50 bg-white dark:bg-[#1A1A1A] rounded-2xl border border-peach-soft p-4 w-72 animate-fadeIn">
       {/* Close button */}
       <Button
         onClick={onClose}
@@ -51,7 +51,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
           </div>
           {user.status && (
             <div
-              className={`absolute bottom-0 right-0 w-4 h-4 ${statusColors[user.status]} rounded-full border-2 border-white dark:border-[#1A1A1A]`}
+              className={`absolute bottom-0 right-0 w-4 h-4 ${statusColors[user.status]} rounded-full border border-white dark:border-[#1A1A1A]`}
             />
           )}
         </div>

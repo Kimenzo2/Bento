@@ -76,7 +76,7 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
 
         <div className="inline-flex bg-gray-100 p-1 rounded-full relative">
           <div
-            className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-white border-2 border-peach-soft transition-all duration-300 ${activeTab === 'with' ? 'left-1' : 'left-[49%]'}`}
+            className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-white border border-peach-soft transition-all duration-300 ${activeTab === 'with' ? 'left-1' : 'left-[49%]'}`}
           />
           <Button
             variant="ghost"
@@ -122,7 +122,7 @@ export const DayInLifeTimeline: React.FC<DayInLifeTimelineProps> = ({ tier }) =>
                 <div
                   className={`w-full md:w-1/2 p-6 rounded-2xl border transition-all duration-500 ${
                     isWith
-                      ? `bg-white border-2 border-${tier.accentColor}-200 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
+                      ? `bg-white border border-${tier.accentColor}-200 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
                       : `bg-gray-50 border-gray-200 grayscale opacity-80 md:${index % 2 === 0 ? 'ml-auto' : 'mr-auto'}`
                   }`}
                 >

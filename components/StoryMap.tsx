@@ -190,7 +190,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
                     setSelectedNode(index);
                   }}
                   className={`
-                                        w-64 bg-slate-800 rounded-xl border-2 overflow-hidden cursor-pointer transition-all shrink-0
+                                        w-64 bg-slate-800 rounded-xl border overflow-hidden cursor-pointer transition-all shrink-0
                                         ${
                                           selectedNode === index
                                             ? 'border-emerald-500 ring-2 ring-emerald-500/30'
@@ -260,7 +260,7 @@ const StoryMap: React.FC<StoryMapProps> = ({
                 onClick={handleAddNewPage}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-16 h-16 rounded-full border-2 border-dashed border-slate-700 flex items-center justify-center text-slate-600 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all mt-24 cursor-pointer"
+                className="w-16 h-16 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-slate-600 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all mt-24 cursor-pointer"
                 title="Add new page"
               >
                 <Plus className="w-6 h-6" />

@@ -317,7 +317,7 @@ export const OnboardingPricing: React.FC = () => {
                   whileTap={{ scale: processingTier ? 1 : 0.98 }}
                   className={`w-full py-2.5 md:py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                     tier.isPopular
-                      ? `bg-linear-to-r ${tier.gradient} text-white border-2 border-white/20`
+                      ? `bg-linear-to-r ${tier.gradient} text-white border border-white/20`
                       : tier.priceMonthly === 0
                         ? 'bg-white/10 text-white/70 hover:bg-white/20'
                         : 'bg-white/10 text-white hover:bg-white/20'

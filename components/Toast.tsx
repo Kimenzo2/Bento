@@ -42,7 +42,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }
     <div
       role="alert"
       aria-live="assertive"
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${colors[type]} animate-slideIn max-w-md`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${colors[type]} animate-slideIn max-w-md`}
     >
       <div className={iconColors[type]}>{icons[type]}</div>
       <p className="font-medium text-sm flex-1">{message}</p>

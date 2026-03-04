@@ -248,7 +248,7 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-cream-soft/50 border-2 border-peach-soft/30 hover:border-peach-soft transition-colors"
+                  className="flex items-start gap-3 p-3 rounded-xl bg-cream-soft/50 border border-peach-soft/30 hover:border-peach-soft transition-colors"
                 >
                   <div className="mt-0.5">{getTypeIcon(change.type)}</div>
                   <div className="flex-1">

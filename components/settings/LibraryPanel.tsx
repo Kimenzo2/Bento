@@ -127,7 +127,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
       onClick={() => setActiveTab(id)}
       className={`px-4 py-3 ${
         activeTab === id
-          ? 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border-2 border-white/20'
+          ? 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border border-white/20'
           : 'bg-cream-soft text-cocoa-light hover:bg-peach-soft/50 hover:text-charcoal-soft'
       }`}
     >
@@ -552,7 +552,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
 
             {/* Content card */}
             <div
-              className="bg-white rounded-2xl border-2 border-peach-soft max-w-3xl w-full mx-4 my-16 p-8 max-h-[80vh] overflow-auto"
+              className="bg-white rounded-2xl border border-peach-soft max-w-3xl w-full mx-4 my-16 p-8 max-h-[80vh] overflow-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-6">
@@ -611,7 +611,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                       <div className="relative pl-6 border-l-2 border-purple-200 space-y-4">
                         {viewingInfographic.data.content.timelineEvents.map((event, idx) => (
                           <div key={idx} className="relative">
-                            <div className="absolute -left-[25px] w-4 h-4 rounded-full bg-purple-500 border-2 border-white"></div>
+                            <div className="absolute -left-[25px] w-4 h-4 rounded-full bg-purple-500 border border-white"></div>
                             <div className="bg-cream-soft rounded-xl p-4">
                               <span className="text-xs font-bold text-purple-600">
                                 {event.date}

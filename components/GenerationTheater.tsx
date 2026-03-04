@@ -196,7 +196,7 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
           <Button
             onClick={onCancel}
             variant="outline"
-            className="mt-8 px-6 py-2.5 rounded-full border-2 border-peach-soft text-cocoa-light hover:bg-red-50 hover:border-red-300 hover:text-red-500"
+            className="mt-8 px-6 py-2.5 rounded-full border border-peach-soft text-cocoa-light hover:bg-red-50 hover:border-red-300 hover:text-red-500"
           >
             Cancel Generation
           </Button>

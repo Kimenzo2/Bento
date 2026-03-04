@@ -544,7 +544,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                         variant="outline"
                         key={choice.id}
                         onClick={() => handleChoiceSelect(choice.id)}
-                        className={`w-full p-4 text-left border-2 h-auto ${
+                        className={`w-full p-4 text-left border h-auto ${
                           selectedChoices.includes(choice.id)
                             ? 'border-purple-500 bg-purple-500/20'
                             : 'border-gray-600 bg-gray-800/50 hover:border-purple-400'
@@ -552,7 +552,7 @@ export const CurriculumAssessment: React.FC<CurriculumAssessmentProps> = ({
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                            className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
                               selectedChoices.includes(choice.id)
                                 ? 'border-purple-500 bg-purple-500'
                                 : 'border-gray-500'

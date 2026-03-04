@@ -26,7 +26,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
       </div>
 
       {/* Level Progress Header */}
-      <div className="bg-white rounded-3xl p-8 mb-10 border-2 border-peach-soft relative overflow-hidden">
+      <div className="bg-white rounded-3xl p-8 mb-10 border border-peach-soft relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gold-sunshine/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
 
         <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
@@ -76,7 +76,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Daily Challenges */}
-        <div className="md:col-span-2 bg-white rounded-3xl border-2 border-peach-soft p-6">
+        <div className="md:col-span-2 bg-white rounded-3xl border border-peach-soft p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2">
               <Target className="w-6 h-6 text-coral-burst" /> Daily Challenges
@@ -90,11 +90,11 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
             {gameState.dailyChallenges.map((challenge) => (
               <div
                 key={challenge.id}
-                className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${challenge.completed ? 'bg-mint-breeze/20 border-mint-breeze' : 'bg-cream-soft border-peach-soft hover:border-coral-burst/50'}`}
+                className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${challenge.completed ? 'bg-mint-breeze/20 border-mint-breeze' : 'bg-cream-soft border-peach-soft hover:border-coral-burst/50'}`}
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${challenge.completed ? 'bg-green-500 border-green-500 text-white' : 'border-cocoa-light'}`}
+                    className={`w-6 h-6 rounded-full border flex items-center justify-center ${challenge.completed ? 'bg-green-500 border-green-500 text-white' : 'border-cocoa-light'}`}
                   >
                     {challenge.completed && <CheckIcon />}
                   </div>
@@ -126,7 +126,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
         </div>
 
         {/* Leaderboard Teaser */}
-        <div className="bg-white rounded-3xl border-2 border-peach-soft p-6">
+        <div className="bg-white rounded-3xl border border-peach-soft p-6">
           <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2 mb-6">
             <TrendingUp className="w-6 h-6 text-blue-400" /> Top Creators
           </h2>
@@ -154,7 +154,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
       </div>
 
       {/* Badges Grid */}
-      <div className="mt-8 bg-white rounded-3xl border-2 border-peach-soft p-8">
+      <div className="mt-8 bg-white rounded-3xl border border-peach-soft p-8">
         <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2 mb-8">
           <Star className="w-6 h-6 text-purple-400" /> Achievements
         </h2>
@@ -165,8 +165,8 @@ const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode })
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-3 transition-all duration-300 
                         ${
                           badge.unlocked
-                            ? 'bg-linear-to-br from-cream-base to-white border-2 border-gold-sunshine'
-                            : 'bg-gray-100 border-2 border-transparent grayscale opacity-50'
+                            ? 'bg-linear-to-br from-cream-base to-white border border-gold-sunshine'
+                            : 'bg-gray-100 border border-transparent grayscale opacity-50'
                         } group-hover:scale-110`}
               >
                 <span className="text-3xl">

@@ -249,7 +249,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
         </p>
 
         {showDeleteConfirm ? (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
             <div className="flex items-start gap-2 md:gap-3">
               <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600 shrink-0 mt-0.5" />
               <div className="min-w-0">
@@ -271,7 +271,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 bg-white border-2 border-gray-300 text-gray-700 font-bold py-3 md:py-2 px-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation order-2 sm:order-1"
+                className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 md:py-2 px-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation order-2 sm:order-1"
               >
                 Cancel
               </button>

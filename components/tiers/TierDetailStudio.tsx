@@ -474,7 +474,7 @@ const TierDetailStudio: React.FC = () => {
         <div className="space-y-12">
           {/* Value Proposition Grid */}
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
+            <div className="bg-white rounded-2xl p-6 border border-peach-soft">
               <TrendingUp className="w-10 h-10 text-coral-burst mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Scale Revenue</h3>
               <p className="text-charcoal-soft/70 text-sm">
@@ -482,14 +482,14 @@ const TierDetailStudio: React.FC = () => {
                 stream.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
+            <div className="bg-white rounded-2xl p-6 border border-peach-soft">
               <Users className="w-10 h-10 text-coral-burst mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Empower Teams</h3>
               <p className="text-charcoal-soft/70 text-sm">
                 5 seats let your whole team create. No bottlenecks, no waiting for one illustrator.
               </p>
             </div>
-            <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft">
+            <div className="bg-white rounded-2xl p-6 border border-peach-soft">
               <Building2 className="w-10 h-10 text-coral-burst mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Protect Brand</h3>
               <p className="text-charcoal-soft/70 text-sm">
@@ -535,7 +535,7 @@ const TierDetailStudio: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-6 border-2 border-peach-soft">
+              <div className="bg-white rounded-xl p-6 border border-peach-soft">
                 <div className="text-center">
                   <div className="text-5xl font-heading font-bold bg-linear-to-r from-coral-burst to-gold-sunshine bg-clip-text text-transparent">
                     $180,000+

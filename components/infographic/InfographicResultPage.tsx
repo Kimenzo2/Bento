@@ -119,7 +119,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
               title={isSaved ? 'Saved to Library' : 'Save to Library'}
             >
               {isSaving ? (
-                <div className="w-4 h-4 border-2 border-coral-burst/30 border-t-coral-burst rounded-full animate-spin" />
+                <div className="w-4 h-4 border border-coral-burst/30 border-t-coral-burst rounded-full animate-spin" />
               ) : isSaved ? (
                 <Check className="w-4 h-4" />
               ) : (

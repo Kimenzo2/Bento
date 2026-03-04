@@ -44,7 +44,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
         <div className="w-24"></div> {/* Spacer */}
       </div>
 
-      <div className="bg-white rounded-4xl overflow-hidden border-2 border-peach-soft">
+      <div className="bg-white rounded-4xl overflow-hidden border border-peach-soft">
         {/* Tabs */}
         <div className="flex border-b border-peach-soft/30">
           <Button
@@ -144,7 +144,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                     ].map((color, i) => (
                       <div
                         key={i}
-                        className="w-8 h-8 rounded-full border-2 border-white/20"
+                        className="w-8 h-8 rounded-full border border-white/20"
                         style={{ backgroundColor: color }}
                         title={color}
                       ></div>
@@ -161,7 +161,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
               {editedBlueprint.characterNeeds.map((char, idx) => (
                 <div
                   key={idx}
-                  className="bg-white border-2 border-peach-soft rounded-2xl p-6 hover:border-coral-burst transition-colors group"
+                  className="bg-white border border-peach-soft rounded-2xl p-6 hover:border-coral-burst transition-colors group"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <Input
@@ -263,7 +263,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
             size="lg"
             onClick={handleConfirm}
             disabled={isGenerating}
-            className={`rounded-full border-2 border-white/20 hover:-translate-y-1 flex text-lg
+            className={`rounded-full border border-white/20 hover:-translate-y-1 flex text-lg
                             ${
                               isGenerating
                                 ? 'bg-cocoa-light text-white opacity-70'
@@ -272,7 +272,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
           >
             {isGenerating ? (
               <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
                 Generating Assets...
               </>
             ) : (

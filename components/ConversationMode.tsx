@@ -321,7 +321,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                 <Button
                   variant="primary"
                   onClick={handleGenerate}
-                  className="px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white flex hover:from-purple-600 hover:to-pink-600 border-2 border-white/20"
+                  className="px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white flex hover:from-purple-600 hover:to-pink-600 border border-white/20"
                 >
                   <Wand2 className="w-5 h-5" />
                   Create Book

@@ -300,7 +300,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
         <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-peach-soft w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col"
+          className="relative bg-white dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -523,7 +523,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                     >
                       {/* QR Code Display */}
                       <div className="flex flex-col items-center p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                        <div className="bg-white p-4 rounded-2xl border-2 border-peach-soft">
+                        <div className="bg-white p-4 rounded-2xl border border-peach-soft">
                           <img
                             src={generateQRCodeUrl(shareLink.url, 200)}
                             alt="QR Code"
@@ -598,7 +598,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                           Preview
                         </p>
                         <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800">
-                          <div className="bg-white dark:bg-gray-900 rounded-lg border-2 border-peach-soft p-4 text-center">
+                          <div className="bg-white dark:bg-gray-900 rounded-lg border border-peach-soft p-4 text-center">
                             <div className="w-full h-32 bg-linear-to-br from-coral-burst/20 to-gold-sunshine/20 rounded-lg flex items-center justify-center">
                               <span className="text-gray-400 text-sm">📖 {book.title}</span>
                             </div>

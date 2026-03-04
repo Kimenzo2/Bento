@@ -336,7 +336,7 @@ export const PersonalizationQuiz: React.FC = () => {
 
                       {/* Selection indicator */}
                       <div
-                        className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                        className={`shrink-0 w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300 ${
                           isSelected ? 'border-white bg-white' : 'border-white/30'
                         }`}
                       >

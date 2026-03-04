@@ -271,7 +271,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-md bg-white rounded-2xl p-6 border-2 border-blue-200"
+            className="w-full max-w-md bg-white rounded-2xl p-6 border border-blue-200"
           >
             <p className="text-lg font-bold text-charcoal-soft mb-4">
               {learningContent.quiz.question}
@@ -285,7 +285,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
                   disabled={!!quizFeedback}
                   whileHover={{ scale: quizFeedback ? 1 : 1.02 }}
                   whileTap={{ scale: quizFeedback ? 1 : 0.98 }}
-                  className={`w-full p-4 rounded-xl text-left transition-all border-2 ${
+                  className={`w-full p-4 rounded-xl text-left transition-all border ${
                     selectedAnswer === option
                       ? quizFeedback?.correct
                         ? 'border-green-500 bg-green-50 text-green-800'
@@ -308,8 +308,8 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
                 animate={{ opacity: 1, scale: 1 }}
                 className={`mt-4 p-4 rounded-xl ${
                   quizFeedback.correct
-                    ? 'bg-green-100 border-2 border-green-500'
-                    : 'bg-yellow-100 border-2 border-yellow-500'
+                    ? 'bg-green-100 border border-green-500'
+                    : 'bg-yellow-100 border border-yellow-500'
                 }`}
               >
                 <p
@@ -331,7 +331,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={togglePause}
-              className="p-3 bg-blue-500 text-white rounded-full border-2 border-white/20 hover:bg-blue-600 transition-colors"
+              className="p-3 bg-blue-500 text-white rounded-full border border-white/20 hover:bg-blue-600 transition-colors"
               title={isPaused ? 'Resume' : 'Pause'}
             >
               {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
@@ -340,7 +340,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={stopTutoring}
-              className="p-3 bg-red-500 text-white rounded-full border-2 border-white/20 hover:bg-red-600 transition-colors"
+              className="p-3 bg-red-500 text-white rounded-full border border-white/20 hover:bg-red-600 transition-colors"
               title="Stop"
             >
               <VolumeX className="w-5 h-5" />
@@ -349,7 +349,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={restartTutoring}
-              className="p-3 bg-purple-500 text-white rounded-full border-2 border-white/20 hover:bg-purple-600 transition-colors"
+              className="p-3 bg-purple-500 text-white rounded-full border border-white/20 hover:bg-purple-600 transition-colors"
               title="Restart"
             >
               <RotateCcw className="w-5 h-5" />
@@ -360,7 +360,7 @@ export const InteractiveCharacterTutor: React.FC<InteractiveCharacterTutorProps>
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={startTutoring}
-            className="px-6 py-3 bg-linear-to-r from-blue-500 to-purple-500 text-white rounded-full border-2 border-white/20 transition-all font-bold flex items-center gap-2"
+            className="px-6 py-3 bg-linear-to-r from-blue-500 to-purple-500 text-white rounded-full border border-white/20 transition-all font-bold flex items-center gap-2"
           >
             <Volume2 className="w-5 h-5" />
             Start Learning

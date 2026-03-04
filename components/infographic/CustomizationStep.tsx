@@ -76,7 +76,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
               <button
                 key={style.id}
                 onClick={() => onChange({ ...request, style: style.id })}
-                className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-left min-h-11 active:scale-95 ${
+                className={`p-3 sm:p-4 rounded-xl border transition-all text-left min-h-11 active:scale-95 ${
                   request.style === style.id
                     ? 'border-coral-burst'
                     : 'border-peach-soft bg-white hover:border-coral-burst/50'
@@ -105,7 +105,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
               <button
                 key={char.id}
                 onClick={() => onChange({ ...request, guideCharacter: char.id })}
-                className={`p-3 sm:p-4 lg:p-5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 sm:gap-2 aspect-square min-h-11 active:scale-95 ${
+                className={`p-3 sm:p-4 lg:p-5 rounded-xl border transition-all flex flex-col items-center justify-center gap-1.5 sm:gap-2 aspect-square min-h-11 active:scale-95 ${
                   request.guideCharacter === char.id
                     ? 'border-gold-sunshine bg-gold-sunshine/10'
                     : 'border-peach-soft bg-white hover:border-gold-sunshine/50'
@@ -160,7 +160,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
         </button>
         <button
           onClick={onGenerate}
-          className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-sm sm:text-base border-2 border-white/20 hover:-translate-y-1 transition-all min-h-11 active:scale-95"
+          className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-sm sm:text-base border border-white/20 hover:-translate-y-1 transition-all min-h-11 active:scale-95"
         >
           <Wand2 className="w-5 h-5" />
           Generate Infographic

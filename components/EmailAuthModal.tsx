@@ -51,14 +51,15 @@ const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose, _onSuc
       }
     } catch (err: unknown) {
       console.error('[EmailAuth] Error:', err);
+      const authErr = err as Record<string, unknown>;
       let errorMessage =
-        (err as Error)?.message || err.error_description || 'Something went wrong. Please try again.';
+        (err as Error)?.message || String(authErr?.error_description ?? '') || 'Something went wrong. Please try again.';
 
-      if (errorMessage === '{}' || (typeof err === 'object' && Object.keys(err).length === 0)) {
+      if (errorMessage === '{}' || (typeof err === 'object' && err !== null && Object.keys(err as Record<string, unknown>).length === 0)) {
         errorMessage = 'Unable to send link. Please check your network or try again later.';
       }
 
-      if (errorMessage.includes('Rate limit') || err.status === 429) {
+      if (errorMessage.includes('Rate limit') || authErr?.status === 429) {
         errorMessage = 'Too many attempts. Please wait a moment before trying again.';
       }
 
@@ -109,12 +110,12 @@ const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose, _onSuc
         <div className="px-6 pb-6 space-y-5">
           {/* Error/Success Messages */}
           {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl text-center border-2 border-red-100 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+            <div className="p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl text-center border border-red-100 animate-in fade-in-0 slide-in-from-top-1 duration-200">
               {error}
             </div>
           )}
           {successMessage && (
-            <div className="p-3 bg-green-50 text-green-600 text-xs font-bold rounded-xl text-center border-2 border-green-100 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+            <div className="p-3 bg-green-50 text-green-600 text-xs font-bold rounded-xl text-center border border-green-100 animate-in fade-in-0 slide-in-from-top-1 duration-200">
               {successMessage}
             </div>
           )}

@@ -307,8 +307,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       className={`shrink-0 md:w-full md:gap-3 px-4 md:px-4 py-3 touch-manipulation min-w-30 md:min-w-0
         ${
           activeTab === id
-            ? 'bg-white text-coral-burst font-bold border-2 border-peach-soft'
-            : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft border-2 border-transparent'
+            ? 'bg-white text-coral-burst font-bold border border-peach-soft'
+            : 'bg-transparent text-cocoa-light hover:bg-white/50 hover:text-charcoal-soft border border-transparent'
         }`}
     >
       <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
@@ -403,14 +403,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-white rounded-2xl md:rounded-3xl border-2 border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-[500px] relative">
+        <div className="flex-1 bg-white rounded-2xl md:rounded-3xl border border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-[500px] relative">
           {/* Content Area */}
           <div className="space-y-6">
             {activeTab === 'profile' && (
               <div className="animate-fadeIn space-y-6 md:space-y-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
                   <div className="relative group shrink-0">
-                    <Avatar className="w-20 h-20 md:w-24 md:h-24 border-2 border-gold-sunshine">
+                    <Avatar className="w-20 h-20 md:w-24 md:h-24 border border-gold-sunshine">
                       <AvatarImage src={avatarPreview || undefined} alt="Avatar" />
                       <AvatarFallback className="bg-linear-to-br from-gold-sunshine to-coral-burst text-white">
                         <User className="w-8 h-8 md:w-10 md:h-10" />
@@ -603,7 +603,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
             {activeTab === 'themes' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl p-6 border-2 border-peach-soft/50">
+                <div className="bg-white rounded-2xl p-6 border border-peach-soft/50">
                   <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
                     Display Settings
                   </h3>
@@ -705,7 +705,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <Button
                     variant="outline"
                     onClick={() => onNavigate?.(AppMode.PRICING)}
-                    className="bg-white text-coral-burst hover:bg-white/90 rounded-full border-2 border-white"
+                    className="bg-white text-coral-burst hover:bg-white/90 rounded-full border border-white"
                   >
                     View Plans
                   </Button>
@@ -783,7 +783,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               >
                 {isSaving ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin"></div>
                     Saving...
                   </>
                 ) : (

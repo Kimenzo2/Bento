@@ -26,7 +26,7 @@ const features = [
             Cyberpunk
           </div>
         </div>
-        <div className="w-40 h-10 bg-linear-to-r from-emerald-500 to-teal-400 rounded-lg flex items-center justify-center font-bold border-2 border-white/20">
+        <div className="w-40 h-10 bg-linear-to-r from-emerald-500 to-teal-400 rounded-lg flex items-center justify-center font-bold border border-white/20">
           Resulting Style
         </div>
         <p className="mt-4 text-xs text-gray-400">Seamlessly blend any two art styles</p>
@@ -88,7 +88,7 @@ export const FeatureExplorer: React.FC<FeatureExplorerProps> = ({ tier }) => {
   const activeContent = features.find((f) => f.id === activeFeature)?.content;
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 bg-white rounded-2xl p-8 border-2 border-peach-soft">
+    <div className="flex flex-col md:flex-row gap-8 bg-white rounded-2xl p-8 border border-peach-soft">
       <div className="w-full md:w-1/3 space-y-2">
         <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-6">
           Interactive Preview
@@ -103,7 +103,7 @@ export const FeatureExplorer: React.FC<FeatureExplorerProps> = ({ tier }) => {
               onClick={() => setActiveFeature(feature.id)}
               className={`w-full flex gap-4 p-4 text-left ${
                 isActive
-                  ? `bg-${tier.accentColor}-50 border-2 border-${tier.accentColor}-200`
+                  ? `bg-${tier.accentColor}-50 border border-${tier.accentColor}-200`
                   : 'hover:bg-gray-50 border border-transparent'
               }`}
             >

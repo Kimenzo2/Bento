@@ -52,7 +52,7 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
                 onClick={() => setCurrentStep(step.id)}
                 className={`w-full flex gap-4 p-4 text-left ${
                   currentStep === step.id
-                    ? `bg-white border-2 border-${tier.accentColor}-200`
+                    ? `bg-white border border-${tier.accentColor}-200`
                     : 'bg-transparent hover:bg-gray-50 border border-transparent'
                 }`}
               >
@@ -93,7 +93,7 @@ export const MigrationAssistant: React.FC<MigrationAssistantProps> = ({ tier }) 
               className="text-center z-10"
             >
               <div
-                className={`w-20 h-20 mx-auto mb-4 rounded-2xl bg-linear-to-br ${tier.gradient} flex items-center justify-center border-2 border-white/20`}
+                className={`w-20 h-20 mx-auto mb-4 rounded-2xl bg-linear-to-br ${tier.gradient} flex items-center justify-center border border-white/20`}
               >
                 {React.createElement(steps[currentStep - 1].icon, {
                   className: 'w-10 h-10 text-white',

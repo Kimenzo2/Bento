@@ -18,7 +18,7 @@ export const PeerComparison: React.FC<PeerComparisonProps> = ({ tier }) => {
   const [selectedLevel, setSelectedLevel] = useState('beginner');
 
   return (
-    <div className="bg-white rounded-2xl p-8 border-2 border-peach-soft my-12">
+    <div className="bg-white rounded-2xl p-8 border border-peach-soft my-12">
       <div className="text-center mb-8">
         <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
           See Where You Stand
