@@ -52,6 +52,18 @@
       "destination": "/.well-known/$1"
     },
     {
+      "source": "/api/paystack-charge",
+      "destination": "/api/paystack?action=charge"
+    },
+    {
+      "source": "/api/paystack-verify",
+      "destination": "/api/paystack?action=verify"
+    },
+    {
+      "source": "/api/paystack-webhook",
+      "destination": "/api/paystack?action=webhook"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

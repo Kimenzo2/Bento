@@ -6,7 +6,7 @@
  * Accepts: { service, endpoint, method?, body? }
  * Returns: upstream response
  */
-import { createAuthenticatedHandler, type ApiContext } from './middleware';
+import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 interface ServiceConfig {
   baseUrl: string;

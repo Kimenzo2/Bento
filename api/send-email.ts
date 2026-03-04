@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
-import { createAuthenticatedHandler, type ApiContext } from './middleware';
+import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

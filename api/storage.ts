@@ -12,7 +12,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createAuthenticatedHandler, type ApiContext } from './middleware';
+import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 // ============================================================================
 // TYPES

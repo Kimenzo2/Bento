@@ -5,7 +5,7 @@
  * Accepts: { model, contents, config }
  * Returns: { text: string }
  */
-import { createAuthenticatedHandler, type ApiContext } from './middleware';
+import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 // Collect all configured keys (without VITE_ prefix — server-only)
 const keys: string[] = [];

@@ -5,7 +5,7 @@
  * Accepts: { model, input }
  * Returns: Bytez response (contains `output` field)
  */
-import { createAuthenticatedHandler, type ApiContext } from './middleware';
+import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 const keys: string[] = [];
 for (let i = 1; i <= 20; i++) {
