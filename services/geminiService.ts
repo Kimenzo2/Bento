@@ -153,7 +153,7 @@ async function callBytezImageProxy(
   const res = await authenticatedFetch('/api/ai-bytez', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, model: modelId }),
+    body: JSON.stringify({ model: modelId, input: prompt }),
   });
 
   if (!res.ok) {

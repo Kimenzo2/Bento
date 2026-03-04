@@ -21,12 +21,17 @@ function nextKey(): string {
 }
 
 const ALLOWED_MODELS = new Set([
-  'Qwen/Qwen2.5-VL-7B-Instruct',
+  // Image generation models
+  'google/imagen-4.0-generate-001',
+  'google/imagen-4.0-ultra-generate-001',
   'stabilityai/stable-diffusion-xl-base-1.0',
   'black-forest-labs/FLUX.1-schnell',
   'black-forest-labs/FLUX.1-dev',
   'ByteDance/SDXL-Lightning',
+  // Vision / multimodal models
+  'Qwen/Qwen2.5-VL-7B-Instruct',
   'meta-llama/Llama-3.2-11B-Vision-Instruct',
+  // Text generation models
   'meta-llama/Llama-3.3-70B-Instruct',
   'Qwen/Qwen2.5-72B-Instruct',
   'mistralai/Mistral-Small-24B-Instruct-2501',

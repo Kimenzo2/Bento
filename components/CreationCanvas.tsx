@@ -1347,13 +1347,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-150 overflow-y-auto p-2 border border-blue-100 rounded-xl bg-white/50">
                         {teachingCharacters.map((char) => (
-                          <Button
-                            variant="outline"
+                          <button
+                            type="button"
                             key={char.id}
                             onClick={() =>
                               setSelectedTeacher(selectedTeacher?.id === char.id ? null : char)
                             }
-                            className={`relative p-4 text-left group
+                            className={`relative p-4 rounded-xl border text-left group flex flex-col items-center cursor-pointer transition-all
                                                                     ${
                                                                       selectedTeacher?.id ===
                                                                       char.id
@@ -1431,7 +1431,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 "{char.voiceProfile?.catchphrases?.[0]}"
                               </div>
                             </div>
-                          </Button>
+                          </button>
                         ))}
                       </div>
 

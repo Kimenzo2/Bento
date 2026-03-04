@@ -1153,16 +1153,16 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {defaultCharacters.map((char) => (
-                <Button
-                  variant="outline"
+                <button
+                  type="button"
                   key={char.id}
                   onClick={() => {
                     setSelectedDemoCharacter(char);
                     setShowGreenRoomStandalone(true);
                   }}
-                  className="bg-white p-4 border-peach-soft/50 hover:border-emerald-300 group text-left h-auto"
+                  className="bg-white p-4 rounded-xl border border-peach-soft/50 hover:border-emerald-300 group text-left flex flex-col cursor-pointer transition-all w-full"
                 >
-                  <div className="w-12 h-12 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative">
+                  <div className="w-12 h-12 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative shrink-0">
                     {char.imageUrl ? (
                       <img
                         src={char.imageUrl}
@@ -1177,7 +1177,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                     {char.name}
                   </h4>
                   <p className="text-xs text-cocoa-light line-clamp-2">{char.description}</p>
-                </Button>
+                </button>
               ))}
             </div>
           </div>
