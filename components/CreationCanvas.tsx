@@ -1518,18 +1518,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         </div>
       </div>
 
-      {/* FoundrList Badge */}
-      <div className="w-full flex justify-center py-8">
-        <a href="https://www.foundrlist.com/product/genesis" target="_blank" rel="noopener noreferrer">
-          <img
-            src="https://www.foundrlist.com/api/badge/genesis"
-            alt="Live on FoundrList"
-            width={160}
-            height={64}
-          />
-        </a>
-      </div>
-
       {/* Modals */}
       <TemplateLibrary
         isOpen={isTemplateLibraryOpen}
