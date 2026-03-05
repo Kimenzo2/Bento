@@ -59,23 +59,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (import.meta.env.DEV) console.warn('[Auth] Processing OAuth callback from URL hash');
       }
 
-      // Check active sessions and sets the user
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      try {
+        // Check active sessions and sets the user
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-      if (error) {
-        if (import.meta.env.DEV) console.error('[Auth] Error getting session:', error);
-      }
+        if (error) {
+          if (import.meta.env.DEV) console.error('[Auth] Error getting session:', error);
+        }
 
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (err) {
+        if (import.meta.env.DEV) console.error('[Auth] Exception getting session:', err);
+      } finally {
+        setLoading(false);
 
-      // Cleanup URL hash if it contains auth tokens
-      if (hash && hash.includes('access_token')) {
-        window.history.replaceState(null, '', window.location.pathname);
+        // Cleanup URL hash if it contains auth tokens or errors
+        if (hash && (hash.includes('access_token') || hash.includes('error_description') || hash.includes('error='))) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
       }
     };
 

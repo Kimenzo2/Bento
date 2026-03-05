@@ -26,30 +26,18 @@ function injectShimmer() {
 // Background uses var(--color-border) — in every theme this sits between the
 // surface and background tones, making it the perfect skeleton shade.
 const Bone: React.FC<{
-  w?: string | number;
-  h?: string | number;
-  r?: number;
+  className?: string;
   style?: React.CSSProperties;
-}> = ({ w = '100%', h = 14, r = 8, style }) => {
+}> = ({ className = '', style }) => {
   injectShimmer();
   return (
     <div
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        width: w,
-        height: h,
-        borderRadius: r,
-        background: 'var(--color-border)',
-        flexShrink: 0,
-        ...style,
-      }}
+      className={`relative overflow-hidden bg-[var(--color-border)] shrink-0 ${className}`}
+      style={style}
     >
       <div
+        className="absolute inset-0"
         style={{
-          position: 'absolute',
-          inset: 0,
-          // --gs-shimmer is set per-render on the root wrapper based on dark/light
           background: 'linear-gradient(90deg,transparent 0%,var(--gs-shimmer,rgba(255,255,255,0.35)) 50%,transparent 100%)',
           animation: 'gs-shimmer 1.6s ease-in-out infinite',
         }}
@@ -60,46 +48,51 @@ const Bone: React.FC<{
 
 // ─── Nav ─────────────────────────────────────────────────────────────────────
 const NavSkeleton: React.FC = () => (
-  <div
-    style={{
-      position: 'fixed', top: 0, left: 0, right: 0, height: 64,
-      background: 'var(--color-surface)',
-      borderBottom: '1px solid var(--color-border)',
-      display: 'flex', alignItems: 'center',
-      padding: '0 24px', gap: 12, zIndex: 100, boxSizing: 'border-box',
-    }}
-  >
-    <Bone w={32} h={32} r={10} />
-    <Bone w={80} h={16} r={6} />
-    <div style={{ flex: 1 }} />
-    {[64, 72, 56, 68].map((w, i) => <Bone key={i} w={w} h={28} r={20} />)}
-    <div style={{ flex: 1 }} />
-    <Bone w={36} h={36} r={18} />
+  <div className="fixed top-0 left-0 right-0 h-16 bg-[var(--color-surface)] border-b border-[var(--color-border)] flex items-center px-4 sm:px-6 z-[100]">
+    {/* Mobile Left */}
+    <div className="flex items-center gap-3 w-full sm:w-auto">
+      <Bone className="w-8 h-8 rounded-lg" />
+      <Bone className="w-20 h-4 rounded-md" />
+      <div className="flex-1 sm:hidden" />
+      <Bone className="w-8 h-8 rounded-full sm:hidden" />
+    </div>
+
+    {/* Desktop middle/right */}
+    <div className="hidden sm:flex flex-1 items-center justify-center gap-2">
+      <Bone className="w-16 h-7 rounded-full" />
+      <Bone className="w-16 h-7 rounded-full" />
+      <Bone className="w-16 h-7 rounded-full" />
+      <Bone className="w-16 h-7 rounded-full" />
+    </div>
+    
+    <div className="hidden sm:flex items-center">
+      <Bone className="w-9 h-9 rounded-full" />
+    </div>
   </div>
 );
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 const StatCard: React.FC = () => (
-  <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minWidth: 0 }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <Bone w={36} h={36} r={10} />
-      <Bone w="55%" h={13} />
+  <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-5 flex flex-col gap-3 min-w-[130px] sm:min-w-[140px] flex-1">
+    <div className="flex items-center gap-2 sm:gap-3">
+      <Bone className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg" />
+      <Bone className="w-16 sm:w-20 h-3 sm:h-4 rounded-sm" />
     </div>
-    <Bone w="70%" h={26} r={6} />
-    <Bone w="40%" h={11} />
+    <Bone className="w-16 sm:w-24 h-6 sm:h-7 rounded-md" />
+    <Bone className="w-12 sm:w-16 h-2 sm:h-3 rounded-sm" />
   </div>
 );
 
 // ─── Content card ─────────────────────────────────────────────────────────────
 const ContentCard: React.FC<{ tall?: boolean }> = ({ tall }) => (
-  <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 20, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-    <Bone w="100%" h={tall ? 180 : 140} r={0} />
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <Bone w="80%" h={15} />
-      <Bone w="55%" h={12} />
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <Bone w={60} h={24} r={20} />
-        <Bone w={48} h={24} r={20} />
+  <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden flex-1 min-w-[160px] sm:min-w-[280px]">
+    <Bone className={`w-full ${tall ? 'h-32 sm:h-44' : 'h-24 sm:h-36'}`} />
+    <div className="p-3 sm:p-4 flex flex-col gap-2.5">
+      <Bone className="w-[80%] h-3.5 sm:h-4 rounded-sm" />
+      <Bone className="w-[55%] h-2.5 sm:h-3 rounded-sm" />
+      <div className="flex gap-2 mt-1 sm:mt-2">
+        <Bone className="w-14 sm:w-16 h-6 sm:h-7 rounded-full" />
+        <Bone className="w-10 sm:w-12 h-6 sm:h-7 rounded-full" />
       </div>
     </div>
   </div>
@@ -107,14 +100,14 @@ const ContentCard: React.FC<{ tall?: boolean }> = ({ tall }) => (
 
 // ─── Side panel ───────────────────────────────────────────────────────────────
 const SidePanel: React.FC = () => (
-  <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 20, padding: 20, width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-    <Bone w="60%" h={16} />
+  <div className="hidden lg:flex bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 w-[260px] flex-col gap-4 shrink-0">
+    <Bone className="w-32 h-4 rounded-sm" />
     {[1, 2, 3, 4].map((i) => (
-      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Bone w={40} h={40} r={12} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <Bone w="70%" h={12} />
-          <Bone w="45%" h={10} />
+      <div key={i} className="flex items-center gap-3">
+        <Bone className="w-10 h-10 rounded-xl" />
+        <div className="flex-1 flex flex-col gap-2">
+          <Bone className="w-[70%] h-3 rounded-sm" />
+          <Bone className="w-[45%] h-2 rounded-sm" />
         </div>
       </div>
     ))}
@@ -123,24 +116,17 @@ const SidePanel: React.FC = () => (
 
 // ─── Hero banner ─────────────────────────────────────────────────────────────
 const HeroBanner: React.FC = () => (
-  <div
-    style={{
-      background: 'linear-gradient(135deg,var(--color-surface) 0%,var(--color-background) 100%)',
-      border: '1px solid var(--color-border)',
-      borderRadius: 24, padding: '28px 32px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
-    }}
-  >
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-      <Bone w={160} h={13} />
-      <Bone w="55%" h={28} r={8} />
-      <Bone w="40%" h={13} />
-      <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-        <Bone w={120} h={38} r={20} />
-        <Bone w={96} h={38} r={20} />
+  <div className="bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-background)] border border-[var(--color-border)] rounded-[20px] sm:rounded-3xl p-5 sm:p-7 flex items-center justify-between gap-4 sm:gap-6">
+    <div className="flex flex-col gap-3 flex-1">
+      <Bone className="w-24 sm:w-40 h-3 sm:h-4 rounded-sm" />
+      <Bone className="w-[80%] sm:w-[55%] h-6 sm:h-8 rounded-md" />
+      <Bone className="w-[60%] sm:w-[40%] h-3 sm:h-4 rounded-sm" />
+      <div className="flex gap-2 sm:gap-3 mt-2 sm:mt-3">
+        <Bone className="w-24 sm:w-32 h-8 sm:h-10 rounded-full" />
+        <Bone className="w-20 sm:w-24 h-8 sm:h-10 rounded-full" />
       </div>
     </div>
-    <Bone w={140} h={140} r={20} style={{ flexShrink: 0 }} />
+    <Bone className="hidden sm:block w-[120px] h-[120px] rounded-2xl" />
   </div>
 );
 
@@ -156,11 +142,8 @@ const AppSkeleton: React.FC = () => {
 
   return (
     <div
+      className="fixed inset-0 overflow-y-auto bg-[var(--color-background)] font-sans"
       style={{
-        position: 'fixed', inset: 0,
-        background: 'var(--color-background)',
-        overflowY: 'auto',
-        fontFamily: 'system-ui, sans-serif',
         // Shimmer highlight intensity: subtle in dark, bright in light
         ['--gs-shimmer' as string]: isDark
           ? 'rgba(255,255,255,0.05)'
@@ -168,31 +151,38 @@ const AppSkeleton: React.FC = () => {
       }}
     >
       <NavSkeleton />
-      <div
-        style={{
-          paddingTop: 88, paddingBottom: 48, paddingLeft: 24, paddingRight: 24,
-          maxWidth: 1280, margin: '0 auto',
-          display: 'flex', flexDirection: 'column', gap: 24,
-          boxSizing: 'border-box',
-        }}
-      >
+      <div className="pt-20 sm:pt-24 pb-12 px-4 sm:px-6 max-w-7xl mx-auto flex flex-col gap-6 w-full">
+        
         <HeroBanner />
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <StatCard /><StatCard /><StatCard /><StatCard />
+        
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory hide-scrollbar">
+          <StatCard />
+          <StatCard />
+          <StatCard />
+          <StatCard />
         </div>
-        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Bone w={160} h={18} r={6} />
-              <Bone w={80} h={30} r={20} />
+
+        <div className="flex gap-5 sm:gap-6 items-start w-full">
+          <div className="flex-1 flex flex-col gap-4 sm:gap-5 min-w-0 w-full">
+            <div className="flex items-center justify-between">
+              <Bone className="w-32 sm:w-40 h-4 sm:h-5 rounded-sm" />
+              <Bone className="w-16 sm:w-20 h-7 sm:h-8 rounded-full" />
             </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <ContentCard tall /><ContentCard tall /><ContentCard tall />
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 w-full">
+              <ContentCard tall />
+              <ContentCard tall />
+              <div className="hidden md:block">
+                <ContentCard tall />
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <ContentCard /><ContentCard />
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
+              <ContentCard />
+              <ContentCard />
             </div>
           </div>
+          
           <SidePanel />
         </div>
       </div>
@@ -201,3 +191,4 @@ const AppSkeleton: React.FC = () => {
 };
 
 export default AppSkeleton;
+
