@@ -110,6 +110,115 @@ interface CreationCanvasProps {
   shouldFocusCreation?: boolean;
 }
 
+// Quick Start Card Component with Vercel-style cursor glow effect
+  const QuickStartCard = ({
+    icon: Icon,
+    title,
+    desc,
+    colorClass,
+    glowColor = 'rgba(255, 155, 113, 0.35)',
+    decorationPosition = 'top-right',
+    defaultGlowPosition = 'bottom-left',
+    onClick,
+  }: {
+    icon: React.ElementType;
+    title: string;
+    desc: string;
+    colorClass: string;
+    glowColor?: string;
+    decorationPosition?: 'top-right' | 'top-middle' | 'top-left';
+    defaultGlowPosition?: 'bottom-left' | 'bottom-middle' | 'bottom-right';
+    onClick: () => void;
+  }) => {
+    const cardRef = React.useRef<HTMLButtonElement>(null);
+    const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
+    const [isHovered, setIsHovered] = React.useState(false);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      setMousePosition({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    };
+
+    const getDecorationClasses = () => {
+      switch (decorationPosition) {
+        case 'top-left':
+          return 'w-32 h-32 left-0 -ml-10 -mt-10 rounded-br-full';
+        case 'top-middle':
+          return 'w-48 h-16 left-1/2 -translate-x-1/2 -mt-6 rounded-b-full';
+        case 'top-right':
+        default:
+          return 'w-32 h-32 right-0 -mr-10 -mt-10 rounded-bl-full';
+      }
+    };
+
+    const getDefaultGlowCoords = () => {
+      switch (defaultGlowPosition) {
+        case 'bottom-left':
+          return '0% 100%';
+        case 'bottom-middle':
+          return '50% 100%';
+        case 'bottom-right':
+          return '100% 100%';
+        default:
+          return '50% 100%';
+      }
+    };
+
+    return (
+      <button
+        ref={cardRef}
+        onClick={onClick}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="relative bg-surface p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
+      >
+        {/* Default Static Glow */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
+          style={{
+            opacity: isHovered ? 0 : 0.8,
+            background: `radial-gradient(600px circle at ${getDefaultGlowCoords()}, ${glowColor}, transparent 40%)`,
+          }}
+        />
+
+        {/* Interactive Hover Glow - Vercel Marketplace Style */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
+          style={{
+            opacity: isHovered ? 1 : 0,
+            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, ${glowColor}, transparent 40%)`,
+          }}
+        />
+
+        {/* Corner Gradient Decoration */}
+        <div
+          className={`absolute top-0 bg-linear-to-br ${colorClass} opacity-25 transition-transform group-hover:scale-150 duration-700 z-0 ${getDecorationClasses()}`}
+        ></div>
+
+        {/* Card Content */}
+        <div className="relative z-10">
+          <div
+            className={`w-16 h-16 rounded-2xl bg-linear-to-br ${colorClass} flex items-center justify-center text-white mb-6 group-hover:rotate-12 transition-transform`}
+          >
+            <Icon className="w-8 h-8" />
+          </div>
+          <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h3>
+          <p className="font-body text-cocoa-light text-sm leading-relaxed mb-6 flex-1">{desc}</p>
+          <div className="flex items-center text-coral-burst font-heading font-bold text-sm group-hover:gap-2 transition-all">
+            Start Creating <ChevronRight className="w-4 h-4" />
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+
+
 const CreationCanvas: React.FC<CreationCanvasProps> = ({
   onGenerate,
   isGenerating,
@@ -537,76 +646,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
   const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
 
-  // Quick Start Card Component with Vercel-style cursor glow effect
-  const QuickStartCard = ({
-    icon: Icon,
-    title,
-    desc,
-    colorClass,
-    glowColor = 'rgba(255, 155, 113, 0.35)',
-    onClick,
-  }: {
-    icon: React.ElementType;
-    title: string;
-    desc: string;
-    colorClass: string;
-    glowColor?: string;
-    onClick: () => void;
-  }) => {
-    const cardRef = React.useRef<HTMLButtonElement>(null);
-    const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
-    const [isHovered, setIsHovered] = React.useState(false);
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!cardRef.current) return;
-      const rect = cardRef.current.getBoundingClientRect();
-      setMousePosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    };
-
-    return (
-      <button
-        ref={cardRef}
-        onClick={onClick}
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className="relative bg-surface p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
-      >
-        {/* Cursor Glow Effect - Vercel Marketplace Style */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
-          style={{
-            opacity: isHovered ? 1 : 0,
-            background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, ${glowColor}, transparent 40%)`,
-          }}
-        />
-
-        {/* Corner Gradient Decoration */}
-        <div
-          className={`absolute top-0 right-0 w-32 h-32 bg-linear-to-br ${colorClass} opacity-25 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700 z-0`}
-        ></div>
-
-        {/* Card Content */}
-        <div className="relative z-10">
-          <div
-            className={`w-16 h-16 rounded-2xl bg-linear-to-br ${colorClass} flex items-center justify-center text-white mb-6 group-hover:rotate-12 transition-transform`}
-          >
-            <Icon className="w-8 h-8" />
-          </div>
-          <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h3>
-          <p className="font-body text-cocoa-light text-sm leading-relaxed mb-6 flex-1">{desc}</p>
-          <div className="flex items-center text-coral-burst font-heading font-bold text-sm group-hover:gap-2 transition-all">
-            Start Creating <ChevronRight className="w-4 h-4" />
-          </div>
-        </div>
-      </button>
-    );
-  };
-
-  const handleQuickStartClick = useCallback((action: () => void) => {
+    const handleQuickStartClick = useCallback((action: () => void) => {
     setCreationMode('book');
     action();
   }, []);
@@ -676,6 +716,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             desc="Create a magical tale with vibrant illustrations and moral lessons."
             colorClass="from-gold-sunshine to-orange-400"
             glowColor="rgba(251, 146, 60, 0.35)"
+            decorationPosition="top-right"
+            defaultGlowPosition="bottom-left"
             onClick={() =>
               handleQuickStartClick(() => {
                 setPrompt('A magical adventure about a shy dragon who loves to bake cookies.');
@@ -690,6 +732,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             desc="Build a futuristic world with deep lore and complex characters."
             colorClass="from-purple-400 to-coral-burst"
             glowColor="rgba(147, 51, 234, 0.35)"
+            decorationPosition="top-middle"
+            defaultGlowPosition="bottom-middle"
             onClick={() =>
               handleQuickStartClick(() => {
                 setPrompt('A cyberpunk detective solving crimes in a neon-lit underwater city.');
@@ -705,6 +749,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             desc="Generate a professional company history or annual report."
             colorClass="from-mint-breeze to-emerald-400"
             glowColor="rgba(16, 185, 129, 0.35)"
+            decorationPosition="top-left"
+            defaultGlowPosition="bottom-right"
             onClick={() =>
               handleQuickStartClick(() => {
                 setPrompt(
