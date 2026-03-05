@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUserSettings } from '../hooks/useUserSettings';
 import { getUserProfile, type UserProfile } from '../services/profileService';
-import { AppMode, UserTier } from '../types';
+import { AppMode, UserTier, type GamificationState } from '../types';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -24,9 +24,10 @@ import { Button } from './ui/button';
 interface NavigationProps {
   currentMode: AppMode;
   setMode: (mode: AppMode) => void;
+  gameState?: GamificationState;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
+const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState }) => {
   const { user, signOut: _signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { displayName, avatarUrl } = useUserSettings();
@@ -231,11 +232,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg">
-              3
+              {gameState?.level ?? 1}
             </div>
             <div className="text-left">
-              <div className="font-bold text-charcoal-soft">Rising Author</div>
-              <div className="text-xs text-cocoa-light">1,250 / 2,000 XP</div>
+              <div className="font-bold text-charcoal-soft">{gameState?.levelTitle ?? 'Aspiring Author'}</div>
+              <div className="text-xs text-cocoa-light">{gameState?.currentXP ?? 0} / {gameState?.nextLevelXP ?? 100} XP</div>
             </div>
           </div>
           <Trophy className="w-6 h-6 text-gold-sunshine" />

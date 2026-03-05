@@ -217,18 +217,55 @@ app.post('/api/agents/story-editor/suggestions', async (c) => {
   }
 });
 
-// ─── Gamification Agent ──────────────────────────────────────────────────────
+// ─── Gamification — Direct DB routes (no LLM overhead) ───────────────────────
 app.get('/api/agents/gamification/state', async (c) => {
   const auth = c.get('auth' as never) as AuthenticatedContext;
   try {
-    const agent = mastra.getAgent('gamification');
-    const result = await agent.generate(JSON.stringify({
-      action: 'getState',
-      userId: auth.userId,
+    const userId = auth.userId;
+
+    // Ensure row exists
+    await supabaseAdmin.from('user_gamification').upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
+
+    // 1. User state
+    const { data: ug } = await supabaseAdmin.from('user_gamification')
+      .select('level,level_title,current_xp,books_created_count,current_streak,total_xp')
+      .eq('user_id', userId).single();
+
+    // 2. Next level XP from DB
+    const lvl = ug?.level ?? 1;
+    const { data: nextLvl } = await supabaseAdmin.from('level_definitions').select('xp_required').eq('level', lvl + 1).single();
+    const nextLevelXP = nextLvl?.xp_required ?? (ug?.total_xp ?? 0) + 2000;
+
+    // 3. All active badge definitions
+    const { data: allBadges } = await supabaseAdmin.from('achievement_definitions')
+      .select('id,name,description,icon').eq('is_active', true).not('trigger_action', 'is', null).order('id');
+
+    // 4. User's unlocked badges
+    const { data: unlockedRows } = await supabaseAdmin.from('user_achievements')
+      .select('achievement_type').eq('user_id', userId);
+    const unlockedIds = new Set((unlockedRows ?? []).map((r: any) => r.achievement_type));
+    const badges = (allBadges ?? []).map((b: any) => ({
+      id: b.id, name: b.name, description: b.description, icon: b.icon, unlocked: unlockedIds.has(b.id),
     }));
-    return c.json({ success: true, data: result.text });
+
+    // 5. Daily challenges via DB function
+    const { data: challengeRows } = await supabaseAdmin.rpc('assign_daily_challenges', { p_user_id: userId });
+    const dailyChallenges = (challengeRows ?? []).map((r: any) => ({
+      id: r.challenge_id, title: r.title, xpReward: r.xp_reward, completed: r.completed,
+    }));
+
+    return c.json({
+      level:             ug?.level             ?? 1,
+      levelTitle:        ug?.level_title        ?? 'Aspiring Author',
+      currentXP:         ug?.current_xp         ?? 0,
+      nextLevelXP,
+      currentStreak:     ug?.current_streak     ?? 0,
+      booksCreatedCount: ug?.books_created_count ?? 0,
+      badges,
+      dailyChallenges,
+    });
   } catch (err: any) {
-    console.error('[Gamification]', err);
+    console.error('[Gamification/state]', err);
     return c.json({ error: err.message }, 500);
   }
 });
@@ -237,15 +274,50 @@ app.post('/api/agents/gamification/track', async (c) => {
   const auth = c.get('auth' as never) as AuthenticatedContext;
   const body = await c.req.json();
   try {
-    const agent = mastra.getAgent('gamification');
-    const result = await agent.generate(JSON.stringify({
-      action: 'track',
-      userId: auth.userId,
-      ...body,
-    }));
-    return c.json({ success: true, data: result.text });
+    const { action, metadata } = body;
+    if (!action) return c.json({ error: 'action is required' }, 400);
+
+    // Award XP via DB function
+    const { data: xpResult, error: xpErr } = await supabaseAdmin.rpc('award_xp', {
+      p_user_id: auth.userId, p_action_name: action, p_metadata: metadata ?? {},
+    });
+    if (xpErr) throw xpErr;
+
+    // Update streak via DB function
+    const { data: streakResult } = await supabaseAdmin.rpc('update_streak', { p_user_id: auth.userId });
+
+    // Auto-unlock badges whose trigger threshold was just crossed
+    const { data: badgeDefs } = await supabaseAdmin.from('achievement_definitions')
+      .select('id,name,trigger_action,trigger_count').eq('is_active', true).not('trigger_action', 'is', null);
+    const { data: ug } = await supabaseAdmin.from('user_gamification')
+      .select('books_created_count,pages_edited_count,illustrations_generated_count,brand_content_created_count,current_streak')
+      .eq('user_id', auth.userId).single();
+    const { data: alreadyUnlocked } = await supabaseAdmin.from('user_achievements')
+      .select('achievement_type').eq('user_id', auth.userId);
+    const unlockedIds = new Set((alreadyUnlocked ?? []).map((r: any) => r.achievement_type));
+
+    const newBadges: string[] = [];
+    for (const badge of (badgeDefs ?? [])) {
+      if (unlockedIds.has(badge.id)) continue;
+      let count = 0;
+      if (badge.trigger_action === 'book_created')           count = ug?.books_created_count ?? 0;
+      else if (badge.trigger_action === 'page_edited')        count = ug?.pages_edited_count ?? 0;
+      else if (badge.trigger_action === 'illustration_generated') count = ug?.illustrations_generated_count ?? 0;
+      else if (badge.trigger_action === 'brand_content_created')  count = ug?.brand_content_created_count ?? 0;
+      else if (badge.trigger_action === 'streak')             count = ug?.current_streak ?? 0;
+      else if (badge.trigger_action === 'qa_score_90' && action === 'qa_score_90') count = 1;
+      if (count >= badge.trigger_count) {
+        await supabaseAdmin.from('user_achievements').upsert({
+          user_id: auth.userId, achievement_type: badge.id,
+          achievement_name: badge.name, unlocked_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,achievement_type,achievement_name', ignoreDuplicates: true });
+        newBadges.push(badge.name);
+      }
+    }
+
+    return c.json({ success: true, xp: xpResult, streak: streakResult, newBadges });
   } catch (err: any) {
-    console.error('[Gamification]', err);
+    console.error('[Gamification/track]', err);
     return c.json({ error: err.message }, 500);
   }
 });

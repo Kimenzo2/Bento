@@ -1,6 +1,7 @@
 /* Import Default Fonts — Fredoka (heading) + Manrope (body) matching the default "Playful Classic" pairing.
    This render-blocking @import ensures fonts are available before first paint. */
 @import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap");
+@import "@fontsource-variable/noto-sans-arabic";
 
 @import "tailwindcss";
 
@@ -201,6 +202,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+html[lang="ar"] body,
+html[lang="ar"] input,
+html[lang="ar"] textarea,
+html[lang="ar"] select,
+html[dir="rtl"] body,
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select {
+  font-family: "Noto Sans Arabic Variable", var(--font-body), system-ui, sans-serif;
 }
 
 /* Global cursor styles for interactive elements */

@@ -27,49 +27,19 @@ export interface UserProfile {
 }
 
 /**
- * Default gamification state for new users
+ * Minimal default gamification state for new profiles.
+ * Badges and challenges are intentionally empty — they are populated
+ * at runtime from user_gamification + achievement_definitions DB tables.
  */
 const defaultGamificationData: GamificationState = {
   level: 1,
-  levelTitle: 'Novice Author',
+  levelTitle: 'Aspiring Author',
   currentXP: 0,
   nextLevelXP: 100,
   booksCreatedCount: 0,
-  badges: [
-    {
-      id: '1',
-      name: 'First Spark',
-      description: 'Create your first book',
-      icon: 'rocket',
-      unlocked: false,
-    },
-    {
-      id: '2',
-      name: 'Style Explorer',
-      description: 'Try 3 different styles',
-      icon: 'palette',
-      unlocked: false,
-    },
-    {
-      id: '3',
-      name: 'Wordsmith',
-      description: 'Write 5,000 words',
-      icon: 'feather',
-      unlocked: false,
-    },
-    {
-      id: '4',
-      name: 'Bestseller',
-      description: 'Get 1,000 views',
-      icon: 'diamond',
-      unlocked: false,
-    },
-  ],
-  dailyChallenges: [
-    { id: 'c1', title: "Create a Children's Book", xpReward: 50, completed: false },
-    { id: 'c2', title: 'Try a new Art Style', xpReward: 75, completed: false },
-    { id: 'c3', title: 'Share a book', xpReward: 100, completed: false },
-  ],
+  currentStreak: 0,
+  badges: [],          // Populated from achievement_definitions table
+  dailyChallenges: [], // Populated from daily_challenge_pool via assign_daily_challenges()
 };
 
 /**
@@ -363,43 +333,18 @@ export const updateGamificationData = async (
 };
 
 /**
- * Increment user XP and update level if needed
+ * Award XP for an action — delegates to /api/agents/gamification/track.
+ * Level titles and XP thresholds come from the DB (level_definitions table).
+ * @deprecated Use mastra.agents.gamification.trackAction() for new code.
  */
-export const addXP = async (xpToAdd: number): Promise<GamificationState | null> => {
+export const addXP = async (_xpToAdd: number, action = 'suggestion_accepted'): Promise<GamificationState | null> => {
   try {
+    const { mastra } = await import('../src/services/mastraClient');
+    await mastra.agents.gamification.trackAction(action);
+    // Re-fetch profile so caller gets updated numbers
+    invalidateProfileCache((await supabase.auth.getUser()).data.user?.id ?? '');
     const profile = await getUserProfile();
-    if (!profile) return null;
-
-    const currentGamification = profile.gamification_data;
-    let newXP = currentGamification.currentXP + xpToAdd;
-    let newLevel = currentGamification.level;
-    let newLevelTitle = currentGamification.levelTitle;
-    let newNextLevelXP = currentGamification.nextLevelXP;
-
-    // Level up logic
-    while (newXP >= newNextLevelXP) {
-      newXP -= newNextLevelXP;
-      newLevel++;
-      newNextLevelXP = Math.floor(newNextLevelXP * 1.5); // Exponential growth
-
-      // Update level titles
-      if (newLevel === 2) newLevelTitle = 'Rising Author';
-      else if (newLevel === 3) newLevelTitle = 'Skilled Storyteller';
-      else if (newLevel === 5) newLevelTitle = 'Master Creator';
-      else if (newLevel === 10) newLevelTitle = 'Publishing Legend';
-      else newLevelTitle = `Level ${newLevel} Author`;
-    }
-
-    const updatedGamification: GamificationState = {
-      ...currentGamification,
-      level: newLevel,
-      levelTitle: newLevelTitle,
-      currentXP: newXP,
-      nextLevelXP: newNextLevelXP,
-    };
-
-    const success = await updateGamificationData(updatedGamification);
-    return success ? updatedGamification : null;
+    return profile?.gamification_data ?? null;
   } catch (error) {
     console.error('Error in addXP:', error);
     return null;
@@ -407,19 +352,14 @@ export const addXP = async (xpToAdd: number): Promise<GamificationState | null> 
 };
 
 /**
- * Increment books created count
+ * Track a book_created action — delegates to /api/agents/gamification/track.
  */
 export const incrementBooksCreated = async (): Promise<boolean> => {
   try {
-    const profile = await getUserProfile();
-    if (!profile) return false;
-
-    const updatedGamification: GamificationState = {
-      ...profile.gamification_data,
-      booksCreatedCount: profile.gamification_data.booksCreatedCount + 1,
-    };
-
-    return await updateGamificationData(updatedGamification);
+    const { mastra } = await import('../src/services/mastraClient');
+    await mastra.agents.gamification.trackAction('book_created');
+    invalidateProfileCache((await supabase.auth.getUser()).data.user?.id ?? '');
+    return true;
   } catch (error) {
     console.error('Error in incrementBooksCreated:', error);
     return false;
@@ -427,27 +367,13 @@ export const incrementBooksCreated = async (): Promise<boolean> => {
 };
 
 /**
- * Unlock a badge for the user
+ * Unlock a badge — now handled server-side by /api/agents/gamification/track.
+ * This stub exists for backward compatibility.
  */
-export const unlockBadge = async (badgeId: string): Promise<boolean> => {
-  try {
-    const profile = await getUserProfile();
-    if (!profile) return false;
-
-    const badges = profile.gamification_data.badges.map((badge) =>
-      badge.id === badgeId ? { ...badge, unlocked: true } : badge
-    );
-
-    const updatedGamification: GamificationState = {
-      ...profile.gamification_data,
-      badges,
-    };
-
-    return await updateGamificationData(updatedGamification);
-  } catch (error) {
-    console.error('Error in unlockBadge:', error);
-    return false;
-  }
+export const unlockBadge = async (_badgeId: string): Promise<boolean> => {
+  // Badge unlocking is now automatic in the track endpoint via auto-unlock logic.
+  // No client-side badge array mutation needed.
+  return true;
 };
 
 /**
@@ -476,21 +402,24 @@ export const completeChallenge = async (challengeId: string): Promise<boolean> =
       await addXP(challenge.xpReward);
     }
 
-    // Fetch the updated profile after XP was added
-    const updatedProfile = await getUserProfile();
-    if (!updatedProfile) return false;
+    // Mark challenge complete in DB and award XP via backend
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
 
-    // Now update the challenge completion status
-    const challenges = updatedProfile.gamification_data.dailyChallenges.map((c) =>
-      c.id === challengeId ? { ...c, completed: true } : c
-    );
+    await supabase
+      .from('user_daily_challenges')
+      .update({ completed: true, completed_at: new Date().toISOString(), xp_awarded: challenge.xpReward })
+      .eq('user_id', user.id)
+      .eq('challenge_id', challengeId)
+      .eq('challenge_date', new Date().toISOString().slice(0, 10));
 
-    const updatedGamification: GamificationState = {
-      ...updatedProfile.gamification_data,
-      dailyChallenges: challenges,
-    };
+    if (challenge.xpReward > 0) {
+      const { mastra } = await import('../src/services/mastraClient');
+      await mastra.agents.gamification.trackAction('daily_challenge_completed');
+    }
 
-    return await updateGamificationData(updatedGamification);
+    invalidateProfileCache(user.id);
+    return true;
   } catch (error) {
     console.error('Error in completeChallenge:', error);
     return false;

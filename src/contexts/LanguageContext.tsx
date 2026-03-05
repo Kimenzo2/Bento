@@ -83,7 +83,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     }
 
     // Add language class to body for conditional styling
-    body.className = body.className.replace(/lang-\w+/g, '');
+    body.className = body.className.replace(/lang-[\w-]+/g, '');
     body.classList.add(`lang-${language.code}`);
 
     // Store preference

@@ -51,9 +51,11 @@ import './src/config/i18n';
 
 import { Loader2 } from 'lucide-react';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { DirectionProvider } from './components/ui/direction';
 // Global Components
 import WhatsNewModal from './components/WhatsNewModal';
 import { OfflineIndicator, useNetworkStatus } from './hooks/useNetworkStatus';
+import { useLanguageContext } from './src/contexts/LanguageContext';
 
 // PERFORMANCE: Lazy load heavy components with stale-chunk recovery.
 // When a deployment changes chunk hashes, old HTML may reference chunks
@@ -264,49 +266,17 @@ const MainAppContent: React.FC = () => {
       ? (rawTier as UserTier)
       : UserTier.SPARK;
 
+  // Clean default — no hardcoded badges/challenges; GamificationHub fetches live data from DB
   const gamificationState: GamificationState = userProfile?.gamification_data || {
     level: 1,
-    levelTitle: 'Novice Author',
+    levelTitle: 'Aspiring Author',
     currentXP: 0,
     nextLevelXP: 100,
     booksCreatedCount: 0,
     currentStreak: 0,
     lastActivityDate: undefined,
-    badges: [
-      {
-        id: '1',
-        name: 'First Spark',
-        description: 'Create your first book',
-        icon: 'rocket',
-        unlocked: false,
-      },
-      {
-        id: '2',
-        name: 'Style Explorer',
-        description: 'Try 3 different styles',
-        icon: 'palette',
-        unlocked: false,
-      },
-      {
-        id: '3',
-        name: 'Wordsmith',
-        description: 'Write 5,000 words',
-        icon: 'feather',
-        unlocked: false,
-      },
-      {
-        id: '4',
-        name: 'Bestseller',
-        description: 'Get 1,000 views',
-        icon: 'diamond',
-        unlocked: false,
-      },
-    ],
-    dailyChallenges: [
-      { id: 'c1', title: "Create a Children's Book", xpReward: 50, completed: false },
-      { id: 'c2', title: 'Try a new Art Style', xpReward: 75, completed: false },
-      { id: 'c3', title: 'Share a book', xpReward: 100, completed: false },
-    ],
+    badges: [],
+    dailyChallenges: [],
   };
 
   const checkTierLimits = (settings: GenerationSettings): boolean => {
@@ -601,7 +571,7 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
-      <Navigation currentMode={currentMode} setMode={setCurrentMode} />
+      <Navigation currentMode={currentMode} setMode={setCurrentMode} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-coral-burst" /></div>} key={forceRenderKey}>{renderContent()}</Suspense>
       </main>
@@ -635,13 +605,25 @@ const MainAppContent: React.FC = () => {
   );
 };
 
+const DirectionBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { direction, currentLanguage } = useLanguageContext();
+
+  return (
+    <DirectionProvider direction={direction} language={currentLanguage.code}>
+      {children}
+    </DirectionProvider>
+  );
+};
+
 // Wrap with providers
 const MainApp: React.FC = () => (
   <ErrorBoundary>
     <ThemeProvider>
       <FontProvider>
         <LanguageProvider>
-          <MainAppContent />
+          <DirectionBridge>
+            <MainAppContent />
+          </DirectionBridge>
         </LanguageProvider>
       </FontProvider>
     </ThemeProvider>
