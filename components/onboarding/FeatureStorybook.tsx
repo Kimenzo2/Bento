@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { Button } from '../ui/button';
 import { useOnboarding } from './OnboardingState';
 
 // Image paths for features
@@ -179,20 +180,14 @@ export const FeatureStorybook: React.FC = () => {
 
       {/* Grid pattern */}
       <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '80px 80px',
-        }}
+        className="absolute inset-0 opacity-[0.02] bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-size-[80px_80px]"
       />
 
       {/* Floating orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
-        className={`absolute w-96 h-96 rounded-full bg-linear-to-br ${currentFeature.gradient} blur-3xl opacity-20`}
-        style={{ top: '10%', right: '-10%' }}
+        className={`absolute top-[10%] -right-[10%] w-96 h-96 rounded-full bg-linear-to-br ${currentFeature.gradient} blur-3xl opacity-20`}
       />
 
       {/* Content */}
@@ -205,9 +200,10 @@ export const FeatureStorybook: React.FC = () => {
           <div className="flex-1 w-full">
             {/* Progress indicators */}
             <div className="flex justify-center gap-1.5 md:gap-2 mb-4 md:mb-10">
-              {features.map((_, idx) => (
+              {features.map((feature, idx) => (
                 <button
-                  key={idx}
+                  type="button"
+                  key={feature.id}
                   onClick={() => {
                     setDirection(idx > currentIndex ? 1 : -1);
                     setCurrentIndex(idx);
@@ -225,7 +221,7 @@ export const FeatureStorybook: React.FC = () => {
             </div>
 
             {/* Feature card */}
-            <div className="relative h-auto min-h-[320px] md:min-h-[420px] lg:h-[480px]">
+            <div className="relative h-auto min-h-80 md:min-h-[420px] lg:h-[480px]">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={currentFeature.id}
@@ -300,20 +296,16 @@ export const FeatureStorybook: React.FC = () => {
             {/* Navigation */}
             <div className="flex items-center justify-between mt-4 md:mt-8 gap-2">
               {/* Previous */}
-              <motion.button
+              <Button
+                variant="ghost"
+                size="default"
                 onClick={goPrev}
                 disabled={isFirst}
-                whileHover={{ scale: isFirst ? 1 : 1.05 }}
-                whileTap={{ scale: isFirst ? 1 : 0.95 }}
-                className={`flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-3 rounded-full font-medium transition-all text-sm md:text-base ${
-                  isFirst
-                    ? 'text-white/20 cursor-not-allowed'
-                    : 'text-white/70 hover:text-white hover:bg-surface/5'
-                }`}
+                className={isFirst ? 'text-white/20' : 'text-white/70 hover:text-white hover:bg-white/5'}
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
-              </motion.button>
+              </Button>
 
               {/* Feature count */}
               <div className="text-white/40 text-sm">
@@ -323,23 +315,14 @@ export const FeatureStorybook: React.FC = () => {
               </div>
 
               {/* Next / Complete */}
-              <motion.button
+              <Button
+                variant="primary"
+                size="default"
                 onClick={goNext}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group relative px-5 py-3 md:px-8 md:py-4 rounded-full font-bold text-sm md:text-lg overflow-hidden"
               >
-                {/* Button gradient */}
-                <div className={`absolute inset-0 bg-linear-to-r ${currentFeature.gradient}`} />
-
-                {/* Shimmer */}
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                <span className="relative flex items-center gap-2 text-white">
-                  {isLast ? 'Complete Tour' : 'Next'}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </motion.button>
+                {isLast ? 'Complete Tour' : 'Next'}
+                <ArrowRight className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>

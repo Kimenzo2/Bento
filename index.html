@@ -286,7 +286,17 @@
       padding-bottom: calc(8rem + var(--safe-area-inset-bottom));
     }
     
-    /* ── Genesis App Skeleton — shown before React mounts ── */
+    /* ── Genesis App Skeleton — shown before React mounts ──
+       All colours come from CSS vars set by the theme-detection script below.
+       Defaults match the Genesis Classic light theme.
+    */
+    :root {
+      --sk-bg:      #FFF8E7;
+      --sk-surface: #FFFFFF;
+      --sk-border:  #FFE4CC;
+      --sk-shimmer: rgba(255,255,255,0.55);
+      --sk-hero:    linear-gradient(135deg,#FFFFFF 0%,#FFF8E7 100%);
+    }
     @keyframes gs-shimmer {
       0%   { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
@@ -294,7 +304,7 @@
     .gs-bone {
       position: relative;
       overflow: hidden;
-      background: #1c2033;
+      background: var(--sk-border);
       border-radius: 8px;
       flex-shrink: 0;
     }
@@ -302,43 +312,21 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.045) 50%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, var(--sk-shimmer) 50%, transparent 100%);
       animation: gs-shimmer 1.6s ease-in-out infinite;
     }
-    #root:empty {
-      position: fixed;
-      inset: 0;
-      background: #0d0f17;
-      overflow: hidden;
-    }
-    /* Accent glow */
-    #root:empty::before {
-      content: '';
-      position: fixed;
-      top: -120px; right: -80px;
-      width: 400px; height: 400px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,155,113,0.06) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    /* Nav bar */
-    #root:empty #gs-nav {
-      display: none;
-    }
-    /* Static skeleton laid out via a real element — injected below in <body> */
-    /* We use a hidden #gs-skeleton div that is visible only while #root is empty */
     #gs-skeleton {
       display: flex;
       flex-direction: column;
       position: fixed;
       inset: 0;
-      background: #0d0f17;
+      background: var(--sk-bg);
       font-family: system-ui, sans-serif;
       overflow-y: auto;
     }
     #gs-skeleton .gs-nav {
       position: fixed; top:0; left:0; right:0; height:64px;
-      background:#131620; border-bottom:1px solid #1e2235;
+      background:var(--sk-surface); border-bottom:1px solid var(--sk-border);
       display:flex; align-items:center; padding:0 24px; gap:12px; z-index:100; box-sizing:border-box;
     }
     #gs-skeleton .gs-body {
@@ -346,26 +334,26 @@
       display:flex; flex-direction:column; gap:20px; box-sizing:border-box; width:100%;
     }
     #gs-skeleton .gs-hero {
-      background:linear-gradient(135deg,#131a2e 0%,#1a1329 100%);
-      border:1px solid #1e2235; border-radius:24px;
+      background:var(--sk-hero);
+      border:1px solid var(--sk-border); border-radius:24px;
       padding:28px 32px; display:flex; gap:24px; align-items:center; justify-content:space-between;
     }
     #gs-skeleton .gs-hero-left { display:flex; flex-direction:column; gap:12px; flex:1; }
     #gs-skeleton .gs-stats { display:flex; gap:16px; flex-wrap:wrap; }
     #gs-skeleton .gs-stat-card {
-      background:#131620; border:1px solid #1e2235; border-radius:16px;
+      background:var(--sk-surface); border:1px solid var(--sk-border); border-radius:16px;
       padding:20px; display:flex; flex-direction:column; gap:12px; flex:1; min-width:200px;
     }
     #gs-skeleton .gs-main { display:flex; gap:20px; align-items:flex-start; }
     #gs-skeleton .gs-grid { flex:1; display:flex; flex-direction:column; gap:16px; min-width:0; }
     #gs-skeleton .gs-row { display:flex; gap:16px; }
     #gs-skeleton .gs-card {
-      background:#131620; border:1px solid #1e2235; border-radius:20px;
+      background:var(--sk-surface); border:1px solid var(--sk-border); border-radius:20px;
       overflow:hidden; flex:1; min-width:0;
     }
     #gs-skeleton .gs-card-body { padding:16px; display:flex; flex-direction:column; gap:10px; }
     #gs-skeleton .gs-side {
-      background:#131620; border:1px solid #1e2235; border-radius:20px;
+      background:var(--sk-surface); border:1px solid var(--sk-border); border-radius:20px;
       padding:20px; width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;
     }
     #gs-skeleton .gs-side-row { display:flex; align-items:center; gap:12px; }
@@ -374,6 +362,35 @@
 </head>
 
 <body>
+  <!-- Read theme from localStorage BEFORE skeleton renders so colours are correct immediately -->
+  <script>
+  (function(){
+    var T={
+      genesis:{l:['#FFF8E7','#FFFFFF','#FFE4CC','rgba(255,255,255,0.55)'],d:['#1A1412','#2A201D','#3D302B','rgba(255,255,255,0.05)']},
+      aurora: {l:['#F8F5FF','#FFFFFF','#E1BEE7','rgba(255,255,255,0.55)'],d:['#130C1C','#1E152D','#362554','rgba(255,255,255,0.05)']},
+      ocean:  {l:['#E0F7FA','#FFFFFF','#B2EBF2','rgba(255,255,255,0.55)'],d:['#0A191C','#12272B','#1A424A','rgba(255,255,255,0.05)']},
+      forest: {l:['#F1F8E9','#FFFFFF','#C5E1A5','rgba(255,255,255,0.55)'],d:['#0F1A12','#18291B','#28462C','rgba(255,255,255,0.05)']},
+      nebula: {l:['#EDE7F6','#FFFFFF','#D1C4E9','rgba(255,255,255,0.55)'],d:['#100C1A','#1A152A','#2A2244','rgba(255,255,255,0.05)']},
+      sunset: {l:['#FFF3E0','#FFFFFF','#FFCCBC','rgba(255,255,255,0.55)'],d:['#1C120C','#2D1C12','#4A2E1F','rgba(255,255,255,0.05)']}
+    };
+    var id=localStorage.getItem('genesis_theme_id')||'genesis';
+    var dark=localStorage.getItem('genesis_dark_mode')==='true';
+    var t=T[id]||T.genesis;
+    var c=dark?t.d:t.l;
+    var r=document.documentElement;
+    r.style.setProperty('--sk-bg',c[0]);
+    r.style.setProperty('--sk-surface',c[1]);
+    r.style.setProperty('--sk-border',c[2]);
+    r.style.setProperty('--sk-shimmer',c[3]);
+    r.style.setProperty('--sk-hero','linear-gradient(135deg,'+c[1]+' 0%,'+c[0]+' 100%)');
+    // Also set the real app CSS vars immediately so ThemeContext has no flash to correct
+    r.style.setProperty('--color-background',c[0]);
+    r.style.setProperty('--color-surface',c[1]);
+    r.style.setProperty('--color-border',c[2]);
+    if(dark){r.classList.add('dark');r.style.setProperty('color-scheme','dark');}
+  })();
+  </script>
+
   <!-- Genesis app skeleton — visible only before React hydrates (#root is empty) -->
   <div id="gs-skeleton">
     <!-- Nav -->

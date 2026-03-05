@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Check, Users, Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { Button } from '../ui/button';
 import { type UserRole, useOnboarding } from './OnboardingState';
 
 // Image paths for roles
@@ -92,11 +93,7 @@ export const CreativePersonaQuiz: React.FC = () => {
 
       {/* Grid pattern */}
       <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',
-          backgroundSize: '50px 50px',
-        }}
+        className="absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle,rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:50px_50px]"
       />
 
       {/* Content */}
@@ -222,36 +219,24 @@ export const CreativePersonaQuiz: React.FC = () => {
               exit={{ opacity: 0, y: 20 }}
               className="flex justify-center"
             >
-              <motion.button
+              <Button
+                variant="primary"
+                size="xl"
                 onClick={handleContinue}
                 disabled={isTransitioning}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="group relative px-8 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-lg overflow-hidden"
               >
-                {/* Button gradient */}
-                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500" />
-
-                {/* Shimmer */}
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                {/* Glow */}
-                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
-
-                <span className="relative flex items-center gap-3 text-white">
-                  {isTransitioning ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Setting up...
-                    </>
-                  ) : (
-                    <>
-                      Continue
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </span>
-              </motion.button>
+                {isTransitioning ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>

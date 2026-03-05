@@ -1,7 +1,9 @@
 import { IcoCrown } from '../IconscoutIcons';
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Rocket, Star, Zap } from 'lucide-react';
+import { Button } from '../ui/button';
 import { useOnboarding, clearOnboardingState } from './OnboardingState';
 
 // Confetti particle
@@ -76,9 +78,11 @@ export const WelcomeSuccess: React.FC = () => {
   const getPersonalizedMessage = () => {
     if (quizAnswers.intent === 'kids') {
       return "Ready to create magical stories for young minds?";
-    } else if (quizAnswers.intent === 'scifi') {
+    }
+    if (quizAnswers.intent === 'scifi') {
       return "Ready to explore galaxies and craft epic adventures?";
-    } else if (quizAnswers.intent === 'brand') {
+    }
+    if (quizAnswers.intent === 'brand') {
       return "Ready to create compelling visual narratives?";
     }
     return "Ready to bring your imagination to life?";
@@ -240,30 +244,14 @@ export const WelcomeSuccess: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
         >
-          <motion.button
+          <Button
+            variant="primary"
+            size="xl"
             onClick={handleEnterStudio}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="group relative inline-flex items-center gap-3 px-12 py-6 rounded-full font-bold text-xl overflow-hidden"
           >
-            {/* Button gradient */}
-            <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500" />
-            
-            {/* Shimmer */}
-            <motion.div
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-              className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent w-1/2"
-            />
-            
-            {/* Glow effect */}
-            <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
-            
-            <span className="relative flex items-center gap-3 text-white">
-              Enter the Studio
-              <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-            </span>
-          </motion.button>
+            Enter the Studio
+            <ArrowRight className="w-6 h-6" />
+          </Button>
         </motion.div>
 
         {/* Tagline */}

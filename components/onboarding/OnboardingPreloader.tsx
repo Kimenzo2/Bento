@@ -55,12 +55,12 @@ export const OnboardingPreloader: React.FC = () => {
 
     // Priority 2: Preload Videos (just the metadata)
     const preloadVideos = () => {
-      VIDEOS_TO_PRELOAD.forEach((src) => {
+      for (const src of VIDEOS_TO_PRELOAD) {
         const video = document.createElement('video');
         video.src = src;
         video.preload = 'metadata'; // Or 'auto' if you want full buffer
         video.load();
-      });
+      }
     };
 
     // Start preloading after a short delay to allow initial render to complete

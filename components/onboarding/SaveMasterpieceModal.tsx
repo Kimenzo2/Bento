@@ -3,6 +3,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useOnboarding } from './OnboardingState';
 
@@ -102,23 +103,23 @@ export const SaveMasterpieceModal: React.FC = () => {
 
       {/* Ambient orbs for visual consistency */}
       <div
-        className="absolute w-100 h-100 rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10"
-        style={{ top: '10%', left: '-15%' }}
+        className="absolute top-[10%] -left-[15%] w-100 h-100 rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10"
       />
       <div
-        className="absolute w-[350px] h-[350px] rounded-full bg-blue-600/15 blur-3xl pointer-events-none -z-10"
-        style={{ bottom: '10%', right: '-10%' }}
+        className="absolute bottom-[10%] -right-[10%] w-[350px] h-[350px] rounded-full bg-blue-600/15 blur-3xl pointer-events-none -z-10"
       />
 
       {/* Back button when in email form */}
       {showEmailForm && !successMessage && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setShowEmailForm(false)}
-          className="absolute top-8 left-4 p-2 text-white/40 hover:text-white transition-colors"
+          className="absolute top-8 left-4 text-white/40 hover:text-white hover:bg-white/10"
           title="Go back"
         >
           <ArrowLeft className="w-6 h-6" />
-        </button>
+        </Button>
       )}
 
       {/* Creation Icon/Emoji */}
@@ -150,12 +151,14 @@ export const SaveMasterpieceModal: React.FC = () => {
       <div className="w-full max-w-xs mb-10">
         {showEmailForm ? (
           successMessage ? (
-            <button
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
               onClick={() => setSuccessMessage(null)}
-              className="w-full h-14 bg-surface/10 hover:bg-surface/20 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all"
             >
               Resend Email
-            </button>
+            </Button>
           ) : (
             <form onSubmit={handleMagicLink} className="space-y-4">
               <div className="relative">
@@ -169,21 +172,25 @@ export const SaveMasterpieceModal: React.FC = () => {
                   className="h-14 pl-12 pr-4 bg-surface/5 border-white/10 text-white placeholder-white/20 focus:border-white/30 focus:bg-surface/10"
                 />
               </div>
-              <button
+              <Button
                 type="submit"
+                variant="primary"
+                size="lg"
                 disabled={isLoading || !email}
-                className="w-full h-14 bg-surface text-slate-900 font-bold rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+                className="w-full"
               >
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Magic Link'}
-              </button>
+              </Button>
             </form>
           )
         ) : (
           <div className="space-y-4">
-            <button
+            <Button
+              variant="outline"
+              size="lg"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
-              className="w-full h-14 bg-surface hover:bg-slate-100 rounded-xl flex items-center justify-center gap-3 text-slate-900 font-bold transition-all active:scale-95"
+              className="w-full bg-white text-slate-900 hover:bg-slate-100 border-white"
             >
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -191,15 +198,17 @@ export const SaveMasterpieceModal: React.FC = () => {
                 alt="Google"
               />
               Continue with Google
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => setShowEmailForm(true)}
-              className="w-full h-14 bg-surface/5 hover:bg-surface/10 border border-white/10 rounded-xl flex items-center justify-center gap-3 text-white font-bold transition-all active:scale-95"
+              className="w-full border-white/10 text-white hover:bg-white/10"
             >
               <Mail className="w-5 h-5" />
               Use Email Instead
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -228,12 +237,14 @@ export const SaveMasterpieceModal: React.FC = () => {
         </p>
 
         {/* Skip option for users not ready to sign up */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setStep('welcome')}
-          className="mt-6 text-white/25 hover:text-white/50 text-xs transition-colors"
+          className="mt-6 text-white/25 hover:text-white/50 hover:bg-transparent"
         >
           Maybe later →
-        </button>
+        </Button>
       </div>
     </div>
   );

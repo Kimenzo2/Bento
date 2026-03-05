@@ -59,7 +59,7 @@ export function preloadImage(src: string): Promise<void> {
   }
 
   if (assetCache.has(src)) {
-    return assetCache.get(src)!;
+    return assetCache.get(src) ?? Promise.resolve();
   }
 
   const promise = new Promise<void>((resolve, reject) => {
@@ -85,7 +85,7 @@ export function preloadVideo(src: string): Promise<void> {
   }
 
   if (assetCache.has(src)) {
-    return assetCache.get(src)!;
+    return assetCache.get(src) ?? Promise.resolve();
   }
 
   const promise = new Promise<void>((resolve) => {
@@ -114,7 +114,7 @@ export async function preloadBatch(urls: readonly string[], concurrency = 3): Pr
 
   while (queue.length > 0 || active.length > 0) {
     while (active.length < concurrency && queue.length > 0) {
-      const url = queue.shift()!;
+      const url = queue.shift() as string;
       const promise = preloadImage(url).finally(() => {
         const index = active.indexOf(promise);
         if (index > -1) active.splice(index, 1);

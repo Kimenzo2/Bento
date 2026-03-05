@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronRight, Clock, Gift, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { Button } from '../ui/button';
 import { useOnboarding } from './OnboardingState';
 
 // Psychological trigger: Live social proof counter
@@ -189,7 +190,6 @@ const FeatureComparison = () => {
 export const ProRevealMoment: React.FC = () => {
   const { setStep, sparkPoints } = useOnboarding();
   const [showComparison, setShowComparison] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
   const [deal, setDeal] = useState({
     original_price: 19.99,
     deal_price: 11.99,
@@ -238,7 +238,7 @@ export const ProRevealMoment: React.FC = () => {
             filter: 'name=eq.Onboarding Exclusive',
           },
           (payload: any) => {
-            if (payload.new && payload.new.is_active) {
+            if (payload.new?.is_active) {
               setDeal({
                 original_price: Number(payload.new.original_price),
                 deal_price: Number(payload.new.deal_price),
@@ -407,48 +407,29 @@ export const ProRevealMoment: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* CTA Buttons */}
+              {/* CTA Buttons */}
             <div className="flex flex-col gap-3">
               {/* Primary CTA - Upgrade */}
-              <motion.button
+              <Button
+                variant="primary"
+                size="xl"
+                className="w-full"
                 onClick={handleUpgrade}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative w-full py-4 rounded-2xl font-bold text-lg overflow-hidden"
               >
-                {/* Animated gradient background */}
-                <motion.div
-                  animate={{
-                    backgroundPosition: isHovering ? ['0% 50%', '100% 50%', '0% 50%'] : '0% 50%',
-                  }}
-                  transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
-                  className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-500 to-purple-600 bg-size-[200%_100%]"
-                />
+                <IcoCrown className="w-5 h-5" />
+                Unlock Pro Now
+                <ChevronRight className="w-5 h-5" />
+              </Button>
 
-                {/* Shimmer effect */}
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                {/* Glow */}
-                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-500 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
-
-                <span className="relative flex items-center justify-center gap-2 text-white">
-                  <IcoCrown className="w-5 h-5" />
-                  Unlock Pro Now
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </motion.button>
-
-              {/* Secondary CTA - Continue free (smaller, less prominent) */}
-              <motion.button
+              {/* Secondary CTA - Continue free */}
+              <Button
+                variant="ghost"
+                size="default"
+                className="w-full text-white/50 hover:text-white/70 hover:bg-transparent"
                 onClick={handleContinueFree}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                className="w-full py-3 rounded-xl text-white/50 hover:text-white/70 text-sm transition-colors"
               >
                 Maybe later, continue with Free
-              </motion.button>
+              </Button>
             </div>
           </div>
         </motion.div>

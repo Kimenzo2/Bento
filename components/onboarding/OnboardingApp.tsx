@@ -15,7 +15,8 @@
  * 4. Better performance - smaller initial payload for new users
  */
 
-import React, { useEffect } from 'react';
+import type React from 'react';
+import { useEffect } from 'react';
 import { OnboardingProvider } from './OnboardingState';
 import { OnboardingLayout } from './OnboardingLayout';
 import '../../styles/onboarding-responsive.css';

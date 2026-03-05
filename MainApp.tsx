@@ -565,11 +565,19 @@ const MainAppContent: React.FC = () => {
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={setCurrentMode} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <Suspense fallback={<AppSkeleton />} key={forceRenderKey}>{renderContent()}</Suspense>
+        {/* key is on the inner div, NOT on Suspense — this way theme/language
+            re-renders remount the content without re-triggering the skeleton
+            (Suspense only suspends when a lazy import is actually pending). */}
+        <Suspense fallback={<AppSkeleton />}>
+          <div key={forceRenderKey}>{renderContent()}</div>
+        </Suspense>
       </main>
 
       {isGenerating && (
-        <Suspense fallback={<AppSkeleton />}>
+        // GenerationTheater is only triggered by user action (generate button),
+        // so the chunk is already downloaded long before it's needed.
+        // Use null fallback — the overlay won't flash and the theater shows immediately.
+        <Suspense fallback={null}>
           <GenerationTheater progress={generationProgress} status={generationStatus} onCancel={() => { setIsGenerating(false); setGenerationStatus(''); setGenerationProgress(0); }} />
         </Suspense>
       )}

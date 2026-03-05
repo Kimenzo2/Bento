@@ -1,6 +1,7 @@
 import { IcoStar, IcoWand } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { Button } from '../ui/button';
 /**
  * InstantCreationDemo - PERFORMANCE OPTIMIZED
  *
@@ -121,18 +122,20 @@ TypewriterText.displayName = 'TypewriterText';
 
 // ⚡ Memoized ambient star
 const AmbientStar = memo(
-  ({ x, y, delay, duration }: { x: string; y: string; delay: number; duration: number }) => (
-    <div
-      className="absolute w-1 h-1 bg-surface rounded-full animate-pulse pointer-events-none"
-      style={{
-        left: x,
-        top: y,
-        animationDelay: `${delay}s`,
-        animationDuration: `${duration}s`,
-        ...GPU_STYLE,
-      }}
-    />
-  )
+  ({ x, y, delay, duration }: { x: string; y: string; delay: number; duration: number }) => {
+    return (
+      <div
+        className="absolute w-1 h-1 bg-surface rounded-full animate-pulse pointer-events-none"
+        style={{
+          left: x,
+          top: y,
+          animationDelay: `${delay}s`,
+          animationDuration: `${duration}s`,
+          ...GPU_STYLE,
+        }}
+      />
+    );
+  }
 );
 AmbientStar.displayName = 'AmbientStar';
 
@@ -323,28 +326,14 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   "{content.prompt}"
                 </p>
 
-                <motion.button
+                <Button
+                  variant="primary"
+                  size="lg"
                   onClick={handleActivate}
-                  whileHover={reducedMotion ? {} : { scale: 1.03 }}
-                  whileTap={reducedMotion ? {} : { scale: 0.97 }}
-                  className="group relative inline-flex items-center gap-2 md:gap-3 px-6 py-3 md:px-8 md:py-4 overflow-hidden rounded-full transform-gpu"
                 >
-                  {/* Button gradient */}
-                  <div className={`absolute inset-0 bg-linear-to-r ${content.visualGradient}`} />
-
-                  {/* Shimmer - CSS animation */}
-                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-
-                  {/* Glow */}
-                  <div
-                    className={`absolute inset-0 bg-linear-to-r ${content.visualGradient} blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-200`}
-                  />
-
-                  <span className="relative flex items-center gap-2 text-white font-bold text-base md:text-lg">
-                    <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
-                    Tap to Generate
-                  </span>
-                </motion.button>
+                  <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
+                  Tap to Generate
+                </Button>
 
                 <p className="mt-4 md:mt-6 text-white/30 text-xs md:text-sm animate-pulse">
                   ✨ One tap. Infinite possibilities.
@@ -460,15 +449,15 @@ export const InstantCreationDemo: React.FC = memo(() => {
               className="mt-8 flex justify-center"
               style={GPU_STYLE}
             >
-              <motion.button
+              <Button
+                variant="ghost"
+                size="xl"
                 onClick={handleContinue}
-                whileHover={reducedMotion ? {} : { scale: 1.02 }}
-                whileTap={reducedMotion ? {} : { scale: 0.98 }}
-                className="flex items-center gap-2 md:gap-3 px-6 py-3 md:px-10 md:py-5 bg-surface text-slate-900 rounded-full font-bold text-base md:text-lg border border-peach-soft duration-200 transform-gpu"
+                className="text-white border border-white/20 hover:bg-white/10 hover:text-white"
               >
                 See What Else is Possible
                 <ArrowRight className="w-5 h-5" />
-              </motion.button>
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>

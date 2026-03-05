@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Briefcase, Check, Crown, Loader, Shield, Star, X, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -219,7 +220,7 @@ export const OnboardingPricing: React.FC = () => {
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-3">
-            <span className={`text-sm font-medium ${!isAnnual ? 'text-white' : 'text-white/40'}`}>Monthly</span>
+            <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>Monthly</span>
             <Button
               variant="ghost"
               onClick={() => setIsAnnual(!isAnnual)}
@@ -255,7 +256,7 @@ export const OnboardingPricing: React.FC = () => {
                 transition={{ delay: index * 0.1 }}
                 className={`relative bg-surface/5  rounded-2xl border p-3 md:p-5 flex flex-col transition-all duration-300 ${
                   tier.isPopular 
-                    ? `border-amber-400/50` 
+                    ? 'border-amber-400/50' 
                     : `${tier.borderColor} hover:border-white/20`
                 } ${isSelected ? 'ring-2 ring-purple-500' : ''}`}
               >
@@ -310,18 +311,12 @@ export const OnboardingPricing: React.FC = () => {
                 </div>
 
                 {/* CTA Button */}
-                <motion.button
+                <Button
+                  variant={tier.isPopular ? 'primary' : tier.priceMonthly === 0 ? 'ghost' : 'outline'}
+                  size="default"
+                  className="w-full"
                   onClick={() => handleSubscribe(tier)}
                   disabled={processingTier !== null}
-                  whileHover={{ scale: processingTier ? 1 : 1.02 }}
-                  whileTap={{ scale: processingTier ? 1 : 0.98 }}
-                  className={`w-full py-2.5 md:py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                    tier.isPopular
-                      ? `bg-linear-to-r ${tier.gradient} text-white border border-white/20`
-                      : tier.priceMonthly === 0
-                        ? 'bg-surface/10 text-white/70 hover:bg-surface/20'
-                        : 'bg-surface/10 text-white hover:bg-surface/20'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isProcessing ? (
                     <>
@@ -336,7 +331,7 @@ export const OnboardingPricing: React.FC = () => {
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
-                </motion.button>
+                </Button>
 
                 {/* Why This Tier Button */}
                 {tier.priceMonthly > 0 && (
@@ -376,15 +371,21 @@ export const OnboardingPricing: React.FC = () => {
         </motion.div>
 
         {/* Skip Link */}
-        <motion.button
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          onClick={handleSkip}
-          className="text-white/30 hover:text-white/50 text-sm transition-colors mx-auto"
+          className="mx-auto"
         >
-          Maybe later, continue with Free →
-        </motion.button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSkip}
+            className="text-white/30 hover:text-white/50 hover:bg-transparent"
+          >
+            Maybe later, continue with Free →
+          </Button>
+        </motion.div>
       </div>
     </div>
   );

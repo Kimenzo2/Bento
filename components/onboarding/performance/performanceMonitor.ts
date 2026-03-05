@@ -39,7 +39,7 @@ export function measureRender(componentName: string, startTime: number): void {
     metrics.renderTimes.set(componentName, []);
   }
 
-  const times = metrics.renderTimes.get(componentName)!;
+  const times = metrics.renderTimes.get(componentName) ?? [];
   times.push(duration);
 
   // Keep only last 100 measurements

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Check } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { Button } from '../ui/button';
 import { useOnboarding } from './OnboardingState';
 
 // Animated background blob
@@ -168,11 +169,7 @@ export const PersonalizationQuiz: React.FC = () => {
 
       {/* Subtle grid */}
       <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
+        className="absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle,rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:40px_40px]"
       />
 
       {/* Content */}
@@ -185,7 +182,8 @@ export const PersonalizationQuiz: React.FC = () => {
         >
           <div className="ob-progress-ring relative">
             {/* Background ring */}
-            <svg className="w-14 h-14 md:w-20 md:h-20 -rotate-90">
+            <svg className="w-14 h-14 md:w-20 md:h-20 -rotate-90" aria-hidden="true">
+              <title>Quiz question progress</title>
               <circle
                 cx="50%"
                 cy="50%"
@@ -368,26 +366,14 @@ export const PersonalizationQuiz: React.FC = () => {
               exit={{ opacity: 0, y: 20 }}
               className="mt-6 md:mt-10 flex justify-center pb-4"
             >
-              <motion.button
+              <Button
+                variant="primary"
+                size="xl"
                 onClick={handleContinue}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="group relative px-8 py-4 md:px-10 md:py-5 rounded-full font-bold text-base md:text-lg overflow-hidden"
               >
-                {/* Button gradient background */}
-                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500" />
-
-                {/* Shimmer */}
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                {/* Glow */}
-                <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-600 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
-
-                <span className="relative flex items-center gap-3 text-white">
-                  Begin the Magic
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </motion.button>
+                Begin the Magic
+                <ArrowRight className="w-5 h-5" />
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
