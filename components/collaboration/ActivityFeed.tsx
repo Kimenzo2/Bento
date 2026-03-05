@@ -1,23 +1,11 @@
+import { IcoStar, IcoZap } from '../IconscoutIcons';
 // ==============================================================================
 // ACTIVITY FEED COMPONENT
 // ==============================================================================
 // Real-time activity stream showing user actions
 // ==============================================================================
 
-import {
-  ChevronDown,
-  Clock,
-  GitFork,
-  Heart,
-  Image,
-  Loader2,
-  MessageCircle,
-  Star,
-  Trophy,
-  UserPlus,
-  Users,
-  Zap,
-} from 'lucide-react';
+import { ChevronDown, Clock, GitFork, Heart, Image, Loader2, MessageCircle, Trophy, UserPlus, Users } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { collaborationService } from '../../services/collaborationService';
@@ -112,7 +100,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       case 'visual_remixed':
         return <GitFork className="w-4 h-4" />;
       case 'visual_featured':
-        return <Star className="w-4 h-4 text-yellow-500" />;
+        return <IcoStar className="w-4 h-4 text-yellow-500" />;
       case 'reaction_added':
         return <Heart className="w-4 h-4 text-red-400" />;
       case 'annotation_added':
@@ -126,7 +114,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       case 'user_joined':
         return <UserPlus className="w-4 h-4 text-green-500" />;
       case 'user_leveled_up':
-        return <Zap className="w-4 h-4 text-blue-500" />;
+        return <IcoZap className="w-4 h-4 text-blue-500" />;
       case 'collab_started':
         return <Users className="w-4 h-4 text-purple-500" />;
       case 'collab_joined':

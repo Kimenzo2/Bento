@@ -1,19 +1,5 @@
-import {
-  ArrowLeft,
-  Bell,
-  Download,
-  Edit2,
-  Map,
-  Maximize2,
-  Palette,
-  Plus,
-  Radio,
-  RefreshCw,
-  Share2,
-  Sliders,
-  Sparkles,
-  Wand2,
-} from 'lucide-react';
+import { IcoBell, IcoPalette, IcoWand } from './IconscoutIcons';
+import { ArrowLeft, Download, Edit2, Map, Maximize2, Plus, Radio, RefreshCw, Share2, Sliders } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { generateRefinedImage } from '../services/geminiService';
@@ -252,7 +238,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             className={`relative p-2 border border-peach-soft/50 min-h-11 min-w-11 ${userProfile ? 'bg-surface/80 hover:bg-surface text-cocoa-light hover:text-coral-burst' : 'bg-peach-soft/30 text-cocoa-light/60'}`}
             title={userProfile ? 'Notifications' : 'Login to access notifications'}
           >
-            <Bell className="w-4 h-4 md:w-5 md:h-5" />
+            <IcoBell className="w-4 h-4 md:w-5 md:h-5" />
           </Button>
 
           {/* Go Live Button - Always visible if user is logged in */}
@@ -278,7 +264,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
             }`}
           >
-            <Wand2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <IcoWand className="w-3.5 h-3.5 md:w-4 md:h-4" />
             <span className="hidden xs:inline">Individual</span>
             <span className="xs:hidden">Solo</span>
           </Button>
@@ -498,7 +484,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 <div className="space-y-4 md:space-y-6 animate-fadeIn">
                   <div className="space-y-2">
                     <Label className="text-xs text-cocoa-light uppercase flex items-center gap-2">
-                      <Palette className="w-4 h-4" /> Style Alchemy
+                      <IcoPalette className="w-4 h-4" /> Style Alchemy
                     </Label>
                     <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
                       <div>
@@ -578,7 +564,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 {isGenerating ? (
                   <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
                 ) : (
-                  <Wand2 className="w-4 h-4 md:w-5 md:h-5" />
+                  <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
                 )}
                 {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
               </Button>
@@ -637,7 +623,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       <div className="relative w-20 h-20">
                         <div className="absolute inset-0 border-4 border-coral-burst/20 rounded-full"></div>
                         <div className="absolute inset-0 border-4 border-coral-burst rounded-full border-t-transparent animate-spin"></div>
-                        <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-coral-burst animate-pulse" />
+                        <IcoWand className="absolute inset-0 m-auto w-8 h-8 text-coral-burst animate-pulse" />
                       </div>
                       <p className="font-heading font-bold text-xl text-charcoal-soft animate-pulse">
                         Dreaming...
@@ -649,7 +635,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                   ) : (
                     <div className="flex flex-col items-center gap-4 opacity-60">
                       <div className="w-20 h-20 rounded-full bg-surface border border-peach-soft/50 flex items-center justify-center mb-2">
-                        <Wand2 className="w-10 h-10 text-coral-burst/50" />
+                        <IcoWand className="w-10 h-10 text-coral-burst/50" />
                       </div>
                       <div>
                         <p className="text-charcoal-soft font-heading font-bold text-lg">

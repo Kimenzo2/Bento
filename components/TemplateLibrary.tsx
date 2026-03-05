@@ -1,18 +1,6 @@
+import { IcoBook, IcoCrown, IcoStar, IcoWand } from './IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ArrowRight,
-  BookOpen,
-  Check,
-  Compass,
-  Crown,
-  Moon,
-  Rocket,
-  Sparkles,
-  Star,
-  Users,
-  Wand2,
-  X,
-} from 'lucide-react';
+import { ArrowRight, Check, Compass, Moon, Rocket, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { Button } from './ui/button';
@@ -180,7 +168,7 @@ export const bookTemplates: BookTemplate[] = [
     id: 'learning-abc',
     name: 'ABC Learning',
     description: 'Educational alphabet adventure',
-    icon: <BookOpen className="w-6 h-6" />,
+    icon: <IcoBook className="w-6 h-6" />,
     category: 'educational',
     pageCount: 12,
     ageRange: '3-5 years',
@@ -266,7 +254,7 @@ export const bookTemplates: BookTemplate[] = [
     id: 'fairy-tale',
     name: 'Fairy Tale',
     description: 'Once upon a time... classic storytelling',
-    icon: <Crown className="w-6 h-6" />,
+    icon: <IcoCrown className="w-6 h-6" />,
     category: 'fairy-tale',
     pageCount: 12,
     ageRange: '4-8 years',
@@ -351,7 +339,7 @@ export const bookTemplates: BookTemplate[] = [
     id: 'counting-fun',
     name: 'Counting Fun',
     description: '1, 2, 3... Learn to count with friends!',
-    icon: <Star className="w-6 h-6" />,
+    icon: <IcoStar className="w-6 h-6" />,
     category: 'educational',
     pageCount: 10,
     ageRange: '2-5 years',
@@ -559,7 +547,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-linear-to-br from-coral-burst to-sunset-coral rounded-xl">
-                  <Wand2 className="w-6 h-6 text-white" />
+                  <IcoWand className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-charcoal-soft md:text-2xl dark:text-white">
@@ -628,12 +616,12 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   <div className="absolute flex gap-2 top-3 right-3">
                     {template.popular && (
                       <span className="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full flex items-center gap-1">
-                        <Star className="w-3 h-3" /> Popular
+                        <IcoStar className="w-3 h-3" /> Popular
                       </span>
                     )}
                     {template.new && (
                       <span className="px-2 py-0.5 text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> New
+                        <IcoWand className="w-3 h-3" /> New
                       </span>
                     )}
                   </div>
@@ -657,7 +645,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   {/* Meta */}
                   <div className="flex items-center gap-4 text-xs text-cocoa-light/60">
                     <span className="flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
+                      <IcoBook className="w-3 h-3" />
                       {template.pageCount} pages
                     </span>
                     <span className="flex items-center gap-1">

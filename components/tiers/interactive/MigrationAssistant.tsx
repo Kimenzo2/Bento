@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, FileText, Sparkles, Upload } from 'lucide-react';
+import { CheckCircle2, FileText, Upload, Wand2 } from 'lucide-react';
 import React, { useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
 import { Button } from '@components/ui/button';
@@ -18,7 +18,7 @@ const steps = [
   {
     id: 2,
     title: 'Style Match',
-    icon: Sparkles,
+    icon: Wand2,
     desc: 'AI analyzes your vibe and suggests art styles.',
   },
   {

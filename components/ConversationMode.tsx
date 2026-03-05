@@ -1,15 +1,6 @@
+import { IcoBook, IcoPalette, IcoSend, IcoWand } from './IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  BookOpen,
-  Loader,
-  MessageCircle,
-  Palette,
-  Send,
-  Sparkles,
-  Users,
-  Wand2,
-  X,
-} from 'lucide-react';
+import { Loader, MessageCircle, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { type GrokMessage, callAPI } from '../services/grokService';
@@ -229,7 +220,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                 >
                   {message.role === 'assistant' && (
                     <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <IcoWand className="w-4 h-4 text-purple-400" />
                       <span className="text-xs font-medium text-purple-400">Genesis</span>
                     </div>
                   )}
@@ -277,13 +268,13 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                   <div className="flex flex-wrap gap-2">
                     {extractedSettings.style && (
                       <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded-lg text-xs">
-                        <Palette className="w-3 h-3 text-pink-400" />
+                        <IcoPalette className="w-3 h-3 text-pink-400" />
                         <span className="text-slate-300">{extractedSettings.style}</span>
                       </div>
                     )}
                     {extractedSettings.tone && (
                       <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded-lg text-xs">
-                        <BookOpen className="w-3 h-3 text-blue-400" />
+                        <IcoBook className="w-3 h-3 text-blue-400" />
                         <span className="text-slate-300">{extractedSettings.tone}</span>
                       </div>
                     )}
@@ -323,7 +314,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                   onClick={handleGenerate}
                   className="px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white flex hover:from-purple-600 hover:to-pink-600 border border-white/20"
                 >
-                  <Wand2 className="w-5 h-5" />
+                  <IcoWand className="w-5 h-5" />
                   Create Book
                 </Button>
               ) : (
@@ -333,7 +324,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                   disabled={!input.trim() || isThinking}
                   className="px-4 py-3 bg-purple-500 text-white hover:bg-purple-600"
                 >
-                  <Send className="w-5 h-5" />
+                  <IcoSend className="w-5 h-5" />
                 </Button>
               )}
             </div>

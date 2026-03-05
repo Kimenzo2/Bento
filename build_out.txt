@@ -2,3 +2,5 @@
 > genesis-ebook-generator@2.0.0 build
 > tsc -b && vite build
 
+components/collaboration/InsightsDashboard.tsx(538,12): error TS2304: Cannot find name 'Palette'.
+components/collaboration/InsightsDashboard.tsx(541,16): error TS2304: Cannot find name 'Award'.

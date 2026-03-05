@@ -1,22 +1,5 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  Award,
-  BarChart3,
-  Calendar,
-  ChevronRight,
-  Clock,
-  Crown,
-  Lightbulb,
-  Minus,
-  Palette,
-  Sparkles,
-  Star,
-  Target,
-  TrendingUp,
-  X,
-  Zap,
-} from 'lucide-react';
+import { IcoAward, IcoCrown, IcoPalette } from '../IconscoutIcons';
+import { ArrowDown, ArrowUp, BarChart3, Calendar, ChevronRight, Clock, Lightbulb, Minus, Wand2, Star, Target, TrendingUp, X, Zap } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { insightsService } from '../../services/insightsService';
@@ -154,7 +137,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'trends', label: 'Trends', icon: TrendingUp },
             { id: 'recommendations', label: 'For You', icon: Lightbulb },
-            { id: 'achievements', label: 'Achievements', icon: Award },
+            { id: 'achievements', label: 'Achievements', icon: IcoAward },
           ].map((tab) => (
             <Button
               key={tab.id}
@@ -227,7 +210,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                       color="pink"
                     />
                     <StatCard
-                      icon={Palette}
+                      icon={IcoPalette}
                       label="Styles Used"
                       value={weeklySummary?.unique_styles || 0}
                       change={0}
@@ -287,7 +270,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                           weeklySummary.improvement_tips.length > 0 && (
                             <div className="md:col-span-2 bg-linear-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
                               <p className="text-sm text-purple-300 mb-2 flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" />
+                                <Lightbulb className="w-4 h-4" />
                                 Tips to Improve
                               </p>
                               <ul className="space-y-1">
@@ -313,7 +296,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                   {insights && insights.style_diversity && insights.style_diversity.length > 0 && (
                     <div className="bg-gray-800/50 rounded-xl p-6">
                       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Palette className="w-5 h-5 text-purple-400" />
+                        <IcoPalette className="w-5 h-5 text-purple-400" />
                         Your Style Mix
                       </h3>
                       <div className="space-y-3">
@@ -398,7 +381,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
 
                   {insights.achievements.length === 0 && (
                     <div className="text-center py-12">
-                      <Award className="w-12 h-12 text-cocoa-light mx-auto mb-4" />
+                      <IcoAward className="w-12 h-12 text-cocoa-light mx-auto mb-4" />
                       <p className="text-cocoa-light/60">No achievements yet</p>
                       <p className="text-sm text-cocoa-light">Keep creating to unlock achievements</p>
                     </div>
@@ -409,7 +392,7 @@ export const InsightsDashboard: React.FC<InsightsDashboardProps> = ({
                     <div className="bg-gray-800/50 rounded-xl p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                          <Crown className="w-5 h-5 text-yellow-400" />
+                          <IcoCrown className="w-5 h-5 text-yellow-400" />
                           Creator Level
                         </h3>
                         <span className="text-2xl font-bold text-yellow-400">
@@ -552,10 +535,10 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({
   onDismiss,
 }) => {
   const typeIcons: Record<string, React.ElementType> = {
-    style: Palette,
-    prompt: Sparkles,
+    style: IcoPalette,
+    prompt: Wand2,
     technique: Target,
-    challenge: Award,
+    challenge: IcoAward,
   };
 
   const Icon = typeIcons[recommendation.type] || Lightbulb;

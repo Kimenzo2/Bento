@@ -1,23 +1,11 @@
+import { IcoAward, IcoCrown, IcoStar, IcoZap } from '../IconscoutIcons';
 // ==============================================================================
 // CHALLENGE CARD COMPONENT
 // ==============================================================================
 // Daily challenges display with timer, submissions, and leaderboard
 // ==============================================================================
 
-import {
-  Award,
-  ChevronRight,
-  Clock,
-  Crown,
-  ImageIcon,
-  Medal,
-  Star,
-  Target,
-  ThumbsUp,
-  Trophy,
-  Users,
-  Zap,
-} from 'lucide-react';
+import { ChevronRight, Clock, ImageIcon, Medal, Target, ThumbsUp, Trophy, Users } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { collaborationService } from '../../services/collaborationService';
@@ -177,7 +165,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
                 {/* XP Reward */}
                 <span className="flex items-center gap-1 text-yellow-600 font-bold">
-                  <Zap className="w-4 h-4" />+{challenge.xp_reward} XP
+                  <IcoZap className="w-4 h-4" />+{challenge.xp_reward} XP
                 </span>
 
                 {/* Participants */}
@@ -210,7 +198,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
               {challenge.user_has_submitted && (
                 <span className="text-green-600 font-bold flex items-center gap-1">
-                  <Award className="w-5 h-5" />
+                  <IcoAward className="w-5 h-5" />
                   Submitted!
                 </span>
               )}
@@ -256,7 +244,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Zap className="w-3 h-3 text-yellow-500" />
+              <IcoZap className="w-3 h-3 text-yellow-500" />
               {challenge.xp_reward} XP
             </span>
           </div>
@@ -315,13 +303,13 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
             className={`${difficultyConfig.color} px-2 py-1 rounded-full font-bold text-xs flex items-center gap-1`}
           >
             {[...Array(difficultyConfig.stars)].map((_, i) => (
-              <Star key={i} className="w-3 h-3 fill-current" />
+              <IcoStar key={i} className="w-3 h-3 fill-current" />
             ))}
             {difficultyConfig.label}
           </span>
 
           <span className="flex items-center gap-1 text-xs text-yellow-600 font-bold">
-            <Zap className="w-3 h-3" />+{challenge.xp_reward} XP
+            <IcoZap className="w-3 h-3" />+{challenge.xp_reward} XP
           </span>
 
           <span className="flex items-center gap-1 text-xs text-cocoa-light">
@@ -376,7 +364,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
             >
               {challenge.user_has_submitted ? (
                 <>
-                  <Award className="w-4 h-4" />
+                  <IcoAward className="w-4 h-4" />
                   Submitted
                 </>
               ) : (
@@ -448,7 +436,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
     <div className="bg-surface rounded-2xl overflow-hidden">
       <div className="p-4 border-b border-peach-soft/50">
         <h3 className="font-heading font-bold text-charcoal-soft flex items-center gap-2">
-          <Crown className="w-5 h-5 text-yellow-500" />
+          <IcoCrown className="w-5 h-5 text-yellow-500" />
           Leaderboard
         </h3>
       </div>

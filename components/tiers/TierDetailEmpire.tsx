@@ -1,3 +1,4 @@
+import { IcoAward, IcoCrown } from '../IconscoutIcons';
 /**
  * TierDetailEmpire - Empire Tier Detail Page
  *
@@ -6,22 +7,7 @@
  * Focus: Unlimited scale, custom AI, API access, white-glove service
  */
 
-import {
-  Award,
-  Brain,
-  Check,
-  Clock,
-  Code,
-  Crown,
-  Fingerprint,
-  Headphones,
-  Infinity,
-  Lock,
-  Rocket,
-  Server,
-  Shield,
-  Users,
-} from 'lucide-react';
+import { Brain, Check, Clock, Code, Fingerprint, Headphones, Infinity, Lock, Rocket, Server, Shield, Users } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -471,7 +457,7 @@ const TierDetailEmpire: React.FC = () => {
           {/* Value Grid */}
           <div className="grid md:grid-cols-4 gap-6">
             <div className="bg-linear-to-br from-gold-sunshine/10 to-coral-burst/10 rounded-2xl p-6 border border-gold-sunshine/20">
-              <Crown className="w-10 h-10 text-gold-sunshine mb-4" />
+              <IcoCrown className="w-10 h-10 text-gold-sunshine mb-4" />
               <h3 className="font-heading font-bold text-lg mb-2">Competitive Moat</h3>
               <p className="text-charcoal-soft/70 text-sm">
                 Custom AI trained on your styles creates capabilities competitors can't replicate.
@@ -936,7 +922,7 @@ const TierDetailEmpire: React.FC = () => {
               HIPAA Ready
             </div>
             <div className="flex items-center gap-2 text-white/60 text-sm">
-              <Award className="w-5 h-5" />
+              <IcoAward className="w-5 h-5" />
               99.9% SLA
             </div>
           </div>

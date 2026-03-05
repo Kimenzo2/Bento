@@ -1,15 +1,5 @@
-import {
-  AlertCircle,
-  ArrowLeft,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Download,
-  Lock,
-  Sparkles,
-  User,
-} from 'lucide-react';
+import { IcoBook, IcoPen } from './IconscoutIcons';
+import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, Clock, Download, Lock, User } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -249,7 +239,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
           </Button>
           <div>
             <h1 className="font-bold text-charcoal-soft dark:text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-coral-burst" />
+              <IcoBook className="w-5 h-5 text-coral-burst" />
               {book.title}
             </h1>
             <div className="flex items-center gap-3 text-xs text-cocoa-light dark:text-cocoa-light/60">
@@ -284,7 +274,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 bg-coral-burst/10 text-coral-burst rounded-lg hover:bg-coral-burst/20 transition-colors text-sm font-medium"
           >
-            <Sparkles className="w-4 h-4" />
+            <IcoPen className="w-4 h-4" />
             Create Your Own
           </a>
         </div>
@@ -306,7 +296,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-cocoa-light/60">
                   <div className="text-center">
-                    <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <IcoBook className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p>No image available</p>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
-import { ArrowLeft, BookOpen, Check, Layers, Users, Wand2 } from 'lucide-react';
+import { IcoBook, IcoWand } from './IconscoutIcons';
+import { ArrowLeft, Check, Layers, Users } from 'lucide-react';
 import type React from 'react';
 import { Button } from './ui/button';
 import { Input, Label } from './ui/input';
@@ -84,7 +85,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
             onClick={() => setActiveTab('chapters')}
             className={`flex-1 py-6 text-lg flex ${activeTab === 'chapters' ? 'text-coral-burst bg-cream-soft' : 'text-cocoa-light hover:bg-cream-base'}`}
           >
-            <BookOpen className="w-5 h-5" /> Chapters ({editedBlueprint.pages?.length ?? 0} Pages)
+            <IcoBook className="w-5 h-5" /> Chapters ({editedBlueprint.pages?.length ?? 0} Pages)
           </Button>
         </div>
 
@@ -258,7 +259,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                     />
                     <div className="flex gap-2 text-xs text-cocoa-light">
                       <span className="flex items-center gap-1">
-                        <Wand2 className="w-3 h-3" /> {page.visualEnergy}
+                        <IcoWand className="w-3 h-3" /> {page.visualEnergy}
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" /> {page.characterAction}

@@ -1,4 +1,5 @@
-import { ArrowRight, Loader2, Mail, Sparkles } from 'lucide-react';
+import { IcoWand } from './IconscoutIcons';
+import { ArrowRight, Loader2, Mail } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -98,7 +99,7 @@ const EmailAuthModal: React.FC<EmailAuthModalProps> = ({ isOpen, onClose, _onSuc
         {/* Header */}
         <DialogHeader className="pt-8 px-6 pb-2 text-center">
           <div className="w-12 h-12 rounded-xl bg-linear-to-br from-gold-sunshine to-coral-burst mx-auto mb-4 flex items-center justify-center transform rotate-3">
-            <Sparkles className="w-6 h-6 text-white" />
+            <IcoWand className="w-6 h-6 text-white" />
           </div>
           <DialogTitle className="text-2xl text-center">Welcome to Genesis</DialogTitle>
           <DialogDescription className="text-center">

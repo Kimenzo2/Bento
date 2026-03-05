@@ -1,31 +1,5 @@
-import {
-  AlertCircle,
-  ArrowLeft,
-  BookOpen,
-  CheckCircle2,
-  ChevronRight,
-  Cloud,
-  CloudOff,
-  Compass,
-  Edit3,
-  Eye,
-  GitFork,
-  Globe,
-  Image as ImageIcon,
-  Lightbulb,
-  MessageCircle,
-  PenTool,
-  Redo,
-  RefreshCw,
-  Save,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Undo,
-  Users,
-  Wand,
-  Zap,
-} from 'lucide-react';
+import { IcoBook, IcoPen, IcoStar, IcoZap, IcoWand } from './IconscoutIcons';
+import { AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Cloud, CloudOff, Compass, Edit3, Eye, GitFork, Globe, Image, ImageIcon, Lightbulb, MessageCircle, Redo, RefreshCw, Save, ShieldCheck, Undo, Users, Wand } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -1086,7 +1060,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           {/* Hero Section */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 rounded-full text-sm font-bold text-coral-burst mb-4">
-              <Sparkles className="w-4 h-4" />
+              <IcoWand className="w-4 h-4" />
               Welcome to the Creative Hub
             </div>
             <h2 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft mb-4">
@@ -1103,7 +1077,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             {/* Create a Book Card */}
             <div className="bg-surface rounded-2xl p-6 border border-peach-soft transition-all group">
               <div className="w-14 h-14 rounded-xl bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <PenTool className="w-7 h-7 text-white" />
+                <IcoPen className="w-7 h-7 text-white" />
               </div>
               <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">
                 Create a Book
@@ -1117,7 +1091,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 onClick={onNavigateToCreate}
                 className="w-full font-heading hover:opacity-90"
               >
-                <Zap className="w-4 h-4" />
+                <IcoZap className="w-4 h-4" />
                 Start Creating
               </Button>
             </div>
@@ -1213,7 +1187,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div>
                 <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
-                  <Star className="w-6 h-6 text-gold-sunshine" />
+                  <IcoStar className="w-6 h-6 text-gold-sunshine" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">AI-Powered</div>
                 <div className="text-white/70 text-sm">
@@ -1229,7 +1203,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               </div>
               <div>
                 <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="w-6 h-6 text-emerald-400" />
+                  <IcoBook className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">Story Bible</div>
                 <div className="text-white/70 text-sm">Extract facts to enrich your stories</div>
@@ -1715,7 +1689,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
             <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <IcoWand className="w-5 h-5 text-purple-600" />
                   <h3 className="font-heading font-bold text-sm text-purple-900">
                     Character Consistency Report
                   </h3>

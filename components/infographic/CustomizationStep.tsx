@@ -1,4 +1,5 @@
-import { ArrowLeft, Brain, Palette, User, Wand2 } from 'lucide-react';
+import { IcoPalette, IcoWand } from '../IconscoutIcons';
+import { ArrowLeft, Brain, User } from 'lucide-react';
 import type React from 'react';
 import { type GenerationRequest, GuideCharacter, InfographicStyle } from '../../types/infographic';
 import { Label } from '../ui/input';
@@ -68,7 +69,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
         {/* Visual Style */}
         <div className="space-y-3">
           <Label className="text-xs sm:text-sm uppercase tracking-wide flex items-center gap-2">
-            <Palette className="w-4 h-4" />
+            <IcoPalette className="w-4 h-4" />
             Visual Style
           </Label>
           <div className="grid grid-cols-2 gap-3">
@@ -85,7 +86,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
                 <div
                   className={`w-8 h-8 rounded-lg ${style.color} flex items-center justify-center mb-2`}
                 >
-                  <Palette className="w-4 h-4" />
+                  <IcoPalette className="w-4 h-4" />
                 </div>
                 <div className="font-bold text-charcoal-soft text-xs sm:text-sm">{style.label}</div>
                 <div className="text-[10px] sm:text-xs text-cocoa-light">{style.desc}</div>
@@ -162,7 +163,7 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
           onClick={onGenerate}
           className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-sm sm:text-base border border-white/20 hover:-translate-y-1 transition-all min-h-11 active:scale-95"
         >
-          <Wand2 className="w-5 h-5" />
+          <IcoWand className="w-5 h-5" />
           Generate Infographic
         </button>
       </div>

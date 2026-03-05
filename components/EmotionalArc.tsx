@@ -1,5 +1,6 @@
+import { IcoZap } from './IconscoutIcons';
 import { motion } from 'framer-motion';
-import { Activity, Info, Minus, TrendingDown, TrendingUp, Zap } from 'lucide-react';
+import { Activity, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import type React from 'react';
 import { useMemo } from 'react';
 
@@ -71,7 +72,7 @@ const EmotionalArc: React.FC<EmotionalArcProps> = ({
         };
       case 'fast':
         return {
-          icon: <Zap className="w-4 h-4" />,
+          icon: <IcoZap className="w-4 h-4" />,
           color: 'text-orange-400',
           bg: 'bg-orange-500/20',
         };

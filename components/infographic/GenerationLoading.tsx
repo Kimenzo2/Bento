@@ -1,4 +1,5 @@
-import { Lightbulb, Sparkles } from 'lucide-react';
+import { IcoWand } from '../IconscoutIcons';
+import { Lightbulb } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -46,7 +47,7 @@ const GenerationLoading: React.FC<GenerationLoadingProps> = ({ topic }) => {
         <div className="absolute inset-0 border-4 border-peach-soft rounded-full opacity-30"></div>
         <div className="absolute inset-0 border-4 border-coral-burst rounded-full border-t-transparent animate-spin [animation-duration:1.5s]"></div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-gold-sunshine animate-pulse" />
+          <IcoWand className="w-10 h-10 sm:w-12 sm:h-12 text-gold-sunshine animate-pulse" />
         </div>
       </div>
 

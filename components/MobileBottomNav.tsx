@@ -1,4 +1,5 @@
-import { Camera, Palette, User, Users, Wand2 } from 'lucide-react';
+import { IcoWand } from './IconscoutIcons';
+import { Camera, Palette, User, Users } from 'lucide-react';
 import type React from 'react';
 import { Button } from '@components/ui/button';
 
@@ -49,7 +50,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             {isCollaborativeMode ? (
               <Users size={18} strokeWidth={2} />
             ) : (
-              <Wand2 size={18} strokeWidth={2} />
+              <IcoWand width={18} height={18} />
             )}
             <span className="text-[8px] font-medium">
               {isCollaborativeMode ? 'Collab' : 'Solo'}
@@ -75,8 +76,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <div className="relative">
-                <Icon
-                  size={20}
+                <Icon width={20} height={20}
                   className={`transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-glow' : ''}`}
                   strokeWidth={isActive ? 2.5 : 2}
                 />

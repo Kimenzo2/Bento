@@ -1,5 +1,6 @@
+import { IcoStar, IcoZap } from './IconscoutIcons';
 import { motion } from 'framer-motion';
-import { Bug, ChevronRight, Gift, Sparkles, Star, Wrench, Zap } from 'lucide-react';
+import { Bug, ChevronRight, Gift, Wrench } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Badge } from './ui/badge';
@@ -141,15 +142,15 @@ const STORAGE_KEY = 'genesis_last_seen_version';
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'feature':
-      return <Sparkles className="w-4 h-4 text-coral-burst" />;
+      return <IcoZap className="w-4 h-4 text-coral-burst" />;
     case 'improvement':
-      return <Zap className="w-4 h-4 text-amber-500" />;
+      return <IcoZap className="w-4 h-4 text-amber-500" />;
     case 'fix':
       return <Bug className="w-4 h-4 text-green-500" />;
     case 'breaking':
       return <Wrench className="w-4 h-4 text-red-500" />;
     default:
-      return <Star className="w-4 h-4 text-cocoa-light" />;
+      return <IcoStar className="w-4 h-4 text-cocoa-light" />;
   }
 };
 

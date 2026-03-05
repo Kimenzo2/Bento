@@ -15,7 +15,7 @@ import {
   Lock,
   Palette,
   Shield,
-  Sparkles,
+  Wand2,
   Zap,
 } from 'lucide-react';
 import React from 'react';
@@ -119,7 +119,7 @@ const features: FeatureCard[] = [
     ],
   },
   {
-    icon: Sparkles,
+    icon: Wand2,
     title: 'Quality Features',
     description: 'Professional polish for every book',
     highlight: 'No Watermarks',

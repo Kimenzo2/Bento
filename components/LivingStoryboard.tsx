@@ -1,5 +1,6 @@
+import { IcoWand } from './IconscoutIcons';
 import { motion } from 'framer-motion';
-import { Activity, Film, Sparkles } from 'lucide-react';
+import { Activity, Film } from 'lucide-react';
 import type React from 'react';
 import { Button } from '@components/ui/button';
 import type { StoryBeat } from '../types';
@@ -52,13 +53,13 @@ const LivingStoryboard: React.FC<LivingStoryboardProps> = ({
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <IcoWand className="w-4 h-4" />
                 </motion.div>
                 Analyzing Story...
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
+                <IcoWand className="w-4 h-4" />
                 Generate Storyboard
               </>
             )}

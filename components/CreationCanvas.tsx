@@ -1,21 +1,5 @@
-import {
-  ArrowLeft,
-  Briefcase,
-  Building2,
-  ChevronRight,
-  Clock,
-  GitFork,
-  Grid,
-  LayoutTemplate,
-  Leaf,
-  MessageCircle,
-  Palette,
-  Rocket,
-  Sparkles,
-  Star,
-  Users,
-  Wand2,
-} from 'lucide-react';
+import { ArrowLeft, Briefcase, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, MessageCircle, Users } from 'lucide-react';
+import { IcoBuilding, IcoRocket, IcoWand, IcoPalette } from './IconscoutIcons';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
 import { deleteBook, getAllBooks } from '../services/storageService';
@@ -711,7 +695,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       {!prompt && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full px-4 mb-16">
           <QuickStartCard
-            icon={Star}
+            icon={IcoWand}
             title="Children's Story"
             desc="Create a magical tale with vibrant illustrations and moral lessons."
             colorClass="from-gold-sunshine to-orange-400"
@@ -727,7 +711,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             }
           />
           <QuickStartCard
-            icon={Rocket}
+            icon={IcoRocket}
             title="Sci-Fi Novel"
             desc="Build a futuristic world with deep lore and complex characters."
             colorClass="from-purple-400 to-coral-burst"
@@ -744,7 +728,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             }
           />
           <QuickStartCard
-            icon={Building2}
+            icon={IcoBuilding}
             title="Brand Story"
             desc="Generate a professional company history or annual report."
             colorClass="from-mint-breeze to-emerald-400"
@@ -843,7 +827,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-coral-burst rounded-full animate-ping opacity-20"></div>
                 <div className="w-20 h-20 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center animate-bounce-slow relative z-10">
-                  <Sparkles className="w-10 h-10 text-white animate-pulse" />
+                  <IcoWand className="w-10 h-10 text-white animate-pulse" />
                 </div>
               </div>
               <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
@@ -971,7 +955,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               <div ref={promptSectionRef} className="mb-10">
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-lg flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-gold-sunshine" />
+                    <IcoWand className="w-5 h-5 text-gold-sunshine" />
                     Tell us about your book idea
                   </Label>
                   <Button
@@ -1005,7 +989,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     className="w-full p-4 font-body focus:border-coral-burst hover:border-coral-burst/50 text-left flex justify-between group"
                   >
                     <span className="flex items-center gap-2">
-                      <Palette className="w-5 h-5 text-coral-burst" />
+                      <IcoPalette className="w-5 h-5 text-coral-burst" />
                       {style}
                     </span>
                     <ChevronRight className="w-5 h-5 text-cocoa-light/60 group-hover:translate-x-1 transition-transform" />
@@ -1554,7 +1538,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-5 h-5" />
+                    <IcoWand className="w-5 h-5" />
                     Generate Masterpiece
                   </>
                 )}

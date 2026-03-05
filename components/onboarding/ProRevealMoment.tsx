@@ -1,5 +1,6 @@
+import { IcoCrown, IcoStar, IcoZap } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronRight, Clock, Crown, Gift, Star, Users, X, Zap } from 'lucide-react';
+import { Check, ChevronRight, Clock, Gift, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useOnboarding } from './OnboardingState';
@@ -304,7 +305,7 @@ export const ProRevealMoment: React.FC = () => {
             transition={{ delay: 0.3, type: 'spring', bounce: 0.5 }}
             className="relative"
           >
-            <Crown className="w-16 h-16 text-amber-400" />
+            <IcoCrown className="w-16 h-16 text-amber-400" />
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
@@ -342,7 +343,7 @@ export const ProRevealMoment: React.FC = () => {
           className="flex justify-center mb-8"
         >
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-linear-to-r from-amber-500/20 to-orange-500/20  rounded-full border border-amber-400/30">
-            <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+            <IcoStar className="w-6 h-6 text-amber-400 fill-amber-400" />
             <span className="text-white font-bold text-lg">{sparkPoints} Sparks</span>
             <span className="text-amber-300/70">earned so far</span>
           </div>
@@ -400,7 +401,7 @@ export const ProRevealMoment: React.FC = () => {
                 transition={{ delay: 1.5, type: 'spring' }}
                 className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-400/30"
               >
-                <Zap className="w-4 h-4 text-emerald-400" />
+                <IcoZap className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-300 font-bold">Save 40%</span>
                 <span className="text-emerald-300/60 text-sm">forever</span>
               </motion.div>
@@ -433,7 +434,7 @@ export const ProRevealMoment: React.FC = () => {
                 <div className="absolute inset-0 bg-linear-to-r from-purple-600 via-pink-500 to-amber-500 blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
 
                 <span className="relative flex items-center justify-center gap-2 text-white">
-                  <Crown className="w-5 h-5" />
+                  <IcoCrown className="w-5 h-5" />
                   Unlock Pro Now
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>

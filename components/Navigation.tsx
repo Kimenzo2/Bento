@@ -1,16 +1,5 @@
-import {
-  BookOpen,
-  Image as ImageIcon,
-  LayoutDashboard,
-  Menu,
-  Moon,
-  Sun,
-  PenTool,
-  Trophy,
-  User,
-  X,
-  Zap,
-} from 'lucide-react';
+import { IcoZap } from './IconscoutIcons';
+import { BookOpen, Image, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -168,7 +157,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               className="rounded-full ring-2 ring-gold-sunshine/40"
               aria-label="Upgrade"
             >
-              <Zap className="w-4 h-4 fill-white" />
+              <IcoZap className="w-4 h-4 fill-white" />
               Upgrade
             </Button>
           )}
@@ -220,7 +209,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
           className="w-full rounded-2xl text-lg mb-4"
           aria-label="Upgrade to Premium"
         >
-          <Zap className="w-6 h-6 fill-white" />
+          <IcoZap className="w-6 h-6 fill-white" />
           Upgrade to Premium
         </Button>
 

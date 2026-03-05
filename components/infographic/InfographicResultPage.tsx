@@ -1,15 +1,5 @@
-import {
-  ArrowLeft,
-  Bookmark,
-  Check,
-  FileImage,
-  FileText,
-  Printer,
-  RefreshCw,
-  Sparkles,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
+import { IcoAward } from '../IconscoutIcons';
+import { ArrowLeft, Bookmark, Check, FileImage, FileText, Printer, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { saveInfographic } from '../../services/libraryService';
@@ -97,7 +87,7 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
             </Button>
             <div>
               <h1 className="font-heading font-bold text-xl sm:text-2xl text-charcoal-soft flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-gold-sunshine" />
+                <IcoAward className="w-5 h-5 text-gold-sunshine" />
                 Your Masterpiece
               </h1>
               <p className="text-xs sm:text-sm text-cocoa-light hidden sm:block">

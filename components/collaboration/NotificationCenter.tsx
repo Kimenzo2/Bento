@@ -1,3 +1,4 @@
+import { IcoBell, IcoBook, IcoZap, IcoWand } from '../IconscoutIcons';
 // ==============================================================================
 // GENESIS NOTIFICATION CENTER COMPONENT
 // ==============================================================================
@@ -5,24 +6,7 @@
 // ==============================================================================
 
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Bell,
-  BellOff,
-  BookOpen,
-  Check,
-  CheckCheck,
-  Clock,
-  Heart,
-  MessageCircle,
-  Radio,
-  Settings,
-  Sparkles,
-  Trash2,
-  TrendingUp,
-  Trophy,
-  Users,
-  X,
-} from 'lucide-react';
+import { BellOff, Check, CheckCheck, Clock, Heart, MessageCircle, Radio, Settings, Trash2, TrendingUp, Trophy, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -126,19 +110,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
     const iconMap: Record<string, React.ReactNode> = {
       broadcast_live: <Radio className="w-4 h-4 text-red-500" />,
       challenge: <Trophy className="w-4 h-4 text-yellow-500" />,
-      challenge_new: <Sparkles className="w-4 h-4 text-purple-500" />,
+      challenge_new: <IcoZap className="w-4 h-4 text-purple-500" />,
       challenge_won: <Trophy className="w-4 h-4 text-yellow-500" />,
       reaction: <Heart className="w-4 h-4 text-pink-500" />,
       comment: <MessageCircle className="w-4 h-4 text-blue-500" />,
       follow: <Users className="w-4 h-4 text-green-500" />,
-      remix: <Sparkles className="w-4 h-4 text-purple-500" />,
+      remix: <IcoWand className="w-4 h-4 text-purple-500" />,
       trend_alert: <TrendingUp className="w-4 h-4 text-orange-500" />,
       insight: <TrendingUp className="w-4 h-4 text-cyan-500" />,
-      mentorship_request: <BookOpen className="w-4 h-4 text-indigo-500" />,
-      mentorship_accepted: <BookOpen className="w-4 h-4 text-green-500" />,
+      mentorship_request: <IcoBook className="w-4 h-4 text-indigo-500" />,
+      mentorship_accepted: <IcoBook className="w-4 h-4 text-green-500" />,
     };
 
-    return iconMap[type] || <Bell className="w-4 h-4 text-cocoa-light/60" />;
+    return iconMap[type] || <IcoBell className="w-4 h-4 text-cocoa-light/60" />;
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -180,7 +164,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
           {/* Header */}
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-purple-400" />
+              <IcoBell className="w-5 h-5 text-purple-400" />
               <h3 className="font-semibold text-white">Notifications</h3>
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full text-xs font-medium">
@@ -384,7 +368,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onClick, unr
       className="relative p-2 hover:bg-surface/10 group"
       title="Notifications"
     >
-      <Bell className="w-5 h-5 text-cocoa-light/60 group-hover:text-white transition-colors" />
+      <IcoBell className="w-5 h-5 text-cocoa-light/60 group-hover:text-white transition-colors" />
       {unreadCount > 0 && (
         <motion.span
           initial={{ scale: 0 }}

@@ -1,12 +1,5 @@
-import {
-  AlertCircle,
-  BookOpen,
-  CheckCircle,
-  Download,
-  FileText,
-  Info,
-  Settings,
-} from 'lucide-react';
+import { IcoBook } from './IconscoutIcons';
+import { AlertCircle, CheckCircle, Download, FileText, Info, Settings } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { downloadKDP, previewKDPExport } from '../services/export/kdpExportService';
@@ -117,7 +110,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
         <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-6 text-white relative">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-surface/20 rounded-2xl flex items-center justify-center">
-              <BookOpen className="w-6 h-6" />
+              <IcoBook className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-2xl font-heading font-bold">Amazon KDP Export</h2>

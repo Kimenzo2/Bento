@@ -1,3 +1,4 @@
+import { IcoBook, IcoWand, IcoSend } from './IconscoutIcons';
 /**
  * Remix Studio
  *
@@ -11,24 +12,7 @@
  */
 
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  BookOpen,
-  Check,
-  Eye,
-  Filter,
-  GitFork,
-  Globe,
-  Hash,
-  Heart,
-  Lock,
-  MapPin,
-  Search,
-  Sparkles,
-  TrendingUp,
-  User,
-  Wand2,
-  X,
-} from 'lucide-react';
+import { Check, Eye, Filter, GitFork, Globe, Hash, Heart, Lock, MapPin, Search, TrendingUp, User, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { remixService, type WorldSearchFilters } from '../services/remixService';
@@ -274,7 +258,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
+                        <IcoSend className="w-4 h-4" />
                         Publish
                       </span>
                     </Button>
@@ -566,7 +550,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         {selectedWorld.magicSystem && (
                           <div>
                             <h4 className="text-sm font-medium text-white/80 mb-2 flex items-center gap-2">
-                              <Wand2 className="w-4 h-4 text-purple-400" />
+                              <IcoWand className="w-4 h-4 text-purple-400" />
                               Magic System
                             </h4>
                             <p className="text-sm text-white/60">{selectedWorld.magicSystem}</p>
@@ -597,7 +581,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         {selectedWorld.rules.length > 0 && (
                           <div>
                             <h4 className="text-sm font-medium text-white/80 mb-2 flex items-center gap-2">
-                              <BookOpen className="w-4 h-4 text-amber-400" />
+                              <IcoBook className="w-4 h-4 text-amber-400" />
                               World Rules
                             </h4>
                             <ul className="space-y-1">
@@ -883,7 +867,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-5 h-5" />
+                            <IcoSend className="w-5 h-5" />
                             Publish World
                           </>
                         )}

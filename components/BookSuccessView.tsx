@@ -1,15 +1,6 @@
+import { IcoBook, IcoAward } from './IconscoutIcons';
 import { motion } from 'framer-motion';
-import {
-  BookOpen,
-  Download,
-  Edit3,
-  Eye,
-  Gift,
-  PartyPopper,
-  Share2,
-  ShieldCheck,
-  Sparkles,
-} from 'lucide-react';
+import { Download, Edit3, Eye, Gift, PartyPopper, Share2, ShieldCheck } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -226,7 +217,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                   }}
                   transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
                 >
-                  <Sparkles
+                  <IcoAward
                     className="w-8 h-8 text-gold-sunshine"
                     style={{ filter: 'drop-shadow(0 0 8px #FFD93D)' }}
                   />
@@ -303,7 +294,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                       className="px-4 py-3 bg-linear-to-r from-orange-500 to-amber-500 text-white rounded-full font-heading font-bold border border-white/20 transition-all"
                       title="Export for Amazon KDP"
                     >
-                      <BookOpen className="w-5 h-5 mx-auto" />
+                      <IcoBook className="w-5 h-5 mx-auto" />
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}

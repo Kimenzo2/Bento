@@ -1,20 +1,5 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Copy,
-  Eye,
-  GitBranch,
-  GitCommit,
-  GitMerge,
-  Maximize2,
-  Minimize2,
-  RotateCcw,
-  Star,
-  X,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
+import { IcoStar } from '../IconscoutIcons';
+import { ChevronDown, ChevronRight, Clock, Copy, Eye, GitBranch, GitCommit, GitMerge, Maximize2, Minimize2, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { versionControlService } from '../../services/versionControlService';
@@ -357,7 +342,7 @@ export const FamilyTreeViewer: React.FC<FamilyTreeViewerProps> = ({
                                     </p>
                                   </div>
                                   {version.is_starred && (
-                                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                    <IcoStar className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                                   )}
                                 </div>
                               </div>
@@ -473,7 +458,7 @@ const VersionCard: React.FC<VersionCardProps> = ({
                   Auto
                 </span>
               )}
-              {version.is_starred && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
+              {version.is_starred && <IcoStar className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
             </div>
             <p className="text-sm text-cocoa-light/60 mt-1">{formatDate(version.created_at)}</p>
             {version.description && (

@@ -1,5 +1,6 @@
+import { IcoWand } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Check, Sparkles } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { useOnboarding } from './OnboardingState';
@@ -269,7 +270,7 @@ export const PersonalizationQuiz: React.FC = () => {
                 transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
                 className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-surface/5  rounded-full border border-white/10 mb-3 md:mb-6"
               >
-                <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
+                <IcoWand className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
                 <span className="text-white/70 text-xs md:text-sm font-medium">
                   Question {currentQuestion + 1} of {questions.length}
                 </span>

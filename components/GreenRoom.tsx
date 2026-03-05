@@ -1,3 +1,4 @@
+import { IcoSend, IcoStar, IcoZap, IcoWand } from './IconscoutIcons';
 /**
  * The Green Room
  *
@@ -11,22 +12,7 @@
  */
 
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ChevronUp,
-  Clock,
-  Eye,
-  EyeOff,
-  History,
-  Lightbulb,
-  Plus,
-  Send,
-  Sparkles,
-  Star,
-  Tag,
-  User,
-  X,
-  Zap,
-} from 'lucide-react';
+import { ChevronUp, Clock, Eye, EyeOff, History, Lightbulb, Plus, Tag, User, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { greenRoomService } from '../services/greenRoomService';
@@ -272,7 +258,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     <span className="text-white">{persona?.name || character.name}</span>
                   </h2>
                   <p className="flex items-center gap-2 text-sm text-emerald-300/60">
-                    <Sparkles className="w-3 h-3" />
+                    <IcoWand className="w-3 h-3" />
                     Character Interview Session
                     {session && (
                       <span className="text-emerald-400/50">
@@ -296,7 +282,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                   }`}
                   title="Toggle ambient mode"
                 >
-                  <Sparkles className="w-5 h-5" />
+                  <IcoWand className="w-5 h-5" />
                 </Button>
 
                 {/* History Toggle */}
@@ -371,7 +357,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                                   : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                               }`}
                             >
-                              <Zap className="w-3 h-3" />
+                              <IcoZap className="w-3 h-3" />
                               {fact.key.replace(/_/g, ' ')}: {fact.value}
                             </motion.span>
                           ))}
@@ -485,7 +471,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                     disabled={!inputValue.trim() || isTyping}
                     className="p-3 text-white transition-all bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="w-5 h-5" />
+                    <IcoSend className="w-5 h-5" />
                   </motion.button>
                 </div>
               </div>
@@ -542,7 +528,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
               <div className="flex-1 p-4 overflow-y-auto">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="flex items-center gap-2 text-sm font-medium text-white/80">
-                    <Star className="w-4 h-4 text-yellow-400" />
+                    <IcoStar className="w-4 h-4 text-yellow-400" />
                     Discovered Facts
                   </h4>
                   <Button
@@ -583,7 +569,7 @@ export const GreenRoom: React.FC<GreenRoomProps> = ({
                   </div>
                 ) : showFacts ? (
                   <div className="py-8 text-center">
-                    <Sparkles className="w-8 h-8 mx-auto mb-2 text-white/20" />
+                    <IcoWand className="w-8 h-8 mx-auto mb-2 text-white/20" />
                     <p className="text-sm text-white/40">
                       Ask questions to discover facts about {persona?.name}
                     </p>

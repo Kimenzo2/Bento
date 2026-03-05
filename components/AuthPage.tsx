@@ -1,4 +1,5 @@
-import { ArrowRight, Cloud, Loader2, Sparkles, Zap } from 'lucide-react';
+import { IcoZap, IcoWand } from './IconscoutIcons';
+import { ArrowRight, Cloud, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -98,7 +99,7 @@ const AuthPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-start gap-4 p-4 bg-surface/50 rounded-2xl border border-peach-soft/40">
               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
-                <Sparkles className="w-5 h-5 text-white" />
+                <IcoWand className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="font-heading font-bold text-charcoal-soft mb-1">
@@ -124,7 +125,7 @@ const AuthPage: React.FC = () => {
 
             <div className="flex items-start gap-4 p-4 bg-surface/50 rounded-2xl border border-peach-soft/40">
               <div className="w-10 h-10 rounded-lg bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center shrink-0 border border-white/20">
-                <Zap className="w-5 h-5 text-white" />
+                <IcoZap className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="font-heading font-bold text-charcoal-soft mb-1">Premium Features</h3>

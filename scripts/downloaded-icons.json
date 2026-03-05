@@ -1,0 +1,44 @@
+[
+  {
+    "name": "rocket",
+    "query": "rocket launch",
+    "export": "IcoRocket",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512...",
+    "iname": "rocket launch"
+  },
+  {
+    "name": "crown",
+    "query": "crown royal",
+    "export": "IcoCrown",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0...",
+    "iname": "crown"
+  },
+  {
+    "name": "send",
+    "query": "send paper plane share",
+    "export": "IcoSend",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0...",
+    "iname": "Share"
+  },
+  {
+    "name": "building",
+    "query": "building office company",
+    "export": "IcoBuilding",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0...",
+    "iname": "Office Building"
+  },
+  {
+    "name": "palette",
+    "query": "paint palette colors",
+    "export": "IcoPalette",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" enable-bac...",
+    "iname": "Paint Palette"
+  },
+  {
+    "name": "star",
+    "query": "star shine highlight",
+    "export": "IcoStar",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0...",
+    "iname": "Star"
+  }
+]

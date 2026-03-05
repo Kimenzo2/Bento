@@ -1,25 +1,10 @@
+import { IcoWand } from '../IconscoutIcons';
 /**
  * Shared Components for Tier Detail Pages
  * Reusable sections, cards, and UI elements across Creator, Studio, and Empire pages
  */
 
-import {
-  ArrowRight,
-  BookOpen,
-  Building2,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Download,
-  Headphones,
-  Lock,
-  Phone,
-  Play,
-  Quote,
-  Sparkles,
-  Star,
-  Zap,
-} from 'lucide-react';
+import { ArrowRight, BookOpen, Building2, Check, ChevronDown, ChevronRight, Download, Headphones, Lock, Phone, Play, Quote, Star, Zap } from 'lucide-react';
 import type React from 'react';
 import { type ReactNode, useState } from 'react';
 import { Button } from '@components/ui/button';
@@ -230,7 +215,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <div
                 className={`aspect-4/3 bg-linear-to-br from-${tier.bgClass.replace('bg-', '')} to-white rounded-2xl flex items-center justify-center`}
               >
-                <Sparkles className="w-24 h-24 text-charcoal-soft/10" />
+                <IcoWand className="w-24 h-24 text-charcoal-soft/10" />
               </div>
             )}
           </div>

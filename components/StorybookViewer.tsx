@@ -1,19 +1,6 @@
+import { IcoBook, IcoWand } from './IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Edit3,
-  Maximize2,
-  Minimize2,
-  Share2,
-  Sparkles,
-  Volume2,
-  VolumeX,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Edit3, Maximize2, Minimize2, Share2, Volume2, VolumeX, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useBookSwipeNavigation } from '../hooks/useSwipeGesture';
@@ -272,7 +259,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
           <div className="flex-1 text-center px-4">
             <h1 className="text-amber-400 font-bold text-sm truncate flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-300" />
+              <IcoWand className="w-4 h-4 text-amber-300" />
               Your Story
             </h1>
           </div>
@@ -373,7 +360,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               {/* Chapter/Section Title */}
               <div className="px-5 pb-4">
                 <h3 className="text-amber-400 text-base xs:text-lg font-semibold flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
+                  <IcoBook className="w-4 h-4" />
                   {chapterInfo.chapterTitle}
                 </h3>
               </div>
@@ -391,7 +378,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <div className="text-center text-cocoa-light/60">
-                        <Sparkles className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <IcoWand className="w-12 h-12 mx-auto mb-2 opacity-50" />
                         <span className="text-sm">Illustration</span>
                       </div>
                     </div>
@@ -419,7 +406,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 <div className="flex justify-center py-8">
                   <div className="flex items-center gap-2 text-amber-400/50">
                     <span className="w-8 h-px bg-amber-400/30" />
-                    <Sparkles className="w-4 h-4" />
+                    <IcoWand className="w-4 h-4" />
                     <span className="w-8 h-px bg-amber-400/30" />
                   </div>
                 </div>
@@ -455,7 +442,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               className="flex px-4 py-2 bg-linear-to-r from-orange-500 to-amber-500 text-white border border-white/20 active:scale-95 touch-manipulation whitespace-nowrap"
               title="Export for Amazon KDP"
             >
-              <BookOpen className="w-4 h-4" />
+              <IcoBook className="w-4 h-4" />
               <span>Amazon</span>
             </Button>
           </div>
@@ -546,7 +533,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: particle.opacity }}
           >
-            <Sparkles
+            <IcoWand
               className="w-full h-full"
               style={{
                 color: particle.color,
@@ -658,7 +645,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                       className="w-full h-full"
                     />
                   ) : (
-                    <Sparkles className="w-16 h-16 text-blue-500" />
+                    <IcoWand className="w-16 h-16 text-blue-500" />
                   )}
                 </div>
                 <h3 className="font-heading font-bold text-3xl text-blue-600 mb-4">
@@ -788,7 +775,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             className="flex items-center gap-2 px-4 py-3 rounded-full bg-linear-to-r from-orange-500 to-amber-500 text-white font-bold border border-white/20 transition-all"
             title="Export for Amazon KDP"
           >
-            <BookOpen className="w-5 h-5" />
+            <IcoBook className="w-5 h-5" />
             <span className="hidden md:inline">Amazon KDP</span>
           </motion.button>
           <motion.button
@@ -822,7 +809,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               learningMode ? 'bg-blue-500 text-white' : 'bg-surface/90 text-blue-500 hover:bg-surface'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
+            <IcoBook className="w-4 h-4" />
             <span className="font-heading font-bold text-sm">Learning Mode</span>
           </motion.button>
 
@@ -885,7 +872,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Sparkles className="w-12 h-12 text-blue-500" />
+                        <IcoWand className="w-12 h-12 text-blue-500" />
                       </div>
                     )}
                   </div>

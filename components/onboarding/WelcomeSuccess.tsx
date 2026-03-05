@@ -1,6 +1,7 @@
+import { IcoCrown } from '../IconscoutIcons';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Crown, Rocket, Sparkles, Star, Zap } from 'lucide-react';
+import { ArrowRight, Rocket, Star, Zap } from 'lucide-react';
 import { useOnboarding, clearOnboardingState } from './OnboardingState';
 
 // Confetti particle
@@ -152,17 +153,17 @@ export const WelcomeSuccess: React.FC = () => {
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
             >
-              <Crown className="w-14 h-14 text-amber-400" />
+              <IcoCrown className="w-14 h-14 text-amber-400" />
             </motion.div>
           </div>
           
-          {/* Sparkles */}
+          {/* Celebration */}
           <motion.div
             animate={{ scale: [1, 1.3, 1], rotate: [0, 15, 0] }}
             transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
             className="absolute -top-3 -right-3"
           >
-            <Sparkles className="w-8 h-8 text-amber-400" />
+            <IcoCrown className="w-8 h-8 text-amber-400" />
           </motion.div>
         </motion.div>
 

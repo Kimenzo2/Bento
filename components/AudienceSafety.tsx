@@ -1,14 +1,6 @@
+import { IcoBook } from './IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  BookOpen,
-  Info,
-  Lightbulb,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
-  X,
-} from 'lucide-react';
+import { Info, Lightbulb, Shield, ShieldAlert, ShieldCheck, ShieldX, X } from 'lucide-react';
 import type React from 'react';
 import { Button } from './ui/button';
 
@@ -153,7 +145,7 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
       {!isAnalyzing && (
         <div className="px-4 py-2 border-t border-slate-700/30 flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-slate-400" />
+            <IcoBook className="w-4 h-4 text-slate-400" />
             <span className="text-xs text-slate-400">Reading Level:</span>
             <span className="text-xs font-medium text-white">{readingLevel}</span>
           </div>

@@ -1,22 +1,11 @@
+import { IcoCrown, IcoWand } from '../IconscoutIcons';
 // ==============================================================================
 // SHARED VISUAL CARD COMPONENT
 // ==============================================================================
 // Card component for displaying shared visuals with reactions, remix, and more
 // ==============================================================================
 
-import {
-  Bookmark,
-  Copy,
-  Crown,
-  Download,
-  Eye,
-  Flag,
-  GitFork,
-  Maximize2,
-  MoreHorizontal,
-  Share2,
-  Sparkles,
-} from 'lucide-react';
+import { Bookmark, Copy, Download, Eye, Flag, GitFork, Maximize2, MoreHorizontal, Share2 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { REACTION_EMOJIS, type ReactionCount, type SharedVisual } from '../../types/collaboration';
@@ -127,7 +116,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
           {/* Featured badge */}
           {visual.visibility === 'featured' && (
             <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 bg-linear-to-r from-yellow-400 to-orange-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex items-center gap-0.5 sm:gap-1">
-              <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <IcoCrown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span className="hidden xs:inline">Featured</span>
             </div>
           )}
@@ -250,7 +239,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
                     }}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-2 text-left text-xs hover:bg-surface/50 active:bg-peach-soft/30 flex"
                   >
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> View lineage
+                    <IcoWand className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> View lineage
                   </Button>
                 )}
                 <div className="border-t border-peach-soft/50 my-1" />
@@ -388,7 +377,7 @@ const SharedVisualCard: React.FC<SharedVisualCardProps> = ({
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
           <div className="flex items-center gap-2 mb-3">
-            <Crown className="w-5 h-5 text-yellow-400" />
+            <IcoCrown className="w-5 h-5 text-yellow-400" />
             <span className="text-yellow-400 font-bold text-sm">Featured Creation</span>
           </div>
 

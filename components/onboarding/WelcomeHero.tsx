@@ -1,5 +1,6 @@
+import { IcoCrown } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+
 /**
  * WelcomeHero - PERFORMANCE OPTIMIZED
  *
@@ -220,7 +221,7 @@ export const WelcomeHero: React.FC = memo(() => {
 
               {/* ⚡ Sparkle - CSS animated */}
               <div className="absolute -top-2 -right-2 animate-pulse">
-                <Sparkles className="w-6 h-6 text-amber-400" />
+                <IcoCrown className="w-6 h-6 text-amber-400" />
               </div>
             </motion.div>
 

@@ -1,4 +1,5 @@
-import { AlertTriangle, Sparkles } from 'lucide-react';
+import { IcoWand } from '../IconscoutIcons';
+import { AlertTriangle } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -72,7 +73,7 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
       {/* Header */}
       <div className="mb-8">
         <h2 className="font-heading font-bold text-2xl text-charcoal-soft flex items-center gap-2 mb-2">
-          <Sparkles className="w-6 h-6 text-gold-sunshine" />
+          <IcoWand className="w-6 h-6 text-gold-sunshine" />
           Educational Infographic Wizard
         </h2>
         <p className="text-cocoa-light text-sm">Create stunning visual lessons in seconds</p>

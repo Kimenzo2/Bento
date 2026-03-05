@@ -1,20 +1,5 @@
-import {
-  Award,
-  BookOpen,
-  Briefcase,
-  Building2,
-  Crown,
-  Flame,
-  Library,
-  Lock,
-  Palette,
-  Pencil,
-  Star,
-  Target,
-  TrendingUp,
-  Trophy,
-  Zap,
-} from 'lucide-react';
+import { IcoAward, IcoBook, IcoCrown, IcoLibrary, IcoPalette, IcoStar, IcoZap } from './IconscoutIcons';
+import { Briefcase, Building2, Flame, Lock, Pencil, Target, TrendingUp, Trophy } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
@@ -42,20 +27,20 @@ interface GamificationHubProps {
 
 // ── Lucide badge icon map (covers all icons in achievement_definitions) ────────
 const BADGE_ICON_MAP: Record<string, React.ReactNode> = {
-  BookOpen:  <BookOpen  className="w-8 h-8 text-coral-burst" />,
-  Library:   <Library  className="w-8 h-8 text-blue-500" />,
+  BookOpen:  <IcoBook  className="w-8 h-8 text-coral-burst" />,
+  Library:   <IcoLibrary  className="w-8 h-8 text-blue-500" />,
   Building2: <Building2 className="w-8 h-8 text-purple-500" />,
   Pencil:    <Pencil   className="w-8 h-8 text-teal-500" />,
-  Palette:   <Palette  className="w-8 h-8 text-pink-500" />,
+  Palette:   <IcoPalette  className="w-8 h-8 text-pink-500" />,
   Flame:     <Flame    className="w-8 h-8 text-orange-500" />,
-  Zap:       <Zap      className="w-8 h-8 text-yellow-500" />,
-  Crown:     <Crown    className="w-8 h-8 text-gold-sunshine" />,
+  Zap:       <IcoZap      className="w-8 h-8 text-yellow-500" />,
+  Crown:     <IcoCrown    className="w-8 h-8 text-gold-sunshine" />,
   Briefcase: <Briefcase className="w-8 h-8 text-slate-500" />,
-  Award:     <Award    className="w-8 h-8 text-emerald-500" />,
+  Award:     <IcoAward    className="w-8 h-8 text-emerald-500" />,
 };
 
 const BadgeIcon: React.FC<{ icon: string }> = ({ icon }) =>
-  (BADGE_ICON_MAP[icon] as React.ReactElement) ?? <Star className="w-8 h-8 text-cocoa-light" />;
+  (BADGE_ICON_MAP[icon] as React.ReactElement) ?? <IcoStar className="w-8 h-8 text-cocoa-light" />;
 
 // ── Time-to-midnight helper (updates every minute) ────────────────────────────
 function timeUntilMidnight(): string {
@@ -339,12 +324,12 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
       {/* ── Achievements (Badges) ────────────────────────────────────────────── */}
       <div className="mt-8 bg-surface rounded-3xl border border-peach-soft p-4 sm:p-8">
         <h2 className="font-heading font-bold text-xl text-charcoal-soft flex items-center gap-2 mb-8">
-          <Star className="w-6 h-6 text-purple-400" /> Achievements
+          <IcoStar className="w-6 h-6 text-purple-400" /> Achievements
         </h2>
 
         {gameState.badges.length === 0 ? (
           <div className="text-center py-10">
-            <Award className="w-10 h-10 text-cocoa-light/40 mx-auto mb-3" />
+            <IcoAward className="w-10 h-10 text-cocoa-light/40 mx-auto mb-3" />
             <p className="text-sm text-cocoa-light">Start creating to unlock your first achievement!</p>
           </div>
         ) : (

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Check, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, Check, Users, Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { type UserRole, useOnboarding } from './OnboardingState';
@@ -241,7 +241,7 @@ export const CreativePersonaQuiz: React.FC = () => {
                 <span className="relative flex items-center gap-3 text-white">
                   {isTransitioning ? (
                     <>
-                      <Sparkles className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Setting up...
                     </>
                   ) : (

@@ -1,5 +1,6 @@
+import { IcoWand } from '../../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Palette, Users, Wand2 } from 'lucide-react';
+import { Palette, Users } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import type { TierConfig } from '../TierDetailShared';
@@ -62,7 +63,7 @@ const features = [
   {
     id: 'editor',
     label: 'Smart Editor',
-    icon: Wand2,
+    icon: IcoWand,
     content: (
       <div className="p-6 bg-surface border border-peach-soft rounded-xl h-64 relative">
         <div className="h-2 w-24 bg-peach-light/50 rounded mb-4" />
@@ -73,7 +74,7 @@ const features = [
         </div>
         <div className="absolute bottom-6 right-6">
           <div className="bg-charcoal-soft text-white text-xs px-3 py-2 rounded-lg flex items-center gap-2">
-            <Wand2 className="w-3 h-3 text-gold-sunshine" />
+            <IcoWand className="w-3 h-3 text-gold-sunshine" />
             Rewrite for younger audience...
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { IcoSend } from '../IconscoutIcons';
 // ==============================================================================
 // GENESIS BROADCAST STUDIO COMPONENT
 // ==============================================================================
@@ -5,24 +6,7 @@
 // ==============================================================================
 
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  AlertCircle,
-  Check,
-  Clock,
-  Copy,
-  Eye,
-  EyeOff,
-  MessageSquare,
-  Pin,
-  PlayCircle,
-  Radio,
-  Send,
-  Settings,
-  Share2,
-  StopCircle,
-  Users,
-  X,
-} from 'lucide-react';
+import { AlertCircle, Check, Clock, Copy, Eye, EyeOff, MessageSquare, Pin, PlayCircle, Radio, Settings, Share2, StopCircle, Users, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -650,7 +634,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
                     disabled={!newMessage.trim()}
                     className="p-2 bg-purple-500 hover:bg-purple-600"
                   >
-                    <Send className="w-5 h-5 text-white" />
+                    <IcoSend className="w-5 h-5 text-white" />
                   </Button>
                 </div>
               </div>

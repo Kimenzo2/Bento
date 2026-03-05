@@ -1,17 +1,5 @@
-import {
-  BarChart3,
-  BookOpen,
-  Calendar,
-  Download,
-  Eye,
-  Image as ImageIcon,
-  Loader2,
-  Sparkles,
-  Trash2,
-  X,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
+import { IcoBook, IcoLibrary } from '../IconscoutIcons';
+import { BarChart3, Calendar, Download, Eye, Image, ImageIcon, Lightbulb, Loader2, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -171,7 +159,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-gold-sunshine" />
+            <IcoLibrary className="w-6 h-6 text-gold-sunshine" />
             My Library
           </h3>
           <p className="text-cocoa-light text-sm mt-1">Your saved creations in one place</p>
@@ -186,7 +174,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
 
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2">
-        <TabButton id="books" icon={BookOpen} label="Books" count={books.length} />
+        <TabButton id="books" icon={IcoBook} label="Books" count={books.length} />
         <TabButton
           id="infographics"
           icon={BarChart3}
@@ -203,7 +191,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
           <div className="space-y-4">
             {books.length === 0 ? (
               <EmptyState
-                icon={BookOpen}
+                icon={IcoBook}
                 title="No books yet"
                 description="Create your first storybook and it will appear here"
               />
@@ -226,7 +214,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <BookOpen className="w-8 h-8 text-coral-burst/50" />
+                            <IcoBook className="w-8 h-8 text-coral-burst/50" />
                           </div>
                         )}
                       </div>
@@ -629,7 +617,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
                 {viewingInfographic.data.content.funFact && (
                   <div className="bg-linear-to-r from-gold-sunshine/10 to-coral-burst/10 rounded-xl p-4 border border-gold-sunshine/20">
                     <h3 className="font-bold text-charcoal-soft flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-gold-sunshine" />
+                      <Lightbulb className="w-5 h-5 text-gold-sunshine" />
                       Fun Fact
                     </h3>
                     <p className="text-cocoa-light mt-2">

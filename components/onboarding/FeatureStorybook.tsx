@@ -1,5 +1,6 @@
+import { IcoWand } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronLeft } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { useOnboarding } from './OnboardingState';
@@ -107,7 +108,7 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
           <div className="bg-surface/10  rounded-2xl px-5 py-4 border border-white/20 max-w-50">
             <p className="text-white/90 text-sm font-medium leading-relaxed">"{message}"</p>
             <p className="text-white/40 text-xs mt-2 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
+              <IcoWand className="w-3 h-3" />
               Gen, your guide
             </p>
           </div>

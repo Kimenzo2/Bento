@@ -1,4 +1,5 @@
-import { Calendar, FileText, GitBranch, Heart, Info, Mail, Shield, Zap } from 'lucide-react';
+import { IcoZap } from '../IconscoutIcons';
+import { Calendar, FileText, GitBranch, Heart, Info, Mail, Shield } from 'lucide-react';
 import type React from 'react';
 
 const AboutSection: React.FC = () => {
@@ -49,7 +50,7 @@ const AboutSection: React.FC = () => {
 
           <div className="flex items-center justify-between py-3 border-b border-peach-soft/30">
             <div className="flex items-center gap-2 md:gap-3">
-              <Zap className="w-4 h-4 md:w-5 md:h-5 text-coral-burst" />
+              <IcoZap className="w-4 h-4 md:w-5 md:h-5 text-coral-burst" />
               <span className="text-sm text-charcoal-soft font-medium">Platform</span>
             </div>
             <span className="text-sm text-cocoa-light">Web • PWA</span>

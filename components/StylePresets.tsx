@@ -1,5 +1,6 @@
+import { IcoPalette } from './IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Edit2, Heart, Palette, Plus, Trash2, X } from 'lucide-react';
+import { Edit2, Heart, Plus, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -402,7 +403,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-coral-burst/10 rounded-xl">
-                  <Palette className="w-6 h-6 text-coral-burst" />
+                  <IcoPalette className="w-6 h-6 text-coral-burst" />
                 </div>
                 <div>
                   <h2 className="text-lg md:text-xl font-bold text-charcoal-soft dark:text-white">
@@ -540,7 +541,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                 ))}
                 {displayPresets.length === 0 && (
                   <div className="col-span-full text-center py-12 text-cocoa-light">
-                    <Palette className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <IcoPalette className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No styles found in this category</p>
                   </div>
                 )}

@@ -1,5 +1,6 @@
+import { IcoStar, IcoWand } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Star, Wand2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 /**
  * InstantCreationDemo - PERFORMANCE OPTIMIZED
  *
@@ -236,7 +237,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             style={GPU_STYLE}
           >
             <div className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-linear-to-r from-amber-500/20 to-orange-500/20  rounded-full border border-amber-400/30">
-              <Star className="w-4 h-4 md:w-5 md:h-5 text-amber-400 fill-amber-400" />
+              <IcoStar className="w-4 h-4 md:w-5 md:h-5 text-amber-400 fill-amber-400" />
               <span className="text-white font-bold text-sm md:text-base">{sparkPoints}</span>
               <span className="text-white/60 text-xs md:text-sm hidden md:inline">Sparks</span>
             </div>
@@ -255,7 +256,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             className="absolute top-1/4 md:top-1/3 z-30 flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-linear-to-r from-amber-500 to-orange-500 rounded-full border border-white/20"
             style={GPU_STYLE}
           >
-            <Star className="w-5 h-5 md:w-6 md:h-6 text-white fill-white" />
+            <IcoStar className="w-5 h-5 md:w-6 md:h-6 text-white fill-white" />
             <span className="text-white font-bold text-base md:text-lg">+25 Sparks!</span>
           </motion.div>
         )}
@@ -277,7 +278,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
             transition={{ delay: 0.1, ...FAST_TRANSITION }}
             className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-surface/5  rounded-full border border-white/10 mb-3 md:mb-6"
           >
-            <Wand2 className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
+            <IcoWand className="w-3 h-3 md:w-4 md:h-4 text-amber-400" />
             <span className="text-white/70 text-xs md:text-sm font-medium">
               Experience the Magic
             </span>
@@ -340,7 +341,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   />
 
                   <span className="relative flex items-center gap-2 text-white font-bold text-base md:text-lg">
-                    <Wand2 className="w-4 h-4 md:w-5 md:h-5" />
+                    <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
                     Tap to Generate
                   </span>
                 </motion.button>
@@ -372,7 +373,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                     className={`w-16 h-16 rounded-full bg-linear-to-r ${content.visualGradient} p-0.5`}
                   >
                     <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                      <Sparkles className="w-8 h-8 text-white" />
+                      <IcoWand className="w-8 h-8 text-white" />
                     </div>
                   </div>
                 </motion.div>
@@ -439,7 +440,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   transition={{ delay: 0.2, duration: 0.2 }}
                   className="flex items-center justify-center gap-2 text-emerald-400 mb-4 md:mb-8"
                 >
-                  <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+                  <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
                   <span className="font-medium text-sm md:text-base">
                     Your first creation is born!
                   </span>

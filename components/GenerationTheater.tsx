@@ -1,5 +1,6 @@
+import { IcoWand } from './IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { generateParticles, type Particle, updateParticle } from '../utils/particles';
@@ -178,12 +179,12 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
               {Math.round(progress)}%
             </motion.span>
             <div className="flex gap-1">
-              <Sparkles className="w-5 h-5 text-gold-sunshine animate-pulse" />
-              <Sparkles
+              <IcoWand className="w-5 h-5 text-gold-sunshine animate-pulse" />
+              <IcoWand
                 className="w-4 h-4 text-coral-burst animate-pulse"
                 style={{ animationDelay: '0.2s' }}
               />
-              <Sparkles
+              <IcoWand
                 className="w-3 h-3 text-mint-breeze animate-pulse"
                 style={{ animationDelay: '0.4s' }}
               />
