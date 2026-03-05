@@ -1,4 +1,6 @@
-import type { Theme } from '../types/theme';
+const fs = require('fs');
+
+const fileContent = import type { Theme } from '../types/theme';
 
 export const themes: Theme[] = [
   {
@@ -232,3 +234,7 @@ export const themes: Theme[] = [
 ];
 
 export const defaultTheme = themes[0];
+
+
+fs.writeFileSync('config/themes.ts', fileContent);
+console.log('themes wrote');

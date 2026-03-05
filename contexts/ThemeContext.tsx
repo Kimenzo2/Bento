@@ -38,21 +38,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Add smooth transition
     root.style.setProperty('transition', 'background-color 0.3s ease, color 0.3s ease');
 
-    // Resolve color variables
-    const cssVars = { ...currentTheme.cssVariables };
-    
-    // Fallbacks for light mode if missing
-    if (!cssVars['--color-surface']) {
-      cssVars['--color-surface'] = '#ffffff';
-    }
+// Resolve specific theme's dark or light variables for NO conflicts
+    const variablesSource = isDarkMode && currentTheme.darkCssVariables 
+      ? currentTheme.darkCssVariables 
+      : currentTheme.cssVariables;
+      
+    const cssVars = { ...variablesSource };
 
-    // Apply Dark Palette overrides if dark mode is active
-    if (isDarkMode) {
-      cssVars['--color-background'] = '#0a0a0a';
-      cssVars['--color-surface'] = '#1a1a1a';
-      cssVars['--color-text'] = '#e5e5e5';
-      cssVars['--color-text-light'] = '#a3a3a3';
-      cssVars['--color-border'] = '#2a2a2a';
+    // Fallbacks if missing
+    if (!cssVars['--color-surface']) {
+      cssVars['--color-surface'] = isDarkMode ? '#1a1a1a' : '#ffffff';
     }
 
     // Apply CSS variables

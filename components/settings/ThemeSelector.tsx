@@ -4,7 +4,7 @@ import { useTheme } from '../../hooks/useTheme';
 import type { ThemeId } from '../../types/theme';
 
 const ThemeSelector: React.FC = () => {
-  const { currentTheme, setTheme, availableThemes } = useTheme();
+  const { currentTheme, setTheme, availableThemes, isDarkMode } = useTheme();
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -36,7 +36,7 @@ const ThemeSelector: React.FC = () => {
               <div
                 className="h-24 rounded-xl mb-4 w-full"
                 style={{
-                  background: `linear-gradient(135deg, ${theme.colors.primary[0]}, ${theme.colors.primary[1]})`,
+                  background: `linear-gradient(135deg, ${isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-primary-start'] : theme.colors.primary[0]}, ${isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-primary-end'] : theme.colors.primary[1]})`,
                 }}
               >
                 <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -63,17 +63,17 @@ const ThemeSelector: React.FC = () => {
               <div className="flex gap-2 mt-3">
                 <div
                   className="w-4 h-4 rounded-full"
-                  style={{ background: theme.colors.accent[0] }}
+                  style={{ background: isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-accent-start'] : theme.colors.accent[0] }}
                   title="Accent 1"
                 ></div>
                 <div
                   className="w-4 h-4 rounded-full"
-                  style={{ background: theme.colors.accent[1] }}
+                  style={{ background: isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-accent-end'] : theme.colors.accent[1] }}
                   title="Accent 2"
                 ></div>
                 <div
                   className="w-4 h-4 rounded-full border border-peach-soft"
-                  style={{ background: theme.colors.background }}
+                  style={{ background: isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-background'] : theme.colors.background }}
                   title="Background"
                 ></div>
               </div>

@@ -2,6 +2,7 @@ export interface ThemeColors {
   primary: [string, string]; // Gradient start/end
   accent: [string, string]; // Gradient start/end
   background: string;
+  surface?: string;
   text: string;
   textLight: string;
   border: string;
@@ -13,8 +14,9 @@ export interface Theme {
   name: string;
   description: string;
   colors: ThemeColors;
-  // We'll use these for the CSS variables injection
+  darkColors?: ThemeColors;
   cssVariables: Record<string, string>;
+  darkCssVariables?: Record<string, string>;
 }
 
 export type ThemeId = 'genesis' | 'aurora' | 'ocean' | 'forest' | 'nebula' | 'sunset';
