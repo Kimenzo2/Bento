@@ -82,7 +82,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
     <>
       <nav
         className="fixed top-0 left-0 w-full z-60 px-4 md:px-12 flex items-center justify-between transition-all duration-300
-        bg-cream-base/85  border-b-2 border-peach-soft"
+        bg-cream-base/85 backdrop-blur-md border-b-2 border-peach-soft"
         style={{ paddingTop: 'calc(0.5rem + var(--safe-area-inset-top))', paddingBottom: '0.5rem' }}
       >
         {/* Logo */}
@@ -99,7 +99,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
         </div>
 
         {/* Desktop Nav Items */}
-        <div className="hidden lg:flex items-center gap-1 bg-surface/50 p-1.5 rounded-full border border-peach-soft/50 ">
+        <div className="hidden lg:flex items-center gap-1 bg-surface/50 p-1.5 rounded-full border border-peach-soft/50 backdrop-blur-sm">
           {menuItems.map((item) => (
             <Button
               key={item.mode}
@@ -210,7 +210,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode }) => {
 
       {/* Mobile Navigation Overlay */}
       <div
-        className={`fixed inset-0 z-40 bg-cream-base/95  transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <Button
           variant="primary"
