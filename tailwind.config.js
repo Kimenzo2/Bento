@@ -26,7 +26,6 @@ export default {
         body: ['var(--font-body)', 'system-ui', 'sans-serif'],
       },
       colors: {
-        surface: 'var(--color-surface)',
         cream: {
           base: 'var(--color-background)',
           soft: 'var(--color-background)',
