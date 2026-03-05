@@ -2,16 +2,26 @@
 
 ## THE MISSION: MARS-LEVEL SCALING (Elon Musk "Ship Starship in 2 Weeks" Energy)
 
-You are consulting for a solo founder who has built a sophisticated **Enhanced Visual Edutainment Platform** called **Genesis**. The app currently has ~10 users and ZERO visible bugs. The founder wants to understand the DEEP, FUNDAMENTAL, PARAMOUNT rules of scaling to 1,000,000 concurrent users.
+You are consulting for a solo founder who has built a sophisticated **Enhanced
+Visual Edutainment Platform** called **Genesis**. The app currently has ~10
+users and ZERO visible bugs. The founder wants to understand the DEEP,
+FUNDAMENTAL, PARAMOUNT rules of scaling to 1,000,000 concurrent users.
 
-### What Genesis Does:
-- **AI-Powered Visual Content Creation** - Generate illustrated educational ebooks using Gemini 2.5 Pro (text) + Imagen 4 (images)
-- **Green Room Character Tutoring** - Interactive AI character conversations for learning
-- **Curriculum Builder** - Standards-aligned educational content (CCSS, NGSS, CASEL)
+### What Genesis Does
+
+- **AI-Powered Visual Content Creation** - Generate illustrated educational
+  ebooks using Gemini 2.5 Pro (text) + Imagen 4 (images)
+- **Green Room Character Tutoring** - Interactive AI character conversations for
+  learning
+- **Curriculum Builder** - Standards-aligned educational content (CCSS, NGSS,
+  CASEL)
 - **Remixable Worlds** - Share and fork story universes with royalty tracking
 - **Gamification** - XP, badges, tier progression (SPARK/CREATOR/STUDIO/EMPIRE)
 
-This is NOT about surface-level advice. This is about the engineering DNA that separates $10B companies from failed startups. Think Jeff Bezos "working backwards from the customer", Elon Musk "first principles thinking", and Jensen Huang "accelerated computing" level of depth.
+This is NOT about surface-level advice. This is about the engineering DNA that
+separates $10B companies from failed startups. Think Jeff Bezos "working
+backwards from the customer", Elon Musk "first principles thinking", and Jensen
+Huang "accelerated computing" level of depth.
 
 ---
 
@@ -19,8 +29,9 @@ This is NOT about surface-level advice. This is about the engineering DNA that s
 
 ### 1. DATABASE ARCHITECTURE (Supabase/PostgreSQL)
 
-#### Current Tables (ACTIVE):
-```
+#### Current Tables (ACTIVE)
+
+```text
 CORE ENTITIES:
 ├── profiles (17 rows) - User data with gamification_data JSONB, subscription info
 ├── books (2 rows) - Completed visual content with project_data JSONB blob
@@ -59,12 +70,13 @@ GAMIFICATION:
 ├── user_follows, mentor_relationships - Not active
 ```
 
-#### Current Database Issues Detected:
-```
+#### Current Database Issues Detected
+
+```text
 PERFORMANCE WARNINGS:
 1. RLS policies re-evaluating auth.uid() per row (3 tables):
    - usage_analytics: "Users can view own analytics"
-   - usage_analytics: "Users can insert own analytics" 
+   - usage_analytics: "Users can insert own analytics"
    - user_spending_limits: "Users can view own spending limits"
    FIX: Replace auth.uid() with (SELECT auth.uid())
 
@@ -77,17 +89,20 @@ SECURITY WARNINGS:
 2. Leaked password protection is DISABLED in Supabase Auth
 ```
 
-#### Extensions Enabled:
+#### Extensions Enabled
+
 - pg_net (async HTTP)
-- uuid-ossp (UUID generation)  
+- uuid-ossp (UUID generation)
 - pgcrypto (encryption)
 - pg_stat_statements (query analytics)
 - pg_graphql (GraphQL layer)
 - hypopg (hypothetical indexes)
 - index_advisor
 
-#### Notable Schema Patterns:
-- Heavy use of JSONB for flexible data (gamification_data, project_data, messages)
+#### Notable Schema Patterns
+
+- Heavy use of JSONB for flexible data (gamification_data, project_data,
+  messages)
 - Enum types for status fields (project_status, generation_type, channel_type)
 - RLS enabled on ALL public tables
 - Foreign key relationships properly defined
@@ -99,8 +114,9 @@ SECURITY WARNINGS:
 
 ### 2. CODEBASE ARCHITECTURE
 
-#### Frontend Stack:
-```
+#### Frontend Stack
+
+```text
 - React 18 with TypeScript
 - Vite for bundling
 - TailwindCSS for styling
@@ -109,8 +125,9 @@ SECURITY WARNINGS:
 - Zustand/Context for state management
 ```
 
-#### Service Layer (35+ services):
-```
+#### Service Layer (35+ services)
+
+```text
 AI SERVICES:
 ├── geminiService.ts (1600+ lines) - Core AI orchestration
 │   ├── Bytez SDK integration for Gemini 2.5 Pro (text) + Imagen 4 (images)
@@ -162,7 +179,8 @@ BUSINESS SERVICES:
 ├── versionControlService.ts - Git-like visual versioning (NOT ACTIVE)
 ```
 
-#### Current Performance Patterns Implemented:
+#### Current Performance Patterns Implemented
+
 ```typescript
 // Token Bucket Rate Limiter
 class TokenBucketRateLimiter {
@@ -174,25 +192,27 @@ class TokenBucketRateLimiter {
 
 // Request Queue
 const bytezRequestQueue = new RequestQueue(2, 1000); // 2 concurrent, 1s delay
-const grokRequestQueue = new RequestQueue(3, 500);   // 3 concurrent, 500ms delay
+const grokRequestQueue = new RequestQueue(3, 500); // 3 concurrent, 500ms delay
 
 // Caching
 const bookStructureCache = new LRUCache<string, BookProject>(50);
 const imagePromptCache = new LRUCache<string, string>(200);
 ```
 
-#### API Key Management:
-```
+#### API Key Management
+
+```text
 CURRENT APPROACH:
 - 11 Bytez API keys (round-robin rotation)
-- 3 Grok API keys (round-robin rotation)  
+- 3 Grok API keys (round-robin rotation)
 - 11 Green Room Gemini keys (dedicated for character chat)
 - Keys loaded from environment variables
 - retryWithNextKey() tries all keys on 429/403/500 errors
 ```
 
-#### Error Handling:
-```
+#### Error Handling
+
+```text
 - AppError class with typed error codes
 - Centralized ERROR_CODES mapping
 - tryCatch() wrapper for async operations
@@ -203,8 +223,9 @@ CURRENT APPROACH:
 
 ### 3. CURRENT SCALING MECHANISMS
 
-#### What's Already Implemented:
-```
+#### What's Already Implemented
+
+```text
 ✅ Client-side request deduplication
 ✅ LRU caching (50-200 items)
 ✅ Token bucket rate limiting
@@ -217,8 +238,9 @@ CURRENT APPROACH:
 ✅ Tier-based feature gating
 ```
 
-#### What's Missing for Scale:
-```
+#### What's Missing for Scale
+
+```text
 🚨 IMMEDIATE CLEANUP NEEDED:
 ❌ Drop 30+ unused legacy tables (collaboration, chat, broadcast, etc.)
 ❌ Remove 120+ unused indexes (adding write overhead)
@@ -492,9 +514,11 @@ Research and provide DEEP, FIRST-PRINCIPLES explanations for:
 
 ## 📚 YOUTUBE EDUCATIONAL RESOURCES REQUIRED
 
-Provide YouTube video links for EACH of the following topics. These should be DEEP technical talks, not surface-level tutorials:
+Provide YouTube video links for EACH of the following topics. These should be
+DEEP technical talks, not surface-level tutorials:
 
 ### Database Scaling
+
 1. PostgreSQL performance tuning deep dives
 2. PgBouncer configuration masterclass
 3. PostgreSQL partitioning tutorials
@@ -504,6 +528,7 @@ Provide YouTube video links for EACH of the following topics. These should be DE
 7. PostgreSQL JSONB performance
 
 ### Architecture
+
 1. System design for millions of users
 2. Redis caching patterns
 3. Message queue architectures
@@ -513,6 +538,7 @@ Provide YouTube video links for EACH of the following topics. These should be DE
 7. Event-driven architecture
 
 ### AI Infrastructure
+
 1. LLM cost optimization
 2. Prompt engineering for production
 3. AI observability and monitoring
@@ -520,6 +546,7 @@ Provide YouTube video links for EACH of the following topics. These should be DE
 5. Multi-provider AI fallback patterns
 
 ### DevOps & Reliability
+
 1. SRE best practices
 2. Kubernetes scaling (if applicable)
 3. Serverless scaling patterns
@@ -528,6 +555,7 @@ Provide YouTube video links for EACH of the following topics. These should be DE
 6. Incident management
 
 ### Startup Scaling Stories
+
 1. Canva scaling AI image generation
 2. Duolingo gamification at scale
 3. Notion database architecture
@@ -537,6 +565,7 @@ Provide YouTube video links for EACH of the following topics. These should be DE
 7. Khan Academy edtech scaling
 
 ### Supabase Specific
+
 1. Supabase performance optimization
 2. Supabase Edge Functions
 3. Supabase Realtime scaling
@@ -548,11 +577,14 @@ Provide YouTube video links for EACH of the following topics. These should be DE
 
 For each section, provide:
 
-1. **First Principles Explanation** - Why does this matter? What's the underlying physics/computer science?
+1. **First Principles Explanation** - Why does this matter? What's the
+   underlying physics/computer science?
 
-2. **Concrete Numbers** - At what scale do you hit limits? What are the actual thresholds?
+2. **Concrete Numbers** - At what scale do you hit limits? What are the actual
+   thresholds?
 
-3. **Implementation Path** - Step-by-step guide for this specific Genesis application
+3. **Implementation Path** - Step-by-step guide for this specific Genesis
+   application
 
 4. **Code Examples** - TypeScript/SQL snippets where applicable
 
@@ -566,9 +598,11 @@ For each section, provide:
 
 ## 🎬 FINAL DELIVERABLES
 
-1. **Priority Matrix** - What to do at 100 users, 1,000 users, 10,000 users, 100,000 users, 1,000,000 users
+1. **Priority Matrix** - What to do at 100 users, 1,000 users, 10,000 users,
+   100,000 users, 1,000,000 users
 
-2. **Database Cleanup Plan** - Which legacy tables to drop, indexes to remove, RLS policies to fix
+2. **Database Cleanup Plan** - Which legacy tables to drop, indexes to remove,
+   RLS policies to fix
 
 3. **Architecture Diagram** - How Genesis should look at 1M users
 
@@ -582,14 +616,19 @@ For each section, provide:
 
 ## ⚡ THE MINDSET
 
-This is not about doing everything. This is about understanding the RULES OF THE GAME so deeply that you can make informed decisions about what to invest time in.
+This is not about doing everything. This is about understanding the RULES OF THE
+GAME so deeply that you can make informed decisions about what to invest time
+in.
 
 As Elon Musk says: "The best part is no part. The best process is no process."
 
-What are the minimum changes needed to handle 100x growth? What can wait? What's a premature optimization that will slow you down?
+What are the minimum changes needed to handle 100x growth? What can wait? What's
+a premature optimization that will slow you down?
 
-Give me the WISDOM of engineers who have scaled systems to billions of requests, distilled into actionable intelligence for a solo founder.
+Give me the WISDOM of engineers who have scaled systems to billions of requests,
+distilled into actionable intelligence for a solo founder.
 
 ---
 
-*"The goal isn't to be perfect. The goal is to not be dead when success arrives."*
+_"The goal isn't to be perfect. The goal is to not be dead when success
+arrives."_

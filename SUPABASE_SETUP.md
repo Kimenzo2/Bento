@@ -1,10 +1,11 @@
 # Supabase Database Setup Guide
 
-This guide will help you set up the Supabase database for the Genesis Storybook Generator application.
+This guide will help you set up the Supabase database for the Genesis Storybook
+Generator application.
 
 ## Prerequisites
 
-- A Supabase account (https://supabase.com)
+- A Supabase account (<https://supabase.com>)
 - A Supabase project created
 - Your Supabase project URL and anon key (already in your `.env` files)
 
@@ -25,7 +26,9 @@ This guide will help you set up the Supabase database for the Genesis Storybook 
 4. Click **Run** (or press Ctrl/Cmd + Enter)
 
 The script will create:
-- ✅ All necessary tables (profiles, projects, chapters, pages, characters, etc.)
+
+- ✅ All necessary tables (profiles, projects, chapters, pages, characters,
+  etc.)
 - ✅ Enums for art styles, tones, user tiers, and layout types
 - ✅ Indexes for optimized queries
 - ✅ Row Level Security (RLS) policies
@@ -48,7 +51,8 @@ After running the SQL, verify the tables were created:
 
 ### 4. Test Authentication
 
-The schema includes a trigger that automatically creates a profile when a user signs up via Supabase Auth. To test:
+The schema includes a trigger that automatically creates a profile when a user
+signs up via Supabase Auth. To test:
 
 1. Go to **Authentication** → **Users**
 2. Click **Add User** (or use your app's signup flow)
@@ -60,35 +64,42 @@ The schema includes a trigger that automatically creates a profile when a user s
 ### Core Tables
 
 #### `profiles`
+
 - Extends Supabase auth.users
 - Stores user tier, subscription status, and profile data
 - Auto-created on user signup
 
 #### `projects`
+
 - Main table for book projects
 - Contains title, synopsis, style, tone, and metadata
 - Uses JSONB for complex nested data (metadata, decision trees, etc.)
 
 #### `chapters`
+
 - Organizes pages into chapters
 - Linked to projects
 - Ordered by `order_index`
 
 #### `pages`
+
 - Individual book pages
 - Contains text, image prompts, and generated images
 - Supports interactive elements, learning moments, and vocabulary
 - Uses JSONB for complex nested data
 
 #### `characters`
+
 - Character definitions for projects
 - Stores visual descriptions and traits
 
 #### `user_gamification`
+
 - Tracks user XP, level, badges, and challenges
 - Auto-created on user signup
 
 #### `payment_history`
+
 - Records subscription payments
 - Linked to Paystack transactions
 
@@ -107,6 +118,7 @@ All tables have RLS enabled to ensure users can only access their own data:
 The schema uses JSONB for complex nested data to maintain flexibility:
 
 ### `projects.metadata`
+
 ```json
 {
   "title": "string",
@@ -124,6 +136,7 @@ The schema uses JSONB for complex nested data to maintain flexibility:
 ```
 
 ### `projects.decision_tree`
+
 ```json
 {
   "paths": [
@@ -137,6 +150,7 @@ The schema uses JSONB for complex nested data to maintain flexibility:
 ```
 
 ### `pages.interactive_element`
+
 ```json
 {
   "type": "decision",
@@ -154,24 +168,28 @@ The schema uses JSONB for complex nested data to maintain flexibility:
 
 The schema defines the following enums:
 
-- `art_style`: Watercolor, 3D Render (Pixar Style), Japanese Manga, Corporate Minimalist, Cyberpunk Neon, Vintage Illustration, Paper Cutout Art
+- `art_style`: Watercolor, 3D Render (Pixar Style), Japanese Manga, Corporate
+  Minimalist, Cyberpunk Neon, Vintage Illustration, Paper Cutout Art
 - `book_tone`: Playful, Serious, Inspirational, Educational, Dramatic
 - `user_tier`: Spark (Free), Creator ($19.99), Studio ($59.99), Empire ($199.99)
-- `layout_type`: full-bleed, split-horizontal, split-vertical, text-only, image-only
+- `layout_type`: full-bleed, split-horizontal, split-vertical, text-only,
+  image-only
 
 ## Next Steps
 
 ### Integrate with Your Application
 
 1. **Install Supabase Client** (already done):
+
    ```bash
    npm install @supabase/supabase-js
    ```
 
 2. **Create Supabase Service** (example):
+
    ```typescript
    // services/supabaseService.ts
-   import { createClient } from '@supabase/supabase-js';
+   import { createClient } from "@supabase/supabase-js";
 
    const supabaseUrl = process.env.VITE_SUPABASE_URL!;
    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY!;
@@ -180,14 +198,15 @@ The schema defines the following enums:
    ```
 
 3. **Example: Save a Project**:
+
    ```typescript
-   import { supabase } from './services/supabaseService';
-   import { BookProject } from './types';
+   import { supabase } from "./services/supabaseService";
+   import { BookProject } from "./types";
 
    async function saveProject(project: BookProject, userId: string) {
      // Insert project
      const { data: projectData, error: projectError } = await supabase
-       .from('projects')
+       .from("projects")
        .insert({
          user_id: userId,
          title: project.title,
@@ -201,7 +220,7 @@ The schema defines the following enums:
          decision_tree: project.decisionTree,
          back_matter: project.backMatter,
          series_info: project.seriesInfo,
-         brand_profile: project.brandProfile
+         brand_profile: project.brandProfile,
        })
        .select()
        .single();
@@ -211,11 +230,11 @@ The schema defines the following enums:
      // Insert chapters
      for (const chapter of project.chapters) {
        const { data: chapterData, error: chapterError } = await supabase
-         .from('chapters')
+         .from("chapters")
          .insert({
            project_id: projectData.id,
            title: chapter.title,
-           order_index: project.chapters.indexOf(chapter)
+           order_index: project.chapters.indexOf(chapter),
          })
          .select()
          .single();
@@ -224,7 +243,7 @@ The schema defines the following enums:
 
        // Insert pages
        for (const page of chapter.pages) {
-         await supabase.from('pages').insert({
+         await supabase.from("pages").insert({
            chapter_id: chapterData.id,
            page_number: page.pageNumber,
            text: page.text,
@@ -235,14 +254,14 @@ The schema defines the following enums:
            interactive_element: page.interactiveElement,
            learning_moment: page.learningMoment,
            vocabulary_words: page.vocabularyWords,
-           choices: page.choices
+           choices: page.choices,
          });
        }
      }
 
      // Insert characters
      for (const character of project.characters) {
-       await supabase.from('characters').insert({
+       await supabase.from("characters").insert({
          project_id: projectData.id,
          name: character.name,
          role: character.role,
@@ -250,7 +269,7 @@ The schema defines the following enums:
          visual_traits: character.visualTraits,
          visual_prompt: character.visualPrompt,
          traits: character.traits,
-         image_url: character.imageUrl
+         image_url: character.imageUrl,
        });
      }
 
@@ -259,20 +278,23 @@ The schema defines the following enums:
    ```
 
 4. **Example: Load User Projects**:
+
    ```typescript
    async function loadUserProjects(userId: string) {
      const { data, error } = await supabase
-       .from('projects')
-       .select(`
+       .from("projects")
+       .select(
+         `
          *,
          chapters (
            *,
            pages (*)
          ),
          characters (*)
-       `)
-       .eq('user_id', userId)
-       .order('created_at', { ascending: false });
+       `,
+       )
+       .eq("user_id", userId)
+       .order("created_at", { ascending: false });
 
      if (error) throw error;
      return data;
@@ -282,23 +304,32 @@ The schema defines the following enums:
 ## Troubleshooting
 
 ### Issue: Tables not created
-- **Solution**: Check the SQL Editor for error messages. Run the schema in sections if needed.
+
+- **Solution**: Check the SQL Editor for error messages. Run the schema in
+  sections if needed.
 
 ### Issue: RLS blocking queries
-- **Solution**: Ensure you're authenticated and using `auth.uid()` in your queries. Check RLS policies in **Authentication** → **Policies**.
+
+- **Solution**: Ensure you're authenticated and using `auth.uid()` in your
+  queries. Check RLS policies in **Authentication** → **Policies**.
 
 ### Issue: JSONB validation errors
-- **Solution**: Ensure your JSONB data matches the expected structure. Use TypeScript types to validate before inserting.
+
+- **Solution**: Ensure your JSONB data matches the expected structure. Use
+  TypeScript types to validate before inserting.
 
 ### Issue: Enum value errors
-- **Solution**: Ensure you're using exact enum values as defined in the schema (case-sensitive).
+
+- **Solution**: Ensure you're using exact enum values as defined in the schema
+  (case-sensitive).
 
 ## Support
 
 For more information:
-- Supabase Documentation: https://supabase.com/docs
-- Supabase SQL Reference: https://supabase.com/docs/guides/database
-- PostgreSQL JSONB: https://www.postgresql.org/docs/current/datatype-json.html
+
+- Supabase Documentation: <https://supabase.com/docs>
+- Supabase SQL Reference: <https://supabase.com/docs/guides/database>
+- PostgreSQL JSONB: <https://www.postgresql.org/docs/current/datatype-json.html>
 
 ---
 

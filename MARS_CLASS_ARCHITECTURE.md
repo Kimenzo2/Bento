@@ -8,25 +8,28 @@
 
 ## 🎯 Overview
 
-This document describes the Mars-Class infrastructure implemented to scale Genesis from prototype to 1,000,000 concurrent users. The architecture follows the same engineering principles that guide SpaceX missions: ruthless prioritization, first-principles thinking, and calculated redundancy.
+This document describes the Mars-Class infrastructure implemented to scale
+Genesis from prototype to 1,000,000 concurrent users. The architecture follows
+the same engineering principles that guide SpaceX missions: ruthless
+prioritization, first-principles thinking, and calculated redundancy.
 
 ### Architecture Pillars
 
-| Pillar | Technology | Purpose |
-|--------|------------|---------|
-| **Persistence** | PostgreSQL + Supavisor | Connection pooling, RLS optimization |
-| **Cognition** | Semantic Cache | 40-60% AI cost reduction via intelligent caching |
-| **Asynchrony** | BullMQ + Redis | Durable job queue for long-running tasks |
-| **Delivery** | Cloudflare R2 + CDN | Zero-egress storage, global distribution |
-| **Observability** | OpenTelemetry | Distributed tracing, Core Web Vitals |
-| **Resilience** | Circuit Breaker + Bulkhead | Prevent cascade failures |
-| **Protection** | Rate Limiting | Per-tier throttling, DDoS protection |
+| Pillar            | Technology                 | Purpose                                          |
+| ----------------- | -------------------------- | ------------------------------------------------ |
+| **Persistence**   | PostgreSQL + Supavisor     | Connection pooling, RLS optimization             |
+| **Cognition**     | Semantic Cache             | 40-60% AI cost reduction via intelligent caching |
+| **Asynchrony**    | BullMQ + Redis             | Durable job queue for long-running tasks         |
+| **Delivery**      | Cloudflare R2 + CDN        | Zero-egress storage, global distribution         |
+| **Observability** | OpenTelemetry              | Distributed tracing, Core Web Vitals             |
+| **Resilience**    | Circuit Breaker + Bulkhead | Prevent cascade failures                         |
+| **Protection**    | Rate Limiting              | Per-tier throttling, DDoS protection             |
 
 ---
 
 ## 📁 Files Created
 
-```
+```text
 supabase/migrations/
 └── 005_mars_class_rls_optimization.sql    # RLS scalar subquery optimization
 
@@ -70,6 +73,7 @@ supabase db push
 ```
 
 This migration:
+
 - Converts all RLS policies to use `(SELECT auth.uid())` instead of `auth.uid()`
 - Adds B-Tree indexes on all policy-referenced columns
 - Adds GIN indexes for JSONB columns
@@ -86,6 +90,7 @@ This migration:
 #### 2.1 Set Up Redis
 
 **Option A: Upstash (Serverless, Recommended)**
+
 ```bash
 # Create at https://console.upstash.com
 # Get connection URL and add to .env
@@ -93,6 +98,7 @@ REDIS_URL=redis://default:xxx@xxx.upstash.io:6379
 ```
 
 **Option B: Railway (Persistent)**
+
 ```bash
 railway add --plugin redis
 railway variables get REDIS_URL
@@ -103,6 +109,7 @@ railway variables get REDIS_URL
 Workers must run on persistent infrastructure (not serverless):
 
 **Fly.io Deployment:**
+
 ```bash
 # fly.toml
 app = "genesis-worker"
@@ -119,6 +126,7 @@ primary_region = "iad"
 ```
 
 **Railway Deployment:**
+
 ```bash
 # railway.json
 {
@@ -151,10 +159,10 @@ primary_region = "iad"
 #### 3.3 Migrate Existing Assets
 
 ```typescript
-import { migrateToR2 } from './services/infrastructure';
+import { migrateToR2 } from "./services/infrastructure";
 
 // Run migration
-for await (const result of migrateToR2('user-id', { concurrent: 5 })) {
+for await (const result of migrateToR2("user-id", { concurrent: 5 })) {
   console.log(`Migrated: ${result.sourceUrl} → ${result.destUrl}`);
 }
 ```
@@ -164,12 +172,14 @@ for await (const result of migrateToR2('user-id', { concurrent: 5 })) {
 #### 4.1 Set Up Tracing Backend
 
 **Option A: Honeycomb (Recommended)**
+
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io:443
 OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=your-api-key
 ```
 
 **Option B: Grafana Tempo**
+
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=https://tempo.grafana.net:443
 OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64-encoded-creds>
@@ -179,7 +189,7 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64-encoded-creds>
 
 ```typescript
 // In your app entry point
-import { initializeInfrastructure } from './services/infrastructure';
+import { initializeInfrastructure } from "./services/infrastructure";
 
 await initializeInfrastructure({
   enableTracing: true,
@@ -192,33 +202,34 @@ await initializeInfrastructure({
 #### 5.1 Wrap AI Calls with Semantic Cache
 
 ```typescript
-import { createCachedAIService } from './services/infrastructure/semanticCache';
+import { createCachedAIService } from "./services/infrastructure/semanticCache";
 
 // Wrap your existing AI call
 const cachedGenerateStory = createCachedAIService(
   async (prompt: string) => {
     return await geminiService.generateText(prompt);
   },
-  { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
+  { maxAge: 7 * 24 * 60 * 60 * 1000 }, // 7 days
 );
 
 // Use identically
-const story = await cachedGenerateStory('A story about a brave knight');
+const story = await cachedGenerateStory("A story about a brave knight");
 ```
 
 #### 5.2 Use Job Queue for Book Generation
 
 ```tsx
-import { useBookGeneration } from './hooks/useInfrastructure';
+import { useBookGeneration } from "./hooks/useInfrastructure";
 
 function BookCreator() {
-  const { generateBook, isGenerating, progress, stage, book, error } = useBookGeneration();
+  const { generateBook, isGenerating, progress, stage, book, error } =
+    useBookGeneration();
 
   const handleCreate = async () => {
     await generateBook({
-      topic: 'Space exploration',
-      ageRange: '8-12',
-      artStyle: 'watercolor',
+      topic: "Space exploration",
+      ageRange: "8-12",
+      artStyle: "watercolor",
       pageCount: 12,
       userId: user.id,
       userTier: user.tier,
@@ -245,7 +256,7 @@ function BookCreator() {
 #### 5.3 Use Optimized Images
 
 ```tsx
-import { useOptimizedImage } from './hooks/useInfrastructure';
+import { useOptimizedImage } from "./hooks/useInfrastructure";
 
 function BookCover({ imageKey }: { imageKey: string }) {
   const { src, srcSet, isLoading, supportsWebP } = useOptimizedImage(imageKey);
@@ -271,14 +282,14 @@ function BookCover({ imageKey }: { imageKey: string }) {
 
 ### Performance Improvements
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Database Connections | 100 max | 1M+ | 10,000x |
-| RLS Query Time | 500ms @ 10k rows | 5ms @ 10k rows | 100x |
-| AI API Costs | $150k/month | ~$75k/month | 50% reduction |
-| Bandwidth Costs | $13,500/month | $0/month | 100% reduction |
-| P95 Latency | 5s | 500ms | 10x |
-| Cache Hit Rate | 0% | 40-60% | ∞ |
+| Metric               | Before           | After          | Improvement    |
+| -------------------- | ---------------- | -------------- | -------------- |
+| Database Connections | 100 max          | 1M+            | 10,000x        |
+| RLS Query Time       | 500ms @ 10k rows | 5ms @ 10k rows | 100x           |
+| AI API Costs         | $150k/month      | ~$75k/month    | 50% reduction  |
+| Bandwidth Costs      | $13,500/month    | $0/month       | 100% reduction |
+| P95 Latency          | 5s               | 500ms          | 10x            |
+| Cache Hit Rate       | 0%               | 40-60%         | ∞              |
 
 ### Load Test Benchmarks (K6)
 
@@ -349,12 +360,12 @@ GET /api/health
 
 ### Alert Thresholds
 
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| Error Rate | > 1% | > 5% |
-| P95 Latency | > 2s | > 5s |
-| Cache Hit Rate | < 30% | < 15% |
-| Pool Utilization | > 70% | > 90% |
+| Metric           | Warning | Critical |
+| ---------------- | ------- | -------- |
+| Error Rate       | > 1%    | > 5%     |
+| P95 Latency      | > 2s    | > 5s     |
+| Cache Hit Rate   | < 30%   | < 15%    |
+| Pool Utilization | > 70%   | > 90%    |
 
 ---
 
@@ -386,28 +397,36 @@ GET /api/health
 ## 📚 Architecture Decision Records
 
 ### ADR-001: BullMQ over AWS SQS
+
 **Decision**: Use BullMQ with Redis instead of AWS SQS  
-**Rationale**: Better visibility, simpler local development, lower latency for progress updates
+**Rationale**: Better visibility, simpler local development, lower latency for
+progress updates
 
 ### ADR-002: R2 over S3
+
 **Decision**: Use Cloudflare R2 instead of AWS S3  
 **Rationale**: Zero egress fees save $13,500/month at target scale
 
 ### ADR-003: Semantic Cache
+
 **Decision**: Implement semantic caching for AI responses  
 **Rationale**: 40-60% cache hit rate reduces AI costs by 50%+
 
 ### ADR-004: Supavisor over PgBouncer
+
 **Decision**: Use Supavisor (Supabase's built-in pooler)  
 **Rationale**: Native integration, Elixir-based scalability, IPv6 support
 
 ### ADR-005: Circuit Breaker Pattern
+
 **Decision**: Implement circuit breakers for all external service calls  
 **Rationale**: Prevents cascade failures when AI/Storage services are down
 
 ### ADR-006: Token Bucket Rate Limiting
+
 **Decision**: Use token bucket with sliding window for rate limiting  
-**Rationale**: Allows bursts while enforcing average rates, fair queuing per-tier
+**Rationale**: Allows bursts while enforcing average rates, fair queuing
+per-tier
 
 ---
 
@@ -416,25 +435,25 @@ GET /api/health
 ### Circuit Breaker Usage
 
 ```typescript
-import { geminiCircuitBreaker, resilientCall } from './services/infrastructure';
+import { geminiCircuitBreaker, resilientCall } from "./services/infrastructure";
 
 // Wrap AI calls with circuit breaker
-const result = await resilientCall(
-  () => geminiService.generateText(prompt),
-  {
-    circuitBreaker: geminiCircuitBreaker,
-    retry: { maxRetries: 2 },
-  }
-);
+const result = await resilientCall(() => geminiService.generateText(prompt), {
+  circuitBreaker: geminiCircuitBreaker,
+  retry: { maxRetries: 2 },
+});
 ```
 
 ### Rate Limiting Usage
 
 ```typescript
-import { tieredRateLimiter, createRateLimitResponse } from './services/infrastructure';
+import {
+  tieredRateLimiter,
+  createRateLimitResponse,
+} from "./services/infrastructure";
 
 // Check rate limit before processing
-const result = tieredRateLimiter.check(userId, userTier, 'books');
+const result = tieredRateLimiter.check(userId, userTier, "books");
 if (!result.allowed) {
   return createRateLimitResponse(result);
 }
@@ -443,12 +462,10 @@ if (!result.allowed) {
 ### Bulkhead Isolation
 
 ```typescript
-import { aiGenerationBulkhead } from './services/infrastructure';
+import { aiGenerationBulkhead } from "./services/infrastructure";
 
 // Limit concurrent AI operations
-const result = await aiGenerationBulkhead.execute(() => 
-  generateBook(params)
-);
+const result = await aiGenerationBulkhead.execute(() => generateBook(params));
 ```
 
 ---
@@ -462,5 +479,5 @@ const result = await aiGenerationBulkhead.execute(() =>
 
 ---
 
-*"The only way to fail is to do nothing."*  
-*— Elon Musk*
+_"The only way to fail is to do nothing."_  
+_— Elon Musk_

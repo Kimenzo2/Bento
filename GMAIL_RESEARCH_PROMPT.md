@@ -1,18 +1,29 @@
 # 📧 MEGA GMAIL MINING PROMPT FOR PERPLEXITY/GEMINI
+
 ## Genesis: Unearthing Hidden Value from Your Email Archive
+
 ### First Principles Email Archaeology & Opportunity Discovery
 
 ---
 
 ## 🎯 YOUR MISSION
 
-You have been granted access to my Gmail. Your job is to conduct the most **THOROUGH, COMPREHENSIVE, EXHAUSTIVE SEARCH** through my entire email history to find **ANY email, thread, newsletter, notification, or forgotten message** that could provide value for transforming Genesis into an **Enhanced Visual Learning Entertainment Platform**.
+You have been granted access to my Gmail. Your job is to conduct the most
+**THOROUGH, COMPREHENSIVE, EXHAUSTIVE SEARCH** through my entire email history
+to find **ANY email, thread, newsletter, notification, or forgotten message**
+that could provide value for transforming Genesis into an **Enhanced Visual
+Learning Entertainment Platform**.
 
 **Your guiding principle (Elon Musk's First Principles Approach):**
 
-> "I operate on the physics approach to analysis. You boil things down to the first principles or fundamental truths in a particular area and then you reason up from there."
+> "I operate on the physics approach to analysis. You boil things down to the
+> first principles or fundamental truths in a particular area and then you
+> reason up from there."
 
-You MUST search with the mindset that **hidden gold exists in forgotten emails**. Old conversations, unopened newsletters, ignored invitations, expired opportunities that might be revivable, connections that were never followed up on.
+You MUST search with the mindset that **hidden gold exists in forgotten
+emails**. Old conversations, unopened newsletters, ignored invitations, expired
+opportunities that might be revivable, connections that were never followed up
+on.
 
 **Search EVERYTHING. Leave no email unturned.**
 
@@ -24,7 +35,8 @@ You MUST search with the mindset that **hidden gold exists in forgotten emails**
 
 **Genesis** is currently an AI-powered visual content creation platform that:
 
-- **Generates visual narratives** using Gemini 2.5 Pro (text) + Imagen 4 (images)
+- **Generates visual narratives** using Gemini 2.5 Pro (text) + Imagen 4
+  (images)
 - **Creates interactive stories** with branching paths and decision points
 - **Features AI characters** that users can interview ("Green Room")
 - **Includes 40+ teaching character personalities** for educational content
@@ -34,10 +46,11 @@ You MUST search with the mindset that **hidden gold exists in forgotten emails**
 
 ### 1.2 The Transformation Vision (Still Blurry)
 
-**FROM:** "Ebook Generator"
-**TO:** "Enhanced Visual Learning Entertainment Platform"
+**FROM:** "Ebook Generator" **TO:** "Enhanced Visual Learning Entertainment
+Platform"
 
 **Key Focus Areas:**
+
 - Visual learning that actually works
 - Entertainment-driven engagement
 - Platform thinking (not just a tool)
@@ -46,15 +59,15 @@ You MUST search with the mindset that **hidden gold exists in forgotten emails**
 
 ### 1.3 Current Technical Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **React + TypeScript + Vite** | Frontend |
-| **Supabase** | Backend + Realtime |
-| **Gemini 2.5 Pro** | Text generation via Bytez |
-| **Imagen 4.0 / Ultra** | Image generation |
-| **Framer Motion** | Animations |
-| **Paystack** | Payments |
-| **Web Speech API** | Voice synthesis |
+| Technology                    | Purpose                   |
+| ----------------------------- | ------------------------- |
+| **React + TypeScript + Vite** | Frontend                  |
+| **Supabase**                  | Backend + Realtime        |
+| **Gemini 2.5 Pro**            | Text generation via Bytez |
+| **Imagen 4.0 / Ultra**        | Image generation          |
+| **Framer Motion**             | Animations                |
+| **Paystack**                  | Payments                  |
+| **Web Speech API**            | Voice synthesis           |
 
 ### 1.4 Target Markets (Under Exploration)
 
@@ -73,7 +86,7 @@ You MUST search with the mindset that **hidden gold exists in forgotten emails**
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - partnership
 - collaborate
@@ -107,6 +120,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - ❌ Emails I never opened
 - ❌ Emails I opened but never replied to
 - ❌ Invitations that expired but might be revivable
@@ -119,7 +133,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - EdTech
 - education technology
@@ -158,6 +172,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Newsletters from EdTech companies
 - Invitations to EdTech events/conferences
 - Introductions to people in education
@@ -171,7 +186,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - artificial intelligence
 - AI
@@ -211,6 +226,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Early access invitations I missed
 - Developer program invitations
 - AI research newsletters
@@ -225,7 +241,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - content creation
 - content creator
@@ -261,6 +277,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Creator program invitations
 - Publishing platform opportunities
 - Illustrator/artist connections
@@ -273,7 +290,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - startup
 - entrepreneur
@@ -305,6 +322,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Community invitations
 - Mentorship offers
 - Pitch competition invitations
@@ -318,7 +336,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - design
 - UX
@@ -347,6 +365,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Design tool invitations
 - Design community connections
 - Designer introductions
@@ -358,7 +377,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - conference
 - summit
@@ -385,6 +404,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - ❌ Events I was invited to but didn't attend
 - ❌ Speaking opportunities I ignored
 - ❌ Networking events I missed
@@ -397,7 +417,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails from:**
 
-```
+```text
 NEWSLETTERS TO FIND:
 - TechCrunch
 - The Hustle
@@ -420,6 +440,7 @@ NEWSLETTERS TO FIND:
 ```
 
 **Look for:**
+
 - Newsletters I subscribed to but never read
 - Archived newsletters with relevant content
 - Opportunities mentioned in newsletters
@@ -431,7 +452,7 @@ NEWSLETTERS TO FIND:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - introduction
 - intro
@@ -450,6 +471,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - ❌ Introductions I never followed up on
 - ❌ People who reached out that I ignored
 - ❌ Warm introductions that went cold
@@ -461,7 +483,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - tax credit
 - R&D credit
@@ -487,6 +509,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Funding opportunities I missed
 - Tax credits I didn't claim
 - Legal considerations I overlooked
@@ -498,7 +521,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails mentioning:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - Duolingo
 - Khan Academy
@@ -527,6 +550,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Competitor intelligence
 - Market trends I missed
 - Similar products that launched
@@ -538,7 +562,7 @@ KEYWORDS TO SEARCH:
 
 **Search for emails containing:**
 
-```
+```text
 KEYWORDS TO SEARCH:
 - feedback
 - review
@@ -557,6 +581,7 @@ KEYWORDS TO SEARCH:
 ```
 
 **Look for:**
+
 - Feedback I received and ignored
 - User suggestions that were valuable
 - Patterns in feedback
@@ -567,7 +592,7 @@ KEYWORDS TO SEARCH:
 
 ### Gmail Search Operators
 
-```
+```text
 BASIC OPERATORS:
 - is:unread          (emails I never opened)
 - is:starred         (emails I marked important)
@@ -601,9 +626,9 @@ SENDER SEARCHES:
 
 ## 📊 PART 4: OUTPUT FORMAT REQUIRED
 
-### For Each Valuable Email Found, Report:
+### For Each Valuable Email Found, Report
 
-```
+```text
 📧 EMAIL #[NUMBER]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📅 Date: [DATE]
@@ -631,14 +656,18 @@ SENDER SEARCHES:
 ## 📋 PART 5: FINAL DELIVERABLES
 
 ### 5.1 Priority Email List
+
 Top 20 most valuable emails found, ranked by potential impact on Genesis.
 
 ### 5.2 Opportunity Tracker
+
 | Email | Sender | Category | Action Required | Deadline | Status |
-|-------|--------|----------|-----------------|----------|--------|
+| ----- | ------ | -------- | --------------- | -------- | ------ |
 
 ### 5.3 Connection Map
+
 People discovered in emails who could help Genesis:
+
 - Name
 - How we're connected
 - Their expertise
@@ -646,19 +675,25 @@ People discovered in emails who could help Genesis:
 - Suggested outreach
 
 ### 5.4 Missed Opportunity Analysis
+
 Opportunities that expired but might be:
+
 - Revivable (annual programs, recurring events)
 - Have alternatives (similar programs still open)
 - Provide learnings (patterns to watch for)
 
 ### 5.5 Newsletter Audit
+
 Newsletters subscribed to:
+
 - Still relevant? Keep/Unsubscribe
 - Have valuable archives? Mine them
 - Suggest new ones to subscribe to
 
 ### 5.6 Pattern Recognition
+
 What patterns emerge from the emails?
+
 - Topics I was interested in but dropped
 - People who reached out multiple times
 - Opportunities that keep appearing
@@ -668,23 +703,30 @@ What patterns emerge from the emails?
 
 ## 🚨 CRITICAL REMINDERS
 
-1. **SEARCH EXHAUSTIVELY.** Go back YEARS. The most valuable email might be from 2019.
+1. **SEARCH EXHAUSTIVELY.** Go back YEARS. The most valuable email might be
+   from 2019.
 
-2. **PRIORITIZE UNREAD EMAILS.** These are the most likely to contain missed opportunities.
+2. **PRIORITIZE UNREAD EMAILS.** These are the most likely to contain missed
+   opportunities.
 
 3. **CHECK SPAM/TRASH.** Sometimes important emails end up there.
 
-4. **LOOK FOR PATTERNS.** Multiple emails about the same topic = important signal.
+4. **LOOK FOR PATTERNS.** Multiple emails about the same topic = important
+   signal.
 
-5. **CONSIDER CONTEXT.** An email that seemed irrelevant 2 years ago might be gold today.
+5. **CONSIDER CONTEXT.** An email that seemed irrelevant 2 years ago might be
+   gold today.
 
 6. **FLAG URGENT ITEMS.** Some opportunities might still be actionable.
 
-7. **BE SPECIFIC.** Don't just say "found some investment emails." Give me the details.
+7. **BE SPECIFIC.** Don't just say "found some investment emails." Give me the
+   details.
 
-8. **THINK FIRST PRINCIPLES.** How does each finding connect to the fundamental truths of visual learning, entertainment, and platform building?
+8. **THINK FIRST PRINCIPLES.** How does each finding connect to the fundamental
+   truths of visual learning, entertainment, and platform building?
 
-9. **SAVE EVERYTHING VALUABLE.** Star/Label emails that matter so they're easy to find later.
+9. **SAVE EVERYTHING VALUABLE.** Star/Label emails that matter so they're easy
+   to find later.
 
 10. **CREATE FOLLOW-UP LIST.** Any email that requires action should be tracked.
 
@@ -692,9 +734,7 @@ What patterns emerge from the emails?
 
 ## 🎬 BEGIN
 
-Search EVERYTHING.
-Find the HIDDEN VALUE.
-Surface the FORGOTTEN GOLD.
+Search EVERYTHING. Find the HIDDEN VALUE. Surface the FORGOTTEN GOLD.
 
 My inbox is your archaeology site. Dig deep.
 

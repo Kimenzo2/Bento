@@ -1,17 +1,22 @@
 # 🍎 Apple Pay Integration: Monetize Your Empire
 
-> *Seamless payments for a seamless experience.*
+> _Seamless payments for a seamless experience._
 
 ## Overview
 
-Genesis integrates **Apple Pay** via Paystack to provide a frictionless checkout experience for your users. This allows users on iOS and macOS devices to subscribe to your **Creator**, **Studio**, or **Empire** tiers with a single touch.
+Genesis integrates **Apple Pay** via Paystack to provide a frictionless checkout
+experience for your users. This allows users on iOS and macOS devices to
+subscribe to your **Creator**, **Studio**, or **Empire** tiers with a single
+touch.
 
 ---
 
 ## 🛠️ Configuration Steps
 
 ### 1. Paystack Dashboard Setup
-To enable Apple Pay, you must first activate it in your payment processor settings.
+
+To enable Apple Pay, you must first activate it in your payment processor
+settings.
 
 1. Log in to your [Paystack Dashboard](https://dashboard.paystack.com).
 2. Navigate to **Settings > Preferences**.
@@ -19,19 +24,25 @@ To enable Apple Pay, you must first activate it in your payment processor settin
 4. Save your changes.
 
 ### 2. Domain Verification
-Apple requires you to verify that you own the domain where Apple Pay will be used.
+
+Apple requires you to verify that you own the domain where Apple Pay will be
+used.
 
 1. In Paystack, go to **Settings > Apple Pay**.
 2. Download the **Domain Verification File**.
-3. Upload this file to your server at: `https://your-domain.com/.well-known/apple-developer-merchantid-domain-association`.
+3. Upload this file to your server at:
+   `https://your-domain.com/.well-known/apple-developer-merchantid-domain-association`.
 4. Click **Verify** in the Paystack dashboard.
 
 ### 3. Codebase Integration
+
 Genesis comes pre-wired for Apple Pay.
 
 - **Service File**: `services/paystackService.ts`
-- **Implementation**: Uses Paystack Inline JS v2 (`https://js.paystack.co/v2/inline.js`).
-- **Trigger**: The `initializeApplePayCheckout` function automatically detects Apple Pay availability.
+- **Implementation**: Uses Paystack Inline JS v2
+  (`https://js.paystack.co/v2/inline.js`).
+- **Trigger**: The `initializeApplePayCheckout` function automatically detects
+  Apple Pay availability.
 
 ```typescript
 // Example usage in PricingPage.tsx
@@ -55,4 +66,4 @@ if (isApplePayAvailable()) {
 
 ---
 
-*Unlock the revenue stream of the future.*
+_Unlock the revenue stream of the future._

@@ -1,11 +1,14 @@
 # Font Customization System - Integration Guide
 
 ## Overview
-This guide explains how to integrate the dynamic font customization system into your Genesis application.
+
+This guide explains how to integrate the dynamic font customization system into
+your Genesis application.
 
 ## Files Created
 
 ### Core Logic
+
 - **`src/types/fonts.d.ts`** - TypeScript type definitions for font pairings
 - **`src/config/fontPairings.ts`** - Configuration of 6 curated font pairings
 - **`src/utils/fontLoader.ts`** - Utilities for loading Google Fonts dynamically
@@ -14,11 +17,16 @@ This guide explains how to integrate the dynamic font customization system into 
 - **`src/hooks/useFonts.ts`** - Custom hook to consume FontContext
 
 ### UI Components
-- **`src/components/settings/FontPreviewCard.tsx`** - Preview card for each font pairing
-- **`src/components/settings/FontSelector.tsx`** - Main font selector UI component
+
+- **`src/components/settings/FontPreviewCard.tsx`** - Preview card for each font
+  pairing
+- **`src/components/settings/FontSelector.tsx`** - Main font selector UI
+  component
 
 ### Modified Files
-- **`index.css`** - Added CSS variables `--font-heading` and `--font-body`, added `.fonts-loading` class
+
+- **`index.css`** - Added CSS variables `--font-heading` and `--font-body`,
+  added `.fonts-loading` class
 - **`tailwind.config.js`** - Updated `fontFamily` to use CSS variables
 - **`App.tsx`** - Wrapped app with `FontProvider`
 - **`components/SettingsPanel.tsx`** - Added Typography tab
@@ -30,7 +38,7 @@ This guide explains how to integrate the dynamic font customization system into 
 The `FontProvider` has already been added to `App.tsx`:
 
 ```tsx
-import { FontProvider } from './contexts/FontContext';
+import { FontProvider } from "./contexts/FontContext";
 
 const AppWithErrorBoundary: React.FC = () => (
   <ErrorBoundary>
@@ -48,7 +56,7 @@ const AppWithErrorBoundary: React.FC = () => (
 Use the `useFonts()` hook to access font state:
 
 ```tsx
-import { useFonts } from '../hooks/useFonts';
+import { useFonts } from "../hooks/useFonts";
 
 function MyComponent() {
   const { activeFontPairing, setFontPairing, availablePairings } = useFonts();
@@ -95,33 +103,42 @@ Users can access the Typography settings via the Settings panel:
 
 ## How It Works
 
-1. **Font Loading**: Fonts are loaded dynamically from Google Fonts CDN when selected
-2. **Persistence**: Selected font is saved to `localStorage` under key `genesis_font_pairing`
-3. **CSS Variables**: Font family is applied via CSS variables `--font-heading` and `--font-body`
-4. **FOUT Prevention**: `.fonts-loading` class prevents flash of unstyled text during font loading
+1. **Font Loading**: Fonts are loaded dynamically from Google Fonts CDN when
+   selected
+2. **Persistence**: Selected font is saved to `localStorage` under key
+   `genesis_font_pairing`
+3. **CSS Variables**: Font family is applied via CSS variables `--font-heading`
+   and `--font-body`
+4. **FOUT Prevention**: `.fonts-loading` class prevents flash of unstyled text
+   during font loading
 5. **Performance**: Fonts are lazy-loaded only when viewed or selected
 
 ## Performance Considerations
 
-- **Preconnect**: The system preconnects to Google Fonts domains for faster loading
+- **Preconnect**: The system preconnects to Google Fonts domains for faster
+  loading
 - **Subset**: Fonts are subset to Latin characters only (`&subset=latin`)
-- **Display Swap**: `font-display: swap` is used for better perceived performance
+- **Display Swap**: `font-display: swap` is used for better perceived
+  performance
 - **Lazy Loading**: Non-default fonts load only when previewed or selected
 - **Caching**: Browser caches loaded fonts to prevent re-downloads
 
 ## Troubleshooting
 
 ### Fonts not loading?
+
 - Check browser console for network errors
 - Verify Google Fonts CDN is accessible
 - Check that `FontProvider` wraps your app
 
 ### Fonts flash/flicker?
+
 - The `.fonts-loading` class should prevent this
 - Check that the class is being applied/removed correctly
 - Verify CSS transitions in `index.css`
 
 ### Fonts don't persist?
+
 - Check that localStorage is available and not blocked
 - Verify the key `genesis_font_pairing` is being saved
 - Clear localStorage and try again
@@ -131,15 +148,15 @@ Users can access the Typography settings via the Settings panel:
 ### Programmatically Change Fonts
 
 ```tsx
-import { useFonts } from '../hooks/useFonts';
+import { useFonts } from "../hooks/useFonts";
 
 function MyComponent() {
   const { setFontPairing } = useFonts();
-  
+
   const switchToModernTech = () => {
-    setFontPairing('modern-tech');
+    setFontPairing("modern-tech");
   };
-  
+
   return <button onClick={switchToModernTech}>Use Modern Tech</button>;
 }
 ```
@@ -168,6 +185,7 @@ console.log(activeFontPairing.bodyFont.family); // e.g., "Manrope"
 ## Future Enhancements
 
 Potential features to add:
+
 - Font size control (14px - 20px)
 - Line spacing control (1.3x - 2x)
 - Font weight preference toggle

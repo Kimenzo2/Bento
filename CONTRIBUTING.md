@@ -1,6 +1,7 @@
 # Contributing to Genesis
 
-Thank you for your interest in contributing to Genesis! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to Genesis! This document provides
+guidelines and information for contributors.
 
 ## 📋 Table of Contents
 
@@ -15,13 +16,15 @@ Thank you for your interest in contributing to Genesis! This document provides g
 
 ## 📜 Code of Conduct
 
-Be respectful, inclusive, and professional in all interactions. We're building something great together!
+Be respectful, inclusive, and professional in all interactions. We're building
+something great together!
 
 ## 🚀 Getting Started
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Genesis.git`
-3. Add upstream remote: `git remote add upstream https://github.com/ORIGINAL_OWNER/Genesis.git`
+3. Add upstream remote:
+   `git remote add upstream https://github.com/ORIGINAL_OWNER/Genesis.git`
 4. Create a branch: `git checkout -b feature/your-feature-name`
 
 ## 💻 Development Setup
@@ -57,7 +60,7 @@ VITE_GEMINI_API_KEY=your_gemini_key
 
 ## 📁 Project Structure
 
-```
+```text
 Genesis/
 ├── components/     # React components
 ├── services/       # API and business logic services
@@ -108,7 +111,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Format
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
@@ -129,7 +132,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Examples
 
-```
+```text
 feat(auth): add social login with Google
 fix(book-viewer): resolve page navigation bug
 docs(readme): update installation instructions
@@ -139,12 +142,14 @@ test(components): add LoadingSpinner tests
 ## 🔄 Pull Request Process
 
 1. **Update your branch** with latest upstream changes:
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. **Run checks** before submitting:
+
    ```bash
    npm run type-check
    npm run format
@@ -203,7 +208,7 @@ describe('MyComponent', () => {
   it('handles click events', async () => {
     const handleClick = vi.fn();
     render(<MyComponent onClick={handleClick} />);
-    
+
     await userEvent.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledOnce();
   });
@@ -213,6 +218,7 @@ describe('MyComponent', () => {
 ## 🐛 Reporting Bugs
 
 Open an issue with:
+
 - Clear title and description
 - Steps to reproduce
 - Expected vs actual behavior
@@ -222,6 +228,7 @@ Open an issue with:
 ## 💡 Suggesting Features
 
 Open an issue with:
+
 - Clear problem statement
 - Proposed solution
 - Alternatives considered

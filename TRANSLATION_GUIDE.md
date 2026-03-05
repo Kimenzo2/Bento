@@ -1,8 +1,10 @@
 # Genesis Translation Guide
 
-This guide outlines the internationalization (i18n) system for Genesis and provides instructions for translators and developers working with translations.
+This guide outlines the internationalization (i18n) system for Genesis and
+provides instructions for translators and developers working with translations.
 
 ## Table of Contents
+
 1. [Overview](#overview)
 2. [Supported Languages](#supported-languages)
 3. [File Structure](#file-structure)
@@ -17,6 +19,7 @@ This guide outlines the internationalization (i18n) system for Genesis and provi
 ## Overview
 
 Genesis uses **react-i18next** for internationalization with:
+
 - Lazy loading of language files
 - Browser language detection
 - Namespace-based organization
@@ -26,23 +29,23 @@ Genesis uses **react-i18next** for internationalization with:
 
 ## Supported Languages
 
-| Code   | Language       | Flag | Direction | Status     |
-|--------|---------------|------|-----------|------------|
-| `en`   | English       | 🇺🇸   | LTR       | Complete   |
-| `es`   | Español       | 🇪🇸   | LTR       | 85%        |
-| `fr`   | Français      | 🇫🇷   | LTR       | 80%        |
-| `de`   | Deutsch       | 🇩🇪   | LTR       | 75%        |
-| `zh-CN`| 简体中文       | 🇨🇳   | LTR       | 70%        |
-| `ar`   | العربية       | 🇸🇦   | **RTL**   | 65%        |
-| `pt`   | Português     | 🇧🇷   | LTR       | 75%        |
-| `hi`   | हिन्दी         | 🇮🇳   | LTR       | 60%        |
-| `ja`   | 日本語         | 🇯🇵   | LTR       | 70%        |
+| Code    | Language  | Flag | Direction | Status   |
+| ------- | --------- | ---- | --------- | -------- |
+| `en`    | English   | 🇺🇸   | LTR       | Complete |
+| `es`    | Español   | 🇪🇸   | LTR       | 85%      |
+| `fr`    | Français  | 🇫🇷   | LTR       | 80%      |
+| `de`    | Deutsch   | 🇩🇪   | LTR       | 75%      |
+| `zh-CN` | 简体中文  | 🇨🇳   | LTR       | 70%      |
+| `ar`    | العربية   | 🇸🇦   | **RTL**   | 65%      |
+| `pt`    | Português | 🇧🇷   | LTR       | 75%      |
+| `hi`    | हिन्दी    | 🇮🇳   | LTR       | 60%      |
+| `ja`    | 日本語    | 🇯🇵   | LTR       | 70%      |
 
 ---
 
 ## File Structure
 
-```
+```text
 public/
 └── locales/
     ├── en/                 # English (base language)
@@ -66,20 +69,20 @@ public/
 
 ### Namespaces
 
-| Namespace      | Purpose                              |
-|---------------|--------------------------------------|
-| `common`      | Buttons, labels, general UI         |
-| `navigation`  | Nav menus, breadcrumbs, links       |
-| `settings`    | All settings panel strings          |
-| `auth`        | Login, signup, password reset       |
-| `errors`      | Error messages, validation          |
-| `editor`      | Smart editor, text formatting       |
-| `creation`    | Book creation canvas                |
-| `storybook`   | Storybook viewer                    |
-| `curriculum`  | Curriculum builder                  |
-| `pricing`     | Pricing page, subscription          |
-| `gamification`| Rewards, achievements, XP           |
-| `notifications`| Push/email notifications           |
+| Namespace       | Purpose                       |
+| --------------- | ----------------------------- |
+| `common`        | Buttons, labels, general UI   |
+| `navigation`    | Nav menus, breadcrumbs, links |
+| `settings`      | All settings panel strings    |
+| `auth`          | Login, signup, password reset |
+| `errors`        | Error messages, validation    |
+| `editor`        | Smart editor, text formatting |
+| `creation`      | Book creation canvas          |
+| `storybook`     | Storybook viewer              |
+| `curriculum`    | Curriculum builder            |
+| `pricing`       | Pricing page, subscription    |
+| `gamification`  | Rewards, achievements, XP     |
+| `notifications` | Push/email notifications      |
 
 ### Key Naming Conventions
 
@@ -124,12 +127,14 @@ Use ICU format for plurals:
 ### Best Practices
 
 ✅ **DO:**
+
 - Keep translations concise (space constraints in UI)
 - Preserve placeholders like `{{name}}` exactly
 - Consider cultural context, not just literal translation
 - Test your translations in the app
 
 ❌ **DON'T:**
+
 - Change key names
 - Remove or add curly braces in placeholders
 - Leave untranslated strings (use English if unsure)
@@ -138,6 +143,7 @@ Use ICU format for plurals:
 ### Example Translation
 
 **English (`en/common.json`):**
+
 ```json
 {
   "welcomeBack": "Welcome back, {{name}}!",
@@ -147,6 +153,7 @@ Use ICU format for plurals:
 ```
 
 **Spanish (`es/common.json`):**
+
 ```json
 {
   "welcomeBack": "¡Bienvenido de nuevo, {{name}}!",
@@ -156,6 +163,7 @@ Use ICU format for plurals:
 ```
 
 **Arabic (`ar/common.json`):**
+
 ```json
 {
   "welcomeBack": "مرحباً بعودتك، {{name}}!",
@@ -171,15 +179,15 @@ Use ICU format for plurals:
 ### Using Translations
 
 ```tsx
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 
 const MyComponent = () => {
-  const { t } = useTranslation('common');
-  
+  const { t } = useTranslation("common");
+
   return (
     <div>
-      <h1>{t('welcomeBack', { name: user.name })}</h1>
-      <button>{t('save')}</button>
+      <h1>{t("welcomeBack", { name: user.name })}</h1>
+      <button>{t("save")}</button>
     </div>
   );
 };
@@ -188,35 +196,33 @@ const MyComponent = () => {
 ### Multiple Namespaces
 
 ```tsx
-const { t } = useTranslation(['common', 'settings']);
+const { t } = useTranslation(["common", "settings"]);
 
 // Use namespace prefix
-t('common:save')
-t('settings:language')
+t("common:save");
+t("settings:language");
 ```
 
 ### Using the Language Hook
 
 ```tsx
-import { useLanguage } from '../src/hooks/useLanguage';
+import { useLanguage } from "../src/hooks/useLanguage";
 
 const MyComponent = () => {
-  const { 
-    currentLanguage, 
-    changeLanguage, 
+  const {
+    currentLanguage,
+    changeLanguage,
     formatDate,
     formatNumber,
-    formatCurrency
+    formatCurrency,
   } = useLanguage();
-  
+
   return (
     <div>
       <p>Current: {currentLanguage.name}</p>
       <p>Date: {formatDate(new Date())}</p>
       <p>Price: {formatCurrency(99.99)}</p>
-      <button onClick={() => changeLanguage('es')}>
-        Switch to Spanish
-      </button>
+      <button onClick={() => changeLanguage("es")}>Switch to Spanish</button>
     </div>
   );
 };
@@ -238,6 +244,7 @@ Arabic requires special handling for right-to-left text direction.
 ### Automatic RTL
 
 The `LanguageProvider` automatically:
+
 - Sets `dir="rtl"` on `<html>`
 - Updates `lang` attribute
 - Applies RTL-specific CSS
@@ -245,23 +252,25 @@ The `LanguageProvider` automatically:
 ### Using Direction Hook
 
 ```tsx
-import { useDirection } from '../src/hooks/useDirection';
+import { useDirection } from "../src/hooks/useDirection";
 
 const MyComponent = () => {
-  const { 
+  const {
     direction,
     isRTL,
-    startProperty,  // 'left' or 'right'
-    endProperty,    // 'right' or 'left'
-    flipAlign,      // Flips text-align
-    flipFlexDirection
+    startProperty, // 'left' or 'right'
+    endProperty, // 'right' or 'left'
+    flipAlign, // Flips text-align
+    flipFlexDirection,
   } = useDirection();
-  
+
   return (
-    <div style={{ 
-      textAlign: flipAlign('left'),
-      flexDirection: flipFlexDirection('row')
-    }}>
+    <div
+      style={{
+        textAlign: flipAlign("left"),
+        flexDirection: flipFlexDirection("row"),
+      }}
+    >
       {/* Content */}
     </div>
   );
@@ -299,17 +308,17 @@ padding-inline-end: 8px;
 ### Quick Language Switch
 
 ```tsx
-import { useLanguage } from '../src/hooks/useLanguage';
+import { useLanguage } from "../src/hooks/useLanguage";
 
 // In development, add temporary buttons:
 const DevLanguageSwitch = () => {
   const { changeLanguage } = useLanguage();
-  
+
   return (
     <div className="fixed bottom-4 right-4 flex gap-2">
-      <button onClick={() => changeLanguage('en')}>🇺🇸</button>
-      <button onClick={() => changeLanguage('es')}>🇪🇸</button>
-      <button onClick={() => changeLanguage('ar')}>🇸🇦</button>
+      <button onClick={() => changeLanguage("en")}>🇺🇸</button>
+      <button onClick={() => changeLanguage("es")}>🇪🇸</button>
+      <button onClick={() => changeLanguage("ar")}>🇸🇦</button>
     </div>
   );
 };
@@ -318,13 +327,15 @@ const DevLanguageSwitch = () => {
 ### Checking Missing Keys
 
 In development, missing keys show as the key name itself. Check console for:
-```
+
+```text
 [i18n] Missing translation for key: "someKey" in namespace: "common"
 ```
 
 ### Pseudo-localization
 
 For testing text expansion without translation:
+
 ```json
 {
   "save": "[ŞäVé]",
@@ -354,4 +365,5 @@ For testing text expansion without translation:
 
 ## Questions?
 
-For translation questions, open an issue with the `i18n` label or contact the maintainers.
+For translation questions, open an issue with the `i18n` label or contact the
+maintainers.

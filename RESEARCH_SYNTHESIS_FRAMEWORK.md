@@ -1,5 +1,7 @@
 # 🧬 RESEARCH SYNTHESIS FRAMEWORK
+
 ## Consolidating Insights from Gemini, Grok, ChatGPT & Claude
+
 ### From Research → Action → Execution
 
 ---
@@ -8,9 +10,10 @@
 
 ### Step 1.1: Create a Master Document
 
-Open a new document and create these sections. Go through EACH AI's response and extract:
+Open a new document and create these sections. Go through EACH AI's response and
+extract:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  SECTION 1: VISION STATEMENTS                                   │
 ├─────────────────────────────────────────────────────────────────┤
@@ -130,11 +133,11 @@ Open a new document and create these sections. Go through EACH AI's response and
 
 **These are your HIGHEST CONFIDENCE insights.**
 
-| Topic | Consensus Finding | Confidence |
-|-------|-------------------|------------|
-| Vision | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
-| Problem | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
-| Audience | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
+| Topic            | Consensus Finding      | Confidence |
+| ---------------- | ---------------------- | ---------- |
+| Vision           | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
+| Problem          | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
+| Audience         | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
 | Features to Keep | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
 | Features to Kill | [What all 4 agreed on] | ⭐⭐⭐⭐⭐ |
 
@@ -143,27 +146,27 @@ Open a new document and create these sections. Go through EACH AI's response and
 **These are HIGH CONFIDENCE insights.**
 
 | Topic | Majority Finding | Who Disagreed | Their Alternative |
-|-------|------------------|---------------|-------------------|
-| | | | |
+| ----- | ---------------- | ------------- | ----------------- |
+|       |                  |               |                   |
 
 ### Step 2.3: Find SPLITS (2 vs 2)
 
 **These need YOUR decision as founder.**
 
 | Topic | Camp A (Who + What) | Camp B (Who + What) | Your Gut |
-|-------|---------------------|---------------------|----------|
-| | | | |
+| ----- | ------------------- | ------------------- | -------- |
+|       |                     |                     |          |
 
 ### Step 2.4: Find UNIQUE INSIGHTS (Only 1 AI Mentioned)
 
 **These might be brilliant or noise - evaluate carefully.**
 
-| Unique Insight | Which AI | Brilliant or Noise? | Why? |
-|----------------|----------|---------------------|------|
-| | 🔵 Gemini | | |
-| | 🟠 Grok | | |
-| | 🟢 ChatGPT | | |
-| | 🟣 Claude | | |
+| Unique Insight | Which AI   | Brilliant or Noise? | Why? |
+| -------------- | ---------- | ------------------- | ---- |
+|                | 🔵 Gemini  |                     |      |
+|                | 🟠 Grok    |                     |      |
+|                | 🟢 ChatGPT |                     |      |
+|                | 🟣 Claude  |                     |      |
 
 ---
 
@@ -173,18 +176,18 @@ Open a new document and create these sections. Go through EACH AI's response and
 
 Not all AI opinions are equal for YOUR use case. Assign weights:
 
-| AI | Weight | Reasoning |
-|----|--------|-----------|
-| 🔵 Gemini | __/10 | Best at: ___ |
-| 🟠 Grok | __/10 | Best at: ___ (Elon's first principles) |
-| 🟢 ChatGPT | __/10 | Best at: ___ |
-| 🟣 Claude | __/10 | Best at: ___ |
+| AI         | Weight  | Reasoning                                 |
+| ---------- | ------- | ----------------------------------------- |
+| 🔵 Gemini  | \_\_/10 | Best at: \_\_\_                           |
+| 🟠 Grok    | \_\_/10 | Best at: \_\_\_ (Elon's first principles) |
+| 🟢 ChatGPT | \_\_/10 | Best at: \_\_\_                           |
+| 🟣 Claude  | \_\_/10 | Best at: \_\_\_                           |
 
 ### Step 3.2: Apply Weights to Key Decisions
 
 For each major decision, calculate weighted score:
 
-```
+```text
 DECISION: [What should Genesis's core product be?]
 
 Option A: _______________
@@ -212,7 +215,7 @@ WINNER: _______________
 
 Based on all research, complete these:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  🎯 GENESIS VISION STATEMENT (Final)                            │
 ├─────────────────────────────────────────────────────────────────┤
@@ -271,35 +274,35 @@ Based on all research, complete these:
 
 ### Step 5.1: Immediate Actions (This Week)
 
-| # | Action | Why | Effort | Impact |
-|---|--------|-----|--------|--------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| #   | Action | Why | Effort | Impact |
+| --- | ------ | --- | ------ | ------ |
+| 1   |        |     |        |        |
+| 2   |        |     |        |        |
+| 3   |        |     |        |        |
 
 ### Step 5.2: Short-Term (Next 30 Days)
 
-| # | Action | Why | Effort | Impact |
-|---|--------|-----|--------|--------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| #   | Action | Why | Effort | Impact |
+| --- | ------ | --- | ------ | ------ |
+| 1   |        |     |        |        |
+| 2   |        |     |        |        |
+| 3   |        |     |        |        |
 
 ### Step 5.3: Medium-Term (Next 90 Days)
 
-| # | Action | Why | Effort | Impact |
-|---|--------|-----|--------|--------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| #   | Action | Why | Effort | Impact |
+| --- | ------ | --- | ------ | ------ |
+| 1   |        |     |        |        |
+| 2   |        |     |        |        |
+| 3   |        |     |        |        |
 
 ### Step 5.4: Long-Term (Next 12 Months)
 
-| # | Milestone | Success Metric |
-|---|-----------|----------------|
-| 1 | | |
-| 2 | | |
-| 3 | | |
+| #   | Milestone | Success Metric |
+| --- | --------- | -------------- |
+| 1   |           |                |
+| 2   |           |                |
+| 3   |           |                |
 
 ---
 
@@ -309,30 +312,30 @@ Based on the synthesized vision, what needs to change in the code?
 
 ### 6.1: Naming/Branding Changes
 
-| Current | New | Files Affected |
-|---------|-----|----------------|
-| `genesis-ebook-generator` | ? | package.json |
-| `ebooksPerMonth` | ? | Multiple |
-| `canCreateEbook` | ? | Multiple |
-| | | |
+| Current                   | New | Files Affected |
+| ------------------------- | --- | -------------- |
+| `genesis-ebook-generator` | ?   | package.json   |
+| `ebooksPerMonth`          | ?   | Multiple       |
+| `canCreateEbook`          | ?   | Multiple       |
+|                           |     |                |
 
 ### 6.2: Features to Remove
 
 | Feature | Files to Delete/Modify | Effort |
-|---------|------------------------|--------|
-| | | |
+| ------- | ---------------------- | ------ |
+|         |                        |        |
 
 ### 6.3: Features to Add
 
 | Feature | Description | Priority | Effort |
-|---------|-------------|----------|--------|
-| | | | |
+| ------- | ----------- | -------- | ------ |
+|         |             |          |        |
 
 ### 6.4: UI/UX Changes
 
 | Current | New | Why |
-|---------|-----|-----|
-| | | |
+| ------- | --- | --- |
+|         |     |     |
 
 ---
 
@@ -367,6 +370,7 @@ The AIs gave you research. But these decisions are YOURS:
 ### 8.1: Risk Tolerance
 
 How much are you willing to bet on this pivot?
+
 - [ ] All-in (complete rebrand, new direction)
 - [ ] Gradual (phase out old, phase in new)
 - [ ] Parallel (run both, see what wins)
@@ -374,6 +378,7 @@ How much are you willing to bet on this pivot?
 ### 8.2: Time Horizon
 
 How fast do you need results?
+
 - [ ] 3 months (move fast, break things)
 - [ ] 6 months (balanced approach)
 - [ ] 12 months (methodical, thorough)
@@ -381,18 +386,20 @@ How fast do you need results?
 ### 8.3: Resource Constraints
 
 What are your actual constraints?
-- Budget: $______/month
-- Time: _______ hours/week
-- Team: _______ people
-- Skills needed: _______
+
+- Budget: $**\_\_**/month
+- Time: **\_\_\_** hours/week
+- Team: **\_\_\_** people
+- Skills needed: **\_\_\_**
 
 ### 8.4: Your Gut Check
 
 After all this research, what does your GUT say?
-- What excites you most? _______
-- What scares you most? _______
-- What would you build if money didn't matter? _______
-- What would you regret NOT trying? _______
+
+- What excites you most? **\_\_\_**
+- What scares you most? **\_\_\_**
+- What would you build if money didn't matter? **\_\_\_**
+- What would you regret NOT trying? **\_\_\_**
 
 ---
 
