@@ -18,6 +18,8 @@
 
     /* Emit */
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo",
     "skipLibCheck": true,
 
     /* Type Checking - Balanced strictness for existing codebase */

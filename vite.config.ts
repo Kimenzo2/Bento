@@ -1,4 +1,5 @@
 import { resolve } from 'path';
+import os from 'node:os';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react-swc';
@@ -186,46 +187,110 @@ export default defineConfig(({ mode }) => {
       },
     },
     esbuild: {
-      // Keep console.error and console.warn in production for debugging
+      // Drop debugger in prod; keep console.error/warn for observability
       drop: isProduction ? ['debugger'] : [],
+      // esbuild is already fast; target modern engines to skip transpilation
+      target: 'esnext',
+      // Faster JSX transform
+      jsx: 'automatic',
     },
+    // ─── Pre-bundle everything heavy so dev server starts in < 1 s ──────────
     optimizeDeps: {
-      include: ['bytez.js', 'react', 'react-dom', 'react-router-dom'],
+      force: false, // only re-bundle when deps actually change
+      include: [
+        // Core React
+        'react', 'react-dom', 'react-dom/client', 'react-router-dom',
+        // Supabase
+        '@supabase/supabase-js',
+        // i18n
+        'i18next', 'react-i18next', 'i18next-browser-languagedetector', 'i18next-http-backend',
+        // UI / motion
+        'framer-motion', 'lucide-react',
+        // Radix primitives (one import = no repeated crawling)
+        '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar',
+        '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu',
+        '@radix-ui/react-label', '@radix-ui/react-popover',
+        '@radix-ui/react-progress', '@radix-ui/react-scroll-area',
+        '@radix-ui/react-select', '@radix-ui/react-separator',
+        '@radix-ui/react-slider', '@radix-ui/react-slot',
+        '@radix-ui/react-switch', '@radix-ui/react-tabs',
+        '@radix-ui/react-tooltip',
+        // Sentry
+        '@sentry/react',
+        // Other runtime deps
+        'clsx', 'tailwind-merge', 'class-variance-authority',
+        'sonner', 'react-error-boundary',
+        'bytez.js',
+      ],
+      // Exclude server-only packages from client bundle
+      exclude: ['@mastra/core', '@mastra/pg', '@mastra/rag', '@mastra/memory',
+                '@hono/node-server', 'newrelic', '@arcjet/node'],
     },
     build: {
       commonjsOptions: {
         include: [/bytez\.js/, /node_modules/],
+        // Avoid transforming ESM-only packages → faster
+        transformMixedEsModules: false,
       },
-      // Modern ES2022 target (widely supported and compatible with Lightning CSS)
       target: 'esnext',
-      minify: 'esbuild', // esbuild is faster than terser
+      minify: 'esbuild',
+      // Only generate sourcemaps in production (hidden); skip entirely in dev builds
+      sourcemap: isProduction ? 'hidden' : false,
+      chunkSizeWarningLimit: 2000,
+      // ── Parallel workers for Rollup (use all CPU cores) ─────────────────
       rollupOptions: {
+        maxParallelFileOps: Math.max(1, (os.cpus?.()?.length ?? 4) - 1),
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-utils': ['@supabase/supabase-js', 'i18next', 'react-i18next'],
-            'vendor-ui': ['framer-motion', 'lucide-react'],
+          // Fine-grained manual chunks → smaller initial bundle, better long-term cache
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              // React core
+              if (id.includes('react-dom') || id.includes('/react/') || id.includes('react-router')) return 'vendor-react';
+              // Radix UI
+              if (id.includes('@radix-ui')) return 'vendor-radix';
+              // Supabase
+              if (id.includes('@supabase')) return 'vendor-supabase';
+              // i18n
+              if (id.includes('i18next')) return 'vendor-i18n';
+              // Animation
+              if (id.includes('framer-motion')) return 'vendor-motion';
+              // Icons
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              // Sentry
+              if (id.includes('@sentry')) return 'vendor-sentry';
+              // Remaining node_modules — one shared vendor chunk
+              return 'vendor-misc';
+            }
           },
         },
       },
-      // Generate source maps for error tracking
-      sourcemap: isProduction ? 'hidden' : true,
-      // Increase chunk size warning limit
-      chunkSizeWarningLimit: 1500,
+      // Avoid emitting assets to the wrong place
+      assetsDir: 'assets',
+      // skip gzip reporting (saves ~100ms per build)
+      reportCompressedSize: false,
     },
-    // Performance optimizations
+    // ─── Dev server ──────────────────────────────────────────────────────────
     server: {
       port: 3000,
       strictPort: true,
+      // Reduce HMR full-reload latency
       hmr: {
         overlay: true,
+        timeout: 1000,
       },
-      // Warm up frequently used files
+      // Allow all local file access (no repeated symlink resolution)
+      fs: {
+        strict: false,
+        cachedChecks: true,
+      },
+      // Warm up the most-accessed files so first HMR is instant
       warmup: {
         clientFiles: [
           './App.tsx',
+          './MainApp.tsx',
+          './AppRouter.tsx',
           './components/Navigation.tsx',
-          './components/CreationCanvas.tsx',
+          './contexts/AuthContext.tsx',
         ],
       },
     },

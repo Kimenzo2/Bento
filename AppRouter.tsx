@@ -20,6 +20,7 @@
 import type React from 'react';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import AppSkeleton from './components/AppSkeleton';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './services/supabaseClient';
 
@@ -43,31 +44,8 @@ const AuthPage = lazy(() => import('./components/AuthPage'));
 // Layout wrapper for tiers to provide strict styling context
 const TierLayout = lazy(() => import('./components/tiers/TierLayout'));
 
-// Minimal loading state - just prevents flash
-const AppLoading: React.FC = () => (
-  <div
-    style={{
-      position: 'fixed',
-      inset: 0,
-      background: '#0a0a0f',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <div
-      style={{
-        width: 48,
-        height: 48,
-        border: '3px solid rgba(255,217,61,0.2)',
-        borderTopColor: '#FFD93D',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-      }}
-    />
-    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-  </div>
-);
+// Single unified loading state — AppSkeleton replaces all previous spinners
+const AppLoading: React.FC = () => <AppSkeleton />;
 
 // Route guard for /welcome/* — ONBOARDING IS ONLY FOR BRAND NEW USERS.
 // Returning visitors are NEVER shown onboarding.
@@ -120,14 +98,7 @@ const OnboardingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }, [user, loading, hasCompletedOnboarding]);
 
   // Wait for auth + DB check to resolve
-  if (loading || checking) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 48, height: 48, border: '3px solid rgba(255,217,61,0.2)', borderTopColor: '#FFD93D', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  if (loading || checking) return <AppSkeleton />;
 
   // Returning user → redirect away from onboarding
   if (shouldRedirect) {
@@ -179,14 +150,7 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }, [user, loading, hasCompletedOnboarding]);
 
   // Wait for auth + profile check to resolve before deciding
-  if (loading || checking) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: '#FFF8F3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 48, height: 48, border: '3px solid rgba(255,155,113,0.2)', borderTopColor: '#FF9B71', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  if (loading || checking) return <AppSkeleton />;
 
   // Not signed in → check if returning visitor or brand new
   if (!user) {

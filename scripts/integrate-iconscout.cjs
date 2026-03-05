@@ -1,4 +1,4 @@
-/**
+GitHub Copilot: Show Chats/**
  * integrate-iconscout.cjs
  *
  * 1. Updates CreationCanvas.tsx: replaces old IconscoutSparkle/Rocket/Building

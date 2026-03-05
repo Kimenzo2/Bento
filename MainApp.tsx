@@ -50,6 +50,7 @@ import {
 import './src/config/i18n';
 
 import { Loader2 } from 'lucide-react';
+import AppSkeleton from './components/AppSkeleton';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { DirectionProvider } from './components/ui/direction';
 // Global Components
@@ -539,16 +540,7 @@ const MainAppContent: React.FC = () => {
     window.location.hash.includes('error_description');
 
   // Loading state during OAuth
-  if (authLoading || isProcessingAuth) {
-    return (
-      <div className="min-h-screen bg-cream-base flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-coral-burst border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-charcoal-soft/70 font-medium">Signing you in...</p>
-        </div>
-      </div>
-    );
-  }
+  if (authLoading || isProcessingAuth) return <AppSkeleton />;
 
   // Shared book route
   if (isSharedRoute) {
@@ -573,11 +565,11 @@ const MainAppContent: React.FC = () => {
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={setCurrentMode} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-6 h-6 animate-spin text-coral-burst" /></div>} key={forceRenderKey}>{renderContent()}</Suspense>
+        <Suspense fallback={<AppSkeleton />} key={forceRenderKey}>{renderContent()}</Suspense>
       </main>
 
       {isGenerating && (
-        <Suspense fallback={<div className="fixed inset-0 z-100 flex items-center justify-center bg-surface/90"><Loader2 className="w-8 h-8 animate-spin text-coral-burst" /></div>}>
+        <Suspense fallback={<AppSkeleton />}>
           <GenerationTheater progress={generationProgress} status={generationStatus} onCancel={() => { setIsGenerating(false); setGenerationStatus(''); setGenerationProgress(0); }} />
         </Suspense>
       )}
