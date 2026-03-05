@@ -1,6 +1,8 @@
 import { Flame, Lock, Star, Target, TrendingUp, Trophy } from 'lucide-react';
 import type React from 'react';
+import { useEffect, useState } from 'react';
 import { AppMode, type GamificationState } from '../types';
+import { mastra, type GamificationData } from '../src/services/mastraClient';
 import { Button } from './ui/button';
 
 interface GamificationHubProps {
@@ -8,7 +10,43 @@ interface GamificationHubProps {
   setMode: (mode: AppMode) => void;
 }
 
-const GamificationHub: React.FC<GamificationHubProps> = ({ gameState, setMode }) => {
+const GamificationHub: React.FC<GamificationHubProps> = ({ gameState: initialGameState, setMode }) => {
+  // MASTRA MIGRATION: Try to fetch live gamification data from Mastra backend.
+  // Falls back to the prop-provided gameState if Mastra is unavailable.
+  const [gameState, setGameState] = useState<GamificationState>(initialGameState);
+  const [mastraLoaded, setMastraLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    mastra.agents.gamification.getState()
+      .then((data: GamificationData) => {
+        if (!cancelled) {
+          setGameState({
+            level: data.level,
+            currentXP: data.currentXP,
+            nextLevelXP: data.nextLevelXP,
+            levelTitle: data.levelTitle,
+            currentStreak: data.currentStreak,
+            booksCreatedCount: data.booksCreatedCount,
+            badges: data.badges,
+            dailyChallenges: data.dailyChallenges,
+          });
+          setMastraLoaded(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('[GamificationHub] Mastra unavailable, using prop data:', err);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Update from prop if Mastra hasn't loaded
+  useEffect(() => {
+    if (!mastraLoaded) {
+      setGameState(initialGameState);
+    }
+  }, [initialGameState, mastraLoaded]);
+
   const progressPercent = gameState.nextLevelXP > 0
     ? Math.min((gameState.currentXP / gameState.nextLevelXP) * 100, 100)
     : 0;

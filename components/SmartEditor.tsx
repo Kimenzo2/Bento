@@ -37,6 +37,7 @@ import {
   getWritingSuggestions,
   improveText,
 } from '../services/grokService';
+import { mastra, type ConsistencyReport as MastraConsistencyReport } from '../src/services/mastraClient';
 import { saveBook } from '../services/storageService';
 import { type ConsistencyIssue, storyBibleService } from '../services/storyBibleService';
 import {
@@ -890,15 +891,29 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   };
 
   // Feature #1: AI Improve Handler
+  // MASTRA MIGRATION: Try Mastra storyEditor agent first, fallback to legacy grokService
   const handleImproveText = async (tone: string) => {
     setIsImproving(true);
     setShowImproveOptions(false);
     try {
-      const improved = await improveText(
-        activePage.text,
-        tone,
-        currentProject.targetAudience || 'children'
-      );
+      let improved: string;
+      try {
+        // NEW: Route through Mastra backend (server-side, no API key exposure)
+        improved = await mastra.agents.storyEditor.improveText(
+          activePage.text,
+          tone,
+          currentProject.targetAudience || 'children',
+          currentProject.id
+        );
+      } catch (mastraErr) {
+        // FALLBACK: If Mastra server is unreachable, use legacy direct call
+        console.warn('[SmartEditor] Mastra unavailable, falling back to grokService:', mastraErr);
+        improved = await improveText(
+          activePage.text,
+          tone,
+          currentProject.targetAudience || 'children'
+        );
+      }
       handleTextChange(improved);
     } catch (_error) {
       toast.error('Failed to improve text. Please try again.');
@@ -925,8 +940,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           setShowConsistencyPanel(true);
         }
       } else {
-        // Fallback to legacy check
-        const report = await checkCharacterConsistency(currentProject);
+        // MASTRA MIGRATION: Try Mastra first, fallback to legacy grokService
+        let report: ConsistencyReport;
+        try {
+          report = await mastra.agents.storyEditor.checkConsistency(currentProject);
+        } catch (mastraErr) {
+          console.warn('[SmartEditor] Mastra unavailable for consistency check, falling back:', mastraErr);
+          report = await checkCharacterConsistency(currentProject);
+        }
         setConsistencyReport(report);
         setShowConsistencyPanel(true);
       }
@@ -938,6 +959,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   };
 
   // Feature #3: Fetch Writing Suggestions
+  // MASTRA MIGRATION: Try Mastra storyEditor agent first, fallback to legacy grokService
   const fetchWritingSuggestions = async (text: string) => {
     if (text.length < 10) {
       setSuggestions([]);
@@ -945,10 +967,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
     }
     setIsLoadingSuggestions(true);
     try {
-      const newSuggestions = await getWritingSuggestions(
-        text,
-        `Children's book for ${currentProject.targetAudience}`
-      );
+      let newSuggestions: WritingSuggestion[];
+      const ctx = `Children's book for ${currentProject.targetAudience}`;
+      try {
+        newSuggestions = await mastra.agents.storyEditor.getSuggestions(text, ctx);
+      } catch (mastraErr) {
+        console.warn('[SmartEditor] Mastra unavailable for suggestions, falling back:', mastraErr);
+        newSuggestions = await getWritingSuggestions(text, ctx);
+      }
       setSuggestions(newSuggestions);
     } catch (error) {
       console.error('Failed to get suggestions:', error);

@@ -89,7 +89,10 @@ export const getRemainingEbooks = (tier: UserTier, ebooksThisMonth: number): num
   return Math.max(0, limits.ebooksPerMonth - ebooksThisMonth);
 };
 
-// Monthly usage tracking (using localStorage for now, should be moved to database)
+// Monthly usage tracking
+// MASTRA MIGRATION: Server-side tracking via Supabase is now the source of truth.
+// localStorage is kept as a fallback for offline/unauthenticated users.
+// The Mastra bookGenerationWorkflow increments usage server-side in the persistBook step.
 const USAGE_KEY = 'genesis_monthly_usage';
 
 interface MonthlyUsage {
@@ -119,6 +122,8 @@ export const getMonthlyUsage = (): MonthlyUsage => {
 };
 
 export const incrementEbookCount = (): void => {
+  // NOTE: When Mastra is active, the server increments usage in Supabase.
+  // This localStorage increment is only for the fallback path.
   const usage = getMonthlyUsage();
   usage.ebooksCreated += 1;
   localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
@@ -126,4 +131,20 @@ export const incrementEbookCount = (): void => {
 
 export const getEbooksCreatedThisMonth = (): number => {
   return getMonthlyUsage().ebooksCreated;
+};
+
+/**
+ * Fetch server-side ebook count from Mastra (source of truth when authenticated).
+ * Falls back to localStorage count if Mastra is unreachable.
+ */
+export const getServerEbookCount = async (): Promise<number> => {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { mastra } = await import('../src/services/mastraClient');
+    const state = await mastra.agents.gamification.getState();
+    return state.booksCreatedCount;
+  } catch {
+    // Fallback to localStorage
+    return getEbooksCreatedThisMonth();
+  }
 };

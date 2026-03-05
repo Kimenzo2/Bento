@@ -5,12 +5,15 @@ import { Input, Label } from './ui/input';
 import { Textarea } from './ui/input';
 import { useState } from 'react';
 import type { ContentStructure } from '../types/generator';
+import { mastra } from '../src/services/mastraClient';
 
 interface BlueprintReviewProps {
   blueprint: ContentStructure;
   onConfirm: (updatedBlueprint: ContentStructure) => void;
   onBack: () => void;
   isGenerating: boolean;
+  /** MASTRA MIGRATION: If provided, approval resumes the suspended workflow */
+  workflowId?: string;
 }
 
 const BlueprintReview: React.FC<BlueprintReviewProps> = ({
@@ -18,11 +21,26 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
   onConfirm,
   onBack,
   isGenerating,
+  workflowId,
 }) => {
   const [editedBlueprint, setEditedBlueprint] = useState<ContentStructure>(blueprint);
   const [activeTab, setActiveTab] = useState<'overview' | 'characters' | 'chapters'>('overview');
+  const [isResuming, setIsResuming] = useState(false);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    // MASTRA MIGRATION: If we have a workflowId, resume the suspended workflow
+    // with the approved (possibly edited) blueprint. Otherwise, use legacy path.
+    if (workflowId) {
+      setIsResuming(true);
+      try {
+        await mastra.workflows.resumeBookGeneration(workflowId, editedBlueprint);
+      } catch (err) {
+        console.warn('[BlueprintReview] Mastra resume failed, using legacy path:', err);
+      } finally {
+        setIsResuming(false);
+      }
+    }
+    // Always call the parent handler (maintains backward compatibility)
     onConfirm(editedBlueprint);
   };
 
@@ -262,18 +280,18 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
             variant="primary"
             size="lg"
             onClick={handleConfirm}
-            disabled={isGenerating}
+            disabled={isGenerating || isResuming}
             className={`rounded-full border border-white/20 hover:-translate-y-1 flex text-lg
                             ${
-                              isGenerating
+                              isGenerating || isResuming
                                 ? 'bg-cocoa-light text-white opacity-70'
                                 : 'bg-linear-to-r from-emerald-400 to-mint-breeze text-white hover:scale-105'
                             }`}
           >
-            {isGenerating ? (
+            {isGenerating || isResuming ? (
               <>
                 <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                Generating Assets...
+                {isResuming ? 'Resuming Pipeline...' : 'Generating Assets...'}
               </>
             ) : (
               <>

@@ -5,6 +5,14 @@ import { supabase } from './supabaseClient';
 
 const STORAGE_KEY = 'genesis_saved_books';
 
+// MASTRA MIGRATION NOTE:
+// When Mastra is active, books are persisted server-side in the persistBook
+// workflow step. This service remains as:
+// 1. The fallback when Mastra is unreachable
+// 2. The read path (getAllBooks, loadBook) for the frontend
+// 3. The delete path (deleteBook) for user-initiated deletions
+// The save path now also triggers gamification XP tracking via Mastra.
+
 // PERFORMANCE: Cache for books to reduce localStorage/DB reads
 const booksCache = new LRUCache<string, SavedBook[]>(10);
 const singleBookCache = new LRUCache<string, BookProject>(50);
@@ -36,6 +44,17 @@ export const saveBook = async (project: BookProject): Promise<void> => {
       // Save to Supabase
       await booksApi.createBook(savedBook, session.user.id);
       console.log('✅ Book saved to Supabase:', project.title);
+
+      // MASTRA MIGRATION: Track book creation for gamification XP
+      try {
+        const { mastra } = await import('../src/services/mastraClient');
+        await mastra.agents.gamification.trackAction('book_created', {
+          bookId: project.id,
+          title: project.title,
+        });
+      } catch (mastraErr) {
+        console.warn('[storageService] Mastra gamification tracking unavailable:', mastraErr);
+      }
     } else {
       // Save to LocalStorage
       const books = await getAllBooks(false); // Force local fetch

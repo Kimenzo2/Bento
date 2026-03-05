@@ -1,0 +1,508 @@
+/**
+ * @fileoverview Mastra HTTP Server for Genesis
+ *
+ * ## What This File Does
+ * Sets up a Hono HTTP server that exposes all Mastra agent and workflow
+ * endpoints. Handles CORS for the Vite dev server, validates Supabase
+ * JWT tokens on every request, and provides SSE endpoints for real-time
+ * workflow progress streaming.
+ *
+ * ## What It Replaces
+ * Previously, Genesis called AI APIs directly from the browser through
+ * Vercel serverless proxy functions (/api/ai-generate, /api/ai-bytez).
+ * This server centralizes all AI orchestration behind authenticated
+ * endpoints with durable workflow state.
+ *
+ * ## Future Extensions
+ * - [STREAMING PHASE]: WebSocket endpoints for live video generation progress
+ * - [COLLABORATION PHASE]: Real-time sync endpoints via Liveblocks integration
+ *
+ * @module mastra/server
+ */
+
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { serve } from '@hono/node-server';
+import { createClient } from '@supabase/supabase-js';
+import { mastra, supabaseUrl, supabaseServiceRoleKey, requireEnv } from './index';
+import { evaluateBookQuality } from './evals/bookQualityEval';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface AuthenticatedContext {
+  userId: string;
+  email: string;
+  tier: string;
+}
+
+// ─── App Setup ───────────────────────────────────────────────────────────────
+
+const app = new Hono();
+
+// ─── CORS Middleware ─────────────────────────────────────────────────────────
+// Allow requests from the Vite dev server (localhost:5173) and
+// production domain(s). Credentials must be included for JWT auth.
+app.use(
+  '*',
+  cors({
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      process.env.VITE_APP_URL ?? 'https://genesis-app.vercel.app',
+    ].filter(Boolean) as string[],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    maxAge: 86400,
+  })
+);
+
+// ─── Supabase Admin Client ──────────────────────────────────────────────────
+// Uses the SERVICE_ROLE_KEY for server-side operations (JWT verification,
+// database writes for workflow state, usage tracking, etc.)
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+// ─── Auth Middleware ─────────────────────────────────────────────────────────
+// Validates the Supabase JWT from the Authorization header on every request.
+// The frontend attaches the token via mastraClient.ts.
+app.use('/api/*', async (c, next) => {
+  const authHeader = c.req.header('Authorization');
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return c.json({ error: 'Missing or invalid Authorization header' }, 401);
+  }
+
+  const token = authHeader.slice(7);
+
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !user) {
+      return c.json({ error: 'Invalid or expired token' }, 401);
+    }
+
+    // Attach user context to the request for downstream handlers
+    c.set('auth' as never, {
+      userId: user.id,
+      email: user.email ?? '',
+      tier: user.user_metadata?.tier ?? 'SPARK',
+    } satisfies AuthenticatedContext);
+
+    await next();
+  } catch (err) {
+    console.error('[Mastra Auth] JWT verification failed:', err);
+    return c.json({ error: 'Authentication failed' }, 401);
+  }
+});
+
+// ─── Health Check ────────────────────────────────────────────────────────────
+app.get('/health', (c) => {
+  return c.json({
+    status: 'ok',
+    service: 'genesis-mastra',
+    timestamp: new Date().toISOString(),
+    agents: ['storyArchitect', 'characterArtist', 'styleArchitect', 'storyEditor', 'gamification', 'qualityAssurance'],
+    workflows: ['bookGeneration', 'brandVoiceRAG'],
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGENT ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Story Architect Agent ───────────────────────────────────────────────────
+app.post('/api/agents/story-architect/generate', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('storyArchitect');
+    const result = await agent.generate(JSON.stringify({
+      ...body,
+      userId: auth.userId,
+      userTier: auth.tier,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[StoryArchitect]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Character Artist Agent ──────────────────────────────────────────────────
+app.post('/api/agents/character-artist/generate', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('characterArtist');
+    const result = await agent.generate(JSON.stringify({
+      ...body,
+      userId: auth.userId,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[CharacterArtist]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Style Architect Agent ───────────────────────────────────────────────────
+app.post('/api/agents/style-architect/generate', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('styleArchitect');
+    const result = await agent.generate(JSON.stringify(body));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[StyleArchitect]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Story Editor Agent ──────────────────────────────────────────────────────
+app.post('/api/agents/story-editor/improve', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('storyEditor');
+    const result = await agent.generate(JSON.stringify({
+      action: 'improve',
+      ...body,
+      userId: auth.userId,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[StoryEditor]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+app.post('/api/agents/story-editor/consistency', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('storyEditor');
+    const result = await agent.generate(JSON.stringify({
+      action: 'consistency',
+      ...body,
+      userId: auth.userId,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[StoryEditor]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+app.post('/api/agents/story-editor/suggestions', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('storyEditor');
+    const result = await agent.generate(JSON.stringify({
+      action: 'suggestions',
+      ...body,
+      userId: auth.userId,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[StoryEditor]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Gamification Agent ──────────────────────────────────────────────────────
+app.get('/api/agents/gamification/state', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  try {
+    const agent = mastra.getAgent('gamification');
+    const result = await agent.generate(JSON.stringify({
+      action: 'getState',
+      userId: auth.userId,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[Gamification]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+app.post('/api/agents/gamification/track', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('gamification');
+    const result = await agent.generate(JSON.stringify({
+      action: 'track',
+      userId: auth.userId,
+      ...body,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[Gamification]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Quality Assurance Agent ─────────────────────────────────────────────────
+app.post('/api/agents/qa/analyze', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+  try {
+    const agent = mastra.getAgent('qualityAssurance');
+    const result = await agent.generate(JSON.stringify({
+      action: 'analyze',
+      ...body,
+      userId: auth.userId,
+    }));
+    return c.json({ success: true, data: result.text });
+  } catch (err: any) {
+    console.error('[QA]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WORKFLOW ENDPOINTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Book Generation Workflow (SSE Stream) ───────────────────────────────────
+app.post('/api/workflows/book-generation/start', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+
+  // Return SSE stream for real-time progress
+  return new Response(
+    new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const sendEvent = (event: string, data: unknown) => {
+          controller.enqueue(
+            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+          );
+        };
+
+        try {
+          const workflow = mastra.getWorkflow('bookGeneration');
+          const workflowId = `wf_${Date.now()}_${auth.userId.slice(0, 8)}`;
+
+          // Send workflow ID immediately so frontend can track it
+          sendEvent('workflow_started', { workflowId });
+
+          const run = await workflow.createRun({ runId: workflowId });
+          const result = await run.start({
+            inputData: {
+              settings: body.settings,
+              userId: auth.userId,
+              userTier: auth.tier as 'SPARK' | 'CREATOR' | 'STUDIO' | 'EMPIRE',
+              workflowId,
+            },
+          });
+
+          // Send progress events as the workflow executes
+          // The workflow steps emit events via the onStepComplete callback
+          sendEvent('workflow_complete', {
+            workflowId,
+            result: result.status === 'success' ? (result as any).result : null,
+          });
+        } catch (err: any) {
+          sendEvent('workflow_error', { error: err.message });
+        } finally {
+          controller.close();
+        }
+      },
+    }),
+    {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      },
+    }
+  );
+});
+
+// ─── Resume Workflow (after blueprint approval) ──────────────────────────────
+app.post('/api/workflows/book-generation/resume', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const { workflowId, approvedBlueprint } = await c.req.json();
+
+  try {
+    const workflow = mastra.getWorkflow('bookGeneration');
+    const run = await workflow.createRun({ runId: workflowId });
+    await run.resume({
+      step: 'suspendForBlueprintApproval',
+      resumeData: { approvedBlueprint },
+    });
+    return c.json({ success: true, message: 'Workflow resumed' });
+  } catch (err: any) {
+    console.error('[BookGeneration Resume]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Cancel Workflow ─────────────────────────────────────────────────────────
+app.post('/api/workflows/book-generation/cancel', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const { workflowId } = await c.req.json();
+
+  try {
+    // Store cancellation flag — workflow steps check this
+    await supabaseAdmin
+      .from('workflow_state')
+      .upsert({
+        id: workflowId,
+        user_id: auth.userId,
+        status: 'cancelled',
+        updated_at: new Date().toISOString(),
+      });
+    return c.json({ success: true, message: 'Workflow cancelled' });
+  } catch (err: any) {
+    console.error('[BookGeneration Cancel]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Brand Voice RAG Workflow ────────────────────────────────────────────────
+app.post('/api/workflows/brand-voice/ingest', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+  const body = await c.req.json();
+
+  try {
+    const workflow = mastra.getWorkflow('brandVoiceRAG');
+    const run = await workflow.createRun();
+    const result = await run.start({
+      inputData: {
+        ...body,
+        userId: auth.userId,
+      },
+    });
+    return c.json({ success: true, data: result.status === 'success' ? (result as any).result : null });
+  } catch (err: any) {
+    console.error('[BrandVoiceRAG]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Admin: Run Book Eval ────────────────────────────────────────────────────
+app.post('/api/admin/eval-run', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+
+  if (auth.tier !== 'EMPIRE') {
+    return c.json({ error: 'Insufficient permissions' }, 403);
+  }
+
+  try {
+    const { input, output } = await c.req.json();
+
+    if (!output?.pages || !Array.isArray(output.pages)) {
+      return c.json({ error: 'output.pages array is required' }, 400);
+    }
+
+    const evalResult = await evaluateBookQuality(input ?? {}, output);
+
+    // Persist result to book_eval_results for trend tracking
+    await supabaseAdmin
+      .from('book_eval_results')
+      .insert({
+        user_id: auth.userId,
+        overall_score: Math.round(evalResult.score * 100),
+        age_appropriateness: Math.round(evalResult.dimensions.ageAppropriateness * 100),
+        narrative_coherence: Math.round(evalResult.dimensions.coherence * 100),
+        character_consistency: Math.round(evalResult.dimensions.grammar * 100),
+        image_text_alignment: Math.round(evalResult.dimensions.completeness * 100),
+        reason: evalResult.reason,
+        created_at: new Date().toISOString(),
+      });
+
+    return c.json({ success: true, data: evalResult });
+  } catch (err: any) {
+    console.error('[Admin EvalRun]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ─── Admin: Eval Averages ────────────────────────────────────────────────────
+app.get('/api/admin/eval-averages', async (c) => {
+  const auth = c.get('auth' as never) as AuthenticatedContext;
+
+  // Only EMPIRE tier users can access admin endpoints
+  if (auth.tier !== 'EMPIRE') {
+    return c.json({ error: 'Insufficient permissions' }, 403);
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('book_eval_results')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+
+    // Calculate averages
+    const totals = (data ?? []).reduce(
+      (acc, row) => ({
+        ageAppropriateness: acc.ageAppropriateness + (row.age_appropriateness ?? 0),
+        narrativeCoherence: acc.narrativeCoherence + (row.narrative_coherence ?? 0),
+        characterConsistency: acc.characterConsistency + (row.character_consistency ?? 0),
+        imageTextAlignment: acc.imageTextAlignment + (row.image_text_alignment ?? 0),
+        count: acc.count + 1,
+      }),
+      { ageAppropriateness: 0, narrativeCoherence: 0, characterConsistency: 0, imageTextAlignment: 0, count: 0 }
+    );
+
+    const count = totals.count || 1;
+    return c.json({
+      success: true,
+      data: {
+        ageAppropriateness: Math.round(totals.ageAppropriateness / count),
+        narrativeCoherence: Math.round(totals.narrativeCoherence / count),
+        characterConsistency: Math.round(totals.characterConsistency / count),
+        imageTextAlignment: Math.round(totals.imageTextAlignment / count),
+        sampleSize: totals.count,
+      },
+    });
+  } catch (err: any) {
+    console.error('[Admin EvalAverages]', err);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SERVER START
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PORT = Number(process.env.MASTRA_SERVER_PORT ?? 4111);
+
+/**
+ * Start the Mastra HTTP server.
+ * Called from the "mastra:dev" npm script or from the deployment entrypoint.
+ */
+export function start() {
+  serve(
+    { fetch: app.fetch, port: PORT },
+    (info) => {
+      console.log(`\n🧠 Genesis Mastra Server running on http://localhost:${info.port}`);
+      console.log(`   Health check: http://localhost:${info.port}/health`);
+      console.log(`   Agents: 6 registered`);
+      console.log(`   Workflows: 2 registered\n`);
+    }
+  );
+}
+
+// Auto-start if this file is the entry point
+const isDirectRun = process.argv[1]?.includes('server');
+if (isDirectRun) {
+  start();
+}
+
+export { app };
+export default app;
