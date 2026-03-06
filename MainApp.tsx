@@ -15,7 +15,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import type React from 'react';
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPWA from './components/InstallPWA';
 import Navigation from './components/Navigation';
@@ -93,38 +93,6 @@ const StorybookViewer = lazyWithRetry(() => import('./components/StorybookViewer
 const SharedBookViewer = lazyWithRetry(() => import('./components/SharedBookViewer'));
 const LegalViewer = lazyWithRetry(() => import('./components/LegalViewer'));
 
-const MODE_PATHS: Partial<Record<AppMode, string>> = {
-  [AppMode.DASHBOARD]: '/',
-  [AppMode.CREATION]: '/create',
-  [AppMode.EDITOR]: '/editor',
-  [AppMode.VISUAL_STUDIO]: '/visual-studio',
-  [AppMode.SETTINGS]: '/settings',
-  [AppMode.PRICING]: '/pricing',
-  [AppMode.GAMIFICATION]: '/gamification',
-  [AppMode.SUCCESS]: '/success',
-  [AppMode.VIEWER]: '/viewer',
-  [AppMode.LEGAL]: '/legal',
-};
-
-const PATH_MODES = new Map<string, AppMode>(
-  Object.entries(MODE_PATHS).map(([mode, path]) => [path, mode as AppMode])
-);
-
-const normalizePathname = (pathname: string) => {
-  if (!pathname || pathname === '/') return '/';
-  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-};
-
-const getModeFromPathname = (pathname: string): AppMode | null => {
-  const normalizedPathname = normalizePathname(pathname);
-  return PATH_MODES.get(normalizedPathname) ?? null;
-};
-
-const getPathnameForMode = (mode: AppMode): string => MODE_PATHS[mode] ?? '/';
-
-const isStandaloneRoute = (pathname: string): boolean =>
-  normalizePathname(pathname).startsWith('/shared/');
-
 const MainAppContent: React.FC = () => {
   // Initialize Google One Tap
   useGoogleOneTap();
@@ -136,14 +104,9 @@ const MainAppContent: React.FC = () => {
 
   // Auth state
   const { user, loading: authLoading } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   // App state
-  const [currentMode, setCurrentMode] = useState<AppMode>(() => {
-    if (isStandaloneRoute(location.pathname)) return AppMode.DASHBOARD;
-    return getModeFromPathname(location.pathname) ?? AppMode.DASHBOARD;
-  });
+  const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
   const [viewingBook, setViewingBook] = useState<BookProject | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -232,27 +195,36 @@ const MainAppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isStandaloneRoute(location.pathname)) return;
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) {
+        if (currentMode !== AppMode.DASHBOARD) setCurrentMode(AppMode.DASHBOARD);
+        return;
+      }
+      const targetMode = Object.values(AppMode).find(
+        (m) => m.toLowerCase().replace(/\s+/g, '-') === hash.toLowerCase()
+      ) as AppMode | undefined;
+      if (targetMode && targetMode !== currentMode) setCurrentMode(targetMode);
+    };
 
-    const targetMode = getModeFromPathname(location.pathname);
-    if (targetMode && targetMode !== currentMode) {
-      setCurrentMode(targetMode);
-      return;
-    }
-
-    if (!targetMode && normalizePathname(location.pathname) !== '/' && currentMode !== AppMode.DASHBOARD) {
-      setCurrentMode(AppMode.DASHBOARD);
-    }
-  }, [location.pathname, currentMode]);
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
-    if (isStandaloneRoute(location.pathname)) return;
+    const hash = window.location.hash.slice(1);
+    const modeSlug = currentMode.toLowerCase().replace(/\s+/g, '-');
+    const targetHash = currentMode === AppMode.DASHBOARD ? '' : modeSlug;
 
-    const targetPathname = getPathnameForMode(currentMode);
-    if (normalizePathname(location.pathname) !== targetPathname) {
-      navigate(targetPathname, { replace: true });
+    if (hash !== targetHash) {
+      if (currentMode === AppMode.DASHBOARD) {
+        window.history.pushState(null, '', window.location.pathname);
+      } else {
+        window.history.pushState(null, '', `#${targetHash}`);
+      }
     }
-  }, [currentMode, location.pathname, navigate]);
+  }, [currentMode]);
 
   // Fetch user profile
   useEffect(() => {
@@ -561,6 +533,7 @@ const MainAppContent: React.FC = () => {
     }
   };
 
+  const location = useLocation();
   const isSharedRoute = location.pathname.startsWith('/shared/');
   const isProcessingAuth =
     window.location.hash.includes('access_token') ||
