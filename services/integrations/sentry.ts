@@ -111,6 +111,14 @@ class SentryService {
       // Dynamic import Sentry to avoid bundling if not used
       const Sentry = await import('@sentry/react');
 
+      // Bail out if Sentry was already initialised by another code path
+      // (e.g. src/sentry.ts).  A second Sentry.init() with replayIntegration()
+      // throws "Multiple Sentry Session Replay instances are not supported".
+      if (Sentry.isInitialized()) {
+        this.initialized = true;
+        return;
+      }
+
       Sentry.init({
         dsn: config.dsn,
         environment: config.environment,

@@ -22,6 +22,10 @@ const SENTRY_RELEASE =
  * Initialize Sentry error tracking
  */
 export function initializeSentry(): void {
+  // Bail out if another code path already called Sentry.init() to avoid the
+  // "Multiple Sentry Session Replay instances are not supported" crash.
+  if (Sentry.isInitialized()) return;
+
   if (!SENTRY_DSN || SENTRY_DSN.includes('your-key')) {
     console.warn('[Sentry] DSN not configured, error tracking disabled');
     return;
