@@ -29,6 +29,7 @@ import {
 } from './BulkActions';
 import { BookCardSkeleton } from './SkeletonLoaders';
 import { StylePresetPicker } from './StylePresets';
+import { usePageSEO } from '../hooks/usePageSEO';
 // New Components
 import TemplateLibrary, { type BookTemplate } from './TemplateLibrary';
 const { ShareModal } = BookSharingPkg;
@@ -191,7 +192,7 @@ interface CreationCanvasProps {
           >
             <Icon className="w-8 h-8" />
           </div>
-          <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h3>
+          <h2 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h2>
           <p className="font-body text-cocoa-light text-sm leading-relaxed mb-6 flex-1">{desc}</p>
           <div className="flex items-center text-coral-burst font-heading font-bold text-sm group-hover:gap-2 transition-all">
             Start Creating <ChevronRight className="w-4 h-4" />
@@ -213,6 +214,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   shouldFocusCreation = false,
 }) => {
   const promptSectionRef = React.useRef<HTMLDivElement>(null);
+
+  usePageSEO({
+    title: 'Create — Genesis AI Visual Storytelling',
+    description: 'Create stunning AI-powered visual stories, illustrated books, and educational content with Genesis. Choose a style and let AI bring your ideas to life.',
+    canonical: '/create',
+  });
 
   // Scroll to creation section when shouldFocusCreation becomes true
   useEffect(() => {
@@ -644,7 +651,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
+    <section aria-label="Creation canvas" className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
       {/* ===== OPTIMIZED MASCOTS ===== */}
       <Mascot
         src="/assets/mascots/joy-musician.png"
@@ -1592,7 +1599,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         onClose={() => setIsConversationModeOpen(false)}
         onGenerate={onGenerate}
       />
-    </div>
+    </section>
   );
 };
 

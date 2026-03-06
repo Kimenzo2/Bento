@@ -2,8 +2,34 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://genesis.app/sitemap.xml
+# AI Crawler Access
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
 
 # Disallow admin/api routes
+User-agent: *
 Disallow: /api/
+
+# Sitemap
+Sitemap: https://iamazeyou.me/sitemap.xml
+
+# LLMs.txt - AI context file
+# https://iamazeyou.me/llms.txt

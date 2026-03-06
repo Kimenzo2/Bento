@@ -3,6 +3,7 @@ import { ArrowRight, Cloud, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageSEO } from '../hooks/usePageSEO';
 import { Button } from './ui/button';
 import { Input, Label } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
@@ -21,6 +22,12 @@ const AuthPage: React.FC = () => {
   const rawReturnTo = searchParams.get('returnTo') || '/';
   const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/';
   const [isLoading, setIsLoading] = useState(false);
+
+  usePageSEO({
+    title: 'Sign In — Genesis AI Visual Storytelling',
+    description: 'Sign in or create your Genesis account to start creating AI-powered visual stories, illustrated books, and educational content.',
+    canonical: '/auth',
+  });
   const [isSignUp, setIsSignUp] = useState(true);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -102,9 +109,9 @@ const AuthPage: React.FC = () => {
                 <IcoWand className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-charcoal-soft mb-1">
+                <h2 className="font-heading font-bold text-charcoal-soft mb-1">
                   AI-Powered Creation
-                </h3>
+                </h2>
                 <p className="text-sm text-cocoa-light">
                   Generate stunning illustrations and compelling narratives in minutes
                 </p>
@@ -116,7 +123,7 @@ const AuthPage: React.FC = () => {
                 <Cloud className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-charcoal-soft mb-1">Cloud Sync</h3>
+                <h2 className="font-heading font-bold text-charcoal-soft mb-1">Cloud Sync</h2>
                 <p className="text-sm text-cocoa-light">
                   Access your stories from anywhere, on any device
                 </p>
@@ -128,7 +135,7 @@ const AuthPage: React.FC = () => {
                 <IcoZap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-charcoal-soft mb-1">Premium Features</h3>
+                <h2 className="font-heading font-bold text-charcoal-soft mb-1">Premium Features</h2>
                 <p className="text-sm text-cocoa-light">
                   Unlock advanced tools and unlimited creation potential
                 </p>

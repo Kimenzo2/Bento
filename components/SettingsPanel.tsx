@@ -23,6 +23,7 @@ import { Switch } from './ui/switch';
 import { ToggleRow } from './ui/toggle-row';
 import { toast } from './ui/sonner';
 import { useTranslation } from 'react-i18next';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 interface SettingsPanelProps {
   onNavigate?: (mode: AppMode) => void;
@@ -37,6 +38,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 }) => {
   const { user, signOut, refreshProfile } = useAuth();
   const { t } = useTranslation('settings');
+
+  usePageSEO({
+    title: 'Settings — Genesis AI Visual Storytelling',
+    description: 'Manage your Genesis account, preferences, subscriptions, and creative workspace settings.',
+    canonical: '/settings',
+  });
+
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(true);
   const profileLoadedRef = React.useRef(false);

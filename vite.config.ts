@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => {
       enablePwa &&
         VitePWA({
           registerType: 'autoUpdate',
+          // Use 'script-defer' so vite-plugin-pwa injects registerSW.js with
+          // the defer attribute, preventing it from being render-blocking.
+          injectRegister: 'script-defer',
           devOptions: {
             enabled: false, // Disable SW in dev to avoid caching issues
           },

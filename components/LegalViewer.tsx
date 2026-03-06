@@ -3,6 +3,7 @@ import type React from 'react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { AppMode } from '../types';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 interface LegalViewerProps {
   onNavigate?: (mode: AppMode) => void;
@@ -10,6 +11,12 @@ interface LegalViewerProps {
 }
 
 const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'privacy' }) => {
+  usePageSEO({
+    title: 'Legal — Genesis AI Visual Storytelling',
+    description: 'Genesis legal documents including Privacy Policy, Terms of Service, Cookie Policy, and Acceptable Use Policy.',
+    canonical: '/legal',
+  });
+
   const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | 'cookies' | 'acceptable-use'>(
     initialDoc
   );

@@ -327,7 +327,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
                 <div key={sub.id} className="relative shrink-0">
                   <img
                     src={sub.visual?.thumbnail_url || sub.visual?.image_url}
-                    alt=""
+                    alt={`Submission by participant ${index + 1}`}
                     className="w-16 h-16 rounded-lg object-cover"
                   />
                   {index < 3 && (
@@ -459,7 +459,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
             {/* Visual thumbnail */}
             <img
               src={submission.visual?.thumbnail_url || submission.visual?.image_url}
-              alt=""
+              alt={`Visual by ${submission.user?.full_name || 'Anonymous'}`}
               className="w-12 h-12 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => onViewVisual?.(submission)}
             />
@@ -467,7 +467,7 @@ export const ChallengeLeaderboard: React.FC<ChallengeLeaderboardProps> = ({
             {/* User info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <img src={submission.user?.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                <img src={submission.user?.avatar_url} alt={`${submission.user?.full_name || 'Anonymous'} avatar`} className="w-6 h-6 rounded-full" />
                 <span className="font-medium text-charcoal-soft truncate">
                   {submission.user?.full_name || 'Anonymous'}
                 </span>

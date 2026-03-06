@@ -6,6 +6,7 @@ import { supabase } from '../services/supabaseClient';
 import { AppMode, type GamificationState } from '../types';
 import { mastra, type GamificationData } from '../src/services/mastraClient';
 import { Button } from './ui/button';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface LeaderboardEntry {
@@ -58,6 +59,12 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
   gameState: initialGameState,
   setMode,
 }) => {
+  usePageSEO({
+    title: 'Achievements — Genesis AI Visual Storytelling',
+    description: 'Track your creative journey. View achievements, leaderboards, streaks, and level progress on Genesis.',
+    canonical: '/gamification',
+  });
+
   const [gameState, setGameState]               = useState<GamificationState>(initialGameState);
   const [mastraLoaded, setMastraLoaded]         = useState(false);
   const [leaderboard, setLeaderboard]           = useState<LeaderboardEntry[]>([]);

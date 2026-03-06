@@ -13,6 +13,7 @@ import { Button } from './ui/button';
 import { Label, Textarea } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from './ui/sonner';
+import { usePageSEO } from '../hooks/usePageSEO';
 
 interface VisualStudioProps {
   project: BookProject | null;
@@ -30,6 +31,12 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   onNavigate,
   onUpdateProject,
 }) => {
+  usePageSEO({
+    title: 'Visual Studio — Genesis AI Visual Storytelling',
+    description: 'Advanced AI visual workspace. Refine illustrations, build scenes, and craft stunning visual narratives with Genesis Visual Studio.',
+    canonical: '/visual-studio',
+  });
+
   const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'individual' | 'storymap'>('individual');

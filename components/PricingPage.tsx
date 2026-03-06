@@ -2,6 +2,7 @@ import { Briefcase, Check, Crown, Loader, Star, X, Zap } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageSEO } from '../hooks/usePageSEO';
 // Payment Page URLs are stored in each tier's paystackPaymentUrl field
 
 import type { LucideProps } from 'lucide-react';
@@ -125,6 +126,34 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const [processingTier, _setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
 
+  usePageSEO({
+    title: 'Pricing — Genesis AI Visual Storytelling',
+    description: 'Genesis plans from free to enterprise. Create AI-powered visual stories, educational content, and illustrated books.',
+    canonical: '/pricing',
+  });
+
+  // Inject pricing JSON-LD
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'pricing-jsonld';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Genesis',
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web Browser',
+      offers: [
+        { '@type': 'Offer', name: 'Spark', price: '0', priceCurrency: 'USD', description: 'Free tier with basic features' },
+        { '@type': 'Offer', name: 'Creator', price: '19.99', priceCurrency: 'USD', description: 'Monthly plan for individual creators', url: 'https://iamazeyou.me/tier/creator' },
+        { '@type': 'Offer', name: 'Studio', price: '59.99', priceCurrency: 'USD', description: 'Monthly plan for professional studios', url: 'https://iamazeyou.me/tier/studio' },
+        { '@type': 'Offer', name: 'Empire', price: '199.99', priceCurrency: 'USD', description: 'Monthly plan for enterprise teams', url: 'https://iamazeyou.me/tier/empire' },
+      ],
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById('pricing-jsonld')?.remove(); };
+  }, []);
+
   // Set email from auth context
   useEffect(() => {
     if (user?.email) setUserEmail(user.email);
@@ -163,7 +192,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn">
+    <section aria-label="Pricing plans" className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn">
       <div className="max-w-7xl mx-auto px-6 pt-12">
         {/* Header */}
         <div className="text-center mb-16">
@@ -229,9 +258,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
                 <tier.icon className="w-6 h-6" />
               </div>
 
-              <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
+              <h2 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
                 {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}
-              </h3>
+              </h2>
               <p className="text-xs font-bold text-cocoa-light uppercase tracking-wider mb-6">
                 {tier.description}
               </p>
@@ -320,7 +349,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
           />
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
