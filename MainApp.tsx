@@ -15,7 +15,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import type React from 'react';
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPWA from './components/InstallPWA';
 import Navigation from './components/Navigation';
@@ -93,6 +93,29 @@ const StorybookViewer = lazyWithRetry(() => import('./components/StorybookViewer
 const SharedBookViewer = lazyWithRetry(() => import('./components/SharedBookViewer'));
 const LegalViewer = lazyWithRetry(() => import('./components/LegalViewer'));
 
+// ── Path-based routing helpers ────────────────────────────────────────────────
+const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
+  [AppMode.DASHBOARD]:     '/',
+  [AppMode.CREATION]:      '/create',
+  [AppMode.EDITOR]:        '/editor',
+  [AppMode.VISUAL_STUDIO]: '/visual-studio',
+  [AppMode.SETTINGS]:      '/settings',
+  [AppMode.PRICING]:       '/pricing',
+  [AppMode.GAMIFICATION]:  '/gamification',
+  [AppMode.SUCCESS]:       '/success',
+  [AppMode.VIEWER]:        '/viewer',
+  [AppMode.LEGAL]:         '/legal',
+};
+
+const PATH_TO_MODE = new Map<string, AppMode>(
+  (Object.entries(MODE_TO_PATH) as [AppMode, string][]).map(([mode, path]) => [path, mode])
+);
+
+function modeFromPathname(pathname: string): AppMode {
+  const p = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+  return PATH_TO_MODE.get(p) ?? AppMode.DASHBOARD;
+}
+
 const MainAppContent: React.FC = () => {
   // Initialize Google One Tap
   useGoogleOneTap();
@@ -104,9 +127,21 @@ const MainAppContent: React.FC = () => {
 
   // Auth state
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // App state
-  const [currentMode, setCurrentMode] = useState<AppMode>(AppMode.DASHBOARD);
+  // Derive current mode directly from the URL — URL is single source of truth.
+  // No useState needed; no circular effects.
+  const currentMode: AppMode = location.pathname.startsWith('/shared/')
+    ? AppMode.DASHBOARD
+    : modeFromPathname(location.pathname);
+
+  // Single navigation function used everywhere instead of setCurrentMode.
+  // Calling this updates the URL, which re-derives currentMode automatically.
+  const navigateTo = (mode: AppMode) => {
+    const path = MODE_TO_PATH[mode] ?? '/';
+    navigate(path);
+  };
   const [currentProject, setCurrentProject] = useState<BookProject | null>(null);
   const [viewingBook, setViewingBook] = useState<BookProject | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -194,37 +229,7 @@ const MainAppContent: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1);
-      if (!hash) {
-        if (currentMode !== AppMode.DASHBOARD) setCurrentMode(AppMode.DASHBOARD);
-        return;
-      }
-      const targetMode = Object.values(AppMode).find(
-        (m) => m.toLowerCase().replace(/\s+/g, '-') === hash.toLowerCase()
-      ) as AppMode | undefined;
-      if (targetMode && targetMode !== currentMode) setCurrentMode(targetMode);
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange();
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    const modeSlug = currentMode.toLowerCase().replace(/\s+/g, '-');
-    const targetHash = currentMode === AppMode.DASHBOARD ? '' : modeSlug;
-
-    if (hash !== targetHash) {
-      if (currentMode === AppMode.DASHBOARD) {
-        window.history.pushState(null, '', window.location.pathname);
-      } else {
-        window.history.pushState(null, '', `#${targetHash}`);
-      }
-    }
-  }, [currentMode]);
+  // No hash sync effects needed — URL drives everything via useLocation().
 
   // Fetch user profile
   useEffect(() => {
@@ -395,7 +400,7 @@ const MainAppContent: React.FC = () => {
 
       incrementEbookCount();
       setCurrentProject(newProject);
-      setCurrentMode(AppMode.SUCCESS);
+      navigateTo(AppMode.SUCCESS);
     } catch (error) {
       console.error('Generation failed', error);
       addToast(
@@ -411,12 +416,12 @@ const MainAppContent: React.FC = () => {
 
   const handleEditBook = (book: SavedBook) => {
     setCurrentProject(book.project);
-    setCurrentMode(AppMode.EDITOR);
+    navigateTo(AppMode.EDITOR);
   };
 
   const handleReadBook = (book: SavedBook) => {
     setViewingBook(book.project);
-    setCurrentMode(AppMode.VIEWER);
+    navigateTo(AppMode.VIEWER);
   };
 
   const handleUpgrade = async (newTier: UserTier) => {
@@ -455,7 +460,7 @@ const MainAppContent: React.FC = () => {
         return (
           <BookSuccessView
             project={currentProject}
-            onNavigate={setCurrentMode}
+            onNavigate={navigateTo}
             userTier={currentUserTier}
           />
         );
@@ -467,30 +472,30 @@ const MainAppContent: React.FC = () => {
             userTier={currentUserTier}
             onShowUpgrade={() => setShowUpgradeModal(true)}
             onSave={(success: boolean, message: string) => addToast(message, success ? 'success' : 'error')}
-            onBack={() => setCurrentMode(AppMode.DASHBOARD)}
-            onNavigateToCreate={() => setCurrentMode(AppMode.CREATION)}
+            onBack={() => navigateTo(AppMode.DASHBOARD)}
+            onNavigateToCreate={() => navigateTo(AppMode.CREATION)}
           />
         );
       case AppMode.VISUAL_STUDIO:
         return (
           <VisualStudio
             project={currentProject}
-            onBack={() => setCurrentMode(AppMode.DASHBOARD)}
+            onBack={() => navigateTo(AppMode.DASHBOARD)}
             userProfile={userProfile}
-            onNavigate={setCurrentMode}
+            onNavigate={navigateTo}
             onUpdateProject={setCurrentProject}
           />
         );
       case AppMode.SETTINGS:
         return (
           <SettingsPanel
-            onNavigate={setCurrentMode}
+            onNavigate={navigateTo}
             userTier={currentUserTier}
             onViewBook={handleReadBook}
           />
         );
       case AppMode.LEGAL:
-        return <LegalViewer onNavigate={setCurrentMode} />;
+        return <LegalViewer onNavigate={navigateTo} />;
       case AppMode.VIEWER:
         if (!viewingBook)
           return (
@@ -507,21 +512,21 @@ const MainAppContent: React.FC = () => {
             project={viewingBook}
             onClose={() => {
               setViewingBook(null);
-              setCurrentMode(AppMode.DASHBOARD);
+              navigateTo(AppMode.DASHBOARD);
             }}
             onEdit={() => {
               setCurrentProject(viewingBook);
               setViewingBook(null);
-              setCurrentMode(AppMode.EDITOR);
+              navigateTo(AppMode.EDITOR);
             }}
-            onDownload={() => setCurrentMode(AppMode.PRICING)}
+            onDownload={() => navigateTo(AppMode.PRICING)}
             onShare={() => console.log('Share triggered')}
           />
         );
       case AppMode.PRICING:
         return <PricingPage onUpgrade={handleUpgrade} />;
       case AppMode.GAMIFICATION:
-        return <GamificationHub gameState={gamificationState} setMode={setCurrentMode} />;
+        return <GamificationHub gameState={gamificationState} setMode={navigateTo} />;
       default:
         return (
           <CreationCanvas
@@ -533,7 +538,6 @@ const MainAppContent: React.FC = () => {
     }
   };
 
-  const location = useLocation();
   const isSharedRoute = location.pathname.startsWith('/shared/');
   const isProcessingAuth =
     window.location.hash.includes('access_token') ||
@@ -563,7 +567,7 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
-      <Navigation currentMode={currentMode} setMode={setCurrentMode} gameState={gamificationState} />
+      <Navigation currentMode={currentMode} setMode={navigateTo} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* key is on the inner div, NOT on Suspense — this way theme/language
             re-renders remount the content without re-triggering the skeleton
@@ -587,7 +591,7 @@ const MainAppContent: React.FC = () => {
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={() => {
           setShowUpgradeModal(false);
-          setCurrentMode(AppMode.PRICING);
+          navigateTo(AppMode.PRICING);
         }}
       />
 
