@@ -24,6 +24,36 @@ import AppSkeleton from './components/AppSkeleton';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './services/supabaseClient';
 
+const PROFILE_CHECK_TIMEOUT_MS = 5000;
+
+async function hasExistingProfile(userId: string): Promise<boolean> {
+  try {
+    const result = await Promise.race([
+      supabase.from('profiles').select('id').eq('id', userId).maybeSingle(),
+      new Promise<{ data: null; error: Error }>((resolve) => {
+        window.setTimeout(
+          () => resolve({ data: null, error: new Error('Profile check timed out') }),
+          PROFILE_CHECK_TIMEOUT_MS
+        );
+      }),
+    ]);
+
+    if (result.error) {
+      if (import.meta.env.DEV) {
+        console.error('[AppRouter] Profile check failed:', result.error);
+      }
+      return false;
+    }
+
+    return Boolean(result.data);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('[AppRouter] Profile check threw:', error);
+    }
+    return false;
+  }
+}
+
 // Lazy load both apps for optimal bundle splitting
 // New users get OnboardingApp bundle first (smaller)
 // Returning users get MainApp bundle directly
@@ -58,6 +88,8 @@ const OnboardingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const hasCompletedOnboarding = localStorage.getItem('genesis_onboarding_completed') === 'true';
 
   useEffect(() => {
+    let isMounted = true;
+
     if (loading) return;
 
     // FAST PATH: localStorage flag exists → returning user, no DB call needed
@@ -77,12 +109,8 @@ const OnboardingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
     // DB is the authority: check if profile exists
     const checkProfile = async () => {
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle();
-        if (data) {
+        const profileExists = await hasExistingProfile(user.id);
+        if (profileExists && isMounted) {
           // Profile exists in DB → returning user. Restore localStorage cache and redirect.
           localStorage.setItem('genesis_onboarding_completed', 'true');
           setShouldRedirect(true);
@@ -91,10 +119,16 @@ const OnboardingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
       } catch {
         // On error, show onboarding (safe default — better than locking them out)
       } finally {
-        setChecking(false);
+        if (isMounted) {
+          setChecking(false);
+        }
       }
     };
     checkProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, loading, hasCompletedOnboarding]);
 
   // Wait for auth + DB check to resolve
@@ -122,6 +156,8 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   // For authenticated users without the localStorage flag, check Supabase profile
   // to determine if they're a returning user (already onboarded previously).
   useEffect(() => {
+    let isMounted = true;
+
     if (loading) return; // wait for auth
     if (!user) { setChecking(false); return; }
     if (hasCompletedOnboarding) { setChecking(false); return; } // flag present, no need to check DB
@@ -130,12 +166,8 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     // Check if their profile already exists in Supabase → returning user.
     const checkProfile = async () => {
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle();
-        if (data) {
+        const profileExists = await hasExistingProfile(user.id);
+        if (profileExists && isMounted) {
           // Profile exists → returning user, restore flag and go to dashboard
           localStorage.setItem('genesis_onboarding_completed', 'true');
           setIsReturningUser(true);
@@ -143,10 +175,16 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       } catch {
         // On error, fall through to onboarding (safe default)
       } finally {
-        setChecking(false);
+        if (isMounted) {
+          setChecking(false);
+        }
       }
     };
     checkProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, loading, hasCompletedOnboarding]);
 
   // Wait for auth + profile check to resolve before deciding

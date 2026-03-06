@@ -5,6 +5,24 @@ import { sendWelcomeEmail } from '../services/emailService';
 import { ensureUserProfile, getUserProfile, invalidateProfileCache } from '../services/profileService';
 import { supabase } from '../services/supabaseClient';
 
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timeoutId = window.setTimeout(() => resolve(fallback), timeoutMs);
+
+    promise
+      .then((value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch(() => {
+        window.clearTimeout(timeoutId);
+        resolve(fallback);
+      });
+  });
+}
+
 // UserProfile type for convenience
 interface UserProfile {
   id: string;
@@ -51,6 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     // CRITICAL: Process OAuth hash FIRST before checking session
     const processOAuthHash = async () => {
       const hash = window.location.hash;
@@ -64,18 +84,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const {
           data: { session },
           error,
-        } = await supabase.auth.getSession();
+        } = await withTimeout(
+          supabase.auth.getSession(),
+          AUTH_BOOTSTRAP_TIMEOUT_MS,
+          {
+            data: { session: null },
+            error: new Error('Timed out while restoring auth session'),
+          }
+        );
 
         if (error) {
           if (import.meta.env.DEV) console.error('[Auth] Error getting session:', error);
         }
 
-        setSession(session);
-        setUser(session?.user ?? null);
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
       } catch (err) {
         if (import.meta.env.DEV) console.error('[Auth] Exception getting session:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
 
         // Cleanup URL hash if it contains auth tokens or errors
         if (hash && (hash.includes('access_token') || hash.includes('error_description') || hash.includes('error='))) {
@@ -102,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => {
+      isMounted = false;
       if (data && data.subscription) {
         data.subscription.unsubscribe();
       }
