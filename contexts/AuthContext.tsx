@@ -7,6 +7,11 @@ import { supabase } from '../services/supabaseClient';
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
 
+type SessionRestoreResult = {
+  data: { session: Session | null };
+  error: Error | null;
+};
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
     const timeoutId = window.setTimeout(() => resolve(fallback), timeoutMs);
@@ -81,17 +86,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         // Check active sessions and sets the user
-        const {
-          data: { session },
-          error,
-        } = await withTimeout(
-          supabase.auth.getSession(),
+        const sessionResult: SessionRestoreResult = await withTimeout<SessionRestoreResult>(
+          supabase.auth.getSession() as Promise<SessionRestoreResult>,
           AUTH_BOOTSTRAP_TIMEOUT_MS,
           {
             data: { session: null },
             error: new Error('Timed out while restoring auth session'),
           }
         );
+        const session = sessionResult.data.session;
+        const error = sessionResult.error;
 
         if (error) {
           if (import.meta.env.DEV) console.error('[Auth] Error getting session:', error);
