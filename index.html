@@ -129,11 +129,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://api.dicebear.com" />
 
-  <!-- Google Fonts — default "Playful Classic" pairing: Fredoka (heading) + Manrope (body).
-       Single stylesheet link — NO preload (Google Fonts uses Vary:User-Agent which breaks preload on mobile). -->
+  <!-- Google Fonts — non-blocking load to avoid render-blocking FCP/LCP penalty.
+       Uses rel=preload + onload swap trick (widely supported). noscript fallback for JS-disabled. -->
   <link
+    rel="preload"
+    as="style"
     href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap"
-    rel="stylesheet">
+    onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap" />
+  </noscript>
 
   <!-- Global Styles -->
   <style>
