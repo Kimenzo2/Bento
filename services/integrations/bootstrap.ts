@@ -89,6 +89,7 @@ export interface IntegrationHealth {
 let bootstrapped = false;
 let bootstrapResult: BootstrapResult | null = null;
 let currentUser: StatsigUser | null = null;
+let bootstrapPromise: Promise<BootstrapResult> | null = null;
 
 // ============================================================================
 // INITIALIZATION FUNCTIONS
@@ -316,87 +317,99 @@ export async function bootstrapIntegrations(
     return bootstrapResult;
   }
 
-  const startTime = performance.now();
-  const services: IntegrationStatus[] = [];
-  const errors: string[] = [];
-
-  currentUser = user ?? null;
-
-  // Phase 1: Critical services (sequential)
-  // Upstash first - needed for rate limiting
-  const upstashStatus = await initUpstash(config?.upstash);
-  services.push(upstashStatus);
-  if (!upstashStatus.initialized) {
-    errors.push(`Upstash: ${upstashStatus.error}`);
+  if (bootstrapPromise) {
+    return bootstrapPromise;
   }
 
-  // Statsig second - controls feature flags
-  const statsigStatus = await initStatsig(config?.statsig, user);
-  services.push(statsigStatus);
-  if (!statsigStatus.initialized) {
-    errors.push(`Statsig: ${statsigStatus.error}`);
-  }
+  bootstrapPromise = (async () => {
+    const startTime = performance.now();
+    const services: IntegrationStatus[] = [];
+    const errors: string[] = [];
 
-  // Sentry third - error tracking
-  const sentryStatus = await initSentry(config?.sentry);
-  services.push(sentryStatus);
-  if (!sentryStatus.initialized) {
-    errors.push(`Sentry: ${sentryStatus.error}`);
-  }
+    currentUser = user ?? null;
 
-  // Phase 2: Non-critical services (parallel)
-  const [hyperdxStatus, checklyStatus, arcjetStatus, cloudinaryStatus] = await Promise.all([
-    initHyperDX(config?.hyperdx),
-    initCheckly(config?.checkly),
-    initArcjet(config?.arcjet),
-    initCloudinary(config?.cloudinary),
-  ]);
+    // Phase 1: Critical services (sequential)
+    // Upstash first - needed for rate limiting
+    const upstashStatus = await initUpstash(config?.upstash);
+    services.push(upstashStatus);
+    if (!upstashStatus.initialized) {
+      errors.push(`Upstash: ${upstashStatus.error}`);
+    }
 
-  services.push(hyperdxStatus);
-  if (!hyperdxStatus.initialized && !hyperdxStatus.error?.includes('feature flag')) {
-    errors.push(`HyperDX: ${hyperdxStatus.error}`);
-  }
+    // Statsig second - controls feature flags
+    const statsigStatus = await initStatsig(config?.statsig, user);
+    services.push(statsigStatus);
+    if (!statsigStatus.initialized) {
+      errors.push(`Statsig: ${statsigStatus.error}`);
+    }
 
-  services.push(checklyStatus);
-  if (!checklyStatus.initialized) {
-    errors.push(`Checkly: ${checklyStatus.error}`);
-  }
+    // Sentry third - error tracking
+    const sentryStatus = await initSentry(config?.sentry);
+    services.push(sentryStatus);
+    if (!sentryStatus.initialized) {
+      errors.push(`Sentry: ${sentryStatus.error}`);
+    }
 
-  services.push(arcjetStatus);
-  if (!arcjetStatus.initialized && !arcjetStatus.error?.includes('feature flag')) {
-    errors.push(`Arcjet: ${arcjetStatus.error}`);
-  }
+    // Phase 2: Non-critical services (parallel)
+    const [hyperdxStatus, checklyStatus, arcjetStatus, cloudinaryStatus] = await Promise.all([
+      initHyperDX(config?.hyperdx),
+      initCheckly(config?.checkly),
+      initArcjet(config?.arcjet),
+      initCloudinary(config?.cloudinary),
+    ]);
 
-  services.push(cloudinaryStatus);
-  if (!cloudinaryStatus.initialized) {
-    errors.push(`Cloudinary: ${cloudinaryStatus.error}`);
-  }
+    services.push(hyperdxStatus);
+    if (!hyperdxStatus.initialized && !hyperdxStatus.error?.includes('feature flag')) {
+      errors.push(`HyperDX: ${hyperdxStatus.error}`);
+    }
 
-  const totalTime = performance.now() - startTime;
-  const successCount = services.filter((s) => s.initialized).length;
-  const isSuccess = errors.length === 0;
+    services.push(checklyStatus);
+    if (!checklyStatus.initialized) {
+      errors.push(`Checkly: ${checklyStatus.error}`);
+    }
 
-  bootstrapResult = {
-    success: isSuccess,
-    initialized: isSuccess,
-    services,
-    totalTime,
-    errors,
-  };
+    services.push(arcjetStatus);
+    if (!arcjetStatus.initialized && !arcjetStatus.error?.includes('feature flag')) {
+      errors.push(`Arcjet: ${arcjetStatus.error}`);
+    }
 
-  bootstrapped = true;
+    services.push(cloudinaryStatus);
+    if (!cloudinaryStatus.initialized) {
+      errors.push(`Cloudinary: ${cloudinaryStatus.error}`);
+    }
 
-  // Report to observability
-  if (hyperdx.isInitialized()) {
-    hyperdx.info('Integrations bootstrapped', {
-      successCount,
-      totalServices: services.length,
+    const totalTime = performance.now() - startTime;
+    const successCount = services.filter((s) => s.initialized).length;
+    const isSuccess = errors.length === 0;
+
+    bootstrapResult = {
+      success: isSuccess,
+      initialized: isSuccess,
+      services,
       totalTime,
-      errors: errors.length,
-    });
-  }
+      errors,
+    };
 
-  return bootstrapResult;
+    bootstrapped = true;
+
+    // Report to observability
+    if (hyperdx.isInitialized()) {
+      hyperdx.info('Integrations bootstrapped', {
+        successCount,
+        totalServices: services.length,
+        totalTime,
+        errors: errors.length,
+      });
+    }
+
+    return bootstrapResult;
+  })();
+
+  try {
+    return await bootstrapPromise;
+  } finally {
+    bootstrapPromise = null;
+  }
 }
 
 /**
@@ -471,6 +484,7 @@ export async function shutdownIntegrations(): Promise<void> {
 
   bootstrapped = false;
   bootstrapResult = null;
+  bootstrapPromise = null;
 }
 
 /**

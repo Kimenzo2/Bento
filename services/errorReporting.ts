@@ -171,59 +171,12 @@ class ErrorReporter {
 
     const isDevelopment = this.config.environment === 'development';
 
-    // Skip Sentry in development unless explicitly enabled
+    this.config.dsn = undefined;
+
     if (isDevelopment && !this.config.enableInDevelopment) {
-      console.log('[ErrorReporter] Skipping Sentry in development mode');
-      this.initialized = true;
-      return;
-    }
-
-    if (!this.config.dsn) {
-      console.warn('[ErrorReporter] No Sentry DSN configured');
-      this.initialized = true;
-      return;
-    }
-
-    try {
-      Sentry.init({
-        dsn: this.config.dsn,
-        environment: this.config.environment,
-        release: this.config.release,
-        sampleRate: this.config.sampleRate,
-        maxBreadcrumbs: this.config.maxBreadcrumbs,
-
-        // Scrub PII from error messages
-        beforeSend: (event) => {
-          if (event.message) {
-            event.message = redactPII(event.message);
-          }
-
-          // Scrub exception messages
-          if (event.exception?.values) {
-            for (const exception of event.exception.values) {
-              if (exception.value) {
-                exception.value = redactPII(exception.value);
-              }
-            }
-          }
-
-          return event;
-        },
-
-        // Filter out noisy errors
-        ignoreErrors: [
-          'ResizeObserver loop limit exceeded',
-          'ResizeObserver loop completed with undelivered notifications',
-          'Non-Error promise rejection captured',
-          'Network request failed',
-          'Load failed',
-          'ChunkLoadError',
-        ],
-      });
-
-      console.log('[ErrorReporter] Sentry initialized');
-    } catch (error) {
-      console.error('[ErrorReporter] Failed to initialize Sentry:', error);
+      console.log('[ErrorReporter] External error reporting disabled in development mode');
+    } else {
+      console.warn('[ErrorReporter] Sentry disabled temporarily');
     }
 
     this.initialized = true;

@@ -399,10 +399,11 @@ class SecurityGuard {
     return [
       `default-src 'self'`,
       `script-src 'self' ${nonceStr} 'strict-dynamic' https:`,
+      `worker-src 'self' blob:`,
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
       `img-src 'self' data: https: blob:`,
-      `font-src 'self' https://fonts.gstatic.com`,
-      `connect-src 'self' https://*.supabase.co https://api.bytez.com wss://*.supabase.co`,
+      `font-src 'self' https://fonts.gstatic.com data:`,
+      `connect-src 'self' https://*.supabase.co https://*.bytez.com https://fonts.googleapis.com https://fonts.gstatic.com wss://*.supabase.co`,
       `frame-ancestors 'none'`,
       `form-action 'self'`,
       `base-uri 'self'`,

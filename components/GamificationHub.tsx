@@ -107,7 +107,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
     (async () => {
       try {
         const { data, error } = await supabase
-          .from('leaderboard_top100')
+          .from('leaderboard_top100_mat')
           .select('user_id, display_name, avatar_url, level, level_title, current_xp, total_xp, books_created_count, rank')
           .order('rank', { ascending: true })
           .limit(5);

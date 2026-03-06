@@ -7,11 +7,7 @@ import { rollbarConfig } from './config/rollbar';
 import { AuthProvider } from './contexts/AuthContext';
 import { IntegrationsProvider } from './contexts/IntegrationsContext';
 import { Button } from './components/ui/button';
-import { initializeSentry } from './src/sentry';
 import './index.css';
-
-// Initialize Sentry error tracking
-initializeSentry();
 
 // Log app initialization for debugging (only in development)
 if (import.meta.env.DEV) {

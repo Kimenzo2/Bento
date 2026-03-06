@@ -22,6 +22,9 @@ const SENTRY_RELEASE =
  * Initialize Sentry error tracking
  */
 export function initializeSentry(): void {
+  console.warn('[Sentry] Disabled temporarily');
+  return;
+
   // Bail out if another code path already called Sentry.init() to avoid the
   // "Multiple Sentry Session Replay instances are not supported" crash.
   if (Sentry.isInitialized()) return;

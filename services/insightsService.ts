@@ -511,23 +511,14 @@ class InsightsService {
    * Get trending prompts/subjects
    */
   async getTrendingSubjects(limit = 10): Promise<Array<{ subject: string; count: number }>> {
-    // This would ideally be a materialized view or cached query
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase.rpc('get_trending_subjects', {
+      p_limit: limit,
+      p_days: 7,
+    });
 
-    const { data } = await supabase.from('visual_tags').select('tag').gte('created_at', weekAgo);
+    if (error || !data) return [];
 
-    if (!data) return [];
-
-    // Count tags
-    const counts: Record<string, number> = {};
-    for (const item of data) {
-      counts[item.tag] = (counts[item.tag] || 0) + 1;
-    }
-
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([subject, count]) => ({ subject, count }));
+    return (data as Array<{ subject: string; count: number }>);
   }
 
   /**

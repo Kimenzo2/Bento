@@ -98,90 +98,8 @@ class SentryService {
    * Initialize Sentry
    */
   async initialize(config: SentryConfig): Promise<void> {
-    if (this.initialized) return;
-
-    this.config = config;
-
-    if (!config.enabled || !config.dsn) {
-      // Sentry disabled or no DSN provided
-      return;
-    }
-
-    try {
-      // Dynamic import Sentry to avoid bundling if not used
-      const Sentry = await import('@sentry/react');
-
-      // Bail out if Sentry was already initialised by another code path
-      // (e.g. src/sentry.ts).  A second Sentry.init() with replayIntegration()
-      // throws "Multiple Sentry Session Replay instances are not supported".
-      if (Sentry.isInitialized()) {
-        this.initialized = true;
-        return;
-      }
-
-      Sentry.init({
-        dsn: config.dsn,
-        environment: config.environment,
-        release: config.release ?? `genesis@${import.meta.env.VITE_APP_VERSION ?? '2.0.0'}`,
-        debug: config.debug ?? false,
-
-        // Performance Monitoring
-        tracesSampleRate: config.tracesSampleRate ?? 0.1,
-
-        // Session Replay
-        replaysSessionSampleRate: config.replaysSessionSampleRate ?? 0.1,
-        replaysOnErrorSampleRate: config.replaysOnErrorSampleRate ?? 1.0,
-
-        // Integrations
-        integrations: [
-          Sentry.browserTracingIntegration(),
-          Sentry.replayIntegration({
-            maskAllText: false,
-            blockAllMedia: false,
-          }),
-          Sentry.breadcrumbsIntegration({
-            console: true,
-            dom: true,
-            fetch: true,
-            history: true,
-            xhr: true,
-          }),
-        ],
-
-        // Filter events
-        beforeSend(event, hint) {
-          // Filter out known non-issues
-          const error = hint?.originalException;
-
-          if (error instanceof Error) {
-            // Ignore network errors from ad blockers
-            if (error.message?.includes('net::ERR_BLOCKED_BY_CLIENT')) {
-              return null;
-            }
-
-            // Ignore ResizeObserver errors
-            if (error.message?.includes('ResizeObserver loop')) {
-              return null;
-            }
-          }
-
-          return event;
-        },
-
-        // Add context to all events
-        beforeBreadcrumb(breadcrumb) {
-          // Filter out noisy breadcrumbs
-          if (breadcrumb.category === 'console' && breadcrumb.level === 'debug') {
-            return null;
-          }
-          return breadcrumb;
-        },
-      });
-
-      this.initialized = true;
-    } catch (err) {
-      console.error('[Sentry] Failed to initialize:', err);
-    }
+    this.config = { ...config, enabled: false };
+    this.initialized = false;
   }
 
   /**
@@ -579,7 +497,7 @@ export function initializeSentry(config?: Partial<SentryConfig>): Promise<void> 
     tracesSampleRate: config?.tracesSampleRate ?? 0.1,
     replaysSessionSampleRate: config?.replaysSessionSampleRate ?? 0.1,
     replaysOnErrorSampleRate: config?.replaysOnErrorSampleRate ?? 1.0,
-    enabled: config?.enabled ?? import.meta.env.VITE_SENTRY_ENABLED !== 'false',
+    enabled: false,
   };
 
   return sentry.initialize(finalConfig);

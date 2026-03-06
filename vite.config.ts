@@ -1,6 +1,5 @@
 import { resolve } from 'path';
 import os from 'node:os';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig, loadEnv } from 'vite';
@@ -18,31 +17,6 @@ export default defineConfig(({ mode }) => {
       react(),
       // Tailwind CSS v4 Vite plugin
       tailwindcss(),
-
-      // Sentry source maps upload (production only)
-      isProduction &&
-        sentryVitePlugin({
-          org: env.SENTRY_ORG || 'student-40v',
-          project: env.SENTRY_PROJECT || 'javascript-react',
-          authToken: env.SENTRY_AUTH_TOKEN,
-
-          // Release configuration
-          release: {
-            name: env.VERCEL_GIT_COMMIT_SHA || `genesis-${Date.now()}`,
-            deploy: {
-              env: env.VERCEL_ENV || 'production',
-            },
-          },
-
-          // Source map settings
-          sourcemaps: {
-            assets: './dist/**',
-            filesToDeleteAfterUpload: './dist/**/*.map',
-          },
-
-          // Telemetry
-          telemetry: false,
-        }),
 
       enablePwa &&
         VitePWA({
@@ -218,8 +192,6 @@ export default defineConfig(({ mode }) => {
         '@radix-ui/react-slider', '@radix-ui/react-slot',
         '@radix-ui/react-switch', '@radix-ui/react-tabs',
         '@radix-ui/react-tooltip',
-        // Sentry
-        '@sentry/react',
         // Other runtime deps
         'clsx', 'tailwind-merge', 'class-variance-authority',
         'sonner', 'react-error-boundary',
@@ -255,8 +227,6 @@ export default defineConfig(({ mode }) => {
               if (id.includes('framer-motion')) return 'vendor-motion';
               // Icons
               if (id.includes('lucide-react')) return 'vendor-icons';
-              // Sentry
-              if (id.includes('@sentry')) return 'vendor-sentry';
             }
           },
         },
