@@ -9,6 +9,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
+  const isProtectedPreview = env.VERCEL === '1' && env.VERCEL_ENV && env.VERCEL_ENV !== 'production';
+  const enablePwa = isProduction && !isProtectedPreview;
 
   return {
     plugins: [
@@ -42,137 +44,138 @@ export default defineConfig(({ mode }) => {
           telemetry: false,
         }),
 
-      VitePWA({
-        registerType: 'autoUpdate',
-        devOptions: {
-          enabled: false, // Disable SW in dev to avoid caching issues
-        },
-        includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
-        workbox: {
-          // Clean up caches from previous SW versions to prevent stale chunk serving
-          cleanupOutdatedCaches: true,
-          // Take control of all clients immediately on activation
-          clientsClaim: true,
-          // Navigation fallback for SPA — only for HTML navigation requests
-          navigateFallback: '/index.html',
-          // CRITICAL: Never serve index.html for asset/API requests
-          navigateFallbackDenylist: [
-            /^\/assets\//,
-            /^\/api\//,
-            /\.(?:js|css|png|jpg|jpeg|svg|ico|woff|woff2|webp|json|txt|map)$/,
-          ],
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'gstatic-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
+      enablePwa &&
+        VitePWA({
+          registerType: 'autoUpdate',
+          devOptions: {
+            enabled: false, // Disable SW in dev to avoid caching issues
+          },
+          includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
+          workbox: {
+            // Clean up caches from previous SW versions to prevent stale chunk serving
+            cleanupOutdatedCaches: true,
+            // Take control of all clients immediately on activation
+            clientsClaim: true,
+            // Navigation fallback for SPA — only for HTML navigation requests
+            navigateFallback: '/index.html',
+            // CRITICAL: Never serve index.html for asset/API requests
+            navigateFallbackDenylist: [
+              /^\/assets\//,
+              /^\/api\//,
+              /\.(?:js|css|png|jpg|jpeg|svg|ico|woff|woff2|webp|json|txt|map)$/,
+            ],
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+            runtimeCaching: [
+              {
+                urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'google-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365,
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200],
+                  },
                 },
               },
-            },
-            {
-              urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'avatar-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
+              {
+                urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'gstatic-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365,
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200],
+                  },
                 },
               },
-            },
-          ],
-        },
-        manifest: {
-          name: 'Genesis - AI Visual Storytelling',
-          short_name: 'Genesis',
-          description:
-            'AI-powered visual storytelling and collaboration platform. Create stunning ebooks, visual stories, and collaborative art.',
-          theme_color: '#FF9B71',
-          background_color: '#FFF8F3',
-          display: 'standalone',
-          orientation: 'portrait',
-          scope: '/',
-          start_url: '/',
-          categories: ['education', 'entertainment', 'productivity'],
-          icons: [
-            {
-              src: 'genesis-icon-192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: 'genesis-icon-512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: 'genesis-icon-maskable-512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'maskable',
-            },
-          ],
-          screenshots: [
-            {
-              src: 'genesis-icon-512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              form_factor: 'wide',
-              label: 'Genesis Homepage',
-            },
-            {
-              src: 'genesis-icon-512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              form_factor: 'narrow',
-              label: 'Genesis Mobile',
-            },
-          ],
-          shortcuts: [
-            {
-              name: 'Create New Story',
-              short_name: 'Create',
-              description: 'Start creating a new story',
-              url: '/?action=create',
-              icons: [{ src: 'genesis-icon-192.png', sizes: '192x192' }],
-            },
-            {
-              name: 'Visual Studio',
-              short_name: 'Studio',
-              description: 'Open Visual Studio',
-              url: '/?view=studio',
-              icons: [{ src: 'genesis-icon-192.png', sizes: '192x192' }],
-            },
-          ],
-        },
-      }),
+              {
+                urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'avatar-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 30,
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200],
+                  },
+                },
+              },
+            ],
+          },
+          manifest: {
+            name: 'Genesis - AI Visual Storytelling',
+            short_name: 'Genesis',
+            description:
+              'AI-powered visual storytelling and collaboration platform. Create stunning ebooks, visual stories, and collaborative art.',
+            theme_color: '#FF9B71',
+            background_color: '#FFF8F3',
+            display: 'standalone',
+            orientation: 'portrait',
+            scope: '/',
+            start_url: '/',
+            categories: ['education', 'entertainment', 'productivity'],
+            icons: [
+              {
+                src: 'genesis-icon-192.png',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-maskable-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable',
+              },
+            ],
+            screenshots: [
+              {
+                src: 'genesis-icon-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                form_factor: 'wide',
+                label: 'Genesis Homepage',
+              },
+              {
+                src: 'genesis-icon-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                form_factor: 'narrow',
+                label: 'Genesis Mobile',
+              },
+            ],
+            shortcuts: [
+              {
+                name: 'Create New Story',
+                short_name: 'Create',
+                description: 'Start creating a new story',
+                url: '/?action=create',
+                icons: [{ src: 'genesis-icon-192.png', sizes: '192x192' }],
+              },
+              {
+                name: 'Visual Studio',
+                short_name: 'Studio',
+                description: 'Open Visual Studio',
+                url: '/?view=studio',
+                icons: [{ src: 'genesis-icon-192.png', sizes: '192x192' }],
+              },
+            ],
+          },
+        }),
     ],
     // Path aliases matching tsconfig.json
     resolve: {
@@ -244,22 +247,16 @@ export default defineConfig(({ mode }) => {
           // Fine-grained manual chunks → smaller initial bundle, better long-term cache
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              // React core
-              if (id.includes('react-dom') || id.includes('/react/') || id.includes('react-router')) return 'vendor-react';
               // Radix UI
               if (id.includes('@radix-ui')) return 'vendor-radix';
               // Supabase
               if (id.includes('@supabase')) return 'vendor-supabase';
-              // i18n
-              if (id.includes('i18next')) return 'vendor-i18n';
               // Animation
               if (id.includes('framer-motion')) return 'vendor-motion';
               // Icons
               if (id.includes('lucide-react')) return 'vendor-icons';
               // Sentry
               if (id.includes('@sentry')) return 'vendor-sentry';
-              // Remaining node_modules — one shared vendor chunk
-              return 'vendor-misc';
             }
           },
         },
