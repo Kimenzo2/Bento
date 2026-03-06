@@ -1,5 +1,6 @@
 import { Bug, Code, Eye, RefreshCw, Terminal, TestTube2, Wrench, Zap } from 'lucide-react';
 import React from 'react';
+import { ToggleRow } from '../ui/toggle-row';
 
 interface AdvancedSettingsProps {
   settings: {
@@ -14,57 +15,6 @@ interface AdvancedSettingsProps {
 }
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate }) => {
-  const Toggle = ({
-    label,
-    description,
-    checked,
-    onChange,
-    icon: Icon,
-    badge,
-  }: {
-    label: string;
-    description?: string;
-    checked: boolean;
-    onChange: (val: boolean) => void;
-    icon: any;
-    badge?: string;
-  }) => (
-    <div
-      className="flex items-center justify-between py-4 md:py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group touch-manipulation active:bg-cream-base/50 -mx-2 px-2 rounded-lg transition-colors"
-      onClick={() => onChange(!checked)}
-    >
-      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-        <Icon className="w-5 h-5 text-coral-burst shrink-0" />
-        <div className="flex flex-col min-w-0">
-          <div className="flex flex-wrap items-center gap-1 md:gap-2">
-            <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">
-              {label}
-            </span>
-            {badge && (
-              <span className="px-1.5 md:px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">
-                {badge}
-              </span>
-            )}
-          </div>
-          {description && (
-            <span className="text-xs text-cocoa-light mt-0.5 md:mt-1 line-clamp-2">{description}</span>
-          )}
-        </div>
-      </div>
-      <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 shrink-0 ml-3 md:ml-4 ${
-          checked ? 'bg-coral-burst' : 'bg-peach-light/50'
-        }`}
-      >
-        <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-surface rounded-full transform transition-transform duration-300 ${
-            checked ? 'translate-x-[22px]' : 'translate-x-0'
-          }`}
-        />
-      </button>
-    </div>
-  );
-
   const handleResetSettings = () => {
     if (confirm('Reset all settings to defaults? This cannot be undone.')) {
       localStorage.removeItem('genesis_settings');
@@ -108,11 +58,11 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         </p>
 
         <div className="space-y-0">
-          <Toggle
+          <ToggleRow
             label="Developer Mode"
             description="Show technical details and debugging tools"
             checked={settings.developerMode}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, developerMode: val });
               if (val) {
                 console.warn('[Genesis] Developer mode enabled');
@@ -121,11 +71,11 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             icon={Code}
           />
 
-          <Toggle
+          <ToggleRow
             label="Debug Logs"
             description="Enable verbose console logging"
             checked={settings.debugLogs}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, debugLogs: val });
               if (val) {
                 localStorage.setItem('genesis_debug', 'true');
@@ -136,11 +86,11 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
             icon={Bug}
           />
 
-          <Toggle
+          <ToggleRow
             label="Performance Metrics"
             description="Show render times and performance stats"
             checked={settings.showPerformanceMetrics}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, showPerformanceMetrics: val });
             }}
             icon={Zap}
@@ -160,20 +110,20 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         </p>
 
         <div className="space-y-0">
-          <Toggle
+          <ToggleRow
             label="Beta Features"
             description="Enable experimental features (may be unstable)"
             checked={settings.betaFeatures}
-            onChange={(val) => onUpdate({ ...settings, betaFeatures: val })}
+            onCheckedChange={(val) => onUpdate({ ...settings, betaFeatures: val })}
             icon={TestTube2}
             badge="BETA"
           />
 
-          <Toggle
+          <ToggleRow
             label="Experimental UI"
             description="Try redesigned interface components"
             checked={settings.experimentalUI}
-            onChange={(val) => onUpdate({ ...settings, experimentalUI: val })}
+            onCheckedChange={(val) => onUpdate({ ...settings, experimentalUI: val })}
             icon={Eye}
             badge="EXPERIMENTAL"
           />
@@ -190,11 +140,11 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
         </p>
 
         <div className="space-y-0">
-          <Toggle
+          <ToggleRow
             label="Auto-Save"
             description="Automatically save changes as you work"
             checked={settings.autoSave}
-            onChange={(val) => onUpdate({ ...settings, autoSave: val })}
+            onCheckedChange={(val) => onUpdate({ ...settings, autoSave: val })}
             icon={RefreshCw}
           />
         </div>

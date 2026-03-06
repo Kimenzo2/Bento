@@ -17,6 +17,8 @@ export { Button, buttonVariants } from "./button";
 export type { ButtonProps } from "./button";
 export { Input, Textarea, Label } from "./input";
 export { Switch } from "./switch";
+export { ToggleRow } from "./toggle-row";
+export type { ToggleRowProps } from "./toggle-row";
 
 // Feedback
 export { Badge, badgeVariants } from "./badge";

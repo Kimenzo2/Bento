@@ -7,6 +7,7 @@ import { useOnboarding } from './OnboardingState';
 import { UserTier } from '../../types';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@components/ui/button';
+import { Switch } from '@components/ui/switch';
 
 // Type for pricing tier
 interface PricingTier {
@@ -221,18 +222,11 @@ export const OnboardingPricing: React.FC = () => {
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-3">
             <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>Monthly</span>
-            <Button
-              variant="ghost"
-              onClick={() => setIsAnnual(!isAnnual)}
+            <Switch
+              checked={isAnnual}
+              onCheckedChange={setIsAnnual}
               aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
-              className="relative w-14 h-7 bg-surface/10 rounded-full p-1 border border-white/20"
-            >
-              <motion.div
-                animate={{ x: isAnnual ? 26 : 0 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                className="w-5 h-5 bg-linear-to-r from-purple-500 to-pink-500 rounded-full"
-              />
-            </Button>
+            />
             <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}>
               Annual
               <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-400/30">

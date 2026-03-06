@@ -3,6 +3,7 @@ import { ArrowLeft, Brain, User } from 'lucide-react';
 import type React from 'react';
 import { type GenerationRequest, GuideCharacter, InfographicStyle } from '../../types/infographic';
 import { Label } from '../ui/input';
+import { Switch } from '../ui/switch';
 
 interface CustomizationStepProps {
   request: GenerationRequest;
@@ -137,17 +138,11 @@ const CustomizationStep: React.FC<CustomizationStepProps> = ({
             </div>
           </div>
         </div>
-        <Label className="relative inline-flex items-center cursor-pointer shrink-0">
-          <input
-            type="checkbox"
-            checked={request.includeInteractive}
-            onChange={(e) => onChange({ ...request, includeInteractive: e.target.checked })}
-            className="sr-only peer"
-            title="Toggle interactive elements"
-            aria-label="Toggle interactive elements"
-          />
-          <div className="w-14 h-7 bg-peach-light/50 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-mint-breeze/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-peach-soft after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-mint-breeze"></div>
-        </Label>
+        <Switch
+          checked={request.includeInteractive}
+          onCheckedChange={(val) => onChange({ ...request, includeInteractive: val })}
+          aria-label="Toggle interactive elements"
+        />
       </div>
 
       {/* Navigation */}

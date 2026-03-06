@@ -1,6 +1,7 @@
 import { Contrast, Keyboard, Monitor, Moon, Volume } from 'lucide-react';
 import type React from 'react';
 import { Label } from '@components/ui/input';
+import { ToggleRow } from '@components/ui/toggle-row';
 
 interface AccessibilitySettingsProps {
   settings: {
@@ -15,47 +16,6 @@ interface AccessibilitySettingsProps {
 }
 
 const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings, onUpdate }) => {
-  const Toggle = ({
-    label,
-    description,
-    checked,
-    onChange,
-    icon: Icon,
-  }: {
-    label: string;
-    description?: string;
-    checked: boolean;
-    onChange: (val: boolean) => void;
-    icon: any;
-  }) => (
-    <div
-      className="flex items-center justify-between py-4 md:py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group touch-manipulation active:bg-cream-base/50 -mx-2 px-2 rounded-lg transition-colors"
-      onClick={() => onChange(!checked)}
-    >
-      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-        <Icon className="w-5 h-5 text-coral-burst shrink-0" />
-        <div className="flex flex-col min-w-0">
-          <span className="text-charcoal-soft font-medium text-sm md:text-sm group-hover:text-coral-burst transition-colors truncate">
-            {label}
-          </span>
-          {description && (
-            <span className="text-xs text-cocoa-light mt-0.5 md:mt-1 line-clamp-2">{description}</span>
-          )}
-        </div>
-      </div>
-      <button
-        className={`relative w-[44px] h-[22px] rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-coral-burst/50 shrink-0 ml-3 md:ml-4 ${
-          checked ? 'bg-coral-burst' : 'bg-peach-light/50'
-        }`}
-      >
-        <div
-          className={`absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-surface rounded-full transform transition-transform duration-300 ${
-            checked ? 'translate-x-[22px]' : 'translate-x-0'
-          }`}
-        />
-      </button>
-    </div>
-  );
 
   return (
     <div className="animate-fadeIn space-y-6">
@@ -68,13 +28,12 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         </p>
 
         <div className="space-y-0">
-          <Toggle
+          <ToggleRow
             label="Reduced Motion"
             description="Minimize animations and transitions"
             checked={settings.reducedMotion}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, reducedMotion: val });
-              // Apply to document
               if (val) {
                 document.documentElement.classList.add('reduce-motion');
               } else {
@@ -84,13 +43,12 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
             icon={Moon}
           />
 
-          <Toggle
+          <ToggleRow
             label="High Contrast"
             description="Increase contrast for better visibility"
             checked={settings.highContrast}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, highContrast: val });
-              // Apply to document
               if (val) {
                 document.documentElement.classList.add('high-contrast');
               } else {
@@ -138,11 +96,11 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
             </div>
           </div>
 
-          <Toggle
+          <ToggleRow
             label="Keyboard Navigation"
             description="Enhanced keyboard shortcuts and focus indicators"
             checked={settings.keyboardNavigation}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, keyboardNavigation: val });
               if (val) {
                 document.documentElement.classList.add('keyboard-nav');
@@ -164,22 +122,22 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
         <p className="text-sm text-cocoa-light mb-4">Optimize for assistive technologies</p>
 
         <div className="space-y-0">
-          <Toggle
+          <ToggleRow
             label="Screen Reader Mode"
             description="Optimize interface for screen readers"
             checked={settings.screenReaderMode}
-            onChange={(val) => {
+            onCheckedChange={(val) => {
               onUpdate({ ...settings, screenReaderMode: val });
               document.documentElement.setAttribute('aria-live', val ? 'polite' : 'off');
             }}
             icon={Monitor}
           />
 
-          <Toggle
+          <ToggleRow
             label="Sound Effects"
             description="Enable audio feedback for actions"
             checked={settings.soundEffects}
-            onChange={(val) => onUpdate({ ...settings, soundEffects: val })}
+            onCheckedChange={(val) => onUpdate({ ...settings, soundEffects: val })}
             icon={Volume}
           />
         </div>

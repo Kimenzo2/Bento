@@ -20,6 +20,7 @@ import { Input, Label, Textarea } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Slider } from './ui/slider';
 import { Switch } from './ui/switch';
+import { ToggleRow } from './ui/toggle-row';
 import { toast } from './ui/sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -302,36 +303,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     </Button>
   );
 
-  const Toggle = ({
-    label,
-    description,
-    checked,
-    onChange,
-  }: {
-    label: string;
-    description?: string;
-    checked: boolean;
-    onChange: (val: boolean) => void;
-  }) => (
-    <div
-      className="flex items-center justify-between py-4 border-b border-peach-soft/30 last:border-0 cursor-pointer group"
-      onClick={() => onChange(!checked)}
-    >
-      <div className="flex flex-col">
-        <span className="text-charcoal-soft font-medium text-sm group-hover:text-coral-burst transition-colors">
-          {label}
-        </span>
-        {description && <span className="text-xs text-cocoa-light mt-1">{description}</span>}
-      </div>
-      <Switch
-        checked={checked}
-        onCheckedChange={onChange}
-        onClick={(e) => e.stopPropagation()}
-        className="ml-4 shrink-0"
-      />
-    </div>
-  );
-
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 pb-24 animate-fadeIn relative">
 
@@ -550,15 +521,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
                   {t('emailPreferences', { defaultValue: 'Email Preferences' })}
                 </h3>
-                <Toggle
+                <ToggleRow
                   label={t('notificationLabels.generationComplete', { defaultValue: 'Generation Complete Alerts' })}
                   checked={formData.emailUpdates}
-                  onChange={(val) => handleChange('emailUpdates', val)}
+                  onCheckedChange={(val) => handleChange('emailUpdates', val)}
                 />
-                <Toggle
+                <ToggleRow
                   label={t('notificationLabels.marketingUpdates', { defaultValue: 'Marketing & Product Updates' })}
                   checked={formData.marketingEmails}
-                  onChange={(val) => handleChange('marketingEmails', val)}
+                  onCheckedChange={(val) => handleChange('marketingEmails', val)}
                 />
               </div>
             )}
@@ -568,15 +539,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
                   {t('privacyData', { defaultValue: 'Privacy & Data' })}
                 </h3>
-                <Toggle
+                <ToggleRow
                   label={t('privacyLabels.publicProfileVisibility', { defaultValue: 'Public Profile Visibility' })}
                   checked={formData.publicProfile}
-                  onChange={(val) => handleChange('publicProfile', val)}
+                  onCheckedChange={(val) => handleChange('publicProfile', val)}
                 />
-                <Toggle
+                <ToggleRow
                   label={t('privacyLabels.allowAiTraining', { defaultValue: 'Allow Content Analysis for AI Training' })}
                   checked={formData.dataSharing}
-                  onChange={(val) => handleChange('dataSharing', val)}
+                  onCheckedChange={(val) => handleChange('dataSharing', val)}
                 />
                 <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100">
                   <h4 className="text-sm font-bold text-red-800 mb-2">{t('dangerZone', { defaultValue: 'Danger Zone' })}</h4>
@@ -605,14 +576,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <h3 className="font-heading font-bold text-lg text-charcoal-soft mb-4">
                     {t('displaySettings', { defaultValue: 'Display Settings' })}
                   </h3>
-                  <Toggle
+                  <ToggleRow
                     label={t('autoRotateScreen', { defaultValue: 'Auto Rotate Screen' })}
                     description={t('autoRotateScreenDescription', {
                       defaultValue:
                         'Allow the app to rotate when you turn your device. Keep off for vertical-only mode.',
                     })}
                     checked={formData.autoRotate}
-                    onChange={(val) => handleChange('autoRotate', val)}
+                    onCheckedChange={(val) => handleChange('autoRotate', val)}
                   />
                 </div>
                 <ThemeSelector />

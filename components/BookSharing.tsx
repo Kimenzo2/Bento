@@ -31,6 +31,7 @@ import { saveBook } from '../services/storageService';
 import type { BookProject } from '../types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Switch } from './ui/switch';
 
 // Extend the service type to include the computed URL for UI
 interface ShareLink extends ServiceShareLink {
@@ -429,31 +430,21 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                           <span className="text-sm text-cocoa-light dark:text-cocoa-light/60">
                             Public Access
                           </span>
-                          <Button
-                            variant="ghost"
-                            onClick={() => handleUpdateSettings({ isPublic: !settings.isPublic })}
-                            className={`w-10 h-5 rounded-full relative shrink-0 p-0 border-0 min-w-0 ${settings.isPublic ? 'bg-green-500' : 'bg-gray-300'}`}
-                          >
-                            <span
-                              className={`absolute top-1 w-3 h-3 bg-surface rounded-full transition-transform ${settings.isPublic ? 'translate-x-5' : 'translate-x-1'}`}
-                            />
-                          </Button>
+                          <Switch
+                            checked={settings.isPublic}
+                            onCheckedChange={(val) => handleUpdateSettings({ isPublic: val })}
+                            aria-label="Toggle public access"
+                          />
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-cocoa-light dark:text-cocoa-light/60">
                             Allow Downloads
                           </span>
-                          <Button
-                            variant="ghost"
-                            onClick={() =>
-                              handleUpdateSettings({ allowDownload: !settings.allowDownload })
-                            }
-                            className={`w-10 h-5 rounded-full relative shrink-0 p-0 border-0 min-w-0 ${settings.allowDownload ? 'bg-blue-500' : 'bg-gray-300'}`}
-                          >
-                            <span
-                              className={`absolute top-1 w-3 h-3 bg-surface rounded-full transition-transform ${settings.allowDownload ? 'translate-x-5' : 'translate-x-1'}`}
-                            />
-                          </Button>
+                          <Switch
+                            checked={settings.allowDownload}
+                            onCheckedChange={(val) => handleUpdateSettings({ allowDownload: val })}
+                            aria-label="Toggle allow downloads"
+                          />
                         </div>
                       </div>
 

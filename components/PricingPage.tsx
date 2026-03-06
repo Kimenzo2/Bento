@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
 import { Button } from './ui/button';
+import { Switch } from './ui/switch';
 
 interface PricingPageProps {
   onUpgrade?: (tier: UserTier) => void;
@@ -184,21 +185,15 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
             >
               Monthly
             </span>
-            <Button
-              type="button"
-              onClick={() => setIsAnnual(!isAnnual)}
-              variant="ghost"
-              className="relative w-16 h-8 bg-peach-soft rounded-full p-1"
+            <Switch
+              checked={isAnnual}
+              onCheckedChange={setIsAnnual}
               aria-label={
                 isAnnual
                   ? 'Currently annual billing, click to switch to monthly'
                   : 'Currently monthly billing, click to switch to annual'
               }
-            >
-              <div
-                className={`w-6 h-6 bg-coral-burst rounded-full transform transition-transform duration-300 ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`}
-              />
-            </Button>
+            />
             <span
               className={`font-heading font-bold flex items-center gap-2 ${isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
             >
