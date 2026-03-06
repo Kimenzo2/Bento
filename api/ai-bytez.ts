@@ -7,17 +7,11 @@
  */
 import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
-const keys: string[] = [];
-for (let i = 1; i <= 20; i++) {
-  const k = process.env[`BYTEZ_API_KEY_${i}`];
-  if (k) keys.push(k);
-}
-let keyIndex = 0;
+// Single Bytez API key — no rotation to protect free-tier quota.
+const BYTEZ_SINGLE_KEY = process.env.BYTEZ_API_KEY_1 || process.env.VITE_BYTEZ_API_KEY;
 function nextKey(): string {
-  if (keys.length === 0) throw new Error('No Bytez API keys configured on server');
-  const k = keys[keyIndex % keys.length];
-  keyIndex++;
-  return k;
+  if (!BYTEZ_SINGLE_KEY) throw new Error('No Bytez API key configured. Set BYTEZ_API_KEY_1 in your environment.');
+  return BYTEZ_SINGLE_KEY;
 }
 
 const ALLOWED_MODELS = new Set([
@@ -55,42 +49,28 @@ export default createAuthenticatedHandler(
       return res.status(400).json({ error: `Model "${model}" is not allowed` });
     }
 
-    const maxRetries = Math.min(3, keys.length);
-    let lastError: string | undefined;
+    const apiKey = nextKey();
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const apiKey = nextKey();
+    try {
+      const resp = await fetch('https://api.bytez.com/models/v2/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Key ${apiKey}`,
+        },
+        body: JSON.stringify({ model, input }),
+      });
 
-      try {
-        const resp = await fetch('https://api.bytez.com/models/v2/run', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Key ${apiKey}`,
-          },
-          body: JSON.stringify({ model, input }),
-        });
-
-        if (resp.status === 429 || resp.status === 403 || resp.status >= 500) {
-          lastError = `Bytez returned ${resp.status}`;
-          log.warn('Bytez key failed, rotating', { status: resp.status, attempt });
-          continue;
-        }
-
-        if (!resp.ok) {
-          const errBody = await resp.text();
-          return res.status(resp.status).json({ error: 'Bytez API error', details: errBody });
-        }
-
-        const data = await resp.json();
-        return res.status(200).json(data);
-      } catch (err: any) {
-        lastError = err.message;
-        log.warn('Bytez request failed', { error: err.message, attempt });
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        return res.status(resp.status).json({ error: 'Bytez API error', details: errBody });
       }
-    }
 
-    return res.status(502).json({ error: 'All Bytez keys failed', details: lastError });
+      const data = await resp.json();
+      return res.status(200).json(data);
+    } catch (err: any) {
+      return res.status(502).json({ error: 'Bytez request failed', details: err.message });
+    }
   },
   { rateLimit: { requests: 20, window: '1m' } }
 );

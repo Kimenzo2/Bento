@@ -18,17 +18,12 @@ import {
   extractVisualProfile,
 } from './characterConsistencyService';
 import { generateIllustration } from './geminiService';
-import { authenticatedFetch } from './api/authenticatedFetch';
-
-// Use Gemini 2.5 Pro via Bytez for high-quality character conversations
-const GREEN_ROOM_MODEL = 'google/gemini-2.5-pro';
 
 /**
- * Check if Green Room AI is available (always true — server proxy handles keys)
+ * Green Room AI is disabled to preserve API quota.
+ * Conversation AI features return errors; visual generation (portraits) is unaffected.
  */
-export const isGreenRoomAIAvailable = (): boolean => {
-  return true;
-};
+export const isGreenRoomAIAvailable = (): boolean => false;
 
 export interface GreenRoomMessage {
   role: 'user' | 'assistant' | 'system';
@@ -36,53 +31,10 @@ export interface GreenRoomMessage {
 }
 
 /**
-/**
- * Call Green Room AI via server-side Bytez proxy
+ * Green Room conversational AI is disabled.
  */
-export async function callGreenRoomAI(messages: GreenRoomMessage[]): Promise<string> {
-  const formattedMessages = messages.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }));
-
-  console.log(`🎭 Green Room AI: Calling ${GREEN_ROOM_MODEL} via proxy...`);
-
-  const resp = await authenticatedFetch('/api/ai-bytez', {
-    method: 'POST',
-    body: JSON.stringify({
-      model: GREEN_ROOM_MODEL,
-      messages: formattedMessages,
-    }),
-  });
-
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.error || `Green Room proxy returned ${resp.status}`);
-  }
-
-  const data = await resp.json();
-
-  let text: string;
-  if (typeof data.output === 'string') {
-    text = data.output.trim();
-  } else if (data.output?.content) {
-    text = data.output.content.trim();
-  } else if (data.output?.message?.content) {
-    text = data.output.message.content.trim();
-  } else if (Array.isArray(data.output) && data.output[0]?.content) {
-    text = data.output[0].content.trim();
-  } else if (data.text) {
-    text = data.text.trim();
-  } else {
-    text = JSON.stringify(data.output || data);
-  }
-
-  if (!text || text.length === 0) {
-    throw new Error('Empty response from Green Room AI');
-  }
-
-  console.log(`✅ Green Room AI response received via proxy (${GREEN_ROOM_MODEL})`);
-  return text;
+export async function callGreenRoomAI(_messages: GreenRoomMessage[]): Promise<string> {
+  throw new Error('Green Room AI is currently disabled to preserve API quota.');
 }
 
 /**
@@ -90,39 +42,11 @@ export async function callGreenRoomAI(messages: GreenRoomMessage[]): Promise<str
  * Optimized for deep character conversations
  */
 export async function generateCharacterResponse(
-  characterContext: string,
-  conversationHistory: GreenRoomMessage[],
-  userQuestion: string
+  _characterContext: string,
+  _conversationHistory: GreenRoomMessage[],
+  _userQuestion: string
 ): Promise<string> {
-  if (!isGreenRoomAIAvailable()) {
-    throw new Error('Green Room AI is not configured. Please add API keys to your environment.');
-  }
-
-  const messages: GreenRoomMessage[] = [
-    {
-      role: 'system',
-      content: `You are roleplaying as a character in a deep, introspective conversation. 
-
-${characterContext}
-
-Stay completely in character. Respond authentically based on the character's:
-- Psychological profile (OCEAN traits)
-- Core beliefs and values
-- Formative experiences
-- Relationship style
-- Behavioral patterns
-- Voice and speech patterns
-
-Be vulnerable, honest, and reveal depth. This is a safe space for the character to explore their inner world.`,
-    },
-    ...conversationHistory,
-    {
-      role: 'user',
-      content: userQuestion,
-    },
-  ];
-
-  return callGreenRoomAI(messages);
+  throw new Error('Green Room AI is currently disabled to preserve API quota.');
 }
 
 /**
@@ -130,51 +54,10 @@ Be vulnerable, honest, and reveal depth. This is a safe space for the character 
  * Identifies key revelations, traits, and story elements
  */
 export async function extractFactsFromConversation(
-  characterName: string,
-  conversationText: string
+  _characterName: string,
+  _conversationText: string
 ): Promise<any[]> {
-  if (!isGreenRoomAIAvailable()) {
-    throw new Error('Green Room AI is not configured.');
-  }
-
-  const messages: GreenRoomMessage[] = [
-    {
-      role: 'system',
-      content: `You are an expert at extracting character insights from conversations. Analyze the dialogue and identify key facts about the character.`,
-    },
-    {
-      role: 'user',
-      content: `Extract important facts about ${characterName} from this conversation. Return a JSON array of facts.
-
-Each fact should have:
-- category: "personality", "backstory", "relationships", "motivation", "fear", or "quirk"
-- content: the actual fact or insight
-- importance: "high", "medium", or "low"
-
-Conversation:
-${conversationText}
-
-Return ONLY valid JSON, no other text.`,
-    },
-  ];
-
-  const response = await callGreenRoomAI(messages);
-
-  try {
-    // Clean and parse JSON
-    let cleanResponse = response.replace(/```json\n?|\n?```/g, '').trim();
-    const firstBracket = cleanResponse.indexOf('[');
-    const lastBracket = cleanResponse.lastIndexOf(']');
-
-    if (firstBracket !== -1 && lastBracket !== -1) {
-      cleanResponse = cleanResponse.substring(firstBracket, lastBracket + 1);
-    }
-
-    return JSON.parse(cleanResponse);
-  } catch (error) {
-    console.error('Failed to parse extracted facts:', error);
-    return [];
-  }
+  return [];
 }
 
 /**

@@ -14,7 +14,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { google } from '@ai-sdk/google';
+import { getGeminiModel } from '../lib/geminiProvider';
 import { z } from 'zod';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -152,7 +152,7 @@ Available actions (from the "action" field in input):
 - "getDailyChallenges": Call getDailyChallenges tool
 
 Always respond with valid JSON.`,
-  model: google('gemini-2.0-flash'),
+  model: getGeminiModel(),
   tools: { awardXP, checkStreak, unlockBadge, getDailyChallenges, getFullState },
 });
 

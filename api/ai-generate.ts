@@ -2,23 +2,19 @@
  * Server-side Gemini text generation proxy.
  * Keeps all GEMINI_API_KEY_* secrets server-only.
  *
- * Accepts: { model, contents, config }
+ * Accepts:
+ *   { model, contents, config }           — raw Gemini REST format
+ *   { model, prompt, maxTokens? }         — simple text prompt
+ *   { model, messages, systemInstruction? } — chat messages array
  * Returns: { text: string }
  */
 import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
-// Collect all configured keys (without VITE_ prefix — server-only)
-const keys: string[] = [];
-for (let i = 1; i <= 20; i++) {
-  const k = process.env[`GEMINI_API_KEY_${i}`];
-  if (k) keys.push(k);
-}
-let keyIndex = 0;
+// Single API key — no rotation to protect free-tier quota from being banned.
+const GEMINI_SINGLE_KEY = process.env.GEMINI_API_KEY_1 || process.env.VITE_GEMINI_API_KEY;
 function nextKey(): string {
-  if (keys.length === 0) throw new Error('No Gemini API keys configured on server');
-  const k = keys[keyIndex % keys.length];
-  keyIndex++;
-  return k;
+  if (!GEMINI_SINGLE_KEY) throw new Error('No Gemini API key configured. Set GEMINI_API_KEY_1 in your environment.');
+  return GEMINI_SINGLE_KEY;
 }
 
 const ALLOWED_MODELS = new Set([
@@ -39,59 +35,72 @@ export default createAuthenticatedHandler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { model, contents, config } = req.body ?? {};
+    const { model, contents: rawContents, config, prompt, maxTokens, messages, systemInstruction } = req.body ?? {};
 
-    if (!model || !contents) {
-      return res.status(400).json({ error: 'Missing required fields: model, contents' });
+    if (!model) {
+      return res.status(400).json({ error: 'Missing required field: model' });
     }
 
     if (!ALLOWED_MODELS.has(model)) {
       return res.status(400).json({ error: `Model "${model}" is not allowed` });
     }
 
-    // Try up to 3 different keys on failure
-    const maxRetries = Math.min(3, keys.length);
-    let lastError: string | undefined;
+    // Build Gemini REST `contents` from whichever format was provided
+    let contents: unknown;
+    let resolvedSystemInstruction: string | undefined;
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const apiKey = nextKey();
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-      try {
-        const body: Record<string, unknown> = { contents };
-        if (config) body.generationConfig = config;
-
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-
-        if (resp.status === 429 || resp.status === 403 || resp.status >= 500) {
-          lastError = `Gemini returned ${resp.status}`;
-          log.warn('Gemini key failed, rotating', { status: resp.status, attempt });
-          continue;
-        }
-
-        if (!resp.ok) {
-          const errBody = await resp.text();
-          return res.status(resp.status).json({ error: 'Gemini API error', details: errBody });
-        }
-
-        const data = await resp.json();
-        const text =
-          data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-          data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ||
-          '';
-
-        return res.status(200).json({ text, raw: data });
-      } catch (err: any) {
-        lastError = err.message;
-        log.warn('Gemini request failed', { error: err.message, attempt });
+    if (rawContents) {
+      // Already in Gemini REST format
+      contents = rawContents;
+      resolvedSystemInstruction = systemInstruction;
+    } else if (prompt) {
+      // Simple text prompt — wrap in Gemini format
+      contents = [{ role: 'user', parts: [{ text: String(prompt) }] }];
+    } else if (Array.isArray(messages) && messages.length > 0) {
+      // Chat messages array — convert to Gemini format, extract system messages
+      const sysMsgs = messages.filter((m: { role: string }) => m.role === 'system');
+      const chatMsgs = messages.filter((m: { role: string }) => m.role !== 'system');
+      if (sysMsgs.length > 0) {
+        resolvedSystemInstruction = sysMsgs.map((m: { content: string }) => m.content).join('\n');
       }
+      contents = chatMsgs.map((m: { role: string; content: string }) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+    } else {
+      return res.status(400).json({ error: 'Missing required fields: provide prompt, messages, or contents' });
     }
 
-    return res.status(502).json({ error: 'All Gemini keys failed', details: lastError });
+    const apiKey = nextKey();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    try {
+      const body: Record<string, unknown> = { contents };
+      if (config) body.generationConfig = config;
+      if (maxTokens) body.generationConfig = { ...(body.generationConfig as object ?? {}), maxOutputTokens: maxTokens };
+      if (resolvedSystemInstruction) body.systemInstruction = { parts: [{ text: resolvedSystemInstruction }] };
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        return res.status(resp.status).json({ error: 'Gemini API error', details: errBody });
+      }
+
+      const data = await resp.json();
+      const text =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ||
+        '';
+
+      return res.status(200).json({ text, raw: data });
+    } catch (err: any) {
+      return res.status(502).json({ error: 'Gemini request failed', details: err.message });
+    }
   },
   { rateLimit: { requests: 30, window: '1m' } }
 );

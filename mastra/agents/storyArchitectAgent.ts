@@ -21,7 +21,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { google } from '@ai-sdk/google';
+import { getGeminiModel } from '../lib/geminiProvider';
 import { z } from 'zod';
 import {
   GenerationSettingsSchema,
@@ -281,7 +281,7 @@ export const storyArchitectAgent = new Agent({
   id: 'story-architect',
   name: 'Story Architect',
   instructions: STORY_ARCHITECT_SYSTEM_PROMPT,
-  model: google('gemini-2.0-flash'),
+  model: getGeminiModel(),
   tools: {
     validateBookRequest,
     enforceAgeAppropriate,

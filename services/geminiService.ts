@@ -114,13 +114,70 @@ const rateLimiter = {
 
 const GEMINI_TEXT_MODEL = 'gemini-2.0-flash';
 
+// ============================================================================
+// PERSISTENT PROMPT CACHE — localStorage-backed, 7-day TTL
+// Every identical book generation prompt is served from cache — zero API calls.
+// This is the primary mechanism for preserving the free-tier quota.
+// ============================================================================
+
+const PROMPT_CACHE_PREFIX = 'genesis_pc_';
+const PROMPT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const PROMPT_CACHE_MAX_ENTRIES = 80;
+
+/** Fast djb2 hash → compact base-36 string */
+function hashStr(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+function getPromptCache(key: string): string | undefined {
+  if (typeof localStorage === 'undefined') return undefined;
+  try {
+    const raw = localStorage.getItem(PROMPT_CACHE_PREFIX + key);
+    if (!raw) return undefined;
+    const entry = JSON.parse(raw) as { t: string; ts: number };
+    if (Date.now() - entry.ts > PROMPT_CACHE_TTL_MS) {
+      localStorage.removeItem(PROMPT_CACHE_PREFIX + key);
+      return undefined;
+    }
+    return entry.t;
+  } catch { return undefined; }
+}
+
+function setPromptCache(key: string, text: string): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    // Evict oldest entries when near capacity
+    const stored: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(PROMPT_CACHE_PREFIX)) stored.push(k);
+    }
+    if (stored.length >= PROMPT_CACHE_MAX_ENTRIES) {
+      stored.slice(0, stored.length - PROMPT_CACHE_MAX_ENTRIES + 1)
+        .forEach((k) => localStorage.removeItem(k));
+    }
+    localStorage.setItem(
+      PROMPT_CACHE_PREFIX + key,
+      JSON.stringify({ t: text, ts: Date.now() })
+    );
+  } catch { /* storage full — silently skip */ }
+}
+
 // Helper: call Gemini text generation via the server-side proxy
 async function callGeminiAPI(
   prompt: string,
   modelName: string = GEMINI_TEXT_MODEL,
   maxTokens = 4096
 ): Promise<string> {
-  console.log(`🔄 Calling Gemini API (${modelName}) via proxy...`);
+  // ── AGGRESSIVE CACHE: check localStorage before touching the API ──────────
+  const cacheKey = hashStr(`${modelName}:${maxTokens}:${prompt}`);
+  const cached = getPromptCache(cacheKey);
+  if (cached) {
+    console.log('📦 Gemini cache hit — skipping API call (quota preserved)');
+    return cached;
+  }
 
   const res = await authenticatedFetch('/api/ai-generate', {
     method: 'POST',
@@ -131,6 +188,7 @@ async function callGeminiAPI(
       maxTokens,
     }),
   });
+  console.log(`🔄 Calling Gemini API (${modelName}) via proxy...`);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -139,6 +197,8 @@ async function callGeminiAPI(
 
   const data = await res.json();
   if (!data.text) throw new Error('No output received from Gemini API');
+  // Persist to localStorage so future identical prompts skip the API entirely
+  setPromptCache(cacheKey, data.text);
   console.log('✅ Gemini API response received');
   return data.text;
 }
