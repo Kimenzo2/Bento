@@ -19,9 +19,10 @@
 
 import type React from 'react';
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import AppSkeleton from './components/AppSkeleton';
 import { useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { supabase } from './services/supabaseClient';
 
 const PROFILE_CHECK_TIMEOUT_MS = 5000;
@@ -73,6 +74,10 @@ const AuthPage = lazy(() => import('./components/AuthPage'));
 
 // Layout wrapper for tiers to provide strict styling context
 const TierLayout = lazy(() => import('./components/tiers/TierLayout'));
+
+// Public blog pages — no auth required, themed via standalone ThemeProvider
+const BlogIndex = lazy(() => import('./components/blog/BlogIndex'));
+const BlogPost = lazy(() => import('./components/blog/BlogPost'));
 
 // Single unified loading state — AppSkeleton replaces all previous spinners
 const AppLoading: React.FC = () => <AppSkeleton />;
@@ -224,6 +229,18 @@ export const AppRouter: React.FC = () => {
           <Route path="/tier/creator" element={<TierDetailCreator />} />
           <Route path="/tier/studio" element={<TierDetailStudio />} />
           <Route path="/tier/empire" element={<TierDetailEmpire />} />
+        </Route>
+
+        {/* Blog — public, SEO-indexed, inherits user theme from localStorage */}
+        <Route
+          element={
+            <ThemeProvider>
+              <Outlet />
+            </ThemeProvider>
+          }
+        >
+          <Route path="/blog" element={<BlogIndex />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
         </Route>
 
         {/* Onboarding route - completely isolated experience */}

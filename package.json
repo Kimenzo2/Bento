@@ -100,6 +100,7 @@
     "react-litert": "^0.2.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.6",
+    "remark-gfm": "^4.0.1",
     "resend": "^6.5.2",
     "rollbar": "^2.26.5",
     "sonner": "^2.0.7",
