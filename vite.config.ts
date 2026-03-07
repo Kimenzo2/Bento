@@ -18,23 +18,6 @@ export default defineConfig(({ mode }) => {
       // Tailwind CSS v4 Vite plugin
       tailwindcss(),
 
-      // Convert Vite-injected CSS bundle links from render-blocking rel="stylesheet"
-      // to the non-blocking preload/onload pattern — matches the Google Fonts approach
-      // already used in index.html. Safe because all skeleton/pre-render content uses
-      // only inline styles, so no FOUC risk before the CSS resolves.
-      {
-        name: 'non-blocking-css',
-        transformIndexHtml: {
-          order: 'post' as const,
-          handler(html: string) {
-            return html.replace(
-              /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
-              '<link rel="preload" as="style" crossorigin href="$1" onload="this.onload=null;this.rel=\'stylesheet\'">'
-            );
-          },
-        },
-      },
-
       enablePwa &&
         VitePWA({
           registerType: 'autoUpdate',
