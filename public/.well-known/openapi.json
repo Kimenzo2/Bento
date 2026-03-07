@@ -1,0 +1,108 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Genesis API",
+    "version": "1.0.0",
+    "description": "Genesis AI Visual Storytelling Platform — product discovery and subscription plan information."
+  },
+  "servers": [
+    { "url": "https://iamazeyou.me" }
+  ],
+  "paths": {
+    "/api/products": {
+      "get": {
+        "operationId": "listPlans",
+        "summary": "List all Genesis subscription plans",
+        "description": "Returns all available Genesis subscription plans with pricing, features, and purchase links.",
+        "responses": {
+          "200": {
+            "description": "Array of Genesis subscription plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Plan" }
+                },
+                "example": [
+                  {
+                    "id": "genesis-spark",
+                    "title": "Genesis Spark Plan",
+                    "description": "Free starter plan. 3 AI visual story creations per month, access to all three creative realms, community gallery.",
+                    "price": "0.00",
+                    "currency": "USD",
+                    "link": "https://iamazeyou.me/pricing",
+                    "image_link": "https://iamazeyou.me/genesis-icon-512.png",
+                    "brand": "Genesis",
+                    "product_category": "Software > Creative Software > Visual Storytelling",
+                    "mpn": "GENESIS-SPARK-2026",
+                    "condition": "new"
+                  },
+                  {
+                    "id": "genesis-creator",
+                    "title": "Genesis Creator Plan",
+                    "description": "Unlimited AI visual story generations, 20+ art styles, commercial licensing, PDF and eBook export, priority support.",
+                    "price": "19.99",
+                    "currency": "USD",
+                    "link": "https://iamazeyou.me/tier/creator",
+                    "image_link": "https://iamazeyou.me/genesis-icon-512.png",
+                    "brand": "Genesis",
+                    "product_category": "Software > Creative Software > Visual Storytelling",
+                    "mpn": "GENESIS-CREATOR-2026",
+                    "condition": "new"
+                  },
+                  {
+                    "id": "genesis-studio",
+                    "title": "Genesis Studio Plan",
+                    "description": "Team access, curriculum builder, educator tools, priority AI generation, collaborative editing, advanced export options.",
+                    "price": "59.99",
+                    "currency": "USD",
+                    "link": "https://iamazeyou.me/tier/studio",
+                    "image_link": "https://iamazeyou.me/genesis-icon-512.png",
+                    "brand": "Genesis",
+                    "product_category": "Software > Creative Software > Visual Storytelling",
+                    "mpn": "GENESIS-STUDIO-2026",
+                    "condition": "new"
+                  },
+                  {
+                    "id": "genesis-empire",
+                    "title": "Genesis Empire Plan",
+                    "description": "Enterprise-grade AI visual storytelling. API access, white-label options, dedicated support, unlimited team seats, advanced analytics.",
+                    "price": "199.99",
+                    "currency": "USD",
+                    "link": "https://iamazeyou.me/tier/empire",
+                    "image_link": "https://iamazeyou.me/genesis-icon-512.png",
+                    "brand": "Genesis",
+                    "product_category": "Software > Creative Software > Visual Storytelling",
+                    "mpn": "GENESIS-EMPIRE-2026",
+                    "condition": "new"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Plan": {
+        "type": "object",
+        "required": ["id", "title", "description", "price", "currency", "link", "image_link", "brand"],
+        "properties": {
+          "id":               { "type": "string", "description": "Unique product identifier" },
+          "title":            { "type": "string", "description": "Plan display name" },
+          "description":      { "type": "string", "description": "Full plan description" },
+          "price":            { "type": "string", "description": "Monthly price in decimal format" },
+          "currency":         { "type": "string", "description": "ISO 4217 currency code" },
+          "link":             { "type": "string", "description": "Purchase / info page URL" },
+          "image_link":       { "type": "string", "description": "Product image URL (min 100x100px)" },
+          "brand":            { "type": "string", "description": "Brand name" },
+          "product_category": { "type": "string", "description": "Google product category path" },
+          "mpn":              { "type": "string", "description": "Manufacturer part number" },
+          "condition":        { "type": "string", "enum": ["new", "used", "refurbished"] }
+        }
+      }
+    }
+  }
+}

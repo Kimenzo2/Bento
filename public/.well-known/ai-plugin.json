@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Genesis",
+  "name_for_model": "genesis_visual_storytelling",
+  "description_for_human": "AI-powered visual storytelling platform. Create illustrated stories, character designs, and educational content across themed creative worlds.",
+  "description_for_model": "Genesis (iamazeyou.me) is an AI visual storytelling and character design platform. Users choose one of three creative realms — The Cosmos (sci-fi), The Kingdom (fantasy), The Cell (biology) — and an AI companion named Gen guides the creative process. Outputs include illustrated eBooks, character sheets, curriculum materials, and visual narratives. Available subscription plans: Spark (free, 3 creations/month), Creator ($19.99/month, unlimited generations, 20+ styles, commercial license), Studio ($59.99/month, team access, curriculum tools, priority generation), Empire ($199.99/month, enterprise, API access, white-label). No prompt engineering required.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://iamazeyou.me/.well-known/openapi.json"
+  },
+  "logo_url": "https://iamazeyou.me/genesis-icon-512.png",
+  "contact_email": "support@iamazeyou.me",
+  "legal_info_url": "https://iamazeyou.me/legal/terms",
+  "enable_search": true,
+  "enable_checkout": false
+}
