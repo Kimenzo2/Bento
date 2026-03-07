@@ -188,37 +188,41 @@ const BlogPost: React.FC = () => {
 
       {/* ── Sticky nav ── */}
       <header
-        className="sticky top-0 z-40 w-full border-b backdrop-blur-sm"
-        style={{ backgroundColor: 'rgba(250,250,249,0.92)', borderColor: S.border }}
+        className="sticky top-0 z-40 w-full border-b backdrop-blur-md"
+        style={{ backgroundColor: 'rgba(250,250,249,0.85)', borderColor: S.border }}
       >
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-3">
-          <Link
-            to="/blog"
-            className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70 shrink-0 focus-visible:outline-none focus-visible:ring-2 rounded"
-            style={{ color: S.textMuted }}
-            aria-label="Back to blog"
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden sm:inline">All Posts</span>
-          </Link>
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+            <Link
+              to="/blog"
+              className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70 shrink-0 focus-visible:outline-none focus-visible:ring-2 rounded-full"
+              style={{ color: S.textMuted }}
+              aria-label="Back to blog"
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              <span className="hidden sm:inline">All Posts</span>
+            </Link>
 
-          <nav
-            aria-label="Breadcrumb"
-            className="hidden md:flex items-center gap-1.5 text-xs overflow-hidden"
-            style={{ color: S.textMuted }}
-          >
-            <Link to="/" className="hover:opacity-70 transition-opacity whitespace-nowrap">Genesis</Link>
-            <ChevronRight className="w-3 h-3 shrink-0" aria-hidden="true" />
-            <Link to="/blog" className="hover:opacity-70 transition-opacity whitespace-nowrap">Blog</Link>
-            <ChevronRight className="w-3 h-3 shrink-0" aria-hidden="true" />
-            <span className="truncate max-w-[180px]" style={{ color: S.text }}>{post.title}</span>
-          </nav>
+            <div className="w-px h-4 hidden sm:block" style={{ backgroundColor: S.border }} aria-hidden="true" />
+
+            <nav
+              aria-label="Breadcrumb"
+              className="hidden md:flex items-center gap-2 text-xs overflow-hidden"
+              style={{ color: S.textMuted }}
+            >
+              <Link to="/" className="hover:text-black transition-colors whitespace-nowrap">Genesis</Link>
+              <ChevronRight className="w-3 h-3 shrink-0 opacity-50" aria-hidden="true" />
+              <Link to="/blog" className="hover:text-black transition-colors whitespace-nowrap">Blog</Link>
+              <ChevronRight className="w-3 h-3 shrink-0 opacity-50" aria-hidden="true" />
+              <span className="truncate max-w-[200px] font-medium" style={{ color: S.text }}>{post.title}</span>
+            </nav>
+          </div>
 
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded border transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 shrink-0"
-            style={{ color: S.accent, borderColor: S.border, backgroundColor: S.surface }}
+            className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full transition-all hover:shadow hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 shrink-0"
+            style={{ color: S.accent, backgroundColor: S.accentBg }}
             aria-label="Share this article"
           >
             <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
@@ -230,16 +234,16 @@ const BlogPost: React.FC = () => {
       {/* ── Hero ── */}
       <div className="border-b" style={{ borderColor: S.border, backgroundColor: S.surface }}>
         {/* Thin accent bar from post's cover gradient */}
-        <div className="w-full h-1" style={{ background: post.coverGradient }} aria-hidden="true" />
+        <div className="w-full h-2" style={{ background: post.coverGradient }} aria-hidden="true" />
 
-        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-12 sm:py-16" role="banner">
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-14 sm:py-20" role="banner">
           {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-6" role="list" aria-label="Post tags">
+          <div className="flex flex-wrap gap-2.5 mb-6" role="list" aria-label="Post tags">
             {post.tags.map((tag) => (
               <span
                 key={tag}
                 role="listitem"
-                className="px-2.5 py-0.5 rounded text-xs font-medium"
+                className="px-3 py-1 rounded-full text-[11px] font-medium tracking-wide uppercase"
                 style={{ backgroundColor: S.accentBg, color: S.accent, fontFamily: S.fontSans }}
               >
                 {tag}
@@ -283,10 +287,10 @@ const BlogPost: React.FC = () => {
       </div>
 
       {/* ── Body: article + TOC ── */}
-      <div className="max-w-4xl mx-auto px-5 sm:px-8 py-10 sm:py-14 flex gap-12 items-start">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-16 flex flex-col xl:flex-row gap-12 xl:gap-16 items-start">
 
         {/* Article */}
-        <article ref={articleRef} className="min-w-0 flex-1" aria-label="Article content">
+        <article ref={articleRef} className="min-w-0 flex-1 max-w-[65ch]" aria-label="Article content">
 
           {/* Lead / excerpt */}
           <p
@@ -450,33 +454,33 @@ const BlogPost: React.FC = () => {
 
           {/* ── CTA ── */}
           <div
-            className="mt-10 rounded-xl p-6 sm:p-8 border text-center"
-            style={{ backgroundColor: S.surface, borderColor: S.border }}
+            className="mt-12 rounded-2xl p-8 sm:p-10 border text-center transition-shadow"
+            style={{ backgroundColor: S.surface, borderColor: S.border, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
           >
             <h3
-              className="mb-2"
-              style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.4rem', fontWeight: 400 }}
+              className="mb-3"
+              style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.6rem', fontWeight: 400 }}
             >
               Try Genesis Free
             </h3>
-            <p className="text-sm mb-5" style={{ color: S.textMuted }}>
+            <p className="text-[15px] leading-relaxed mb-8 max-w-md mx-auto" style={{ color: S.textMuted }}>
               Choose a realm. Meet Gen. Create your first illustrated story — no prompt engineering required.
             </p>
             <a
               href="https://iamazeyou.me/welcome"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2"
-              style={{ backgroundColor: S.accent }}
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[15px] font-medium text-white transition-all hover:shadow-lg hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2"
+              style={{ backgroundColor: S.accent, boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)' }}
             >
               Start with Spark (Free)
               <ExternalLink className="w-4 h-4" aria-hidden="true" />
             </a>
           </div>
 
-          <div className="mt-8">
+          <div className="mt-10">
             <Link
               to="/blog"
-              className="inline-flex items-center gap-2 text-sm transition-opacity hover:opacity-70"
-              style={{ color: S.accent }}
+              className="inline-flex items-center gap-2 text-sm transition-opacity hover:opacity-70 px-4 py-2 rounded-full border"
+              style={{ color: S.text, borderColor: S.border, backgroundColor: S.surface }}
             >
               <ArrowLeft className="w-4 h-4" />
               All Posts
@@ -487,29 +491,50 @@ const BlogPost: React.FC = () => {
         {/* ── Sticky TOC (desktop only) ── */}
         {headings.length > 0 && (
           <aside
-            className="hidden xl:block w-56 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto"
+            className="hidden xl:block w-72 shrink-0 sticky top-28 self-start max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl p-6"
+            style={{
+              backgroundColor: S.surface,
+              border: `1px solid ${S.border}`,
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.02)',
+            }}
             aria-label="Table of contents"
           >
+            <style>{`
+              aside::-webkit-scrollbar {
+                width: 4px;
+              }
+              aside::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              aside::-webkit-scrollbar-thumb {
+                background-color: ${S.border};
+                border-radius: 10px;
+              }
+              aside:hover::-webkit-scrollbar-thumb {
+                background-color: #d6d3d1; /* stone-300 */
+              }
+            `}</style>
             <p
-              className="text-xs font-semibold uppercase tracking-widest mb-4"
+              className="text-xs font-semibold uppercase tracking-widest mb-5"
               style={{ color: S.textMuted, fontFamily: S.fontSans }}
             >
               Contents
             </p>
             <nav>
-              <ul className="space-y-1" role="list">
+              <ul className="space-y-1.5" role="list">
                 {headings.map(({ id, text, level }) => (
                   <li key={id} role="listitem">
                     <a
                       href={`#${id}`}
-                      className="block py-1 text-sm leading-snug transition-colors duration-150 focus-visible:outline-none"
+                      className="block py-1 text-sm leading-snug transition-colors duration-150 focus-visible:outline-none rounded-r"
                       style={{
-                        paddingLeft: level === 3 ? '1.5rem' : '0.5rem',
-                        color: activeHeading === id ? S.accent : S.textMuted,
+                        paddingLeft: level === 3 ? '1.5rem' : '0.75rem',
+                        color: activeHeading === id ? S.text : S.textMuted,
                         fontWeight: activeHeading === id ? 500 : 400,
                         fontFamily: S.fontSans,
                         fontSize: level === 3 ? '0.8125rem' : '0.875rem',
                         borderLeft: activeHeading === id ? `2px solid ${S.accent}` : '2px solid transparent',
+                        backgroundColor: activeHeading === id ? S.bg : 'transparent',
                       }}
                     >
                       {text}
@@ -524,16 +549,18 @@ const BlogPost: React.FC = () => {
 
       {/* ── Footer ── */}
       <footer
-        className="border-t py-10 text-center text-sm mt-4"
-        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans }}
+        className="border-t py-12 text-center text-sm mt-8"
+        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans, backgroundColor: S.surface }}
       >
-        <p>
-          © 2026{' '}
-          <a href={BASE_URL} className="underline underline-offset-2 transition-opacity hover:opacity-70" style={{ color: S.accent }}>
-            Genesis
-          </a>
-          {' '}— AI Visual Storytelling Platform
-        </p>
+        <div className="max-w-5xl mx-auto px-5">
+          <p>
+            © 2026{' '}
+            <a href={BASE_URL} className="underline underline-offset-4 transition-colors hover:text-black" style={{ color: S.accent }}>
+              Genesis
+            </a>
+            {' '}— AI Visual Storytelling Platform
+          </p>
+        </div>
       </footer>
     </div>
   );

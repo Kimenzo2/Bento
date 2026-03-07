@@ -67,33 +67,37 @@ const BlogIndex: React.FC = () => {
 
       {/* ── Nav ── */}
       <header
-        className="sticky top-0 z-40 w-full border-b backdrop-blur-sm"
-        style={{ backgroundColor: 'rgba(250,250,249,0.92)', borderColor: S.border }}
+        className="sticky top-0 z-40 w-full border-b backdrop-blur-md"
+        style={{ backgroundColor: 'rgba(250,250,249,0.85)', borderColor: S.border }}
       >
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
-            style={{ color: S.textMuted, fontFamily: S.fontSans }}
-            aria-label="Back to Genesis"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Genesis</span>
-          </Link>
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
+              style={{ color: S.textMuted, fontFamily: S.fontSans }}
+              aria-label="Back to Genesis"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Genesis</span>
+            </Link>
 
-          <Link
-            to="/blog"
-            className="text-base font-normal tracking-tight"
-            style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.1rem' }}
-            aria-label="Genesis Blog"
-          >
-            Genesis Blog
-          </Link>
+            <div className="w-px h-4 hidden sm:block" style={{ backgroundColor: S.border }} aria-hidden="true" />
+
+            <Link
+              to="/blog"
+              className="text-base font-normal tracking-tight"
+              style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.25rem' }}
+              aria-label="Genesis Blog"
+            >
+              Genesis Blog
+            </Link>
+          </div>
 
           <a
             href="/welcome"
-            className="hidden sm:inline-flex items-center px-4 py-1.5 rounded text-sm font-medium transition-opacity hover:opacity-90"
-            style={{ backgroundColor: S.accent, color: '#fff', fontFamily: S.fontSans }}
+            className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full text-sm font-medium transition-all hover:shadow-lg hover:-translate-y-0.5"
+            style={{ backgroundColor: S.accent, color: '#fff', fontFamily: S.fontSans, boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)' }}
           >
             Try Free
           </a>
@@ -105,7 +109,7 @@ const BlogIndex: React.FC = () => {
         className="border-b"
         style={{ borderColor: S.border, backgroundColor: S.surface }}
       >
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 py-14 sm:py-20">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <p
             className="text-xs font-semibold uppercase tracking-widest mb-4"
             style={{ color: S.accent, fontFamily: S.fontSans }}
@@ -135,11 +139,11 @@ const BlogIndex: React.FC = () => {
       </section>
 
       {/* ── Posts ── */}
-      <main className="max-w-4xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
+      <main className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
         {posts.length === 0 ? (
           <p className="text-center py-24" style={{ color: S.textMuted }}>No posts yet — check back soon.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px" style={{ border: `1px solid ${S.border}`, borderRadius: '12px', overflow: 'hidden', backgroundColor: S.border }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {posts.map((post) => (
               <BlogCard key={post.slug} post={post} />
             ))}
@@ -149,14 +153,16 @@ const BlogIndex: React.FC = () => {
 
       {/* ── Footer ── */}
       <footer
-        className="border-t py-10 text-center text-sm"
-        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans }}
+        className="border-t py-12 text-center text-sm"
+        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans, backgroundColor: S.surface }}
       >
-        <p>
-          © 2026{' '}
-          <a href={BASE_URL} className="underline underline-offset-2 transition-opacity hover:opacity-70" style={{ color: S.accent }}>Genesis</a>
-          {' '}— AI Visual Storytelling Platform
-        </p>
+        <div className="max-w-5xl mx-auto px-5">
+          <p>
+            © 2026{' '}
+            <a href={BASE_URL} className="underline underline-offset-4 transition-colors hover:text-black" style={{ color: S.accent }}>Genesis</a>
+            {' '}— AI Visual Storytelling Platform
+          </p>
+        </div>
       </footer>
     </div>
   );

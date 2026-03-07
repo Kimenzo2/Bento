@@ -23,25 +23,29 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
   return (
     <Link
       to={`/blog/${post.slug}`}
-      className="group block transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-      style={{ backgroundColor: S.surface }}
+      className="group block transition-all duration-300 hover:shadow-xl hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 rounded-2xl overflow-hidden h-full flex flex-col"
+      style={{
+        backgroundColor: S.surface,
+        border: `1px solid ${S.border}`,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+      }}
       aria-label={`Read: ${post.title}`}
     >
       {/* Cover strip */}
       <div
-        className="w-full h-2"
+        className="w-full h-2 shrink-0 transition-all duration-300 group-hover:h-3"
         style={{ background: post.coverGradient }}
         aria-hidden="true"
       />
 
       {/* Content */}
-      <div className="p-6 sm:p-7 flex flex-col gap-3">
+      <div className="p-6 flex flex-col gap-4 flex-1">
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {post.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="px-2 py-0.5 rounded text-xs font-medium"
+              className="px-3 py-1 rounded-full text-[11px] font-medium tracking-wide uppercase"
               style={{
                 backgroundColor: S.accentBg,
                 color: S.accent,
@@ -67,14 +71,14 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
         </h2>
 
         <p
-          className="text-sm leading-relaxed line-clamp-3"
+          className="text-sm leading-relaxed line-clamp-3 mb-2"
           style={{ fontFamily: S.fontSans, color: S.textMuted }}
         >
           {post.excerpt}
         </p>
 
         <div
-          className="flex items-center gap-3 text-xs pt-2 border-t"
+          className="flex items-center gap-3 text-xs pt-4 mt-auto border-t"
           style={{ color: S.textMuted, borderColor: S.border, fontFamily: S.fontSans }}
         >
           <time dateTime={post.date}>{formatDate(post.date)}</time>
@@ -83,7 +87,14 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
             <Clock className="w-3 h-3" aria-hidden="true" />
             {post.readingTime} min
           </span>
-          <span className="ml-auto text-xs font-medium" style={{ color: S.accent }}>Read →</span>
+          <span
+            className="ml-auto flex items-center justify-center w-8 h-8 rounded-full transition-colors group-hover:bg-opacity-10"
+            style={{ color: S.accent, backgroundColor: S.accentBg }}
+            aria-hidden="true"
+          >
+            <span className="sr-only">Read</span>
+            →
+          </span>
         </div>
       </div>
     </Link>
