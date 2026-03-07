@@ -1,7 +1,6 @@
 import { IcoZap } from './IconscoutIcons';
-import { BookOpen, Image, ImageIcon, LayoutDashboard, Menu, Moon, Newspaper, PenTool, Sun, Trophy, User, X } from 'lucide-react';
+import { BookOpen, Image, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUserSettings } from '../hooks/useUserSettings';
@@ -21,7 +20,6 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   const { user, signOut: _signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { displayName, avatarUrl } = useUserSettings();
-  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
 
@@ -108,15 +106,6 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               <span>{item.label}</span>
             </Button>
           ))}
-          <Button
-            variant="ghost"
-            onClick={() => { navigate('/blog'); setIsMobileMenuOpen(false); }}
-            className="group flex px-4 py-2 rounded-full font-heading font-medium text-cocoa-light hover:text-coral-burst hover:bg-cream-soft"
-            aria-label="Blog"
-          >
-            <Newspaper className="w-4 h-4 group-hover:animate-nav-dance" />
-            <span>Blog</span>
-          </Button>
         </div>
 
         {/* Right Actions */}
@@ -263,15 +252,6 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             )}
           </Button>
         ))}
-        <Button
-          variant="ghost"
-          onClick={() => { navigate('/blog'); setIsMobileMenuOpen(false); }}
-          className="group flex gap-4 px-6 py-4 rounded-2xl font-heading text-lg min-h-14 text-cocoa-light hover:bg-surface/50"
-          aria-label="Blog"
-        >
-          <Newspaper className="w-6 h-6 group-hover:animate-nav-dance text-cocoa-light" />
-          <span>Blog</span>
-        </Button>
       </div>
     </>
   );

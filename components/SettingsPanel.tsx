@@ -1,5 +1,5 @@
 import { IcoBook } from './IconscoutIcons';
-import { ArrowLeft, Bell, Calendar, CheckCircle, CreditCard, Database, Eye, FolderOpen, Globe, Image, ImageIcon, Info, LogOut, Save, Shield, Smartphone, Type, Upload, User, Wrench } from 'lucide-react';
+import { ArrowLeft, Bell, Calendar, CheckCircle, CreditCard, Database, Eye, FolderOpen, Globe, Image, ImageIcon, Info, LogOut, Newspaper, Save, Shield, Smartphone, Type, Upload, User, Wrench } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile, updateUserProfile, type UserProfile } from '../services/profileService';
@@ -365,6 +365,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             >
               <IcoBook className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
               <span className="text-sm md:text-base whitespace-nowrap">{t('helpCenter', { defaultValue: 'Help Center' })}</span>
+            </a>
+
+            <a
+              href="/blog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft"
+            >
+              <Newspaper className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
+              <span className="text-sm md:text-base whitespace-nowrap">Blog</span>
             </a>
           </div>
         </div>
