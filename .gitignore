@@ -57,9 +57,42 @@ supabase_*.sql
 PAYSTACK_PLAN_CODES.txt
 metadata.json
 
-# Documentation (keep in repo but can be regenerated)
-# SUPABASE_AUTH_TROUBLESHOOTING.md
-# SUPABASE_SETUP.md
+# Internal research, planning, and prompt files — must NOT be public
+# (AI crawlers read these from GitHub and construct wrong brand descriptions)
+GROK_RESEARCH_PROMPT.md
+DAILY_GROK_RESEARCH_PROMPT.md
+SCALING_RESEARCH_PROMPT.md
+GMAIL_RESEARCH_PROMPT.md
+RESEARCH_SYNTHESIS_FRAMEWORK.md
+MARS_CLASS_ARCHITECTURE.md
+
+# Internal setup / ops docs — not relevant to public
+APPLE_PAY_SETUP.md
+FONT_INTEGRATION_GUIDE.md
+MIGRATION_GUIDE.md
+SUPABASE_AUTH_TROUBLESHOOTING.md
+SUPABASE_SETUP.md
+
+# Build logs and CI output
+build_out.txt
+build_success.txt
+errors.txt
+vite_out.txt
+tsc_err.txt
+tsc_errors.txt
+tsc_errors2.txt
+tsc_fresh.txt
+tsc_out.txt
+tsc_out2.txt
+tsc_check3.txt
+qsc_clean.txt
+temp_qsc.txt
+status.txt
+fix_*.cjs
+fix-*.cjs
+fix-*.js
+verify-*.cjs
+refactor.cjs
 
 # Build artifacts
 *.tsbuildinfo
