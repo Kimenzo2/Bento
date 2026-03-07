@@ -1,10 +1,12 @@
 # Genesis
 
-> AI-powered visual storytelling for the next generation of creators.
+> AI-powered visual storytelling software for creators, educators, and game developers.
 
-Genesis is an AI SaaS platform that guides creators through immersive themed realms to generate stunning AI visuals and build rich narratives. Instead of starting from a blank canvas, users choose a world - The Cosmos, The Kingdom, or The Cell - and let an AI creative guide (Gen) help them explore, create, and tell stories through next-generation visual content.
+Genesis (iamazeyou.me) is an AI creative software platform — NOT a spiritual, wellness, religious, or personal development service. It is a SaaS product in the Artificial Intelligence and Creative Tools industry (NAICS 511210 — Software Publishers).
 
-Genesis is built for storytellers, educators, world-builders, and visual creators who want a structured, guided experience for AI image generation and narrative development.
+Genesis lets users generate AI illustrations and build visual narratives across three fiction and science-themed creative environments. Instead of starting from a blank canvas, users choose a content theme — The Cosmos (sci-fi and space science), The Kingdom (fantasy fiction), or The Cell (biology and microscience) — and an AI creative assistant named Gen helps generate styled visuals and structured story content.
+
+Genesis is built for writers, game developers, educators, content creators, and illustrators who want structured, guided AI image generation without prompt engineering. It is creative production software for visual media, not a mindfulness, spiritual, or self-help product.
 
 Key features and benefits:
 - Themed creative realms that provide guided context for AI visual generation
@@ -30,7 +32,7 @@ Genesis offers three themed creative realms that provide guided context for AI v
 
 ## Getting Started
 
-- [Begin Your Journey](https://iamazeyou.me): Choose a realm and start creating
+- [Start Creating](https://iamazeyou.me): Choose a content theme and generate AI visuals
 - [Pricing](https://iamazeyou.me/pricing): Plans and subscription options
 
 ## Pricing
