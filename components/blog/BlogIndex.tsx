@@ -1,11 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Rss } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { getAllPosts } from '../../lib/blog/posts';
 import { usePageSEO } from '../../hooks/usePageSEO';
 import BlogCard from './BlogCard';
 
 const BASE_URL = 'https://iamazeyou.me';
+
+/* ── Searchable-inspired design tokens ── */
+const S = {
+  bg: '#FAFAF9',
+  surface: '#FFFFFF',
+  text: '#1C1917',
+  textMuted: '#78716C',
+  border: '#E7E5E4',
+  accent: '#C15F3C',
+  accentBg: '#FDF3EE',
+  fontSerif: '"Instrument Serif", Georgia, serif',
+  fontSans: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+} as const;
 
 const BlogIndex: React.FC = () => {
   const posts = getAllPosts();
@@ -20,7 +33,6 @@ const BlogIndex: React.FC = () => {
       'Insights on AI storytelling, market trends, product updates, and the creator economy from the team behind Genesis.',
   });
 
-  /* JSON-LD Blog list schema */
   React.useEffect(() => {
     const id = 'blog-index-jsonld';
     let el = document.getElementById(id) as HTMLScriptElement | null;
@@ -36,11 +48,7 @@ const BlogIndex: React.FC = () => {
       name: 'Genesis Blog',
       description: 'Insights on AI visual storytelling, market trends, and the creator economy.',
       url: `${BASE_URL}/blog`,
-      publisher: {
-        '@type': 'Organization',
-        name: 'Genesis',
-        url: BASE_URL,
-      },
+      publisher: { '@type': 'Organization', name: 'Genesis', url: BASE_URL },
       blogPost: posts.map((p) => ({
         '@type': 'BlogPosting',
         headline: p.title,
@@ -51,100 +59,74 @@ const BlogIndex: React.FC = () => {
         keywords: p.tags.join(', '),
       })),
     });
-    return () => {
-      document.getElementById(id)?.remove();
-    };
+    return () => { document.getElementById(id)?.remove(); };
   }, [posts]);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        backgroundColor: 'var(--color-background, #FFF8E7)',
-        color: 'var(--color-text, #5a5a5a)',
-        fontFamily: 'var(--font-body)',
-      }}
-    >
-      {/* ─── Top nav bar ─── */}
+    <div className="min-h-screen" style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}>
+
+      {/* ── Nav ── */}
       <header
-        className="sticky top-0 z-40 w-full border-b backdrop-blur-md"
-        style={{
-          backgroundColor: 'var(--color-background, #FFF8E7)',
-          borderColor: 'var(--color-border, #FFE4CC)',
-          opacity: 0.97,
-        }}
+        className="sticky top-0 z-40 w-full border-b backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(250,250,249,0.92)', borderColor: S.border }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <Link
             to="/"
-            className="flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 rounded"
-            style={{ color: 'var(--color-text-light, #8b7e74)' }}
-            aria-label="Back to Genesis app"
+            className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
+            style={{ color: S.textMuted, fontFamily: S.fontSans }}
+            aria-label="Back to Genesis"
           >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            <span>Back to Genesis</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Genesis</span>
           </Link>
 
           <Link
             to="/blog"
-            className="flex items-center gap-2 font-bold text-base tracking-tight"
-            style={{
-              fontFamily: 'var(--font-heading)',
-              color: 'var(--color-text, #5a5a5a)',
-            }}
-            aria-label="Genesis Blog home"
+            className="text-base font-normal tracking-tight"
+            style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.1rem' }}
+            aria-label="Genesis Blog"
           >
-            <Rss className="w-4 h-4" style={{ color: 'var(--color-primary-start, #FF9B71)' }} />
             Genesis Blog
           </Link>
 
           <a
             href="/welcome"
-            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2"
-            style={{
-              background:
-                'linear-gradient(90deg, var(--color-primary-start, #FF9B71), var(--color-primary-end, #FFD93D))',
-              color: '#fff',
-              fontFamily: 'var(--font-body)',
-            }}
+            className="hidden sm:inline-flex items-center px-4 py-1.5 rounded text-sm font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: S.accent, color: '#fff', fontFamily: S.fontSans }}
           >
-            Try Genesis Free
+            Try Free
           </a>
         </div>
       </header>
 
-      {/* ─── Hero ─── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-14 pb-10 sm:pt-20 sm:pb-14">
-        <div className="max-w-2xl">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-5 border"
-            style={{
-              color: 'var(--color-primary-start, #FF9B71)',
-              borderColor: 'var(--color-primary-start, #FF9B71)',
-              backgroundColor: 'transparent',
-              fontFamily: 'var(--font-body)',
-            }}
+      {/* ── Hero ── */}
+      <section
+        className="border-b"
+        style={{ borderColor: S.border, backgroundColor: S.surface }}
+      >
+        <div className="max-w-4xl mx-auto px-5 sm:px-8 py-14 sm:py-20">
+          <p
+            className="text-xs font-semibold uppercase tracking-widest mb-4"
+            style={{ color: S.accent, fontFamily: S.fontSans }}
           >
-            <Rss className="w-3 h-3" aria-hidden="true" />
             {posts.length} {posts.length === 1 ? 'Article' : 'Articles'}
-          </div>
-
+          </p>
           <h1
-            className="text-4xl sm:text-5xl font-bold leading-tight mb-4"
+            className="leading-tight mb-4"
             style={{
-              fontFamily: 'var(--font-heading)',
-              color: 'var(--color-text, #5a5a5a)',
+              fontFamily: S.fontSerif,
+              color: S.text,
+              fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
+              fontWeight: 400,
+              letterSpacing: '-0.01em',
             }}
           >
             Genesis Blog
           </h1>
-
           <p
-            className="text-lg sm:text-xl leading-relaxed"
-            style={{
-              color: 'var(--color-text-light, #8b7e74)',
-              fontFamily: 'var(--font-body)',
-            }}
+            className="text-lg leading-relaxed max-w-xl"
+            style={{ color: S.textMuted, fontFamily: S.fontSans }}
           >
             Insights on AI visual storytelling, market trends, product updates, and the creator
             economy — from the team building Genesis.
@@ -152,17 +134,12 @@ const BlogIndex: React.FC = () => {
         </div>
       </section>
 
-      {/* ─── Posts grid ─── */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
+      {/* ── Posts ── */}
+      <main className="max-w-4xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
         {posts.length === 0 ? (
-          <div
-            className="text-center py-24"
-            style={{ color: 'var(--color-text-light, #8b7e74)' }}
-          >
-            <p className="text-lg">No posts yet — check back soon.</p>
-          </div>
+          <p className="text-center py-24" style={{ color: S.textMuted }}>No posts yet — check back soon.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px" style={{ border: `1px solid ${S.border}`, borderRadius: '12px', overflow: 'hidden', backgroundColor: S.border }}>
             {posts.map((post) => (
               <BlogCard key={post.slug} post={post} />
             ))}
@@ -170,25 +147,15 @@ const BlogIndex: React.FC = () => {
         )}
       </main>
 
-      {/* ─── Footer ─── */}
+      {/* ── Footer ── */}
       <footer
-        className="border-t py-8 text-center text-sm"
-        style={{
-          borderColor: 'var(--color-border, #FFE4CC)',
-          color: 'var(--color-text-light, #8b7e74)',
-          fontFamily: 'var(--font-body)',
-        }}
+        className="border-t py-10 text-center text-sm"
+        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans }}
       >
         <p>
           © 2026{' '}
-          <a
-            href={BASE_URL}
-            className="underline underline-offset-2 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--color-primary-start, #FF9B71)' }}
-          >
-            Genesis
-          </a>{' '}
-          — AI Visual Storytelling Platform
+          <a href={BASE_URL} className="underline underline-offset-2 transition-opacity hover:opacity-70" style={{ color: S.accent }}>Genesis</a>
+          {' '}— AI Visual Storytelling Platform
         </p>
       </footer>
     </div>

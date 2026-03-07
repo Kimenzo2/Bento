@@ -13,6 +13,19 @@ import { usePageSEO } from '../../hooks/usePageSEO';
 
 const BASE_URL = 'https://iamazeyou.me';
 
+/* ── Searchable-inspired design tokens ── */
+const S = {
+  bg: '#FAFAF9',
+  surface: '#FFFFFF',
+  text: '#1C1917',
+  textMuted: '#78716C',
+  border: '#E7E5E4',
+  accent: '#C15F3C',
+  accentBg: '#FDF3EE',
+  fontSerif: '"Instrument Serif", Georgia, serif',
+  fontSans: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+} as const;
+
 /* ─────────────────────────────────────────────────────────────
    Heading renderer: injects stable id so TOC anchor links work
 ───────────────────────────────────────────────────────────────*/
@@ -23,16 +36,17 @@ function HeadingRenderer(level: 2 | 3 | 4) {
     const text = typeof children === 'string' ? children : '';
     const id = slugifyHeading(text);
     const styles: React.CSSProperties = {
-      fontFamily: 'var(--font-heading)',
-      color: 'var(--color-text, #5a5a5a)',
+      fontFamily: S.fontSerif,
+      color: S.text,
+      fontWeight: 400,
       scrollMarginTop: '80px',
     };
     if (level === 2) {
-      Object.assign(styles, { fontSize: '1.6rem', fontWeight: 700, marginTop: '2.5rem', marginBottom: '0.75rem', lineHeight: 1.3 });
+      Object.assign(styles, { fontSize: '1.65rem', marginTop: '2.75rem', marginBottom: '0.75rem', lineHeight: 1.25, letterSpacing: '-0.01em' });
     } else if (level === 3) {
-      Object.assign(styles, { fontSize: '1.2rem', fontWeight: 700, marginTop: '2rem', marginBottom: '0.5rem', lineHeight: 1.4 });
+      Object.assign(styles, { fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.5rem', lineHeight: 1.35 });
     } else {
-      Object.assign(styles, { fontSize: '1.05rem', fontWeight: 600, marginTop: '1.5rem', marginBottom: '0.4rem' });
+      Object.assign(styles, { fontSize: '1.05rem', fontWeight: 500, marginTop: '1.5rem', marginBottom: '0.4rem' });
     }
     return (
       <Tag id={id} style={styles} {...props}>
@@ -155,7 +169,6 @@ const BlogPost: React.FC = () => {
         await navigator.share({ title: post.title, text: post.excerpt, url: fullUrl });
       } else {
         await navigator.clipboard.writeText(fullUrl);
-        // Simple visual feedback — no toast dependency needed
         alert('Link copied to clipboard!');
       }
     } catch {
@@ -164,68 +177,48 @@ const BlogPost: React.FC = () => {
   };
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        backgroundColor: 'var(--color-background, #FFF8E7)',
-        color: 'var(--color-text, #5a5a5a)',
-        fontFamily: 'var(--font-body)',
-      }}
-    >
-      {/* ─── Reading progress bar ─── */}
+    <div className="min-h-screen" style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}>
+
+      {/* ── Reading progress bar ── */}
       <div
         aria-hidden="true"
-        className="fixed top-0 left-0 z-50 h-1 transition-all duration-100"
-        style={{
-          width: `${readingProgress}%`,
-          background:
-            'linear-gradient(90deg, var(--color-primary-start, #FF9B71), var(--color-primary-end, #FFD93D))',
-        }}
+        className="fixed top-0 left-0 z-50 h-0.5 transition-all duration-100"
+        style={{ width: `${readingProgress}%`, backgroundColor: S.accent }}
       />
 
-      {/* ─── Sticky article nav ─── */}
+      {/* ── Sticky nav ── */}
       <header
-        className="sticky top-0 z-40 w-full border-b backdrop-blur-md"
-        style={{
-          backgroundColor: 'var(--color-background, #FFF8E7)',
-          borderColor: 'var(--color-border, #FFE4CC)',
-          opacity: 0.97,
-        }}
+        className="sticky top-0 z-40 w-full border-b backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(250,250,249,0.92)', borderColor: S.border }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between gap-3">
           <Link
             to="/blog"
-            className="flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70 shrink-0 focus-visible:outline-none focus-visible:ring-2 rounded"
-            style={{ color: 'var(--color-text-light, #8b7e74)' }}
+            className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70 shrink-0 focus-visible:outline-none focus-visible:ring-2 rounded"
+            style={{ color: S.textMuted }}
             aria-label="Back to blog"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             <span className="hidden sm:inline">All Posts</span>
           </Link>
 
-          {/* Breadcrumb — hidden on very small screens */}
           <nav
             aria-label="Breadcrumb"
             className="hidden md:flex items-center gap-1.5 text-xs overflow-hidden"
-            style={{ color: 'var(--color-text-light, #8b7e74)' }}
+            style={{ color: S.textMuted }}
           >
             <Link to="/" className="hover:opacity-70 transition-opacity whitespace-nowrap">Genesis</Link>
             <ChevronRight className="w-3 h-3 shrink-0" aria-hidden="true" />
             <Link to="/blog" className="hover:opacity-70 transition-opacity whitespace-nowrap">Blog</Link>
             <ChevronRight className="w-3 h-3 shrink-0" aria-hidden="true" />
-            <span className="truncate max-w-[160px]" style={{ color: 'var(--color-text, #5a5a5a)' }}>
-              {post.title}
-            </span>
+            <span className="truncate max-w-[180px]" style={{ color: S.text }}>{post.title}</span>
           </nav>
 
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 shrink-0"
-            style={{
-              color: 'var(--color-primary-start, #FF9B71)',
-              borderColor: 'var(--color-primary-start, #FF9B71)',
-            }}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded border transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 shrink-0"
+            style={{ color: S.accent, borderColor: S.border, backgroundColor: S.surface }}
             aria-label="Share this article"
           >
             <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
@@ -234,25 +227,20 @@ const BlogPost: React.FC = () => {
         </div>
       </header>
 
-      {/* ─── Hero ─── */}
-      <div
-        className="w-full py-16 sm:py-20 px-4 sm:px-6"
-        style={{ background: post.coverGradient }}
-        role="banner"
-      >
-        <div className="max-w-3xl mx-auto">
+      {/* ── Hero ── */}
+      <div className="border-b" style={{ borderColor: S.border, backgroundColor: S.surface }}>
+        {/* Thin accent bar from post's cover gradient */}
+        <div className="w-full h-1" style={{ background: post.coverGradient }} aria-hidden="true" />
+
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-12 sm:py-16" role="banner">
           {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-5" role="list" aria-label="Post tags">
+          <div className="flex flex-wrap gap-2 mb-6" role="list" aria-label="Post tags">
             {post.tags.map((tag) => (
               <span
                 key={tag}
                 role="listitem"
-                className="px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm"
-                style={{
-                  backgroundColor: 'rgba(0,0,0,0.22)',
-                  color: '#fff',
-                  fontFamily: 'var(--font-body)',
-                }}
+                className="px-2.5 py-0.5 rounded text-xs font-medium"
+                style={{ backgroundColor: S.accentBg, color: S.accent, fontFamily: S.fontSans }}
               >
                 {tag}
               </span>
@@ -261,21 +249,21 @@ const BlogPost: React.FC = () => {
 
           {/* Title */}
           <h1
-            className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-6"
+            className="leading-tight mb-6"
             style={{
-              fontFamily: 'var(--font-heading)',
-              color: '#fff',
-              textShadow: '0 1px 3px rgba(0,0,0,0.15)',
+              fontFamily: S.fontSerif,
+              color: S.text,
+              fontSize: 'clamp(1.9rem, 4.5vw, 2.75rem)',
+              fontWeight: 400,
+              letterSpacing: '-0.015em',
+              lineHeight: 1.2,
             }}
           >
             {post.title}
           </h1>
 
-          {/* Meta row */}
-          <div
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm"
-            style={{ color: 'rgba(255,255,255,0.88)', fontFamily: 'var(--font-body)' }}
-          >
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm" style={{ color: S.textMuted }}>
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
               <time dateTime={post.date}>{formatDate(post.date)}</time>
@@ -287,359 +275,208 @@ const BlogPost: React.FC = () => {
             </span>
             <span aria-hidden="true">·</span>
             <span>
-              By <strong>{post.author}</strong>
+              By <span style={{ color: S.text, fontWeight: 500 }}>{post.author}</span>
               {post.authorRole ? `, ${post.authorRole}` : ''}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ─── Body: article + sidebar TOC ─── */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14 flex gap-10 items-start">
-        {/* Main article */}
-        <article
-          ref={articleRef}
-          className="min-w-0 flex-1"
-          aria-label="Article content"
-        >
-          {/* Excerpt / lead */}
+      {/* ── Body: article + TOC ── */}
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 py-10 sm:py-14 flex gap-12 items-start">
+
+        {/* Article */}
+        <article ref={articleRef} className="min-w-0 flex-1" aria-label="Article content">
+
+          {/* Lead / excerpt */}
           <p
-            className="text-lg sm:text-xl leading-relaxed mb-10 pb-8 border-b font-medium"
+            className="leading-relaxed mb-10 pb-8 border-b"
             style={{
-              color: 'var(--color-text, #5a5a5a)',
-              borderColor: 'var(--color-border, #FFE4CC)',
-              fontFamily: 'var(--font-body)',
+              color: S.text,
+              borderColor: S.border,
+              fontFamily: S.fontSerif,
+              fontSize: '1.2rem',
+              fontWeight: 400,
+              lineHeight: 1.7,
             }}
           >
             {post.excerpt}
           </p>
 
           {/* Markdown body */}
-          <div>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h2: HeadingRenderer(2),
-                h3: HeadingRenderer(3),
-                h4: HeadingRenderer(4),
-                p({ children }) {
-                  return (
-                    <p
-                      style={{
-                        marginBottom: '1.25rem',
-                        lineHeight: '1.8',
-                        fontSize: '1.0625rem',
-                        color: 'var(--color-text, #5a5a5a)',
-                        fontFamily: 'var(--font-body)',
-                      }}
-                    >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h2: HeadingRenderer(2),
+              h3: HeadingRenderer(3),
+              h4: HeadingRenderer(4),
+              p({ children }) {
+                return (
+                  <p style={{ marginBottom: '1.35rem', lineHeight: '1.8', fontSize: '1.0625rem', color: S.text, fontFamily: S.fontSans }}>
+                    {children}
+                  </p>
+                );
+              },
+              strong({ children }) {
+                return <strong style={{ fontWeight: 600, color: S.text }}>{children}</strong>;
+              },
+              em({ children }) {
+                return <em style={{ fontStyle: 'italic', color: S.textMuted }}>{children}</em>;
+              },
+              blockquote({ children }) {
+                return (
+                  <blockquote
+                    style={{
+                      borderLeft: `3px solid ${S.accent}`,
+                      paddingLeft: '1.25rem',
+                      margin: '1.75rem 0',
+                      color: S.textMuted,
+                      fontFamily: S.fontSerif,
+                      fontSize: '1.1rem',
+                      lineHeight: '1.75',
+                    }}
+                  >
+                    {children}
+                  </blockquote>
+                );
+              },
+              ul({ children }) {
+                return (
+                  <ul style={{ margin: '0.75rem 0 1.35rem 1.5rem', listStyleType: 'disc', lineHeight: '1.8', color: S.text }}>
+                    {children}
+                  </ul>
+                );
+              },
+              ol({ children }) {
+                return (
+                  <ol style={{ margin: '0.75rem 0 1.35rem 1.5rem', listStyleType: 'decimal', lineHeight: '1.8', color: S.text }}>
+                    {children}
+                  </ol>
+                );
+              },
+              li({ children }) {
+                return <li style={{ marginBottom: '0.4rem', fontSize: '1.0625rem' }}>{children}</li>;
+              },
+              a({ href, children }) {
+                const isExternal = href?.startsWith('http');
+                return (
+                  <a
+                    href={href}
+                    target={isExternal ? '_blank' : undefined}
+                    rel={isExternal ? 'noopener noreferrer' : undefined}
+                    style={{ color: S.accent, textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  >
+                    {children}
+                    {isExternal && <ExternalLink className="inline-block w-3 h-3 ml-0.5 align-baseline" aria-label="(opens in new tab)" />}
+                  </a>
+                );
+              },
+              hr() {
+                return <hr style={{ margin: '2.5rem 0', borderColor: S.border }} />;
+              },
+              table({ children }) {
+                return (
+                  <div style={{ overflowX: 'auto', margin: '1.5rem 0' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9375rem', fontFamily: S.fontSans, color: S.text, border: `1px solid ${S.border}` }}>
                       {children}
-                    </p>
-                  );
-                },
-                strong({ children }) {
+                    </table>
+                  </div>
+                );
+              },
+              thead({ children }) {
+                return <thead style={{ backgroundColor: S.bg, borderBottom: `2px solid ${S.border}` }}>{children}</thead>;
+              },
+              th({ children }) {
+                return <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontWeight: 600, color: S.text, whiteSpace: 'nowrap', fontFamily: S.fontSans }}>{children}</th>;
+              },
+              td({ children }) {
+                return <td style={{ padding: '0.6rem 1rem', borderBottom: `1px solid ${S.border}`, verticalAlign: 'top' }}>{children}</td>;
+              },
+              tr({ children }) {
+                return (
+                  <tr
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = S.bg; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+                  >
+                    {children}
+                  </tr>
+                );
+              },
+              code({ children, className }) {
+                const isBlock = className?.includes('language-');
+                if (isBlock) {
                   return (
-                    <strong
-                      style={{
-                        fontWeight: 700,
-                        color: 'var(--color-text, #5a5a5a)',
-                      }}
-                    >
-                      {children}
-                    </strong>
+                    <pre style={{ backgroundColor: S.bg, border: `1px solid ${S.border}`, borderRadius: '8px', padding: '1.25rem', overflowX: 'auto', margin: '1.5rem 0', fontSize: '0.875rem', lineHeight: '1.65', fontFamily: 'ui-monospace, SFMono-Regular, monospace', color: S.text }}>
+                      <code>{children}</code>
+                    </pre>
                   );
-                },
-                em({ children }) {
-                  return (
-                    <em style={{ fontStyle: 'italic', color: 'var(--color-text-light, #8b7e74)' }}>
-                      {children}
-                    </em>
-                  );
-                },
-                blockquote({ children }) {
-                  return (
-                    <blockquote
-                      style={{
-                        borderLeft: '4px solid var(--color-primary-start, #FF9B71)',
-                        paddingLeft: '1.25rem',
-                        margin: '1.75rem 0',
-                        color: 'var(--color-text-light, #8b7e74)',
-                        fontStyle: 'italic',
-                        fontSize: '1.0625rem',
-                        lineHeight: '1.75',
-                      }}
-                    >
-                      {children}
-                    </blockquote>
-                  );
-                },
-                ul({ children }) {
-                  return (
-                    <ul
-                      style={{
-                        margin: '0.75rem 0 1.25rem 1.5rem',
-                        listStyleType: 'disc',
-                        lineHeight: '1.8',
-                        color: 'var(--color-text, #5a5a5a)',
-                        fontFamily: 'var(--font-body)',
-                      }}
-                    >
-                      {children}
-                    </ul>
-                  );
-                },
-                ol({ children }) {
-                  return (
-                    <ol
-                      style={{
-                        margin: '0.75rem 0 1.25rem 1.5rem',
-                        listStyleType: 'decimal',
-                        lineHeight: '1.8',
-                        color: 'var(--color-text, #5a5a5a)',
-                        fontFamily: 'var(--font-body)',
-                      }}
-                    >
-                      {children}
-                    </ol>
-                  );
-                },
-                li({ children }) {
-                  return (
-                    <li style={{ marginBottom: '0.35rem', fontSize: '1.0625rem' }}>{children}</li>
-                  );
-                },
-                a({ href, children }) {
-                  const isExternal = href?.startsWith('http');
-                  return (
-                    <a
-                      href={href}
-                      target={isExternal ? '_blank' : undefined}
-                      rel={isExternal ? 'noopener noreferrer' : undefined}
-                      style={{
-                        color: 'var(--color-primary-start, #FF9B71)',
-                        textDecoration: 'underline',
-                        textUnderlineOffset: '3px',
-                      }}
-                    >
-                      {children}
-                      {isExternal && (
-                        <ExternalLink
-                          className="inline-block w-3 h-3 ml-0.5 align-baseline"
-                          aria-label="(opens in new tab)"
-                        />
-                      )}
-                    </a>
-                  );
-                },
-                hr() {
-                  return (
-                    <hr
-                      style={{
-                        margin: '2.5rem 0',
-                        borderColor: 'var(--color-border, #FFE4CC)',
-                      }}
-                    />
-                  );
-                },
-                /* GFM Tables */
-                table({ children }) {
-                  return (
-                    <div style={{ overflowX: 'auto', margin: '1.5rem 0' }}>
-                      <table
-                        style={{
-                          width: '100%',
-                          borderCollapse: 'collapse',
-                          fontSize: '0.9375rem',
-                          fontFamily: 'var(--font-body)',
-                          color: 'var(--color-text, #5a5a5a)',
-                        }}
-                      >
-                        {children}
-                      </table>
-                    </div>
-                  );
-                },
-                thead({ children }) {
-                  return (
-                    <thead
-                      style={{
-                        backgroundColor: 'var(--color-surface, #fff)',
-                        borderBottom: '2px solid var(--color-border, #FFE4CC)',
-                      }}
-                    >
-                      {children}
-                    </thead>
-                  );
-                },
-                th({ children }) {
-                  return (
-                    <th
-                      style={{
-                        padding: '0.6rem 1rem',
-                        textAlign: 'left',
-                        fontWeight: 700,
-                        color: 'var(--color-text, #5a5a5a)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {children}
-                    </th>
-                  );
-                },
-                td({ children }) {
-                  return (
-                    <td
-                      style={{
-                        padding: '0.6rem 1rem',
-                        borderBottom: '1px solid var(--color-border, #FFE4CC)',
-                        verticalAlign: 'top',
-                      }}
-                    >
-                      {children}
-                    </td>
-                  );
-                },
-                tr({ children }) {
-                  return (
-                    <tr
-                      style={{
-                        transition: 'background-color 0.15s',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.backgroundColor =
-                          'var(--color-surface, #fff)';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      {children}
-                    </tr>
-                  );
-                },
-                code({ children, className }) {
-                  const isBlock = className?.includes('language-');
-                  if (isBlock) {
-                    return (
-                      <pre
-                        style={{
-                          backgroundColor: 'var(--color-surface, #fff)',
-                          border: '1px solid var(--color-border, #FFE4CC)',
-                          borderRadius: '0.75rem',
-                          padding: '1.25rem',
-                          overflowX: 'auto',
-                          margin: '1.5rem 0',
-                          fontSize: '0.875rem',
-                          lineHeight: '1.65',
-                          fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                          color: 'var(--color-text, #5a5a5a)',
-                        }}
-                      >
-                        <code>{children}</code>
-                      </pre>
-                    );
-                  }
-                  return (
-                    <code
-                      style={{
-                        backgroundColor: 'var(--color-surface, #fff)',
-                        border: '1px solid var(--color-border, #FFE4CC)',
-                        borderRadius: '4px',
-                        padding: '0.15em 0.4em',
-                        fontSize: '0.875em',
-                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
-                        color: 'var(--color-primary-start, #FF9B71)',
-                      }}
-                    >
-                      {children}
-                    </code>
-                  );
-                },
-              }}
-            >
-              {post.content}
-            </ReactMarkdown>
-          </div>
+                }
+                return (
+                  <code style={{ backgroundColor: S.accentBg, borderRadius: '4px', padding: '0.15em 0.4em', fontSize: '0.875em', fontFamily: 'ui-monospace, SFMono-Regular, monospace', color: S.accent }}>
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          >
+            {post.content}
+          </ReactMarkdown>
 
-          {/* ─── Author card ─── */}
+          {/* ── Author card ── */}
           <div
             className="mt-12 pt-8 border-t flex items-start gap-4 sm:gap-5"
-            style={{ borderColor: 'var(--color-border, #FFE4CC)' }}
+            style={{ borderColor: S.border }}
           >
             <div
-              className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-xl font-bold text-white"
-              style={{
-                background:
-                  'linear-gradient(135deg, var(--color-primary-start, #FF9B71), var(--color-primary-end, #FFD93D))',
-                fontFamily: 'var(--font-heading)',
-              }}
+              className="w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-lg font-semibold text-white"
+              style={{ backgroundColor: S.accent }}
               aria-hidden="true"
             >
               {post.author.charAt(0)}
             </div>
             <div>
-              <p
-                className="text-sm font-semibold mb-0.5"
-                style={{ color: 'var(--color-text, #5a5a5a)', fontFamily: 'var(--font-heading)' }}
-              >
+              <p className="text-sm font-semibold mb-0.5" style={{ color: S.text, fontFamily: S.fontSans }}>
                 {post.author}
               </p>
               {post.authorRole && (
-                <p
-                  className="text-xs mb-2"
-                  style={{ color: 'var(--color-text-light, #8b7e74)' }}
-                >
-                  {post.authorRole}
-                </p>
+                <p className="text-xs mb-2" style={{ color: S.textMuted }}>{post.authorRole}</p>
               )}
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-light, #8b7e74)' }}>
+              <p className="text-sm leading-relaxed" style={{ color: S.textMuted }}>
                 Building Genesis — an AI visual storytelling platform for creators who want a finished
                 story, not a pile of disconnected images.
               </p>
             </div>
           </div>
 
-          {/* ─── CTA ─── */}
+          {/* ── CTA ── */}
           <div
-            className="mt-10 rounded-2xl p-6 sm:p-8 border text-center"
-            style={{
-              backgroundColor: 'var(--color-surface, #fff)',
-              borderColor: 'var(--color-border, #FFE4CC)',
-            }}
+            className="mt-10 rounded-xl p-6 sm:p-8 border text-center"
+            style={{ backgroundColor: S.surface, borderColor: S.border }}
           >
             <h3
-              className="text-xl sm:text-2xl font-bold mb-2"
-              style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text, #5a5a5a)' }}
+              className="mb-2"
+              style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.4rem', fontWeight: 400 }}
             >
               Try Genesis Free
             </h3>
-            <p
-              className="text-sm mb-5"
-              style={{ color: 'var(--color-text-light, #8b7e74)' }}
-            >
-              Choose a realm. Meet Gen. Create your first illustrated story — no prompt engineering
-              required.
+            <p className="text-sm mb-5" style={{ color: S.textMuted }}>
+              Choose a realm. Meet Gen. Create your first illustrated story — no prompt engineering required.
             </p>
             <a
               href="https://iamazeyou.me/welcome"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2"
-              style={{
-                background:
-                  'linear-gradient(90deg, var(--color-primary-start, #FF9B71), var(--color-primary-end, #FFD93D))',
-                fontFamily: 'var(--font-body)',
-              }}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2"
+              style={{ backgroundColor: S.accent }}
             >
               Start with Spark (Free)
               <ExternalLink className="w-4 h-4" aria-hidden="true" />
             </a>
           </div>
 
-          {/* ─── Post nav ─── */}
           <div className="mt-8">
             <Link
               to="/blog"
-              className="inline-flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70"
-              style={{ color: 'var(--color-primary-start, #FF9B71)' }}
+              className="inline-flex items-center gap-2 text-sm transition-opacity hover:opacity-70"
+              style={{ color: S.accent }}
             >
               <ArrowLeft className="w-4 h-4" />
               All Posts
@@ -647,15 +484,15 @@ const BlogPost: React.FC = () => {
           </div>
         </article>
 
-        {/* ─── Sticky TOC sidebar (desktop only) ─── */}
+        {/* ── Sticky TOC (desktop only) ── */}
         {headings.length > 0 && (
           <aside
-            className="hidden xl:block w-60 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto"
+            className="hidden xl:block w-56 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto"
             aria-label="Table of contents"
           >
             <p
               className="text-xs font-semibold uppercase tracking-widest mb-4"
-              style={{ color: 'var(--color-text-light, #8b7e74)', fontFamily: 'var(--font-body)' }}
+              style={{ color: S.textMuted, fontFamily: S.fontSans }}
             >
               Contents
             </p>
@@ -665,16 +502,14 @@ const BlogPost: React.FC = () => {
                   <li key={id} role="listitem">
                     <a
                       href={`#${id}`}
-                      className="block py-1 text-sm leading-snug transition-colors duration-150 rounded focus-visible:outline-none focus-visible:ring-1"
+                      className="block py-1 text-sm leading-snug transition-colors duration-150 focus-visible:outline-none"
                       style={{
-                        paddingLeft: level === 3 ? '1rem' : '0',
-                        color:
-                          activeHeading === id
-                            ? 'var(--color-primary-start, #FF9B71)'
-                            : 'var(--color-text-light, #8b7e74)',
-                        fontWeight: activeHeading === id ? 600 : 400,
-                        fontFamily: 'var(--font-body)',
+                        paddingLeft: level === 3 ? '1.5rem' : '0.5rem',
+                        color: activeHeading === id ? S.accent : S.textMuted,
+                        fontWeight: activeHeading === id ? 500 : 400,
+                        fontFamily: S.fontSans,
                         fontSize: level === 3 ? '0.8125rem' : '0.875rem',
+                        borderLeft: activeHeading === id ? `2px solid ${S.accent}` : '2px solid transparent',
                       }}
                     >
                       {text}
@@ -687,25 +522,17 @@ const BlogPost: React.FC = () => {
         )}
       </div>
 
-      {/* ─── Footer ─── */}
+      {/* ── Footer ── */}
       <footer
-        className="border-t py-8 text-center text-sm mt-6"
-        style={{
-          borderColor: 'var(--color-border, #FFE4CC)',
-          color: 'var(--color-text-light, #8b7e74)',
-          fontFamily: 'var(--font-body)',
-        }}
+        className="border-t py-10 text-center text-sm mt-4"
+        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans }}
       >
         <p>
           © 2026{' '}
-          <a
-            href={BASE_URL}
-            className="underline underline-offset-2 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--color-primary-start, #FF9B71)' }}
-          >
+          <a href={BASE_URL} className="underline underline-offset-2 transition-opacity hover:opacity-70" style={{ color: S.accent }}>
             Genesis
-          </a>{' '}
-          — AI Visual Storytelling Platform
+          </a>
+          {' '}— AI Visual Storytelling Platform
         </p>
       </footer>
     </div>
