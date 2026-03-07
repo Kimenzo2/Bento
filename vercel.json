@@ -9,14 +9,7 @@
     "api/ai-generate.ts": { "maxDuration": 60 },
     "api/ai-bytez.ts":    { "maxDuration": 60 }
   },
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "www.iamazeyou.me" }],
-      "destination": "https://iamazeyou.me/$1",
-      "permanent": true
-    }
-  ],
+
   "headers": [
     {
       "source": "/.well-known/apple-developer-merchantid-domain-association",
