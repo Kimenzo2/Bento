@@ -179,6 +179,7 @@ async function callGeminiAPI(
     return cached;
   }
 
+  console.log(`🔄 Calling Gemini API (${modelName}) via proxy...`);
   const res = await authenticatedFetch('/api/ai-generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -188,7 +189,6 @@ async function callGeminiAPI(
       maxTokens,
     }),
   });
-  console.log(`🔄 Calling Gemini API (${modelName}) via proxy...`);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

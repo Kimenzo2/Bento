@@ -74,6 +74,13 @@ export default createAuthenticatedHandler(
     const apiKey = nextKey();
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+    // Abort the upstream Gemini request 5 s before Vercel kills the function
+    // (maxDuration = 60 s → internal deadline = 55 s).  This ensures we always
+    // return a well-formed JSON error instead of dropping the connection, which
+    // causes the browser to receive `TypeError: Failed to fetch`.
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 55_000);
+
     try {
       const body: Record<string, unknown> = { contents };
       if (config) body.generationConfig = config;
@@ -84,7 +91,10 @@ export default createAuthenticatedHandler(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+
+      clearTimeout(deadline);
 
       if (!resp.ok) {
         const errBody = await resp.text();
@@ -99,6 +109,10 @@ export default createAuthenticatedHandler(
 
       return res.status(200).json({ text, raw: data });
     } catch (err: any) {
+      clearTimeout(deadline);
+      if (err.name === 'AbortError') {
+        return res.status(504).json({ error: 'Gemini API timeout — request exceeded 55 s' });
+      }
       return res.status(502).json({ error: 'Gemini request failed', details: err.message });
     }
   },

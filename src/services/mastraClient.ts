@@ -65,6 +65,26 @@ const MASTRA_BASE_URL =
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
 
+/**
+ * Returns false when the Mastra server is on localhost but the browser is
+ * running on a remote origin (e.g. the deployed Vercel site).  In that case
+ * every fetch would be blocked by the browser's CSP and there is no point
+ * retrying — it will never work until VITE_MASTRA_URL is set.
+ */
+function isMastraAvailable(): boolean {
+  const isLocalhost =
+    MASTRA_BASE_URL.startsWith('http://localhost') ||
+    MASTRA_BASE_URL.startsWith('http://127.0.0.1');
+
+  if (!isLocalhost) return true; // Deployed Mastra server — always try.
+
+  // In a non-browser context (e.g. SSR / tests) always try.
+  if (typeof window === 'undefined') return true;
+
+  const { hostname } = window.location;
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface WorkflowProgressEvent {
@@ -125,6 +145,14 @@ async function mastraFetch<T>(
   options: RequestInit = {},
   retries = MAX_RETRIES
 ): Promise<T> {
+  if (!isMastraAvailable()) {
+    throw new MastraError(
+      'Mastra server is not available. Set VITE_MASTRA_URL to your deployed Mastra backend.',
+      0,
+      { hint: 'See MIGRATION_GUIDE.md for deployment instructions.' }
+    );
+  }
+
   const token = await getAuthToken();
 
   const headers: Record<string, string> = {
@@ -207,6 +235,15 @@ async function mastraSSE(
   onComplete?: (result: BookGenerationResult) => void,
   onError?: (error: Error) => void
 ): Promise<() => void> {
+  if (!isMastraAvailable()) {
+    const err = new MastraError(
+      'Mastra server is not available. Set VITE_MASTRA_URL to your deployed Mastra backend.',
+      0
+    );
+    onError?.(err);
+    return () => {};
+  }
+
   const token = await getAuthToken();
   let aborted = false;
   const controller = new AbortController();
