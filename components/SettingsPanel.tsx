@@ -371,24 +371,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               href="/blog"
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 hover:opacity-90"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0"
               style={{
-                background: 'linear-gradient(135deg, rgba(255,155,113,0.12) 0%, rgba(255,217,61,0.12) 100%)',
-                border: '1px solid rgba(255,155,113,0.35)',
+                backgroundColor: '#FAFAF9',
+                border: '1px solid #E7E5E4',
               }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F4'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF9'; }}
             >
               <Newspaper
                 className="w-4 h-4 md:w-5 md:h-5 shrink-0"
-                style={{ color: '#FF9B71' }}
+                style={{ color: '#c15f3c' }}
               />
               <span
-                className="text-sm md:text-base whitespace-nowrap font-bold"
+                className="text-sm md:text-base whitespace-nowrap"
                 style={{
-                  fontFamily: '"Fredoka", system-ui, sans-serif',
-                  background: 'linear-gradient(90deg, #FF9B71 0%, #FFD93D 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
+                  fontFamily: '"Instrument Serif", Georgia, serif',
+                  color: '#c15f3c',
+                  fontWeight: 400,
                   letterSpacing: '0.01em',
                 }}
               >

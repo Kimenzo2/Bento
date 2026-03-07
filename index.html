@@ -7,15 +7,15 @@
   <title>Genesis | AI Visual Storytelling for the Next Generation</title>
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Create and explore interactive stories across various realms with our AI-powered visual storytelling and learning platform." />
-  <meta name="keywords" content="AI visual learning, educational content creator, visual storytelling, AI illustration, learning platform, story generator, visual education" />
+  <meta name="description" content="Create illustrated stories, character worlds, and visual learning content with Genesis AI. Choose Cosmos, Kingdom, or Cell — start free." />
+  <meta name="keywords" content="AI visual storytelling, AI character design, illustrated book creator, curriculum visual content, story generator, lesson visual creator, science explainer generator" />
   <meta name="author" content="Genesis" />
   <meta name="robots" content="index, follow" />
 
   <!-- Open Graph / Social Media -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Genesis | Where Imagination Becomes Reality" />
-  <meta property="og:description" content="AI-powered visual storytelling for the next generation. Transform ideas into living worlds — explore galaxies, kingdoms, and the microscopic universe of life." />
+  <meta property="og:title" content="Genesis | Create Illustrated Stories and Visual Learning Content" />
+  <meta property="og:description" content="Create illustrated stories, character worlds, lesson visuals, and science explainers with Genesis AI. Choose a realm, start free, and publish faster." />
   <meta property="og:image" content="https://iamazeyou.me/og-image-optimized.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -26,10 +26,10 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@iamazeyou" />
-  <meta name="twitter:title" content="Genesis | Where Imagination Becomes Reality" />
-  <meta name="twitter:description" content="AI-powered visual storytelling for the next generation. Transform ideas into living, breathing worlds." />
+  <meta name="twitter:title" content="Genesis | Create Illustrated Stories and Visual Learning Content" />
+  <meta name="twitter:description" content="Create illustrated stories, character worlds, lesson visuals, and science explainers with Genesis AI. Choose a realm, start free, and publish faster." />
   <meta name="twitter:image" content="https://iamazeyou.me/og-image-optimized.jpg" />
-  <meta name="twitter:image:alt" content="Genesis - Every journey begins with a spark. Visual learning platform with cosmic, fantasy, and science themes." />
+  <meta name="twitter:image:alt" content="Genesis AI workspace for illustrated stories, character design, and visual learning content across cosmos, fantasy, and biology themes." />
 
   <!-- Additional SEO Meta Tags -->
   <meta name="application-name" content="Genesis" />
@@ -378,18 +378,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://api.dicebear.com" />
 
-  <!-- Google Fonts — non-blocking load to avoid render-blocking FCP/LCP penalty.
-       Uses rel=preload + onload swap trick (widely supported). noscript fallback for JS-disabled. -->
+  <!-- Google Fonts — blocking load ensures Fredoka + Manrope are always present on first paint.
+       Preconnect hints above eliminate the DNS/TLS handshake cost. -->
   <link
-    rel="preload"
-    as="style"
-    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap"
-    onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript>
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Manrope:wght@200..800&display=swap" />
-  </noscript>
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Instrument+Serif&family=Manrope:wght@200..800&display=swap" />
 
   <!-- Global Styles -->
   <style>
@@ -644,7 +637,7 @@
   </script>
 
   <!-- Genesis app skeleton — visible only before React hydrates (#root is empty) -->
-  <div id="gs-skeleton">
+  <div id="gs-skeleton" aria-hidden="true" role="presentation">
     <!-- Nav -->
     <div class="gs-nav">
       <div class="gs-bone" style="width:32px;height:32px;border-radius:10px"></div>
@@ -723,111 +716,77 @@
   <noscript>
     <div style="max-width: 1200px; margin: 0 auto; padding: 2rem; font-family: 'Manrope', system-ui, sans-serif; background: #FFF8E7; min-height: 100vh;">
       <header style="text-align: center; padding: 2rem 0; border-bottom: 2px solid #FFE4CC;">
-        <h1 style="font-size: 2.5rem; color: #FF9B71; margin: 0;">📚 Genesis</h1>
-        <p style="font-size: 1.25rem; color: #5A5A5A; margin-top: 0.5rem;">Enhanced Visual Learning Platform</p>
+        <h2 style="font-size: 2.5rem; color: #FF9B71; margin: 0; font-weight: 800;">Genesis — AI Visual Storytelling Platform</h2>
+        <p style="font-size: 1.25rem; color: #5A5A5A; margin-top: 0.5rem;">Create illustrated stories, character worlds, and visual learning content with AI. Choose a realm, start free, and export polished work faster.</p>
       </header>
-      
+
       <main style="padding: 2rem 0;">
-        <section style="margin-bottom: 3rem;">
-          <h2 style="color: #5A5A5A; font-size: 1.75rem;">Transform Ideas into Visual Learning Content</h2>
-          <p style="color: #8B7E74; line-height: 1.8; font-size: 1.1rem;">
-            Genesis is an AI-powered enhanced visual learning platform that transforms complex ideas into engaging 
-            visual content. Create educational materials, illustrated guides, and curriculum content in minutes.
-          </p>
+        <section style="margin-bottom: 2.5rem;">
+          <h2 style="color: #3D2B1F; font-size: 1.75rem;">What is Genesis?</h2>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1.05rem; margin-bottom: 1rem;">Genesis is an AI-powered visual storytelling platform built for creators, educators, world-builders, and storytellers who want more than a blank canvas. Instead of starting from scratch, you enter one of three immersive creative realms — Cosmos, Kingdom, or Cell — and your AI guide Gen walks with you every step of the way. Each realm provides structured creative context so the AI generates richer, more coherent visuals and narratives from the very first prompt.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1.05rem;">What sets Genesis apart from generic AI image tools is the guided creative experience. Gen does not just wait for instructions — it asks questions, offers narrative branches, and remembers context as your story grows. Every session produces content that is coherent, styled consistently, and deeply personal.</p>
         </section>
 
-        <section style="margin-bottom: 3rem;">
-          <h2 style="color: #5A5A5A; font-size: 1.5rem;">✨ Key Features</h2>
-          <ul style="color: #8B7E74; line-height: 2; font-size: 1rem; padding-left: 1.5rem;">
-            <li><strong>AI Visual Generation</strong> - Transform ideas into stunning visual content</li>
-            <li><strong>Multiple Visual Styles</strong> - Diagrams, infographics, watercolor, realistic, and more</li>
-            <li><strong>Curriculum Builder</strong> - Create structured learning materials with visual aids</li>
-            <li><strong>Easy Export</strong> - Download as PDF, eBook, or share online</li>
-            <li><strong>Collaborative Editing</strong> - Work with team members in real-time</li>
-            <li><strong>Learning Analytics</strong> - Track and optimize your educational content</li>
+        <section style="margin-bottom: 2.5rem;">
+          <h2 style="color: #3D2B1F; font-size: 1.75rem;">The Three Creative Realms</h2>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1.05rem; margin-bottom: 1rem;"><strong>Explore the Cosmos</strong> — Drift through galaxies, witness supernovas, and discover alien civilisations. The Cosmos realm is your gateway to science-inspired visual stories set among the stars, perfect for astronomy enthusiasts, science educators, and space storytellers. Generate accurate nebula art, design exoplanet landscapes, or build an illustrated guide to the solar system.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1.05rem; margin-bottom: 1rem;"><strong>Discover the Kingdom</strong> — Forge legends of knights, dragons, enchanted forests, and ancient magic. Build royal dynasties, design mythical creatures, and illustrate battles and alliances. From children's fairy tales to epic high-fantasy novels, the Kingdom realm adapts to any scale and helps you maintain lore consistency across every scene.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1.05rem;"><strong>Dive into the Cell</strong> — Zoom into the microscopic universe of life itself. The Cell realm transforms biology into stunning visual narratives, from DNA replication to cellular respiration. Teachers use it to build illustrated lesson plans that students actually want to read. Science communicators use it to turn dense research into shareable visual stories.</p>
+        </section>
+
+        <section style="margin-bottom: 2.5rem;">
+          <h2 style="color: #3D2B1F; font-size: 1.5rem;">Key Features</h2>
+          <ul style="color: #5A5A5A; line-height: 2.2; font-size: 1rem; padding-left: 1.5rem;">
+            <li><strong>AI Visual Studio</strong> — Refine and iterate AI-generated images in a hands-on creative workspace with granular controls for style, composition, and character consistency.</li>
+            <li><strong>Guided by Gen</strong> — Your AI creative companion suggests directions, asks clarifying questions about your vision, and keeps the story alive across every scene you create.</li>
+            <li><strong>Curriculum Tools</strong> — Build structured learning paths and illustrated educational materials. Teachers on Studio tier create unlimited modules that students access via a single shareable link.</li>
+            <li><strong>Export and Share</strong> — Download as polished PDF or formatted eBook compatible with Kindle, Kobo, and Apple Books. Share live links viewable on any device without accounts.</li>
+            <li><strong>20+ Visual Styles</strong> — Watercolour, cyberpunk, pixel art, corporate diagrams, sketch, realistic rendering — match any mood, audience, or brand identity.</li>
+            <li><strong>No Prompt Engineering</strong> — Accessible to all skill levels. If you have an idea, Genesis can bring it to life without special syntax or technical knowledge.</li>
+            <li><strong>Character Consistency</strong> — Characters maintain their appearance, outfit, and design language across every generation, solving one of the hardest challenges in AI-driven visual creation.</li>
           </ul>
         </section>
 
-        <section style="margin-bottom: 3rem;">
-          <h2 style="color: #5A5A5A; font-size: 1.5rem;">🎨 Visual Content Styles</h2>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div style="background: white; padding: 1rem; border-radius: 12px; text-align: center; border: 2px solid #FFE4CC;">
-              <span style="font-size: 2rem;">📊</span>
-              <p style="margin: 0.5rem 0 0; color: #5A5A5A; font-weight: 600;">Diagrams</p>
-            </div>
-            <div style="background: white; padding: 1rem; border-radius: 12px; text-align: center; border: 2px solid #FFE4CC;">
-              <span style="font-size: 2rem;">📈</span>
-              <p style="margin: 0.5rem 0 0; color: #5A5A5A; font-weight: 600;">Infographics</p>
-            </div>
-            <div style="background: white; padding: 1rem; border-radius: 12px; text-align: center; border: 2px solid #FFE4CC;">
-              <span style="font-size: 2rem;">📷</span>
-              <p style="margin: 0.5rem 0 0; color: #5A5A5A; font-weight: 600;">Realistic</p>
-            </div>
-            <div style="background: white; padding: 1rem; border-radius: 12px; text-align: center; border: 2px solid #FFE4CC;">
-              <span style="font-size: 2rem;">🖌️</span>
-              <p style="margin: 0.5rem 0 0; color: #5A5A5A; font-weight: 600;">Watercolor</p>
-            </div>
-            <div style="background: white; padding: 1rem; border-radius: 12px; text-align: center; border: 2px solid #FFE4CC;">
-              <span style="font-size: 2rem;">✏️</span>
-              <p style="margin: 0.5rem 0 0; color: #5A5A5A; font-weight: 600;">Sketch</p>
-            </div>
-            <div style="background: white; padding: 1rem; border-radius: 12px; text-align: center; border: 2px solid #FFE4CC;">
-              <span style="font-size: 2rem;">🎓</span>
-              <p style="margin: 0.5rem 0 0; color: #5A5A5A; font-weight: 600;">Educational</p>
-            </div>
-          </div>
+        <section style="margin-bottom: 2.5rem;">
+          <h2 style="color: #3D2B1F; font-size: 1.5rem;">How Genesis Works</h2>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1.05rem; margin-bottom: 1rem;">Getting started takes less than two minutes. First, choose one of three creative realms which sets the tone, vocabulary, and visual palette. Next, describe your idea in plain language — a story, an educational guide, a character sheet — and Gen asks clarifying questions to sharpen the vision. Finally, refine your creation in the Visual Studio, adjust styles, swap scenes, and export as a polished PDF or eBook when satisfied.</p>
         </section>
 
-        <section style="margin-bottom: 3rem;">
-          <h2 style="color: #5A5A5A; font-size: 1.5rem;">💰 Pricing Plans</h2>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #FFE4CC;">
-              <h3 style="color: #5A5A5A; margin: 0;">Spark (Free)</h3>
-              <p style="color: #8B7E74; font-size: 0.9rem;">3 projects/month, basic features</p>
-            </div>
-            <div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #FF9B71;">
-              <h3 style="color: #FF9B71; margin: 0;">Creator</h3>
-              <p style="color: #8B7E74; font-size: 0.9rem;">15 projects/month, premium styles</p>
-            </div>
-            <div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #FFD93D;">
-              <h3 style="color: #5A5A5A; margin: 0;">Studio</h3>
-              <p style="color: #8B7E74; font-size: 0.9rem;">Unlimited projects, all features</p>
-            </div>
-          </div>
+        <section style="margin-bottom: 2.5rem;">
+          <h2 style="color: #3D2B1F; font-size: 1.5rem;">Plans for Every Creator</h2>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 0.5rem;"><strong>Spark — Free:</strong> 3 creations per month, start exploring the realms at no cost.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 0.5rem;"><strong>Creator — $19.99/month:</strong> 30 creations, 12 pages each, no watermarks, commercial licence for selling on Amazon KDP, Etsy, and client work.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 0.5rem;"><strong>Studio — $59.99/month:</strong> Unlimited creations, all visual styles, priority rendering, team access, and full curriculum tools.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem;"><strong>Empire — Custom Pricing:</strong> Enterprise-grade volume, white-label options, and dedicated support for organisations and studios.</p>
         </section>
 
-        <section style="margin-bottom: 3rem;">
-          <h2 style="color: #5A5A5A; font-size: 1.5rem;">❓ Frequently Asked Questions</h2>
-          <div style="margin-top: 1rem;">
-            <details style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #FFE4CC;">
-              <summary style="cursor: pointer; font-weight: 600; color: #5A5A5A;">What is Genesis?</summary>
-              <p style="color: #8B7E74; margin-top: 0.5rem;">Genesis is an AI-powered enhanced visual learning platform that helps you create stunning educational content and illustrated learning materials. Describe your topic or learning objective, and our AI generates professional visuals and formatted content.</p>
-            </details>
-            <details style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #FFE4CC;">
-              <summary style="cursor: pointer; font-weight: 600; color: #5A5A5A;">How do I create content?</summary>
-              <p style="color: #8B7E74; margin-top: 0.5rem;">Creating content is simple: 1) Enter your topic or learning objective, 2) Choose a visual style, 3) Let AI generate your content with illustrations, 4) Edit and customize, 5) Export as PDF, ebook, or share online.</p>
-            </details>
-            <details style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #FFE4CC;">
-              <summary style="cursor: pointer; font-weight: 600; color: #5A5A5A;">Is Genesis free?</summary>
-              <p style="color: #8B7E74; margin-top: 0.5rem;">Yes! Genesis offers a free Spark tier that lets you create 3 projects per month. Premium tiers unlock more visual styles, curriculum tools, and unlimited generations.</p>
-            </details>
-          </div>
+        <section style="margin-bottom: 2.5rem;">
+          <h2 style="color: #3D2B1F; font-size: 1.5rem;">Frequently Asked Questions</h2>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 1rem;"><strong>Do I need design or writing experience?</strong> None at all. Genesis is designed for people who have great ideas but no technical background in design or prompt engineering. The guided realm system removes the intimidation of a blank canvas entirely.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 1rem;"><strong>Can I use the content I create commercially?</strong> Yes, on Creator tier and above. All content you generate on a paid plan comes with a full commercial licence — sell illustrated eBooks, use visuals in client work, publish on platforms like Etsy or Amazon KDP.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 1rem;"><strong>Which AI models power Genesis?</strong> Genesis uses leading generative AI models including Google Gemini for story generation and contextual guidance. The platform is model-agnostic by design — as better models emerge, Genesis integrates them automatically.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem; margin-bottom: 1rem;"><strong>Is Genesis suitable for classroom use?</strong> Absolutely. Curriculum Tools were built specifically for educators who want illustrated lesson materials, interactive learning guides, and assessed creative projects. The Cell realm is especially popular in secondary and higher education science classes.</p>
+          <p style="color: #5A5A5A; line-height: 1.8; font-size: 1rem;"><strong>Is Genesis free?</strong> Yes. The Spark tier lets you create 3 projects per month at no cost. Premium tiers unlock more visual styles, curriculum tools, unlimited creations, and commercial licensing.</p>
         </section>
 
-        <section style="background: linear-gradient(135deg, #FF9B71 0%, #FFD93D 100%); padding: 2rem; border-radius: 16px; text-align: center; color: white;">
-          <h2 style="margin: 0 0 1rem;">Start Creating Today</h2>
-          <p style="margin-bottom: 1.5rem; opacity: 0.9;">Please enable JavaScript to use the Genesis enhanced visual learning platform.</p>
-          <p style="font-size: 0.9rem; opacity: 0.8;">Genesis requires JavaScript for its interactive AI-powered features.</p>
+        <section style="background: linear-gradient(135deg, #FF9B71 0%, #FFD93D 100%); padding: 2.5rem 2rem; border-radius: 16px; text-align: center; color: white;">
+          <h2 style="margin: 0 0 0.75rem; font-size: 1.75rem; font-weight: 800;">Start Creating Today — Free</h2>
+          <p style="margin: 0 auto 1.5rem; max-width: 600px; opacity: 0.95; line-height: 1.7; font-size: 1.05rem;">Genesis is free to try. Choose The Cosmos, The Kingdom, or The Cell — and create your first illustrated story or visual lesson in minutes. No design experience needed.</p>
+          <a href="/welcome" style="display:inline-block;padding:0.9rem 2.75rem;background:#fff;color:#FF6B35;font-weight:800;font-size:1.05rem;border-radius:50px;text-decoration:none;letter-spacing:0.01em;">Choose Your Realm</a>
+          <p style="margin: 1.25rem 0 0; font-size: 0.875rem; opacity: 0.85;">No credit card required &mdash; Spark tier is free forever</p>
         </section>
       </main>
 
       <footer style="text-align: center; padding: 2rem 0; border-top: 2px solid #FFE4CC; margin-top: 2rem;">
         <nav style="margin-bottom: 1rem;">
+          <a href="/pricing" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Pricing</a>
+          <a href="/create" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Create</a>
+          <a href="/visual-studio" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Visual Studio</a>
           <a href="/legal/privacy" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Privacy Policy</a>
           <a href="/legal/terms" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Terms of Service</a>
-          <a href="mailto:support@genesis.app" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Contact</a>
+          <a href="mailto:support@genesis.ai" style="color: #FF9B71; margin: 0 1rem; text-decoration: none;">Contact Support</a>
         </nav>
-        <p style="color: #8B7E74; font-size: 0.9rem;">© 2025 Genesis. Enhanced Visual Learning Platform.</p>
+        <p style="color: #8B7E74; font-size: 0.9rem;">© 2026 Genesis — AI Visual Storytelling Platform</p>
       </footer>
     </div>
   </noscript>
@@ -841,14 +800,14 @@
     <div style="font-family:'Manrope',system-ui,sans-serif;background:#FFF8E7;color:#5A5A5A;max-width:1200px;margin:0 auto;padding:2rem 1.5rem;">
       <header style="text-align:center;padding:3rem 0 2rem;">
         <a href="/" style="text-decoration:none;">
-          <img src="/genesis-icon.jpg" alt="Genesis logo" width="80" height="80" style="border-radius:16px;margin-bottom:1rem;" />
+          <img src="/genesis-icon.jpg" alt="Genesis logo" title="Genesis logo" width="80" height="80" style="border-radius:16px;margin-bottom:1rem;" />
           <h1 style="font-size:2.75rem;font-weight:800;color:#3D2B1F;margin:0;">Genesis</h1>
         </a>
         <p style="font-size:1.3rem;color:#8B7E74;margin-top:0.75rem;max-width:680px;margin-left:auto;margin-right:auto;">
-          AI-powered visual storytelling for the next generation of creators. Choose a world. Let Gen guide you. Build something extraordinary.
+          Create illustrated stories, character worlds, and visual learning content with AI. Choose a realm, compare plans, and export polished work faster.
         </p>
         <a href="/welcome" style="display:inline-block;margin-top:1.5rem;padding:0.85rem 2.5rem;background:linear-gradient(135deg,#FF9B71,#FFD93D);color:#fff;font-weight:700;font-size:1.05rem;border-radius:50px;text-decoration:none;">
-          Begin Your Journey — It's Free
+          Choose Your Realm — Start Free
         </a>
       </header>
 
