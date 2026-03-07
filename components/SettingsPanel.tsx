@@ -371,10 +371,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               href="/blog"
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft"
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,155,113,0.12) 0%, rgba(255,217,61,0.12) 100%)',
+                border: '1px solid rgba(255,155,113,0.35)',
+              }}
             >
-              <Newspaper className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
-              <span className="text-sm md:text-base whitespace-nowrap">Blog</span>
+              <Newspaper
+                className="w-4 h-4 md:w-5 md:h-5 shrink-0"
+                style={{ color: '#FF9B71' }}
+              />
+              <span
+                className="text-sm md:text-base whitespace-nowrap font-bold"
+                style={{
+                  fontFamily: '"Fredoka", system-ui, sans-serif',
+                  background: 'linear-gradient(90deg, #FF9B71 0%, #FFD93D 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                Blog
+              </span>
             </a>
           </div>
         </div>
