@@ -253,8 +253,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     } catch (e) {
       console.error('Failed to save settings:', e);
       setIsSaving(false);
-      // Show error feedback instead of falsely showing success
-      alert(t('messages.saveError', { defaultValue: 'Failed to save some settings. Please try again.' }));
+      toast.error(t('messages.saveError', { defaultValue: 'Failed to save settings' }), {
+        description: 'Please try again.',
+      });
       return;
     }
 
@@ -271,15 +272,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert(t('messages.selectImageFile', { defaultValue: 'Please select an image file.' }));
+        toast.error(t('messages.selectImageFile', { defaultValue: 'Please select an image file.' }));
         return;
       }
       // Validate file size (max 2MB to stay within localStorage limits)
       if (file.size > 2 * 1024 * 1024) {
-        alert(
+        toast.error(
           t('messages.imageTooLarge', {
-            defaultValue: 'Image must be smaller than 2MB. Please choose a smaller file.',
-          })
+            defaultValue: 'Image is too large',
+          }),
+          { description: 'Choose an image smaller than 2MB.' }
         );
         return;
       }
@@ -371,26 +373,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               href="/blog"
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0"
-              style={{
-                backgroundColor: '#FAFAF9',
-                border: '1px solid #E7E5E4',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F4'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF9'; }}
+              className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-cream-base border border-peach-soft hover:bg-peach-soft/20"
             >
-              <Newspaper
-                className="w-4 h-4 md:w-5 md:h-5 shrink-0"
-                style={{ color: '#c15f3c' }}
-              />
+              <Newspaper className="w-4 h-4 md:w-5 md:h-5 shrink-0 text-coral-burst" />
               <span
-                className="text-sm md:text-base whitespace-nowrap"
-                style={{
-                  fontFamily: '"Instrument Serif", Georgia, serif',
-                  color: '#c15f3c',
-                  fontWeight: 400,
-                  letterSpacing: '0.01em',
-                }}
+                className="text-sm md:text-base whitespace-nowrap text-coral-burst font-normal tracking-[0.01em]"
+                style={{ fontFamily: '"Instrument Serif", Georgia, serif' }}
               >
                 Blog
               </span>
@@ -592,10 +580,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     variant="destructive"
                     size="sm"
                     onClick={() =>
-                      alert(
+                      toast.info(
                         t('messages.deleteAccountRequested', {
-                          defaultValue:
-                            'Account deletion requested. Please contact support to finalize.',
+                          defaultValue: 'To delete your account, please contact our support team.',
                         })
                       )
                     }

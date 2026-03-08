@@ -235,7 +235,7 @@ export const PresetCard: React.FC<PresetCardProps> = ({
                 ${
                   isSelected
                     ? 'bg-coral-burst text-white ring-2 ring-coral-burst ring-offset-2'
-                    : 'bg-surface dark:bg-gray-800 border border-peach-soft dark:border-gray-700 hover:border-peach-soft'
+                    : 'bg-surface  border border-peach-soft  hover:border-peach-soft'
                 }
             `}
       onClick={() => onSelect(preset)}
@@ -251,7 +251,7 @@ export const PresetCard: React.FC<PresetCardProps> = ({
         title={preset.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         className={`
                     absolute top-2 right-2 p-1.5
-                    ${isSelected ? 'hover:bg-surface/20' : 'hover:bg-peach-soft/30 dark:hover:bg-gray-700'}
+                    ${isSelected ? 'hover:bg-surface/20' : 'hover:bg-peach-soft/30 :bg-gray-700'}
                 `}
       >
         <Heart
@@ -272,14 +272,14 @@ export const PresetCard: React.FC<PresetCardProps> = ({
       )}
 
       <h4
-        className={`font-semibold mb-1 ${isSelected ? 'text-white' : 'text-charcoal-soft dark:text-white'}`}
+        className={`font-semibold mb-1 ${isSelected ? 'text-white' : 'text-charcoal-soft '}`}
       >
         {preset.name}
       </h4>
 
       {preset.description && (
         <p
-          className={`text-sm mb-2 line-clamp-2 ${isSelected ? 'text-white/80' : 'text-cocoa-light dark:text-cocoa-light/60'}`}
+          className={`text-sm mb-2 line-clamp-2 ${isSelected ? 'text-white/80' : 'text-cocoa-light '}`}
         >
           {preset.description}
         </p>
@@ -294,7 +294,7 @@ export const PresetCard: React.FC<PresetCardProps> = ({
 
       {/* Actions for custom presets */}
       {!preset.isBuiltIn && (onEdit || onDelete) && (
-        <div className="flex gap-1 mt-3 pt-3 border-t border-peach-soft dark:border-gray-700">
+        <div className="flex gap-1 mt-3 pt-3 border-t border-peach-soft ">
           {onEdit && (
             <Button
               variant="ghost"
@@ -303,7 +303,7 @@ export const PresetCard: React.FC<PresetCardProps> = ({
                 e.stopPropagation();
                 onEdit(preset);
               }}
-              className="flex-1 flex gap-1 py-1.5 text-xs hover:bg-peach-soft/30 dark:hover:bg-gray-700 text-cocoa-light dark:text-cocoa-light/60"
+              className="flex-1 flex gap-1 py-1.5 text-xs hover:bg-peach-soft/30 :bg-gray-700 text-cocoa-light "
             >
               <Edit2 className="w-3 h-3" />
               Edit
@@ -317,7 +317,7 @@ export const PresetCard: React.FC<PresetCardProps> = ({
                 e.stopPropagation();
                 onDelete(preset.id);
               }}
-              className="flex-1 flex gap-1 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+              className="flex-1 flex gap-1 py-1.5 text-xs hover:bg-red-50 :bg-red-900/20 text-red-500"
             >
               <Trash2 className="w-3 h-3" />
               Delete
@@ -385,7 +385,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-200 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -393,23 +393,23 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
         <motion.div className="absolute inset-0 bg-black/60 " onClick={onClose} />
 
         <motion.div
-          className="relative bg-surface dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col"
+          className="relative bg-white rounded-3xl border border-peach-soft w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           {/* Header */}
-          <div className="p-4 md:p-6 border-b border-peach-soft dark:border-gray-700 shrink-0">
+          <div className="p-4 md:p-6 border-b border-peach-soft  shrink-0">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-coral-burst/10 rounded-xl">
                   <IcoPalette className="w-6 h-6 text-coral-burst" />
                 </div>
                 <div>
-                  <h2 className="text-lg md:text-xl font-bold text-charcoal-soft dark:text-white">
+                  <h2 className="text-lg md:text-xl font-bold text-charcoal-soft ">
                     Style Presets
                   </h2>
-                  <p className="text-xs md:text-sm text-cocoa-light dark:text-cocoa-light/60">
+                  <p className="text-xs md:text-sm text-cocoa-light ">
                     Choose an illustration style for your book
                   </p>
                 </div>
@@ -419,7 +419,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                 size="icon"
                 onClick={onClose}
                 title="Close"
-                className="p-2 hover:bg-peach-soft/30 dark:hover:bg-gray-800"
+                className="p-2 hover:bg-peach-soft/30 :bg-gray-800"
               >
                 <X className="w-5 h-5 text-cocoa-light" />
               </Button>
@@ -445,7 +445,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                                         ${
                                           activeTab === tab.id
                                             ? 'bg-coral-burst text-white'
-                                            : 'bg-peach-soft/30 dark:bg-gray-800 text-cocoa-light dark:text-cocoa-light/60 hover:bg-peach-light/50 dark:hover:bg-gray-700'
+                                            : 'bg-peach-soft/30  text-cocoa-light  hover:bg-peach-light/50 :bg-gray-700'
                                         }
                                     `}
                 >
@@ -468,11 +468,11 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
           <div className="p-4 md:p-6 overflow-y-auto flex-1">
             {isCreating ? (
               <div className="max-w-lg mx-auto space-y-4">
-                <h3 className="text-lg font-semibold text-charcoal-soft dark:text-white">
+                <h3 className="text-lg font-semibold text-charcoal-soft ">
                   Create New Style
                 </h3>
                 <div>
-                  <Label className="text-cocoa-light dark:text-cocoa-light/60 mb-1">
+                  <Label className="text-cocoa-light  mb-1">
                     Style Name
                   </Label>
                   <Input
@@ -480,11 +480,11 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                     value={newPreset.name}
                     onChange={(e) => setNewPreset((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="My Custom Style"
-                    className="py-2 border-peach-soft dark:border-gray-600 dark:bg-gray-800 text-charcoal-soft dark:text-white"
+                    className="py-2 border-peach-soft   text-charcoal-soft "
                   />
                 </div>
                 <div>
-                  <Label className="text-cocoa-light dark:text-cocoa-light/60 mb-1">
+                  <Label className="text-cocoa-light  mb-1">
                     Style Description (for AI)
                   </Label>
                   <Textarea
@@ -492,11 +492,11 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                     onChange={(e) => setNewPreset((prev) => ({ ...prev, style: e.target.value }))}
                     placeholder="Describe the illustration style in detail..."
                     rows={3}
-                    className="py-2 border-peach-soft dark:border-gray-600 dark:bg-gray-800 text-charcoal-soft dark:text-white"
+                    className="py-2 border-peach-soft   text-charcoal-soft "
                   />
                 </div>
                 <div>
-                  <Label className="text-cocoa-light dark:text-cocoa-light/60 mb-1">
+                  <Label className="text-cocoa-light  mb-1">
                     Short Description (optional)
                   </Label>
                   <Input
@@ -506,14 +506,14 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                       setNewPreset((prev) => ({ ...prev, description: e.target.value }))
                     }
                     placeholder="A brief description of this style"
-                    className="py-2 border-peach-soft dark:border-gray-600 dark:bg-gray-800 text-charcoal-soft dark:text-white"
+                    className="py-2 border-peach-soft   text-charcoal-soft "
                   />
                 </div>
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setIsCreating(false)}
-                    className="flex-1 py-2 border-peach-soft dark:border-gray-600 text-cocoa-light dark:text-cocoa-light/60"
+                    className="flex-1 py-2 border-peach-soft  text-cocoa-light "
                   >
                     Cancel
                   </Button>
@@ -555,3 +555,4 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
 };
 
 export default { useStylePresets, PresetCard, StylePresetPicker };
+

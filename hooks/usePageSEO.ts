@@ -41,7 +41,7 @@ export function usePageSEO({ title, description, canonical, ogTitle, ogDescripti
 
     return () => {
       document.title = 'Genesis | AI Visual Storytelling for the Next Generation';
-      setMeta('name', 'description', 'Genesis transforms your imagination into living worlds. AI-powered visual storytelling — explore galaxies, kingdoms, and the microscopic universe of life.');
+      setMeta('name', 'description', 'Create and explore interactive stories across various realms with our AI-powered visual storytelling and learning platform.');
       setMeta('property', 'og:title', 'Genesis | Where Imagination Becomes Reality');
       setMeta('property', 'og:description', 'AI-powered visual storytelling for the next generation. Transform ideas into living worlds — explore galaxies, kingdoms, and the microscopic universe of life.');
       setMeta('property', 'og:url', BASE_URL);

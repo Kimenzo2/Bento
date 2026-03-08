@@ -1,4 +1,4 @@
-import { ArrowLeft, Briefcase, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, MessageCircle, Users } from 'lucide-react';
+import { ArrowLeft, BookOpen, Briefcase, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, MessageCircle, Sparkles, Users } from 'lucide-react';
 import { IcoBuilding, IcoRocket, IcoWand, IcoPalette } from './IconscoutIcons';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
@@ -19,6 +19,8 @@ import { Button } from './ui/button';
 import { Input, Label, Textarea } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Slider } from './ui/slider';
+import { toast } from './ui/sonner';
+import { motion } from 'framer-motion';
 
 import BookSharingPkg from './BookSharing';
 import {
@@ -57,8 +59,8 @@ interface MascotProps {
 const Mascot = memo(({ src, alt, position, delay = '0s' }: MascotProps) => {
   const positionClasses = useMemo(() => {
     const positions = {
-      'header-left': 'hidden lg:block absolute left-4 xl:left-12 top-8 w-28 xl:w-36',
-      'header-right': 'hidden lg:block absolute right-4 xl:right-12 top-8 w-28 xl:w-36',
+      'header-left': 'absolute left-1 md:left-4 xl:left-12 top-4 md:top-8 w-20 md:w-28 xl:w-36 opacity-95 md:opacity-100',
+      'header-right': 'absolute right-1 md:right-4 xl:right-12 top-4 md:top-8 w-20 md:w-28 xl:w-36 opacity-95 md:opacity-100',
       'middle-left': 'hidden xl:block absolute left-4 2xl:left-16 top-[65%] w-32 2xl:w-44',
       'middle-right': 'hidden xl:block absolute right-4 2xl:right-16 top-[65%] w-32 2xl:w-44',
       'bottom-left': 'hidden xl:block absolute left-8 2xl:left-20 bottom-20 w-28 2xl:w-36',
@@ -160,7 +162,7 @@ interface CreationCanvasProps {
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative bg-surface p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col h-full border border-transparent hover:border-peach-soft overflow-hidden"
+        className="w-[85vw] md:w-auto shrink-0 snap-center relative bg-surface p-6 md:p-8 rounded-3xl hover:-translate-y-2 transition-all duration-300 text-left group flex flex-col min-h-[220px] md:h-full border border-transparent hover:border-peach-soft overflow-hidden"
       >
         {/* Default Static Glow */}
         <div
@@ -442,7 +444,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       },
     ];
 
-    return [...originals, ...TEACHING_CHARACTERS];
+    return originals;
   }, []);
 
   // Template State
@@ -495,7 +497,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         await loadSavedBooks(); // Refresh the list
       } catch (error) {
         console.error('Failed to delete book:', error);
-        alert('Failed to delete book. Please try again.');
+        toast.error("Couldn't delete book", { description: 'Please try again.' });
       }
     },
     [loadSavedBooks]
@@ -510,7 +512,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       setIsDeleteModalOpen(false);
     } catch (error) {
       console.error('Failed to delete books:', error);
-      alert('Failed to delete some books.');
+      toast.error("Some books couldn't be deleted", { description: 'Please try again.' });
     } finally {
       setIsDeleting(false);
     }
@@ -651,8 +653,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   }, []);
 
   return (
-    <section aria-label="Creation canvas" className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
-      {/* ===== OPTIMIZED MASCOTS ===== */}
+    <>
+      <section aria-label="Creation canvas" className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
+        {/* ===== OPTIMIZED MASCOTS ===== */}
       <Mascot
         src="/assets/mascots/joy-musician.png"
         alt="Joy the Musician"
@@ -685,22 +688,36 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       />
 
       {/* Hero Header */}
-      <div className="text-center space-y-4 mb-12 mt-16">
-        <h1 className="font-heading font-bold text-5xl md:text-6xl text-charcoal-soft mb-4">
+      <motion.div
+        className="text-center space-y-3 mb-8 md:mb-12 mt-8 md:mt-16 relative z-20 px-6 md:px-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
+        <h1 className="font-heading font-bold text-[2.2rem] leading-[1.1] tracking-tight md:tracking-normal md:text-5xl lg:text-6xl text-charcoal-soft mb-2 md:mb-4 max-w-[260px] md:max-w-none mx-auto">
           Create Your{' '}
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-coral-burst to-gold-sunshine">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-coral-burst to-gold-sunshine block mt-1 md:inline md:mt-0">
             Masterpiece
           </span>
         </h1>
-        <p className="font-body text-xl text-cocoa-light max-w-2xl mx-auto">
+        <p className="font-body text-[15px] leading-relaxed md:text-xl text-cocoa-light max-w-2xl mx-auto pt-2">
           Describe your story idea, choose a style, and let Genesis weave a magical tale just for
           you.
         </p>
-      </div>
+      </motion.div>
 
       {/* Quick Starts */}
       {!prompt && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full px-4 mb-16">
+        <motion.div
+          className="flex overflow-x-auto md:grid md:grid-cols-3 gap-4 md:gap-6 max-w-6xl w-full px-4 pb-4 md:pb-0 mb-8 md:mb-16 snap-x snap-mandatory hide-scrollbar"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
+          }}
+        >
+          <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
             icon={IcoWand}
             title="Children's Story"
@@ -717,6 +734,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               })
             }
           />
+          </motion.div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
             icon={IcoRocket}
             title="Sci-Fi Novel"
@@ -734,6 +753,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               })
             }
           />
+          </motion.div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
             icon={IcoBuilding}
             title="Brand Story"
@@ -753,7 +774,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               })
             }
           />
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Saved Books Section */}
@@ -777,7 +799,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                     flex px-4 py-2
                                     ${
                                       isSelectionMode
-                                        ? 'bg-peach-light/50 text-cocoa-light hover:bg-gray-300'
+                                        ? 'bg-peach-light/50 text-cocoa-light hover:bg-peach-soft/60'
                                         : 'text-coral-burst hover:bg-coral-burst/10'
                                     }
                                 `}
@@ -801,9 +823,18 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4"
+              initial="hidden"
+              animate="visible"
+              variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } }}
+            >
               {savedBooks.map((book) => (
-                <div key={book.id} className="w-full">
+                <motion.div
+                  key={book.id}
+                  className="w-full"
+                  variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
+                >
                   <SelectableCard
                     isSelectionMode={isSelectionMode}
                     isSelected={isSelected(book.id)}
@@ -818,11 +849,35 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       onShare={(book) => !isSelectionMode && setSharingBook(book)}
                     />
                   </SelectableCard>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
+      )}
+
+      {/* Empty Library Delight State */}
+      {!isLoadingBooks && savedBooks.length === 0 && !prompt && (
+        <motion.div
+          className="w-full max-w-md px-4 mb-10 text-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.45, ease: 'easeOut', delay: 0.3 }}
+        >
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-coral-burst/10 border border-coral-burst/20 flex items-center justify-center">
+              <BookOpen className="w-10 h-10 text-coral-burst/70" />
+            </div>
+            <div>
+              <p className="font-heading font-bold text-charcoal-soft text-lg">Your library is empty</p>
+              <p className="text-cocoa-light text-sm mt-1">Pick a Quick Start above or describe your own story to begin.</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-coral-burst/80 font-medium">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Your first masterpiece awaits</span>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Main Wizard Card */}
@@ -1290,21 +1345,21 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
               {/* Educational Panel Expansion */}
               {educational && (
-                <div className="bg-blue-50 border border-blue-200 rounded-3xl p-8 mb-10 animate-fadeIn">
-                  <div className="flex items-center gap-2 text-blue-600 mb-6">
+                <div className="bg-white/95 backdrop-blur-sm border border-cream-soft rounded-3xl p-6 mb-10 shadow-sm animate-fadeIn">
+                  <div className="flex items-center gap-2 text-primary mb-6">
                     <Leaf className="w-5 h-5" />
-                    <h3 className="font-heading font-bold text-lg">Learning Goals</h3>
+                    <h3 className="font-heading font-bold text-lg text-charcoal-base ">Learning Goals</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light  uppercase mb-2">
                         Subject
                       </Label>
                       <Select value={learningSubject} onValueChange={setLearningSubject}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full bg-white border-cream-soft">
                           <SelectValue placeholder="Select subject" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white border-cream-soft">
                           <SelectItem value="Math">Math</SelectItem>
                           <SelectItem value="Science">Science</SelectItem>
                           <SelectItem value="Language Arts">Language Arts</SelectItem>
@@ -1316,14 +1371,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light  uppercase mb-2">
                         Difficulty
                       </Label>
                       <Select value={learningDifficulty} onValueChange={(v: string) => setLearningDifficulty(v as typeof learningDifficulty)}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full bg-white border-cream-soft">
                           <SelectValue placeholder="Select difficulty" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white border-cream-soft">
                           <SelectItem value="beginner">Beginner</SelectItem>
                           <SelectItem value="intermediate">Intermediate</SelectItem>
                           <SelectItem value="advanced">Advanced</SelectItem>
@@ -1331,21 +1386,21 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       </Select>
                     </div>
                     <div className="md:col-span-2">
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light  uppercase mb-2">
                         Learning Objectives
                       </Label>
                       <Textarea
                         value={learningObjectives}
                         onChange={(e) => setLearningObjectives(e.target.value)}
-                        className="border-blue-200 p-3 h-20 focus:ring-2 focus:ring-blue-300"
+                        className="bg-white border-cream-soft p-3 h-20 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-charcoal-soft placeholder:text-cocoa-light"
                         placeholder="e.g., Counting to 10, Understanding Photosynthesis, Managing Anger..."
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
+                      <Label className="text-xs text-cocoa-light  uppercase mb-2">
                         Integration Mode
                       </Label>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 xs:grid-cols-3 gap-3">
                         {[
                           { id: 'integrated', label: 'Integrated', desc: 'Woven into story' },
                           { id: 'after-chapter', label: 'After Chapter', desc: 'Review at end' },
@@ -1355,34 +1410,34 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             variant="outline"
                             key={mode.id}
                             onClick={() => setIntegrationMode(mode.id as typeof integrationMode)}
-                            className={`p-3 text-left ${
+                            className={`p-3 h-auto flex flex-col items-start text-left bg-white ${
                               integrationMode === mode.id
-                                ? 'border-blue-400 bg-blue-100'
-                                : 'border-blue-100 bg-surface hover:border-blue-300'
+                                ? 'border-primary ring-1 ring-primary/20 bg-primary/5 '
+                                : 'border-cream-soft  hover:border-peach-soft/60'
                             }`}
                           >
                             <div
-                              className={`font-bold text-sm ${integrationMode === mode.id ? 'text-blue-700' : 'text-charcoal-soft'}`}
+                              className={`font-bold text-sm ${integrationMode === mode.id ? 'text-primary' : 'text-charcoal-soft '}`}
                             >
                               {mode.label}
                             </div>
-                            <div className="text-xs text-cocoa-light">{mode.desc}</div>
+                            <div className={`text-xs mt-1 ${integrationMode === mode.id ? 'text-primary/80' : 'text-cocoa-light '}`}>{mode.desc}</div>
                           </Button>
                         ))}
                       </div>
                     </div>
 
                     {/* Choose Your Guide - Character Teacher Selection */}
-                    <div className="md:col-span-2 mt-4 pt-4 border-t border-blue-200">
-                      <Label className="text-xs text-blue-700 uppercase mb-3 flex items-center gap-2">
-                        <Users className="w-4 h-4" />
+                    <div className="md:col-span-2 mt-2 pt-6 border-t border-cream-soft ">
+                      <Label className="text-xs text-cocoa-light uppercase mb-2 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary" />
                         Choose Your Teaching Guide
                       </Label>
-                      <p className="text-sm text-blue-600 mb-4">
+                      <p className="text-sm text-cocoa-light  mb-4">
                         Select a character to guide the learning journey. They'll teach concepts in
                         their unique voice!
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-150 overflow-y-auto p-2 border border-blue-100 rounded-xl bg-surface/50">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto p-3 border border-cream-soft rounded-xl bg-white/50 custom-scrollbar">
                         {teachingCharacters.map((char) => (
                           <button
                             type="button"
@@ -1390,12 +1445,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             onClick={() =>
                               setSelectedTeacher(selectedTeacher?.id === char.id ? null : char)
                             }
-                            className={`relative p-4 rounded-xl border text-left group flex flex-col items-center cursor-pointer transition-all
+                            className={`relative p-3 rounded-xl border text-center group flex flex-col items-center cursor-pointer transition-all h-full
                                                                     ${
                                                                       selectedTeacher?.id ===
                                                                       char.id
-                                                                        ? 'border-blue-500 bg-linear-to-br from-blue-100 to-purple-100'
-                                                                        : 'border-blue-100 bg-surface hover:border-blue-300'
+                                                                        ? 'border-primary bg-primary/5  ring-1 ring-primary/20'
+                                                                        : 'border-cream-soft bg-white hover:border-peach-soft/60'
                                                                     }`}
                           >
                             {/* Character Image */}
@@ -1404,14 +1459,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 src={char.imageUrl}
                                 alt={char.name}
                                 className={`w-16 h-16 rounded-full object-cover border-3 transition-transform group-hover:scale-110
-                                                                            ${selectedTeacher?.id === char.id ? 'border-blue-500' : 'border-white'}`}
+                                                                            ${selectedTeacher?.id === char.id ? 'border-primary' : 'border-white '}`}
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src =
                                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`;
                                 }}
                               />
                               {selectedTeacher?.id === char.id && (
-                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                                   <svg
                                     className="w-3 h-3 text-white"
                                     fill="currentColor"
@@ -1428,13 +1483,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             </div>
 
                             {/* Character Info */}
-                            <div className="text-center">
+                            <div className="text-center w-full">
                               <div
-                                className={`font-bold text-sm truncate ${selectedTeacher?.id === char.id ? 'text-blue-700' : 'text-charcoal-soft'}`}
+                                className={`font-bold text-sm truncate ${selectedTeacher?.id === char.id ? 'text-primary' : 'text-charcoal-soft '}`}
                               >
                                 {char.name}
                               </div>
-                              <div className="text-xs text-cocoa-light">{char.role}</div>
+                              <div className="text-xs text-cocoa-light  truncate">{char.role}</div>
                               {char.teachingStyle && (
                                 <div className="mt-2 flex flex-wrap gap-1 justify-center">
                                   {char.teachingStyle.subjectsExpertise
@@ -1442,7 +1497,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                     .map((subject) => (
                                       <span
                                         key={subject}
-                                        className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full"
+                                        className="text-[10px] px-2 py-0.5 bg-cream-base text-cocoa-light rounded-full border border-peach-soft/50"
                                       >
                                         {subject}
                                       </span>
@@ -1452,7 +1507,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             </div>
 
                             {/* Teaching Style Tooltip on Hover */}
-                            <div className="absolute inset-0 bg-linear-to-b from-blue-600/95 to-purple-600/95 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-center text-white text-center pointer-events-none">
+                            <div className="absolute inset-0 bg-charcoal-soft/95 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-center text-white text-center pointer-events-none">
                               <div className="font-bold text-sm mb-1">{char.name}</div>
                               <div className="text-xs opacity-90 mb-2">
                                 {char.teachingStyle?.teachingApproach === 'nurturing' &&
@@ -1474,27 +1529,27 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
                       {/* Selected Teacher Preview */}
                       {selectedTeacher && (
-                        <div className="mt-4 p-4 bg-linear-to-r from-blue-100 to-purple-100 rounded-2xl border border-blue-200 animate-fadeIn">
+                        <div className="mt-4 p-4 bg-primary/5  rounded-2xl border border-primary/20 animate-fadeIn">
                           <div className="flex items-start gap-4">
                             <img
                               src={selectedTeacher.imageUrl}
                               alt={selectedTeacher.name}
-                              className="w-12 h-12 rounded-full object-cover border border-white"
+                              className="w-12 h-12 rounded-full object-cover border border-peach-soft "
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTeacher.name}`;
                               }}
                             />
                             <div className="flex-1">
-                              <div className="font-bold text-blue-800">
+                              <div className="font-bold text-charcoal-base ">
                                 {selectedTeacher.name} will be your guide!
                               </div>
-                              <p className="text-sm text-blue-600 italic mt-1">
+                              <p className="text-sm text-cocoa-light italic mt-1">
                                 "{selectedTeacher.voiceProfile?.catchphrases?.[0]}"
                               </p>
-                              <div className="text-xs text-cocoa-light mt-2">
+                              <div className="text-xs text-cocoa-light  mt-2">
                                 Teaching style:{' '}
-                                <span className="font-medium capitalize">
+                                <span className="font-medium capitalize text-charcoal-soft ">
                                   {selectedTeacher.teachingStyle?.teachingApproach}
                                 </span>
                               </div>
@@ -1554,8 +1609,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           )}
         </div>
       </div>
+      </section>
 
-      {/* Modals */}
+      {/* Modals outside the animated section to avoid CSS transform stacking context trapping fixed positioning */}
       <TemplateLibrary
         isOpen={isTemplateLibraryOpen}
         onClose={() => setIsTemplateLibraryOpen(false)}
@@ -1599,8 +1655,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         onClose={() => setIsConversationModeOpen(false)}
         onGenerate={onGenerate}
       />
-    </section>
+    </>
   );
 };
 
 export default CreationCanvas;
+

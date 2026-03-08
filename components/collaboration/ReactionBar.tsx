@@ -298,7 +298,7 @@ export const FloatingReaction: React.FC<FloatingReactionProps> = ({ type, x, y, 
 
   return (
     <div
-      className="fixed pointer-events-none z-100 text-3xl animate-float-up"
+      className="fixed pointer-events-none z-[100] text-3xl animate-float-up"
       style={{ left: x, top: y }}
     >
       {REACTION_EMOJIS[type]}

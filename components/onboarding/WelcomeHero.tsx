@@ -15,6 +15,7 @@ import { AnimatePresence, motion } from 'framer-motion';
  */
 import type React from 'react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { usePageSEO } from '../../hooks/usePageSEO';
 import { type ThemeOption, useOnboarding } from './OnboardingState';
 import { APPLE_EASE, GPU_ACCELERATED_STYLES, prefersReducedMotion } from './performance/gpuStyles';
 
@@ -156,6 +157,16 @@ export const WelcomeHero: React.FC = memo(() => {
   const [showContent, setShowContent] = useState(false);
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
 
+  usePageSEO({
+    title: 'Genesis | AI Visual Storytelling for Writers, Educators, and Creators',
+    description:
+      'Create illustrated stories, character worlds, and visual learning content with Genesis AI. Choose Cosmos, Kingdom, or Cell, start free, compare plans, and contact support.',
+    canonical: '/welcome',
+    ogTitle: 'Genesis | Create Illustrated Stories and Visual Learning Content',
+    ogDescription:
+      'Create illustrated stories, character worlds, lesson visuals, and science explainers with Genesis AI. Choose a realm, start free, and publish faster.',
+  });
+
   // ⚡ Faster content reveal
   useEffect(() => {
     const timer = setTimeout(() => setShowContent(true), 100); // Reduced from 300ms
@@ -171,6 +182,10 @@ export const WelcomeHero: React.FC = memo(() => {
     },
     [setTheme, setStep]
   );
+
+  const jumpToChooseRealm = useCallback(() => {
+    document.getElementById('choose-realm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   return (
     <div
@@ -200,6 +215,14 @@ export const WelcomeHero: React.FC = memo(() => {
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center">
+        <nav className="mb-6 flex flex-wrap items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45 lg:justify-start">
+          <a href="#choose-realm" className="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/25 hover:text-white/80">Choose a realm</a>
+          <a href="#core-offerings" className="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/25 hover:text-white/80">What you can create</a>
+          <a href="#use-cases" className="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/25 hover:text-white/80">Use cases</a>
+          <a href="#faq" className="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/25 hover:text-white/80">FAQ</a>
+          <a href="#support" className="rounded-full border border-white/10 px-4 py-2 transition hover:border-white/25 hover:text-white/80">Support</a>
+        </nav>
+
         <div className="w-full grid gap-4 md:gap-6 lg:gap-10 lg:grid-cols-2 lg:items-center">
           {/* Left: Hero copy */}
           <div className="text-center lg:text-left">
@@ -214,6 +237,7 @@ export const WelcomeHero: React.FC = memo(() => {
               <img
                 src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
                 alt="Gen - Your Creative Guide"
+                title="Gen, your AI creative guide"
                 className="ob-icon-md md:ob-icon-lg object-contain drop-shadow-2xl rounded-3xl"
                 loading="eager"
                 decoding="async"
@@ -256,13 +280,48 @@ export const WelcomeHero: React.FC = memo(() => {
                     <br className="hidden md:block" />
                     <span className="text-white/70">What universe calls to you?</span>
                   </motion.p>
+
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                    <button
+                      type="button"
+                      onClick={jumpToChooseRealm}
+                      className="min-h-11 rounded-full bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:brightness-105"
+                    >
+                      Choose Your Realm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep('pricing')}
+                      className="min-h-11 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white/85 transition hover:border-white/40 hover:bg-white/5"
+                    >
+                      Compare Plans
+                    </button>
+                    <a
+                      href="mailto:support@genesis.ai"
+                      className="min-h-11 rounded-full border border-white/10 px-6 py-3 text-sm font-semibold text-white/70 transition hover:border-white/30 hover:text-white"
+                    >
+                      Contact Support
+                    </a>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-white/55 lg:justify-start">
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5">Start free with Spark</span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Commercial use on paid tiers</span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Export to PDF and ebook</span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
           {/* Right: Theme cards */}
-          <div className="w-full">
+          <section id="choose-realm" className="w-full scroll-mt-24" aria-labelledby="choose-realm-heading">
+            <div className="mb-4 text-center lg:text-left">
+              <h2 id="choose-realm-heading" className="text-xl font-bold text-white md:text-2xl font-heading">Choose the realm that matches your project</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/55 md:text-base">
+                Each realm gives Genesis the right creative context, so your first outputs are more coherent, more on-brand, and easier to refine.
+              </p>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-(--ob-card-gap) w-full px-2 lg:px-0">
               {THEME_CARDS.map((card, index) => {
                 const isLastOdd = index === THEME_CARDS.length - 1 && THEME_CARDS.length % 2 === 1;
@@ -317,6 +376,7 @@ export const WelcomeHero: React.FC = memo(() => {
                       <img
                         src={card.image}
                         alt={card.title}
+                        title={card.title}
                         className="ob-theme-card-image mx-auto object-contain drop-shadow-2xl rounded-xl md:rounded-3xl transition-transform duration-200 group-hover:scale-105"
                         loading="eager"
                         decoding="async"
@@ -353,18 +413,156 @@ export const WelcomeHero: React.FC = memo(() => {
               })}
             </div>
 
-            {/* Hint */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.3 }}
               className="mt-4 md:mt-10 lg:mt-4 text-white/30 text-xs md:text-sm pb-4 text-center"
             >
-              ✦ Choose your realm to begin ✦
+              Pick a realm to start free, or review plans and support information below.
             </motion.p>
+          </section>
+        </div>
 
+        <div className="mt-10 space-y-8 md:mt-14">
+          <section id="core-offerings" className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-8" aria-labelledby="core-offerings-heading">
+            <div className="mb-5 max-w-3xl">
+              <h2 id="core-offerings-heading" className="text-2xl font-bold text-white font-heading">What you can create with Genesis</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/60 md:text-base">
+                Genesis is not a generic image box. It is a guided AI workspace for story creation, visual education, character design, and export-ready publishing.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="text-lg font-bold text-white font-heading">Illustrated Storybooks</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Create children’s books, visual explainers, fantasy adventures, and narrative ebooks with scenes, text, and consistent characters.</p>
+              </article>
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="text-lg font-bold text-white font-heading">Character Design</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Generate heroes, villains, mascots, and concept sheets with stronger visual consistency than one-off prompt tools.</p>
+              </article>
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="text-lg font-bold text-white font-heading">Lesson and Curriculum Visuals</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Turn science topics, classroom modules, and training content into visual materials that are easier to teach and easier to retain.</p>
+              </article>
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="text-lg font-bold text-white font-heading">Export and Publishing</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Ship polished PDFs, ebooks, and commercial-ready assets without moving through a fragmented multi-tool workflow.</p>
+              </article>
+            </div>
+          </section>
 
-          </div>
+          <section className="grid gap-4 md:grid-cols-3" aria-label="Genesis trust and differentiators">
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+              <h2 className="text-lg font-bold text-white font-heading">Trust Signals</h2>
+              <p className="mt-2 text-sm leading-6 text-white/70">SSL-secured checkout, cancel-anytime subscriptions, export ownership, and support at support@genesis.ai.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <h2 className="text-lg font-bold text-white font-heading">Why Genesis stands out</h2>
+              <ul className="mt-2 space-y-2 text-sm leading-6 text-white/70">
+                <li><strong className="text-white/90">Realm-guided creation</strong> — choose Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context, unlike generic tools that start from a blank prompt.</li>
+                <li><strong className="text-white/90">Educator-ready outputs</strong> — built-in curriculum tools and illustrated lesson plans so teachers ship classroom materials in minutes, not hours.</li>
+                <li><strong className="text-white/90">Consistent characters</strong> — Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.</li>
+                <li><strong className="text-white/90">Guided by Gen</strong> — an AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.</li>
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <h2 className="text-lg font-bold text-white font-heading">Navigation Paths</h2>
+              <p className="mt-2 text-sm leading-6 text-white/70">Start free, compare plans, review use cases, read FAQs, or contact support before choosing your realm.</p>
+            </div>
+          </section>
+
+          <section id="use-cases" className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-8" aria-labelledby="use-cases-heading">
+            <h2 id="use-cases-heading" className="text-2xl font-bold text-white font-heading">Use cases and examples</h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="font-heading text-lg font-bold text-white">Indie authors</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Draft illustrated children’s books and fantasy shorts with consistent scenes, then export directly for publishing.</p>
+              </article>
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="font-heading text-lg font-bold text-white">Teachers and tutors</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Build biology explainers, astronomy handouts, and classroom-ready visual lessons in a single workflow.</p>
+              </article>
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="font-heading text-lg font-bold text-white">Game teams</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Prototype fantasy and sci-fi characters, factions, environments, and narrative assets before full production.</p>
+              </article>
+              <article className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="font-heading text-lg font-bold text-white">Science communicators</h3>
+                <p className="mt-2 text-sm leading-6 text-white/60">Translate dense research into visual explainers that audiences can understand and share.</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-8" aria-labelledby="social-proof-heading">
+            <h2 id="social-proof-heading" className="text-2xl font-bold text-white font-heading">What creators use Genesis for</h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <figure className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <blockquote className="text-sm leading-6 text-white/75">“Genesis helped us move from loose ideas to presentable concept sheets in the same afternoon.”</blockquote>
+                <figcaption className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Indie game studio</figcaption>
+              </figure>
+              <figure className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <blockquote className="text-sm leading-6 text-white/75">“The Cell realm made our biology diagrams clearer and much faster to produce than our old slide workflow.”</blockquote>
+                <figcaption className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Secondary science teacher</figcaption>
+              </figure>
+              <figure className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <blockquote className="text-sm leading-6 text-white/75">“We used Genesis to shape a full illustrated book pitch before hiring a production illustrator.”</blockquote>
+                <figcaption className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Children’s author</figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <section id="faq" className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-8" aria-labelledby="faq-heading">
+            <h2 id="faq-heading" className="text-2xl font-bold text-white font-heading">Frequently asked questions</h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-5 text-white/70 open:bg-slate-950/40">
+                <summary className="cursor-pointer list-none font-heading text-base font-bold text-white">Do I need prompt engineering skills?</summary>
+                <p className="mt-3 text-sm leading-6">No. Genesis is designed to guide the brief with realms and structured choices so you can create without writing elaborate prompts.</p>
+              </details>
+              <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-5 text-white/70 open:bg-slate-950/40">
+                <summary className="cursor-pointer list-none font-heading text-base font-bold text-white">Can I start free?</summary>
+                <p className="mt-3 text-sm leading-6">Yes. Spark lets you explore the workflow before upgrading to Creator, Studio, or Empire for higher limits and commercial features.</p>
+              </details>
+              <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-5 text-white/70 open:bg-slate-950/40">
+                <summary className="cursor-pointer list-none font-heading text-base font-bold text-white">What does Genesis do better than a generic AI image tool?</summary>
+                <p className="mt-3 text-sm leading-6">Genesis adds context, consistency, and export workflows. It is built for complete story and learning outputs, not disconnected single images.</p>
+              </details>
+              <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-5 text-white/70 open:bg-slate-950/40">
+                <summary className="cursor-pointer list-none font-heading text-base font-bold text-white">Where can I get help or ask sales questions?</summary>
+                <p className="mt-3 text-sm leading-6">Email support@genesis.ai for product help, billing questions, classroom rollout guidance, or enterprise conversations.</p>
+              </details>
+            </div>
+          </section>
+
+          <section id="support" className="mb-8 rounded-3xl border border-white/10 bg-white/5 p-5 md:p-8" aria-labelledby="support-heading">
+            <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr] md:items-start">
+              <div>
+                <h2 id="support-heading" className="text-2xl font-bold text-white font-heading">Support, pricing, and next steps</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65 md:text-base">
+                  Need onboarding help, plan guidance, or a custom workflow conversation? Reach the Genesis team directly. If you are ready, start with Spark or review paid plans before continuing.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <a href="mailto:support@genesis.ai" className="min-h-11 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-white/90">support@genesis.ai</a>
+                  <button
+                    type="button"
+                    onClick={() => setStep('pricing')}
+                    className="min-h-11 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/5"
+                  >
+                    Review Pricing
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-5">
+                <h3 className="font-heading text-lg font-bold text-white">Included trust signals</h3>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-white/65">
+                  <li>Secure checkout and account flows</li>
+                  <li>Clear free and paid plan separation</li>
+                  <li>Commercial rights on paid tiers</li>
+                  <li>Human support available by email</li>
+                </ul>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

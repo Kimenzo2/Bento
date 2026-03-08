@@ -43,7 +43,7 @@ const Bone: React.FC<{
 
 // ─── Nav ─────────────────────────────────────────────────────────────────────
 const NavSkeleton: React.FC = () => (
-  <div className="fixed top-0 left-0 right-0 h-16 bg-(--color-surface) border-b border-(--color-border) flex items-center px-4 sm:px-6 z-100">
+  <div className="fixed top-0 left-0 right-0 h-16 bg-(--color-surface) border-b border-(--color-border) flex items-center px-4 sm:px-6 z-[100]">
     {/* Mobile Left */}
     <div className="flex items-center gap-3 w-full sm:w-auto">
       <Bone className="w-8 h-8 rounded-lg" />

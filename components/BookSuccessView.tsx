@@ -12,6 +12,7 @@ import { generateParticles, type Particle, updateParticle } from '../utils/parti
 import { ShareModal } from './BookSharing';
 import KDPExportModal from './KDPExportModal';
 import StorybookViewer from './StorybookViewer';
+import { toast } from './ui/sonner';
 
 interface BookSuccessViewProps {
   project: BookProject;
@@ -84,11 +85,13 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
       });
 
       if (needsWatermark) {
-        alert('Downloaded with watermark. Upgrade to Creator tier for watermark-free exports!');
+        toast.success('Book downloaded with watermark', {
+          description: 'Upgrade to Creator tier for clean, watermark-free exports.',
+        });
       }
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export PDF. Please try again.');
+      toast.error('Export failed', { description: 'Please try again.' });
     }
   };
 

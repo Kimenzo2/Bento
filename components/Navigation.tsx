@@ -44,13 +44,13 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   const getTierBadge = (tier: string) => {
     switch (tier) {
       case UserTier.CREATOR:
-        return { color: 'bg-blue-500', label: 'Creator' };
+        return { label: 'Creator' };
       case UserTier.STUDIO:
-        return { color: 'bg-linear-to-r from-coral-burst to-gold-sunshine', label: 'Studio' };
+        return { label: 'Studio' };
       case UserTier.EMPIRE:
-        return { color: 'bg-purple-600', label: 'Empire' };
+        return { label: 'Empire' };
       default:
-        return { color: 'bg-gray-400', label: 'Spark' };
+        return { label: 'Spark' };
     }
   };
 

@@ -173,32 +173,32 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 "
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 "
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="w-full max-w-2xl h-[80vh] bg-linear-to-br from-slate-900 to-slate-800 rounded-3xl overflow-hidden flex flex-col border border-slate-700/50"
+          className="w-full max-w-2xl h-[80vh] bg-linear-to-br from-slate-900 to-slate-800 rounded-3xl overflow-hidden flex flex-col border border-white/10"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50">
+          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/20 rounded-xl">
                 <MessageCircle className="w-6 h-6 text-purple-400" />
               </div>
               <div>
                 <h2 className="font-bold text-white">Story Conversation</h2>
-                <p className="text-xs text-slate-400">Tell me about your book idea</p>
+                <p className="text-xs text-white/50">Tell me about your book idea</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-slate-700/50"
+              className="p-2 hover:bg-white/10"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-5 h-5 text-white/50" />
             </Button>
           </div>
 
@@ -215,7 +215,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     message.role === 'user'
                       ? 'bg-purple-500 text-white'
-                      : 'bg-slate-700/50 text-slate-100'
+                      : 'bg-white/10 text-white'
                   }`}
                 >
                   {message.role === 'assistant' && (
@@ -235,10 +235,10 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                 animate={{ opacity: 1 }}
                 className="flex justify-start"
               >
-                <div className="bg-slate-700/50 rounded-2xl px-4 py-3">
+                <div className="bg-white/10 rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Loader className="w-4 h-4 text-purple-400 animate-spin" />
-                    <span className="text-sm text-slate-400">Thinking...</span>
+                    <span className="text-sm text-white/50">Thinking...</span>
                   </div>
                 </div>
               </motion.div>
@@ -254,11 +254,11 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-t border-slate-700/50 bg-slate-800/30 overflow-hidden"
+                className="border-t border-white/10 bg-white/5 overflow-hidden"
               >
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-medium text-slate-400">Your Book Settings</h3>
+                    <h3 className="text-xs font-medium text-white/50">Your Book Settings</h3>
                     {extractedSettings.complete && (
                       <span className="text-xs text-green-400 flex items-center gap-1">
                         ✓ Ready to create
@@ -267,26 +267,26 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {extractedSettings.style && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 rounded-lg text-xs">
                         <IcoPalette className="w-3 h-3 text-pink-400" />
-                        <span className="text-slate-300">{extractedSettings.style}</span>
+                        <span className="text-white/70">{extractedSettings.style}</span>
                       </div>
                     )}
                     {extractedSettings.tone && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 rounded-lg text-xs">
                         <IcoBook className="w-3 h-3 text-blue-400" />
-                        <span className="text-slate-300">{extractedSettings.tone}</span>
+                        <span className="text-white/70">{extractedSettings.tone}</span>
                       </div>
                     )}
                     {extractedSettings.audience && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded-lg text-xs">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 rounded-lg text-xs">
                         <Users className="w-3 h-3 text-green-400" />
-                        <span className="text-slate-300">{extractedSettings.audience}</span>
+                        <span className="text-white/70">{extractedSettings.audience}</span>
                       </div>
                     )}
                     {extractedSettings.pageCount && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-700/50 rounded-lg text-xs">
-                        <span className="text-slate-300">{extractedSettings.pageCount} pages</span>
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-white/10 rounded-lg text-xs">
+                        <span className="text-white/70">{extractedSettings.pageCount} pages</span>
                       </div>
                     )}
                   </div>
@@ -296,7 +296,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
           </AnimatePresence>
 
           {/* Input */}
-          <div className="p-4 border-t border-slate-700/50 bg-slate-800/50">
+          <div className="p-4 border-t border-white/10 bg-white/5">
             <div className="flex gap-3">
               <Input
                 ref={inputRef}
@@ -305,7 +305,7 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Describe your story idea..."
-                className="flex-1 py-3 bg-slate-700/50 border-slate-600/50 text-white placeholder-slate-400 focus:border-purple-500"
+                className="flex-1 py-3 bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-purple-500"
                 disabled={isThinking}
               />
               {extractedSettings.complete ? (

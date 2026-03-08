@@ -92,16 +92,16 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-100"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100]"
     >
       <div className="bg-charcoal-soft text-white rounded-2xl border border-peach-soft px-4 py-3 flex items-center gap-4">
         {/* Selection info */}
-        <div className="flex items-center gap-3 pr-4 border-r border-gray-700">
+        <div className="flex items-center gap-3 pr-4 border-r border-white/20">
           <Button
             variant="ghost"
             size="icon"
             onClick={isAllSelected ? onClearSelection : onSelectAll}
-            className="p-1.5 hover:bg-gray-700"
+            className="p-1.5 hover:bg-white/10"
           >
             {isAllSelected ? (
               <CheckSquare className="w-5 h-5 text-coral-burst" />
@@ -121,7 +121,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
               variant="ghost"
               size="sm"
               onClick={onDuplicate}
-              className="flex px-3 py-1.5 hover:bg-gray-700"
+              className="flex px-3 py-1.5 hover:bg-white/10"
             >
               <Copy className="w-4 h-4" />
               Duplicate
@@ -133,7 +133,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
               variant="ghost"
               size="sm"
               onClick={onExport}
-              className="flex px-3 py-1.5 hover:bg-gray-700"
+              className="flex px-3 py-1.5 hover:bg-white/10"
             >
               <Download className="w-4 h-4" />
               Export
@@ -167,7 +167,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
           size="icon"
           onClick={onClearSelection}
           title="Clear selection"
-          className="p-1.5 hover:bg-gray-700 ml-2"
+          className="p-1.5 hover:bg-white/10 ml-2"
         >
           <X className="w-5 h-5" />
         </Button>
@@ -197,7 +197,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-200 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -205,7 +205,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         <motion.div className="absolute inset-0 bg-black/60 " onClick={onClose} />
 
         <motion.div
-          className="relative bg-surface rounded-2xl border border-peach-soft w-full max-w-sm overflow-hidden"
+          className="relative bg-white rounded-2xl border border-peach-soft w-full max-w-sm overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}

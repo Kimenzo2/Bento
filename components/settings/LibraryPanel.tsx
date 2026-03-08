@@ -14,6 +14,7 @@ import {
 import { deleteBook, getAllBooks } from '../../services/storageService';
 import type { SavedBook } from '../../types';
 import { Button } from '../ui/button';
+import { toast } from '../ui/sonner';
 
 type LibraryTab = 'books' | 'infographics' | 'images';
 
@@ -58,42 +59,67 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
   };
 
   const handleDeleteBook = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this book?')) return;
-    setDeletingId(id);
-    try {
-      await deleteBook(id);
-      setBooks((prev) => prev.filter((b) => b.id !== id));
-    } catch (error) {
-      console.error('Failed to delete book:', error);
-    } finally {
-      setDeletingId(null);
-    }
+    const book = books.find((b) => b.id === id);
+    toast(`Delete "${book?.title || 'this book'}"?`, {
+      description: 'This cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          setDeletingId(id);
+          try {
+            await deleteBook(id);
+            setBooks((prev) => prev.filter((b) => b.id !== id));
+          } catch (error) {
+            console.error('Failed to delete book:', error);
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
   const handleDeleteInfographic = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this infographic?')) return;
-    setDeletingId(id);
-    try {
-      await deleteInfographic(id);
-      setInfographics((prev) => prev.filter((i) => i.id !== id));
-    } catch (error) {
-      console.error('Failed to delete infographic:', error);
-    } finally {
-      setDeletingId(null);
-    }
+    toast('Delete this infographic?', {
+      description: 'This cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          setDeletingId(id);
+          try {
+            await deleteInfographic(id);
+            setInfographics((prev) => prev.filter((i) => i.id !== id));
+          } catch (error) {
+            console.error('Failed to delete infographic:', error);
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
   const handleDeleteImage = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
-    setDeletingId(id);
-    try {
-      await deleteImage(id);
-      setImages((prev) => prev.filter((i) => i.id !== id));
-    } catch (error) {
-      console.error('Failed to delete image:', error);
-    } finally {
-      setDeletingId(null);
-    }
+    toast('Delete this image?', {
+      description: 'This cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          setDeletingId(id);
+          try {
+            await deleteImage(id);
+            setImages((prev) => prev.filter((i) => i.id !== id));
+          } catch (error) {
+            console.error('Failed to delete image:', error);
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -137,8 +163,8 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
     description,
   }: { icon: any; title: string; description: string }) => (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-20 h-20 rounded-full bg-cream-soft flex items-center justify-center mb-4">
-        <Icon className="w-10 h-10 text-cocoa-light/50" />
+      <div className="w-20 h-20 rounded-full bg-coral-burst/10 border border-coral-burst/20 flex items-center justify-center mb-4">
+        <Icon className="w-10 h-10 text-coral-burst/60" />
       </div>
       <h4 className="font-heading font-bold text-lg text-charcoal-soft mb-2">{title}</h4>
       <p className="text-cocoa-light text-sm max-w-xs">{description}</p>
@@ -425,7 +451,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
       {viewingImage &&
         createPortal(
           <div
-            className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center animate-fadeIn"
+            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-fadeIn"
             onClick={() => {
               setViewingImage(null);
               setImageZoom(1);
@@ -511,7 +537,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
       {viewingInfographic &&
         createPortal(
           <div
-            className="fixed inset-0 z-100 bg-black/90 flex items-center justify-center animate-fadeIn overflow-auto"
+            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-fadeIn overflow-auto"
             onClick={() => setViewingInfographic(null)}
           >
             {/* Close button */}

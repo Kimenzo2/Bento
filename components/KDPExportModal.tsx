@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogFooter } from './ui/dialog';
 import { Label } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
+import { toast } from './ui/sonner';
 
 interface KDPExportModalProps {
   project: BookProject;
@@ -54,7 +55,9 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
   const handleExport = async () => {
     // Check tier restrictions
     if (userTier === UserTier.SPARK) {
-      alert('KDP Export is a premium feature! Upgrade to Creator tier to unlock.');
+      toast.error('KDP Export is a Creator feature', {
+        description: 'Upgrade to Creator tier to unlock professional book exports.',
+      });
       return;
     }
 
@@ -90,7 +93,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
         error instanceof Error
           ? error.message
           : 'Export failed. Please check your images and try again.';
-      alert(`Export Error: ${errorMessage}`);
+      toast.error('Export failed', { description: errorMessage });
       setIsExporting(false);
       setExportProgress(0);
       setProgressMessage('');

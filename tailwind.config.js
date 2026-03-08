@@ -30,6 +30,7 @@ export default {
           base: 'var(--color-background)',
           soft: 'var(--color-background)',
         },
+        surface: 'var(--color-surface, #ffffff)',
         peach: {
           soft: 'var(--color-border)',
           light: 'var(--color-border)',

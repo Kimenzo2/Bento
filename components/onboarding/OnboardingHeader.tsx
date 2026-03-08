@@ -27,9 +27,11 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ currentStep,
             transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <IcoWand className="w-4 h-4 text-white" />
-            </div>
+            <img
+              src="/genesis-icon.jpg"
+              alt="Genesis"
+              className="w-8 h-8 rounded-lg object-cover"
+            />
             <span className="hidden sm:block text-white/70 font-semibold">Genesis</span>
           </motion.div>
 

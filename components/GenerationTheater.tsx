@@ -87,7 +87,7 @@ const GenerationTheater: React.FC<GenerationTheaterProps> = ({ progress, status,
   const phaseInfo = getPhaseInfo(currentPhase);
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center  bg-surface/90 animate-fadeIn">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center  bg-surface/90 animate-fadeIn">
       {/* Animated gradient background */}
       <div
         className={`absolute inset-0 bg-linear-to-br ${phaseInfo.gradient} opacity-30 transition-all duration-1000`}

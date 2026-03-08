@@ -162,6 +162,38 @@
   animation: slide-in-from-bottom 200ms ease-out;
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * Nav icon dance — pure CSS, GPU-composited (transform only).
+ * Zero JS runtime cost. Fires on hover only.
+ * ──────────────────────────────────────────────────────────── */
+@keyframes nav-dance {
+  0%   { transform: rotate(0deg)   scale(1);    }
+  20%  { transform: rotate(-14deg) scale(1.22); }
+  45%  { transform: rotate(14deg)  scale(1.22); }
+  68%  { transform: rotate(-7deg)  scale(1.1);  }
+  84%  { transform: rotate(4deg)   scale(1.05); }
+  100% { transform: rotate(0deg)   scale(1);    }
+}
+
+@utility animate-nav-dance {
+  animation: nav-dance 0.52s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-nav-dance {
+    animation: none !important;
+  }
+}
+
+/* Hide scrollbar for efficient mobile horizontal lists */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* iOS Safe Area Insets */
 :root {
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -172,6 +204,18 @@
   /* Default Fonts (will be overridden by FontContext) */
   --font-heading: "Fredoka", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, sans-serif;
+
+  /* Static fallbacks for JS-driven theme tokens.
+     The inline script in index.html and ThemeContext will override these at runtime.
+     These defaults ensure bg-surface/bg-background elements are never transparent
+     before JavaScript has had a chance to apply the active theme. */
+  --color-surface: #ffffff;
+  --color-background: #fff8e7;
+  --color-border: #ffe4cc;
+  --color-text: #5a5a5a;
+  --color-text-light: #8b8b8b;
+  --color-primary-start: #ff9b71;
+  --color-primary-end: #ffd93d;
 
   /* Color scheme for modern light mode support */
   color-scheme: light;

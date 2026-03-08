@@ -87,9 +87,11 @@ const AuthPage: React.FC = () => {
         <div className="hidden lg:block space-y-8 px-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-gold-sunshine to-coral-burst flex items-center justify-center border border-white/30">
-                <span className="text-white font-heading font-bold text-2xl">G</span>
-              </div>
+              <img
+                src="/genesis-icon.jpg"
+                alt="Genesis"
+                className="w-14 h-14 rounded-xl object-cover border border-peach-soft/40 shadow-sm"
+              />
               <span className="font-heading font-bold text-4xl text-charcoal-soft tracking-tight">
                 Genesis
               </span>
@@ -147,9 +149,11 @@ const AuthPage: React.FC = () => {
         {/* Right Side - Auth Form */}
         <div className="bg-surface rounded-3xl border border-peach-soft p-8 lg:p-12">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-linear-to-br from-gold-sunshine to-coral-burst rounded-2xl mx-auto mb-6 flex items-center justify-center border border-white/30 transform rotate-3">
-              <span className="text-3xl">✨</span>
-            </div>
+            <img
+              src="/genesis-icon.jpg"
+              alt="Genesis"
+              className="w-16 h-16 rounded-2xl mx-auto mb-6 object-cover border border-peach-soft/40 shadow-sm transform rotate-3"
+            />
 
             <h2 className="font-heading font-bold text-3xl text-charcoal-soft mb-2">
               {isSignUp ? 'Create Your Account' : 'Welcome Back'}

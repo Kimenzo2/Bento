@@ -113,7 +113,7 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
             <h3 className={`font-semibold text-sm ${status.color}`}>
               {isAnalyzing ? 'Analyzing Content...' : status.label}
             </h3>
-            <p className="text-xs text-slate-400">Target: {targetAudience}</p>
+            <p className="text-xs text-cocoa-light">Target: {targetAudience}</p>
           </div>
         </div>
 
@@ -133,7 +133,7 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
               variant="ghost"
               size="icon"
               onClick={onDismiss}
-              className="p-1 text-slate-400 hover:text-slate-300"
+              className="p-1 text-cocoa-light hover:text-charcoal-soft"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -143,15 +143,15 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
 
       {/* Reading Level Info */}
       {!isAnalyzing && (
-        <div className="px-4 py-2 border-t border-slate-700/30 flex items-center gap-4">
+        <div className="px-4 py-2 border-t border-peach-soft/50 flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <IcoBook className="w-4 h-4 text-slate-400" />
-            <span className="text-xs text-slate-400">Reading Level:</span>
+            <IcoBook className="w-4 h-4 text-cocoa-light" />
+            <span className="text-xs text-cocoa-light">Reading Level:</span>
             <span className="text-xs font-medium text-white">{readingLevel}</span>
           </div>
-          <div className="w-px h-4 bg-slate-700" />
+          <div className="w-px h-4 bg-peach-soft" />
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Recommended Age:</span>
+            <span className="text-xs text-cocoa-light">Recommended Age:</span>
             <span
               className={`text-xs font-medium ${
                 recommendedAgeRange === targetAudience ? 'text-green-400' : 'text-orange-400'
@@ -170,7 +170,7 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
             initial={{ height: 0 }}
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
-            className="border-t border-slate-700/30 overflow-hidden"
+            className="border-t border-peach-soft/50 overflow-hidden"
           >
             <div className="p-4 space-y-3">
               {warnings.map((warning, i) => (
@@ -191,11 +191,11 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
                     {getWarningIcon(warning.severity)}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-slate-300">
+                        <span className="text-xs font-medium text-charcoal-soft">
                           {getTypeLabel(warning.type)}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400">{warning.description}</p>
+                      <p className="text-xs text-cocoa-light">{warning.description}</p>
                       {warning.suggestion && (
                         <div className="mt-2 flex items-start gap-2 text-xs">
                           <Lightbulb className="w-3 h-3 text-yellow-500 mt-0.5" />
@@ -213,7 +213,7 @@ const AudienceSafety: React.FC<AudienceSafetyProps> = ({
 
       {/* All Clear Message */}
       {!isAnalyzing && warnings.length === 0 && isAppropriate && (
-        <div className="px-4 py-3 border-t border-slate-700/30 flex items-center gap-2 text-green-400">
+        <div className="px-4 py-3 border-t border-peach-soft/50 flex items-center gap-2 text-green-600">
           <ShieldCheck className="w-4 h-4" />
           <span className="text-xs">Content is appropriate for {targetAudience}</span>
         </div>

@@ -1,6 +1,7 @@
 import { Bug, Code, Eye, RefreshCw, Terminal, TestTube2, Wrench, Zap } from 'lucide-react';
 import React from 'react';
 import { ToggleRow } from '../ui/toggle-row';
+import { toast } from '../ui/sonner';
 
 interface AdvancedSettingsProps {
   settings: {
@@ -16,21 +17,33 @@ interface AdvancedSettingsProps {
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate }) => {
   const handleResetSettings = () => {
-    if (confirm('Reset all settings to defaults? This cannot be undone.')) {
-      localStorage.removeItem('genesis_settings');
-      localStorage.removeItem('genesis_avatar');
-      window.location.reload();
-    }
+    toast('Reset all settings to defaults?', {
+      description: 'This cannot be undone.',
+      action: {
+        label: 'Reset',
+        onClick: () => {
+          localStorage.removeItem('genesis_settings');
+          localStorage.removeItem('genesis_avatar');
+          window.location.reload();
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
   const handleClearAllData = () => {
-    if (
-      confirm('This will clear ALL local data including settings, cache, and drafts. Continue?')
-    ) {
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.reload();
-    }
+    toast('Clear ALL local data?', {
+      description: 'This removes settings, cache, and drafts. Cannot be undone.',
+      action: {
+        label: 'Clear Everything',
+        onClick: () => {
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.reload();
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
   return (

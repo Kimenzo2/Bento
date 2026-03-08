@@ -529,7 +529,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-100 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -537,23 +537,23 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
         <motion.div className="absolute inset-0 bg-black/60 " onClick={onClose} />
 
         <motion.div
-          className="relative bg-surface dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="relative bg-white rounded-3xl border border-peach-soft w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           {/* Header */}
-          <div className="shrink-0 p-4 border-b border-peach-soft md:p-6 dark:border-gray-700">
+          <div className="shrink-0 p-4 border-b border-peach-soft md:p-6 ">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-linear-to-br from-coral-burst to-sunset-coral rounded-xl">
                   <IcoWand className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-charcoal-soft md:text-2xl dark:text-white">
+                  <h2 className="text-lg font-bold text-charcoal-soft md:text-2xl ">
                     Template Library
                   </h2>
-                  <p className="text-xs text-cocoa-light md:text-sm dark:text-cocoa-light/60">
+                  <p className="text-xs text-cocoa-light md:text-sm ">
                     Start with a proven story structure
                   </p>
                 </div>
@@ -563,7 +563,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                 title="Close"
                 variant="ghost"
                 size="icon"
-                className="p-2 hover:bg-peach-soft/30 dark:hover:bg-gray-800"
+                className="p-2 hover:bg-peach-soft/30 :bg-gray-800"
               >
                 <X className="w-6 h-6 text-cocoa-light" />
               </Button>
@@ -582,7 +582,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                                         ${
                                           selectedCategory === cat
                                             ? 'bg-coral-burst text-white'
-                                            : 'bg-peach-soft/30 dark:bg-gray-800 text-cocoa-light dark:text-cocoa-light/60 hover:bg-peach-light/50 dark:hover:bg-gray-700'
+                                            : 'bg-peach-soft/30  text-cocoa-light  hover:bg-peach-light/50 :bg-gray-700'
                                         }
                                     `}
                 >
@@ -608,19 +608,19 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                                         ${
                                           selectedTemplate?.id === template.id
                                             ? 'border-coral-burst bg-coral-burst/5'
-                                            : 'border-peach-soft dark:border-gray-700 hover:border-coral-burst/50'
+                                            : 'border-peach-soft  hover:border-coral-burst/50'
                                         }
                                     `}
                 >
                   {/* Badges */}
                   <div className="absolute flex gap-2 top-3 right-3">
                     {template.popular && (
-                      <span className="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full flex items-center gap-1">
+                      <span className="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700   rounded-full flex items-center gap-1">
                         <IcoStar className="w-3 h-3" /> Popular
                       </span>
                     )}
                     {template.new && (
-                      <span className="px-2 py-0.5 text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full flex items-center gap-1">
+                      <span className="px-2 py-0.5 text-xs font-bold bg-green-100 text-green-700   rounded-full flex items-center gap-1">
                         <IcoWand className="w-3 h-3" /> New
                       </span>
                     )}
@@ -637,8 +637,8 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                   </div>
 
                   {/* Info */}
-                  <h3 className="mb-1 font-bold text-charcoal-soft dark:text-white">{template.name}</h3>
-                  <p className="mb-3 text-sm text-cocoa-light dark:text-cocoa-light/60">
+                  <h3 className="mb-1 font-bold text-charcoal-soft ">{template.name}</h3>
+                  <p className="mb-3 text-sm text-cocoa-light ">
                     {template.description}
                   </p>
 
@@ -674,15 +674,15 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="shrink-0 border-t border-peach-soft dark:border-gray-700 bg-surface/50 dark:bg-gray-800/50"
+                className="shrink-0 border-t border-peach-soft  bg-surface/50 "
               >
                 <div className="p-4 md:p-6">
                   <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:gap-6">
                     <div className="flex-1 w-full">
-                      <h3 className="mb-2 text-lg font-bold text-charcoal-soft dark:text-white">
+                      <h3 className="mb-2 text-lg font-bold text-charcoal-soft ">
                         {selectedTemplate.name} Structure
                       </h3>
-                      <p className="mb-4 text-sm text-cocoa-light dark:text-cocoa-light/60">
+                      <p className="mb-4 text-sm text-cocoa-light ">
                         Example prompt: "{selectedTemplate.samplePrompt}"
                       </p>
 
@@ -691,19 +691,19 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                         {selectedTemplate.structure.slice(0, 6).map((page, i) => (
                           <div
                             key={i}
-                            className="shrink-0 w-24 p-2 bg-surface border border-peach-soft rounded-lg dark:bg-gray-800 dark:border-gray-700"
+                            className="shrink-0 w-24 p-2 bg-surface border border-peach-soft rounded-lg  "
                           >
                             <div className="mb-1 text-xs font-bold text-coral-burst">
                               Page {page.pageNumber}
                             </div>
-                            <div className="text-xs text-cocoa-light dark:text-cocoa-light/60 line-clamp-2">
+                            <div className="text-xs text-cocoa-light  line-clamp-2">
                               {page.suggestedContent}
                             </div>
                           </div>
                         ))}
                         {selectedTemplate.structure.length > 6 && (
-                          <div className="flex items-center justify-center shrink-0 w-24 p-2 bg-peach-soft/30 rounded-lg dark:bg-gray-700">
-                            <span className="text-xs text-cocoa-light dark:text-cocoa-light/60">
+                          <div className="flex items-center justify-center shrink-0 w-24 p-2 bg-peach-soft/30 rounded-lg ">
+                            <span className="text-xs text-cocoa-light ">
                               +{selectedTemplate.structure.length - 6} more
                             </span>
                           </div>
@@ -731,3 +731,4 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
 };
 
 export default TemplateLibrary;
+

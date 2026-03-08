@@ -30,9 +30,9 @@ const ONBOARDING_STYLES = `
     height: 100% !important;
     width: 100% !important;
     overflow: hidden !important;
-    /* Nunito font for onboarding */
-    --font-heading: 'Nunito', system-ui, sans-serif !important;
-    --font-body: 'Nunito', system-ui, sans-serif !important;
+    /* Keep onboarding self-contained without extra font requests */
+    --font-heading: Aptos, 'Segoe UI', system-ui, sans-serif !important;
+    --font-body: Aptos, 'Segoe UI', system-ui, sans-serif !important;
   }
 
   /* Override global scrollbar for onboarding - Seamless Dark */
@@ -61,13 +61,6 @@ const ONBOARDING_STYLES = `
 export const OnboardingApp: React.FC = () => {
   // Apply onboarding-specific styles at mount, restore on unmount
   useEffect(() => {
-    // Load Nunito font from Google Fonts
-    const fontLink = document.createElement('link');
-    fontLink.id = 'onboarding-nunito-font';
-    fontLink.rel = 'stylesheet';
-    fontLink.href = 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap';
-    document.head.appendChild(fontLink);
-
     // Create style element for onboarding
     const styleElement = document.createElement('style');
     styleElement.id = 'onboarding-global-styles';
@@ -80,9 +73,6 @@ export const OnboardingApp: React.FC = () => {
 
     // Cleanup function
     return () => {
-      // Remove font link
-      const existingFont = document.getElementById('onboarding-nunito-font');
-      if (existingFont) existingFont.remove();
       // Remove our style override
       const existingStyle = document.getElementById('onboarding-global-styles');
       if (existingStyle) {

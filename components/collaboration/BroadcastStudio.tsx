@@ -15,6 +15,7 @@ import type { BroadcastMessage, BroadcastSession, BroadcastViewer } from '../../
 import { Button } from '@components/ui/button';
 import { Input, Label } from '@components/ui/input';
 import { Textarea } from '@components/ui/input';
+import { toast } from '@components/ui/sonner';
 
 interface BroadcastStudioProps {
   onClose?: () => void;
@@ -95,7 +96,7 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
 
   const handleStartBroadcast = async () => {
     if (!title.trim()) {
-      alert('Please enter a title for your broadcast');
+      toast.error('Please enter a broadcast title');
       return;
     }
 
@@ -110,21 +111,26 @@ const BroadcastStudio: React.FC<BroadcastStudioProps> = ({ onClose, initialSessi
       setSession(result.data);
       setIsLive(true);
     } else {
-      alert(result.error || 'Failed to start broadcast');
+      toast.error('Failed to start broadcast', { description: result.error });
     }
   };
 
   const handleEndBroadcast = async () => {
     if (!session) return;
 
-    const confirmed = window.confirm('Are you sure you want to end this broadcast?');
-    if (!confirmed) return;
-
-    const result = await broadcastService.endBroadcast(session.id);
-    if (result.success) {
-      setIsLive(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
+    toast('End this broadcast?', {
+      action: {
+        label: 'End Broadcast',
+        onClick: async () => {
+          const result = await broadcastService.endBroadcast(session.id);
+          if (result.success) {
+            setIsLive(false);
+            if (timerRef.current) clearInterval(timerRef.current);
+          }
+        },
+      },
+      cancel: { label: 'Keep Going', onClick: () => {} },
+    });
   };
 
   const handleSendMessage = async () => {

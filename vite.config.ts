@@ -2,8 +2,38 @@ import { resolve } from 'path';
 import os from 'node:os';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react-swc';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * Converts Vite-injected render-blocking resources to non-blocking equivalents.
+ * CSS: preload + onload swap (same pattern as Google Fonts in index.html).
+ * Script: adds defer to module scripts for audit-tool compliance.
+ */
+function nonBlockingAssets(): Plugin {
+  return {
+    name: 'non-blocking-assets',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        // CSS: convert <link rel="stylesheet"> to preload+onload with noscript fallback
+        html = html.replace(
+          /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
+          (_match, href) =>
+            `<link rel="preload" as="style" crossorigin href="${href}" onload="this.onload=null;this.rel='stylesheet'">` +
+            `\n<noscript><link rel="stylesheet" crossorigin href="${href}"></noscript>`,
+        );
+        // Script: add defer to module scripts (redundant per spec, satisfies audits)
+        html = html.replace(
+          /<script type="module" crossorigin src="(\/assets\/[^"]+\.js)">/g,
+          '<script type="module" defer crossorigin src="$1">',
+        );
+        return html;
+      },
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -17,6 +47,8 @@ export default defineConfig(({ mode }) => {
       react(),
       // Tailwind CSS v4 Vite plugin
       tailwindcss(),
+      // Non-blocking CSS and deferred scripts for Core Web Vitals
+      nonBlockingAssets(),
 
       enablePwa &&
         VitePWA({
@@ -29,6 +61,8 @@ export default defineConfig(({ mode }) => {
           },
           includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
           workbox: {
+            // Skip waiting so the new SW activates immediately without requiring all tabs to close
+            skipWaiting: true,
             // Clean up caches from previous SW versions to prevent stale chunk serving
             cleanupOutdatedCaches: true,
             // Take control of all clients immediately on activation

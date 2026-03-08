@@ -11,6 +11,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { toast } from '../ui/sonner';
 
 interface DataManagementProps {
   onShowSuccess: (message: string) => void;
@@ -100,7 +101,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
       onShowSuccess('Data exported successfully');
     } catch (error) {
       console.error('Export error:', error);
-      alert('Failed to export data. Please try again.');
+      toast.error('Export failed', { description: 'Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +148,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
       }, 2000);
     } catch (error) {
       console.error('Delete account error:', error);
-      alert('Failed to delete account. Please contact support.');
+      toast.error('Account deletion failed', { description: 'Please contact support@getgenesis.app.' });
     } finally {
       setIsLoading(false);
       setShowDeleteConfirm(false);

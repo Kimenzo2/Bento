@@ -30,9 +30,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
     <div className="fixed left-0 top-0 h-full w-20 md:w-64 bg-black/40  border-r border-glassBorder z-50 flex flex-col justify-between">
       <div>
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-brand-purple to-brand-cyan flex items-center justify-center">
-            <span className="text-white font-bold text-lg">G</span>
-          </div>
+          <img
+            src="/genesis-icon.jpg"
+            alt="Genesis"
+            className="w-8 h-8 rounded-lg object-cover"
+          />
           <span className="font-bold text-xl tracking-wide hidden md:block bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400">
             GENESIS
           </span>

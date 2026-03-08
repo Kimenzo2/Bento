@@ -74,18 +74,18 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
     const isExpanded = expandedSections.includes(id);
 
     return (
-      <div className="border border-slate-700 rounded-xl overflow-hidden bg-slate-800/50">
+      <div className="border border-white/10 rounded-xl overflow-hidden bg-white/5">
         <Button
           variant="ghost"
           onClick={() => toggleSection(id)}
-          className="w-full flex justify-between p-4 hover:bg-slate-700/30"
+          className="w-full flex justify-between p-4 hover:bg-white/5"
         >
           <div className="flex items-center gap-3">
             <Icon className="w-5 h-5 text-emerald-400" />
             <span className="font-heading font-bold text-white">{title}</span>
           </div>
           <ChevronDown
-            className={`w-5 h-5 text-slate-400 transition-transform ${
+            className={`w-5 h-5 text-white/50 transition-transform ${
               isExpanded ? 'rotate-180' : ''
             }`}
           />
@@ -121,7 +121,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
   }) => (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <Label className="text-slate-300">{label}</Label>
+        <Label className="text-white/70">{label}</Label>
         <span className="text-xs font-bold text-emerald-400">{value}%</span>
       </div>
       <input
@@ -130,7 +130,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
         max="100"
         value={value || 50}
         onChange={(e) => onChange(Number.parseInt(e.target.value))}
-        className={`w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-${color}-500`}
+        className={`w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-${color}-500`}
       />
     </div>
   );
@@ -149,13 +149,13 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
     multiline?: boolean;
   }) => (
     <div className="space-y-2">
-      <Label className="text-slate-300">{label}</Label>
+      <Label className="text-white/70">{label}</Label>
       {multiline ? (
         <Textarea
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-slate-900/50 border-slate-600 rounded-lg p-3 text-white focus:border-emerald-500 h-20"
+          className="bg-black/20 border-white/20 rounded-lg p-3 text-white focus:border-emerald-500 h-20"
         />
       ) : (
         <ShadcnInput
@@ -163,7 +163,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-slate-900/50 border-slate-600 p-3 text-white focus:border-emerald-500"
+          className="bg-black/20 border-white/20 p-3 text-white focus:border-emerald-500"
         />
       )}
     </div>
@@ -181,7 +181,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
     options: { value: string; label: string }[];
   }) => (
     <div className="space-y-2">
-      <Label className="text-slate-300">{label}</Label>
+      <Label className="text-white/70">{label}</Label>
       <Select value={value || options[0].value} onValueChange={onChange}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select..." />
@@ -202,17 +202,17 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-slate-900 rounded-3xl border border-peach-soft w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+      className="bg-slate-900 rounded-3xl border border-peach-soft w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-500/20 rounded-lg">
               <User className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
               <h2 className="text-xl font-heading font-bold text-white">Character Depth</h2>
-              <p className="text-sm text-slate-400">{localCharacter.name}</p>
+              <p className="text-sm text-white/50">{localCharacter.name}</p>
             </div>
           </div>
 
@@ -233,7 +233,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="p-2 hover:bg-red-500/20 text-slate-400 hover:text-red-400"
+                className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-400"
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -245,7 +245,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Basic Info */}
           <Section id="basic" title="Basic Information" icon={User}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Name"
                 value={localCharacter.name}
@@ -315,7 +315,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 onChange={(val) => updateField(['coreIdentity', 'coreBelief'], val)}
                 placeholder="How they see the world fundamentally..."
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Greatest Desire"
                   value={localCharacter.coreIdentity?.greatestDesire || ''}
@@ -329,7 +329,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   placeholder="What they avoid at all costs"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Fatal Flaw"
                   value={localCharacter.coreIdentity?.flaw || ''}
@@ -343,7 +343,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   placeholder="Their most powerful asset"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="The Lie They Believe"
                   value={localCharacter.coreIdentity?.lie || ''}
@@ -376,7 +376,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 placeholder="The event that made them who they are"
                 multiline
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Biggest Regret"
                   value={localCharacter.formativeExperiences?.biggestRegret || ''}
@@ -395,7 +395,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
 
           {/* Relationships */}
           <Section id="relationships" title="Relationship Style" icon={Heart}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SelectField
                 label="Attachment Style"
                 value={localCharacter.relationshipStyle?.attachmentStyle || 'secure'}
@@ -453,7 +453,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 onChange={(val) => updateField(['behavioralPatterns', 'speechPatterns'], val)}
                 placeholder="Formal, slang, poetic, stutters, etc."
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Tone of Voice"
                   value={localCharacter.voiceProfile?.tone || ''}

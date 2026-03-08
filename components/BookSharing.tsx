@@ -32,6 +32,7 @@ import type { BookProject } from '../types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Switch } from './ui/switch';
+import { toast } from './ui/sonner';
 
 // Extend the service type to include the computed URL for UI
 interface ShareLink extends ServiceShareLink {
@@ -293,7 +294,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-200 flex items-center justify-center p-4"
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -301,21 +302,21 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
         <motion.div className="absolute inset-0 bg-black/60 " onClick={onClose} />
 
         <motion.div
-          className="relative bg-surface dark:bg-gray-900 rounded-3xl border border-peach-soft w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col"
+          className="relative bg-white rounded-3xl border border-peach-soft w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
         >
           {/* Header */}
-          <div className="p-6 border-b border-peach-soft dark:border-gray-700 shrink-0">
+          <div className="p-6 border-b border-peach-soft  shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-coral-burst/10 rounded-xl">
                   <Share2 className="w-6 h-6 text-coral-burst" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-charcoal-soft dark:text-white">Share Book</h2>
-                  <p className="text-sm text-cocoa-light dark:text-cocoa-light/60 truncate max-w-50">
+                  <h2 className="text-lg font-bold text-charcoal-soft ">Share Book</h2>
+                  <p className="text-sm text-cocoa-light  truncate max-w-50">
                     {book.title}
                   </p>
                 </div>
@@ -325,7 +326,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                 size="icon"
                 onClick={onClose}
                 title="Close"
-                className="rounded-lg hover:bg-peach-soft/30 dark:hover:bg-gray-800"
+                className="rounded-lg hover:bg-peach-soft/30"
               >
                 <X className="w-5 h-5 text-cocoa-light" />
               </Button>
@@ -335,8 +336,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
           {/* Content */}
           <div className="p-6 space-y-6 overflow-y-auto flex-1">
             {error && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3 text-red-600 dark:text-red-400">
-                <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-full">
+              <div className="p-4 bg-red-50  border border-red-200  rounded-xl flex items-center gap-3 text-red-600 ">
+                <div className="p-2 bg-red-100  rounded-full">
                   <Shield className="w-4 h-4" />
                 </div>
                 <p className="text-sm font-medium">{error}</p>
@@ -349,7 +350,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
             ) : shareLink ? (
               <>
                 {/* Tabs */}
-                <div className="flex gap-1 p-1 bg-peach-soft/30 dark:bg-gray-800 rounded-xl">
+                <div className="flex gap-1 p-1 bg-peach-soft/30  rounded-xl">
                   {[
                     { id: 'link' as ShareTab, icon: Link, label: 'Link' },
                     { id: 'qr' as ShareTab, icon: QrCode, label: 'QR Code' },
@@ -364,8 +365,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                 flex-1 py-2 rounded-lg
                                                 ${
                                                   activeTab === tab.id
-                                                    ? 'bg-surface dark:bg-gray-700 text-coral-burst'
-                                                    : 'text-cocoa-light dark:text-cocoa-light/60 hover:text-charcoal-soft dark:hover:text-white'
+                                                    ? 'bg-surface  text-coral-burst'
+                                                    : 'text-cocoa-light  hover:text-charcoal-soft :text-white'
                                                 }
                                             `}
                     >
@@ -386,13 +387,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       className="space-y-4"
                     >
                       {/* Share Link Display */}
-                      <div className="flex items-center gap-2 p-3 bg-surface/50 dark:bg-gray-800 rounded-xl">
+                      <div className="flex items-center gap-2 p-3 bg-surface/50  rounded-xl">
                         <Input
                           type="text"
                           value={shareLink.url}
                           readOnly
                           title="Share link URL"
-                          className="flex-1 bg-transparent text-charcoal-soft dark:text-white text-sm outline-none border-0 shadow-none"
+                          className="flex-1 bg-transparent text-charcoal-soft  text-sm outline-none border-0 shadow-none"
                         />
                         <Button
                           variant="default"
@@ -413,7 +414,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       </div>
 
                       {/* Stats */}
-                      <div className="flex items-center gap-4 text-sm text-cocoa-light dark:text-cocoa-light/60">
+                      <div className="flex items-center gap-4 text-sm text-cocoa-light ">
                         <span className="flex items-center gap-1">
                           <Eye className="w-4 h-4" />
                           {shareLink.settings.viewCount} views
@@ -425,9 +426,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       </div>
 
                       {/* Settings Update Controls */}
-                      <div className="space-y-2 pt-2 border-t border-peach-soft/50 dark:border-gray-800">
+                      <div className="space-y-2 pt-2 border-t border-peach-soft/50 ">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-cocoa-light dark:text-cocoa-light/60">
+                          <span className="text-sm text-cocoa-light ">
                             Public Access
                           </span>
                           <Switch
@@ -437,7 +438,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-cocoa-light dark:text-cocoa-light/60">
+                          <span className="text-sm text-cocoa-light ">
                             Allow Downloads
                           </span>
                           <Switch
@@ -450,7 +451,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 
                       {/* Social Share Buttons */}
                       <div>
-                        <p className="text-sm font-medium text-cocoa-light dark:text-cocoa-light/60 mb-3">
+                        <p className="text-sm font-medium text-cocoa-light  mb-3">
                           Share on social media
                         </p>
                         <div className="flex gap-2">
@@ -495,7 +496,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                             size="sm"
                             onClick={() => handleShare('email')}
                             title="Share via Email"
-                            className="flex-1 py-2.5 bg-gray-500 text-white hover:opacity-90"
+                            className="flex-1 py-2.5 bg-cocoa-dark text-white hover:opacity-90"
                           >
                             <Mail className="w-4 h-4" />
                           </Button>
@@ -513,7 +514,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       className="space-y-4"
                     >
                       {/* QR Code Display */}
-                      <div className="flex flex-col items-center p-6 bg-surface/50 dark:bg-gray-800 rounded-xl">
+                      <div className="flex flex-col items-center p-6 bg-surface/50  rounded-xl">
                         <div className="bg-surface p-4 rounded-2xl border border-peach-soft">
                           <img
                             src={generateQRCodeUrl(shareLink.url, 200)}
@@ -521,7 +522,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                             className="w-48 h-48"
                           />
                         </div>
-                        <p className="mt-4 text-sm text-cocoa-light dark:text-cocoa-light/60 text-center">
+                        <p className="mt-4 text-sm text-cocoa-light  text-center">
                           Scan this QR code with your phone to view the book
                         </p>
                       </div>
@@ -537,7 +538,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                         Download QR Code
                       </Button>
 
-                      <p className="text-xs text-cocoa-light/60 dark:text-cocoa-light text-center">
+                      <p className="text-xs text-cocoa-light/60  text-center">
                         Perfect for printing on flyers, business cards, or sharing in presentations
                       </p>
                     </motion.div>
@@ -553,11 +554,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                     >
                       {/* Embed Code Display */}
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-cocoa-light dark:text-cocoa-light/60">
+                        <p className="text-sm font-medium text-cocoa-light ">
                           Embed Code
                         </p>
                         <div className="relative">
-                          <pre className="p-4 bg-gray-900 text-green-400 rounded-xl text-xs overflow-x-auto">
+                          <pre className="p-4 bg-charcoal-soft text-green-400 rounded-xl text-xs overflow-x-auto">
                             {generateEmbedCode(shareLink.url, book.title)}
                           </pre>
                           <Button
@@ -570,7 +571,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                             ${
                                                               copiedEmbed
                                                                 ? 'bg-green-500 text-white'
-                                                                : 'bg-gray-700 text-white hover:bg-gray-600'
+                                                                : 'bg-charcoal-soft/80 text-white hover:bg-charcoal-soft'
                                                             }
                                                         `}
                           >
@@ -585,11 +586,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 
                       {/* Preview */}
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-cocoa-light dark:text-cocoa-light/60">
+                        <p className="text-sm font-medium text-cocoa-light ">
                           Preview
                         </p>
-                        <div className="border border-peach-soft dark:border-gray-700 rounded-xl p-4 bg-surface/50 dark:bg-gray-800">
-                          <div className="bg-surface dark:bg-gray-900 rounded-lg border border-peach-soft p-4 text-center">
+                        <div className="border border-peach-soft  rounded-xl p-4 bg-surface/50 ">
+                          <div className="bg-surface  rounded-lg border border-peach-soft p-4 text-center">
                             <div className="w-full h-32 bg-linear-to-br from-coral-burst/20 to-gold-sunshine/20 rounded-lg flex items-center justify-center">
                               <span className="text-cocoa-light/60 text-sm">📖 {book.title}</span>
                             </div>
@@ -597,7 +598,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                         </div>
                       </div>
 
-                      <p className="text-xs text-cocoa-light/60 dark:text-cocoa-light text-center">
+                      <p className="text-xs text-cocoa-light/60  text-center">
                         Paste this code into your website's HTML to embed the book viewer
                       </p>
                     </motion.div>
@@ -609,16 +610,19 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                   variant="ghost"
                   size="sm"
                   onClick={async () => {
-                    if (
-                      confirm(
-                        'Are you sure you want to stop sharing this book? The link will no longer work.'
-                      )
-                    ) {
-                      await deleteShareLink(shareLink.shortCode);
-                      setShareLink(null);
-                    }
+                    toast('Remove share link?', {
+                      description: 'The link will stop working immediately.',
+                      action: {
+                        label: 'Remove',
+                        onClick: async () => {
+                          await deleteShareLink(shareLink.shortCode);
+                          setShareLink(null);
+                        },
+                      },
+                      cancel: { label: 'Keep', onClick: () => {} },
+                    });
                   }}
-                  className="w-full py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className="w-full py-2 text-red-500 hover:bg-red-50 :bg-red-900/20"
                 >
                   Remove Share Link
                 </Button>
@@ -627,7 +631,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
               <>
                 {/* Visibility Settings */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-surface/50 dark:bg-gray-800 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-surface/50  rounded-xl">
                     <div className="flex items-center gap-3">
                       {settings.isPublic ? (
                         <Globe className="w-5 h-5 text-green-500" />
@@ -635,10 +639,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                         <Lock className="w-5 h-5 text-amber-500" />
                       )}
                       <div>
-                        <p className="font-medium text-charcoal-soft dark:text-white">
+                        <p className="font-medium text-charcoal-soft ">
                           {settings.isPublic ? 'Public' : 'Private'}
                         </p>
-                        <p className="text-sm text-cocoa-light dark:text-cocoa-light/60">
+                        <p className="text-sm text-cocoa-light ">
                           {settings.isPublic
                             ? 'Anyone with the link can view'
                             : 'Only people with password'}
@@ -651,7 +655,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       title="Toggle visibility"
                       className={`
                                                 w-11 h-6 rounded-full relative shrink-0 p-0 border-0 min-w-0
-                                                ${settings.isPublic ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}
+                                                ${settings.isPublic ? 'bg-green-500' : 'bg-peach-soft '}
                                             `}
                     >
                       <span
@@ -663,12 +667,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                     </Button>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-surface/50 dark:bg-gray-800 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-surface/50  rounded-xl">
                     <div className="flex items-center gap-3">
                       <Download className="w-5 h-5 text-blue-500" />
                       <div>
-                        <p className="font-medium text-charcoal-soft dark:text-white">Allow Downloads</p>
-                        <p className="text-sm text-cocoa-light dark:text-cocoa-light/60">
+                        <p className="font-medium text-charcoal-soft ">Allow Downloads</p>
+                        <p className="text-sm text-cocoa-light ">
                           Viewers can download the book
                         </p>
                       </div>
@@ -681,7 +685,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       title="Toggle downloads"
                       className={`
                                                 w-11 h-6 rounded-full relative shrink-0 p-0 border-0 min-w-0
-                                                ${settings.allowDownload ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}
+                                                ${settings.allowDownload ? 'bg-blue-500' : 'bg-peach-soft '}
                                             `}
                     >
                       <span
@@ -715,10 +719,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       className="space-y-4 overflow-hidden"
                     >
                       {/* Password Protection */}
-                      <div className="p-4 bg-surface/50 dark:bg-gray-800 rounded-xl space-y-3">
+                      <div className="p-4 bg-surface/50  rounded-xl space-y-3">
                         <div className="flex items-center gap-2">
                           <Lock className="w-4 h-4 text-cocoa-light" />
-                          <p className="font-medium text-charcoal-soft dark:text-white text-sm">
+                          <p className="font-medium text-charcoal-soft  text-sm">
                             Password Protection
                           </p>
                         </div>
@@ -727,15 +731,15 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                           value={passwordInput}
                           onChange={(e) => setPasswordInput(e.target.value)}
                           placeholder="Optional password"
-                          className="w-full px-3 py-2 border border-peach-soft dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-coral-burst bg-surface dark:bg-gray-900"
+                          className="w-full px-3 py-2 border border-peach-soft  rounded-lg text-sm focus:ring-2 focus:ring-coral-burst bg-surface "
                         />
                       </div>
 
                       {/* Expiration */}
-                      <div className="p-4 bg-surface/50 dark:bg-gray-800 rounded-xl space-y-3">
+                      <div className="p-4 bg-surface/50  rounded-xl space-y-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-cocoa-light" />
-                          <p className="font-medium text-charcoal-soft dark:text-white text-sm">
+                          <p className="font-medium text-charcoal-soft  text-sm">
                             Link Expiration
                           </p>
                         </div>
@@ -751,7 +755,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                                                                 ${
                                                                   expirationDays === days
                                                                     ? 'bg-coral-burst text-white border-coral-burst'
-                                                                    : 'bg-surface dark:bg-gray-900 text-cocoa-light dark:text-cocoa-light/60 border-peach-soft dark:border-gray-700'
+                                                                    : 'bg-surface  text-cocoa-light  border-peach-soft '
                                                                 }
                                                             `}
                             >
@@ -790,3 +794,4 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 };
 
 export default { useBookSharing, ShareModal };
+

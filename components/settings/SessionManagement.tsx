@@ -10,6 +10,7 @@ import {
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../ui/sonner';
 
 interface Session {
   id: string;
@@ -70,24 +71,30 @@ const SessionManagement: React.FC<SessionManagementProps> = ({ onShowSuccess }) 
       }
     } catch (error) {
       console.error('Logout error:', error);
-      alert('Failed to end session');
+      toast.error('Failed to end session', { description: 'Please try again.' });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleLogoutAll = async () => {
-    if (!confirm('This will sign you out from all devices. Continue?')) return;
-
-    setIsLoading(true);
-    try {
-      await signOut();
-      window.location.href = '/auth';
-    } catch (error) {
-      console.error('Logout all error:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    toast('Sign out from all devices?', {
+      action: {
+        label: 'Sign Out Everywhere',
+        onClick: async () => {
+          setIsLoading(true);
+          try {
+            await signOut();
+            window.location.href = '/auth';
+          } catch (error) {
+            console.error('Logout all error:', error);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
   return (

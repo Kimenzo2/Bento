@@ -31,7 +31,7 @@ const InstallPWA: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 z-100 animate-fadeIn">
+    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-auto md:right-4 z-[100] animate-fadeIn">
       <div className="bg-surface/90  border border-peach-soft rounded-2xl p-4 flex items-center justify-between gap-4 max-w-sm ml-auto">
         <div className="flex items-center gap-3">
           <div className="bg-coral-burst/10 p-2 rounded-xl">

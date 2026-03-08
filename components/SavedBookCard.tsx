@@ -1,6 +1,8 @@
 import { Calendar, Edit3, Eye, FileText, Share2, Trash2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import type React from 'react';
 import type { SavedBook } from '../types';
+import { toast } from './ui/sonner';
 
 interface SavedBookCardProps {
   book: SavedBook;
@@ -28,7 +30,9 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
   const pageCount = book.project.chapters.flatMap((c) => c.pages).length;
 
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.015, transition: { duration: 0.2, ease: 'easeOut' } }}
+      whileTap={{ scale: 0.98 }}
       className="bg-surface rounded-2xl overflow-hidden transition-all duration-300 border border-peach-soft/50 group outline-none focus:ring-2 focus:ring-coral-burst/50"
       tabIndex={0}
       role="article"
@@ -74,9 +78,11 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (window.confirm(`Delete "${book.title}"? This cannot be undone.`)) {
-                onDelete(book.id);
-              }
+              toast(`Delete "${book.title}"?`, {
+                description: 'This cannot be undone.',
+                action: { label: 'Delete', onClick: () => onDelete(book.id) },
+                cancel: { label: 'Cancel', onClick: () => {} },
+              });
             }}
             className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
             title="Delete"
@@ -108,7 +114,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
