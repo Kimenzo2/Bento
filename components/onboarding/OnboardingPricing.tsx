@@ -6,17 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from './OnboardingState';
 import { UserTier } from '../../types';
 import { createDodoCheckout } from '../../services/dodoService';
-import type { DodoPlan } from '../../config/dodoPricing';
+import { supportsAnnualDodoBilling, tierToDodoPlan } from '../../config/dodoPricing';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@components/ui/button';
 import { Switch } from '@components/ui/switch';
-
-// Map UserTier → DodoPlan key for checkout
-const TIER_TO_DODO_PLAN: Partial<Record<UserTier, DodoPlan>> = {
-  [UserTier.CREATOR]: 'creator_monthly',
-  [UserTier.STUDIO]: 'studio_monthly',
-  [UserTier.EMPIRE]: 'empire_monthly',
-};
 
 // Type for pricing tier
 interface PricingTier {
@@ -126,7 +119,7 @@ const tiers: PricingTier[] = [
 export const OnboardingPricing: React.FC = () => {
   const { setStep, addSparkPoints } = useOnboarding();
   const navigate = useNavigate();
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(supportsAnnualDodoBilling);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
   const [selectedTier, _setSelectedTier] = useState<string | null>(null);
@@ -168,7 +161,7 @@ export const OnboardingPricing: React.FC = () => {
 
   // -- Dodo Payments checkout --
   const handleDodoCheckout = async (tier: typeof tiers[0]) => {
-    const dodoPlan = TIER_TO_DODO_PLAN[tier.name];
+    const dodoPlan = tierToDodoPlan(tier.name, isAnnual ? 'yearly' : 'monthly');
     if (!dodoPlan) {
       alert('This plan is not available for subscription.');
       return;
@@ -186,12 +179,11 @@ export const OnboardingPricing: React.FC = () => {
         plan: dodoPlan,
         email: user.email ?? userEmail,
         name: user.user_metadata?.full_name ?? user.email ?? userEmail,
-        userId: user.id,
       });
       window.location.href = checkoutUrl;
     } catch (err) {
       console.error('Dodo checkout error:', err);
-      alert('Unable to start checkout. Please try again.');
+      alert(err instanceof Error ? err.message : 'Unable to start checkout. Please try again.');
     } finally {
       setProcessingTier(null);
     }
@@ -236,20 +228,26 @@ export const OnboardingPricing: React.FC = () => {
           </p>
 
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-3">
-            <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>Monthly</span>
-            <Switch
-              checked={isAnnual}
-              onCheckedChange={setIsAnnual}
-              aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
-            />
-            <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}>
-              Annual
-              <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-400/30">
-                Save 18%
+          {supportsAnnualDodoBilling ? (
+            <div className="flex items-center justify-center gap-3">
+              <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>Monthly</span>
+              <Switch
+                checked={isAnnual}
+                onCheckedChange={setIsAnnual}
+                aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
+              />
+              <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}>
+                Annual
+                <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-400/30">
+                  Save 18%
+                </span>
               </span>
-            </span>
-          </div>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70">
+              Monthly billing only
+            </div>
+          )}
         </motion.div>
 
         {/* Pricing Cards Grid */}

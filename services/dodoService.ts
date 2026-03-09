@@ -14,7 +14,6 @@ interface DodoCheckoutParams {
   plan: DodoPlan;
   email: string;
   name: string;
-  userId: string;
 }
 
 interface DodoCheckoutResponse {

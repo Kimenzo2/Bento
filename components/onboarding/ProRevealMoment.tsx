@@ -275,12 +275,11 @@ export const ProRevealMoment: React.FC = () => {
         plan: 'creator_monthly',
         email: user.email ?? '',
         name: user.user_metadata?.full_name ?? user.email ?? '',
-        userId: user.id,
       });
       window.location.href = checkoutUrl;
     } catch (err) {
       console.error('Dodo checkout error:', err);
-      alert('Unable to start checkout. Please try again.');
+      alert(err instanceof Error ? err.message : 'Unable to start checkout. Please try again.');
     }
   };
 

@@ -1,110 +1,72 @@
-/**
- * Unified Dodo Payments API Handler
- *
- * Routes by ?action= query param:
- *   POST ?action=checkout → create a Dodo checkout session (returns checkout_url)
- *   POST ?action=webhook  → Dodo webhook (standardwebhooks signature verified)
- *
- * Vercel rewrites map URLs to this handler:
- *   /api/dodo-checkout → /api/dodo?action=checkout
- *   /api/dodo-webhook  → /api/dodo?action=webhook
- *
- * Architecture:
- *   - Bearer token stays server-side (never in VITE_ env vars)
- *   - Webhook uses service-role Supabase for admin writes
- *   - Idempotency via processed_webhooks table
- *   - Payment history logged to payment_history table
- */
-
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { jwtVerify } from 'jose';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// ---------------------------------------------------------------------------
-// Disable Vercel body-parsing — we read rawBody for webhook signature verify
-// ---------------------------------------------------------------------------
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// ---------------------------------------------------------------------------
-// Supabase (service role — webhook handler needs admin access)
-// ---------------------------------------------------------------------------
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('[dodo] Missing Supabase env vars:', {
-    hasUrl: !!supabaseUrl,
-    hasServiceKey: !!supabaseServiceKey,
-    envKeys: Object.keys(process.env)
-      .filter((k) => k.includes('SUPABASE'))
-      .join(', '),
-  });
-}
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase: SupabaseClient<any> | null =
   supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
-/** Guard — returns the Supabase client or throws so callers can 500 early. */
+type DodoEnvironment = 'live_mode' | 'test_mode';
+
+type DodoApiKeyCandidate = {
+  source: string;
+  value: string;
+};
+
+const DODO_API_KEY_CANDIDATES: DodoApiKeyCandidate[] = [
+  { source: 'DODO_PAYMENTS_API_KEY', value: process.env.DODO_PAYMENTS_API_KEY || '' },
+  { source: 'DODO_API_KEY', value: process.env.DODO_API_KEY || '' },
+].filter((candidate, index, candidates) => {
+  if (!candidate.value) {
+    return false;
+  }
+
+  return candidates.findIndex((other) => other.value === candidate.value) === index;
+});
+
+const DODO_WEBHOOK_KEY =
+  process.env.DODO_PAYMENTS_WEBHOOK_KEY ||
+  process.env.DODO_PAYMENTS_WEBHOOK_SECRET ||
+  process.env.DODO_WEBHOOK_KEY ||
+  process.env.DODO_WEBHOOK_SECRET ||
+  null;
+
+const DODO_ENV: DodoEnvironment =
+  process.env.DODO_PAYMENTS_ENV === 'test_mode' ||
+  process.env.DODO_PAYMENTS_ENVIRONMENT === 'test_mode' ||
+  process.env.DODO_ENV === 'test_mode'
+    ? 'test_mode'
+    : 'live_mode';
+
+const SUPPORTED_TIERS = ['CREATOR', 'STUDIO', 'EMPIRE'] as const;
+const SUPPORTED_INTERVALS = ['MONTHLY', 'YEARLY'] as const;
+
 function requireSupabase(): SupabaseClient<any> {
   if (!supabase) {
     throw new Error(
-      'Supabase client not initialised — missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+      'Supabase client not initialised - missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
     );
   }
+
   return supabase;
 }
 
-// ---------------------------------------------------------------------------
-// Dodo config — all from server-side env vars (no VITE_ prefix)
-// ---------------------------------------------------------------------------
-const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
-const DODO_WEBHOOK_SECRET = process.env.DODO_PAYMENTS_WEBHOOK_SECRET;
-const DODO_ENV = process.env.DODO_PAYMENTS_ENV || 'test_mode';
-
-// Product ID → tier mapping
-// Built dynamically from environment variables so it works for both
-// test and live product IDs without hardcoding.
-function buildProductIdToTier(): Record<string, string> {
-  const map: Record<string, string> = {};
-
-  const creator = process.env.DODO_PRODUCT_ID_CREATOR_MONTHLY;
-  const studio = process.env.DODO_PRODUCT_ID_STUDIO_MONTHLY;
-  const empire = process.env.DODO_PRODUCT_ID_EMPIRE_MONTHLY;
-
-  if (creator) map[creator] = 'CREATOR';
-  if (studio) map[studio] = 'STUDIO';
-  if (empire) map[empire] = 'EMPIRE';
-
-  return map;
+function getPrimaryDodoApiKey(): string | null {
+  return DODO_API_KEY_CANDIDATES[0]?.value || null;
 }
 
-function productIdToTier(productId: string): string | null {
-  const tierMap = buildProductIdToTier();
-  return tierMap[productId] ?? null;
-}
-
-function tierFromMetadataOrProduct(
-  metadata?: Record<string, string>,
-  productCart?: Array<{ product_id: string; quantity: number }>
-): string | null {
-  if (metadata?.plan) {
-    return metadata.plan.toUpperCase();
-  }
-  if (productCart?.[0]?.product_id) {
-    return productIdToTier(productCart[0].product_id);
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function getRawBody(req: VercelRequest): Promise<string> {
-  return new Promise((resolve, reject) => {
+async function getRawBody(req: VercelRequest): Promise<string> {
+  return await new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     req.on('data', (chunk: Buffer) => chunks.push(chunk));
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
@@ -116,6 +78,11 @@ function getAppUrl(req: VercelRequest): string {
   const configuredUrl = process.env.APP_URL || process.env.VITE_APP_URL;
   if (configuredUrl) {
     return configuredUrl.replace(/\/$/, '');
+  }
+
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+  if (origin) {
+    return origin.replace(/\/$/, '');
   }
 
   const forwardedHost =
@@ -137,142 +104,348 @@ function getAppUrl(req: VercelRequest): string {
   return `${protocol}://${host}`;
 }
 
-// ---------------------------------------------------------------------------
-// Main router
-// ---------------------------------------------------------------------------
+function parsePlan(plan: string): { tier: string; interval: string } | null {
+  const [tierRaw, intervalRaw] = plan.trim().toUpperCase().split('_');
+
+  if (!SUPPORTED_TIERS.includes(tierRaw as (typeof SUPPORTED_TIERS)[number])) {
+    return null;
+  }
+
+  if (!SUPPORTED_INTERVALS.includes(intervalRaw as (typeof SUPPORTED_INTERVALS)[number])) {
+    return null;
+  }
+
+  return {
+    tier: tierRaw,
+    interval: intervalRaw,
+  };
+}
+
+function resolveProductId(plan: string): { productId: string; tier: string; interval: string } | null {
+  const parsedPlan = parsePlan(plan);
+  if (!parsedPlan) {
+    return null;
+  }
+
+  const envKey = `DODO_PRODUCT_ID_${parsedPlan.tier}_${parsedPlan.interval}`;
+  const productId = process.env[envKey];
+
+  if (!productId) {
+    return null;
+  }
+
+  return {
+    productId,
+    tier: parsedPlan.tier,
+    interval: parsedPlan.interval,
+  };
+}
+
+function buildProductIdToTier(): Record<string, string> {
+  const map: Record<string, string> = {};
+
+  for (const tier of SUPPORTED_TIERS) {
+    for (const interval of SUPPORTED_INTERVALS) {
+      const productId = process.env[`DODO_PRODUCT_ID_${tier}_${interval}`];
+      if (productId) {
+        map[productId] = tier;
+      }
+    }
+  }
+
+  return map;
+}
+
+function productIdToTier(productId: string): string | null {
+  return buildProductIdToTier()[productId] ?? null;
+}
+
+function tierFromMetadataOrProduct(
+  metadata?: Record<string, string>,
+  productCart?: Array<{ product_id: string; quantity: number }>
+): string | null {
+  if (metadata?.plan) {
+    return metadata.plan.toUpperCase();
+  }
+
+  if (productCart?.[0]?.product_id) {
+    return productIdToTier(productCart[0].product_id);
+  }
+
+  return null;
+}
+
+type VerifiedCheckoutUser = {
+  userId: string;
+  email?: string;
+  name?: string;
+};
+
+function readNestedString(value: unknown, key: string): string | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const nestedValue = (value as Record<string, unknown>)[key];
+  return typeof nestedValue === 'string' ? nestedValue : undefined;
+}
+
+async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutUser | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.slice('Bearer '.length);
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+
+  if (!jwtSecret) {
+    console.error('[dodo-checkout] SUPABASE_JWT_SECRET is not configured');
+    return null;
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret), {
+      algorithms: ['HS256'],
+    });
+
+    const userId = typeof payload.sub === 'string' ? payload.sub : undefined;
+    if (!userId) {
+      return null;
+    }
+
+    return {
+      userId,
+      email: typeof payload.email === 'string' ? payload.email : undefined,
+      name: readNestedString(payload.user_metadata, 'full_name'),
+    };
+  } catch (error) {
+    console.error('[dodo-checkout] Invalid auth token:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+async function parseCheckoutBody(
+  req: VercelRequest
+): Promise<{ plan?: string; email?: string; name?: string }> {
+  const rawBody = await getRawBody(req);
+
+  if (!rawBody) {
+    return {};
+  }
+
+  return JSON.parse(rawBody) as { plan?: string; email?: string; name?: string };
+}
+
+function buildDodoClient(apiKey: string, webhookKey?: string | null) {
+  return import('dodopayments').then(({ default: DodoPayments }) => {
+    return new DodoPayments({
+      bearerToken: apiKey,
+      environment: DODO_ENV,
+      webhookKey: webhookKey ?? undefined,
+    });
+  });
+}
+
+function getProviderStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const value = (error as { status?: unknown }).status;
+  return typeof value === 'number' ? value : undefined;
+}
+
+function getProviderMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return 'Failed to create checkout session';
+}
+
+async function createCheckoutSession(params: {
+  productId: string;
+  customerEmail: string;
+  customerName: string;
+  userId: string;
+  tier: string;
+  returnUrl: string;
+}): Promise<{ checkoutUrl: string; sessionId: string }> {
+  if (DODO_API_KEY_CANDIDATES.length === 0) {
+    throw new Error('Payment service not configured');
+  }
+
+  let lastError: unknown;
+
+  for (const candidate of DODO_API_KEY_CANDIDATES) {
+    try {
+      const client = await buildDodoClient(candidate.value, DODO_WEBHOOK_KEY);
+      const { data } = await client.checkoutSessions
+        .create({
+          product_cart: [{ product_id: params.productId, quantity: 1 }],
+          customer: {
+            email: params.customerEmail,
+            name: params.customerName,
+          },
+          return_url: params.returnUrl,
+          feature_flags: {
+            redirect_immediately: true,
+          },
+          metadata: {
+            supabase_user_id: params.userId,
+            plan: params.tier,
+          },
+        })
+        .withResponse();
+
+      if (!data.checkout_url) {
+        throw new Error('Dodo did not return a checkout URL');
+      }
+
+      return {
+        checkoutUrl: data.checkout_url,
+        sessionId: data.session_id,
+      };
+    } catch (error) {
+      lastError = error;
+      const providerStatus = getProviderStatus(error);
+
+      console.error('[dodo-checkout] Provider error', {
+        providerStatus,
+        source: candidate.source,
+        message: getProviderMessage(error),
+      });
+
+      if (providerStatus !== 401) {
+        break;
+      }
+    }
+  }
+
+  throw lastError ?? new Error('Failed to create checkout session');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action as string;
 
   if (action === 'webhook') {
-    return handleWebhook(req, res);
+    return await handleWebhook(req, res);
   }
 
   if (action === 'checkout') {
-    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
     if (req.method === 'OPTIONS') {
       return res.status(204).end();
     }
-    return handleCheckout(req, res);
+
+    return await handleCheckout(req, res);
   }
 
   return res.status(400).json({ status: false, message: 'Unknown action' });
 }
 
-// ---------------------------------------------------------------------------
-// CHECKOUT  (POST /api/dodo?action=checkout)
-// Creates a Dodo subscription session and returns the payment link.
-// ---------------------------------------------------------------------------
 async function handleCheckout(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ status: false, message: 'Method not allowed' });
     }
 
-    if (!DODO_API_KEY) {
-      console.error('[dodo-checkout] DODO_PAYMENTS_API_KEY not configured. Available:',
-        Object.keys(process.env).filter(k => k.includes('DODO')).join(', '));
-      return res.status(500).json({ status: false, message: 'Payment service not configured' });
-    }
-
-    const rawBody = await getRawBody(req);
-    let body: { plan?: string; email?: string; name?: string; userId?: string };
-    try {
-      body = JSON.parse(rawBody);
-    } catch {
-      return res.status(400).json({ status: false, message: 'Invalid JSON body' });
-    }
-
-    const { plan, email, name, userId } = body;
-    if (!plan || !email || !userId) {
-      return res.status(400).json({ status: false, message: 'plan, email, and userId are required' });
-    }
-
-    const productIdEnvKey = `DODO_PRODUCT_ID_${plan.toUpperCase()}`;
-    const productId =
-      process.env[productIdEnvKey] ||
-      Object.entries(buildProductIdToTier()).find(([, tier]) => tier === plan.toUpperCase())?.[0];
-
-    if (!productId) {
-      return res.status(400).json({
+    const authUser = await verifyCheckoutUser(req);
+    if (!authUser) {
+      return res.status(401).json({
         status: false,
-        message: `No Dodo product ID configured for plan: ${plan}. Set ${productIdEnvKey} in environment variables.`,
+        message: 'Authentication required to start checkout',
       });
     }
 
-    const DodoPayments = (await import('dodopayments')).default;
-    const dodoClient = new DodoPayments({
-      bearerToken: DODO_API_KEY,
-      environment: DODO_ENV === 'live_mode' ? 'live_mode' : 'test_mode',
-    });
+    const { plan, email, name } = await parseCheckoutBody(req);
+    if (!plan) {
+      return res.status(400).json({ status: false, message: 'plan is required' });
+    }
 
+    const resolvedPlan = resolveProductId(plan);
+    if (!resolvedPlan) {
+      return res.status(400).json({
+        status: false,
+        message: `No Dodo product is configured for plan: ${plan}`,
+      });
+    }
+
+    const customerEmail = authUser.email || email?.trim();
+    if (!customerEmail) {
+      return res.status(400).json({
+        status: false,
+        message: 'Authenticated user email is required for checkout',
+      });
+    }
+
+    const customerName = name?.trim() || authUser.name || customerEmail;
     const appUrl = getAppUrl(req);
-    const tierName = plan.replace('_monthly', '').toUpperCase();
-
-    const session = await dodoClient.subscriptions.create({
-      payment_link: true,
-      billing: {
-        city: 'city',
-        country: 'US',
-        state: 'state',
-        street: 'street',
-        zipcode: '0',
-      },
-      customer: {
-        email,
-        name: name || email,
-      },
-      product_id: productId,
-      quantity: 1,
-      return_url: `${appUrl}/payment-callback?provider=dodo`,
-      metadata: {
-        supabase_user_id: userId,
-        plan: tierName,
-      },
+    const session = await createCheckoutSession({
+      productId: resolvedPlan.productId,
+      customerEmail,
+      customerName,
+      userId: authUser.userId,
+      tier: resolvedPlan.tier,
+      returnUrl: `${appUrl}/payment-callback`,
     });
-
-    console.log('[dodo-checkout] Session created:', session.subscription_id);
 
     return res.status(200).json({
       status: true,
-      checkout_url: session.payment_link,
+      session_id: session.sessionId,
+      checkout_url: session.checkoutUrl,
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed to create checkout session';
-    console.error('[dodo-checkout] Error:', message);
-    return res.status(500).json({ status: false, message });
+  } catch (error) {
+    const providerStatus = getProviderStatus(error);
+    const providerMessage = getProviderMessage(error);
+
+    const message =
+      providerStatus === 401
+        ? 'Dodo rejected the configured server API credentials. Update the production DODO payment environment variables and redeploy.'
+        : providerMessage;
+
+    console.error('[dodo-checkout] Error:', {
+      providerStatus,
+      message: providerMessage,
+      environment: DODO_ENV,
+      configuredKeySources: DODO_API_KEY_CANDIDATES.map((candidate) => candidate.source),
+    });
+
+    return res.status(500).json({
+      status: false,
+      message,
+      provider_status: providerStatus,
+    });
   }
 }
 
-// ---------------------------------------------------------------------------
-// WEBHOOK  (POST /api/dodo?action=webhook)
-// Signature verified using standardwebhooks library.
-// ---------------------------------------------------------------------------
 async function handleWebhook(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!DODO_WEBHOOK_SECRET) {
-    console.error('[dodo-webhook] DODO_PAYMENTS_WEBHOOK_SECRET not configured');
+  if (!DODO_WEBHOOK_KEY) {
+    console.error('[dodo-webhook] DODO webhook signing key not configured');
     return res.status(500).json({ error: 'Webhook not configured' });
   }
 
   let db: SupabaseClient<any>;
   try {
     db = requireSupabase();
-  } catch (err) {
-    console.error('[dodo-webhook]', (err as Error).message);
+  } catch (error) {
+    console.error('[dodo-webhook]', error instanceof Error ? error.message : error);
     return res.status(500).json({ error: 'Database not configured' });
   }
 
   let rawBody: string;
   try {
     rawBody = await getRawBody(req);
-  } catch (err) {
-    console.error('[dodo-webhook] Failed to read request body:', err);
+  } catch (error) {
+    console.error('[dodo-webhook] Failed to read request body:', error);
     return res.status(400).json({ error: 'Invalid request body' });
   }
 
@@ -280,25 +453,35 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Empty body' });
   }
 
-  const webhookId = req.headers['webhook-id'] as string;
-  const webhookSignature = req.headers['webhook-signature'] as string;
-  const webhookTimestamp = req.headers['webhook-timestamp'] as string;
+  const webhookId = req.headers['webhook-id'];
+  const webhookSignature = req.headers['webhook-signature'];
+  const webhookTimestamp = req.headers['webhook-timestamp'];
 
-  if (!webhookId || !webhookSignature || !webhookTimestamp) {
+  if (
+    typeof webhookId !== 'string' ||
+    typeof webhookSignature !== 'string' ||
+    typeof webhookTimestamp !== 'string'
+  ) {
     return res.status(400).json({ error: 'Missing webhook headers' });
   }
 
   let payload: any;
   try {
-    const { Webhook } = await import('standardwebhooks');
-    const webhook = new Webhook(DODO_WEBHOOK_SECRET);
-    payload = webhook.verify(rawBody, {
-      'webhook-id': webhookId,
-      'webhook-signature': webhookSignature,
-      'webhook-timestamp': webhookTimestamp,
+    const client = await buildDodoClient(
+      getPrimaryDodoApiKey() || 'webhook-verification-only',
+      DODO_WEBHOOK_KEY
+    );
+
+    payload = client.webhooks.unwrap(rawBody, {
+      headers: {
+        'webhook-id': webhookId,
+        'webhook-signature': webhookSignature,
+        'webhook-timestamp': webhookTimestamp,
+      },
+      key: DODO_WEBHOOK_KEY,
     });
-  } catch (err) {
-    console.error('[dodo-webhook] Signature verification failed:', err);
+  } catch (error) {
+    console.error('[dodo-webhook] Signature verification failed:', error);
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
@@ -309,14 +492,11 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     .maybeSingle();
 
   if (existing) {
-    console.log(`[dodo-webhook] Already processed: ${webhookId}`);
     return res.status(200).json({ received: true });
   }
 
   const { type, data } = payload;
-  const userId = data?.metadata?.supabase_user_id ?? null;
-
-  console.log(`[dodo-webhook] Processing: ${type} | User: ${userId}`);
+  const userId = typeof data?.metadata?.supabase_user_id === 'string' ? data.metadata.supabase_user_id : null;
 
   try {
     switch (type) {
@@ -501,7 +681,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
           eventType: type,
           metadata: data.metadata,
         });
-        console.warn(`[dodo-webhook] DISPUTE OPENED for user ${userId}. Manual review required.`);
         break;
       }
 
@@ -525,9 +704,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Payment history logger
-// ---------------------------------------------------------------------------
 async function logPayment(
   db: SupabaseClient<any>,
   params: {
@@ -559,4 +735,3 @@ async function logPayment(
     console.error('[dodo-webhook] Failed to log payment:', error.message);
   }
 }
-

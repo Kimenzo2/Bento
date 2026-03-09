@@ -6,16 +6,9 @@ import { usePageSEO } from '../hooks/usePageSEO';
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
 import { createDodoCheckout } from '../services/dodoService';
-import type { DodoPlan } from '../config/dodoPricing';
+import { supportsAnnualDodoBilling, tierToDodoPlan } from '../config/dodoPricing';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
-
-// Map UserTier → DodoPlan key for checkout
-const TIER_TO_DODO_PLAN: Partial<Record<UserTier, DodoPlan>> = {
-  [UserTier.CREATOR]: 'creator_monthly',
-  [UserTier.STUDIO]: 'studio_monthly',
-  [UserTier.EMPIRE]: 'empire_monthly',
-};
 
 interface PricingPageProps {
   onUpgrade?: (tier: UserTier) => void;
@@ -119,7 +112,7 @@ const tiers: TierData[] = [
 
 const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const { user } = useAuth();
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(supportsAnnualDodoBilling);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
 
@@ -183,7 +176,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
 
   // -- Dodo Payments checkout --
   const handleDodoCheckout = async (tier: TierData) => {
-    const dodoPlan = TIER_TO_DODO_PLAN[tier.name];
+    const dodoPlan = tierToDodoPlan(tier.name, isAnnual ? 'yearly' : 'monthly');
     if (!dodoPlan) {
       alert('This plan is not available for subscription.');
       return;
@@ -200,12 +193,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
         plan: dodoPlan,
         email: user.email ?? userEmail,
         name: user.user_metadata?.full_name ?? user.email ?? userEmail,
-        userId: user.id,
       });
       window.location.href = checkoutUrl;
     } catch (err) {
       console.error('Dodo checkout error:', err);
-      alert('Unable to start checkout. Please try again.');
+      alert(err instanceof Error ? err.message : 'Unable to start checkout. Please try again.');
     } finally {
       setProcessingTier(null);
     }
@@ -228,30 +220,36 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
           </p>
 
           {/* Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <span
-              className={`font-heading font-bold ${isAnnual ? 'text-cocoa-light' : 'text-charcoal-soft'}`}
-            >
-              Monthly
-            </span>
-            <Switch
-              checked={isAnnual}
-              onCheckedChange={setIsAnnual}
-              aria-label={
-                isAnnual
-                  ? 'Currently annual billing, click to switch to monthly'
-                  : 'Currently monthly billing, click to switch to annual'
-              }
-            />
-            <span
-              className={`font-heading font-bold flex items-center gap-2 ${isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
-            >
-              Annual
-              <span className="bg-gold-sunshine/20 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
-                Save up to 18%
+          {supportsAnnualDodoBilling ? (
+            <div className="flex items-center justify-center gap-4">
+              <span
+                className={`font-heading font-bold ${isAnnual ? 'text-cocoa-light' : 'text-charcoal-soft'}`}
+              >
+                Monthly
               </span>
-            </span>
-          </div>
+              <Switch
+                checked={isAnnual}
+                onCheckedChange={setIsAnnual}
+                aria-label={
+                  isAnnual
+                    ? 'Currently annual billing, click to switch to monthly'
+                    : 'Currently monthly billing, click to switch to annual'
+                }
+              />
+              <span
+                className={`font-heading font-bold flex items-center gap-2 ${isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
+              >
+                Annual
+                <span className="bg-gold-sunshine/20 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
+                  Save up to 18%
+                </span>
+              </span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 rounded-full border border-peach-soft/60 bg-surface px-4 py-2 text-sm font-medium text-cocoa-light">
+              Monthly billing only
+            </div>
+          )}
         </div>
 
         {/* Pricing Grid */}

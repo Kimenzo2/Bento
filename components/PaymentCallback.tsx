@@ -97,6 +97,15 @@ export const PaymentCallback: React.FC = () => {
 
   useEffect(() => {
     const start = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const paymentStatus = params.get('status')?.toLowerCase();
+
+      if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
+        setStatus('failed');
+        setMessage('Your payment did not complete. Please try checkout again.');
+        return;
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
