@@ -10,8 +10,6 @@
 import { authenticatedFetch } from './api/authenticatedFetch';
 import type { DodoPlan } from '../config/dodoPricing';
 
-// ── CHECKOUT ────────────────────────────────────────────────────────────────────
-
 interface DodoCheckoutParams {
   plan: DodoPlan;
   email: string;
@@ -36,8 +34,23 @@ export async function createDodoCheckout(params: DodoCheckoutParams): Promise<st
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Checkout request failed' }));
-    throw new Error(errorData.message || `Dodo checkout failed (${response.status})`);
+    const rawError = await response.text();
+    let message = `Dodo checkout failed (${response.status})`;
+
+    if (rawError) {
+      try {
+        const errorData = JSON.parse(rawError) as { message?: string };
+        if (errorData.message) {
+          message = errorData.message;
+        }
+      } catch {
+        if (!rawError.trim().startsWith('<')) {
+          message = rawError.trim().slice(0, 300);
+        }
+      }
+    }
+
+    throw new Error(message);
   }
 
   const data: DodoCheckoutResponse = await response.json();

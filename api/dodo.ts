@@ -39,19 +39,22 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.error('[dodo] Missing Supabase env vars:', {
     hasUrl: !!supabaseUrl,
     hasServiceKey: !!supabaseServiceKey,
-    envKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE')).join(', '),
+    envKeys: Object.keys(process.env)
+      .filter((k) => k.includes('SUPABASE'))
+      .join(', '),
   });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabase: SupabaseClient<any> | null = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null;
+const supabase: SupabaseClient<any> | null =
+  supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
 /** Guard — returns the Supabase client or throws so callers can 500 early. */
 function requireSupabase(): SupabaseClient<any> {
   if (!supabase) {
-    throw new Error('Supabase client not initialised — missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    throw new Error(
+      'Supabase client not initialised — missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+    );
   }
   return supabase;
 }
@@ -69,7 +72,6 @@ const DODO_ENV = process.env.DODO_PAYMENTS_ENV || 'test_mode';
 function buildProductIdToTier(): Record<string, string> {
   const map: Record<string, string> = {};
 
-  // Read product IDs from env (set by .env.local for both test/live)
   const creator = process.env.DODO_PRODUCT_ID_CREATOR_MONTHLY;
   const studio = process.env.DODO_PRODUCT_ID_STUDIO_MONTHLY;
   const empire = process.env.DODO_PRODUCT_ID_EMPIRE_MONTHLY;
@@ -90,11 +92,9 @@ function tierFromMetadataOrProduct(
   metadata?: Record<string, string>,
   productCart?: Array<{ product_id: string; quantity: number }>
 ): string | null {
-  // Prefer metadata.plan (we set this during checkout)
   if (metadata?.plan) {
     return metadata.plan.toUpperCase();
   }
-  // Fallback: resolve from product ID
   if (productCart?.[0]?.product_id) {
     return productIdToTier(productCart[0].product_id);
   }
@@ -111,6 +111,31 @@ function getRawBody(req: VercelRequest): Promise<string> {
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     req.on('error', reject);
   });
+}
+
+function getAppUrl(req: VercelRequest): string {
+  const configuredUrl = process.env.APP_URL || process.env.VITE_APP_URL;
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, '');
+  }
+
+  const forwardedHost =
+    typeof req.headers['x-forwarded-host'] === 'string'
+      ? req.headers['x-forwarded-host'].split(',')[0]?.trim()
+      : undefined;
+  const host = forwardedHost || req.headers.host;
+
+  if (!host) {
+    return 'http://localhost:3000';
+  }
+
+  const forwardedProto =
+    typeof req.headers['x-forwarded-proto'] === 'string'
+      ? req.headers['x-forwarded-proto'].split(',')[0]?.trim()
+      : undefined;
+  const protocol = forwardedProto || (host.includes('localhost') ? 'http' : 'https');
+
+  return `${protocol}://${host}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +158,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 // ---------------------------------------------------------------------------
 // CHECKOUT  (POST /api/dodo?action=checkout)
 // Creates a Dodo checkout session and returns the checkout URL.
-// The Dodo bearerToken stays server-side.
 // ---------------------------------------------------------------------------
 async function handleCheckout(ctx: ApiContext) {
   const { req, res, log } = ctx;
@@ -144,7 +168,9 @@ async function handleCheckout(ctx: ApiContext) {
 
   if (!DODO_API_KEY) {
     log.error('DODO_PAYMENTS_API_KEY not configured', undefined, {
-      availableEnvKeys: Object.keys(process.env).filter(k => k.includes('DODO')).join(', '),
+      availableEnvKeys: Object.keys(process.env)
+        .filter((k) => k.includes('DODO'))
+        .join(', '),
     });
     return res.status(500).json({ status: false, message: 'Payment service not configured' });
   }
@@ -159,21 +185,15 @@ async function handleCheckout(ctx: ApiContext) {
 
   const { plan, email, name, userId } = body;
   if (!plan || !email || !userId) {
-    return res.status(400).json({ status: false, message: 'plan, email, and userId are required' });
+    return res
+      .status(400)
+      .json({ status: false, message: 'plan, email, and userId are required' });
   }
 
-  // Dynamically import the SDK — only available server-side
-  const DodoPayments = (await import('dodopayments')).default;
-
-  const dodoClient = new DodoPayments({
-    bearerToken: DODO_API_KEY,
-    environment: DODO_ENV === 'live_mode' ? 'live_mode' : 'test_mode',
-  });
-
-  // Resolve product ID from plan name
-  // We read from env or the hardcoded map above
   const productIdEnvKey = `DODO_PRODUCT_ID_${plan.toUpperCase()}`;
-  const productId = process.env[productIdEnvKey] || Object.entries(buildProductIdToTier()).find(([, tier]) => tier === plan.toUpperCase())?.[0];
+  const productId =
+    process.env[productIdEnvKey] ||
+    Object.entries(buildProductIdToTier()).find(([, tier]) => tier === plan.toUpperCase())?.[0];
 
   if (!productId) {
     return res.status(400).json({
@@ -182,49 +202,79 @@ async function handleCheckout(ctx: ApiContext) {
     });
   }
 
-  try {
-    const appUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-    const tierName = plan.replace('_monthly', '').toUpperCase();
+  const DodoPayments = (await import('dodopayments')).default;
+  const dodoClient = new DodoPayments({
+    bearerToken: DODO_API_KEY,
+    environment: DODO_ENV === 'live_mode' ? 'live_mode' : 'test_mode',
+  });
 
-    const session = await dodoClient.subscriptions.create({
-      payment_link: true,
-      billing: {
-        city: 'city',
-        country: 'US',
-        state: 'state',
-        street: 'street',
-        zipcode: '0',
-      },
+  const appUrl = getAppUrl(req);
+  const tierName = plan.replace('_monthly', '').toUpperCase();
+
+  try {
+    const session = await dodoClient.checkoutSessions.create({
+      product_cart: [{ product_id: productId, quantity: 1 }],
       customer: {
         email,
         name: name || email,
       },
-      product_id: productId,
-      quantity: 1,
-      return_url: `${appUrl}/payment-callback?provider=dodo`,
+      return_url: `${appUrl}/payment-callback`,
+      feature_flags: {
+        redirect_immediately: true,
+      },
       metadata: {
         supabase_user_id: userId,
         plan: tierName,
       },
     });
 
+    if (!session.checkout_url) {
+      log.error('Dodo checkout session did not return a checkout_url', undefined, {
+        plan,
+        productId,
+        sessionId: session.session_id,
+      });
+      return res.status(502).json({
+        status: false,
+        message: 'Payment provider did not return a checkout URL',
+      });
+    }
+
     if (process.env.NODE_ENV !== 'production') {
-      log.info('Dodo Subscription Session Created', {
+      log.info('Dodo Checkout Session Created', {
         plan,
         userId,
-        subscriptionId: session.subscription_id,
-        hasPaymentLink: !!session.payment_link,
+        productId,
+        sessionId: session.session_id,
       });
     }
 
     return res.status(200).json({
       status: true,
-      checkout_url: session.payment_link,
+      checkout_url: session.checkout_url,
     });
   } catch (error: unknown) {
+    const errorStatus =
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      typeof (error as { status?: unknown }).status === 'number'
+        ? (error as { status: number }).status
+        : 500;
     const message = error instanceof Error ? error.message : 'Failed to create checkout session';
-    log.error('Dodo Checkout Error', error instanceof Error ? error : undefined);
-    return res.status(500).json({ status: false, message });
+
+    log.error('Dodo Checkout Error', error instanceof Error ? error : undefined, {
+      plan,
+      productId,
+      appUrl,
+      errorName:
+        typeof error === 'object' && error !== null && 'name' in error
+          ? String((error as { name?: unknown }).name)
+          : 'UnknownError',
+      errorStatus,
+    });
+
+    return res.status(errorStatus).json({ status: false, message });
   }
 }
 
@@ -242,7 +292,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Webhook not configured' });
   }
 
-  // Fail fast if Supabase is not available
   let db: SupabaseClient<any>;
   try {
     db = requireSupabase();
@@ -251,7 +300,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Database not configured' });
   }
 
-  // ── 1. READ RAW BODY ─────────────────────────────────────────────────────
   let rawBody: string;
   try {
     rawBody = await getRawBody(req);
@@ -264,7 +312,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Empty body' });
   }
 
-  // ── 2. VERIFY SIGNATURE ──────────────────────────────────────────────────
   const webhookId = req.headers['webhook-id'] as string;
   const webhookSignature = req.headers['webhook-signature'] as string;
   const webhookTimestamp = req.headers['webhook-timestamp'] as string;
@@ -287,7 +334,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  // ── 3. IDEMPOTENCY CHECK ─────────────────────────────────────────────────
   const { data: existing } = await db
     .from('processed_webhooks')
     .select('id')
@@ -305,14 +351,11 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
   console.log(`[dodo-webhook] Processing: ${type} | User: ${userId}`);
 
   try {
-    // ── 4. HANDLE EVENTS ──────────────────────────────────────────────────
     switch (type) {
-
       case 'payment.succeeded': {
         const tier = tierFromMetadataOrProduct(data.metadata, data.product_cart);
 
         if (userId && tier) {
-          // Update user tier in profiles table
           await db
             .from('profiles')
             .update({
@@ -394,7 +437,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
       case 'subscription.cancelled': {
         if (userId) {
           if (data.cancel_at_next_billing_date && data.next_billing_date) {
-            // Keep access until period end
             await db
               .from('profiles')
               .update({
@@ -405,7 +447,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               })
               .eq('id', userId);
           } else {
-            // Immediate revocation — inline downgrade to Spark
             await db
               .from('profiles')
               .update({
@@ -446,7 +487,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'payment.failed': {
-        // Log only — do not change tier. Dodo retries automatically.
         await logPayment(db, {
           userId,
           paymentId: data.payment_id,
@@ -459,7 +499,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'refund.succeeded': {
         if (userId) {
-          // Downgrade to Spark on refund
           await db
             .from('profiles')
             .update({
@@ -487,7 +526,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'dispute.opened': {
-        // Flag account for review — log but do not auto-downgrade
         await logPayment(db, {
           userId,
           paymentId: data.payment_id,
@@ -503,7 +541,6 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
         console.log(`[dodo-webhook] Unhandled event type: ${type}`);
     }
 
-    // ── 5. MARK PROCESSED (only after successful processing) ──────────────
     await db.from('processed_webhooks').insert({
       webhook_id: webhookId,
       event_type: type,
@@ -511,13 +548,11 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.status(200).json({ received: true });
-
   } catch (error) {
     console.error(
       `[dodo-webhook] Processing error for ${type}:`,
       error instanceof Error ? error.message : error
     );
-    // Return 500 so Dodo retries — do NOT mark as processed on error
     return res.status(500).json({ error: 'Processing error' });
   }
 }
@@ -525,17 +560,20 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 // ---------------------------------------------------------------------------
 // Payment history logger
 // ---------------------------------------------------------------------------
-async function logPayment(db: SupabaseClient<any>, params: {
-  userId: string | null;
-  paymentId?: string;
-  subscriptionId?: string;
-  amount?: number;
-  currency?: string;
-  plan?: string;
-  status: string;
-  eventType: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
+async function logPayment(
+  db: SupabaseClient<any>,
+  params: {
+    userId: string | null;
+    paymentId?: string;
+    subscriptionId?: string;
+    amount?: number;
+    currency?: string;
+    plan?: string;
+    status: string;
+    eventType: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<void> {
   const { error } = await db.from('payment_history').insert({
     user_id: params.userId,
     provider: 'dodo',
@@ -553,3 +591,4 @@ async function logPayment(db: SupabaseClient<any>, params: {
     console.error('[dodo-webhook] Failed to log payment:', error.message);
   }
 }
+
