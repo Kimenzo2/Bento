@@ -200,27 +200,55 @@ async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutU
   const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
   if (!jwtSecret) {
-    console.error('[dodo-checkout] SUPABASE_JWT_SECRET is not configured');
-    return null;
+    console.warn('[dodo-checkout] SUPABASE_JWT_SECRET is not configured, falling back to Auth API validation');
+  } else {
+    try {
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret), {
+        algorithms: ['HS256'],
+      });
+
+      const userId = typeof payload.sub === 'string' ? payload.sub : undefined;
+      if (userId) {
+        return {
+          userId,
+          email: typeof payload.email === 'string' ? payload.email : undefined,
+          name:
+            readNestedString(payload.user_metadata, 'full_name') ||
+            readNestedString(payload.user_metadata, 'name'),
+        };
+      }
+    } catch (error) {
+      console.warn(
+        '[dodo-checkout] Local JWT verification failed, falling back to Auth API validation:',
+        error instanceof Error ? error.message : error
+      );
+    }
   }
 
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret), {
-      algorithms: ['HS256'],
-    });
+    const db = requireSupabase();
+    const {
+      data: { user },
+      error,
+    } = await db.auth.getUser(token);
 
-    const userId = typeof payload.sub === 'string' ? payload.sub : undefined;
-    if (!userId) {
+    if (error || !user) {
+      console.error('[dodo-checkout] Supabase Auth API rejected token:', error?.message);
       return null;
     }
 
     return {
-      userId,
-      email: typeof payload.email === 'string' ? payload.email : undefined,
-      name: readNestedString(payload.user_metadata, 'full_name'),
+      userId: user.id,
+      email: user.email ?? undefined,
+      name:
+        readNestedString(user.user_metadata, 'full_name') ||
+        readNestedString(user.user_metadata, 'name'),
     };
   } catch (error) {
-    console.error('[dodo-checkout] Invalid auth token:', error instanceof Error ? error.message : error);
+    console.error(
+      '[dodo-checkout] Failed to validate token with Supabase Auth API:',
+      error instanceof Error ? error.message : error
+    );
     return null;
   }
 }
