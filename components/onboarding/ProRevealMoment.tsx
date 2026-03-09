@@ -34,16 +34,16 @@ const LiveUpgradeCounter = () => {
       const { supabase } = await import('../../services/supabaseClient');
       if (unmounted) return;
       subscription = supabase
-        .channel('subscription_events_count')
+        .channel('payment_history_count')
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
-            table: 'subscription_events',
+            table: 'payment_history',
           },
           (payload: any) => {
-            if (['charge_success', 'subscription_create'].includes(payload.new.event_type)) {
+            if (['succeeded', 'active'].includes(payload.new.status)) {
               setCount((prev) => prev + 1);
             }
           }

@@ -1,7 +1,6 @@
 -- 007_add_dodo_payments.sql
--- Description: Add Dodo Payments columns to profiles table for payment provider migration.
+-- Description: Add Dodo Payments columns to profiles table.
 -- Safe: All new columns are nullable with defaults — no data loss risk.
--- Approach: Runs parallel to existing Paystack columns. Both providers coexist.
 
 -- ─── Dodo customer tracking ────────────────────────────────────────────────────
 
@@ -9,7 +8,7 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS dodo_customer_id TEXT,
   ADD COLUMN IF NOT EXISTS dodo_subscription_id TEXT,
   ADD COLUMN IF NOT EXISTS payment_provider TEXT DEFAULT 'none'
-    CHECK (payment_provider IN ('none', 'paystack', 'dodo'));
+    CHECK (payment_provider IN ('none', 'dodo'));
 
 -- Index for Dodo customer lookups (webhook handler needs to find users by Dodo ID)
 CREATE INDEX IF NOT EXISTS idx_profiles_dodo_customer_id

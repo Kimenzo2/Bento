@@ -16,7 +16,7 @@
  *   - Payment history logged to payment_history table
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
@@ -43,9 +43,18 @@ if (!supabaseUrl || !supabaseServiceKey) {
   });
 }
 
-const supabase = supabaseUrl && supabaseServiceKey
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: SupabaseClient<any> | null = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
+
+/** Guard — returns the Supabase client or throws so callers can 500 early. */
+function requireSupabase(): SupabaseClient<any> {
+  if (!supabase) {
+    throw new Error('Supabase client not initialised — missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  }
+  return supabase;
+}
 
 // ---------------------------------------------------------------------------
 // Dodo config — all from server-side env vars (no VITE_ prefix)
@@ -233,6 +242,15 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Webhook not configured' });
   }
 
+  // Fail fast if Supabase is not available
+  let db: SupabaseClient<any>;
+  try {
+    db = requireSupabase();
+  } catch (err) {
+    console.error('[dodo-webhook]', (err as Error).message);
+    return res.status(500).json({ error: 'Database not configured' });
+  }
+
   // ── 1. READ RAW BODY ─────────────────────────────────────────────────────
   let rawBody: string;
   try {
@@ -270,7 +288,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── 3. IDEMPOTENCY CHECK ─────────────────────────────────────────────────
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('processed_webhooks')
     .select('id')
     .eq('webhook_id', webhookId)
@@ -295,20 +313,20 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
         if (userId && tier) {
           // Update user tier in profiles table
-          await supabase
+          await db
             .from('profiles')
             .update({
               user_tier: tier,
               dodo_customer_id: data.customer?.customer_id ?? null,
               payment_provider: 'dodo',
               subscription_status: 'active',
-              subscription_plan: tier.toLowerCase(),
+              subscription_plan_code: tier.toLowerCase(),
               updated_at: new Date().toISOString(),
             })
             .eq('id', userId);
         }
 
-        await logPayment({
+        await logPayment(db, {
           userId,
           paymentId: data.payment_id,
           amount: data.amount,
@@ -325,7 +343,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
         const tier = tierFromMetadataOrProduct(data.metadata, data.product_cart);
 
         if (userId && tier) {
-          await supabase
+          await db
             .from('profiles')
             .update({
               user_tier: tier,
@@ -333,14 +351,14 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               dodo_subscription_id: data.subscription_id ?? null,
               payment_provider: 'dodo',
               subscription_status: 'active',
-              subscription_plan: tier.toLowerCase(),
-              subscription_period_end: data.next_billing_date ?? null,
+              subscription_plan_code: tier.toLowerCase(),
+              subscription_end_date: data.next_billing_date ?? null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', userId);
         }
 
-        await logPayment({
+        await logPayment(db, {
           userId,
           subscriptionId: data.subscription_id,
           plan: tier?.toLowerCase(),
@@ -353,17 +371,17 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'subscription.renewed': {
         if (userId) {
-          await supabase
+          await db
             .from('profiles')
             .update({
               subscription_status: 'active',
-              subscription_period_end: data.next_billing_date ?? null,
+              subscription_end_date: data.next_billing_date ?? null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', userId);
         }
 
-        await logPayment({
+        await logPayment(db, {
           userId,
           subscriptionId: data.subscription_id,
           status: 'renewed',
@@ -377,22 +395,34 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
         if (userId) {
           if (data.cancel_at_next_billing_date && data.next_billing_date) {
             // Keep access until period end
-            await supabase
+            await db
               .from('profiles')
               .update({
                 subscription_status: 'cancelled',
-                subscription_period_end: data.next_billing_date,
+                subscription_end_date: data.next_billing_date,
                 cancel_at_period_end: true,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', userId);
           } else {
-            // Immediate revocation
-            await supabase.rpc('downgrade_to_spark', { p_user_id: userId });
+            // Immediate revocation — inline downgrade to Spark
+            await db
+              .from('profiles')
+              .update({
+                user_tier: 'SPARK',
+                subscription_status: 'inactive',
+                subscription_plan_code: null,
+                subscription_end_date: null,
+                cancel_at_period_end: false,
+                dodo_subscription_id: null,
+                payment_provider: 'none',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', userId);
           }
         }
 
-        await logPayment({
+        await logPayment(db, {
           userId,
           subscriptionId: data.subscription_id,
           status: 'cancelled',
@@ -404,7 +434,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'subscription.on_hold': {
         if (userId) {
-          await supabase
+          await db
             .from('profiles')
             .update({
               subscription_status: 'on_hold',
@@ -417,7 +447,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'payment.failed': {
         // Log only — do not change tier. Dodo retries automatically.
-        await logPayment({
+        await logPayment(db, {
           userId,
           paymentId: data.payment_id,
           status: 'failed',
@@ -428,12 +458,24 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'refund.succeeded': {
-        // Log refund. Downgrade to Spark on refund.
         if (userId) {
-          await supabase.rpc('downgrade_to_spark', { p_user_id: userId });
+          // Downgrade to Spark on refund
+          await db
+            .from('profiles')
+            .update({
+              user_tier: 'SPARK',
+              subscription_status: 'inactive',
+              subscription_plan_code: null,
+              subscription_end_date: null,
+              cancel_at_period_end: false,
+              dodo_subscription_id: null,
+              payment_provider: 'none',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
         }
 
-        await logPayment({
+        await logPayment(db, {
           userId,
           paymentId: data.payment_id,
           amount: data.amount ? -data.amount : undefined,
@@ -446,7 +488,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'dispute.opened': {
         // Flag account for review — log but do not auto-downgrade
-        await logPayment({
+        await logPayment(db, {
           userId,
           paymentId: data.payment_id,
           status: 'disputed',
@@ -462,7 +504,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── 5. MARK PROCESSED (only after successful processing) ──────────────
-    await supabase.from('processed_webhooks').insert({
+    await db.from('processed_webhooks').insert({
       webhook_id: webhookId,
       event_type: type,
       payload,
@@ -483,7 +525,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 // ---------------------------------------------------------------------------
 // Payment history logger
 // ---------------------------------------------------------------------------
-async function logPayment(params: {
+async function logPayment(db: SupabaseClient<any>, params: {
   userId: string | null;
   paymentId?: string;
   subscriptionId?: string;
@@ -494,7 +536,7 @@ async function logPayment(params: {
   eventType: string;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
-  const { error } = await supabase.from('payment_history').insert({
+  const { error } = await db.from('payment_history').insert({
     user_id: params.userId,
     provider: 'dodo',
     payment_id: params.paymentId ?? null,

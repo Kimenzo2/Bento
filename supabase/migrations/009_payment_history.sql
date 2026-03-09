@@ -1,12 +1,11 @@
 -- 009_payment_history.sql
--- Description: Audit trail for all payment events across providers.
--- Stores both Paystack and Dodo events for complete history.
+-- Description: Audit trail for all payment events (Dodo Payments).
 
 CREATE TABLE IF NOT EXISTS payment_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   provider TEXT NOT NULL DEFAULT 'dodo'
-    CHECK (provider IN ('paystack', 'dodo')),
+    CHECK (provider IN ('dodo')),
   payment_id TEXT,
   subscription_id TEXT,
   amount INTEGER,
