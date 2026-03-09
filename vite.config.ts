@@ -277,6 +277,14 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       strictPort: true,
+      allowedHosts: ['.ngrok-free.dev', '.ngrok.io'],
+      // Proxy API routes to dev-api-server (port 3001)
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3002',
+          changeOrigin: true,
+        },
+      },
       // Reduce HMR full-reload latency
       hmr: {
         overlay: true,

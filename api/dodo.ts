@@ -43,17 +43,27 @@ const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
 const DODO_WEBHOOK_SECRET = process.env.DODO_PAYMENTS_WEBHOOK_SECRET;
 const DODO_ENV = process.env.DODO_PAYMENTS_ENV || 'test_mode';
 
-// Product ID → tier mapping (must match config/dodoPricing.ts)
-// Duplicated here because this is a Vercel serverless function and cannot
-// import from the Vite-bundled client code.
-const PRODUCT_ID_TO_TIER: Record<string, string> = {
-  'pdt_0Na7vkipBcsIMSnwcXTw6': 'CREATOR',
-  'pdt_0Na7vvIAejy2zXu31eC8p': 'STUDIO',
-  'pdt_0Na7w84dSW8YMXAV3gcms': 'EMPIRE',
-};
+// Product ID → tier mapping
+// Built dynamically from environment variables so it works for both
+// test and live product IDs without hardcoding.
+function buildProductIdToTier(): Record<string, string> {
+  const map: Record<string, string> = {};
+
+  // Read product IDs from env (set by .env.local for both test/live)
+  const creator = process.env.DODO_PRODUCT_ID_CREATOR_MONTHLY;
+  const studio = process.env.DODO_PRODUCT_ID_STUDIO_MONTHLY;
+  const empire = process.env.DODO_PRODUCT_ID_EMPIRE_MONTHLY;
+
+  if (creator) map[creator] = 'CREATOR';
+  if (studio) map[studio] = 'STUDIO';
+  if (empire) map[empire] = 'EMPIRE';
+
+  return map;
+}
 
 function productIdToTier(productId: string): string | null {
-  return PRODUCT_ID_TO_TIER[productId] ?? null;
+  const tierMap = buildProductIdToTier();
+  return tierMap[productId] ?? null;
 }
 
 function tierFromMetadataOrProduct(
@@ -141,7 +151,7 @@ async function handleCheckout(ctx: ApiContext) {
   // Resolve product ID from plan name
   // We read from env or the hardcoded map above
   const productIdEnvKey = `DODO_PRODUCT_ID_${plan.toUpperCase()}`;
-  const productId = process.env[productIdEnvKey] || Object.entries(PRODUCT_ID_TO_TIER).find(([, tier]) => tier === plan.toUpperCase())?.[0];
+  const productId = process.env[productIdEnvKey] || Object.entries(buildProductIdToTier()).find(([, tier]) => tier === plan.toUpperCase())?.[0];
 
   if (!productId) {
     return res.status(400).json({
@@ -152,8 +162,9 @@ async function handleCheckout(ctx: ApiContext) {
 
   try {
     const appUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+    const tierName = plan.replace('_monthly', '').toUpperCase();
 
-    const session = await dodoClient.payments.create({
+    const session = await dodoClient.subscriptions.create({
       payment_link: true,
       billing: {
         city: 'city',
@@ -166,22 +177,20 @@ async function handleCheckout(ctx: ApiContext) {
         email,
         name: name || email,
       },
-      product_cart: [
-        {
-          product_id: productId,
-          quantity: 1,
-        },
-      ],
+      product_id: productId,
+      quantity: 1,
+      return_url: `${appUrl}/payment-callback?provider=dodo`,
       metadata: {
         supabase_user_id: userId,
-        plan: plan.replace('_monthly', '').toUpperCase(),
+        plan: tierName,
       },
     });
 
     if (process.env.NODE_ENV !== 'production') {
-      log.info('Dodo Checkout Session Created', {
+      log.info('Dodo Subscription Session Created', {
         plan,
         userId,
+        subscriptionId: session.subscription_id,
         hasPaymentLink: !!session.payment_link,
       });
     }
@@ -278,7 +287,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
             .update({
               user_tier: tier,
               dodo_customer_id: data.customer?.customer_id ?? null,
-              dodo_payment_provider: 'dodo',
+              payment_provider: 'dodo',
               subscription_status: 'active',
               subscription_plan: tier.toLowerCase(),
               updated_at: new Date().toISOString(),
@@ -309,7 +318,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               user_tier: tier,
               dodo_customer_id: data.customer?.customer_id ?? null,
               dodo_subscription_id: data.subscription_id ?? null,
-              dodo_payment_provider: 'dodo',
+              payment_provider: 'dodo',
               subscription_status: 'active',
               subscription_plan: tier.toLowerCase(),
               subscription_period_end: data.next_billing_date ?? null,

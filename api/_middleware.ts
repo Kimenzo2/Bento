@@ -174,6 +174,7 @@ async function verifyAndExtractUserId(req: VercelRequest): Promise<string | unde
 
   if (jwtSecret) {
     try {
+      // Supabase JWT secrets are raw strings — encode as UTF-8 for HMAC verification
       const secret = new TextEncoder().encode(jwtSecret);
       const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
       return (payload.sub as string) || undefined;
