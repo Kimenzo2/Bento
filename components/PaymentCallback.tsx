@@ -1,10 +1,15 @@
 /**
- * PaymentCallback - Handles return from Paystack checkout
- * 
- * After paying on Paystack's hosted page, users are redirected here
- * with ?trxref=xxx&reference=xxx query parameters.
- * This component verifies the transaction server-side, polls for the
- * webhook to update the user's tier, then redirects to the dashboard.
+ * PaymentCallback - Handles return from payment checkout
+ *
+ * Supports both Paystack and Dodo Payments:
+ *
+ * Paystack: Users are redirected here with ?trxref=xxx&reference=xxx.
+ *   This component verifies the transaction server-side, polls for the
+ *   webhook to update the user's tier, then redirects to the dashboard.
+ *
+ * Dodo: Users are redirected here with ?payment=success.
+ *   No client-side verification is needed — the webhook handles tier update.
+ *   This component just polls for the tier change and shows progress.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -15,6 +20,9 @@ import { getUserProfile, invalidateProfileCache } from '../services/profileServi
 import { supabase } from '../services/supabaseClient';
 import { UserTier } from '../types';
 
+// Feature flag: matches PricingPage
+const USE_DODO = import.meta.env.VITE_PAYMENT_PROVIDER === 'dodo';
+
 type CallbackStatus = 'verifying' | 'success' | 'activating' | 'failed' | 'no-reference' | 'pending';
 
 export const PaymentCallback: React.FC = () => {
@@ -23,7 +31,9 @@ export const PaymentCallback: React.FC = () => {
   const [message, setMessage] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Paystack sends ?trxref=xxx&reference=xxx; Dodo sends ?payment=success
   const reference = searchParams.get('trxref') || searchParams.get('reference');
+  const dodoPaymentStatus = searchParams.get('payment');
 
   // Clean up polling on unmount
   useEffect(() => {
@@ -32,7 +42,78 @@ export const PaymentCallback: React.FC = () => {
     };
   }, []);
 
+  // Shared: poll the user's profile to detect when webhook has updated the tier
+  const pollForTierChange = async () => {
+    setStatus('activating');
+    setMessage('Payment confirmed! Activating your subscription...');
+
+    let pollCount = 0;
+    const maxPolls = 15;
+
+    const checkTier = async (): Promise<boolean> => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        // Bypass cache — read directly from DB
+        invalidateProfileCache(user.id);
+        const profile = await getUserProfile();
+        if (profile && profile.user_tier !== UserTier.SPARK) {
+          return true; // Tier has been updated by webhook!
+        }
+      } catch { /* ignore polling errors */ }
+      return false;
+    };
+
+    // Check immediately (webhook may have already processed)
+    const alreadyDone = await checkTier();
+    if (alreadyDone) {
+      setStatus('success');
+      setMessage('Your subscription is active! Redirecting to your dashboard...');
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+      return;
+    }
+
+    // Start polling every 2 seconds, max 30 seconds
+    pollRef.current = setInterval(async () => {
+      pollCount++;
+      const done = await checkTier();
+      if (done || pollCount >= maxPolls) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
+
+        if (done) {
+          setStatus('success');
+          setMessage('Your subscription is active! Redirecting to your dashboard...');
+        } else {
+          setStatus('pending');
+          setMessage('Payment is still being processed. Your subscription will activate shortly. You can safely go to your dashboard.');
+        }
+        setTimeout(() => { window.location.href = '/'; }, 1500);
+      } else {
+        setMessage(`Payment confirmed! Activating your subscription... (${pollCount}/${maxPolls})`);
+      }
+    }, 2000);
+  };
+
+  // ── Dodo Payments return flow ──────────────────────────────────────────────
   useEffect(() => {
+    if (!USE_DODO) return;
+
+    if (dodoPaymentStatus === 'success') {
+      // Dodo webhook handles tier update server-side.
+      // We just poll for the change.
+      pollForTierChange();
+    } else {
+      setStatus('no-reference');
+      setMessage('No payment confirmation found. If you completed a payment, your subscription will be activated via webhook shortly.');
+    }
+  }, [dodoPaymentStatus]);
+
+  // ── Paystack return flow (unchanged) ───────────────────────────────────────
+  useEffect(() => {
+    if (USE_DODO) return;
+
     if (!reference) {
       setStatus('no-reference');
       setMessage('No payment reference found. If you completed a payment, your subscription will be activated via webhook shortly.');
@@ -43,59 +124,7 @@ export const PaymentCallback: React.FC = () => {
       try {
         const verified = await verifyTransaction(reference);
         if (verified) {
-          setStatus('activating');
-          setMessage('Payment confirmed! Activating your subscription...');
-
-          // Poll the user's profile every 2 seconds to detect when the webhook
-          // has updated their tier from SPARK to something higher.
-          // Max wait: 30 seconds (15 polls), then redirect anyway.
-          let pollCount = 0;
-          const maxPolls = 15;
-
-          const checkTier = async (): Promise<boolean> => {
-            try {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (!user) return false;
-
-              // Bypass cache — read directly from DB
-              invalidateProfileCache(user.id);
-              const profile = await getUserProfile();
-              if (profile && profile.user_tier !== UserTier.SPARK) {
-                return true; // Tier has been updated by webhook!
-              }
-            } catch { /* ignore polling errors */ }
-            return false;
-          };
-
-          // Check immediately (webhook may have already processed)
-          const alreadyDone = await checkTier();
-          if (alreadyDone) {
-            setStatus('success');
-            setMessage('Your subscription is active! Redirecting to your dashboard...');
-            setTimeout(() => { window.location.href = '/'; }, 1500);
-            return;
-          }
-
-          // Start polling
-          pollRef.current = setInterval(async () => {
-            pollCount++;
-            const done = await checkTier();
-            if (done || pollCount >= maxPolls) {
-              if (pollRef.current) clearInterval(pollRef.current);
-              pollRef.current = null;
-
-              if (done) {
-                setStatus('success');
-                setMessage('Your subscription is active! Redirecting to your dashboard...');
-              } else {
-                setStatus('pending');
-                setMessage('Payment is still being processed. Your subscription will activate shortly. You can safely go to your dashboard.');
-              }
-              setTimeout(() => { window.location.href = '/'; }, 1500);
-            } else {
-              setMessage(`Payment confirmed! Activating your subscription... (${pollCount}/${maxPolls})`);
-            }
-          }, 2000);
+          await pollForTierChange();
         } else {
           // Payment may still be processing — this is normal for some channels
           setStatus('failed');
@@ -138,7 +167,10 @@ export const PaymentCallback: React.FC = () => {
 
         {/* Message */}
         <p className="text-cocoa-light font-medium mb-8">
-          {message || 'Please wait while we confirm your payment with Paystack...'}
+          {message || (USE_DODO
+            ? 'Please wait while we confirm your payment...'
+            : 'Please wait while we confirm your payment with Paystack...'
+          )}
         </p>
 
         {/* Reference */}

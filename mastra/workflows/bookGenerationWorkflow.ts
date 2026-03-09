@@ -1,54 +1,42 @@
 /**
- * @fileoverview Book Generation Workflow — Central Orchestration Pipeline
+ * Lean book-generation workflow for Genesis.
  *
- * ## What This File Does
- * This is the CENTRAL workflow that orchestrates the entire book creation
- * process. It replaces the scattered service calls currently triggered by
- * handleGenerate() in CreationCanvas.tsx.
- *
- * ## Pipeline Steps (in order):
- * 1. validateRequest — Check tier limits (server-side, not bypassable)
- * 2. analyzeContent — Generate ContentStructure blueprint
- * 3. SUSPEND_FOR_BLUEPRINT_APPROVAL — Human-in-the-loop pause
- * 4. generateCharacters — Parallel character sheet generation
- * 5. generateStyleGuide — Art direction generation
- * 6. generatePageContent — Parallel page text generation (batched by 3)
- * 7. generateIllustrations — Parallel image generation (batched by 2)
- * 8. runQualityAssurance — Score and auto-improve pages
- * 9. persistBook — Save to Supabase, increment usage, award XP
- * 10. VIDEO_GENERATION_STUB — Future Veo 3.1 integration point
- *
- * ## What It Replaces
- * - handleGenerate() orchestration in CreationCanvas.tsx
- * - Direct geminiService.ts / bytez calls from the browser
- * - localStorage-based monthly usage tracking
- *
- * ## Key Features
- * - SSE progress events for real-time frontend updates
- * - Durable state in Supabase (survives page refreshes, hours-long pauses)
- * - Resumable after blueprint approval suspension
- * - Partial failure handling (failed illustrations don't kill the book)
- * - Cancellable via the cancel endpoint
- *
- * ## Future Extensions
- * - [STREAMING PHASE]: Step 10 will become the Veo 3.1 video pipeline
- * - [COLLABORATION PHASE]: Multi-user blueprint review
- *
- * @module mastra/workflows/bookGenerationWorkflow
+ * Architecture:
+ * 1. Validate request and enforce tier limits server-side
+ * 2. Generate the full book in one Gemini call for consistency
+ * 3. Generate illustrations server-side with bounded, sequential execution
+ * 4. Persist the exact BookProject shape used by the frontend
  */
 
-import { createWorkflow, createStep } from '@mastra/core/workflows';
+import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 import {
+  BookProjectSchema,
   GenerationSettingsSchema,
-  ContentStructureSchema,
   UserTierSchema,
-  CharacterSheetSchema,
-  StyleGuideSchema,
-  WorkflowProgressEventSchema,
 } from '../schemas';
+import { db } from '../db';
 
-// ─── Workflow Input/Output Schemas ───────────────────────────────────────────
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const BYTEZ_IMAGE_MODEL = 'google/imagen-4.0-generate-001';
+const WORKFLOW_CANCELLED = 'WORKFLOW_CANCELLED';
+
+const cancelledWorkflowIds = new Set<string>();
+
+export function cancelBookGenerationWorkflow(workflowId: string): boolean {
+  cancelledWorkflowIds.add(workflowId);
+  return true;
+}
+
+export function releaseBookGenerationWorkflow(workflowId: string): void {
+  cancelledWorkflowIds.delete(workflowId);
+}
+
+function assertWorkflowActive(workflowId: string): void {
+  if (cancelledWorkflowIds.has(workflowId)) {
+    throw new Error(WORKFLOW_CANCELLED);
+  }
+}
 
 const WorkflowInputSchema = z.object({
   settings: GenerationSettingsSchema,
@@ -60,459 +48,653 @@ const WorkflowInputSchema = z.object({
 const WorkflowOutputSchema = z.object({
   bookId: z.string(),
   success: z.boolean(),
+  saved: z.boolean().optional(),
   error: z.string().optional(),
   videoReady: z.boolean(),
   message: z.string().optional(),
+  project: BookProjectSchema.optional(),
 });
 
-// ─── Step 1: Validate Request ────────────────────────────────────────────────
+const BaseStateSchema = z.object({
+  settings: GenerationSettingsSchema,
+  userId: z.string(),
+  workflowId: z.string(),
+});
+
+const WorkingStateSchema = BaseStateSchema.extend({
+  project: BookProjectSchema.optional(),
+  saved: z.boolean().optional(),
+});
+
+const GeneratedPageSchema = z.object({
+  pageNumber: z.number().int().positive(),
+  text: z.string().min(1),
+  imagePrompt: z.string().min(1),
+  layoutType: z
+    .enum([
+      'full-bleed',
+      'split-horizontal',
+      'split-vertical',
+      'text-only',
+      'image-only',
+      'learning-break',
+      'learning-only',
+    ])
+    .optional(),
+  narrationNotes: z
+    .object({
+      tone: z.string(),
+      pacing: z.string(),
+      emotion: z.string(),
+      soundEffects: z.array(z.string()).optional(),
+    })
+    .optional(),
+  interactiveElement: z.any().optional(),
+  learningContent: z.any().optional(),
+  learningMoment: z.any().optional(),
+  vocabularyWords: z
+    .array(
+      z.object({
+        word: z.string(),
+        definition: z.string(),
+      })
+    )
+    .optional(),
+  choices: z
+    .array(
+      z.object({
+        text: z.string(),
+        targetPageNumber: z.number().int().positive(),
+      })
+    )
+    .optional(),
+});
+
+const GeneratedCharacterSchema = z.object({
+  name: z.string().min(1),
+  role: z.string().optional(),
+  description: z.string().min(1),
+  visualPrompt: z.string().optional(),
+  visualTraits: z.string().optional(),
+  traits: z.array(z.string()).optional(),
+});
+
+const GeneratedBookPayloadSchema = z.object({
+  title: z.string().min(1),
+  synopsis: z.string().min(1),
+  metadata: z.any().optional(),
+  decisionTree: z.any().optional(),
+  backMatter: z.any().optional(),
+  seriesInfo: z.any().optional(),
+  characters: z.array(GeneratedCharacterSchema).optional().default([]),
+  pages: z.array(GeneratedPageSchema).min(1),
+});
+
+type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
+type WorkingState = z.infer<typeof WorkingStateSchema>;
+type GeneratedBookPayload = z.infer<typeof GeneratedBookPayloadSchema>;
+
+function extractJsonCandidate(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    return fenced[1].trim();
+  }
+
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    return text.slice(start, end + 1).trim();
+  }
+
+  return text.trim();
+}
+
+function parseGeneratedPayload(text: string): GeneratedBookPayload {
+  const candidate = extractJsonCandidate(text)
+    .replace(/\u0000/g, '')
+    .replace(/,\s*([}\]])/g, '$1');
+
+  return GeneratedBookPayloadSchema.parse(JSON.parse(candidate));
+}
+
+function buildGenerationPrompt(settings: WorkflowInput['settings']): string {
+  const isBrandContent = Boolean(settings.brandStoryConfig?.companyInfo?.name);
+  const teacherContext = settings.teacherCharacter
+    ? [
+        `Teacher character name: ${settings.teacherCharacter.name}`,
+        `Teacher character description: ${settings.teacherCharacter.description}`,
+        `Teacher character visual prompt: ${settings.teacherCharacter.visualPrompt ?? settings.teacherCharacter.visualTraits}`,
+      ].join('\n')
+    : 'No teacher character provided.';
+
+  const brandProfileContext = settings.brandProfile
+    ? [
+        `Brand name: ${settings.brandProfile.name}`,
+        `Brand guidelines: ${settings.brandProfile.guidelines}`,
+        `Brand colors: ${settings.brandProfile.colors.join(', ')}`,
+        `Brand sample text: ${settings.brandProfile.sampleText}`,
+      ].join('\n')
+    : 'No brand profile provided.';
+
+  const brandStoryContext = settings.brandStoryConfig
+    ? JSON.stringify(settings.brandStoryConfig, null, 2)
+    : 'None';
+
+  const learningContext = settings.educational && settings.learningConfig
+    ? JSON.stringify(settings.learningConfig, null, 2)
+    : 'None';
+
+  const templateContext = settings.templateStructure?.length
+    ? JSON.stringify(settings.templateStructure, null, 2)
+    : 'None';
+
+  return [
+    'You are Genesis, a production-grade illustrated book generator.',
+    'Return valid JSON only. No markdown. No prose outside JSON.',
+    '',
+    'Create a complete project in one pass so character voice, visual style, and story continuity stay consistent across every page.',
+    '',
+    'Requirements:',
+    `- Generate exactly ${settings.pageCount} pages.`,
+    `- Audience: ${settings.audience}`,
+    `- Tone: ${settings.tone}`,
+    `- Art style: ${settings.style}`,
+    `- Branching: ${settings.isBranching ? 'yes' : 'no'}`,
+    `- Educational mode: ${settings.educational ? 'yes' : 'no'}`,
+    `- Content mode: ${isBrandContent ? 'brand-content' : 'storybook'}`,
+    '',
+    'Consistency rules:',
+    '- Define every main character once in the characters array.',
+    '- Each character must include a precise visualPrompt that never changes.',
+    '- Every page imagePrompt must explicitly restate the exact visualPrompt text for any character present on that page.',
+    '- Maintain the same world, tone, stakes, and design language from page 1 to the end.',
+    '- Page text must be complete, polished, and publishable.',
+    '',
+    'JSON contract:',
+    '{',
+    '  "title": "string",',
+    '  "synopsis": "string",',
+    '  "metadata": {',
+    '    "title": "string",',
+    '    "synopsis": "string",',
+    '    "ageRange": "string",',
+    '    "genre": "string",',
+    '    "pageCount": number,',
+    '    "artStyle": "string",',
+    '    "features": ["string"],',
+    '    "language": "en"',
+    '  },',
+    '  "characters": [',
+    '    {',
+    '      "name": "string",',
+    '      "role": "string",',
+    '      "description": "string",',
+    '      "visualPrompt": "string",',
+    '      "traits": ["string"]',
+    '    }',
+    '  ],',
+    '  "pages": [',
+    '    {',
+    '      "pageNumber": 1,',
+    '      "text": "string",',
+    '      "imagePrompt": "string",',
+    '      "layoutType": "split-horizontal",',
+    '      "narrationNotes": { "tone": "string", "pacing": "string", "emotion": "string" },',
+    '      "learningMoment": { "concept": "string", "content": "string", "answer": "string" },',
+    '      "learningContent": {},',
+    '      "vocabularyWords": [{ "word": "string", "definition": "string" }],',
+    '      "choices": [{ "text": "string", "targetPageNumber": 2 }]',
+    '    }',
+    '  ],',
+    '  "decisionTree": {},',
+    '  "backMatter": {},',
+    '  "seriesInfo": {}',
+    '}',
+    '',
+    'Input context:',
+    `Prompt: ${settings.prompt}`,
+    `Teacher context:\n${teacherContext}`,
+    `Brand profile context:\n${brandProfileContext}`,
+    `Brand story config:\n${brandStoryContext}`,
+    `Learning config:\n${learningContext}`,
+    `Template structure:\n${templateContext}`,
+  ].join('\n');
+}
+
+async function callGemini(prompt: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY_1;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY_1 is not configured.');
+  }
+
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 55_000);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            responseMimeType: 'application/json',
+          },
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Gemini request failed (${response.status}): ${body}`);
+    }
+
+    const payload = await response.json();
+    return (
+      payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? '').join('') ??
+      ''
+    );
+  } finally {
+    clearTimeout(deadline);
+  }
+}
+
+async function callBytez(prompt: string): Promise<string | null> {
+  const apiKey = process.env.BYTEZ_API_KEY_1;
+  if (!apiKey) {
+    return null;
+  }
+
+  const response = await fetch('https://api.bytez.com/models/v2/run', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Key ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: BYTEZ_IMAGE_MODEL,
+      input: prompt,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Bytez request failed (${response.status}): ${body}`);
+  }
+
+  const payload = await response.json();
+  return payload?.imageUrl ?? payload?.output?.[0] ?? null;
+}
+
+function normalizeProject(
+  payload: GeneratedBookPayload,
+  settings: WorkflowInput['settings'],
+  workflowId: string
+): z.infer<typeof BookProjectSchema> {
+  const sortedPages = [...payload.pages].sort((a, b) => a.pageNumber - b.pageNumber);
+  if (sortedPages.length < settings.pageCount) {
+    throw new Error(`Model returned ${sortedPages.length} pages, expected ${settings.pageCount}.`);
+  }
+
+  const pages = sortedPages.slice(0, settings.pageCount).map((page, index) => ({
+    id: crypto.randomUUID(),
+    pageNumber: index + 1,
+    text: page.text.trim(),
+    imagePrompt: page.imagePrompt.trim(),
+    layoutType: page.layoutType ?? 'split-horizontal',
+    narrationNotes: page.narrationNotes,
+    interactiveElement: page.interactiveElement,
+    learningContent: page.learningContent,
+    learningMoment: page.learningMoment,
+    vocabularyWords: page.vocabularyWords,
+    choices: page.choices,
+  }));
+
+  const features = [
+    settings.isBranching ? 'branching-story' : 'linear-story',
+    settings.educational ? 'educational' : 'narrative',
+    settings.brandStoryConfig ? 'brand-content' : 'illustrated-book',
+  ];
+
+  const project = {
+    id: workflowId,
+    title: payload.title.trim(),
+    synopsis: payload.synopsis.trim(),
+    style: settings.style,
+    tone: settings.tone,
+    targetAudience: settings.brandStoryConfig ? 'Business Professionals' : settings.audience,
+    isBranching: settings.isBranching,
+    brandProfile: settings.brandProfile,
+    learningConfig: settings.learningConfig,
+    metadata: payload.metadata ?? {
+      title: payload.title.trim(),
+      synopsis: payload.synopsis.trim(),
+      ageRange: settings.audience,
+      genre: settings.brandStoryConfig ? 'Brand Content' : 'Illustrated Story',
+      pageCount: settings.pageCount,
+      artStyle: settings.style,
+      features,
+      language: 'en',
+    },
+    decisionTree: payload.decisionTree,
+    backMatter: payload.backMatter,
+    seriesInfo: payload.seriesInfo,
+    chapters: [
+      {
+        id: crypto.randomUUID(),
+        title: settings.brandStoryConfig ? 'Brand Story' : 'Story',
+        pages,
+      },
+    ],
+    characters: payload.characters.map((character) => {
+      const visualPrompt =
+        character.visualPrompt?.trim() || character.visualTraits?.trim() || character.description.trim();
+
+      return {
+        id: crypto.randomUUID(),
+        name: character.name.trim(),
+        role: character.role,
+        description: character.description.trim(),
+        visualTraits: visualPrompt,
+        visualPrompt,
+        traits: character.traits,
+      };
+    }),
+    aiImagesGenerated: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  return BookProjectSchema.parse(project);
+}
+
+async function generateProjectContent(settings: WorkflowInput['settings'], workflowId: string) {
+  const rawText = await callGemini(buildGenerationPrompt(settings));
+  const payload = parseGeneratedPayload(rawText);
+  return normalizeProject(payload, settings, workflowId);
+}
+
+async function addIllustrationsToProject(
+  project: z.infer<typeof BookProjectSchema>,
+  workflowId: string
+): Promise<z.infer<typeof BookProjectSchema>> {
+  const clonedProject = structuredClone(project);
+  let successCount = 0;
+
+  for (const chapter of clonedProject.chapters) {
+    for (const page of chapter.pages) {
+      assertWorkflowActive(workflowId);
+
+      if (!page.imagePrompt) {
+        continue;
+      }
+
+      try {
+        const imageUrl = await callBytez(page.imagePrompt);
+        if (imageUrl) {
+          page.imageUrl = imageUrl;
+          successCount += 1;
+        }
+      } catch (error) {
+        console.error(`[bookGenerationWorkflow] Illustration failed for page ${page.pageNumber}:`, error);
+      }
+    }
+  }
+
+  assertWorkflowActive(workflowId);
+
+  try {
+    const coverPrompt = [
+      `Book cover for "${clonedProject.title}".`,
+      `Style: ${clonedProject.style}.`,
+      `Synopsis: ${clonedProject.synopsis}.`,
+      ...clonedProject.characters.slice(0, 2).map((character) => character.visualPrompt ?? character.visualTraits),
+    ].join(' ');
+
+    const coverImage = await callBytez(coverPrompt);
+    if (coverImage) {
+      clonedProject.coverImage = coverImage;
+    }
+  } catch (error) {
+    console.error('[bookGenerationWorkflow] Cover illustration failed:', error);
+  }
+
+  clonedProject.aiImagesGenerated = successCount;
+  return BookProjectSchema.parse(clonedProject);
+}
+
+async function saveProject(project: z.infer<typeof BookProjectSchema>, userId: string): Promise<boolean> {
+  const { error } = await db.from('books').upsert(
+    {
+      id: project.id,
+      title: project.title,
+      synopsis: project.synopsis,
+      cover_image: project.coverImage,
+      project_data: project,
+      user_id: userId,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' }
+  );
+
+  if (error) {
+    console.error('[bookGenerationWorkflow] Failed to save book:', error);
+    return false;
+  }
+
+  return true;
+}
 
 const validateRequest = createStep({
   id: 'validateRequest',
-  description: 'Validate tier limits using server-side logic (cannot be bypassed)',
+  description: 'Enforce server-side tier limits before expensive generation begins.',
   inputSchema: WorkflowInputSchema,
-  outputSchema: z.object({
-    valid: z.boolean(),
-    error: z.string().optional(),
-    upgradeRequired: z.boolean().optional(),
-    adjustedPageCount: z.number(),
-    ebooksThisMonth: z.number(),
-  }),
-  execute: async ({ inputData }) => {
+  outputSchema: BaseStateSchema,
+  execute: async ({ inputData, bail }) => {
     if (!inputData) {
-      return { valid: false, error: 'No input data', adjustedPageCount: 0, ebooksThisMonth: 0 };
+      return bail({
+        bookId: '',
+        success: false,
+        error: 'Missing workflow input.',
+        videoReady: false,
+      });
     }
 
-    const { settings, userTier } = inputData as z.infer<typeof WorkflowInputSchema>;
+    const { settings, userId, userTier, workflowId } = inputData;
 
-    // Server-side tier limits (mirrors services/tierLimits.ts)
-    const TIER_LIMITS: Record<string, { ebooksPerMonth: number; maxPages: number }> = {
+    const tierLimits: Record<WorkflowInput['userTier'], { ebooksPerMonth: number; maxPages: number }> = {
       SPARK: { ebooksPerMonth: 3, maxPages: 4 },
       CREATOR: { ebooksPerMonth: 30, maxPages: 12 },
-      STUDIO: { ebooksPerMonth: Infinity, maxPages: 500 },
-      EMPIRE: { ebooksPerMonth: Infinity, maxPages: 999 },
+      STUDIO: { ebooksPerMonth: Number.POSITIVE_INFINITY, maxPages: 500 },
+      EMPIRE: { ebooksPerMonth: Number.POSITIVE_INFINITY, maxPages: 999 },
     };
 
-    const limits = TIER_LIMITS[userTier] ?? TIER_LIMITS.SPARK;
+    const limits = tierLimits[userTier] ?? tierLimits.SPARK;
 
-    // TODO: Query Supabase for actual monthly ebook count
-    // For now, default to 0 — this will be populated from the DB
-    const ebooksThisMonth = 0;
+    if (settings.pageCount > limits.maxPages) {
+      return bail({
+        bookId: workflowId,
+        success: false,
+        error: 'PAGE_LIMIT_EXCEEDED',
+        videoReady: false,
+        message: `Your tier supports up to ${limits.maxPages} pages per book.`,
+      });
+    }
 
-    if (ebooksThisMonth >= limits.ebooksPerMonth) {
-      return {
-        valid: false,
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+
+    const { count, error } = await db
+      .from('books')
+      .select('id', { head: true, count: 'exact' })
+      .eq('user_id', userId)
+      .gte('created_at', monthStart.toISOString());
+
+    if (error) {
+      console.error('[bookGenerationWorkflow] Failed to query monthly usage:', error);
+    }
+
+    if ((count ?? 0) >= limits.ebooksPerMonth) {
+      return bail({
+        bookId: workflowId,
+        success: false,
         error: 'TIER_LIMIT_EXCEEDED',
-        upgradeRequired: true,
-        adjustedPageCount: settings.pageCount,
-        ebooksThisMonth,
-      };
+        videoReady: false,
+        message: `Monthly ebook limit reached (${limits.ebooksPerMonth}).`,
+      });
     }
-
-    const adjustedPageCount = Math.min(settings.pageCount, limits.maxPages);
-
-    return { valid: true, adjustedPageCount, ebooksThisMonth };
-  },
-});
-
-// ─── Step 2: Analyze Content (Generate Blueprint) ────────────────────────────
-
-const analyzeContent = createStep({
-  id: 'analyzeContent',
-  description: 'Call storyArchitectAgent to generate ContentStructure blueprint',
-  inputSchema: z.any(),
-  outputSchema: ContentStructureSchema.optional(),
-  execute: async ({ inputData, getStepResult }) => {
-    const validation = getStepResult('validateRequest') as { valid: boolean; adjustedPageCount: number } | null;
-
-    if (!validation?.valid || !inputData) {
-      return undefined;
-    }
-
-    const { settings } = inputData as z.infer<typeof WorkflowInputSchema>;
-
-    // The storyArchitectAgent will generate the ContentStructure
-    // In the actual Mastra runtime, we would call:
-    // const agent = mastra.getAgent('storyArchitect');
-    // const result = await agent.generate(prompt);
-    // For now, this step is wired in via the workflow execution context.
-
-    // Emit progress event
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: { phase: 'blueprint', percent: 15, message: 'Generating story blueprint...' },
-    }));
-
-    return undefined; // Will be populated by agent call in runtime
-  },
-});
-
-// ─── Step 3: Suspend for Blueprint Approval ──────────────────────────────────
-
-const suspendForBlueprintApproval = createStep({
-  id: 'suspendForBlueprintApproval',
-  description: 'CRITICAL HUMAN-IN-THE-LOOP: Suspend workflow and emit blueprint to frontend for approval. Workflow resumes when user calls /resume endpoint.',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    approved: z.boolean(),
-    approvedBlueprint: ContentStructureSchema.optional(),
-  }),
-  execute: async ({ getStepResult, suspend }) => {
-    const blueprint = getStepResult('analyzeContent') as z.infer<typeof ContentStructureSchema> | null;
-
-    // Emit the blueprint to the frontend
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: {
-        phase: 'approval',
-        percent: 20,
-        message: 'Waiting for blueprint approval...',
-        data: blueprint,
-      },
-    }));
-
-    // SUSPEND the workflow — state is stored in the database
-    // The frontend (BlueprintReview.tsx) receives the blueprint,
-    // allows the user to edit it, and calls /resume with the approved version.
-    // This step may be paused for minutes or hours — state is durable.
-    const resumeData = await suspend({
-      blueprint,
-      message: 'Waiting for user to review and approve the story blueprint',
-    });
 
     return {
-      approved: true,
-      approvedBlueprint: (resumeData as any)?.approvedBlueprint ?? blueprint,
+      settings,
+      userId,
+      workflowId,
     };
   },
 });
 
-// ─── Step 4: Generate Characters (Parallel) ──────────────────────────────────
-
-const generateCharacters = createStep({
-  id: 'generateCharacters',
-  description: 'For each character in the approved blueprint, call characterArtistAgent in PARALLEL',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    characterSheets: z.array(CharacterSheetSchema),
-    failedCharacters: z.array(z.string()),
+const generateProject = createStep({
+  id: 'generateProject',
+  description: 'Generate the complete BookProject in one model call.',
+  inputSchema: BaseStateSchema,
+  outputSchema: WorkingStateSchema.extend({
+    project: BookProjectSchema,
   }),
-  execute: async ({ getStepResult }) => {
-    const approval = getStepResult('suspendForBlueprintApproval') as {
-      approved: boolean;
-      approvedBlueprint: z.infer<typeof ContentStructureSchema>;
-    } | null;
+  execute: async ({ inputData, bail }) => {
+    try {
+      assertWorkflowActive(inputData.workflowId);
+      const project = await generateProjectContent(inputData.settings, inputData.workflowId);
+      assertWorkflowActive(inputData.workflowId);
 
-    if (!approval?.approvedBlueprint) {
-      return { characterSheets: [], failedCharacters: [] };
+      return {
+        ...inputData,
+        project,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Book generation failed.';
+      console.error('[bookGenerationWorkflow] generateProject failed:', error);
+      return bail({
+        bookId: inputData.workflowId,
+        success: false,
+        error: message,
+        videoReady: false,
+      });
     }
-
-    const characters = approval.approvedBlueprint.characterNeeds;
-
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: { phase: 'characters', percent: 30, message: `Generating ${characters.length} characters...` },
-    }));
-
-    // In runtime, each character is generated in parallel:
-    // const promises = characters.map(char =>
-    //   mastra.getAgent('characterArtist').generate(JSON.stringify(char))
-    // );
-    // const results = await Promise.allSettled(promises);
-
-    return { characterSheets: [], failedCharacters: [] };
   },
 });
-
-// ─── Step 5: Generate Style Guide ────────────────────────────────────────────
-
-const generateStyleGuide = createStep({
-  id: 'generateStyleGuide',
-  description: 'Call styleArchitectAgent with tone, style, audience to generate the book StyleGuide',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    styleGuide: StyleGuideSchema.optional(),
-    videoPreparation: z.object({
-      videoReady: z.boolean(),
-      message: z.string(),
-    }).optional(),
-  }),
-  execute: async ({ inputData }) => {
-    if (!inputData) {
-      return { styleGuide: undefined };
-    }
-
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: { phase: 'style', percent: 40, message: 'Creating art direction...' },
-    }));
-
-    // In runtime:
-    // const agent = mastra.getAgent('styleArchitect');
-    // const styleGuide = await agent.generate(JSON.stringify({...}));
-    // const videoPrep = await agent.executeTool('prepareForVideoGeneration', { styleGuide });
-
-    // TODO [STREAMING PHASE]: Call prepareForVideoGeneration() here and pass
-    // the result to the video generation step. Currently returns null.
-    const videoPreparation = {
-      videoReady: false,
-      message: 'Video generation coming to Empire tier',
-    };
-
-    return { styleGuide: undefined, videoPreparation };
-  },
-});
-
-// ─── Step 6: Generate Page Content (Parallel, batched by 3) ──────────────────
-
-const generatePageContent = createStep({
-  id: 'generatePageContent',
-  description: 'For each page outline, generate full page text using storyArchitectAgent. Processed in batches of 3.',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    pages: z.array(
-      z.object({
-        pageNumber: z.number(),
-        text: z.string(),
-        imagePrompt: z.string(),
-      })
-    ),
-    failedPages: z.array(z.number()),
-  }),
-  execute: async ({ getStepResult }) => {
-    const approval = getStepResult('suspendForBlueprintApproval') as {
-      approved: boolean;
-      approvedBlueprint: z.infer<typeof ContentStructureSchema>;
-    } | null;
-
-    if (!approval?.approvedBlueprint) {
-      return { pages: [], failedPages: [] };
-    }
-
-    const pageOutlines = approval.approvedBlueprint.pages;
-    const totalPages = pageOutlines.length;
-    const batchSize = 3;
-    const pages: { pageNumber: number; text: string; imagePrompt: string }[] = [];
-    const failedPages: number[] = [];
-
-    // Process pages in batches of 3 to respect rate limits
-    for (let i = 0; i < totalPages; i += batchSize) {
-      const batch = pageOutlines.slice(i, i + batchSize);
-      const percent = Math.round(40 + (i / totalPages) * 25); // 40-65%
-
-      console.log(JSON.stringify({
-        type: 'progress',
-        data: {
-          phase: 'writing',
-          percent,
-          message: `Writing pages ${i + 1}-${Math.min(i + batchSize, totalPages)} of ${totalPages}...`,
-        },
-      }));
-
-      // In runtime, each batch is processed in parallel:
-      // const batchPromises = batch.map(outline =>
-      //   mastra.getAgent('storyArchitect').generate(JSON.stringify({
-      //     action: 'writePage',
-      //     pageOutline: outline,
-      //     ...bookContext
-      //   }))
-      // );
-      // const results = await Promise.allSettled(batchPromises);
-
-      for (const outline of batch) {
-        pages.push({
-          pageNumber: outline.pageNumber,
-          text: `[Generated text for page ${outline.pageNumber}]`,
-          imagePrompt: `[Generated image prompt for page ${outline.pageNumber}]`,
-        });
-      }
-    }
-
-    return { pages, failedPages };
-  },
-});
-
-// ─── Step 7: Generate Illustrations (Parallel, batched by 2) ─────────────────
 
 const generateIllustrations = createStep({
   id: 'generateIllustrations',
-  description: 'For each page, generate illustrations via Bytez/Imagen. Batched by 2 for rate limits. Partial failures are tolerated.',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    illustrations: z.array(
-      z.object({
-        pageNumber: z.number(),
-        imageUrl: z.string().nullable(),
-      })
-    ),
-    failedIllustrations: z.array(z.number()),
+  description: 'Generate page and cover images server-side. Missing image credentials degrade gracefully.',
+  inputSchema: WorkingStateSchema.extend({
+    project: BookProjectSchema,
   }),
-  execute: async ({ getStepResult }) => {
-    const pageContent = getStepResult('generatePageContent') as {
-      pages: { pageNumber: number; text: string; imagePrompt: string }[];
-    } | null;
+  outputSchema: WorkingStateSchema.extend({
+    project: BookProjectSchema,
+  }),
+  execute: async ({ inputData, bail }) => {
+    try {
+      assertWorkflowActive(inputData.workflowId);
+      const project = await addIllustrationsToProject(inputData.project, inputData.workflowId);
+      assertWorkflowActive(inputData.workflowId);
 
-    if (!pageContent?.pages) {
-      return { illustrations: [], failedIllustrations: [] };
-    }
-
-    const pages = pageContent.pages;
-    const batchSize = 2;
-    const illustrations: { pageNumber: number; imageUrl: string | null }[] = [];
-    const failedIllustrations: number[] = [];
-
-    for (let i = 0; i < pages.length; i += batchSize) {
-      const batch = pages.slice(i, i + batchSize);
-      const percent = Math.round(65 + (i / pages.length) * 25); // 65-90%
-
-      console.log(JSON.stringify({
-        type: 'progress',
-        data: {
-          phase: 'illustrating',
-          percent,
-          message: `Generating illustrations ${i + 1}-${Math.min(i + batchSize, pages.length)}...`,
-        },
-      }));
-
-      // In runtime:
-      // 1. Apply style enforcement to each image prompt:
-      //    const enforcedPrompt = await styleAgent.executeTool('enforceStyleConsistency', { prompt, styleGuide });
-      // 2. Call Bytez/Imagen API (keep using existing proxy for now):
-      //    const imageUrl = await callBytezImageProxy(enforcedPrompt, modelId);
-      //
-      // Partial failure handling: if one illustration fails, mark imageUrl as null
-      // and continue. The book still generates — the user can regenerate failed
-      // illustrations later in the editor.
-
-      for (const page of batch) {
-        try {
-          // Placeholder — actual implementation calls Bytez proxy
-          illustrations.push({
-            pageNumber: page.pageNumber,
-            imageUrl: null, // Will be populated by actual API call
-          });
-        } catch (err) {
-          console.error(`[Illustration] Failed for page ${page.pageNumber}:`, err);
-          failedIllustrations.push(page.pageNumber);
-          illustrations.push({ pageNumber: page.pageNumber, imageUrl: null });
-        }
+      return {
+        ...inputData,
+        project,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Illustration generation failed.';
+      if (message === WORKFLOW_CANCELLED) {
+        return bail({
+          bookId: inputData.workflowId,
+          success: false,
+          error: WORKFLOW_CANCELLED,
+          videoReady: false,
+          message: 'Book generation cancelled.',
+        });
       }
+
+      console.error('[bookGenerationWorkflow] generateIllustrations failed:', error);
+      return {
+        ...inputData,
+      };
     }
-
-    return { illustrations, failedIllustrations };
   },
 });
-
-// ─── Step 8: Run Quality Assurance ───────────────────────────────────────────
-
-const runQualityAssurance = createStep({
-  id: 'runQualityAssurance',
-  description: 'Call qualityAssuranceAgent on the complete book. Auto-improve pages below threshold.',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    overallScore: z.number(),
-    autoImprovedCount: z.number(),
-    qaReport: z.any(),
-  }),
-  execute: async ({ getStepResult: _getStepResult }) => {
-
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: { phase: 'qa', percent: 92, message: 'Running quality assurance...' },
-    }));
-
-    // In runtime:
-    // const qaAgent = mastra.getAgent('qualityAssurance');
-    // const qaResult = await qaAgent.generate(JSON.stringify({
-    //   action: 'fullQA',
-    //   bookId: workflowId,
-    //   pages: pageContent.pages,
-    //   targetAudience, tone,
-    //   qualityThreshold: 70
-    // }));
-    // Auto-improve flagged pages...
-
-    return { overallScore: 85, autoImprovedCount: 0, qaReport: {} };
-  },
-});
-
-// ─── Step 9: Persist Book ────────────────────────────────────────────────────
 
 const persistBook = createStep({
   id: 'persistBook',
-  description: 'Save completed book to Supabase, increment ebook count (server-side, not localStorage), award XP',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    bookId: z.string(),
+  description: 'Persist the final BookProject to the same storage model used by the frontend.',
+  inputSchema: WorkingStateSchema.extend({
+    project: BookProjectSchema,
+  }),
+  outputSchema: WorkingStateSchema.extend({
+    project: BookProjectSchema,
     saved: z.boolean(),
-    xpAwarded: z.number(),
   }),
   execute: async ({ inputData }) => {
-    const triggerData = inputData as z.infer<typeof WorkflowInputSchema> | undefined;
+    const saved = await saveProject(inputData.project, inputData.userId);
 
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: { phase: 'saving', percent: 96, message: 'Saving your book...' },
-    }));
-
-    // In runtime:
-    // 1. Assemble the full BookProject from all step results
-    // 2. Save to Supabase using booksApi.createBook() logic
-    // 3. INCREMENT ebook count in Supabase usage_tracking table
-    //    (NOT localStorage — this fixes the security flaw)
-    // 4. Call gamificationAgent.awardXP for book_created action
-
-    const bookId = triggerData?.workflowId ?? `book_${Date.now()}`;
-
-    return { bookId, saved: true, xpAwarded: 50 };
-  },
-});
-
-// ─── Step 10: Video Generation Stub ──────────────────────────────────────────
-
-const videoGenerationStub = createStep({
-  id: 'videoGenerationStub',
-  description: '[STUB] Future Veo 3.1 video generation. Currently returns a placeholder.',
-  inputSchema: z.any(),
-  outputSchema: z.object({
-    videoReady: z.boolean(),
-    message: z.string(),
-  }),
-  execute: async () => {
-    // TODO [STREAMING PHASE]: Replace this stub with Veo 3.1
-    // scene generation pipeline. Each page's imageUrl feeds as
-    // a reference image to Veo 3.1 Ingredients to Video API.
-    // Chain scenes using Scene Extension for continuity.
-    // Gate this step behind UserTier.EMPIRE check.
-    // See videoGenerationWorkflow.ts (to be created in streaming phase)
-
-    console.log(JSON.stringify({
-      type: 'progress',
-      data: { phase: 'complete', percent: 100, message: 'Book generation complete!' },
-    }));
+    if (saved) {
+      try {
+        await db.rpc('award_xp', {
+          p_user_id: inputData.userId,
+          p_action_name: 'book_created',
+          p_metadata: {
+            bookId: inputData.project.id,
+            pageCount: inputData.project.chapters.flatMap((chapter) => chapter.pages).length,
+          },
+        });
+      } catch (error) {
+        console.warn('[bookGenerationWorkflow] XP award failed:', error);
+      }
+    }
 
     return {
-      videoReady: false,
-      message: 'Video generation coming to Empire tier',
+      ...inputData,
+      saved,
     };
   },
 });
 
-// ─── Workflow Definition ─────────────────────────────────────────────────────
+const finalizeGeneration = createStep({
+  id: 'finalizeGeneration',
+  description: 'Emit the client-facing workflow result and clean up workflow-local state.',
+  inputSchema: WorkingStateSchema.extend({
+    project: BookProjectSchema,
+    saved: z.boolean(),
+  }),
+  outputSchema: WorkflowOutputSchema,
+  execute: async ({ inputData }) => {
+    releaseBookGenerationWorkflow(inputData.workflowId);
+
+    return {
+      bookId: inputData.project.id,
+      success: true,
+      saved: inputData.saved,
+      videoReady: false,
+      message: inputData.saved
+        ? 'Book generation complete.'
+        : 'Book generated, but it could not be saved automatically.',
+      project: inputData.project,
+    };
+  },
+});
 
 export const bookGenerationWorkflow = createWorkflow({
   id: 'bookGeneration',
   inputSchema: WorkflowInputSchema,
   outputSchema: WorkflowOutputSchema,
+  retryConfig: {
+    attempts: 2,
+    delay: 1500,
+  },
 })
   .then(validateRequest)
-  .then(analyzeContent)
-  .then(suspendForBlueprintApproval)
-  .then(generateCharacters)
-  .then(generateStyleGuide)
-  .then(generatePageContent)
+  .then(generateProject)
   .then(generateIllustrations)
-  .then(runQualityAssurance)
   .then(persistBook)
-  .then(videoGenerationStub)
+  .then(finalizeGeneration)
   .commit();

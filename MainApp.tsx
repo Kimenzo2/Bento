@@ -14,7 +14,7 @@
 import { Analytics } from '@vercel/analytics/react';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import type React from 'react';
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPWA from './components/InstallPWA';
@@ -24,21 +24,13 @@ import UpgradeModal from './components/UpgradeModal';
 import { useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
-import {
-  generateBookStructure,
-  generateBrandContent,
-  generateIllustration,
-} from './services/geminiService';
 import { type UserProfile, getUserProfile } from './services/profileService';
+import { invalidateBooksCache } from './services/storageService';
 import { supabase } from './services/supabaseClient';
-import {
-  canCreateEbook,
-  getEbooksCreatedThisMonth,
-  getMaxPages,
-  incrementEbookCount,
-} from './services/tierLimits';
+import { getMaxPages } from './services/tierLimits';
 import { FontProvider } from './src/contexts/FontContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
+import { mastra } from './src/services/mastraClient';
 import {
   AppMode,
   type BookProject,
@@ -147,8 +139,11 @@ const MainAppContent: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<string>('');
   const [generationProgress, setGenerationProgress] = useState<number>(0);
+  const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [forceRenderKey, setForceRenderKey] = useState(0);
+  const generationCancelRef = useRef<(() => void) | null>(null);
+  const cancelledByUserRef = useRef(false);
 
   // Global Modals State
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -286,12 +281,6 @@ const MainAppContent: React.FC = () => {
   };
 
   const checkTierLimits = (settings: GenerationSettings): boolean => {
-    const ebooksThisMonth = getEbooksCreatedThisMonth();
-    if (!canCreateEbook(currentUserTier, ebooksThisMonth)) {
-      setShowUpgradeModal(true);
-      addToast(`You've reached your monthly limit. Upgrade to create more ebooks!`, 'error');
-      return false;
-    }
     const maxPages = getMaxPages(currentUserTier);
     if (settings.pageCount > maxPages) {
       setShowUpgradeModal(true);
@@ -301,116 +290,130 @@ const MainAppContent: React.FC = () => {
     return true;
   };
 
+  const resetGenerationState = useCallback(() => {
+    generationCancelRef.current = null;
+    setActiveWorkflowId(null);
+    setIsGenerating(false);
+    setGenerationStatus('');
+    setGenerationProgress(0);
+  }, []);
+
+  const handleCancelGeneration = useCallback(async () => {
+    cancelledByUserRef.current = true;
+
+    const workflowId = activeWorkflowId;
+    generationCancelRef.current?.();
+    resetGenerationState();
+
+    if (!workflowId) {
+      cancelledByUserRef.current = false;
+      return;
+    }
+
+    try {
+      await mastra.workflows.cancelBookGeneration(workflowId);
+    } catch (error) {
+      console.warn('[MainApp] Failed to cancel workflow on server:', error);
+    } finally {
+      cancelledByUserRef.current = false;
+    }
+  }, [activeWorkflowId, resetGenerationState]);
+
+  useEffect(() => {
+    return () => {
+      generationCancelRef.current?.();
+    };
+  }, []);
+
   const handleGenerateProject = async (settings: GenerationSettings) => {
     if (!checkTierLimits(settings)) return;
 
+    cancelledByUserRef.current = false;
+    generationCancelRef.current?.();
     setIsGenerating(true);
     setGenerationProgress(0);
-
-    const isBrandContent = settings.brandStoryConfig && settings.brandStoryConfig.companyInfo?.name;
-    setGenerationStatus(
-      isBrandContent ? 'Creating professional brand content...' : 'Architecting story structure...'
-    );
+    setGenerationStatus('Starting book generation...');
+    setActiveWorkflowId(null);
 
     try {
-      setGenerationProgress(5);
-      const structure = isBrandContent
-        ? await generateBrandContent(settings, settings.brandStoryConfig!)
-        : await generateBookStructure(settings);
-
-      if (!structure.chapters?.length || !structure.chapters[0].pages?.length) {
-        throw new Error('Generated content is empty. Please try again.');
-      }
-
-      setGenerationProgress(15);
-      const newProject: BookProject = {
-        id: crypto.randomUUID(),
-        title: structure.title || 'Untitled Masterpiece',
-        synopsis: structure.synopsis || '',
-        style: settings.style,
-        tone: settings.tone,
-        targetAudience: settings.audience,
-        isBranching: settings.isBranching,
-        brandProfile: settings.brandProfile,
-        metadata: structure.metadata,
-        decisionTree: structure.decisionTree,
-        backMatter: structure.backMatter,
-        seriesInfo: structure.seriesInfo,
-        chapters: (structure.chapters || []).map((c) => ({
-          id: crypto.randomUUID(),
-          title: c.title || 'Chapter',
-          pages: (c.pages || []).map((p: any) => ({
-            id: crypto.randomUUID(),
-            pageNumber: p.pageNumber,
-            text: p.text,
-            imagePrompt: p.imagePrompt,
-            layoutType: p.layoutType || 'text-only',
-            choices: p.choices || [],
-            narrationNotes: p.narrationNotes,
-            interactiveElement: p.interactiveElement,
-            learningMoment: p.learningMoment,
-            vocabularyWords: p.vocabularyWords,
-          })),
-        })),
-        characters: (structure.characters || []).map((c: any) => ({
-          id: crypto.randomUUID(),
-          name: c.name,
-          description: c.description,
-          visualTraits: c.visualTraits,
-          visualPrompt: c.visualPrompt,
-          traits: c.traits,
-        })),
-        createdAt: new Date(),
-      };
-
-      const allPages = newProject.chapters.flatMap((c) => c.pages);
-      const totalPages = allPages.length;
-      let processedCount = 0;
-
-      for (const page of allPages) {
-        if (page.imagePrompt) {
-          let attempts = 0;
-          while (attempts < 3) {
-            try {
-              const imageUrl = await generateIllustration(page.imagePrompt, settings.style);
-              if (imageUrl) {
-                page.imageUrl = imageUrl;
-                break;
-              }
-            } catch (err) {
-              attempts++;
-              if (attempts < 3) await new Promise((r) => setTimeout(r, 2000));
-            }
+      const cancel = await mastra.workflows.startBookGeneration(
+        settings,
+        (event) => {
+          if (cancelledByUserRef.current) {
+            return;
           }
+
+          const workflowId =
+            event.data &&
+            typeof event.data === 'object' &&
+            'workflowId' in event.data &&
+            typeof (event.data as { workflowId?: unknown }).workflowId === 'string'
+              ? (event.data as { workflowId: string }).workflowId
+              : null;
+
+          if (workflowId) {
+            setActiveWorkflowId((current) => current ?? workflowId);
+          }
+
+          setGenerationProgress(Math.max(0, Math.min(100, event.percent)));
+          setGenerationStatus(event.message || 'Generating your book...');
+        },
+        (result) => {
+          if (cancelledByUserRef.current) {
+            cancelledByUserRef.current = false;
+            resetGenerationState();
+            return;
+          }
+
+          if (!result.success || !result.project) {
+            if (result.error === 'TIER_LIMIT_EXCEEDED' || result.error === 'PAGE_LIMIT_EXCEEDED') {
+              setShowUpgradeModal(true);
+            }
+
+            addToast(result.message || result.error || 'Book generation failed.', 'error');
+            resetGenerationState();
+            return;
+          }
+
+          invalidateBooksCache();
+
+          if (result.saved === false) {
+            addToast(
+              'Book generated, but automatic library save failed. You can still edit it now.',
+              'warning'
+            );
+          }
+
+          setCurrentProject(result.project);
+          navigateTo(AppMode.SUCCESS);
+          resetGenerationState();
+        },
+        (error) => {
+          if (cancelledByUserRef.current) {
+            cancelledByUserRef.current = false;
+            resetGenerationState();
+            return;
+          }
+
+          console.error('Generation failed', error);
+
+          if (error.message.includes('TIER_LIMIT_EXCEEDED') || error.message.includes('PAGE_LIMIT_EXCEEDED')) {
+            setShowUpgradeModal(true);
+          }
+
+          addToast(`Failed to generate project: ${error.message || 'Unknown error'}`, 'error');
+          resetGenerationState();
         }
-        processedCount++;
-        setGenerationProgress(20 + (processedCount / totalPages) * 60);
-        setGenerationStatus(`Painting page ${processedCount} of ${totalPages}...`);
-      }
+      );
 
-      try {
-        const coverPrompt = `Book cover for "${newProject.title}". Style: ${newProject.style}. Synopsis: ${newProject.synopsis}.`;
-        const coverUrl = await generateIllustration(coverPrompt, settings.style);
-        if (coverUrl) newProject.coverImage = coverUrl;
-      } catch {}
-
-      setGenerationProgress(100);
-      setGenerationStatus('Complete!');
-      await new Promise((r) => setTimeout(r, 1000));
-
-      incrementEbookCount();
-      setCurrentProject(newProject);
-      navigateTo(AppMode.SUCCESS);
+      generationCancelRef.current = cancel;
     } catch (error) {
       console.error('Generation failed', error);
       addToast(
         `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'error'
       );
-    } finally {
-      setIsGenerating(false);
-      setGenerationStatus('');
-      setGenerationProgress(0);
+      resetGenerationState();
     }
   };
 
@@ -582,7 +585,11 @@ const MainAppContent: React.FC = () => {
         // so the chunk is already downloaded long before it's needed.
         // Use null fallback — the overlay won't flash and the theater shows immediately.
         <Suspense fallback={null}>
-          <GenerationTheater progress={generationProgress} status={generationStatus} onCancel={() => { setIsGenerating(false); setGenerationStatus(''); setGenerationProgress(0); }} />
+          <GenerationTheater
+            progress={generationProgress}
+            status={generationStatus}
+            onCancel={handleCancelGeneration}
+          />
         </Suspense>
       )}
 

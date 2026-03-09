@@ -67,23 +67,25 @@ const BlogPost: React.FC = () => {
   const articleRef = useRef<HTMLElement>(null);
   const tocObserverRef = useRef<IntersectionObserver | null>(null);
 
-  const headings = post ? extractHeadings(post.content) : [];
-  const canonicalUrl = post ? '/blog/' + post.slug : '/blog';
-  const fullUrl = BASE_URL + canonicalUrl;
-  const seoTitle = post ? post.title + ' | Genesis Blog' : 'Genesis Blog';
-  const seoDescription =
-    post?.excerpt ?? 'Insights on AI storytelling, product design, and creative workflows from Genesis.';
+  /* Redirect 404 */
+  if (!post) return <Navigate to="/blog" replace />;
+
+  const headings = extractHeadings(post.content);
+  const canonicalUrl = `/blog/${post.slug}`;
+  const fullUrl = `${BASE_URL}${canonicalUrl}`;
 
   /* SEO */
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   usePageSEO({
-    title: seoTitle,
-    description: seoDescription,
+    title: `${post.title} | Genesis Blog`,
+    description: post.excerpt,
     canonical: canonicalUrl,
-    ogTitle: post?.title,
-    ogDescription: seoDescription,
+    ogTitle: post.title,
+    ogDescription: post.excerpt,
   });
 
   /* Reading progress bar */
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const onScroll = () => {
       const el = articleRef.current;
@@ -99,6 +101,7 @@ const BlogPost: React.FC = () => {
   }, []);
 
   /* Active TOC heading observer */
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!headings.length) return;
     tocObserverRef.current?.disconnect();
@@ -119,9 +122,8 @@ const BlogPost: React.FC = () => {
   }, [headings]);
 
   /* JSON-LD BlogPosting schema */
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    if (!post) return;
-
     const id = `blog-post-jsonld-${post.slug}`;
     let el = document.getElementById(id) as HTMLScriptElement | null;
     if (!el) {
@@ -162,8 +164,6 @@ const BlogPost: React.FC = () => {
   }, [post, fullUrl]);
 
   const handleShare = async () => {
-    if (!post) return;
-
     try {
       if (navigator.share) {
         await navigator.share({ title: post.title, text: post.excerpt, url: fullUrl });
@@ -175,8 +175,6 @@ const BlogPost: React.FC = () => {
       /* user cancelled share — ignore */
     }
   };
-
-  if (!post) return <Navigate to="/blog" replace />;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}>

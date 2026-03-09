@@ -24,8 +24,13 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
 import { createClient } from '@supabase/supabase-js';
-import { mastra, supabaseUrl, supabaseServiceRoleKey, requireEnv } from './index';
+import { mastra, supabaseUrl, supabaseServiceRoleKey, getEnv } from './index';
 import { evaluateBookQuality } from './evals/bookQualityEval';
+import { GenerationSettingsSchema } from './schemas';
+import {
+  cancelBookGenerationWorkflow,
+  releaseBookGenerationWorkflow,
+} from './workflows/bookGenerationWorkflow';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +43,39 @@ interface AuthenticatedContext {
 // ─── App Setup ───────────────────────────────────────────────────────────────
 
 const app = new Hono();
+const activeWorkflowOwners = new Map<string, string>();
+
+// ─── In-Memory Rate Limiter ─────────────────────────────────────────────────
+// Production-grade: per-user sliding window. For horizontal scaling, replace
+// with Upstash Redis (@upstash/ratelimit) using the existing UPSTASH_REDIS_REST_URL.
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 30;  // 30 requests per minute per user
+const RATE_LIMIT_WORKFLOW_MAX = 5;   // 5 workflow starts per minute per user
+
+function checkRateLimit(userId: string, max: number = RATE_LIMIT_MAX_REQUESTS): boolean {
+  const now = Date.now();
+  const key = `${userId}:${max}`;
+  const entry = rateLimitMap.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (entry.count >= max) return false;
+
+  entry.count++;
+  return true;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
+  }
+}, 300_000);
 
 // ─── CORS Middleware ─────────────────────────────────────────────────────────
 // Allow requests from the Vite dev server (localhost:5173) and
@@ -94,6 +132,11 @@ app.use('/api/*', async (c, next) => {
       tier: user.user_metadata?.tier ?? 'SPARK',
     } satisfies AuthenticatedContext);
 
+    // Rate limit check — per-user
+    if (!checkRateLimit(user.id)) {
+      return c.json({ error: 'Rate limit exceeded. Try again shortly.' }, 429);
+    }
+
     await next();
   } catch (err) {
     console.error('[Mastra Auth] JWT verification failed:', err);
@@ -102,15 +145,19 @@ app.use('/api/*', async (c, next) => {
 });
 
 // ─── Health Check ────────────────────────────────────────────────────────────
-app.get('/health', (c) => {
+// Exposed on both /health (direct) and /api/health (client-facing) so the
+// frontend mastraClient healthCheck() and infra probes both work.
+const healthHandler = (c: any) => {
   return c.json({
     status: 'ok',
     service: 'genesis-mastra',
     timestamp: new Date().toISOString(),
-    agents: ['storyArchitect', 'characterArtist', 'styleArchitect', 'storyEditor', 'gamification', 'qualityAssurance'],
-    workflows: ['bookGeneration', 'brandVoiceRAG'],
+    agents: 6,
+    workflows: 2,
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AGENT ENDPOINTS
@@ -347,28 +394,71 @@ app.post('/api/agents/qa/analyze', async (c) => {
 // ─── Book Generation Workflow (SSE Stream) ───────────────────────────────────
 app.post('/api/workflows/book-generation/start', async (c) => {
   const auth = c.get('auth' as never) as AuthenticatedContext;
+
+  // Stricter rate limit for workflow starts (expensive AI operations)
+  if (!checkRateLimit(auth.userId, RATE_LIMIT_WORKFLOW_MAX)) {
+    return c.json({ error: 'Too many generation requests. Please wait before starting another.' }, 429);
+  }
+
   const body = await c.req.json();
 
-  // Return SSE stream for real-time progress
+  // Validate settings before starting the expensive workflow
+  const settingsParse = GenerationSettingsSchema.safeParse(body.settings);
+  if (!settingsParse.success) {
+    return c.json({
+      error: 'Invalid generation settings',
+      details: settingsParse.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    }, 400);
+  }
+
+  // Return SSE stream with per-step progress via Mastra run.stream()
   return new Response(
     new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        const sendEvent = (event: string, data: unknown) => {
-          controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-          );
+
+        const sendEvent = (type: string, payload: unknown) => {
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type, data: payload })}\n\n`)
+            );
+          } catch { /* controller already closed */ }
         };
 
+        const sendError = (errorMessage: string) => {
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`)
+            );
+          } catch { /* controller already closed */ }
+        };
+
+        // Map step IDs to user-facing progress phases
+        const STEP_PROGRESS: Record<string, { phase: string; percent: number; message: string }> = {
+          validateRequest:     { phase: 'validation',   percent: 8,  message: 'Validating request...' },
+          generateProject:     { phase: 'writing',      percent: 35, message: 'Generating your book...' },
+          generateIllustrations: { phase: 'illustrating', percent: 72, message: 'Generating illustrations...' },
+          persistBook:         { phase: 'saving',       percent: 92, message: 'Saving book...' },
+          finalizeGeneration:  { phase: 'complete',     percent: 98, message: 'Finalizing...' },
+        };
+
+        let workflowId = '';
         try {
           const workflow = mastra.getWorkflow('bookGeneration');
-          const workflowId = `wf_${Date.now()}_${auth.userId.slice(0, 8)}`;
+          workflowId = `wf_${Date.now()}_${auth.userId.slice(0, 8)}`;
+          activeWorkflowOwners.set(workflowId, auth.userId);
 
-          // Send workflow ID immediately so frontend can track it
-          sendEvent('workflow_started', { workflowId });
+          sendEvent('progress', {
+            phase: 'starting',
+            percent: 2,
+            message: 'Starting book generation...',
+            data: { workflowId },
+          });
 
           const run = await workflow.createRun({ runId: workflowId });
-          const result = await run.start({
+
+          // Use run.stream() for per-step progress events
+          const stream = run.stream({
             inputData: {
               settings: body.settings,
               userId: auth.userId,
@@ -377,15 +467,34 @@ app.post('/api/workflows/book-generation/start', async (c) => {
             },
           });
 
-          // Send progress events as the workflow executes
-          // The workflow steps emit events via the onStepComplete callback
-          sendEvent('workflow_complete', {
-            workflowId,
-            result: result.status === 'success' ? (result as any).result : null,
-          });
+          // Consume per-step events from the stream
+          for await (const chunk of stream.fullStream) {
+            const stepId = (chunk as any)?.payload?.stepId
+              ?? (chunk as any)?.stepId
+              ?? (chunk as any)?.payload?.currentStep;
+            if (stepId && STEP_PROGRESS[stepId]) {
+              sendEvent('progress', STEP_PROGRESS[stepId]);
+            }
+          }
+
+          const result = await stream.result;
+
+          if (result.status === 'success') {
+            sendEvent('progress', { phase: 'complete', percent: 100, message: 'Book generation complete!' });
+            sendEvent('complete', {
+              workflowId,
+              ...(result as any).result,
+            });
+          } else {
+            sendError(`Workflow ended with status: ${result.status}`);
+          }
         } catch (err: any) {
-          sendEvent('workflow_error', { error: err.message });
+          sendError(err.message);
         } finally {
+          if (workflowId) {
+            activeWorkflowOwners.delete(workflowId);
+            releaseBookGenerationWorkflow(workflowId);
+          }
           controller.close();
         }
       },
@@ -401,23 +510,11 @@ app.post('/api/workflows/book-generation/start', async (c) => {
   );
 });
 
-// ─── Resume Workflow (after blueprint approval) ──────────────────────────────
 app.post('/api/workflows/book-generation/resume', async (c) => {
-  const auth = c.get('auth' as never) as AuthenticatedContext;
-  const { workflowId, approvedBlueprint } = await c.req.json();
-
-  try {
-    const workflow = mastra.getWorkflow('bookGeneration');
-    const run = await workflow.createRun({ runId: workflowId });
-    await run.resume({
-      step: 'suspendForBlueprintApproval',
-      resumeData: { approvedBlueprint },
-    });
-    return c.json({ success: true, message: 'Workflow resumed' });
-  } catch (err: any) {
-    console.error('[BookGeneration Resume]', err);
-    return c.json({ error: err.message }, 500);
-  }
+  return c.json(
+    { error: 'Blueprint approval is no longer required for book generation.' },
+    410
+  );
 });
 
 // ─── Cancel Workflow ─────────────────────────────────────────────────────────
@@ -425,17 +522,22 @@ app.post('/api/workflows/book-generation/cancel', async (c) => {
   const auth = c.get('auth' as never) as AuthenticatedContext;
   const { workflowId } = await c.req.json();
 
+  if (!workflowId) {
+    return c.json({ error: 'workflowId is required' }, 400);
+  }
+
+  const ownerId = activeWorkflowOwners.get(workflowId);
+  if (!ownerId) {
+    return c.json({ error: 'Workflow not found or already completed.' }, 404);
+  }
+
+  if (ownerId && ownerId !== auth.userId) {
+    return c.json({ error: 'You are not allowed to cancel this workflow.' }, 403);
+  }
+
   try {
-    // Store cancellation flag — workflow steps check this
-    await supabaseAdmin
-      .from('workflow_state')
-      .upsert({
-        id: workflowId,
-        user_id: auth.userId,
-        status: 'cancelled',
-        updated_at: new Date().toISOString(),
-      });
-    return c.json({ success: true, message: 'Workflow cancelled' });
+    cancelBookGenerationWorkflow(workflowId);
+    return c.json({ cancelled: true, workflowId });
   } catch (err: any) {
     console.error('[BookGeneration Cancel]', err);
     return c.json({ error: err.message }, 500);

@@ -144,7 +144,7 @@ const checkBrandProfile = createTool({
         colors: z.array(z.string()),
         sampleText: z.string(),
       })
-      .nullable(),
+      .optional(),
   }),
   outputSchema: z.object({
     hasBrand: z.boolean(),

@@ -31,52 +31,6 @@ interface SettingsPanelProps {
   onViewBook?: (book: SavedBook) => void;
 }
 
-type SettingsTabId =
-  | 'profile'
-  | 'notifications'
-  | 'privacy'
-  | 'subscriptions'
-  | 'themes'
-  | 'library'
-  | 'typography'
-  | 'language'
-  | 'accessibility'
-  | 'data'
-  | 'sessions'
-  | 'advanced'
-  | 'about';
-
-interface SettingsTabButtonProps {
-  id: SettingsTabId;
-  activeTab: SettingsTabId;
-  onSelect: (id: SettingsTabId) => void;
-  icon: React.ElementType;
-  label: string;
-}
-
-const SettingsTabButton = ({
-  id,
-  activeTab,
-  onSelect,
-  icon: Icon,
-  label,
-}: SettingsTabButtonProps) => (
-  <Button
-    variant="ghost"
-    onClick={() => onSelect(id)}
-    className={[
-      'shrink-0 md:w-full md:gap-3 px-4 md:px-4 py-3 touch-manipulation min-w-30 md:min-w-0',
-      activeTab === id
-        ? 'bg-surface text-coral-burst font-bold border border-peach-soft'
-        : 'bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft border border-transparent',
-    ].join(' ')}
-  >
-    <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
-    <span className="text-sm md:text-base whitespace-nowrap">{label}</span>
-  </Button>
-);
-
-
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onNavigate,
   onViewBook,
@@ -108,7 +62,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   // Get actual user tier from profile, fallback to props or SPARK
   const actualUserTier = userProfile?.user_tier || propsUserTier || UserTier.SPARK;
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('profile');
+  const [activeTab, setActiveTab] = useState<
+    | 'profile'
+    | 'notifications'
+    | 'privacy'
+    | 'subscriptions'
+    | 'themes'
+    | 'library'
+    | 'typography'
+    | 'language'
+    | 'accessibility'
+    | 'data'
+    | 'sessions'
+    | 'advanced'
+    | 'about'
+  >('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -325,6 +293,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   };
 
+  const TabButton = ({
+    id,
+    icon: Icon,
+    label,
+  }: { id: typeof activeTab; icon: any; label: string }) => (
+    <Button
+      variant="ghost"
+      onClick={() => setActiveTab(id)}
+      className={`shrink-0 md:w-full md:gap-3 px-4 md:px-4 py-3 touch-manipulation min-w-30 md:min-w-0
+        ${
+          activeTab === id
+            ? 'bg-surface text-coral-burst font-bold border border-peach-soft'
+            : 'bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft border border-transparent'
+        }`}
+    >
+      <Icon className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
+      <span className="text-sm md:text-base whitespace-nowrap">{label}</span>
+    </Button>
+  );
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 pb-24 animate-fadeIn relative">
@@ -358,19 +345,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Sidebar Menu - Horizontal scroll on mobile, vertical on desktop */}
         <div className="w-full md:w-64">
           <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="profile" icon={User} label={t('tabs.profile', { defaultValue: 'Profile' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="library" icon={FolderOpen} label={t('tabs.library', { defaultValue: 'My Library' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="themes" icon={ImageIcon} label={t('tabs.themes', { defaultValue: 'Themes' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="typography" icon={Type} label={t('tabs.typography', { defaultValue: 'Typography' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="language" icon={Globe} label={t('tabs.language', { defaultValue: 'Language' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="accessibility" icon={Eye} label={t('tabs.accessibility', { defaultValue: 'Accessibility' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="subscriptions" icon={CreditCard} label={t('tabs.subscriptions', { defaultValue: 'Subscriptions' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="notifications" icon={Bell} label={t('tabs.notifications', { defaultValue: 'Notifications' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="privacy" icon={Shield} label={t('tabs.privacy', { defaultValue: 'Privacy' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="data" icon={Database} label={t('tabs.data', { defaultValue: 'Data & Export' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="sessions" icon={Smartphone} label={t('tabs.sessions', { defaultValue: 'Sessions' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="advanced" icon={Wrench} label={t('tabs.advanced', { defaultValue: 'Advanced' })} />
-            <SettingsTabButton activeTab={activeTab} onSelect={setActiveTab} id="about" icon={Info} label={t('tabs.about', { defaultValue: 'About' })} />
+            <TabButton id="profile" icon={User} label={t('tabs.profile', { defaultValue: 'Profile' })} />
+            <TabButton id="library" icon={FolderOpen} label={t('tabs.library', { defaultValue: 'My Library' })} />
+            <TabButton id="themes" icon={ImageIcon} label={t('tabs.themes', { defaultValue: 'Themes' })} />
+            <TabButton id="typography" icon={Type} label={t('tabs.typography', { defaultValue: 'Typography' })} />
+            <TabButton id="language" icon={Globe} label={t('tabs.language', { defaultValue: 'Language' })} />
+            <TabButton id="accessibility" icon={Eye} label={t('tabs.accessibility', { defaultValue: 'Accessibility' })} />
+            <TabButton id="subscriptions" icon={CreditCard} label={t('tabs.subscriptions', { defaultValue: 'Subscriptions' })} />
+            <TabButton id="notifications" icon={Bell} label={t('tabs.notifications', { defaultValue: 'Notifications' })} />
+            <TabButton id="privacy" icon={Shield} label={t('tabs.privacy', { defaultValue: 'Privacy' })} />
+            <TabButton id="data" icon={Database} label={t('tabs.data', { defaultValue: 'Data & Export' })} />
+            <TabButton id="sessions" icon={Smartphone} label={t('tabs.sessions', { defaultValue: 'Sessions' })} />
+            <TabButton id="advanced" icon={Wrench} label={t('tabs.advanced', { defaultValue: 'Advanced' })} />
+            <TabButton id="about" icon={Info} label={t('tabs.about', { defaultValue: 'About' })} />
 
             <a
               href="https://genesis-1765265007.documentationai.com/"

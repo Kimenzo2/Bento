@@ -36,6 +36,7 @@ const envSchema = z.object({
 
   // Payments
   VITE_PAYSTACK_PUBLIC_KEY: z.string().optional(),
+  VITE_PAYMENT_PROVIDER: z.enum(['paystack', 'dodo']).optional(), // Feature flag: which payment provider to use
 
   // App Configuration
   VITE_APP_NAME: z.string().default('Genesis'),

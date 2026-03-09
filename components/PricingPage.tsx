@@ -4,11 +4,24 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePageSEO } from '../hooks/usePageSEO';
 // Payment Page URLs are stored in each tier's paystackPaymentUrl field
+// Dodo Payments checkout is feature-flagged via VITE_PAYMENT_PROVIDER
 
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
+import { createDodoCheckout } from '../services/dodoService';
+import type { DodoPlan } from '../config/dodoPricing';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
+
+// Feature flag: 'dodo' routes to Dodo Payments, anything else uses Paystack
+const USE_DODO = import.meta.env.VITE_PAYMENT_PROVIDER === 'dodo';
+
+// Map UserTier → DodoPlan key for checkout
+const TIER_TO_DODO_PLAN: Partial<Record<UserTier, DodoPlan>> = {
+  [UserTier.CREATOR]: 'creator_monthly',
+  [UserTier.STUDIO]: 'studio_monthly',
+  [UserTier.EMPIRE]: 'empire_monthly',
+};
 
 interface PricingPageProps {
   onUpgrade?: (tier: UserTier) => void;
@@ -123,7 +136,7 @@ const tiers: TierData[] = [
 const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [processingTier, _setProcessingTier] = useState<string | null>(null);
+  const [processingTier, setProcessingTier] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
 
   usePageSEO({
@@ -181,14 +194,50 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       return;
     }
 
+    if (USE_DODO) {
+      handleDodoCheckout(tier);
+    } else {
+      handlePaystackCheckout(tier);
+    }
+  };
+
+  // -- Paystack path (unchanged) --
+  const handlePaystackCheckout = (tier: TierData) => {
     if (!tier.paystackPaymentUrl) {
       alert('This plan is not available for subscription.');
       return;
     }
-
-    // Redirect directly to Paystack-hosted Payment Page
-    // Paystack handles email collection, payment methods, and confirmation
     window.location.href = tier.paystackPaymentUrl;
+  };
+
+  // -- Dodo Payments path --
+  const handleDodoCheckout = async (tier: TierData) => {
+    const dodoPlan = TIER_TO_DODO_PLAN[tier.name];
+    if (!dodoPlan) {
+      alert('This plan is not available for subscription.');
+      return;
+    }
+
+    if (!user) {
+      alert('Please sign in to upgrade your plan.');
+      return;
+    }
+
+    try {
+      setProcessingTier(tier.name);
+      const checkoutUrl = await createDodoCheckout({
+        plan: dodoPlan,
+        email: user.email ?? userEmail,
+        name: user.user_metadata?.full_name ?? user.email ?? userEmail,
+        userId: user.id,
+      });
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      console.error('Dodo checkout error:', err);
+      alert('Unable to start checkout. Please try again.');
+    } finally {
+      setProcessingTier(null);
+    }
   };
 
   return (

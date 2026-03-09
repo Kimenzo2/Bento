@@ -25,7 +25,9 @@ import { z } from 'zod';
 import { QualityMetricsSchema } from '../schemas';
 
 // ─── QA Results Store ────────────────────────────────────────────────────────
-// Stores QA reports per bookId for later retrieval in the Smart Editor
+// Stores QA reports per bookId for later retrieval in the Smart Editor.
+// TTL-based cleanup prevents memory leaks in long-running processes.
+const QA_REPORT_TTL_MS = 60 * 60_000; // 1 hour
 const qaReports = new Map<
   string,
   {
@@ -47,8 +49,22 @@ function storeQAReport(
 }
 
 function getQAReport(bookId: string) {
-  return qaReports.get(bookId) ?? null;
+  const report = qaReports.get(bookId);
+  if (!report) return null;
+  if (Date.now() - report.timestamp > QA_REPORT_TTL_MS) {
+    qaReports.delete(bookId);
+    return null;
+  }
+  return report;
 }
+
+// Periodic cleanup
+setInterval(() => {
+  const now = Date.now();
+  for (const [bookId, report] of qaReports) {
+    if (now - report.timestamp > QA_REPORT_TTL_MS) qaReports.delete(bookId);
+  }
+}, 300_000);
 
 // ─── Quality Threshold ───────────────────────────────────────────────────────
 const DEFAULT_QUALITY_THRESHOLD = 70;

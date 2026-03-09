@@ -36,6 +36,7 @@
  */
 
 import { Mastra } from '@mastra/core';
+import { PostgresStore } from '@mastra/pg';
 import { Observability, DefaultExporter, SensitiveDataFilter, SamplingStrategyType } from '@mastra/observability';
 
 // ─── Agent Imports ───────────────────────────────────────────────────────────
@@ -55,35 +56,50 @@ import { bookQualityScorer } from './evals/bookQualityEval';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-/**
- * Environment variable helper — reads from process.env (server-side only).
- * VITE_ prefixed vars are NOT used here; Mastra runs on the server
- * with privileged credentials.
- */
-function requireEnv(key: string, fallback?: string): string {
-  const value = process.env[key] ?? fallback;
-  if (!value) {
-    throw new Error(
-      `[Mastra] Missing required environment variable: ${key}. ` +
-        `Add it to your .env file or deployment config.`
-    );
-  }
-  return value;
+function getEnv(key: string, fallback?: string): string {
+  return process.env[key] ?? fallback ?? '';
 }
 
-// ─── Supabase PostgreSQL Connection ──────────────────────────────────────────
-// Mastra uses the SERVICE_ROLE_KEY (not the anon key) for server-side
-// database access including workflow state persistence, agent memory,
-// and vector embeddings storage.
-const supabaseUrl = requireEnv('SUPABASE_URL', process.env.VITE_SUPABASE_URL);
-const supabaseServiceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseUrl = getEnv('SUPABASE_URL', process.env.VITE_SUPABASE_URL);
+const supabaseServiceRoleKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Derive PostgreSQL connection string from Supabase URL
-// Supabase URL format: https://<project-ref>.supabase.co
-// PostgreSQL format: postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-const supabaseProjectRef = supabaseUrl.replace('https://', '').replace('.supabase.co', '');
-const pgConnectionString = process.env.MASTRA_PG_CONNECTION_STRING ??
-  `postgresql://postgres.${supabaseProjectRef}:${supabaseServiceRoleKey}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+// ─── PostgreSQL Storage (production-configured) ─────────────────────────────
+// When MASTRA_PG_CONNECTION_STRING is set, PostgresStore enables:
+//   - Durable workflow state (suspend/resume survives server restarts)
+//   - Agent memory threads
+//   - Evaluation result persistence
+//
+// Without it, agents and workflows still work but suspended workflows
+// will be lost if the server restarts.
+//
+// To get your connection string from Supabase:
+//   Dashboard → Settings → Database → Connection string (URI)
+//   Use the "Session mode" pooler string for best compatibility.
+//
+const pgConnectionString = process.env.MASTRA_PG_CONNECTION_STRING ?? '';
+
+let storage: PostgresStore | undefined = undefined;
+if (pgConnectionString) {
+  storage = new PostgresStore({
+    id: 'genesis-storage',
+    connectionString: pgConnectionString,
+    // Production pool config: sized for 100k users with concurrent workflows
+    max: isProduction ? 20 : 5,
+    idleTimeoutMillis: isProduction ? 30000 : 10000,
+    // Supabase requires SSL in production
+    ssl: pgConnectionString.includes('supabase.co')
+      ? { rejectUnauthorized: false }
+      : (isProduction ? true : false),
+  });
+  console.log('[Mastra] PostgresStore enabled — workflow state will persist.');
+} else {
+  console.warn(
+    '[Mastra] MASTRA_PG_CONNECTION_STRING not set. ' +
+      'Agents work fine, but workflow suspend/resume state will not persist across restarts. ' +
+      'Get your connection string from Supabase Dashboard → Settings → Database.'
+  );
+}
 
 // ─── Observability ───────────────────────────────────────────────────────────
 
@@ -101,7 +117,6 @@ const pgConnectionString = process.env.MASTRA_PG_CONNECTION_STRING ??
  * operations while the existing services/infrastructure/tracing.ts continues
  * to handle non-Mastra application tracing.
  */
-const isProduction = process.env.NODE_ENV === 'production';
 
 const observability = new Observability({
   configs: {
@@ -145,6 +160,7 @@ export const mastra = new Mastra({
     bookGeneration: bookGenerationWorkflow,
     brandVoiceRAG: brandVoiceRAGWorkflow,
   },
+  ...(storage ? { storage } : {}),
   observability,
   scorers: {
     bookQuality: bookQualityScorer,
@@ -157,7 +173,7 @@ export {
   supabaseUrl,
   supabaseServiceRoleKey,
   pgConnectionString,
-  requireEnv,
+  getEnv,
 };
 
 export default mastra;

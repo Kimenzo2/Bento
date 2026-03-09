@@ -53,6 +53,7 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "src/test/**"
+    "src/test/**",
+    "mastra/test-*.ts"
   ]
 }

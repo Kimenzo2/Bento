@@ -97,9 +97,11 @@ export interface WorkflowProgressEvent {
 export interface BookGenerationResult {
   bookId: string;
   success: boolean;
+  saved?: boolean;
   error?: string;
   videoReady: boolean;
   message?: string;
+  project?: BookProject;
 }
 
 export interface QualityAnalysis {
@@ -520,21 +522,28 @@ export const mastra = {
 
     /**
      * Resume a suspended workflow (e.g., after blueprint approval).
+     * Returns an SSE stream for continued progress.
      */
     async resumeBookGeneration(
       workflowId: string,
-      approvedBlueprint: ContentStructure
-    ): Promise<{ resumed: boolean }> {
-      return mastraFetch('/api/workflows/book-generation/resume', {
-        method: 'POST',
-        body: JSON.stringify({ workflowId, approvedBlueprint }),
-      });
+      approvedBlueprint: ContentStructure,
+      onProgress: (event: WorkflowProgressEvent) => void,
+      onComplete?: (result: BookGenerationResult) => void,
+      onError?: (error: Error) => void
+    ): Promise<() => void> {
+      return mastraSSE(
+        '/api/workflows/book-generation/resume',
+        { workflowId, approvedBlueprint },
+        onProgress,
+        onComplete,
+        onError
+      );
     },
 
     /**
      * Cancel a running book generation workflow.
      */
-    async cancelBookGeneration(workflowId: string): Promise<{ cancelled: boolean }> {
+    async cancelBookGeneration(workflowId: string): Promise<{ cancelled: boolean; workflowId?: string }> {
       return mastraFetch('/api/workflows/book-generation/cancel', {
         method: 'POST',
         body: JSON.stringify({ workflowId }),

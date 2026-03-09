@@ -24,6 +24,11 @@ class NotificationService {
   private batchQueue: Map<NotificationType, Notification[]> = new Map();
   private batchTimeouts: Map<NotificationType, ReturnType<typeof setTimeout>> = new Map();
 
+  private async getCurrentUserId(): Promise<string | null> {
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id ?? null;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // NOTIFICATION MANAGEMENT
   // ─────────────────────────────────────────────────────────────────────────
@@ -45,6 +50,18 @@ class NotificationService {
       groupKey?: string;
     } = {}
   ): Promise<{ success: boolean; data?: Notification; error?: string }> {
+    const currentUserId = await this.getCurrentUserId();
+    if (!currentUserId) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    if (currentUserId !== userId) {
+      return {
+        success: false,
+        error: 'Cross-user notifications must be created by a trusted server path.',
+      };
+    }
+
     // Check user preferences first
     const preferences = await this.getPreferences(userId);
 
@@ -98,6 +115,19 @@ class NotificationService {
       priority?: NotificationPriority;
     }>
   ): Promise<{ success: boolean; count: number; error?: string }> {
+    const currentUserId = await this.getCurrentUserId();
+    if (!currentUserId) {
+      return { success: false, count: 0, error: 'Not authenticated' };
+    }
+
+    if (notifications.some((notification) => notification.userId !== currentUserId)) {
+      return {
+        success: false,
+        count: 0,
+        error: 'Cross-user notifications must be created by a trusted server path.',
+      };
+    }
+
     const insertData = notifications.map((n) => ({
       user_id: n.userId,
       type: n.type,
@@ -537,17 +567,17 @@ class NotificationService {
     sessionId: string,
     title: string
   ): Promise<void> {
-    const notifications = followerIds.map((userId) => ({
-      userId,
-      type: 'broadcast_live' as NotificationType,
-      title: '🔴 Live Now!',
-      message: `${broadcasterName} is live: ${title}`,
-      actionUrl: `/broadcast/${sessionId}`,
-      metadata: { session_id: sessionId },
-      priority: 'high' as NotificationPriority,
-    }));
+    void followerIds;
+    void broadcasterName;
+    void title;
 
-    await this.createBulkNotifications(notifications);
+    const { error } = await supabase.rpc('notify_broadcast_followers', {
+      p_session_id: sessionId,
+    });
+
+    if (error) {
+      console.error('Error creating broadcast notifications:', error);
+    }
   }
 
   /**

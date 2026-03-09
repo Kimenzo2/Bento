@@ -24,153 +24,6 @@ interface CharacterDepthPanelProps {
   onClose?: () => void;
 }
 
-interface CharacterSectionProps {
-  id: string;
-  title: string;
-  icon: React.ElementType;
-  isExpanded: boolean;
-  onToggle: (id: string) => void;
-  children: React.ReactNode;
-}
-
-const CharacterSection = ({
-  id,
-  title,
-  icon: Icon,
-  isExpanded,
-  onToggle,
-  children,
-}: CharacterSectionProps) => (
-  <div className="border border-white/10 rounded-xl overflow-hidden bg-white/5">
-    <Button
-      variant="ghost"
-      onClick={() => onToggle(id)}
-      className="w-full flex justify-between p-4 hover:bg-white/5"
-    >
-      <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-emerald-400" />
-        <span className="font-heading font-bold text-white">{title}</span>
-      </div>
-      <ChevronDown
-        className={[
-          'w-5 h-5 text-white/50 transition-transform',
-          isExpanded ? 'rotate-180' : '',
-        ].join(' ')}
-      />
-    </Button>
-
-    <AnimatePresence>
-      {isExpanded && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="overflow-hidden"
-        >
-          <div className="p-4 pt-0 space-y-4">{children}</div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-);
-
-interface CharacterSliderProps {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  color?: string;
-}
-
-const CharacterSlider = ({
-  label,
-  value,
-  onChange,
-  color = 'emerald',
-}: CharacterSliderProps) => (
-  <div className="space-y-2">
-    <div className="flex justify-between items-center">
-      <Label className="text-white/70">{label}</Label>
-      <span className="text-xs font-bold text-emerald-400">{value}%</span>
-    </div>
-    <input
-      type="range"
-      min="0"
-      max="100"
-      value={value || 50}
-      onChange={(event) => onChange(Number.parseInt(event.target.value, 10))}
-      className={'w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-' + color + '-500'}
-    />
-  </div>
-);
-
-interface CharacterInputFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-}
-
-const CharacterInputField = ({
-  label,
-  value,
-  onChange,
-  placeholder = '',
-  multiline = false,
-}: CharacterInputFieldProps) => (
-  <div className="space-y-2">
-    <Label className="text-white/70">{label}</Label>
-    {multiline ? (
-      <Textarea
-        value={value || ''}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="bg-black/20 border-white/20 rounded-lg p-3 text-white focus:border-emerald-500 h-20"
-      />
-    ) : (
-      <ShadcnInput
-        type="text"
-        value={value || ''}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="bg-black/20 border-white/20 p-3 text-white focus:border-emerald-500"
-      />
-    )}
-  </div>
-);
-
-interface CharacterSelectFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-}
-
-const CharacterSelectField = ({
-  label,
-  value,
-  onChange,
-  options,
-}: CharacterSelectFieldProps) => (
-  <div className="space-y-2">
-    <Label className="text-white/70">{label}</Label>
-    <Select value={value || options[0].value} onValueChange={onChange}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select..." />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-);
-
-
 const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
   character,
   onUpdateCharacter,
@@ -207,6 +60,142 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
     setHasChanges(false);
   };
 
+  const Section = ({
+    id,
+    title,
+    icon: Icon,
+    children,
+  }: {
+    id: string;
+    title: string;
+    icon: any;
+    children: React.ReactNode;
+  }) => {
+    const isExpanded = expandedSections.includes(id);
+
+    return (
+      <div className="border border-white/10 rounded-xl overflow-hidden bg-white/5">
+        <Button
+          variant="ghost"
+          onClick={() => toggleSection(id)}
+          className="w-full flex justify-between p-4 hover:bg-white/5"
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5 text-emerald-400" />
+            <span className="font-heading font-bold text-white">{title}</span>
+          </div>
+          <ChevronDown
+            className={`w-5 h-5 text-white/50 transition-transform ${
+              isExpanded ? 'rotate-180' : ''
+            }`}
+          />
+        </Button>
+
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="p-4 pt-0 space-y-4">{children}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const Slider = ({
+    label,
+    value,
+    onChange,
+    color = 'emerald',
+  }: {
+    label: string;
+    value: number;
+    onChange: (val: number) => void;
+    color?: string;
+  }) => (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <Label className="text-white/70">{label}</Label>
+        <span className="text-xs font-bold text-emerald-400">{value}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={value || 50}
+        onChange={(e) => onChange(Number.parseInt(e.target.value))}
+        className={`w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-${color}-500`}
+      />
+    </div>
+  );
+
+  const Input = ({
+    label,
+    value,
+    onChange,
+    placeholder = '',
+    multiline = false,
+  }: {
+    label: string;
+    value: string;
+    onChange: (val: string) => void;
+    placeholder?: string;
+    multiline?: boolean;
+  }) => (
+    <div className="space-y-2">
+      <Label className="text-white/70">{label}</Label>
+      {multiline ? (
+        <Textarea
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="bg-black/20 border-white/20 rounded-lg p-3 text-white focus:border-emerald-500 h-20"
+        />
+      ) : (
+        <ShadcnInput
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="bg-black/20 border-white/20 p-3 text-white focus:border-emerald-500"
+        />
+      )}
+    </div>
+  );
+
+  const SelectField = ({
+    label,
+    value,
+    onChange,
+    options,
+  }: {
+    label: string;
+    value: string;
+    onChange: (val: string) => void;
+    options: { value: string; label: string }[];
+  }) => (
+    <div className="space-y-2">
+      <Label className="text-white/70">{label}</Label>
+      <Select value={value || options[0].value} onValueChange={onChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select..." />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black/60  z-50 flex items-center justify-center p-4">
@@ -255,85 +244,85 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Basic Info */}
-          <CharacterSection id="basic" isExpanded={expandedSections.includes('basic')} onToggle={toggleSection} title="Basic Information" icon={User}>
+          <Section id="basic" title="Basic Information" icon={User}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <CharacterInputField
+              <Input
                 label="Name"
                 value={localCharacter.name}
                 onChange={(val) => updateField(['name'], val)}
                 placeholder="Character name"
               />
-              <CharacterInputField
+              <Input
                 label="Role"
                 value={localCharacter.role || ''}
                 onChange={(val) => updateField(['role'], val)}
                 placeholder="Protagonist, Villain, Mentor..."
               />
             </div>
-            <CharacterInputField
+            <Input
               label="Description"
               value={localCharacter.description}
               onChange={(val) => updateField(['description'], val)}
               placeholder="Brief character summary"
               multiline
             />
-            <CharacterInputField
+            <Input
               label="Appearance"
               value={localCharacter.appearance || ''}
               onChange={(val) => updateField(['appearance'], val)}
               placeholder="Physical description for AI generation"
               multiline
             />
-          </CharacterSection>
+          </Section>
 
           {/* Psychological Profile (OCEAN Model) */}
-          <CharacterSection id="psychology" isExpanded={expandedSections.includes('psychology')} onToggle={toggleSection} title="Psychological Profile" icon={Brain}>
+          <Section id="psychology" title="Psychological Profile" icon={Brain}>
             <div className="space-y-3">
-              <CharacterSlider
+              <Slider
                 label="Openness (Creativity & Curiosity)"
                 value={localCharacter.psychologicalProfile?.openness || 50}
                 onChange={(val) => updateField(['psychologicalProfile', 'openness'], val)}
               />
-              <CharacterSlider
+              <Slider
                 label="Conscientiousness (Organization & Discipline)"
                 value={localCharacter.psychologicalProfile?.conscientiousness || 50}
                 onChange={(val) => updateField(['psychologicalProfile', 'conscientiousness'], val)}
               />
-              <CharacterSlider
+              <Slider
                 label="Extraversion (Sociability & Energy)"
                 value={localCharacter.psychologicalProfile?.extraversion || 50}
                 onChange={(val) => updateField(['psychologicalProfile', 'extraversion'], val)}
               />
-              <CharacterSlider
+              <Slider
                 label="Agreeableness (Empathy & Cooperation)"
                 value={localCharacter.psychologicalProfile?.agreeableness || 50}
                 onChange={(val) => updateField(['psychologicalProfile', 'agreeableness'], val)}
               />
-              <CharacterSlider
+              <Slider
                 label="Neuroticism (Emotional Stability)"
                 value={localCharacter.psychologicalProfile?.neuroticism || 50}
                 onChange={(val) => updateField(['psychologicalProfile', 'neuroticism'], val)}
               />
             </div>
-          </CharacterSection>
+          </Section>
 
           {/* Core Identity */}
-          <CharacterSection id="identity" isExpanded={expandedSections.includes('identity')} onToggle={toggleSection} title="Core Identity" icon={Target}>
+          <Section id="identity" title="Core Identity" icon={Target}>
             <div className="space-y-4">
-              <CharacterInputField
+              <Input
                 label="Core Belief"
                 value={localCharacter.coreIdentity?.coreBelief || ''}
                 onChange={(val) => updateField(['coreIdentity', 'coreBelief'], val)}
                 placeholder="How they see the world fundamentally..."
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <CharacterInputField
+                <Input
                   label="Greatest Desire"
                   value={localCharacter.coreIdentity?.greatestDesire || ''}
                   onChange={(val) => updateField(['coreIdentity', 'greatestDesire'], val)}
                   placeholder="What they want most"
                 />
-                <CharacterInputField
+                <Input
                   label="Greatest Fear"
                   value={localCharacter.coreIdentity?.greatestFear || ''}
                   onChange={(val) => updateField(['coreIdentity', 'greatestFear'], val)}
@@ -341,13 +330,13 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <CharacterInputField
+                <Input
                   label="Fatal Flaw"
                   value={localCharacter.coreIdentity?.flaw || ''}
                   onChange={(val) => updateField(['coreIdentity', 'flaw'], val)}
                   placeholder="Their tragic weakness"
                 />
-                <CharacterInputField
+                <Input
                   label="Greatest Strength"
                   value={localCharacter.coreIdentity?.strength || ''}
                   onChange={(val) => updateField(['coreIdentity', 'strength'], val)}
@@ -355,13 +344,13 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <CharacterInputField
+                <Input
                   label="The Lie They Believe"
                   value={localCharacter.coreIdentity?.lie || ''}
                   onChange={(val) => updateField(['coreIdentity', 'lie'], val)}
                   placeholder="False belief holding them back"
                 />
-                <CharacterInputField
+                <Input
                   label="The Truth They Need"
                   value={localCharacter.coreIdentity?.truth || ''}
                   onChange={(val) => updateField(['coreIdentity', 'truth'], val)}
@@ -369,18 +358,18 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 />
               </div>
             </div>
-          </CharacterSection>
+          </Section>
 
           {/* Backstory */}
-          <CharacterSection id="backstory" isExpanded={expandedSections.includes('backstory')} onToggle={toggleSection} title="Formative Experiences" icon={Book}>
+          <Section id="backstory" title="Formative Experiences" icon={Book}>
             <div className="space-y-4">
-              <CharacterInputField
+              <Input
                 label="Defining Childhood Memory"
                 value={localCharacter.formativeExperiences?.childhoodMemory || ''}
                 onChange={(val) => updateField(['formativeExperiences', 'childhoodMemory'], val)}
                 multiline
               />
-              <CharacterInputField
+              <Input
                 label="Defining Moment"
                 value={localCharacter.formativeExperiences?.definingMoment || ''}
                 onChange={(val) => updateField(['formativeExperiences', 'definingMoment'], val)}
@@ -388,12 +377,12 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 multiline
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <CharacterInputField
+                <Input
                   label="Biggest Regret"
                   value={localCharacter.formativeExperiences?.biggestRegret || ''}
                   onChange={(val) => updateField(['formativeExperiences', 'biggestRegret'], val)}
                 />
-                <CharacterInputField
+                <Input
                   label="Proudest Achievement"
                   value={localCharacter.formativeExperiences?.proudestAchievement || ''}
                   onChange={(val) =>
@@ -402,12 +391,12 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 />
               </div>
             </div>
-          </CharacterSection>
+          </Section>
 
           {/* Relationships */}
-          <CharacterSection id="relationships" isExpanded={expandedSections.includes('relationships')} onToggle={toggleSection} title="Relationship Style" icon={Heart}>
+          <Section id="relationships" title="Relationship Style" icon={Heart}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <CharacterSelectField
+              <SelectField
                 label="Attachment Style"
                 value={localCharacter.relationshipStyle?.attachmentStyle || 'secure'}
                 onChange={(val) => updateField(['relationshipStyle', 'attachmentStyle'], val)}
@@ -418,7 +407,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   { value: 'disorganized', label: 'Disorganized' },
                 ]}
               />
-              <CharacterSelectField
+              <SelectField
                 label="Trust Level"
                 value={localCharacter.relationshipStyle?.trustLevel || 'cautious'}
                 onChange={(val) => updateField(['relationshipStyle', 'trustLevel'], val)}
@@ -429,7 +418,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   { value: 'paranoid', label: 'Paranoid' },
                 ]}
               />
-              <CharacterSelectField
+              <SelectField
                 label="Conflict Style"
                 value={localCharacter.relationshipStyle?.conflictStyle || 'diplomatic'}
                 onChange={(val) => updateField(['relationshipStyle', 'conflictStyle'], val)}
@@ -440,7 +429,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   { value: 'passive-aggressive', label: 'Passive-Aggressive' },
                 ]}
               />
-              <CharacterSelectField
+              <SelectField
                 label="Love Language"
                 value={localCharacter.relationshipStyle?.loveLanguage || 'words'}
                 onChange={(val) => updateField(['relationshipStyle', 'loveLanguage'], val)}
@@ -453,25 +442,25 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 ]}
               />
             </div>
-          </CharacterSection>
+          </Section>
 
           {/* Voice & Behavior */}
-          <CharacterSection id="behavior" isExpanded={expandedSections.includes('behavior')} onToggle={toggleSection} title="Voice & Behavior" icon={MessageCircle}>
+          <Section id="behavior" title="Voice & Behavior" icon={MessageCircle}>
             <div className="space-y-4">
-              <CharacterInputField
+              <Input
                 label="Speech Patterns"
                 value={localCharacter.behavioralPatterns?.speechPatterns || ''}
                 onChange={(val) => updateField(['behavioralPatterns', 'speechPatterns'], val)}
                 placeholder="Formal, slang, poetic, stutters, etc."
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <CharacterInputField
+                <Input
                   label="Tone of Voice"
                   value={localCharacter.voiceProfile?.tone || ''}
                   onChange={(val) => updateField(['voiceProfile', 'tone'], val)}
                   placeholder="Warm, cold, sarcastic..."
                 />
-                <CharacterSelectField
+                <SelectField
                   label="Vocabulary Level"
                   value={localCharacter.voiceProfile?.vocabulary || 'moderate'}
                   onChange={(val) => updateField(['voiceProfile', 'vocabulary'], val)}
@@ -483,14 +472,14 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                   ]}
                 />
               </div>
-              <CharacterInputField
+              <Input
                 label="Stress Response"
                 value={localCharacter.behavioralPatterns?.stressResponse || ''}
                 onChange={(val) => updateField(['behavioralPatterns', 'stressResponse'], val)}
                 placeholder="How they react under pressure"
               />
             </div>
-          </CharacterSection>
+          </Section>
         </div>
       </motion.div>
     </div>

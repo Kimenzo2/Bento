@@ -5,9 +5,21 @@ import { ArrowRight, Briefcase, Check, Crown, Loader, Shield, Star, X, Zap } fro
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from './OnboardingState';
 import { UserTier } from '../../types';
+import { createDodoCheckout } from '../../services/dodoService';
+import type { DodoPlan } from '../../config/dodoPricing';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@components/ui/button';
 import { Switch } from '@components/ui/switch';
+
+// Feature flag: 'dodo' routes to Dodo Payments, anything else uses Paystack
+const USE_DODO = import.meta.env.VITE_PAYMENT_PROVIDER === 'dodo';
+
+// Map UserTier → DodoPlan key for checkout
+const TIER_TO_DODO_PLAN: Partial<Record<UserTier, DodoPlan>> = {
+  [UserTier.CREATOR]: 'creator_monthly',
+  [UserTier.STUDIO]: 'studio_monthly',
+  [UserTier.EMPIRE]: 'empire_monthly',
+};
 
 // Type for pricing tier
 interface PricingTier {
@@ -128,8 +140,8 @@ export const OnboardingPricing: React.FC = () => {
   const { setStep, addSparkPoints } = useOnboarding();
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [processingTier, _setProcessingTier] = useState<string | null>(null);
-  const [_userEmail, setUserEmail] = useState('');
+  const [processingTier, setProcessingTier] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState('');
   const [selectedTier, _setSelectedTier] = useState<string | null>(null);
 
   // Load email from localStorage on mount
@@ -145,21 +157,14 @@ export const OnboardingPricing: React.FC = () => {
     }
   }, []);
 
-  // Helper to get user ID
-  const _getUserId = async (): Promise<string> => {
+  // Helper to get user ID and email from Supabase auth
+  const getAuthUser = async () => {
     try {
       const { supabase } = await import('../../services/supabaseClient');
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) return user.id;
-      
-      let localUserId = localStorage.getItem('genesis_user_id');
-      if (!localUserId) {
-        localUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('genesis_user_id', localUserId);
-      }
-      return localUserId;
-    } catch (_error) {
-      return `temp_${Date.now()}`;
+      return user;
+    } catch {
+      return null;
     }
   };
 
@@ -171,14 +176,51 @@ export const OnboardingPricing: React.FC = () => {
       return;
     }
 
+    if (USE_DODO) {
+      handleDodoCheckout(tier);
+    } else {
+      handlePaystackCheckout(tier);
+    }
+  };
+
+  // -- Paystack path (unchanged) --
+  const handlePaystackCheckout = (tier: typeof tiers[0]) => {
     if (!tier.paystackPaymentUrl) {
       alert('This plan is not available for subscription.');
       return;
     }
-
-    // Redirect directly to Paystack-hosted Payment Page
-    // Paystack handles email collection, payment methods, and confirmation
     window.location.href = tier.paystackPaymentUrl;
+  };
+
+  // -- Dodo Payments path --
+  const handleDodoCheckout = async (tier: typeof tiers[0]) => {
+    const dodoPlan = TIER_TO_DODO_PLAN[tier.name];
+    if (!dodoPlan) {
+      alert('This plan is not available for subscription.');
+      return;
+    }
+
+    const user = await getAuthUser();
+    if (!user) {
+      alert('Please sign in to upgrade your plan.');
+      return;
+    }
+
+    try {
+      setProcessingTier(tier.name);
+      const checkoutUrl = await createDodoCheckout({
+        plan: dodoPlan,
+        email: user.email ?? userEmail,
+        name: user.user_metadata?.full_name ?? user.email ?? userEmail,
+        userId: user.id,
+      });
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      console.error('Dodo checkout error:', err);
+      alert('Unable to start checkout. Please try again.');
+    } finally {
+      setProcessingTier(null);
+    }
   };
 
   const handleSkip = () => {

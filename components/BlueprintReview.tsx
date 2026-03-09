@@ -34,7 +34,13 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
     if (workflowId) {
       setIsResuming(true);
       try {
-        await mastra.workflows.resumeBookGeneration(workflowId, editedBlueprint);
+        await mastra.workflows.resumeBookGeneration(
+          workflowId,
+          editedBlueprint,
+          (event) => console.log('[BlueprintReview] Resume progress:', event),
+          (result) => console.log('[BlueprintReview] Resume complete:', result),
+          (err) => console.error('[BlueprintReview] Resume error:', err),
+        );
       } catch (err) {
         console.warn('[BlueprintReview] Mastra resume failed, using legacy path:', err);
       } finally {

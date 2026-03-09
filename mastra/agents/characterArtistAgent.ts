@@ -34,21 +34,36 @@ import {
 } from '../schemas';
 
 // ─── In-Memory Character Store ───────────────────────────────────────────────
-// This acts as short-term memory for characters within a book session.
-// Keyed by bookId + characterId for cross-character consistency.
-const characterMemory = new Map<string, Map<string, z.infer<typeof CharacterSheetSchema>>>();
+// Short-term memory for characters within a single book generation workflow run.
+// Keyed by bookId. Entries are cleaned up after 30 minutes to prevent leaks.
+const characterMemory = new Map<string, { chars: Map<string, z.infer<typeof CharacterSheetSchema>>; createdAt: number }>();
+const CHARACTER_MEMORY_TTL_MS = 30 * 60_000; // 30 minutes
 
 function getBookCharacters(bookId: string): z.infer<typeof CharacterSheetSchema>[] {
-  const bookChars = characterMemory.get(bookId);
-  return bookChars ? Array.from(bookChars.values()) : [];
+  const entry = characterMemory.get(bookId);
+  if (!entry) return [];
+  // TTL check
+  if (Date.now() - entry.createdAt > CHARACTER_MEMORY_TTL_MS) {
+    characterMemory.delete(bookId);
+    return [];
+  }
+  return Array.from(entry.chars.values());
 }
 
 function storeCharacter(bookId: string, sheet: z.infer<typeof CharacterSheetSchema>): void {
   if (!characterMemory.has(bookId)) {
-    characterMemory.set(bookId, new Map());
+    characterMemory.set(bookId, { chars: new Map(), createdAt: Date.now() });
   }
-  characterMemory.get(bookId)!.set(sheet.id, sheet);
+  characterMemory.get(bookId)!.chars.set(sheet.id, sheet);
 }
+
+// Periodic cleanup of expired entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [bookId, entry] of characterMemory) {
+    if (now - entry.createdAt > CHARACTER_MEMORY_TTL_MS) characterMemory.delete(bookId);
+  }
+}, 300_000);
 
 // ─── Tools ───────────────────────────────────────────────────────────────────
 

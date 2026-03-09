@@ -701,33 +701,13 @@ class BroadcastService {
    * Notify followers about going live
    */
   private async notifyFollowers(session: BroadcastSession): Promise<void> {
-    // Get all followers
-    const { data: followers } = await supabase
-      .from('user_follows')
-      .select('follower_id')
-      .eq('following_id', session.broadcaster_id)
-      .eq('notifications_enabled', true);
+    const { error } = await supabase.rpc('notify_broadcast_followers', {
+      p_session_id: session.id,
+    });
 
-    if (!followers || followers.length === 0) return;
-
-    // Create notifications for all followers
-    const notifications = followers.map((f: { follower_id: string }) => ({
-      user_id: f.follower_id,
-      type: 'broadcast_live',
-      title: '🔴 Live Now!',
-      message: `${(session.broadcaster as any)?.full_name || 'Someone you follow'} is live: ${session.title}`,
-      action_url: `/broadcast/${session.id}`,
-      priority: 'high',
-      metadata: { session_id: session.id },
-    }));
-
-    await supabase.from('notifications').insert(notifications);
-
-    // Mark notification as sent
-    await supabase
-      .from('broadcast_sessions')
-      .update({ settings: { ...session.settings, notification_sent: true } })
-      .eq('id', session.id);
+    if (error) {
+      console.error('Error notifying followers: - broadcastService.ts:708', error);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────

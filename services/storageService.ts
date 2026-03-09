@@ -19,6 +19,11 @@ const singleBookCache = new LRUCache<string, BookProject>(50);
 const CACHE_KEY_ALL_BOOKS = 'all_books';
 let cacheInvalidated = true; // Flag to invalidate cache on save/delete
 
+export const invalidateBooksCache = (): void => {
+  cacheInvalidated = true;
+  booksCache.delete(CACHE_KEY_ALL_BOOKS);
+};
+
 /**
  * Save a book to Supabase (if logged in) or localStorage
  */
@@ -75,8 +80,7 @@ export const saveBook = async (project: BookProject): Promise<void> => {
   }
 
   // PERFORMANCE: Invalidate cache after save
-  cacheInvalidated = true;
-  booksCache.delete(CACHE_KEY_ALL_BOOKS);
+  invalidateBooksCache();
 };
 
 /**
@@ -178,8 +182,7 @@ export const deleteBook = async (id: string): Promise<void> => {
     }
 
     // PERFORMANCE: Invalidate cache after delete
-    cacheInvalidated = true;
-    booksCache.delete(CACHE_KEY_ALL_BOOKS);
+    invalidateBooksCache();
     singleBookCache.delete(id);
   } catch (error) {
     console.error('Failed to delete book:', error);
