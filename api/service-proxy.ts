@@ -1,12 +1,10 @@
 /**
  * Server-side integration proxy.
- * Routes requests to Mux, Algolia, Upstash, Liveblocks, Resend
- * keeping all secret keys server-only.
  *
- * Accepts: { service, endpoint, method?, body? }
- * Returns: upstream response
+ * This endpoint is restricted to internal callers because it can forward
+ * privileged requests with server-side credentials.
  */
-import { createAuthenticatedHandler, type ApiContext } from './_middleware';
+import { createProtectedHandler, type ApiContext } from './_middleware';
 
 interface ServiceConfig {
   baseUrl: string;
@@ -31,12 +29,12 @@ function getServiceConfigs(): Record<string, ServiceConfig> {
       },
     },
     algolia: {
-      baseUrl: `https://${process.env.VITE_ALGOLIA_APP_ID || process.env.ALGOLIA_APP_ID}-dsn.algolia.net`,
+      baseUrl: `https://${process.env.ALGOLIA_APP_ID}-dsn.algolia.net`,
       allowedPaths: [/^\/1\/indexes\//],
       allowedMethods: ['GET', 'POST', 'PUT', 'DELETE'],
       getHeaders: () => ({
         'Content-Type': 'application/json',
-        'X-Algolia-Application-Id': process.env.VITE_ALGOLIA_APP_ID || process.env.ALGOLIA_APP_ID || '',
+        'X-Algolia-Application-Id': process.env.ALGOLIA_APP_ID || '',
         'X-Algolia-API-Key': process.env.ALGOLIA_WRITE_KEY || '',
       }),
     },
@@ -70,12 +68,37 @@ function getServiceConfigs(): Record<string, ServiceConfig> {
   };
 }
 
-export default createAuthenticatedHandler(
+function hasInternalProxyAccess(req: ApiContext['req']): boolean {
+  const expectedToken = process.env.INTERNAL_SERVICE_PROXY_TOKEN;
+  const providedToken = req.headers['x-genesis-internal-token'];
+
+  if (!expectedToken || typeof providedToken !== 'string') {
+    return false;
+  }
+
+  return providedToken === expectedToken;
+}
+
+export default createProtectedHandler(
   async (ctx: ApiContext) => {
     const { req, res, log } = ctx;
 
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (!process.env.INTERNAL_SERVICE_PROXY_TOKEN) {
+      return res.status(503).json({
+        error: 'Service unavailable',
+        message: 'The integration proxy is disabled until INTERNAL_SERVICE_PROXY_TOKEN is configured.',
+      });
+    }
+
+    if (!hasInternalProxyAccess(req)) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'This endpoint is reserved for internal server-to-server traffic.',
+      });
     }
 
     const { service, endpoint, method = 'POST', body } = req.body ?? {};
@@ -90,12 +113,10 @@ export default createAuthenticatedHandler(
       return res.status(400).json({ error: `Unknown service: ${service}` });
     }
 
-    // Validate method
     if (!svcConfig.allowedMethods.includes(method.toUpperCase())) {
       return res.status(403).json({ error: `Method ${method} not allowed for ${service}` });
     }
 
-    // Validate path
     const pathAllowed = svcConfig.allowedPaths.some((re) => re.test(endpoint));
     if (!pathAllowed) {
       return res.status(403).json({ error: `Path "${endpoint}" not allowed for ${service}` });
@@ -104,13 +125,14 @@ export default createAuthenticatedHandler(
     const url = `${svcConfig.baseUrl}${endpoint}`;
     const headers = svcConfig.getHeaders();
 
-    log.info('Proxying request', { service, endpoint, method });
+    log.info('Proxying internal request', { service, endpoint, method });
 
     try {
       const fetchOpts: RequestInit = {
         method: method.toUpperCase(),
         headers,
       };
+
       if (body && method.toUpperCase() !== 'GET') {
         fetchOpts.body = JSON.stringify(body);
       }
@@ -125,5 +147,6 @@ export default createAuthenticatedHandler(
       return res.status(502).json({ error: 'Proxy request failed', details: err.message });
     }
   },
-  { rateLimit: { requests: 60, window: '1m' } }
+  { protection: 'api', cors: false, logging: true, rateLimit: { requests: 60, window: '1m' } }
 );
+

@@ -21,6 +21,8 @@
  * 4. Media optimization pipeline for WebP/AVIF
  */
 
+import { authenticatedFetch } from '../api/authenticatedFetch';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -122,10 +124,10 @@ const getEnv = (key: string): string | undefined => {
 };
 
 export const DEFAULT_R2_CONFIG: Partial<R2Config> = {
-  bucketName: getEnv('VITE_R2_BUCKET_NAME') || 'genesis-assets',
-  accountId: getEnv('VITE_R2_ACCOUNT_ID') || '',
-  accessKeyId: getEnv('VITE_R2_ACCESS_KEY_ID') || '',
-  secretAccessKey: getEnv('VITE_R2_SECRET_ACCESS_KEY') || '',
+  bucketName: 'genesis-assets',
+  accountId: '',
+  accessKeyId: '',
+  secretAccessKey: '',
   publicUrlPrefix: getEnv('VITE_R2_PUBLIC_URL') || '',
   customDomain: getEnv('VITE_R2_CUSTOM_DOMAIN'),
 };
@@ -208,11 +210,10 @@ export class R2StorageClient {
     const category = options.category || AssetCategory.ILLUSTRATIONS;
 
     // Get presigned upload URL from backend
-    const presignedResponse = await fetch(`${this.apiBase}/presign`, {
+    const presignedResponse = await authenticatedFetch(`${this.apiBase}/presign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: options.userId,
         filename,
         category,
         contentType: options.contentType || file.type || 'application/octet-stream',
@@ -258,14 +259,13 @@ export class R2StorageClient {
    */
   async uploadFromUrl(
     sourceUrl: string,
-    options: UploadOptions & { userId: string; filename: string }
+    options: UploadOptions & { filename: string; userId?: string }
   ): Promise<StoredAsset> {
-    const response = await fetch(`${this.apiBase}/upload-from-url`, {
+    const response = await authenticatedFetch(`${this.apiBase}/upload-from-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sourceUrl,
-        userId: options.userId,
         filename: options.filename,
         category: options.category,
         contentType: options.contentType,
@@ -291,10 +291,10 @@ export class R2StorageClient {
    * Get asset with variants (for responsive images).
    */
   async getWithVariants(key: string): Promise<OptimizedAsset | null> {
-    const response = await fetch(`${this.apiBase}/asset/${encodeURIComponent(key)}`);
+    const response = await authenticatedFetch(`${this.apiBase}/asset/${encodeURIComponent(key)}`);
 
     if (!response.ok) {
-      if (response.status === 404) return null;
+      if (response.status === 401 || response.status === 403 || response.status === 404) return null;
       throw new Error('Failed to get asset');
     }
 
@@ -305,7 +305,7 @@ export class R2StorageClient {
    * Delete an asset.
    */
   async delete(key: string): Promise<boolean> {
-    const response = await fetch(`${this.apiBase}/asset/${encodeURIComponent(key)}`, {
+    const response = await authenticatedFetch(`${this.apiBase}/asset/${encodeURIComponent(key)}`, {
       method: 'DELETE',
     });
 
@@ -446,7 +446,6 @@ export async function* migrateToR2(
         progress.skipped++;
       } else {
         await client.uploadFromUrl(asset.url, {
-          userId: options.userId,
           filename: asset.path.split('/').pop() || 'asset',
           category: detectCategory(asset.path),
         });
@@ -474,3 +473,7 @@ function detectCategory(path: string): AssetCategory {
 // ============================================================================
 
 export const r2Storage = new R2StorageClient();
+
+
+
+

@@ -8,7 +8,7 @@
 import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 // Single Bytez API key — no rotation to protect free-tier quota.
-const BYTEZ_SINGLE_KEY = process.env.BYTEZ_API_KEY_1 || process.env.VITE_BYTEZ_API_KEY;
+const BYTEZ_SINGLE_KEY = process.env.BYTEZ_API_KEY_1;
 function nextKey(): string {
   if (!BYTEZ_SINGLE_KEY) throw new Error('No Bytez API key configured. Set BYTEZ_API_KEY_1 in your environment.');
   return BYTEZ_SINGLE_KEY;

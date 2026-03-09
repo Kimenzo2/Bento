@@ -11,7 +11,7 @@
 import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 // Single API key — no rotation to protect free-tier quota from being banned.
-const GEMINI_SINGLE_KEY = process.env.GEMINI_API_KEY_1 || process.env.VITE_GEMINI_API_KEY;
+const GEMINI_SINGLE_KEY = process.env.GEMINI_API_KEY_1;
 function nextKey(): string {
   if (!GEMINI_SINGLE_KEY) throw new Error('No Gemini API key configured. Set GEMINI_API_KEY_1 in your environment.');
   return GEMINI_SINGLE_KEY;

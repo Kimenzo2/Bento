@@ -4,7 +4,7 @@
  */
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
 /**
  * Returns a Gemini LanguageModel instance using the configured API key.

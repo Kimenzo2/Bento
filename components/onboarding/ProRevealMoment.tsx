@@ -89,11 +89,8 @@ const LiveUpgradeCounter = () => {
 
 // Countdown timer for urgency
 const UrgencyTimer = ({ durationMinutes = 10 }: { durationMinutes?: number }) => {
-  const [timeLeft, setTimeLeft] = useState(durationMinutes * 60 - 1);
+  const [timeLeft, setTimeLeft] = useState(() => durationMinutes * 60 - 1);
 
-  useEffect(() => {
-    setTimeLeft(durationMinutes * 60 - 1);
-  }, [durationMinutes]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -383,7 +380,7 @@ export const ProRevealMoment: React.FC = () => {
                 <Gift className="w-5 h-5 text-amber-400" />
                 <span className="text-amber-300 font-semibold">Onboarding Exclusive</span>
               </div>
-              <UrgencyTimer durationMinutes={deal.duration_minutes} />
+              <UrgencyTimer key={deal.duration_minutes} durationMinutes={deal.duration_minutes} />
             </div>
 
             {/* Price comparison - Anchoring */}

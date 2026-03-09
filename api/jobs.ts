@@ -74,6 +74,16 @@ function generateJobId(): string {
   return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+function resolveJobsPath(req: VercelRequest): string {
+  const queryPath = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
+  if (typeof queryPath === 'string' && queryPath.length > 0) {
+    return `/${queryPath.replace(/^\/+/, '')}`;
+  }
+
+  const urlPath = req.url?.split('?')[0] || '';
+  return urlPath.replace('/api/jobs', '') || '';
+}
+
 // ============================================================================
 // HANDLERS
 // ============================================================================
@@ -402,7 +412,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const path = req.url?.replace('/api/jobs', '') || '';
+  const path = resolveJobsPath(req);
 
   // Route requests
   if (req.method === 'POST' && path === '/submit') {
@@ -430,3 +440,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   res.status(404).json({ error: 'Not found' });
 }
+
+

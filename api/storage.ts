@@ -1,25 +1,14 @@
 /**
  * Storage API Endpoint
  *
- * Handles asset uploads, presigned URLs, and media optimization.
- * Designed to work with Cloudflare R2 and Vercel Edge Functions.
- *
- * Endpoints:
- * - POST /api/storage/presign - Get presigned upload URL
- * - POST /api/storage/upload-from-url - Upload from external URL
- * - GET /api/storage/asset/:key - Get asset with variants
- * - DELETE /api/storage/asset/:key - Delete asset
+ * Handles asset uploads, presigned URLs, and metadata lookup.
+ * Upload and metadata operations are scoped to the authenticated user.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 interface PresignRequest {
-  userId: string;
   filename: string;
   category: string;
   contentType: string;
@@ -29,7 +18,6 @@ interface PresignRequest {
 
 interface UploadFromUrlRequest {
   sourceUrl: string;
-  userId: string;
   filename: string;
   category?: string;
   contentType?: string;
@@ -37,6 +25,7 @@ interface UploadFromUrlRequest {
 }
 
 interface StoredAsset {
+  ownerId: string;
   key: string;
   url: string;
   directUrl: string;
@@ -55,43 +44,29 @@ interface StoredAsset {
   }>;
 }
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
 const R2_CONFIG = {
   accountId: process.env.R2_ACCOUNT_ID || '',
-  accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
   bucketName: process.env.R2_BUCKET_NAME || 'genesis-assets',
   publicUrl: process.env.R2_PUBLIC_URL || '',
 };
 
 const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
-// ============================================================================
-// IN-MEMORY ASSET STORE (Replace with database in production)
-// ============================================================================
-
+// Best-effort metadata cache. Authorization is derived from the key + user ID,
+// so a cold start does not change asset ownership semantics.
 const assets = new Map<string, StoredAsset>();
-
-// ============================================================================
-// UTILITIES
-// ============================================================================
 
 function generateAssetKey(userId: string, filename: string, category: string): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-
   const hash =
     Math.abs(hashString(`${userId}-${filename}-${Date.now()}`)).toString(36) +
     Date.now().toString(36);
-
   const ext = filename.split('.').pop()?.toLowerCase() || 'bin';
 
-  return `${category}/${year}/${month}/${day}/${userId.slice(0, 8)}/${hash}.${ext}`;
+  return `${category}/${year}/${month}/${day}/${userId}/${hash}.${ext}`;
 }
 
 function hashString(str: string): number {
@@ -99,7 +74,7 @@ function hashString(str: string): number {
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = (hash << 5) - hash + char;
-    hash = hash & hash;
+    hash &= hash;
   }
   return hash;
 }
@@ -120,87 +95,96 @@ function getContentType(filename: string): string {
   return mimeTypes[ext || ''] || 'application/octet-stream';
 }
 
-// ============================================================================
-// HANDLERS
-// ============================================================================
+function getBaseAssetUrl(key: string): string {
+  return `${R2_CONFIG.publicUrl || `https://pub-${R2_CONFIG.accountId}.r2.dev`}/${key}`;
+}
 
-async function handlePresign(req: VercelRequest, res: VercelResponse): Promise<void> {
+function buildStoredAsset(key: string, ownerId: string, overrides: Partial<StoredAsset> = {}): StoredAsset {
+  return {
+    ownerId,
+    key,
+    url: overrides.url || getBaseAssetUrl(key),
+    directUrl:
+      overrides.directUrl ||
+      `https://${R2_CONFIG.bucketName}.${R2_CONFIG.accountId}.r2.cloudflarestorage.com/${key}`,
+    contentType: overrides.contentType || getContentType(key),
+    size: overrides.size ?? 0,
+    etag: overrides.etag ?? '',
+    uploadedAt: overrides.uploadedAt || new Date().toISOString(),
+    metadata: overrides.metadata || {},
+    variants: overrides.variants,
+  };
+}
+
+function isOwnedByUser(key: string, userId: string, asset?: StoredAsset): boolean {
+  if (asset?.ownerId) {
+    return asset.ownerId === userId;
+  }
+
+  return key.includes(`/${userId}/`);
+}
+
+function resolveStoragePath(req: VercelRequest): string {
+  const queryPath = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
+  if (typeof queryPath === 'string' && queryPath.length > 0) {
+    return `/${queryPath.replace(/^\/+/, '')}`;
+  }
+
+  const urlPath = req.url?.split('?')[0] || '';
+  return urlPath.replace('/api/storage', '') || '';
+}
+
+async function handlePresign(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const body = req.body as PresignRequest;
 
-    // Validate required fields
-    if (!body.userId || !body.filename) {
-      res.status(400).json({ error: 'userId and filename are required' });
+    if (!body.filename) {
+      res.status(400).json({ error: 'filename is required' });
       return;
     }
 
     const category = body.category || 'illustrations';
-    const key = generateAssetKey(body.userId, body.filename, category);
+    const key = generateAssetKey(userId, body.filename, category);
     const contentType = body.contentType || getContentType(body.filename);
-
-    // In production, generate actual presigned URL using AWS SDK v3
-    // For now, return a mock URL
     const uploadUrl = `https://${R2_CONFIG.bucketName}.${R2_CONFIG.accountId}.r2.cloudflarestorage.com/${key}?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600`;
-    const publicUrl = `${R2_CONFIG.publicUrl || `https://pub-${R2_CONFIG.accountId}.r2.dev`}/${key}`;
+    const publicUrl = getBaseAssetUrl(key);
 
-    // Pre-register the asset
-    assets.set(key, {
+    assets.set(
       key,
-      url: publicUrl,
-      directUrl: uploadUrl.split('?')[0],
-      contentType,
-      size: 0,
-      etag: '',
-      uploadedAt: new Date().toISOString(),
-      metadata: body.metadata || {},
-    });
+      buildStoredAsset(key, userId, {
+        url: publicUrl,
+        directUrl: uploadUrl.split('?')[0],
+        contentType,
+        metadata: body.metadata || {},
+      })
+    );
 
-    res.status(200).json({
-      uploadUrl,
-      key,
-      publicUrl,
-    });
+    res.status(200).json({ uploadUrl, key, publicUrl });
   } catch (error) {
     console.error('[Storage API] Presign error:', error);
     res.status(500).json({ error: 'Failed to generate presigned URL' });
   }
 }
 
-async function handleUploadFromUrl(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleUploadFromUrl(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const body = req.body as UploadFromUrlRequest;
 
-    // Validate required fields
-    if (!body.sourceUrl || !body.userId || !body.filename) {
-      res.status(400).json({ error: 'sourceUrl, userId, and filename are required' });
+    if (!body.sourceUrl || !body.filename) {
+      res.status(400).json({ error: 'sourceUrl and filename are required' });
       return;
     }
 
     const category = body.category || 'illustrations';
-    const key = generateAssetKey(body.userId, body.filename, category);
+    const key = generateAssetKey(userId, body.filename, category);
     const contentType = body.contentType || getContentType(body.filename);
-
-    // In production:
-    // 1. Fetch the source URL
-    // 2. Upload to R2
-    // 3. Trigger media optimization job
-
-    // For now, simulate the upload
-    const publicUrl = `${R2_CONFIG.publicUrl || `https://pub-${R2_CONFIG.accountId}.r2.dev`}/${key}`;
-
-    const asset: StoredAsset = {
-      key,
-      url: publicUrl,
-      directUrl: `https://${R2_CONFIG.bucketName}.${R2_CONFIG.accountId}.r2.cloudflarestorage.com/${key}`,
+    const asset = buildStoredAsset(key, userId, {
       contentType,
-      size: 0, // Would be actual size after upload
       etag: `"${Date.now().toString(36)}"`,
-      uploadedAt: new Date().toISOString(),
       metadata: body.metadata || {},
-    };
+    });
 
     assets.set(key, asset);
-
     res.status(200).json(asset);
   } catch (error) {
     console.error('[Storage API] Upload from URL error:', error);
@@ -208,7 +192,7 @@ async function handleUploadFromUrl(req: VercelRequest, res: VercelResponse): Pro
   }
 }
 
-async function handleGetAsset(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleGetAsset(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const key = decodeURIComponent(req.query.key as string);
 
@@ -217,16 +201,14 @@ async function handleGetAsset(req: VercelRequest, res: VercelResponse): Promise<
       return;
     }
 
-    const asset = assets.get(key);
-
-    if (!asset) {
-      res.status(404).json({ error: 'Asset not found' });
+    const cachedAsset = assets.get(key);
+    if (!isOwnedByUser(key, userId, cachedAsset)) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
-    // Add cache headers for immutable content
+    const asset = cachedAsset || buildStoredAsset(key, userId);
     res.setHeader('Cache-Control', IMMUTABLE_CACHE_CONTROL);
-
     res.status(200).json(asset);
   } catch (error) {
     console.error('[Storage API] Get asset error:', error);
@@ -234,7 +216,7 @@ async function handleGetAsset(req: VercelRequest, res: VercelResponse): Promise<
   }
 }
 
-async function handleDeleteAsset(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleDeleteAsset(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const key = decodeURIComponent(req.query.key as string);
 
@@ -243,48 +225,49 @@ async function handleDeleteAsset(req: VercelRequest, res: VercelResponse): Promi
       return;
     }
 
-    const deleted = assets.delete(key);
-
-    if (!deleted) {
-      res.status(404).json({ error: 'Asset not found' });
+    const cachedAsset = assets.get(key);
+    if (!isOwnedByUser(key, userId, cachedAsset)) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
-    // In production, also delete from R2 and all variants
-
-    res.status(200).json({ success: true });
+    assets.delete(key);
+    res.status(501).json({
+      error: 'Asset deletion is not configured on this deployment',
+    });
   } catch (error) {
     console.error('[Storage API] Delete asset error:', error);
     res.status(500).json({ error: 'Failed to delete asset' });
   }
 }
 
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
-
 export default createAuthenticatedHandler(
   async (ctx: ApiContext) => {
-    const { req, res } = ctx;
-    const path = req.url?.replace('/api/storage', '') || '';
+    const { req, res, userId } = ctx;
 
-    // Route requests
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const path = resolveStoragePath(req);
+
     if (req.method === 'POST' && path === '/presign') {
-      return handlePresign(req, res);
+      return handlePresign(req, res, userId);
     }
 
     if (req.method === 'POST' && path === '/upload-from-url') {
-      return handleUploadFromUrl(req, res);
+      return handleUploadFromUrl(req, res, userId);
     }
 
     if (req.method === 'GET' && path.startsWith('/asset/')) {
       req.query.key = path.replace('/asset/', '');
-      return handleGetAsset(req, res);
+      return handleGetAsset(req, res, userId);
     }
 
     if (req.method === 'DELETE' && path.startsWith('/asset/')) {
       req.query.key = path.replace('/asset/', '');
-      return handleDeleteAsset(req, res);
+      return handleDeleteAsset(req, res, userId);
     }
 
     res.status(404).json({ error: 'Not found' });

@@ -23,6 +23,67 @@ interface LibraryPanelProps {
   onNavigate?: (mode: string) => void;
 }
 
+interface LibraryTabButtonProps {
+  id: LibraryTab;
+  activeTab: LibraryTab;
+  onSelect: (id: LibraryTab) => void;
+  icon: React.ElementType;
+  label: string;
+  count: number;
+}
+
+const LibraryTabButton = ({
+  id,
+  activeTab,
+  onSelect,
+  icon: Icon,
+  label,
+  count,
+}: LibraryTabButtonProps) => (
+  <Button
+    variant={activeTab === id ? 'primary' : 'secondary'}
+    onClick={() => onSelect(id)}
+    className={[
+      'px-4 py-3',
+      activeTab === id
+        ? 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border border-white/20'
+        : 'bg-cream-soft text-cocoa-light hover:bg-peach-soft/50 hover:text-charcoal-soft',
+    ].join(' ')}
+  >
+    <Icon className="w-4 h-4" />
+    <span>{label}</span>
+    <span
+      className={[
+        'ml-1 px-2 py-0.5 rounded-full text-xs',
+        activeTab === id ? 'bg-surface/20' : 'bg-peach-soft',
+      ].join(' ')}
+    >
+      {count}
+    </span>
+  </Button>
+);
+
+interface LibraryEmptyStateProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}
+
+const LibraryEmptyState = ({
+  icon: Icon,
+  title,
+  description,
+}: LibraryEmptyStateProps) => (
+  <div className="flex flex-col items-center justify-center py-16 text-center">
+    <div className="w-20 h-20 rounded-full bg-coral-burst/10 border border-coral-burst/20 flex items-center justify-center mb-4">
+      <Icon className="w-10 h-10 text-coral-burst/60" />
+    </div>
+    <h4 className="font-heading font-bold text-lg text-charcoal-soft mb-2">{title}</h4>
+    <p className="text-cocoa-light text-sm max-w-xs">{description}</p>
+  </div>
+);
+
+
 const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _onNavigate }) => {
   const [activeTab, setActiveTab] = useState<LibraryTab>('books');
   const [books, setBooks] = useState<SavedBook[]>([]);
@@ -130,46 +191,6 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
     });
   };
 
-  const TabButton = ({
-    id,
-    icon: Icon,
-    label,
-    count,
-  }: { id: LibraryTab; icon: any; label: string; count: number }) => (
-    <Button
-      variant={activeTab === id ? 'primary' : 'secondary'}
-      onClick={() => setActiveTab(id)}
-      className={`px-4 py-3 ${
-        activeTab === id
-          ? 'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border border-white/20'
-          : 'bg-cream-soft text-cocoa-light hover:bg-peach-soft/50 hover:text-charcoal-soft'
-      }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span>{label}</span>
-      <span
-        className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-          activeTab === id ? 'bg-surface/20' : 'bg-peach-soft'
-        }`}
-      >
-        {count}
-      </span>
-    </Button>
-  );
-
-  const EmptyState = ({
-    icon: Icon,
-    title,
-    description,
-  }: { icon: any; title: string; description: string }) => (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-20 h-20 rounded-full bg-coral-burst/10 border border-coral-burst/20 flex items-center justify-center mb-4">
-        <Icon className="w-10 h-10 text-coral-burst/60" />
-      </div>
-      <h4 className="font-heading font-bold text-lg text-charcoal-soft mb-2">{title}</h4>
-      <p className="text-cocoa-light text-sm max-w-xs">{description}</p>
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -200,14 +221,14 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
 
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2">
-        <TabButton id="books" icon={IcoBook} label="Books" count={books.length} />
-        <TabButton
+        <LibraryTabButton activeTab={activeTab} onSelect={setActiveTab} id="books" icon={IcoBook} label="Books" count={books.length} />
+        <LibraryTabButton activeTab={activeTab} onSelect={setActiveTab}
           id="infographics"
           icon={BarChart3}
           label="Infographics"
           count={infographics.length}
         />
-        <TabButton id="images" icon={ImageIcon} label="Images" count={images.length} />
+        <LibraryTabButton activeTab={activeTab} onSelect={setActiveTab} id="images" icon={ImageIcon} label="Images" count={images.length} />
       </div>
 
       {/* Content Area */}
@@ -216,7 +237,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
         {activeTab === 'books' && (
           <div className="space-y-4">
             {books.length === 0 ? (
-              <EmptyState
+              <LibraryEmptyState
                 icon={IcoBook}
                 title="No books yet"
                 description="Create your first storybook and it will appear here"
@@ -301,7 +322,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
         {activeTab === 'infographics' && (
           <div className="space-y-4">
             {infographics.length === 0 ? (
-              <EmptyState
+              <LibraryEmptyState
                 icon={BarChart3}
                 title="No infographics yet"
                 description="Create an infographic and save it to see it here"
@@ -379,7 +400,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({ onViewBook, onNavigate: _on
         {activeTab === 'images' && (
           <div className="space-y-4">
             {images.length === 0 ? (
-              <EmptyState
+              <LibraryEmptyState
                 icon={ImageIcon}
                 title="No images yet"
                 description="Save images from Visual Studio to build your collection"

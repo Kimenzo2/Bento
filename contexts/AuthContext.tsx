@@ -6,6 +6,7 @@ import { ensureUserProfile, getUserProfile, invalidateProfileCache } from '../se
 import { supabase } from '../services/supabaseClient';
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
+const PENDING_WELCOME_EMAIL_KEY = 'genesis_pending_welcome_email';
 
 type SessionRestoreResult = {
   data: { session: Session | null };
@@ -26,6 +27,39 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Pr
         resolve(fallback);
       });
   });
+}
+
+function queuePendingWelcomeEmail(email: string, name: string): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(PENDING_WELCOME_EMAIL_KEY, JSON.stringify({ email, name }));
+}
+
+function readPendingWelcomeEmail(): { email: string; name: string } | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = sessionStorage.getItem(PENDING_WELCOME_EMAIL_KEY);
+    return raw ? (JSON.parse(raw) as { email: string; name: string }) : null;
+  } catch {
+    sessionStorage.removeItem(PENDING_WELCOME_EMAIL_KEY);
+    return null;
+  }
+}
+
+function clearPendingWelcomeEmail(): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(PENDING_WELCOME_EMAIL_KEY);
+}
+
+async function flushPendingWelcomeEmail(expectedEmail?: string): Promise<void> {
+  const pending = readPendingWelcomeEmail();
+  if (!pending) return;
+  if (expectedEmail && pending.email !== expectedEmail) return;
+
+  const result = await sendWelcomeEmail(pending.email, pending.name);
+  if (result.success) {
+    clearPendingWelcomeEmail();
+  }
 }
 
 // UserProfile type for convenience
@@ -105,6 +139,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session?.user ?? null);
         }
+
+        if (session?.user?.email) {
+          void flushPendingWelcomeEmail(session.user.email);
+        }
       } catch (err) {
         if (import.meta.env.DEV) console.error('[Auth] Exception getting session:', err);
       } finally {
@@ -127,6 +165,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        if (session?.user?.email) {
+          void flushPendingWelcomeEmail(session.user.email);
+        }
 
         // Clear DB profile on sign-out
         if (!session?.user) {
@@ -195,13 +237,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     if (error) {
       if (import.meta.env.DEV) console.error('[Auth] Email sign-up error:', error.message);
-    } else {
-      // Send welcome email to new user
-      if (data.user?.email) {
-        const userName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
-        sendWelcomeEmail(data.user.email, userName).catch((err) => {
-          console.error('[Auth] Failed to send welcome email:', err);
-        });
+    } else if (data.user?.email) {
+      const userName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
+
+      if (data.session) {
+        sendWelcomeEmail(data.user.email, userName)
+          .then((result) => {
+            if (!result.success) {
+              queuePendingWelcomeEmail(data.user!.email!, userName);
+            }
+          })
+          .catch((err) => {
+            queuePendingWelcomeEmail(data.user!.email!, userName);
+            console.error('[Auth] Failed to send welcome email:', err);
+          });
+      } else {
+        queuePendingWelcomeEmail(data.user.email, userName);
       }
     }
     return { data, error };
@@ -332,3 +383,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

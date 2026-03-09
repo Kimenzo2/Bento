@@ -64,6 +64,16 @@ const THRESHOLDS = {
   cacheHitRateMin: 0.3, // 30%
 };
 
+function resolveHealthPath(req: VercelRequest): string {
+  const queryPath = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
+  if (typeof queryPath === 'string' && queryPath.length > 0) {
+    return `/${queryPath.replace(/^\/+/, '')}`;
+  }
+
+  const urlPath = req.url?.split('?')[0] || '';
+  return urlPath.replace('/api/health', '') || '';
+}
+
 // ============================================================================
 // SERVICE HEALTH CHECKS
 // ============================================================================
@@ -371,7 +381,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   // Route based on path
-  const path = req.url?.replace('/api/health', '') || '';
+  const path = resolveHealthPath(req);
 
   switch (path) {
     case '':
@@ -393,3 +403,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       res.status(404).json({ error: 'Not found' });
   }
 }
+
+

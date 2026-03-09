@@ -79,6 +79,18 @@
       "destination": "/api/paystack?action=webhook"
     },
     {
+      "source": "/api/jobs/(.*)",
+      "destination": "/api/jobs?path=$1"
+    },
+    {
+      "source": "/api/storage/(.*)",
+      "destination": "/api/storage?path=$1"
+    },
+    {
+      "source": "/api/health/(.*)",
+      "destination": "/api/health?path=$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

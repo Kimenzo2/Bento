@@ -1,3 +1,5 @@
+import { authenticatedFetch } from './api/authenticatedFetch';
+
 // SECURITY: Email sending is routed through /api/send-email server endpoint.
 // The Resend API key must NEVER be in client-side code.
 // This service constructs the request and sends it to our server API.
@@ -20,7 +22,7 @@ export async function sendEmail(
   options: EmailOptions
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const response = await fetch(EMAIL_API_ENDPOINT, {
+    const response = await authenticatedFetch(EMAIL_API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -375,3 +377,4 @@ export async function sendBookShareEmail(
     text: `${senderName} shared their story "${bookTitle}" with you! View it here: ${shareLink}. Created with Genesis - AI-powered visual storytelling.`,
   });
 }
+
