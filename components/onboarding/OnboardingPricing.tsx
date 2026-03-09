@@ -11,9 +11,6 @@ import type { LucideIcon } from 'lucide-react';
 import { Button } from '@components/ui/button';
 import { Switch } from '@components/ui/switch';
 
-// Feature flag: 'dodo' routes to Dodo Payments, anything else uses Paystack
-const USE_DODO = import.meta.env.VITE_PAYMENT_PROVIDER === 'dodo';
-
 // Map UserTier → DodoPlan key for checkout
 const TIER_TO_DODO_PLAN: Partial<Record<UserTier, DodoPlan>> = {
   [UserTier.CREATOR]: 'creator_monthly',
@@ -32,8 +29,6 @@ interface PricingTier {
   gradient: string;
   glowColor: string;
   borderColor: string;
-  paystackPaymentUrl: string | null;
-  planCode: string | null;
   features: string[];
   limitations?: string[];
   saveLabel?: string;
@@ -52,8 +47,6 @@ const tiers: PricingTier[] = [
     gradient: 'from-slate-500 to-slate-600',
     glowColor: '',
     borderColor: 'border-white/10',
-    paystackPaymentUrl: null,
-    planCode: null,
     features: [
       '3 ebooks per month',
       'Max 4 pages per book',
@@ -76,8 +69,6 @@ const tiers: PricingTier[] = [
     glowColor: '',
     borderColor: 'border-blue-400/30',
     saveLabel: 'Save 18%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/fan-nihu8w', // TEMP TEST — production: https://paystack.shop/pay/mfkoveuu1o
-    planCode: 'PLN_zbnzvdqjsdxfcqc',
     features: [
       '30 ebooks per month',
       'Up to 12 pages/book',
@@ -99,8 +90,6 @@ const tiers: PricingTier[] = [
     glowColor: '',
     borderColor: 'border-amber-400/40',
     saveLabel: 'Save 17%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/akv70alb1x',
-    planCode: 'PLN_09zg1ly5kg57niz',
     features: [
       'Everything in Creator',
       '5 team seats',
@@ -122,8 +111,6 @@ const tiers: PricingTier[] = [
     glowColor: '',
     borderColor: 'border-amber-400/30',
     saveLabel: 'Save 17%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/uvcz30todn',
-    planCode: 'PLN_tv2y349z88b1bd8',
     features: [
       'Everything in Studio',
       'Unlimited team members',
@@ -176,23 +163,10 @@ export const OnboardingPricing: React.FC = () => {
       return;
     }
 
-    if (USE_DODO) {
-      handleDodoCheckout(tier);
-    } else {
-      handlePaystackCheckout(tier);
-    }
+    handleDodoCheckout(tier);
   };
 
-  // -- Paystack path (unchanged) --
-  const handlePaystackCheckout = (tier: typeof tiers[0]) => {
-    if (!tier.paystackPaymentUrl) {
-      alert('This plan is not available for subscription.');
-      return;
-    }
-    window.location.href = tier.paystackPaymentUrl;
-  };
-
-  // -- Dodo Payments path --
+  // -- Dodo Payments checkout --
   const handleDodoCheckout = async (tier: typeof tiers[0]) => {
     const dodoPlan = TIER_TO_DODO_PLAN[tier.name];
     if (!dodoPlan) {

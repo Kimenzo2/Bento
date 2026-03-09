@@ -9,7 +9,7 @@
  *   /api/dodo-checkout → /api/dodo?action=checkout
  *   /api/dodo-webhook  → /api/dodo?action=webhook
  *
- * Architecture mirrors api/paystack.ts exactly:
+ * Architecture:
  *   - Bearer token stays server-side (never in VITE_ env vars)
  *   - Webhook uses service-role Supabase for admin writes
  *   - Idempotency via processed_webhooks table
@@ -281,7 +281,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
         const tier = tierFromMetadataOrProduct(data.metadata, data.product_cart);
 
         if (userId && tier) {
-          // Update user tier via the existing RPC (same as Paystack)
+          // Update user tier in profiles table
           await supabase
             .from('profiles')
             .update({

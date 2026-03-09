@@ -66,7 +66,7 @@ const TierDetailCreator = lazy(() => import('./components/tiers/TierDetailCreato
 const TierDetailStudio = lazy(() => import('./components/tiers/TierDetailStudio'));
 const TierDetailEmpire = lazy(() => import('./components/tiers/TierDetailEmpire'));
 
-// Payment callback - handles return from Paystack hosted checkout
+// Payment callback - handles return from Dodo checkout
 const PaymentCallback = lazy(() => import('./components/PaymentCallback'));
 
 // Auth page - login/signup for returning users
@@ -217,7 +217,7 @@ export const AppRouter: React.FC = () => {
   return (
     <Suspense fallback={<AppLoading />}>
       <Routes>
-        {/* Payment callback - accessible without auth guards, handles Paystack redirect */}
+        {/* Payment callback - accessible without auth guards, handles Dodo redirect */}
         <Route path="/payment-callback" element={<PaymentCallback />} />
 
         {/* Auth page - login/signup for returning users */}

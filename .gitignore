@@ -54,7 +54,6 @@ supabase_*.sql
 *.temp
 
 # Sensitive Configuration Files
-PAYSTACK_PLAN_CODES.txt
 metadata.json
 
 # Internal research, planning, and prompt files — must NOT be public

@@ -3,18 +3,12 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePageSEO } from '../hooks/usePageSEO';
-// Payment Page URLs are stored in each tier's paystackPaymentUrl field
-// Dodo Payments checkout is feature-flagged via VITE_PAYMENT_PROVIDER
-
 import type { LucideProps } from 'lucide-react';
 import { UserTier } from '../types';
 import { createDodoCheckout } from '../services/dodoService';
 import type { DodoPlan } from '../config/dodoPricing';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
-
-// Feature flag: 'dodo' routes to Dodo Payments, anything else uses Paystack
-const USE_DODO = import.meta.env.VITE_PAYMENT_PROVIDER === 'dodo';
 
 // Map UserTier → DodoPlan key for checkout
 const TIER_TO_DODO_PLAN: Partial<Record<UserTier, DodoPlan>> = {
@@ -37,8 +31,6 @@ interface TierData {
   >;
   color: string;
   buttonColor: string;
-  paystackPaymentUrl: string | null;
-  planCode: string | null;
   features: string[];
   limitations?: string[];
   saveLabel?: string;
@@ -54,8 +46,6 @@ const tiers: TierData[] = [
     icon: Zap,
     color: 'bg-peach-soft/30 text-cocoa-light',
     buttonColor: 'bg-peach-light/50 text-charcoal-soft hover:bg-gray-300',
-    paystackPaymentUrl: null,
-    planCode: null,
     features: [
       '3 ebooks per month',
       'Max 4 pages per book',
@@ -74,8 +64,6 @@ const tiers: TierData[] = [
     color: 'bg-blue-50 text-blue-600',
     buttonColor: 'bg-blue-500 text-white hover:bg-blue-600',
     saveLabel: 'Save 18%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/mfkoveuu1o', // Production URL
-    planCode: 'PLN_zbnzvdqjsdxfcqc',
     features: [
       '30 ebooks per month',
       'Up to 12 pages/book',
@@ -96,8 +84,6 @@ const tiers: TierData[] = [
     buttonColor:
       'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border border-white/20 hover:scale-105',
     saveLabel: 'Save 17%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/akv70alb1x',
-    planCode: 'PLN_09zg1ly5kg57niz',
     features: [
       'Everything in Creator',
       '5 team seats',
@@ -118,8 +104,6 @@ const tiers: TierData[] = [
     color: 'bg-purple-50 text-purple-600',
     buttonColor: 'bg-charcoal-soft text-white hover:bg-black',
     saveLabel: 'Save 17%',
-    paystackPaymentUrl: 'https://paystack.shop/pay/uvcz30todn',
-    planCode: 'PLN_tv2y349z88b1bd8',
     features: [
       'Everything in Studio',
       'Unlimited team members',
@@ -194,23 +178,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       return;
     }
 
-    if (USE_DODO) {
-      handleDodoCheckout(tier);
-    } else {
-      handlePaystackCheckout(tier);
-    }
+    handleDodoCheckout(tier);
   };
 
-  // -- Paystack path (unchanged) --
-  const handlePaystackCheckout = (tier: TierData) => {
-    if (!tier.paystackPaymentUrl) {
-      alert('This plan is not available for subscription.');
-      return;
-    }
-    window.location.href = tier.paystackPaymentUrl;
-  };
-
-  // -- Dodo Payments path --
+  // -- Dodo Payments checkout --
   const handleDodoCheckout = async (tier: TierData) => {
     const dodoPlan = TIER_TO_DODO_PLAN[tier.name];
     if (!dodoPlan) {

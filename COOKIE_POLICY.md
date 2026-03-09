@@ -39,7 +39,7 @@ Remember your settings:
 We use services that may set their own cookies:
 
 - **Google Gemini**: AI content generation (no tracking cookies)
-- **Paystack**: Payment processing (secure, no tracking)
+- **Dodo Payments**: Payment processing (secure, no tracking)
 - **Analytics**: Usage monitoring (anonymized)
 
 ## Managing Cookies

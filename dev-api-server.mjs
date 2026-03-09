@@ -23,9 +23,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Rewrites from vercel.json (api routes only)
 const REWRITES = [
-  { source: '/api/paystack-charge', destination: '/api/paystack?action=charge' },
-  { source: '/api/paystack-verify', destination: '/api/paystack?action=verify' },
-  { source: '/api/paystack-webhook', destination: '/api/paystack?action=webhook' },
   { source: '/api/dodo-checkout', destination: '/api/dodo?action=checkout' },
   { source: '/api/dodo-webhook', destination: '/api/dodo?action=webhook' },
 ];
@@ -112,5 +109,5 @@ const server = http.createServer(async (req, res) => {
 const PORT = process.env.DEV_API_PORT || 3002;
 server.listen(PORT, () => {
   console.log(`[dev-api] API server running on http://localhost:${PORT}`);
-  console.log(`[dev-api] Routes: /api/dodo-checkout, /api/dodo-webhook, /api/paystack-*`);
+  console.log(`[dev-api] Routes: /api/dodo-checkout, /api/dodo-webhook`);
 });

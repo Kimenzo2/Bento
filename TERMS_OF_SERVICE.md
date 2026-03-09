@@ -58,7 +58,7 @@ We reserve the right to suspend or terminate accounts that:
 
 ### 4.2 Payment Terms
 
-- Payments processed securely through Paystack
+- Payments processed securely through Dodo Payments
 - Subscriptions renew automatically unless cancelled
 - Annual plans billed upfront with ~17% discount
 - All prices in USD unless otherwise specified
@@ -159,7 +159,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW:
 
 - We are not liable for indirect, incidental, or consequential damages
 - Our total liability shall not exceed the amount you paid in the last 12 months
-- We are not liable for third-party services (Paystack, Google Gemini, etc.)
+- We are not liable for third-party services (Dodo Payments, Google Gemini, etc.)
 - You use AI-generated content at your own risk
 
 ## 11. Indemnification
@@ -182,7 +182,7 @@ By using the Service, you consent to our data practices as described.
 Genesis integrates with:
 
 - **Google Gemini**: AI content generation
-- **Paystack**: Payment processing
+- **Dodo Payments**: Payment processing
 - **Supabase**: Database and authentication
 - **Web Speech API**: Voice features
 

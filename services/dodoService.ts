@@ -3,11 +3,8 @@
  *
  * Client-side counterpart to api/dodo.ts.
  * This service does NOT hold the Dodo API key — all sensitive operations
- * go through the server-side API route, matching the Paystack architecture:
- *   paystackService.ts → /api/paystack-charge, /api/paystack-verify
- *   dodoService.ts     → /api/dodo-checkout
- *
- * DO NOT import or modify paystackService.ts from here.
+ * go through the server-side API route:
+ *   dodoService.ts → /api/dodo-checkout
  */
 
 import { authenticatedFetch } from './api/authenticatedFetch';

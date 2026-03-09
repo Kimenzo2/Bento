@@ -175,7 +175,7 @@ Welcome to Genesis ("we," "our," or "us"). We are committed to protecting your p
 When you create an account or use Genesis, we may collect:
 - **Account Information**: Email address, full name, password (encrypted)
 - **Profile Data**: Avatar, display name, bio, preferences
-- **Payment Information**: Processed securely through Paystack (we do not store credit card details)
+- **Payment Information**: Processed securely through Dodo Payments (we do not store credit card details)
 
 ### Automatically Collected Information
 - **Usage Data**: Pages created, features used, interaction patterns
@@ -214,7 +214,7 @@ Your data is stored securely using:
 We **DO NOT** sell your personal information. We may share data with:
 
 ### Service Providers
-- **Payment Processing**: Paystack for subscription management
+- **Payment Processing**: Dodo Payments for subscription management
 - **AI Services**: Google Gemini for content generation (anonymized prompts)
 - **Analytics**: Performance monitoring (anonymized data)
 - **Email Services**: Transactional email delivery
@@ -287,7 +287,7 @@ Genesis is a visual learning platform that uses AI technology to help users crea
 - **Empire ($199.99/month)**: Unlimited everything, custom AI training, API access
 
 ### 4.2 Payment Terms
-- Payments processed securely through Paystack
+- Payments processed securely through Dodo Payments
 - Subscriptions renew automatically unless cancelled
 - Annual plans billed upfront with ~17% discount
 

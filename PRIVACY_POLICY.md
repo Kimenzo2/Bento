@@ -18,7 +18,7 @@ When you create an account or use Genesis, we may collect:
 
 - **Account Information**: Email address, full name, password (encrypted)
 - **Profile Data**: Avatar, display name, bio, preferences
-- **Payment Information**: Processed securely through Paystack (we do not store
+- **Payment Information**: Processed securely through Dodo Payments (we do not store
   credit card details)
 
 ### Automatically Collected Information
@@ -70,7 +70,7 @@ We **DO NOT** sell your personal information. We may share data with:
 
 ### Service Providers
 
-- **Payment Processing**: Paystack for subscription management
+- **Payment Processing**: Dodo Payments for subscription management
 - **AI Services**: Google Gemini for content generation (anonymized prompts)
 - **Analytics**: Performance monitoring (anonymized data)
 - **Email Services**: Transactional email delivery

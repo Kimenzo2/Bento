@@ -5,6 +5,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 import { useOnboarding } from './OnboardingState';
+import { createDodoCheckout } from '../../services/dodoService';
 
 // Psychological trigger: Live social proof counter
 const LiveUpgradeCounter = () => {
@@ -262,10 +263,25 @@ export const ProRevealMoment: React.FC = () => {
     setStep('tour');
   };
 
-  const handleUpgrade = () => {
-    // Redirect directly to Paystack Onboarding Exclusive Payment Page
-    // Paystack handles email collection, payment, and confirmation
-    window.location.href = 'https://paystack.shop/pay/0i-23vlf14';
+  const handleUpgrade = async () => {
+    try {
+      const { supabase } = await import('../../services/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please sign in to upgrade your plan.');
+        return;
+      }
+      const checkoutUrl = await createDodoCheckout({
+        plan: 'creator_monthly',
+        email: user.email ?? '',
+        name: user.user_metadata?.full_name ?? user.email ?? '',
+        userId: user.id,
+      });
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      console.error('Dodo checkout error:', err);
+      alert('Unable to start checkout. Please try again.');
+    }
   };
 
   return (

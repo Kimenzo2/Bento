@@ -1,27 +1,17 @@
 /**
- * PaymentCallback - Handles return from payment checkout
+ * PaymentCallback - Handles return from Dodo Payments checkout
  *
- * Supports both Paystack and Dodo Payments:
- *
- * Paystack: Users are redirected here with ?trxref=xxx&reference=xxx.
- *   This component verifies the transaction server-side, polls for the
- *   webhook to update the user's tier, then redirects to the dashboard.
- *
- * Dodo: Users are redirected here with ?payment=success.
- *   No client-side verification is needed — the webhook handles tier update.
- *   This component just polls for the tier change and shows progress.
+ * Users are redirected here with ?payment=success after completing checkout.
+ * No client-side verification is needed — the webhook handles tier update.
+ * This component polls for the tier change and shows progress.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Loader2, XCircle } from 'lucide-react';
-import { verifyTransaction } from '../services/paystackService';
 import { getUserProfile, invalidateProfileCache } from '../services/profileService';
 import { supabase } from '../services/supabaseClient';
 import { UserTier } from '../types';
-
-// Feature flag: matches PricingPage
-const USE_DODO = import.meta.env.VITE_PAYMENT_PROVIDER === 'dodo';
 
 type CallbackStatus = 'verifying' | 'success' | 'activating' | 'failed' | 'no-reference' | 'pending';
 
@@ -31,8 +21,7 @@ export const PaymentCallback: React.FC = () => {
   const [message, setMessage] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Paystack sends ?trxref=xxx&reference=xxx; Dodo sends ?payment=success
-  const reference = searchParams.get('trxref') || searchParams.get('reference');
+  // Dodo sends ?payment=success
   const dodoPaymentStatus = searchParams.get('payment');
 
   // Clean up polling on unmount
@@ -98,8 +87,6 @@ export const PaymentCallback: React.FC = () => {
 
   // ── Dodo Payments return flow ──────────────────────────────────────────────
   useEffect(() => {
-    if (!USE_DODO) return;
-
     if (dodoPaymentStatus === 'success') {
       // Dodo webhook handles tier update server-side.
       // We just poll for the change.
@@ -109,36 +96,6 @@ export const PaymentCallback: React.FC = () => {
       setMessage('No payment confirmation found. If you completed a payment, your subscription will be activated via webhook shortly.');
     }
   }, [dodoPaymentStatus]);
-
-  // ── Paystack return flow (unchanged) ───────────────────────────────────────
-  useEffect(() => {
-    if (USE_DODO) return;
-
-    if (!reference) {
-      setStatus('no-reference');
-      setMessage('No payment reference found. If you completed a payment, your subscription will be activated via webhook shortly.');
-      return;
-    }
-
-    const verify = async () => {
-      try {
-        const verified = await verifyTransaction(reference);
-        if (verified) {
-          await pollForTierChange();
-        } else {
-          // Payment may still be processing — this is normal for some channels
-          setStatus('failed');
-          setMessage('Payment verification is still pending. Your subscription will activate shortly once confirmed. You can safely go to your dashboard.');
-        }
-      } catch (error) {
-        console.error('Verification error:', error);
-        setStatus('failed');
-        setMessage('We could not verify your payment right now. Don\'t worry — if you completed the payment, your subscription will be activated automatically.');
-      }
-    };
-
-    verify();
-  }, [reference]);
 
   return (
     <div className="min-h-screen bg-cream-base flex items-center justify-center px-6">
@@ -167,19 +124,8 @@ export const PaymentCallback: React.FC = () => {
 
         {/* Message */}
         <p className="text-cocoa-light font-medium mb-8">
-          {message || (USE_DODO
-            ? 'Please wait while we confirm your payment...'
-            : 'Please wait while we confirm your payment with Paystack...'
-          )}
+          {message || 'Please wait while we confirm your payment...'}
         </p>
-
-        {/* Reference */}
-        {reference && (
-          <div className="bg-surface/50 rounded-xl px-4 py-3 mb-6">
-            <p className="text-xs text-cocoa-light">Transaction Reference</p>
-            <p className="font-mono text-sm text-charcoal-soft font-medium break-all">{reference}</p>
-          </div>
-        )}
 
         {/* Action Button — only show when not auto-processing */}
         {(status === 'failed' || status === 'no-reference') && (

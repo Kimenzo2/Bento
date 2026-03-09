@@ -4,7 +4,7 @@
  *
  * This module provides resilient wrappers around external services:
  * - AI providers (Bytez, Grok, Gemini)
- * - Payment providers (Paystack)
+ * - Payment providers (Dodo Payments)
  * - Storage services (Supabase Storage)
  *
  * ALL external calls should go through these wrappers to ensure:
@@ -32,7 +32,7 @@ export type ExternalServiceType =
   | 'ai:bytez'
   | 'ai:grok'
   | 'ai:gemini'
-  | 'payment:paystack'
+  | 'payment:dodo'
   | 'storage:supabase'
   | 'email:resend'
   | 'analytics:sentry';
@@ -89,8 +89,8 @@ const CIRCUIT_CONFIGS: Record<ExternalServiceType, CircuitBreakerConfig> = {
     callTimeoutMs: 60000,
     monitorWindowMs: 120000,
   },
-  'payment:paystack': {
-    name: 'paystack',
+  'payment:dodo': {
+    name: 'dodo-payments',
     failureThreshold: 3, // Lower threshold for payments
     resetTimeoutMs: 30000,
     successThreshold: 2,
@@ -302,7 +302,7 @@ export async function callPaymentService<T>(
   securityAudit.logPayment('PAYMENT_INITIATED', userId, true, { operation });
 
   const result = await callExternalService(fn, {
-    service: 'payment:paystack',
+    service: 'payment:dodo',
     operation,
     userId,
     timeout: 30000,
