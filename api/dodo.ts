@@ -8,13 +8,21 @@ export const config = {
   },
 };
 
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+const supabaseAnonKey =
+  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || null;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabase: SupabaseClient<any> | null =
+const supabaseAdmin: SupabaseClient<any> | null =
   supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseAuth: SupabaseClient<any> | null =
+  supabaseUrl && (supabaseServiceKey || supabaseAnonKey)
+    ? createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey!)
+    : null;
 
 type DodoEnvironment = 'live_mode' | 'test_mode';
 
@@ -51,14 +59,24 @@ const DODO_ENV: DodoEnvironment =
 const SUPPORTED_TIERS = ['CREATOR', 'STUDIO', 'EMPIRE'] as const;
 const SUPPORTED_INTERVALS = ['MONTHLY', 'YEARLY'] as const;
 
-function requireSupabase(): SupabaseClient<any> {
-  if (!supabase) {
+function requireSupabaseAdmin(): SupabaseClient<any> {
+  if (!supabaseAdmin) {
     throw new Error(
       'Supabase client not initialised - missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
     );
   }
 
-  return supabase;
+  return supabaseAdmin;
+}
+
+function requireSupabaseAuth(): SupabaseClient<any> {
+  if (!supabaseAuth) {
+    throw new Error(
+      'Supabase auth client not initialised - missing SUPABASE_URL and a Supabase API key'
+    );
+  }
+
+  return supabaseAuth;
 }
 
 function getPrimaryDodoApiKey(): string | null {
@@ -102,6 +120,61 @@ function getAppUrl(req: VercelRequest): string {
   const protocol = forwardedProto || (host.includes('localhost') ? 'http' : 'https');
 
   return `${protocol}://${host}`;
+}
+
+function getRequestHostname(req: VercelRequest): string | null {
+  const forwardedHost =
+    typeof req.headers['x-forwarded-host'] === 'string'
+      ? req.headers['x-forwarded-host'].split(',')[0]?.trim()
+      : undefined;
+  const host = forwardedHost || req.headers.host;
+  if (!host) {
+    return null;
+  }
+
+  return host.split(':')[0]?.toLowerCase() || null;
+}
+
+function isLocalHostname(hostname: string | null): boolean {
+  return Boolean(
+    hostname &&
+      (hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        hostname.endsWith('.localhost'))
+  );
+}
+
+function isProductionCheckoutRequest(req: VercelRequest): boolean {
+  if (process.env.VERCEL_ENV) {
+    return process.env.VERCEL_ENV === 'production';
+  }
+
+  return !isLocalHostname(getRequestHostname(req));
+}
+
+function assertCheckoutEnvironment(req: VercelRequest): void {
+  if (isProductionCheckoutRequest(req) && DODO_ENV !== 'live_mode') {
+    throw new Error('Production checkout cannot run with Dodo test mode enabled');
+  }
+}
+
+function assertCheckoutUrlEnvironment(checkoutUrl: string, req: VercelRequest): void {
+  const url = new URL(checkoutUrl);
+  const hostname = url.hostname.toLowerCase();
+  const isTestCheckout = hostname === 'test.checkout.dodopayments.com' || hostname.startsWith('test.');
+
+  if (isProductionCheckoutRequest(req) && isTestCheckout) {
+    throw new Error('Production checkout returned a Dodo test checkout URL');
+  }
+
+  if (DODO_ENV === 'live_mode' && isTestCheckout) {
+    throw new Error('Live Dodo configuration returned a test checkout URL');
+  }
+
+  if (DODO_ENV === 'test_mode' && !isTestCheckout) {
+    throw new Error('Test Dodo configuration returned a live checkout URL');
+  }
 }
 
 function parsePlan(plan: string): { tier: string; interval: string } | null {
@@ -181,6 +254,11 @@ type VerifiedCheckoutUser = {
   name?: string;
 };
 
+type ResolvedWebhookUser = {
+  userId: string | null;
+  email: string | null;
+};
+
 function readNestedString(value: unknown, key: string): string | undefined {
   if (!value || typeof value !== 'object') {
     return undefined;
@@ -226,7 +304,7 @@ async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutU
   }
 
   try {
-    const db = requireSupabase();
+    const db = requireSupabaseAuth();
     const {
       data: { user },
       error,
@@ -255,14 +333,14 @@ async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutU
 
 async function parseCheckoutBody(
   req: VercelRequest
-): Promise<{ plan?: string; email?: string; name?: string }> {
+): Promise<{ plan?: string }> {
   const rawBody = await getRawBody(req);
 
   if (!rawBody) {
     return {};
   }
 
-  return JSON.parse(rawBody) as { plan?: string; email?: string; name?: string };
+  return JSON.parse(rawBody) as { plan?: string };
 }
 
 function buildDodoClient(apiKey: string, webhookKey?: string | null) {
@@ -299,10 +377,13 @@ async function createCheckoutSession(params: {
   userId: string;
   tier: string;
   returnUrl: string;
+  req: VercelRequest;
 }): Promise<{ checkoutUrl: string; sessionId: string }> {
   if (DODO_API_KEY_CANDIDATES.length === 0) {
     throw new Error('Payment service not configured');
   }
+
+  assertCheckoutEnvironment(params.req);
 
   let lastError: unknown;
 
@@ -322,6 +403,7 @@ async function createCheckoutSession(params: {
           },
           metadata: {
             supabase_user_id: params.userId,
+            supabase_email: params.customerEmail,
             plan: params.tier,
           },
         })
@@ -330,6 +412,8 @@ async function createCheckoutSession(params: {
       if (!data.checkout_url) {
         throw new Error('Dodo did not return a checkout URL');
       }
+
+      assertCheckoutUrlEnvironment(data.checkout_url, params.req);
 
       return {
         checkoutUrl: data.checkout_url,
@@ -390,7 +474,7 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const { plan, email, name } = await parseCheckoutBody(req);
+    const { plan } = await parseCheckoutBody(req);
     if (!plan) {
       return res.status(400).json({ status: false, message: 'plan is required' });
     }
@@ -403,7 +487,7 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const customerEmail = authUser.email || email?.trim();
+    const customerEmail = authUser.email?.trim();
     if (!customerEmail) {
       return res.status(400).json({
         status: false,
@@ -411,7 +495,7 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const customerName = name?.trim() || authUser.name || customerEmail;
+    const customerName = authUser.name?.trim() || customerEmail;
     const appUrl = getAppUrl(req);
     const session = await createCheckoutSession({
       productId: resolvedPlan.productId,
@@ -419,7 +503,8 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
       customerName,
       userId: authUser.userId,
       tier: resolvedPlan.tier,
-      returnUrl: `${appUrl}/payment-callback`,
+      returnUrl: `${appUrl}/payment-callback?plan=${resolvedPlan.tier.toLowerCase()}`,
+      req,
     });
 
     return res.status(200).json({
@@ -451,6 +536,101 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+async function resolveWebhookUser(
+  db: SupabaseClient<any>,
+  data: Record<string, any> | null | undefined
+): Promise<ResolvedWebhookUser> {
+  const customerEmail =
+    typeof data?.customer?.email === 'string' ? data.customer.email.trim().toLowerCase() : null;
+  const metadataUserId =
+    typeof data?.metadata?.supabase_user_id === 'string' ? data.metadata.supabase_user_id : null;
+
+  if (customerEmail) {
+    const { data: profileByEmail, error } = await db
+      .from('profiles')
+      .select('id, email')
+      .eq('email', customerEmail)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to resolve profile by Dodo customer email: ${error.message}`);
+    }
+
+    if (profileByEmail?.id) {
+      if (metadataUserId && metadataUserId !== profileByEmail.id) {
+        console.warn('[dodo-webhook] Metadata/user email mismatch detected', {
+          metadataUserId,
+          customerEmail,
+          resolvedUserId: profileByEmail.id,
+        });
+      }
+
+      return {
+        userId: profileByEmail.id,
+        email: profileByEmail.email ?? customerEmail,
+      };
+    }
+  }
+
+  if (!metadataUserId) {
+    return { userId: null, email: customerEmail };
+  }
+
+  const { data: profileById, error } = await db
+    .from('profiles')
+    .select('id, email')
+    .eq('id', metadataUserId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to resolve profile by metadata user id: ${error.message}`);
+  }
+
+  return {
+    userId: profileById?.id ?? metadataUserId,
+    email: profileById?.email ?? customerEmail,
+  };
+}
+
+async function updateProfileStrict(
+  db: SupabaseClient<any>,
+  userId: string,
+  updates: Record<string, unknown>,
+  reason: string
+): Promise<void> {
+  const { data, error } = await db
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to update profile for ${reason}: ${error.message}`);
+  }
+
+  if (!data?.id) {
+    throw new Error(`Profile update for ${reason} did not match an existing user`);
+  }
+}
+
+async function insertProcessedWebhook(
+  db: SupabaseClient<any>,
+  webhookId: string,
+  eventType: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  const { error } = await db.from('processed_webhooks').insert({
+    webhook_id: webhookId,
+    event_type: eventType,
+    payload,
+  });
+
+  if (error) {
+    throw new Error(`Failed to persist processed webhook: ${error.message}`);
+  }
+}
+
 async function handleWebhook(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -463,7 +643,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
   let db: SupabaseClient<any>;
   try {
-    db = requireSupabase();
+    db = requireSupabaseAdmin();
   } catch (error) {
     console.error('[dodo-webhook]', error instanceof Error ? error.message : error);
     return res.status(500).json({ error: 'Database not configured' });
@@ -524,25 +704,29 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
   }
 
   const { type, data } = payload;
-  const userId = typeof data?.metadata?.supabase_user_id === 'string' ? data.metadata.supabase_user_id : null;
 
   try {
+    const resolvedUser = await resolveWebhookUser(db, data);
+    const userId = resolvedUser.userId;
+
     switch (type) {
       case 'payment.succeeded': {
         const tier = tierFromMetadataOrProduct(data.metadata, data.product_cart);
 
         if (userId && tier) {
-          await db
-            .from('profiles')
-            .update({
+          await updateProfileStrict(
+            db,
+            userId,
+            {
               user_tier: tier,
               dodo_customer_id: data.customer?.customer_id ?? null,
               payment_provider: 'dodo',
               subscription_status: 'active',
               subscription_plan_code: tier.toLowerCase(),
               updated_at: new Date().toISOString(),
-            })
-            .eq('id', userId);
+            },
+            'payment.succeeded'
+          );
         }
 
         await logPayment(db, {
@@ -562,9 +746,10 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
         const tier = tierFromMetadataOrProduct(data.metadata, data.product_cart);
 
         if (userId && tier) {
-          await db
-            .from('profiles')
-            .update({
+          await updateProfileStrict(
+            db,
+            userId,
+            {
               user_tier: tier,
               dodo_customer_id: data.customer?.customer_id ?? null,
               dodo_subscription_id: data.subscription_id ?? null,
@@ -573,8 +758,9 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               subscription_plan_code: tier.toLowerCase(),
               subscription_end_date: data.next_billing_date ?? null,
               updated_at: new Date().toISOString(),
-            })
-            .eq('id', userId);
+            },
+            'subscription.active'
+          );
         }
 
         await logPayment(db, {
@@ -590,14 +776,18 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'subscription.renewed': {
         if (userId) {
-          await db
-            .from('profiles')
-            .update({
+          await updateProfileStrict(
+            db,
+            userId,
+            {
               subscription_status: 'active',
+              dodo_customer_id: data.customer?.customer_id ?? null,
+              dodo_subscription_id: data.subscription_id ?? null,
               subscription_end_date: data.next_billing_date ?? null,
               updated_at: new Date().toISOString(),
-            })
-            .eq('id', userId);
+            },
+            'subscription.renewed'
+          );
         }
 
         await logPayment(db, {
@@ -613,19 +803,22 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
       case 'subscription.cancelled': {
         if (userId) {
           if (data.cancel_at_next_billing_date && data.next_billing_date) {
-            await db
-              .from('profiles')
-              .update({
+            await updateProfileStrict(
+              db,
+              userId,
+              {
                 subscription_status: 'cancelled',
                 subscription_end_date: data.next_billing_date,
                 cancel_at_period_end: true,
                 updated_at: new Date().toISOString(),
-              })
-              .eq('id', userId);
+              },
+              'subscription.cancelled'
+            );
           } else {
-            await db
-              .from('profiles')
-              .update({
+            await updateProfileStrict(
+              db,
+              userId,
+              {
                 user_tier: 'SPARK',
                 subscription_status: 'inactive',
                 subscription_plan_code: null,
@@ -634,8 +827,9 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
                 dodo_subscription_id: null,
                 payment_provider: 'none',
                 updated_at: new Date().toISOString(),
-              })
-              .eq('id', userId);
+              },
+              'subscription.cancelled'
+            );
           }
         }
 
@@ -651,13 +845,15 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'subscription.on_hold': {
         if (userId) {
-          await db
-            .from('profiles')
-            .update({
+          await updateProfileStrict(
+            db,
+            userId,
+            {
               subscription_status: 'on_hold',
               updated_at: new Date().toISOString(),
-            })
-            .eq('id', userId);
+            },
+            'subscription.on_hold'
+          );
         }
         break;
       }
@@ -675,9 +871,10 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
       case 'refund.succeeded': {
         if (userId) {
-          await db
-            .from('profiles')
-            .update({
+          await updateProfileStrict(
+            db,
+            userId,
+            {
               user_tier: 'SPARK',
               subscription_status: 'inactive',
               subscription_plan_code: null,
@@ -686,8 +883,9 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               dodo_subscription_id: null,
               payment_provider: 'none',
               updated_at: new Date().toISOString(),
-            })
-            .eq('id', userId);
+            },
+            'refund.succeeded'
+          );
         }
 
         await logPayment(db, {
@@ -716,11 +914,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
         console.log(`[dodo-webhook] Unhandled event type: ${type}`);
     }
 
-    await db.from('processed_webhooks').insert({
-      webhook_id: webhookId,
-      event_type: type,
-      payload,
-    });
+    await insertProcessedWebhook(db, webhookId, type, payload);
 
     return res.status(200).json({ received: true });
   } catch (error) {
@@ -760,6 +954,6 @@ async function logPayment(
   });
 
   if (error) {
-    console.error('[dodo-webhook] Failed to log payment:', error.message);
+    throw new Error(`Failed to log payment: ${error.message}`);
   }
 }

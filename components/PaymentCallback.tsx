@@ -34,6 +34,12 @@ export const PaymentCallback: React.FC = () => {
   }, []);
 
   const pollForTierChange = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTier = params.get('plan')?.trim().toUpperCase();
+    const expectedTier = Object.values(UserTier).includes(requestedTier as UserTier)
+      ? (requestedTier as UserTier)
+      : undefined;
+
     setStatus('activating');
     setMessage('Payment confirmed. Activating your subscription...');
 
@@ -49,7 +55,19 @@ export const PaymentCallback: React.FC = () => {
 
         invalidateProfileCache(user.id);
         const profile = await getUserProfile();
-        return Boolean(profile && profile.user_tier !== UserTier.SPARK);
+        if (!profile) {
+          return false;
+        }
+
+        if (!expectedTier) {
+          return Boolean(profile.user_tier !== UserTier.SPARK);
+        }
+
+        return (
+          profile.user_tier === expectedTier &&
+          profile.payment_provider === 'dodo' &&
+          profile.subscription_status === 'active'
+        );
       } catch {
         return false;
       }

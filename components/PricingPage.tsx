@@ -114,7 +114,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(supportsAnnualDodoBilling);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState('');
 
   usePageSEO({
     title: 'Pricing — Genesis AI Visual Storytelling',
@@ -144,26 +143,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
     return () => { document.getElementById('pricing-jsonld')?.remove(); };
   }, []);
 
-  // Set email from auth context
-  useEffect(() => {
-    if (user?.email) setUserEmail(user.email);
-  }, [user?.email]);
-
-  // Also try to get email from localStorage on mount
-  useEffect(() => {
-    if (!userEmail) {
-      try {
-        const saved = localStorage.getItem('genesis_settings');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.email) setUserEmail(parsed.email);
-        }
-      } catch (_e) {
-        // Ignore parse errors
-      }
-    }
-  }, [userEmail]);
-
   const handleSubscribe = (tier: TierData) => {
     if (tier.priceMonthly === 0) {
       alert('You are now on the Free Spark plan!');
@@ -191,8 +170,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       setProcessingTier(tier.name);
       const checkoutUrl = await createDodoCheckout({
         plan: dodoPlan,
-        email: user.email ?? userEmail,
-        name: user.user_metadata?.full_name ?? user.email ?? userEmail,
       });
       window.location.href = checkoutUrl;
     } catch (err) {

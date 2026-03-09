@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Briefcase, Check, Crown, Loader, Shield, Star, X, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -121,21 +121,7 @@ export const OnboardingPricing: React.FC = () => {
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(supportsAnnualDodoBilling);
   const [processingTier, setProcessingTier] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState('');
   const [selectedTier, _setSelectedTier] = useState<string | null>(null);
-
-  // Load email from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('genesis_settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.email) setUserEmail(parsed.email);
-      }
-    } catch (_e) {
-      // Ignore parse errors
-    }
-  }, []);
 
   // Helper to get user ID and email from Supabase auth
   const getAuthUser = async () => {
@@ -177,8 +163,6 @@ export const OnboardingPricing: React.FC = () => {
       setProcessingTier(tier.name);
       const checkoutUrl = await createDodoCheckout({
         plan: dodoPlan,
-        email: user.email ?? userEmail,
-        name: user.user_metadata?.full_name ?? user.email ?? userEmail,
       });
       window.location.href = checkoutUrl;
     } catch (err) {

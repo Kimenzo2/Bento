@@ -273,8 +273,6 @@ export const ProRevealMoment: React.FC = () => {
       }
       const checkoutUrl = await createDodoCheckout({
         plan: 'creator_monthly',
-        email: user.email ?? '',
-        name: user.user_metadata?.full_name ?? user.email ?? '',
       });
       window.location.href = checkoutUrl;
     } catch (err) {

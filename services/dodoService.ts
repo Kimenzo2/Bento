@@ -12,8 +12,6 @@ import type { DodoPlan } from '../config/dodoPricing';
 
 interface DodoCheckoutParams {
   plan: DodoPlan;
-  email: string;
-  name: string;
 }
 
 interface DodoCheckoutResponse {

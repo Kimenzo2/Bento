@@ -22,6 +22,9 @@ export interface UserProfile {
   is_public: boolean | null;
   data_sharing_enabled: boolean | null;
   gamification_data: GamificationState;
+  payment_provider?: string | null;
+  subscription_status?: string | null;
+  dodo_subscription_id?: string | null;
   created_at: string;
   updated_at: string;
 }
