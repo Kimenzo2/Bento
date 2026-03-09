@@ -33,8 +33,19 @@ export const config = {
 // Supabase (service role — webhook handler needs admin access)
 // ---------------------------------------------------------------------------
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('[dodo] Missing Supabase env vars:', {
+    hasUrl: !!supabaseUrl,
+    hasServiceKey: !!supabaseServiceKey,
+    envKeys: Object.keys(process.env).filter(k => k.includes('SUPABASE')).join(', '),
+  });
+}
+
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 // ---------------------------------------------------------------------------
 // Dodo config — all from server-side env vars (no VITE_ prefix)
@@ -123,7 +134,9 @@ async function handleCheckout(ctx: ApiContext) {
   }
 
   if (!DODO_API_KEY) {
-    log.error('DODO_PAYMENTS_API_KEY not configured');
+    log.error('DODO_PAYMENTS_API_KEY not configured', undefined, {
+      availableEnvKeys: Object.keys(process.env).filter(k => k.includes('DODO')).join(', '),
+    });
     return res.status(500).json({ status: false, message: 'Payment service not configured' });
   }
 
