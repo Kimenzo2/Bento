@@ -11,7 +11,6 @@
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 export type OnboardingStep =
-  | 'spark'
   | 'quiz'
   | 'magic'
   | 'proreveal'
@@ -50,7 +49,7 @@ const OnboardingContext = createContext<OnboardingState | undefined>(undefined);
 const STORAGE_KEY = 'genesis_onboarding_state';
 
 const VALID_STEPS: OnboardingStep[] = [
-  'spark', 'quiz', 'magic', 'proreveal', 'pricing',
+  'quiz', 'magic', 'proreveal', 'pricing',
   'tour', 'identity', 'cliffhanger', 'welcome',
 ];
 
@@ -99,6 +98,14 @@ function getStepFromURL(): OnboardingStep | null {
   return VALID_STEPS.includes(stepParam) ? stepParam : null;
 }
 
+const VALID_THEMES: ThemeOption[] = ['cosmos', 'kingdom', 'cell'];
+
+function getThemeFromURL(): ThemeOption | null {
+  const params = new URLSearchParams(window.location.search);
+  const themeParam = params.get('realm') as ThemeOption;
+  return VALID_THEMES.includes(themeParam) ? themeParam : null;
+}
+
 function setStepInURL(step: OnboardingStep, replace = false): void {
   const url = new URL(window.location.href);
   url.searchParams.set('step', step);
@@ -111,8 +118,8 @@ function setStepInURL(step: OnboardingStep, replace = false): void {
 
 // Step ordering for determining forward/back direction
 const _STEP_ORDER: Record<OnboardingStep, number> = {
-  spark: 0, quiz: 1, magic: 2, proreveal: 3, pricing: 4,
-  tour: 5, identity: 6, cliffhanger: 7, welcome: 8,
+  quiz: 0, magic: 1, proreveal: 2, pricing: 3,
+  tour: 4, identity: 5, cliffhanger: 6, welcome: 7,
 };
 
 export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -124,10 +131,14 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children
     const urlStep = getStepFromURL();
     if (urlStep) return urlStep;
     if (persisted?.step && VALID_STEPS.includes(persisted.step)) return persisted.step;
-    return 'spark';
+    return 'quiz';
   });
 
-  const [theme, setThemeState] = useState<ThemeOption | null>(() => persisted?.theme ?? null);
+  const [theme, setThemeState] = useState<ThemeOption | null>(() => {
+    const urlTheme = getThemeFromURL();
+    if (urlTheme) return urlTheme;
+    return persisted?.theme ?? null;
+  });
   const [role, setRoleState] = useState<UserRole | null>(() => persisted?.role ?? null);
   const [generatedContent, setGeneratedContentState] = useState<string | null>(
     () => persisted?.generatedContent ?? null

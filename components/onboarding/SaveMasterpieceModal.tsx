@@ -21,7 +21,7 @@ export const SaveMasterpieceModal: React.FC = () => {
     setError(null);
     try {
       // Redirect back to the welcome success step after authentication
-      const { error } = await signInWithGoogle('/welcome?step=welcome');
+      const { error } = await signInWithGoogle('/welcome/onboarding?step=welcome');
       if (error) {
         setError(error.message || 'Failed to connect with Google');
         setIsLoading(false);
@@ -42,7 +42,7 @@ export const SaveMasterpieceModal: React.FC = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/welcome?step=welcome`,
+          emailRedirectTo: `${window.location.origin}/welcome/onboarding?step=welcome`,
         },
       });
 

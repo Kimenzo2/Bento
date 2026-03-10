@@ -1,6 +1,7 @@
 import { IcoZap } from './IconscoutIcons';
 import { BookOpen, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUserSettings } from '../hooks/useUserSettings';
@@ -20,6 +21,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   const { user } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { displayName, avatarUrl } = useUserSettings();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -86,9 +88,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
           paddingBottom: '0.5rem',
         }}
       >
+        {/* TEMPORARY: Genesis icon navigates to landing page for review */}
         <div
           className="flex items-center gap-3 group cursor-pointer"
-          onClick={() => handleModeChange(AppMode.DASHBOARD)}
+          onClick={() => navigate('/welcome')}
         >
           <div className="w-10 h-10 rounded-xl overflow-hidden border border-peach-soft group-hover:scale-105 transition-transform">
             <img src="/genesis-icon.jpg" alt="Genesis" className="w-full h-full object-cover" />

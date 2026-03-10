@@ -3,12 +3,6 @@ import { useEffect } from 'react';
 
 // Comprehensive list of all assets used in the onboarding flow
 const ASSETS_TO_PRELOAD = [
-  // WelcomeHero & Themes
-  '/images/onboarding/Cosmos.png',
-  '/images/onboarding/On 4.jpeg',
-  '/images/onboarding/On 5.png',
-  '/images/onboarding/Style_directive_highend_202512150033.jpeg',
-
   // PersonalizationQuiz
   '/images/onboarding/On 13.png',
   '/images/onboarding/On 14.png',

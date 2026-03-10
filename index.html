@@ -378,11 +378,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://api.dicebear.com" />
 
-  <!-- Google Fonts — blocking load ensures Fredoka + Manrope are always present on first paint.
-       Preconnect hints above eliminate the DNS/TLS handshake cost. -->
+  <!-- Google Fonts — preloaded non-blocking for better FCP.
+       Instrument Serif + Manrope are critical; Fredoka + Geist load asynchronously. -->
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Manrope:wght@200..800&display=swap" />
   <link
     rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Instrument+Serif&family=Manrope:wght@200..800&family=Geist:wght@100..900&display=swap" />
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Manrope:wght@200..800&display=swap"
+    media="print"
+    onload="this.media='all'" />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Geist:wght@100..900&display=swap"
+    media="print"
+    onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Instrument+Serif&family=Manrope:wght@200..800&family=Geist:wght@100..900&display=swap" />
+  </noscript>
 
   <!-- Global Styles -->
   <style>

@@ -26,7 +26,6 @@ const APPLE_EASE = [0.22, 1, 0.36, 1] as const;
 
 // ⚡ LAZY LOAD all step components for code splitting
 // Each becomes a separate chunk, loaded only when needed
-const WelcomeHero = lazy(() => import('./WelcomeHero').then((m) => ({ default: m.WelcomeHero })));
 const PersonalizationQuiz = lazy(() =>
   import('./PersonalizationQuiz').then((m) => ({ default: m.PersonalizationQuiz }))
 );
@@ -81,15 +80,14 @@ export const OnboardingLayout: React.FC = memo(() => {
   // ⚡ Memoized step map - computed once
   const stepMap = useMemo<Record<typeof step, number>>(
     () => ({
-      spark: 1,
-      quiz: 2,
-      magic: 3,
-      proreveal: 4,
-      pricing: 5,
-      tour: 6,
-      identity: 7,
-      cliffhanger: 8,
-      welcome: 9,
+      quiz: 1,
+      magic: 2,
+      proreveal: 3,
+      pricing: 4,
+      tour: 5,
+      identity: 6,
+      cliffhanger: 7,
+      welcome: 8,
     }),
     []
   );
@@ -112,13 +110,6 @@ export const OnboardingLayout: React.FC = memo(() => {
 
     // All animations use ONLY transform and opacity (GPU-composited)
     switch (step) {
-      case 'spark':
-        return {
-          initial: { opacity: 0 },
-          animate: { opacity: 1 },
-          exit: { opacity: 0 },
-          transition: { duration: 0.25, ease: APPLE_EASE },
-        };
       case 'quiz':
         return {
           initial: { opacity: 0, scale: 0.97 },
@@ -189,7 +180,7 @@ export const OnboardingLayout: React.FC = memo(() => {
 
   // ⚡ Memoized header visibility check
   const showHeader = useMemo(
-    () => step !== 'welcome' && step !== 'spark' && step !== 'proreveal' && step !== 'pricing',
+    () => step !== 'welcome' && step !== 'proreveal' && step !== 'pricing',
     [step]
   );
 
@@ -197,23 +188,12 @@ export const OnboardingLayout: React.FC = memo(() => {
   return (
     <div className="w-full h-full min-h-screen bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900 overflow-hidden transform-gpu backface-hidden">
       {/* Header - shown on select steps */}
-      {showHeader && <OnboardingHeader currentStep={stepMap[step]} totalSteps={9} />}
+      {showHeader && <OnboardingHeader currentStep={stepMap[step]} totalSteps={8} />}
 
       {/* ⚡ Suspense wrapper with instant fallback */}
       <Suspense fallback={<InstantFallback />}>
         {/* ⚡ AnimatePresence with optimized mode */}
         <AnimatePresence mode="wait" initial={false}>
-          {step === 'spark' && (
-            <motion.div
-              key="spark"
-              {...transition}
-              className="w-full h-full transform-gpu"
-              style={GPU_MOTION_STYLE}
-            >
-              <WelcomeHero />
-            </motion.div>
-          )}
-
           {step === 'quiz' && (
             <motion.div
               key="quiz"

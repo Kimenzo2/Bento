@@ -1,79 +1,118 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+
+/**
+ * SparkleCursor — lightweight mouse sparkle effect.
+ *
+ * Performance notes:
+ * - Uses refs instead of state to avoid React re-renders
+ * - Throttled to requestAnimationFrame (1 paint per frame, not 60+ state updates/sec)
+ * - Canvas-based rendering instead of DOM elements
+ * - Respects prefers-reduced-motion
+ * - Does not run on touch-only devices
+ */
 
 interface Sparkle {
-  id: number;
   x: number;
   y: number;
   size: number;
   color: string;
+  life: number; // 0-1, decreases each frame
+  vy: number;   // vertical velocity (gravity)
 }
 
+const COLORS = ['#FF9B71', '#FFD700', '#60A5FA', '#F472B6'];
+const MAX_SPARKLES = 20;
+const SPAWN_CHANCE = 0.2;
+
 const SparkleCursor: React.FC = () => {
-  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
-  const [_mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sparklesRef = useRef<Sparkle[]>([]);
+  const rafRef = useRef<number>(0);
+  const mouseRef = useRef({ x: 0, y: 0, active: false });
+
+  const animate = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Resize canvas to match viewport if needed
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Update and draw sparkles
+    const alive: Sparkle[] = [];
+    for (const s of sparklesRef.current) {
+      s.life -= 0.03;
+      s.y += s.vy;
+      s.vy += 0.08; // gravity
+
+      if (s.life > 0) {
+        alive.push(s);
+        const currentSize = s.size * s.life;
+        const alpha = s.life;
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = s.color;
+        ctx.shadowBlur = currentSize * 2;
+        ctx.shadowColor = s.color;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, currentSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    sparklesRef.current = alive;
+
+    rafRef.current = requestAnimationFrame(animate);
+  }, []);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+    // Skip on touch-only devices or reduced motion preference
+    const isTouch = window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isTouch || reducedMotion) return;
 
-      if (Math.random() > 0.8) {
-        // Only add sparkles occasionally to avoid lag
-        addSparkle(e.clientX, e.clientY);
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current.x = e.clientX;
+      mouseRef.current.y = e.clientY;
+      mouseRef.current.active = true;
+
+      if (Math.random() < SPAWN_CHANCE && sparklesRef.current.length < MAX_SPARKLES) {
+        sparklesRef.current.push({
+          x: e.clientX,
+          y: e.clientY,
+          size: Math.random() * 4 + 2,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          life: 1,
+          vy: -(Math.random() * 1.5 + 0.5), // slight upward initial velocity
+        });
       }
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    rafRef.current = requestAnimationFrame(animate);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSparkles((prev) =>
-        prev
-          .filter((s) => s.size > 0.5)
-          .map((s) => ({
-            ...s,
-            y: s.y + 1, // Gravity
-            size: s.size - 0.2, // Fade out
-          }))
-      );
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const addSparkle = (x: number, y: number) => {
-    const colors = ['#FF9B71', '#FFD700', '#60A5FA', '#F472B6'];
-    const newSparkle: Sparkle = {
-      id: Date.now() + Math.random(),
-      x,
-      y,
-      size: Math.random() * 6 + 2,
-      color: colors[Math.floor(Math.random() * colors.length)],
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(rafRef.current);
     };
-    setSparkles((prev) => [...prev.slice(-20), newSparkle]); // Limit to 20 sparkles
-  };
+  }, [animate]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-9999 overflow-hidden">
-      {sparkles.map((s) => (
-        <div
-          key={s.id}
-          className="absolute rounded-full animate-pulse"
-          style={{
-            left: s.x,
-            top: s.y,
-            width: s.size,
-            height: s.size,
-            backgroundColor: s.color,
-            opacity: s.size / 8,
-            transform: 'translate(-50%, -50%)',
-            boxShadow: `0 0 ${s.size * 2}px ${s.color}`,
-          }}
-        />
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none fixed inset-0"
+      style={{ zIndex: 9999 }}
+      aria-hidden="true"
+    />
   );
 };
 

@@ -82,6 +82,7 @@ const LearnPage = lazy(() => import('./components/learn/LearnPage'));
 const LearnArticlePage = lazy(() => import('./components/learn/LearnArticlePage'));
 const TransparencyPage = lazy(() => import('./components/learn/TransparencyPage'));
 const LegalViewer = lazy(() => import('./components/LegalViewer'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const PublicLegalPage: React.FC<{ initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use' }> = ({
   initialDoc,
@@ -213,13 +214,13 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       // Returning visitor: session expired, send to auth then back to dashboard
       return <Navigate to="/auth?returnTo=/" replace />;
     }
-    // Brand new visitor: send to onboarding funnel
+    // Brand new visitor: send to the landing page
     return <Navigate to="/welcome" replace />;
   }
 
   if (!hasCompletedOnboarding && !isReturningUser) {
     // Genuinely new user with no profile, redirect to onboarding
-    return <Navigate to="/welcome" replace />;
+    return <Navigate to="/welcome/onboarding" replace />;
   }
 
   return <>{children}</>;
@@ -269,9 +270,19 @@ export const AppRouter: React.FC = () => {
           <Route path="/transparency" element={<TransparencyPage />} />
         </Route>
 
-        {/* Onboarding route - completely isolated experience */}
+        {/* Landing page — public, themed via ThemeProvider so all 6 themes work */}
         <Route
-          path="/welcome/*"
+          path="/welcome"
+          element={
+            <ThemeProvider>
+              <LandingPage />
+            </ThemeProvider>
+          }
+        />
+
+        {/* Onboarding flow - completely isolated experience for new users in the funnel */}
+        <Route
+          path="/welcome/onboarding/*"
           element={
             <OnboardingGuard>
               <OnboardingApp />

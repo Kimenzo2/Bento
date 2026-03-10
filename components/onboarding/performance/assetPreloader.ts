@@ -11,16 +11,8 @@
 
 // All onboarding assets categorized by priority
 export const ONBOARDING_ASSETS = {
-  // Critical - load immediately (first screen)
+  // Critical - load immediately (first screen: quiz)
   critical: [
-    '/images/onboarding/Style_directive_highend_202512150033.jpeg', // Gen mascot
-    '/images/onboarding/Cosmos.png',
-    '/images/onboarding/On 4.jpeg', // Kingdom
-    '/images/onboarding/On 5.png', // Cell
-  ],
-
-  // High priority - load after critical (quiz screen)
-  high: [
     '/images/onboarding/On 13.png', // Kids
     '/images/onboarding/On 14.png', // Sci-fi
     '/images/onboarding/On 15.png', // Brand
@@ -28,8 +20,8 @@ export const ONBOARDING_ASSETS = {
     '/images/onboarding/On 17.png', // Pro
   ],
 
-  // Medium priority - load when idle (creation demo)
-  medium: [
+  // High priority - load after critical (creation demo)
+  high: [
     '/images/onboarding/On 18.png', // Daily
     '/images/onboarding/On 19.png', // Occasional
   ],
@@ -140,8 +132,7 @@ export function preloadCriticalAssets(): Promise<void> {
  */
 export function preloadNextScreen(currentStep: string): void {
   const stepAssets: Record<string, readonly string[]> = {
-    spark: ONBOARDING_ASSETS.high,
-    quiz: ONBOARDING_ASSETS.medium,
+    quiz: ONBOARDING_ASSETS.high,
     magic: [...ONBOARDING_ASSETS.low],
     proreveal: [],
     pricing: [],
