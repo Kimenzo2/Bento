@@ -23,7 +23,7 @@ const S = {
   accent: '#C15F3C',
   accentBg: '#FDF3EE',
   fontSerif: '"Instrument Serif", Georgia, serif',
-  fontSans: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+  fontSans: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
 } as const;
 
 /* ─────────────────────────────────────────────────────────────
@@ -298,7 +298,7 @@ const BlogPost: React.FC = () => {
             style={{
               color: S.text,
               borderColor: S.border,
-              fontFamily: S.fontSerif,
+              fontFamily: S.fontSans,
               fontSize: '1.2rem',
               fontWeight: 400,
               lineHeight: 1.7,
@@ -316,7 +316,7 @@ const BlogPost: React.FC = () => {
               h4: HeadingRenderer(4),
               p({ children }) {
                 return (
-                  <p style={{ marginBottom: '1.35rem', lineHeight: '1.8', fontSize: '1.0625rem', color: S.text, fontFamily: S.fontSans }}>
+                  <p style={{ marginBottom: '1.4rem', lineHeight: '1.85', fontSize: '1.0625rem', color: S.text, fontFamily: S.fontSans }}>
                     {children}
                   </p>
                 );
@@ -335,7 +335,8 @@ const BlogPost: React.FC = () => {
                       paddingLeft: '1.25rem',
                       margin: '1.75rem 0',
                       color: S.textMuted,
-                      fontFamily: S.fontSerif,
+                      fontFamily: S.fontSans,
+                      fontStyle: 'italic',
                       fontSize: '1.1rem',
                       lineHeight: '1.75',
                     }}
@@ -567,3 +568,4 @@ const BlogPost: React.FC = () => {
 };
 
 export default BlogPost;
+

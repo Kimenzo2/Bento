@@ -16,7 +16,7 @@ const S = {
   accent: '#C15F3C',
   accentBg: '#FDF3EE',
   fontSerif: '"Instrument Serif", Georgia, serif',
-  fontSans: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+  fontSans: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
 } as const;
 
 const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
@@ -102,3 +102,4 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
 };
 
 export default BlogCard;
+

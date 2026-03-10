@@ -78,6 +78,15 @@ const TierLayout = lazy(() => import('./components/tiers/TierLayout'));
 // Public blog pages — no auth required, themed via standalone ThemeProvider
 const BlogIndex = lazy(() => import('./components/blog/BlogIndex'));
 const BlogPost = lazy(() => import('./components/blog/BlogPost'));
+const LegalViewer = lazy(() => import('./components/LegalViewer'));
+
+const PublicLegalPage: React.FC<{ initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use' }> = ({
+  initialDoc,
+}) => (
+  <ThemeProvider>
+    <LegalViewer initialDoc={initialDoc} />
+  </ThemeProvider>
+);
 
 // Single unified loading state — AppSkeleton replaces all previous spinners
 const AppLoading: React.FC = () => <AppSkeleton />;
@@ -230,6 +239,17 @@ export const AppRouter: React.FC = () => {
           <Route path="/tier/studio" element={<TierDetailStudio />} />
           <Route path="/tier/empire" element={<TierDetailEmpire />} />
         </Route>
+
+        {/* Public legal pages for SEO and direct access */}
+        <Route path="/legal" element={<PublicLegalPage initialDoc="privacy" />} />
+        <Route path="/legal/privacy" element={<PublicLegalPage initialDoc="privacy" />} />
+        <Route path="/legal/terms" element={<PublicLegalPage initialDoc="terms" />} />
+        <Route path="/legal/cookies" element={<PublicLegalPage initialDoc="cookies" />} />
+        <Route path="/legal/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
+        <Route path="/privacy" element={<PublicLegalPage initialDoc="privacy" />} />
+        <Route path="/terms" element={<PublicLegalPage initialDoc="terms" />} />
+        <Route path="/cookies" element={<PublicLegalPage initialDoc="cookies" />} />
+        <Route path="/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
 
         {/* Blog — public, SEO-indexed, inherits user theme from localStorage */}
         <Route
