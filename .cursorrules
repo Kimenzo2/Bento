@@ -1,0 +1,36 @@
+# Cursor Rules for Genesis
+
+Read and obey all rules in `AGENTS.md` at the project root before making any changes.
+
+## CRITICAL: Payment System is LOCKED
+
+The Dodo Payments integration is live processing real money. These rules prevent production outages:
+
+## Frozen Files (DO NOT MODIFY without explicit owner approval)
+- `api/dodo.ts` — Dodo Payments server (checkout + webhook)
+- `vercel.json` — Webhook routing config, `trailingSlash: false`
+- `supabase/migrations/007_add_dodo_payments.sql`
+- `supabase/migrations/009_payment_history.sql`
+- `supabase/migrations/011_dodo_subscription_management.sql`
+- `supabase/migrations/012_dodo_profile_reconciliation.sql`
+- `services/dodoService.ts`
+- `components/PaymentCallback.tsx`
+- `components/onboarding/ProRevealMoment.tsx`
+
+## Non-Negotiable Rules
+1. `vercel.json` > `trailingSlash` MUST be `false`. `true` causes 308 redirects that silently kill Dodo webhook POST requests.
+2. NEVER import `_middleware.ts` in any API file. It imports ESM-only `jose` and crashes the serverless function at module load.
+3. NEVER add Paystack references back. The sole payment provider is Dodo.
+4. NEVER drop or rename columns in `profiles`, `payment_history`, or `processed_webhooks` that are referenced by `api/dodo.ts` or the `apply_dodo_webhook_profile_sync` trigger.
+5. RLS policies must use `(SELECT auth.uid())` wrapper, not bare `auth.uid()`.
+6. `api/dodo.ts` > config `bodyParser` must be `false` for webhook signature verification.
+7. When adding Vercel env vars: `printf 'value' | npx vercel env add VAR production --yes` (never `echo`, it adds `\n`).
+8. The Dodo webhook URL is `https://iamazeyou.me/api/dodo-webhook` (no trailing slash).
+
+## Live Database Schema (do not alter)
+- profiles: `user_tier`, `subscription_status`, `subscription_plan_code`, `subscription_end_date`, `cancel_at_period_end`, `dodo_customer_id`, `dodo_subscription_id`, `payment_provider`
+- payment_history: `user_id`, `provider`, `payment_id`, `subscription_id`, `amount`, `currency`, `plan`, `status`, `event_type`, `metadata`
+- processed_webhooks: `webhook_id`, `event_type`, `processed_at`, `payload` (has AFTER INSERT trigger for profile sync)
+- RPC functions: `downgrade_to_spark`, `get_today_upgrade_count`, `apply_dodo_webhook_profile_sync`
+
+For full details see `AGENTS.md`.
