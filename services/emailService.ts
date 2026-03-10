@@ -87,7 +87,7 @@ export async function sendWelcomeEmail(
             </ul>
 
             <p style="text-align: center;">
-              <a href="https://genesis.app" class="button">Start Creating Now</a>
+              <a href="https://iamazeyou.me" class="button">Start Creating Now</a>
             </p>
 
             <h3>🚀 Quick Start Tips:</h3>
@@ -163,7 +163,7 @@ export async function sendBookCompletionEmail(
             </ul>
 
             <p style="text-align: center;">
-              <a href="https://genesis.app" class="button">View Your Book</a>
+              <a href="https://iamazeyou.me" class="button">View Your Book</a>
             </p>
 
             <p>Keep creating and inspiring others with your stories!</p>
@@ -232,7 +232,7 @@ export async function sendSubscriptionEmail(
             </ul>
 
             <p style="text-align: center;">
-              <a href="https://genesis.app" class="button">Start Creating</a>
+              <a href="https://iamazeyou.me" class="button">Start Creating</a>
             </p>
 
             <p>Thank you for supporting Genesis! We can't wait to see what you create with your enhanced capabilities.</p>
@@ -252,7 +252,7 @@ export async function sendSubscriptionEmail(
     to: userEmail,
     subject: `🚀 Welcome to ${planName} - Your Upgrade is Active!`,
     html,
-    text: `Hi ${userName}! Your subscription to ${planName} is now active. Enjoy your new premium features: ${features.join(', ')}. Start creating at genesis.app`,
+    text: `Hi ${userName}! Your subscription to ${planName} is now active. Enjoy your new premium features: ${features.join(', ')}. Start creating at iamazeyou.me`,
   });
 }
 

@@ -156,11 +156,11 @@ const AboutSection: React.FC = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
           <p className="text-xs md:text-sm text-blue-900">Need assistance? We're here to help!</p>
           <a
-            href="mailto:support@genesis.app"
+            href="mailto:hello@iamazeyou.me"
             className="flex items-center gap-2 text-xs md:text-sm font-bold text-blue-600 hover:text-blue-700 touch-manipulation"
           >
             <Mail className="w-4 h-4" />
-            support@genesis.app
+            hello@iamazeyou.me
           </a>
         </div>
       </div>

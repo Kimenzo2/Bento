@@ -148,7 +148,7 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
       }, 2000);
     } catch (error) {
       console.error('Delete account error:', error);
-      toast.error('Account deletion failed', { description: 'Please contact support@getgenesis.app.' });
+      toast.error('Account deletion failed', { description: 'Please contact hello@iamazeyou.me.' });
     } finally {
       setIsLoading(false);
       setShowDeleteConfirm(false);

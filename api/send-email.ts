@@ -44,7 +44,7 @@ export default createAuthenticatedHandler(
       }
 
       const { data, error } = await resend.emails.send({
-        from: from || 'Genesis <onboarding@resend.dev>',
+        from: from || 'Genesis <hello@iamazeyou.me>',
         to: Array.isArray(to) ? to : [to],
         subject,
         html,

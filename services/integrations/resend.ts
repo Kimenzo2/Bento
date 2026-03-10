@@ -97,7 +97,7 @@ class ResendService {
   private initialized = false;
   private config: ResendConfig | null = null;
   private baseUrl = 'https://api.resend.com';
-  private defaultFrom = 'Genesis <noreply@genesis.app>';
+  private defaultFrom = 'Genesis <hello@iamazeyou.me>';
 
   /**
    * Initialize Resend with API key
@@ -250,7 +250,7 @@ class ResendService {
             <li>🎨 Explore our visual studio for cover design</li>
             <li>🌍 Publish in 50+ languages</li>
           </ul>
-          <a href="https://genesis.app/create" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
+          <a href="https://iamazeyou.me/create" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
             Start Creating
           </a>
           <p style="color: #666; margin-top: 32px;">Happy writing!<br>The Genesis Team</p>
@@ -329,7 +329,7 @@ class ResendService {
           <h2 style="color: #6366f1;">Achievement Unlocked!</h2>
           <h3 style="color: #1f2937;">${achievementName}</h3>
           <p style="color: #666;">${description}</p>
-          <a href="https://genesis.app/achievements" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
+          <a href="https://iamazeyou.me/achievements" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
             View All Achievements
           </a>
         </div>
@@ -372,7 +372,7 @@ class ResendService {
               </div>
             </div>
           </div>
-          <a href="https://genesis.app/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">
+          <a href="https://iamazeyou.me/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">
             Continue Your Journey
           </a>
         </div>

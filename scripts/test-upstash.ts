@@ -48,7 +48,7 @@ async function testRedis() {
     console.log('📦 Testing HASH operations...');
     await redis.hset('genesis:test:user', {
       name: 'Genesis User',
-      email: 'user@genesis.app',
+      email: 'user@iamazeyou.me',
       plan: 'creator',
     });
     const user = await redis.hgetall('genesis:test:user');
