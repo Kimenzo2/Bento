@@ -78,6 +78,9 @@ const TierLayout = lazy(() => import('./components/tiers/TierLayout'));
 // Public blog pages — no auth required, themed via standalone ThemeProvider
 const BlogIndex = lazy(() => import('./components/blog/BlogIndex'));
 const BlogPost = lazy(() => import('./components/blog/BlogPost'));
+const LearnPage = lazy(() => import('./components/learn/LearnPage'));
+const LearnArticlePage = lazy(() => import('./components/learn/LearnArticlePage'));
+const TransparencyPage = lazy(() => import('./components/learn/TransparencyPage'));
 const LegalViewer = lazy(() => import('./components/LegalViewer'));
 
 const PublicLegalPage: React.FC<{ initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use' }> = ({
@@ -261,6 +264,9 @@ export const AppRouter: React.FC = () => {
         >
           <Route path="/blog" element={<BlogIndex />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/learn" element={<LearnPage />} />
+          <Route path="/learn/:slug" element={<LearnArticlePage />} />
+          <Route path="/transparency" element={<TransparencyPage />} />
         </Route>
 
         {/* Onboarding route - completely isolated experience */}
