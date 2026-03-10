@@ -1,4 +1,4 @@
-import { IcoAward, IcoCrown } from '../IconscoutIcons';
+﻿import { IcoAward, IcoCrown } from '../IconscoutIcons';
 /**
  * TierDetailEmpire - Empire Tier Detail Page
  *
@@ -403,7 +403,7 @@ const TierDetailEmpire: React.FC = () => {
   };
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:enterprise@genesis.ai?subject=Empire Tier - Enterprise Inquiry';
+    window.location.href = 'mailto:enterprise@iamazeyou.me?subject=Empire Tier - Enterprise Inquiry';
   };
 
   const handleBack = () => {
@@ -829,7 +829,7 @@ const TierDetailEmpire: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:enterprise@genesis.ai?subject=API%20Documentation%20Request"
+                    href="mailto:enterprise@iamazeyou.me?subject=API%20Documentation%20Request"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     API Documentation
@@ -852,15 +852,15 @@ const TierDetailEmpire: React.FC = () => {
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
                   <a
-                    href="mailto:enterprise@genesis.ai"
+                    href="mailto:enterprise@iamazeyou.me"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
-                    enterprise@genesis.ai
+                    enterprise@iamazeyou.me
                   </a>
                 </li>
                 <li>
                   <a
-                    href="mailto:enterprise@genesis.ai?subject=Schedule%20Demo"
+                    href="mailto:enterprise@iamazeyou.me?subject=Schedule%20Demo"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Schedule Demo
@@ -868,7 +868,7 @@ const TierDetailEmpire: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:enterprise@genesis.ai?subject=Request%20Proposal"
+                    href="mailto:enterprise@iamazeyou.me?subject=Request%20Proposal"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Request Proposal
@@ -881,7 +881,7 @@ const TierDetailEmpire: React.FC = () => {
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=Enterprise%20Agreement"
+                    href="mailto:legal@iamazeyou.me?subject=Enterprise%20Agreement"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Enterprise Agreement
@@ -889,7 +889,7 @@ const TierDetailEmpire: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=DPA%20Template"
+                    href="mailto:legal@iamazeyou.me?subject=DPA%20Template"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     DPA Template
@@ -897,7 +897,7 @@ const TierDetailEmpire: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=BAA%20Template"
+                    href="mailto:legal@iamazeyou.me?subject=BAA%20Template"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     BAA Template

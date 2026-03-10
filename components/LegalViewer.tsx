@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, Cookie, FileText, Shield } from 'lucide-react';
+﻿import { AlertCircle, ArrowLeft, Cookie, FileText, Shield } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -149,8 +149,8 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
           <p>Last Updated: December 9, 2025</p>
           <p className="mt-2">
             Questions? Contact us at{' '}
-            <a href="mailto:legal@genesis.ai" className="text-coral-burst hover:underline">
-              legal@genesis.ai
+            <a href="mailto:legal@iamazeyou.me" className="text-coral-burst hover:underline">
+              legal@iamazeyou.me
             </a>
           </p>
         </div>
@@ -231,7 +231,7 @@ You have the right to:
 - **Portability**: Export your data in standard formats
 - **Opt-Out**: Unsubscribe from marketing communications
 
-Contact us at: **privacy@genesis.ai**
+Contact us at: **privacy@iamazeyou.me**
 
 ## Cookies and Tracking
 
@@ -247,7 +247,7 @@ We may update this Privacy Policy periodically. We will notify you of material c
 
 ## Contact Us
 
-For privacy-related questions: **privacy@genesis.ai**
+For privacy-related questions: **privacy@iamazeyou.me**
 
 ---
 
@@ -330,8 +330,8 @@ We may update these Terms periodically with notice via email or platform announc
 
 ## 10. Contact Information
 
-**Email**: legal@genesis.ai  
-**Support**: support@genesis.ai
+**Email**: legal@iamazeyou.me  
+**Support**: support@iamazeyou.me
 
 ---
 
@@ -383,7 +383,7 @@ Most browsers allow you to:
 
 ## Contact Us
 
-Questions about cookies? **privacy@genesis.ai**
+Questions about cookies? **privacy@iamazeyou.me**
 
 ---
 
@@ -445,7 +445,7 @@ You may **NOT**:
 
 ## Reporting Violations
 
-**Email**: abuse@genesis.ai  
+**Email**: abuse@iamazeyou.me  
 **Response Time**: 48 hours
 
 ## Enforcement
@@ -456,7 +456,7 @@ You may **NOT**:
 
 ## Contact
 
-**Email**: legal@genesis.ai
+**Email**: legal@iamazeyou.me
 
 ---
 

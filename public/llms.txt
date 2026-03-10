@@ -1,4 +1,4 @@
-# Genesis
+﻿# Genesis
 
 > AI-powered visual storytelling software for creators, educators, and game developers.
 
@@ -203,7 +203,7 @@ Q: What challenges do creators face with AI character design consistency?
 A: The core challenge is that most AI tools treat every generation independently — a character's face, outfit, and proportions change from one image to the next. Genesis solves this with Gen's character memory system and realm-based context priming, which lock in character identity across every subsequent generation in a project.
 
 Q: Why is my AI character design not saving properly?
-A: In Genesis, all work auto-saves to the cloud as you create. If a design does not appear in your library, ensure you are signed in to your account and have an active internet connection. On the free Spark tier, the library holds up to your creation limit. If the issue persists, contact support at support@genesis.ai.
+A: In Genesis, all work auto-saves to the cloud as you create. If a design does not appear in your library, ensure you are signed in to your account and have an active internet connection. On the free Spark tier, the library holds up to your creation limit. If the issue persists, contact support at support@iamazeyou.me.
 
 Q: Looking for guided AI tool to create story visuals?
 A: Genesis (iamazeyou.me) is a guided AI visual storytelling tool. Unlike tools that demand precise prompts, Genesis's AI companion Gen leads the creative process — asking questions about your story, suggesting visual directions, and generating illustrations that are contextually consistent. Choose a realm, describe your idea, and Gen builds the visuals with you.

@@ -1,4 +1,4 @@
-# Cookie Policy
+﻿# Cookie Policy
 
 **Last Updated:** December 9, 2025
 
@@ -71,7 +71,7 @@ regulations. Check back periodically for updates.
 
 ## Contact Us
 
-Questions about cookies? Contact us at: **<privacy@genesis.ai>**
+Questions about cookies? Contact us at: **<privacy@iamazeyou.me>**
 
 ---
 

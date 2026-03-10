@@ -1,4 +1,4 @@
-# Privacy Policy for Genesis
+﻿# Privacy Policy for Genesis
 
 **Effective Date:** December 9, 2025  
 **Last Updated:** December 9, 2025
@@ -98,7 +98,7 @@ You have the right to:
 
 ### Exercise Your Rights
 
-Contact us at: **<privacy@genesis.ai>**
+Contact us at: **<privacy@iamazeyou.me>**
 
 ### Data Retention
 
@@ -121,7 +121,7 @@ essential cookies may limit functionality.
 
 Genesis is not intended for children under 13. We do not knowingly collect
 information from children. If you believe a child has provided us with personal
-information, contact us immediately at **<privacy@genesis.ai>**.
+information, contact us immediately at **<privacy@iamazeyou.me>**.
 
 ## International Data Transfers
 
@@ -163,7 +163,7 @@ Continued use after changes constitutes acceptance of the updated policy.
 
 For privacy-related questions or concerns:
 
-**Email**: <privacy@genesis.ai>  
+**Email**: <privacy@iamazeyou.me>  
 **Address**: [Your Company Address]  
 **Support**: <https://genesis-1765265007.documentationai.com/>
 

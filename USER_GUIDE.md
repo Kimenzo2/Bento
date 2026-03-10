@@ -1,4 +1,4 @@
-# 📘 Genesis User Guide: Creating Masterpieces
+﻿# 📘 Genesis User Guide: Creating Masterpieces
 
 > _Welcome to the Genesis Studio. Here, your imagination meets our engine._
 
@@ -81,4 +81,4 @@ Your masterpiece deserves an audience.
 
 ---
 
-_Need help? Our support team is standing by at <support@genesis.ai>_
+_Need help? Our support team is standing by at <support@iamazeyou.me>_

@@ -1,4 +1,4 @@
-import { IcoCrown } from '../IconscoutIcons';
+﻿import { IcoCrown } from '../IconscoutIcons';
 import { AnimatePresence, motion } from 'framer-motion';
 
 /**
@@ -297,7 +297,7 @@ export const WelcomeHero: React.FC = memo(() => {
                       Compare Plans
                     </button>
                     <a
-                      href="mailto:support@genesis.ai"
+                      href="mailto:support@iamazeyou.me"
                       className="min-h-11 rounded-full border border-white/10 px-6 py-3 text-sm font-semibold text-white/70 transition hover:border-white/30 hover:text-white"
                     >
                       Contact Support
@@ -455,7 +455,7 @@ export const WelcomeHero: React.FC = memo(() => {
           <section className="grid gap-4 md:grid-cols-3" aria-label="Genesis trust and differentiators">
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
               <h2 className="text-lg font-bold text-white font-heading">Trust Signals</h2>
-              <p className="mt-2 text-sm leading-6 text-white/70">SSL-secured checkout, cancel-anytime subscriptions, export ownership, and support at support@genesis.ai.</p>
+              <p className="mt-2 text-sm leading-6 text-white/70">SSL-secured checkout, cancel-anytime subscriptions, export ownership, and support at support@iamazeyou.me.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <h2 className="text-lg font-bold text-white font-heading">Why Genesis stands out</h2>
@@ -529,7 +529,7 @@ export const WelcomeHero: React.FC = memo(() => {
               </details>
               <details className="rounded-2xl border border-white/10 bg-slate-950/30 p-5 text-white/70 open:bg-slate-950/40">
                 <summary className="cursor-pointer list-none font-heading text-base font-bold text-white">Where can I get help or ask sales questions?</summary>
-                <p className="mt-3 text-sm leading-6">Email support@genesis.ai for product help, billing questions, classroom rollout guidance, or enterprise conversations.</p>
+                <p className="mt-3 text-sm leading-6">Email support@iamazeyou.me for product help, billing questions, classroom rollout guidance, or enterprise conversations.</p>
               </details>
             </div>
           </section>
@@ -542,7 +542,7 @@ export const WelcomeHero: React.FC = memo(() => {
                   Need onboarding help, plan guidance, or a custom workflow conversation? Reach the Genesis team directly. If you are ready, start with Spark or review paid plans before continuing.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <a href="mailto:support@genesis.ai" className="min-h-11 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-white/90">support@genesis.ai</a>
+                  <a href="mailto:support@iamazeyou.me" className="min-h-11 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-white/90">support@iamazeyou.me</a>
                   <button
                     type="button"
                     onClick={() => setStep('pricing')}

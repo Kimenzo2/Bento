@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TierDetailStudio - Studio Tier Detail Page
  *
  * Target: Agencies and teams scaling operations
@@ -423,7 +423,7 @@ const TierDetailStudio: React.FC = () => {
   };
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:sales@genesis.ai?subject=Studio Tier Inquiry';
+    window.location.href = 'mailto:sales@iamazeyou.me?subject=Studio Tier Inquiry';
   };
 
   const handleBack = () => {
@@ -770,7 +770,7 @@ const TierDetailStudio: React.FC = () => {
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
                   <a
-                    href="mailto:support@genesis.ai"
+                    href="mailto:support@iamazeyou.me"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Help Center
@@ -778,7 +778,7 @@ const TierDetailStudio: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:enterprise@genesis.ai?subject=Studio%20Onboarding%20Request"
+                    href="mailto:enterprise@iamazeyou.me?subject=Studio%20Onboarding%20Request"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Schedule Onboarding
@@ -786,7 +786,7 @@ const TierDetailStudio: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:enterprise@genesis.ai"
+                    href="mailto:enterprise@iamazeyou.me"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Contact Us
@@ -799,7 +799,7 @@ const TierDetailStudio: React.FC = () => {
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=Terms%20of%20Service"
+                    href="mailto:legal@iamazeyou.me?subject=Terms%20of%20Service"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Terms of Service
@@ -807,7 +807,7 @@ const TierDetailStudio: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=Privacy%20Policy"
+                    href="mailto:legal@iamazeyou.me?subject=Privacy%20Policy"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Privacy Policy
@@ -815,7 +815,7 @@ const TierDetailStudio: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=Enterprise%20Agreement"
+                    href="mailto:legal@iamazeyou.me?subject=Enterprise%20Agreement"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Enterprise Agreement

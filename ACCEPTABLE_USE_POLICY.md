@@ -1,4 +1,4 @@
-# Acceptable Use Policy
+﻿# Acceptable Use Policy
 
 **Effective Date:** December 9, 2025
 
@@ -107,7 +107,7 @@ You may **NOT**:
 
 If you encounter content or behavior that violates this AUP:
 
-**Email**: <abuse@genesis.ai>  
+**Email**: <abuse@iamazeyou.me>  
 **In-App**: Use the "Report" button  
 **Response Time**: We review reports within 48 hours
 
@@ -132,7 +132,7 @@ We reserve the right to immediately terminate accounts that:
 
 If you believe your account was suspended in error:
 
-1. Email **<appeals@genesis.ai>** within 14 days
+1. Email **<appeals@iamazeyou.me>** within 14 days
 2. Provide detailed explanation and evidence
 3. We will review and respond within 7 business days
 
@@ -157,7 +157,7 @@ We cooperate with law enforcement and may:
 
 - Must comply with COPPA for users under 13
 - Parental consent required for minors
-- Educational pricing available (contact <sales@genesis.ai>)
+- Educational pricing available (contact <sales@iamazeyou.me>)
 
 ## API and Developer Use
 
@@ -191,8 +191,8 @@ Continued use after updates constitutes acceptance.
 
 For questions about this policy:
 
-**Email**: <legal@genesis.ai>  
-**Support**: <support@genesis.ai>  
+**Email**: <legal@iamazeyou.me>  
+**Support**: <support@iamazeyou.me>  
 **Documentation**: <https://genesis-1765265007.documentationai.com/>
 
 ---

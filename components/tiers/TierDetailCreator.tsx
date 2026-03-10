@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TierDetailCreator - Creator Tier Detail Page
  *
  * Target: Freelancers making the leap to professional
@@ -386,7 +386,7 @@ const TierDetailCreator: React.FC = () => {
   };
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:sales@genesis.ai?subject=Creator Tier Inquiry';
+    window.location.href = 'mailto:sales@iamazeyou.me?subject=Creator Tier Inquiry';
   };
 
   const handleBack = () => {
@@ -723,7 +723,7 @@ const TierDetailCreator: React.FC = () => {
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
                   <a
-                    href="mailto:support@genesis.ai"
+                    href="mailto:support@iamazeyou.me"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Help Center
@@ -731,7 +731,7 @@ const TierDetailCreator: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:hello@genesis.ai?subject=Community%20Forum"
+                    href="mailto:hello@iamazeyou.me?subject=Community%20Forum"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Community Forum
@@ -739,7 +739,7 @@ const TierDetailCreator: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:hello@genesis.ai"
+                    href="mailto:hello@iamazeyou.me"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Contact Us
@@ -752,7 +752,7 @@ const TierDetailCreator: React.FC = () => {
               <ul className="space-y-2 text-white/60 text-sm">
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=Terms%20of%20Service"
+                    href="mailto:legal@iamazeyou.me?subject=Terms%20of%20Service"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Terms of Service
@@ -760,7 +760,7 @@ const TierDetailCreator: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=Privacy%20Policy"
+                    href="mailto:legal@iamazeyou.me?subject=Privacy%20Policy"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     Privacy Policy
@@ -768,7 +768,7 @@ const TierDetailCreator: React.FC = () => {
                 </li>
                 <li>
                   <a
-                    href="mailto:legal@genesis.ai?subject=License%20Agreement"
+                    href="mailto:legal@iamazeyou.me?subject=License%20Agreement"
                     className="w-full text-left min-h-11 inline-flex items-center hover:text-white transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal-soft"
                   >
                     License Agreement

@@ -1,4 +1,4 @@
-# Terms of Service for Genesis
+﻿# Terms of Service for Genesis
 
 **Effective Date:** December 9, 2025  
 **Last Updated:** December 9, 2025
@@ -126,7 +126,7 @@ We reserve the right to:
 
 ### 7.2 Reporting
 
-Users can report inappropriate content via: **<support@genesis.ai>**
+Users can report inappropriate content via: **<support@iamazeyou.me>**
 
 ## 8. Service Availability
 
@@ -194,7 +194,7 @@ Use of these services is subject to their respective terms.
 
 If you believe content on Genesis infringes your copyright, contact:
 
-**DMCA Agent**: <dmca@genesis.ai>  
+**DMCA Agent**: <dmca@iamazeyou.me>  
 **Address**: [Your Legal Address]
 
 Include:
@@ -269,8 +269,8 @@ between you and Genesis.
 
 For questions about these Terms:
 
-**Email**: <legal@genesis.ai>  
-**Support**: <support@genesis.ai>  
+**Email**: <legal@iamazeyou.me>  
+**Support**: <support@iamazeyou.me>  
 **Website**: <https://genesis-1765265007.documentationai.com/>
 
 ---
