@@ -416,9 +416,63 @@ async function generateProjectContent(settings: WorkflowInput['settings'], workf
   return normalizeProject(payload, settings, workflowId);
 }
 
+async function persistImageToStorage(
+  imageData: string,
+  userId: string,
+  bookId: string,
+  fileName: string
+): Promise<string> {
+  try {
+    // Already a Supabase storage URL — no-op
+    if (imageData.includes('/storage/v1/object/public/page-images/')) {
+      return imageData;
+    }
+
+    let buffer: Buffer;
+    let contentType = 'image/png';
+
+    if (imageData.startsWith('data:')) {
+      const [header, base64] = imageData.split(',');
+      contentType = header.match(/:(.*?);/)?.[1] || 'image/png';
+      buffer = Buffer.from(base64, 'base64');
+    } else if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+      const resp = await fetch(imageData);
+      if (!resp.ok) return imageData;
+      contentType = resp.headers.get('content-type') || 'image/png';
+      buffer = Buffer.from(await resp.arrayBuffer());
+    } else {
+      // Raw base64 without prefix
+      try {
+        buffer = Buffer.from(imageData, 'base64');
+      } catch {
+        return imageData;
+      }
+    }
+
+    const ext = contentType.includes('jpeg') ? 'jpg' : 'png';
+    const path = `${userId}/${bookId}/${fileName}.${ext}`;
+
+    const { error } = await db.storage
+      .from('page-images')
+      .upload(path, buffer, { upsert: true, contentType });
+
+    if (error) {
+      console.error('[bookGenerationWorkflow] Storage upload failed:', error.message);
+      return imageData;
+    }
+
+    const { data } = db.storage.from('page-images').getPublicUrl(path);
+    return data.publicUrl;
+  } catch (err) {
+    console.error('[bookGenerationWorkflow] Image persistence error:', err);
+    return imageData;
+  }
+}
+
 async function addIllustrationsToProject(
   project: z.infer<typeof BookProjectSchema>,
-  workflowId: string
+  workflowId: string,
+  userId: string
 ): Promise<z.infer<typeof BookProjectSchema>> {
   const clonedProject = structuredClone(project);
   let successCount = 0;
@@ -434,7 +488,7 @@ async function addIllustrationsToProject(
       try {
         const imageUrl = await callBytez(page.imagePrompt);
         if (imageUrl) {
-          page.imageUrl = imageUrl;
+          page.imageUrl = await persistImageToStorage(imageUrl, userId, project.id, `page-${page.pageNumber}`);
           successCount += 1;
         }
       } catch (error) {
@@ -455,7 +509,7 @@ async function addIllustrationsToProject(
 
     const coverImage = await callBytez(coverPrompt);
     if (coverImage) {
-      clonedProject.coverImage = coverImage;
+      clonedProject.coverImage = await persistImageToStorage(coverImage, userId, project.id, 'cover');
     }
   } catch (error) {
     console.error('[bookGenerationWorkflow] Cover illustration failed:', error);
@@ -597,7 +651,7 @@ const generateIllustrations = createStep({
   execute: async ({ inputData, bail }) => {
     try {
       assertWorkflowActive(inputData.workflowId);
-      const project = await addIllustrationsToProject(inputData.project, inputData.workflowId);
+      const project = await addIllustrationsToProject(inputData.project, inputData.workflowId, inputData.userId);
       assertWorkflowActive(inputData.workflowId);
 
       return {

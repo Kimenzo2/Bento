@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { generateIllustration } from '../services/geminiService';
+import { persistImage } from '../services/imageStorage';
 import {
   checkCharacterConsistency,
   getWritingSuggestions,
@@ -1002,8 +1003,12 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
     setIsGeneratingImage(true);
     try {
-      const base64Image = await generateIllustration(activePage.imagePrompt, currentProject.style);
-      if (base64Image) {
+      const rawImage = await generateIllustration(activePage.imagePrompt, currentProject.style);
+      if (rawImage) {
+        // Persist to Supabase Storage for a permanent URL
+        const userId = userProfile?.id || 'anonymous';
+        const permanentUrl = await persistImage(rawImage, userId, currentProject.id, activePage.pageNumber);
+
         const newProject = structuredClone(currentProject);
 
         // Increment count
@@ -1011,7 +1016,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
         newProject.chapters.forEach((ch) => {
           const page = ch.pages.find((p) => p.pageNumber === activePage.pageNumber);
-          if (page) page.imageUrl = base64Image;
+          if (page) page.imageUrl = permanentUrl;
         });
         onUpdateProject(newProject);
       }

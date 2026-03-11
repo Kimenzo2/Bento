@@ -222,7 +222,9 @@ async function callBytezImageProxy(
   }
 
   const data = await res.json();
-  return data.output ?? null;
+  // Bytez returns { output: "base64..." } or { output: ["base64..."] } or { imageUrl: "https://..." }
+  const raw = data.imageUrl ?? (Array.isArray(data.output) ? data.output[0] : data.output) ?? null;
+  return raw;
 }
 
 const SYSTEM_INSTRUCTION_ARCHITECT = `You are an AI ebook generation engine for a web/mobile application. Your responses must be valid JSON that the application can parse and render. Generate engaging, age-appropriate stories with consistent formatting for programmatic consumption.
