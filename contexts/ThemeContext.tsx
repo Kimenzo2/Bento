@@ -28,7 +28,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('genesis_dark_mode') === 'true';
+    const saved = localStorage.getItem('genesis_dark_mode');
+    if (saved !== null) return saved === 'true';
+    // Default to system preference when no saved preference exists
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
   useEffect(() => {

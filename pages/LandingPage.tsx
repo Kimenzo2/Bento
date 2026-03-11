@@ -20,7 +20,6 @@ import {
   Briefcase,
   Check,
   ChevronDown,
-  ChevronRight,
   FlaskConical,
   Gamepad2,
   GraduationCap,
@@ -106,13 +105,15 @@ const Section: React.FC<{
     bgClass = 'landing-dark-section';
   }
 
+  const reducedMotion = useMemo(() => prefersReducedMotion(), []);
+
   return (
     <motion.section
       ref={ref}
       id={id}
-      initial={{ opacity: 0 }}
+      initial={reducedMotion ? {} : { opacity: 0 }}
       animate={isInView ? { opacity: 1 } : {}}
-      transition={{ duration: 0.5, ease: APPLE_EASE }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.5, ease: APPLE_EASE }}
       className={`px-5 md:px-12 ${bgClass} ${className}`}
       style={Object.keys(bgStyle).length > 0 ? bgStyle : undefined}
       {...rest}
@@ -194,7 +195,7 @@ const Blob: React.FC<{
   delay?: string;
 }> = ({ variant, size, top, left, right, bottom, opacity = 0.12, animate = false, delay = '0s' }) => (
   <div
-    className={`absolute rounded-full pointer-events-none ${animate ? 'animate-float' : ''}`}
+    className={`absolute rounded-full pointer-events-none ${animate ? 'animate-float motion-reduce:animate-none' : ''}`}
     style={{
       backgroundColor:
         variant === 'primary'
@@ -220,6 +221,7 @@ const Blob: React.FC<{
 
 const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
+  const reducedMotion = useMemo(() => prefersReducedMotion(), []);
   const faqId = useMemo(() => `faq-${question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`, [question]);
   return (
     <div className="border border-peach-soft rounded-2xl">
@@ -233,7 +235,7 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
         <span className="font-bold text-base text-charcoal-soft">{question}</span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
-          transition={{ duration: 0.25, ease: APPLE_EASE }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 0.25, ease: APPLE_EASE }}
           aria-hidden="true"
         >
           <ChevronDown className="w-5 h-5 text-cocoa-light" />
@@ -247,7 +249,7 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: APPLE_EASE }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.25, ease: APPLE_EASE }}
             className="overflow-hidden"
           >
             <p className="px-5 pb-5 text-sm leading-relaxed text-cocoa-light font-body">
@@ -274,16 +276,20 @@ const LandingPage: React.FC = memo(() => {
   // Extract the dark-mode CSS variables from the ACTIVE theme.
   // This allows dark sections (Education, Footer) to use the correct
   // dark palette for whichever of the 6 themes is selected — not just Genesis Classic.
+  // When global dark mode is active, use the surface color as the section bg
+  // so these sections are distinguishable from the main background.
   const darkVars = useMemo(() => {
     const dark = currentTheme.darkCssVariables || {};
     return {
-      bg: dark['--color-background'] || '#1A1412',
+      bg: isDarkMode
+        ? (dark['--color-surface'] || '#2A201D')
+        : (dark['--color-background'] || '#1A1412'),
       surface: dark['--color-surface'] || '#2A201D',
       text: dark['--color-text'] || '#EAE0D5',
       textMuted: dark['--color-text-light'] || '#A89F91',
       border: dark['--color-border'] || '#3D302B',
     };
-  }, [currentTheme]);
+  }, [currentTheme, isDarkMode]);
 
   usePageSEO({
     title: 'Genesis | AI Visual Storytelling for Writers, Educators, and Creators',
@@ -400,10 +406,10 @@ const LandingPage: React.FC = memo(() => {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
+            initial={reducedMotion ? {} : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: APPLE_EASE }}
+            exit={reducedMotion ? {} : { opacity: 0, height: 0 }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.25, ease: APPLE_EASE }}
             className="md:hidden overflow-hidden bg-cream-base"
           >
             <div className="px-5 pb-6 pt-2 flex flex-col gap-1">
@@ -896,10 +902,9 @@ const LandingPage: React.FC = memo(() => {
             <GlowCard className="h-full">
               <div className="p-6 md:p-8 flex gap-5">
                 <div
-                  className="w-12 h-12 shrink-0 flex items-center justify-center text-white rounded-2xl"
+                  className="w-12 h-12 shrink-0 flex items-center justify-center text-white rounded-xl"
                   style={{
                     background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
-                    borderRadius: '14px',
                   }}
                 >
                   <item.icon className="w-6 h-6" aria-hidden="true" />
@@ -968,16 +973,16 @@ const LandingPage: React.FC = memo(() => {
 
   const tiers = [
     { name: 'Spark', price: '$0', period: 'Free forever', desc: 'The Hook That Gets You Addicted', icon: Zap, popular: false, cta: 'Start Creating Free', features: ['3 ebooks per month', 'Max 4 pages per book', '5 illustration styles', 'Standard templates', 'Community support'], limitations: ['Watermarked exports', 'Basic AI writing', 'No commercial license'] },
-    { name: 'Creator', price: '$19.99', period: '/month', desc: 'The Sweet Spot', icon: Star, popular: false, cta: 'Upgrade now', features: ['30 ebooks per month', 'Up to 12 pages/book', 'NO watermarks', '20+ illustration styles', 'Commercial license', 'Priority rendering'], limitations: [] },
-    { name: 'Studio', price: '$59.99', period: '/month', desc: 'The Professional Choice', icon: Briefcase, popular: true, cta: 'Upgrade now', features: ['Everything in Creator', '5 team seats', '500 pages/book', 'ALL 50+ styles', 'White-label exports', 'Brand Hub & Style Guides', 'Video book exports'], limitations: [] },
-    { name: 'Empire', price: '$199.99', period: '/month', desc: 'Best Value for Scale', icon: IcoCrown, popular: false, cta: 'Upgrade now', features: ['Everything in Studio', 'Unlimited team members', 'Unlimited pages', 'Custom AI Model Training', 'Dedicated Account Manager', 'API Access', 'VIP 24/7 Support'], limitations: [] },
+    { name: 'Creator', price: '$19.99', period: '/month', desc: 'The Sweet Spot', icon: Star, popular: false, cta: 'Upgrade Now', features: ['30 ebooks per month', 'Up to 12 pages/book', 'NO watermarks', '20+ illustration styles', 'Commercial license', 'Priority rendering'], limitations: [] },
+    { name: 'Studio', price: '$59.99', period: '/month', desc: 'The Professional Choice', icon: Briefcase, popular: true, cta: 'Upgrade Now', features: ['Everything in Creator', '5 team seats', '500 pages/book', 'ALL 50+ styles', 'White-label exports', 'Brand Hub & Style Guides', 'Video book exports'], limitations: [] },
+    { name: 'Empire', price: '$199.99', period: '/month', desc: 'Best Value for Scale', icon: IcoCrown, popular: false, cta: 'Upgrade Now', features: ['Everything in Studio', 'Unlimited team members', 'Unlimited pages', 'Custom AI Model Training', 'Dedicated Account Manager', 'API Access', 'VIP 24/7 Support'], limitations: [] },
   ];
 
   const PricingSection = (
     <Section id="pricing" className="py-20 md:py-28" aria-labelledby="pricing-heading">
       <div className="text-center mb-12">
         <motion.h2 {...fadeUp} id="pricing-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
-          Choose Your Creative Journey
+          Choose your creative journey
         </motion.h2>
         <motion.p {...fadeUp} className="text-base md:text-lg font-body text-cocoa-light">
           Join 100,000+ creators making beautiful books today.
@@ -1332,7 +1337,7 @@ const LandingPage: React.FC = memo(() => {
           <button
             type="button"
             onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
-            className={`px-8 py-4 text-base font-medium font-heading text-charcoal-soft bg-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
+            className={`px-8 py-4 text-base font-medium font-heading text-charcoal-soft bg-surface rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
           >
             Choose Your Realm
           </button>
@@ -1371,7 +1376,7 @@ const LandingPage: React.FC = memo(() => {
                   <button
                     type="button"
                     onClick={() => scrollTo(link === 'Pricing' ? 'pricing' : link === 'Choose a realm' ? 'realms' : link === 'What you can create' ? 'features' : 'use-cases')}
-                    className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
+                    className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5"
                   >
                     {link}
                   </button>
@@ -1394,7 +1399,7 @@ const LandingPage: React.FC = memo(() => {
                   {href.startsWith('#') ? (
                     <button
                       type="button"
-                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5"
                       onClick={() => scrollTo(href.slice(1))}
                     >
                       {label}
@@ -1402,7 +1407,7 @@ const LandingPage: React.FC = memo(() => {
                   ) : (
                     <a
                       href={href}
-                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5"
                     >
                       {label}
                     </a>
@@ -1424,11 +1429,11 @@ const LandingPage: React.FC = memo(() => {
               ].map(({ label, href, external }) => (
                 <li key={label}>
                   {external ? (
-                    <a href={href} className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded">{label}</a>
+                    <a href={href} className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5">{label}</a>
                   ) : (
                     <a
                       href={href}
-                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5"
                     >
                       {label}
                     </a>
@@ -1468,7 +1473,7 @@ const LandingPage: React.FC = memo(() => {
       {/* Skip to main content — WCAG 2.4.1 */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-charcoal-soft focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-coral-burst/50"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-surface focus:text-charcoal-soft focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-coral-burst/50"
       >
         Skip to main content
       </a>

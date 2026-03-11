@@ -221,6 +221,21 @@
   color-scheme: light;
 }
 
+/* System dark mode fallback — applied before React/ThemeProvider hydrates.
+   Once ThemeProvider mounts, it overrides these with the selected theme's dark palette. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #2A201D;
+    --color-background: #1A1412;
+    --color-border: #3D302B;
+    --color-text: #EAE0D5;
+    --color-text-light: #A89F91;
+    --color-primary-start: #E87D56;
+    --color-primary-end: #E5C02B;
+    color-scheme: dark;
+  }
+}
+
 /* FOUT Prevention with modern font-display */
 .fonts-loading {
   opacity: 0.98;

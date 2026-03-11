@@ -559,6 +559,15 @@
       --sk-shimmer: rgba(255,255,255,0.55);
       --sk-hero:    linear-gradient(135deg,#FFFFFF 0%,#FFF8E7 100%);
     }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --sk-bg:      #1A1412;
+        --sk-surface: #2A201D;
+        --sk-border:  #3D302B;
+        --sk-shimmer: rgba(255,255,255,0.08);
+        --sk-hero:    linear-gradient(135deg,#2A201D 0%,#1A1412 100%);
+      }
+    }
     @keyframes gs-shimmer {
       0%   { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
@@ -621,6 +630,18 @@
     #gs-skeleton .gs-side-row { display:flex; align-items:center; gap:12px; }
     #gs-skeleton .gs-side-txt { flex:1; display:flex; flex-direction:column; gap:7px; }
   </style>
+
+  <!-- Blocking dark mode detection — prevents flash of light theme -->
+  <script>
+    (function(){
+      var saved = localStorage.getItem('genesis_dark_mode');
+      var dark = saved !== null ? saved === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (dark) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = 'dark';
+      }
+    })();
+  </script>
 </head>
 
 <body>
