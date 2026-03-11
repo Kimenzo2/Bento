@@ -75,13 +75,19 @@
   }
   </script>
 
-  <!-- WebSite Structured Data -->
+  <!-- WebSite Structured Data — Google uses this for the site name in SERPs -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Genesis",
-    "url": "https://iamazeyou.me/"
+    "alternateName": ["Genesis AI", "Genesis Visual Storytelling", "Genesis App"],
+    "url": "https://iamazeyou.me/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://iamazeyou.me/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
   }
   </script>
 
@@ -91,6 +97,7 @@
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Genesis",
+    "alternateName": "Genesis AI",
     "url": "https://iamazeyou.me/",
     "description": "Genesis is an AI software company building creative tools for visual storytelling, character design, and illustrated content generation.",
     "naics": "511210",
