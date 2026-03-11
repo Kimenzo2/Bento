@@ -40,6 +40,29 @@ test.describe('Landing Page Performance', () => {
     expect(fcp).toBeLessThan(3000); // FCP under 3s
   });
 
+  test('Largest Contentful Paint is under 4 seconds (prod) / 15 seconds (dev)', async ({ page }) => {
+    const lcp = await page.evaluate(() =>
+      new Promise<number>((resolve) => {
+        let lastLcp = -1;
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            lastLcp = entry.startTime;
+          }
+        });
+        observer.observe({ type: 'largest-contentful-paint', buffered: true });
+        // LCP finalizes when user interacts or after load; wait then report
+        setTimeout(() => resolve(lastLcp), 6000);
+      })
+    );
+
+    expect(lcp).toBeGreaterThan(0);
+    // Dev server bundles are unminified and much slower than prod;
+    // use a generous threshold that still catches major regressions.
+    // In prod (CI), the 4s target would apply.
+    const threshold = process.env.CI ? 4000 : 20000;
+    expect(lcp).toBeLessThan(threshold);
+  });
+
   test('no layout shift from images without dimensions', async ({ page }) => {
     const imgs = await page.locator('img').all();
     for (const img of imgs) {

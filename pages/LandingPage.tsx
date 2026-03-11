@@ -750,6 +750,60 @@ const LandingPage: React.FC = memo(() => {
   );
 
   // =========================================================================
+  // PROMO INTERLUDE 1 — Side-by-side: Professional Storytelling + Environments
+  // Opposing slants, no backdrop, compact
+  // =========================================================================
+
+  const PromoStorytellingInterlude = (
+    <div className="px-5 md:px-12 py-10 md:py-14" aria-hidden="true">
+      <div className="mx-auto max-w-4xl w-full grid grid-cols-2 gap-5 md:gap-8 items-center">
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.5, ease: APPLE_EASE }}
+        >
+          <div
+            className="rounded-2xl overflow-hidden border border-peach-soft"
+            style={{ transform: 'rotate(-2.5deg)' }}
+          >
+            <img
+              src="/images/promo/professional-storytelling.webp"
+              alt="Professional storytelling — Three distinct Genesis art styles"
+              width={400}
+              height={400}
+              className="w-full h-auto block"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </motion.div>
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.5, ease: APPLE_EASE, delay: 0.08 }}
+        >
+          <div
+            className="rounded-2xl overflow-hidden border border-peach-soft"
+            style={{ transform: 'rotate(2.5deg)' }}
+          >
+            <img
+              src="/images/promo/environments-that-stay-put.webp"
+              alt="Environments that stay put — Consistent library across day and night"
+              width={400}
+              height={400}
+              className="w-full h-auto block"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+
+  // =========================================================================
   // KEY FEATURES GRID — bento, large card spans 2
   // =========================================================================
 
@@ -809,6 +863,52 @@ const LandingPage: React.FC = memo(() => {
         ))}
       </div>
     </Section>
+  );
+
+  // =========================================================================
+  // PROMO INTERLUDE 2 — One Hero, Endless Chapters (no slant, clean)
+  // =========================================================================
+
+  const PromoHeroInterlude = (
+    <div className="px-5 md:px-12 py-10 md:py-14" aria-hidden="true">
+      <div className="mx-auto max-w-5xl w-full">
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.6, ease: APPLE_EASE }}
+          className="grid md:grid-cols-5 gap-8 items-center"
+        >
+          <div className="md:col-span-3">
+            <div className="rounded-2xl overflow-hidden border border-peach-soft">
+              <img
+                src="/images/promo/one-hero-endless-chapters.webp"
+                alt="One hero, endless chapters — The same character rendered consistently across sci-fi, jungle, and castle worlds"
+                width={800}
+                height={800}
+                className="w-full h-auto block"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
+          <div className="md:col-span-2 text-center md:text-left">
+            <div
+              className="w-12 h-1 mb-4 rounded-full mx-auto md:mx-0"
+              style={{
+                background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+              }}
+            />
+            <h3 className="text-2xl md:text-3xl font-normal tracking-[-0.01em] mb-3 font-heading text-charcoal-soft">
+              One hero. Endless chapters.
+            </h3>
+            <p className="text-sm leading-relaxed font-body text-cocoa-light">
+              Your character stays pixel-perfect across every scene, every world, every page — no more re-describing from scratch.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
   );
 
   // =========================================================================
@@ -965,6 +1065,38 @@ const LandingPage: React.FC = memo(() => {
         ))}
       </div>
     </Section>
+  );
+
+  // =========================================================================
+  // PROMO INTERLUDE 3 — Publish Your Masterpiece (compact, slanted)
+  // =========================================================================
+
+  const PromoPublishInterlude = (
+    <div className="px-5 md:px-12 py-8 md:py-12" aria-hidden="true">
+      <div className="mx-auto max-w-sm w-full">
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.5, ease: APPLE_EASE }}
+        >
+          <div
+            className="rounded-2xl overflow-hidden border border-peach-soft"
+            style={{ transform: 'rotate(-2deg)' }}
+          >
+            <img
+              src="/images/promo/publish-your-masterpiece.webp"
+              alt="Publish your masterpiece — Four consistent character panels ready for export"
+              width={400}
+              height={400}
+              className="w-full h-auto block"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </motion.div>
+      </div>
+    </div>
   );
 
   // =========================================================================
@@ -1504,10 +1636,13 @@ const LandingPage: React.FC = memo(() => {
         {SocialProofBar}
         {RealmsSection}
         {HowItWorksSection}
+        {PromoStorytellingInterlude}
         {FeaturesSection}
+        {PromoHeroInterlude}
         {MascotSection}
         {DifferentiatorsSection}
         {TestimonialsSection}
+        {PromoPublishInterlude}
         {PricingSection}
         {UseCasesSection}
         {EducationSection}
