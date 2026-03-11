@@ -24,9 +24,19 @@ Allow: /
 User-agent: Amazonbot
 Allow: /
 
-# Disallow admin/api routes
+# Disallow admin/api routes and auth-protected app pages
 User-agent: *
 Disallow: /api/
+Disallow: /create
+Disallow: /visual-studio
+Disallow: /editor
+Disallow: /settings
+Disallow: /gamification
+Disallow: /success
+Disallow: /viewer
+Disallow: /curriculum
+Disallow: /pricing
+Disallow: /payment-callback
 
 # Sitemap
 Sitemap: https://iamazeyou.me/sitemap.xml
