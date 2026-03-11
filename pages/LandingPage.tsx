@@ -220,17 +220,21 @@ const Blob: React.FC<{
 
 const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
+  const faqId = useMemo(() => `faq-${question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`, [question]);
   return (
     <div className="border border-peach-soft rounded-2xl">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 text-left font-heading"
+        aria-expanded={open}
+        aria-controls={faqId}
+        className="w-full flex items-center justify-between p-5 text-left font-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-2xl"
       >
         <span className="font-bold text-base text-charcoal-soft">{question}</span>
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.25, ease: APPLE_EASE }}
+          aria-hidden="true"
         >
           <ChevronDown className="w-5 h-5 text-cocoa-light" />
         </motion.span>
@@ -238,6 +242,8 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
       <AnimatePresence>
         {open && (
           <motion.div
+            id={faqId}
+            role="region"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -314,6 +320,7 @@ const LandingPage: React.FC = memo(() => {
 
   const Nav = (
     <nav
+      aria-label="Primary navigation"
       className="fixed top-0 left-0 right-0 z-50 bg-cream-base transition-[border-color] duration-300"
       style={{
         borderBottom: scrolled
@@ -323,7 +330,7 @@ const LandingPage: React.FC = memo(() => {
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-5 md:px-12 h-16">
         {/* Logo */}
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3 group cursor-pointer">
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-xl" aria-label="Scroll to top">
           <div className="w-10 h-10 overflow-hidden rounded-xl border border-peach-soft">
             <img
               src="/genesis-icon.jpg"
@@ -345,7 +352,7 @@ const LandingPage: React.FC = memo(() => {
               key={link.id}
               type="button"
               onClick={() => scrollTo(link.id)}
-              className="px-3 py-2 text-sm font-body text-cocoa-light rounded-full transition-colors duration-200 hover:opacity-80"
+              className="px-3 py-2 text-sm font-body text-cocoa-light rounded-full transition-colors duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
             >
               {link.label}
             </button>
@@ -357,7 +364,7 @@ const LandingPage: React.FC = memo(() => {
           <button
             type="button"
             onClick={() => navigate('/auth')}
-            className="px-4 py-2 text-sm font-semibold font-body text-charcoal-soft rounded-full transition-colors duration-200 hover:opacity-80"
+            className="px-4 py-2 text-sm font-semibold font-body text-charcoal-soft rounded-full transition-colors duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
           >
             Sign In
           </button>
@@ -376,14 +383,15 @@ const LandingPage: React.FC = memo(() => {
         {/* Mobile hamburger */}
         <button
           type="button"
-          className="md:hidden p-2"
+          className="md:hidden p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-lg"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
-            <X className="w-6 h-6 text-charcoal-soft" />
+            <X className="w-6 h-6 text-charcoal-soft" aria-hidden="true" />
           ) : (
-            <Menu className="w-6 h-6 text-charcoal-soft" />
+            <Menu className="w-6 h-6 text-charcoal-soft" aria-hidden="true" />
           )}
         </button>
       </div>
@@ -404,7 +412,7 @@ const LandingPage: React.FC = memo(() => {
                   key={link.id}
                   type="button"
                   onClick={() => scrollTo(link.id)}
-                  className="text-left px-4 py-3 text-sm font-medium font-body text-charcoal-soft rounded-xl transition-colors"
+                  className="text-left px-4 py-3 text-sm font-medium font-body text-charcoal-soft rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
                 >
                   {link.label}
                 </button>
@@ -413,7 +421,7 @@ const LandingPage: React.FC = memo(() => {
                 <button
                   type="button"
                   onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
-                  className="text-center px-4 py-3 text-sm font-semibold text-charcoal-soft border border-peach-soft rounded-full"
+                  className="text-center px-4 py-3 text-sm font-semibold text-charcoal-soft border border-peach-soft rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
                 >
                   Sign In
                 </button>
@@ -484,7 +492,7 @@ const LandingPage: React.FC = memo(() => {
                   backgroundColor: 'rgba(var(--color-shadow), 0.05)',
                 }}
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                 Start free with Spark
               </span>
             </motion.div>
@@ -576,6 +584,7 @@ const LandingPage: React.FC = memo(() => {
                   className="w-full object-contain rounded-3xl"
                   loading="eager"
                   decoding="async"
+                  fetchPriority="high"
                 />
                 <p className="text-center mt-4 text-sm font-medium font-body text-cocoa-light">
                   Gen, your AI creative guide
@@ -606,7 +615,7 @@ const LandingPage: React.FC = memo(() => {
               key={text}
               className="flex items-center gap-2 text-xs font-semibold font-body text-cocoa-light uppercase tracking-widest"
             >
-              <IconComp className="w-4 h-4 text-coral-burst" />
+              <IconComp className="w-4 h-4 text-coral-burst" aria-hidden="true" />
               {text}
             </div>
           ))}
@@ -647,14 +656,17 @@ const LandingPage: React.FC = memo(() => {
 
       <div className="grid gap-6 md:grid-cols-3">
         {realms.map((realm, i) => (
-          <motion.div
+          <motion.button
             key={realm.title}
+            type="button"
             initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.4, ease: APPLE_EASE, delay: i * 0.08 }}
             whileHover={reducedMotion ? {} : { y: -4, scale: 1.02, transition: { duration: 0.15 } }}
             onClick={() => navigate(`/auth?returnTo=${encodeURIComponent(`/welcome/onboarding?realm=${realm.realm}`)}`)}
+            aria-label={`Choose ${realm.title} realm`}
+            className="text-left"
           >
             <GlowCard className="h-full cursor-pointer" defaultGlowPosition={['0% 100%', '50% 100%', '100% 100%'][i]}>
               <div className="p-6 md:p-8 text-center">
@@ -671,7 +683,7 @@ const LandingPage: React.FC = memo(() => {
                 <p className="text-sm leading-relaxed font-body text-cocoa-light">{realm.desc}</p>
               </div>
             </GlowCard>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
 
@@ -779,7 +791,7 @@ const LandingPage: React.FC = memo(() => {
                     background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
                   }}
                 >
-                  <feat.icon className="w-7 h-7" />
+                  <feat.icon className="w-7 h-7" aria-hidden="true" />
                 </div>
                 <div>
                   <h3 className="text-xl font-normal mb-2 font-heading text-charcoal-soft">{feat.title}</h3>
@@ -844,7 +856,7 @@ const LandingPage: React.FC = memo(() => {
                   className="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl"
                   style={{ backgroundColor: 'rgba(var(--color-shadow), 0.08)' }}
                 >
-                  <IC className="w-5 h-5 text-coral-burst" />
+                  <IC className="w-5 h-5 text-coral-burst" aria-hidden="true" />
                 </div>
                 <p className="text-sm leading-relaxed pt-2 font-body text-cocoa-light">{text}</p>
               </div>
@@ -890,7 +902,7 @@ const LandingPage: React.FC = memo(() => {
                     borderRadius: '14px',
                   }}
                 >
-                  <item.icon className="w-6 h-6" />
+                  <item.icon className="w-6 h-6" aria-hidden="true" />
                 </div>
                 <div>
                   <h3 className="text-lg font-normal mb-1 font-heading text-charcoal-soft">{item.title}</h3>
@@ -1000,7 +1012,7 @@ const LandingPage: React.FC = memo(() => {
 
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <tier.icon className="w-5 h-5 text-coral-burst" />
+                  <tier.icon className="w-5 h-5 text-coral-burst" aria-hidden="true" />
                   <span className="text-sm font-medium font-heading text-charcoal-soft uppercase tracking-wider">{tier.name}</span>
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -1013,13 +1025,15 @@ const LandingPage: React.FC = memo(() => {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-coral-burst" />
+                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-coral-burst" aria-hidden="true" />
+                    <span className="sr-only">Included: </span>
                     <span className="text-sm font-body text-charcoal-soft">{f}</span>
                   </li>
                 ))}
                 {tier.limitations.map((l) => (
                   <li key={l} className="flex items-start gap-2">
-                    <X className="w-4 h-4 mt-0.5 shrink-0 text-cocoa-light" />
+                    <X className="w-4 h-4 mt-0.5 shrink-0 text-cocoa-light" aria-hidden="true" />
+                    <span className="sr-only">Not included: </span>
                     <span className="text-sm font-body text-cocoa-light">{l}</span>
                   </li>
                 ))}
@@ -1103,7 +1117,7 @@ const LandingPage: React.FC = memo(() => {
                   className="w-12 h-12 flex items-center justify-center text-white mb-5 rounded-2xl"
                   style={{ background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))' }}
                 >
-                  <uc.icon className="w-6 h-6" />
+                  <uc.icon className="w-6 h-6" aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-normal mb-2 font-heading text-charcoal-soft">{uc.title}</h3>
                 <p className="text-sm leading-relaxed font-body text-cocoa-light">{uc.desc}</p>
@@ -1142,7 +1156,7 @@ const LandingPage: React.FC = memo(() => {
                 backgroundColor: 'rgba(var(--color-shadow), 0.1)',
               }}
             >
-              <GraduationCap className="w-3.5 h-3.5" />
+              <GraduationCap className="w-3.5 h-3.5" aria-hidden="true" />
               For Educators
             </span>
             <h2 id="education-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-5 font-heading landing-dark-text">
@@ -1159,7 +1173,7 @@ const LandingPage: React.FC = memo(() => {
                 'Realm-guided context for subject-specific content',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
-                  <Check className="w-4 h-4 shrink-0 text-coral-burst" />
+                  <Check className="w-4 h-4 shrink-0 text-coral-burst" aria-hidden="true" />
                   <span className="text-sm font-body landing-dark-text">{item}</span>
                 </div>
               ))}
@@ -1266,7 +1280,7 @@ const LandingPage: React.FC = memo(() => {
             <ul className="space-y-3">
               {['Secure checkout and account flows', 'Clear free and paid plan separation', 'Commercial rights on paid tiers', 'Human support available by email'].map((item) => (
                 <li key={item} className="flex items-center gap-3">
-                  <Check className="w-4 h-4 shrink-0 text-coral-burst" />
+                  <Check className="w-4 h-4 shrink-0 text-coral-burst" aria-hidden="true" />
                   <span className="text-sm font-body text-cocoa-light">{item}</span>
                 </li>
               ))}
@@ -1285,11 +1299,13 @@ const LandingPage: React.FC = memo(() => {
     <section
       className="relative py-20 md:py-28 px-5 md:px-12 overflow-hidden"
       style={{ background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))' }}
+      aria-labelledby="final-cta-heading"
     >
       <Blob variant="white" size="400px" top="-100px" right="-100px" opacity={0.08} />
 
       <div className="mx-auto max-w-3xl w-full relative z-10 text-center">
         <motion.h2
+          id="final-cta-heading"
           initial={reducedMotion ? {} : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -1303,7 +1319,7 @@ const LandingPage: React.FC = memo(() => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4, ease: APPLE_EASE, delay: 0.08 }}
-          className="text-base md:text-lg mb-8 font-body text-white/85"
+          className="text-base md:text-lg mb-8 font-body text-white"
         >
           Let&rsquo;s make something amazing.
         </motion.p>
@@ -1355,7 +1371,7 @@ const LandingPage: React.FC = memo(() => {
                   <button
                     type="button"
                     onClick={() => scrollTo(link === 'Pricing' ? 'pricing' : link === 'Choose a realm' ? 'realms' : link === 'What you can create' ? 'features' : 'use-cases')}
-                    className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80"
+                    className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
                   >
                     {link}
                   </button>
@@ -1375,13 +1391,22 @@ const LandingPage: React.FC = memo(() => {
                 { label: 'FAQ', href: '#faq' },
               ].map(({ label, href }) => (
                 <li key={label}>
-                  <button
-                    type="button"
-                    className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80"
-                    onClick={() => href.startsWith('#') ? scrollTo(href.slice(1)) : navigate(href)}
-                  >
-                    {label}
-                  </button>
+                  {href.startsWith('#') ? (
+                    <button
+                      type="button"
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
+                      onClick={() => scrollTo(href.slice(1))}
+                    >
+                      {label}
+                    </button>
+                  ) : (
+                    <a
+                      href={href}
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
+                    >
+                      {label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -1399,15 +1424,14 @@ const LandingPage: React.FC = memo(() => {
               ].map(({ label, href, external }) => (
                 <li key={label}>
                   {external ? (
-                    <a href={href} className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80">{label}</a>
+                    <a href={href} className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded">{label}</a>
                   ) : (
-                    <button
-                      type="button"
-                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80"
-                      onClick={() => navigate(href)}
+                    <a
+                      href={href}
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded"
                     >
                       {label}
-                    </button>
+                    </a>
                   )}
                 </li>
               ))}
@@ -1424,7 +1448,7 @@ const LandingPage: React.FC = memo(() => {
             <div className="flex items-center gap-3">
               {['Secure Payment', 'Cancel anytime', '7-day money back'].map((signal) => (
                 <span key={signal} className="flex items-center gap-1.5 text-xs font-body landing-dark-muted">
-                  <Shield className="w-3 h-3 text-coral-burst" />
+                  <Shield className="w-3 h-3 text-coral-burst" aria-hidden="true" />
                   {signal}
                 </span>
               ))}
@@ -1441,6 +1465,13 @@ const LandingPage: React.FC = memo(() => {
 
   return (
     <div className="bg-cream-base font-body" style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}>
+      {/* Skip to main content — WCAG 2.4.1 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-charcoal-soft focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-coral-burst/50"
+      >
+        Skip to main content
+      </a>
       <SparkleCursor />
       {/* Dark section styles — dynamically sourced from the ACTIVE theme's darkCssVariables.
           When the user switches theme (e.g. Aurora Scholar, Ocean Academy), these values update. */}
@@ -1463,20 +1494,22 @@ const LandingPage: React.FC = memo(() => {
         }
       `}</style>
       {Nav}
-      {Hero}
-      {SocialProofBar}
-      {RealmsSection}
-      {HowItWorksSection}
-      {FeaturesSection}
-      {MascotSection}
-      {DifferentiatorsSection}
-      {TestimonialsSection}
-      {PricingSection}
-      {UseCasesSection}
-      {EducationSection}
-      {FAQSection}
-      {SupportSection}
-      {FinalCTA}
+      <main id="main-content">
+        {Hero}
+        {SocialProofBar}
+        {RealmsSection}
+        {HowItWorksSection}
+        {FeaturesSection}
+        {MascotSection}
+        {DifferentiatorsSection}
+        {TestimonialsSection}
+        {PricingSection}
+        {UseCasesSection}
+        {EducationSection}
+        {FAQSection}
+        {SupportSection}
+        {FinalCTA}
+      </main>
       {Footer}
     </div>
   );
