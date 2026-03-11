@@ -61,6 +61,8 @@ export default defineConfig(({ mode }) => {
           },
           includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
           workbox: {
+            // Allow larger precache entries (some chunks exceed the default 2 MiB limit)
+            maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
             // Skip waiting so the new SW activates immediately without requiring all tabs to close
             skipWaiting: true,
             // Clean up caches from previous SW versions to prevent stale chunk serving
@@ -135,8 +137,50 @@ export default defineConfig(({ mode }) => {
             categories: ['education', 'entertainment', 'productivity'],
             icons: [
               {
+                src: 'genesis-icon-48.png',
+                sizes: '48x48',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-72.png',
+                sizes: '72x72',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-96.png',
+                sizes: '96x96',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-128.png',
+                sizes: '128x128',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-144.png',
+                sizes: '144x144',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-152.png',
+                sizes: '152x152',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
                 src: 'genesis-icon-192.png',
                 sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-384.png',
+                sizes: '384x384',
                 type: 'image/png',
                 purpose: 'any',
               },
@@ -145,6 +189,18 @@ export default defineConfig(({ mode }) => {
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any',
+              },
+              {
+                src: 'genesis-icon-maskable-192.png',
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'maskable',
+              },
+              {
+                src: 'genesis-icon-maskable-384.png',
+                sizes: '384x384',
+                type: 'image/png',
+                purpose: 'maskable',
               },
               {
                 src: 'genesis-icon-maskable-512.png',

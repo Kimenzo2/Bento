@@ -1,8 +1,25 @@
+import { render } from '@react-email/components';
+import { createElement } from 'react';
 import { authenticatedFetch } from './api/authenticatedFetch';
+
+// React Email templates
+import WelcomeEmail from '../emails/WelcomeEmail';
+import BookCompletionEmail from '../emails/BookCompletionEmail';
+import SubscriptionUpgradeEmail from '../emails/SubscriptionUpgradeEmail';
+import PasswordResetEmail from '../emails/PasswordResetEmail';
+import BookSharedEmail from '../emails/BookSharedEmail';
+import PaymentSucceededEmail from '../emails/PaymentSucceededEmail';
+import SubscriptionCancelledEmail from '../emails/SubscriptionCancelledEmail';
+import SubscriptionRenewedEmail from '../emails/SubscriptionRenewedEmail';
+import PaymentFailedEmail from '../emails/PaymentFailedEmail';
+import CollaborationInviteEmail from '../emails/CollaborationInviteEmail';
+import ExportReadyEmail from '../emails/ExportReadyEmail';
+import WeeklyDigestEmail from '../emails/WeeklyDigestEmail';
+import AchievementEmail from '../emails/AchievementEmail';
 
 // SECURITY: Email sending is routed through /api/send-email server endpoint.
 // The Resend API key must NEVER be in client-side code.
-// This service constructs the request and sends it to our server API.
+// This service renders React Email templates to HTML and sends them to our API.
 
 const EMAIL_API_ENDPOINT = '/api/send-email';
 
@@ -48,6 +65,10 @@ export async function sendEmail(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Template senders — each renders a React Email component to HTML + plain text
+// ---------------------------------------------------------------------------
+
 /**
  * Send a welcome email to new users
  */
@@ -55,67 +76,15 @@ export async function sendWelcomeEmail(
   userEmail: string,
   userName: string
 ): Promise<{ success: boolean; error?: string }> {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .header h1 { color: white; margin: 0; font-size: 28px; }
-          .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-          .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
-          .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✨ Welcome to Genesis!</h1>
-          </div>
-          <div class="content">
-            <h2>Hi ${userName}! 👋</h2>
-            <p>We're thrilled to have you join the Genesis community! You're now part of an innovative platform that transforms storytelling through AI-powered visual content creation.</p>
-            
-            <h3>🎨 What You Can Do:</h3>
-            <ul>
-              <li><strong>Create Stunning Ebooks:</strong> Generate illustrated stories with AI</li>
-              <li><strong>Visual Storytelling:</strong> Bring your ideas to life with beautiful imagery</li>
-              <li><strong>Collaborate:</strong> Share and remix stories with the community</li>
-              <li><strong>Learn & Grow:</strong> Access educational content and templates</li>
-            </ul>
-
-            <p style="text-align: center;">
-              <a href="https://iamazeyou.me" class="button">Start Creating Now</a>
-            </p>
-
-            <h3>🚀 Quick Start Tips:</h3>
-            <ol>
-              <li>Explore the Creation Canvas to start your first project</li>
-              <li>Check out the Template Library for inspiration</li>
-              <li>Join our community to share your creations</li>
-            </ol>
-
-            <p>If you have any questions, feel free to reach out to our support team. We're here to help!</p>
-            
-            <p>Happy creating! 🎉</p>
-            <p><strong>The Genesis Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© 2025 Genesis. All rights reserved.</p>
-            <p>You're receiving this email because you signed up for Genesis.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  const element = createElement(WelcomeEmail, { userName });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
 
   return sendEmail({
     to: userEmail,
-    subject: '✨ Welcome to Genesis - Start Creating Amazing Stories!',
+    subject: `Welcome to Genesis, ${userName}!`,
     html,
-    text: `Hi ${userName}! Welcome to Genesis! We're excited to have you join our community of creators. Start exploring the platform and create your first AI-powered story today!`,
+    text,
   });
 }
 
@@ -127,62 +96,16 @@ export async function sendBookCompletionEmail(
   userName: string,
   bookTitle: string
 ): Promise<{ success: boolean; error?: string }> {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .header h1 { color: white; margin: 0; font-size: 28px; }
-          .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-          .celebration { font-size: 48px; text-align: center; margin: 20px 0; }
-          .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
-          .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 Congratulations!</h1>
-          </div>
-          <div class="content">
-            <div class="celebration">🎊 📚 ✨</div>
-            <h2>Amazing Work, ${userName}!</h2>
-            <p>You've just completed your book: <strong>"${bookTitle}"</strong></p>
-            
-            <p>This is a huge accomplishment! Creating a complete illustrated book takes creativity, dedication, and vision. You should be proud of what you've achieved.</p>
-
-            <h3>📥 What's Next?</h3>
-            <ul>
-              <li><strong>Download:</strong> Save your book as a PDF to share with friends and family</li>
-              <li><strong>Publish:</strong> Export for Amazon KDP and reach a global audience</li>
-              <li><strong>Share:</strong> Let the Genesis community see your amazing work</li>
-              <li><strong>Create More:</strong> Start your next masterpiece!</li>
-            </ul>
-
-            <p style="text-align: center;">
-              <a href="https://iamazeyou.me" class="button">View Your Book</a>
-            </p>
-
-            <p>Keep creating and inspiring others with your stories!</p>
-            
-            <p><strong>The Genesis Team</strong> 🌟</p>
-          </div>
-          <div class="footer">
-            <p>© 2025 Genesis. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  const props = { userName, bookTitle, bookUrl: 'https://iamazeyou.me/library' };
+  const element = createElement(BookCompletionEmail, props);
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
 
   return sendEmail({
     to: userEmail,
-    subject: `🎉 Congratulations! You completed "${bookTitle}"`,
+    subject: `Congratulations! You completed "${bookTitle}"`,
     html,
-    text: `Congratulations ${userName}! You've completed your book "${bookTitle}". This is an amazing achievement! Download, share, or publish your book now on Genesis.`,
+    text,
   });
 }
 
@@ -195,64 +118,15 @@ export async function sendSubscriptionEmail(
   planName: string,
   features: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  const featuresList = features.map((f) => `<li>${f}</li>`).join('');
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .header h1 { color: white; margin: 0; font-size: 28px; }
-          .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-          .badge { display: inline-block; background: #FFD54F; color: #333; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
-          .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
-          .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
-          ul { padding-left: 20px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🚀 Subscription Upgraded!</h1>
-          </div>
-          <div class="content">
-            <h2>Welcome to ${planName}, ${userName}! 🎉</h2>
-            <p>Your subscription has been successfully upgraded. You now have access to premium features that will supercharge your creativity!</p>
-            
-            <div style="text-align: center; margin: 20px 0;">
-              <span class="badge">${planName} Plan Active</span>
-            </div>
-
-            <h3>✨ Your New Features:</h3>
-            <ul>
-              ${featuresList}
-            </ul>
-
-            <p style="text-align: center;">
-              <a href="https://iamazeyou.me" class="button">Start Creating</a>
-            </p>
-
-            <p>Thank you for supporting Genesis! We can't wait to see what you create with your enhanced capabilities.</p>
-            
-            <p><strong>The Genesis Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© 2025 Genesis. All rights reserved.</p>
-            <p>Manage your subscription anytime in Settings.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  const element = createElement(SubscriptionUpgradeEmail, { userName, planName, price: '', features });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
 
   return sendEmail({
     to: userEmail,
-    subject: `🚀 Welcome to ${planName} - Your Upgrade is Active!`,
+    subject: `Welcome to ${planName} — your upgrade is active`,
     html,
-    text: `Hi ${userName}! Your subscription to ${planName} is now active. Enjoy your new premium features: ${features.join(', ')}. Start creating at iamazeyou.me`,
+    text,
   });
 }
 
@@ -263,59 +137,15 @@ export async function sendPasswordResetEmail(
   userEmail: string,
   resetLink: string
 ): Promise<{ success: boolean; error?: string }> {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .header h1 { color: white; margin: 0; font-size: 28px; }
-          .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-          .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
-          .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🔐 Reset Your Password</h1>
-          </div>
-          <div class="content">
-            <h2>Password Reset Request</h2>
-            <p>We received a request to reset your Genesis account password.</p>
-            
-            <p style="text-align: center;">
-              <a href="${resetLink}" class="button">Reset Password</a>
-            </p>
-
-            <p>This link will expire in 1 hour for security reasons.</p>
-
-            <div class="warning">
-              <strong>⚠️ Security Notice:</strong>
-              <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
-            </div>
-
-            <p>Need help? Contact our support team.</p>
-            
-            <p><strong>The Genesis Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© 2025 Genesis. All rights reserved.</p>
-            <p>This is an automated security email.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  const element = createElement(PasswordResetEmail, { resetLink });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
 
   return sendEmail({
     to: userEmail,
-    subject: '🔐 Reset Your Genesis Password',
+    subject: 'Reset your Genesis password',
     html,
-    text: `You requested a password reset for your Genesis account. Click this link to reset your password: ${resetLink}. This link expires in 1 hour. If you didn't request this, please ignore this email.`,
+    text,
   });
 }
 
@@ -328,53 +158,201 @@ export async function sendBookShareEmail(
   bookTitle: string,
   shareLink: string
 ): Promise<{ success: boolean; error?: string }> {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .header h1 { color: white; margin: 0; font-size: 28px; }
-          .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-          .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #FF9B71 0%, #FFD54F 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
-          .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>📚 A Story For You!</h1>
-          </div>
-          <div class="content">
-            <h2>${senderName} shared a story with you! 🎁</h2>
-            <p><strong>${senderName}</strong> thought you'd enjoy their creation: <em>"${bookTitle}"</em></p>
-            
-            <p>They created this story using Genesis, an AI-powered visual storytelling platform.</p>
-
-            <p style="text-align: center;">
-              <a href="${shareLink}" class="button">Read the Story</a>
-            </p>
-
-            <p>After reading, you can create your own stories too! Join Genesis and start your creative journey.</p>
-            
-            <p><strong>The Genesis Team</strong> 📖</p>
-          </div>
-          <div class="footer">
-            <p>© 2025 Genesis. All rights reserved.</p>
-            <p>You're receiving this because ${senderName} shared a story with you.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  const element = createElement(BookSharedEmail, { senderName, bookTitle, shareLink });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
 
   return sendEmail({
     to: recipientEmail,
-    subject: `📚 ${senderName} shared "${bookTitle}" with you!`,
+    subject: `${senderName} shared "${bookTitle}" with you`,
     html,
-    text: `${senderName} shared their story "${bookTitle}" with you! View it here: ${shareLink}. Created with Genesis - AI-powered visual storytelling.`,
+    text,
   });
 }
 
+/**
+ * Send a payment confirmation email
+ */
+export async function sendPaymentSucceededEmail(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  amount: string,
+  currency: string,
+  date: string,
+  receiptUrl?: string
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(PaymentSucceededEmail, { userName, planName, amount, currency, date, receiptUrl });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: `Payment confirmed — ${planName} plan`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send a subscription cancellation email
+ */
+export async function sendSubscriptionCancelledEmail(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  endDate: string
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(SubscriptionCancelledEmail, { userName, planName, endDate });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: `Your ${planName} subscription has been cancelled`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send a subscription renewal email
+ */
+export async function sendSubscriptionRenewedEmail(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  amount: string,
+  nextRenewalDate: string
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(SubscriptionRenewedEmail, { userName, planName, amount, nextRenewalDate });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: `Your ${planName} subscription has been renewed`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send a payment failed email
+ */
+export async function sendPaymentFailedEmail(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  amount: string,
+  retryDate: string
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(PaymentFailedEmail, {
+    userName,
+    planName,
+    amount,
+    retryDate,
+    updatePaymentUrl: 'https://iamazeyou.me/settings',
+  });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: 'Action required — your payment could not be processed',
+    html,
+    text,
+  });
+}
+
+/**
+ * Send a collaboration invite email
+ */
+export async function sendCollaborationInviteEmail(
+  recipientEmail: string,
+  inviterName: string,
+  bookTitle: string,
+  role: string,
+  inviteUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(CollaborationInviteEmail, { inviterName, bookTitle, role, inviteUrl });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: recipientEmail,
+    subject: `${inviterName} invited you to collaborate on "${bookTitle}"`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send an export ready email
+ */
+export async function sendExportReadyEmail(
+  userEmail: string,
+  userName: string,
+  bookTitle: string,
+  format: string,
+  downloadUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(ExportReadyEmail, { userName, bookTitle, format, downloadUrl });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: `Your ${format} export of "${bookTitle}" is ready`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send a weekly digest email
+ */
+export async function sendWeeklyDigestEmail(
+  userEmail: string,
+  userName: string,
+  stats: {
+    booksCreated: number;
+    wordsWritten: number;
+    streakDays: number;
+    topBook?: string;
+    weekStartDate: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(WeeklyDigestEmail, { userName, ...stats });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: `Your Genesis week — ${stats.booksCreated} books, ${stats.wordsWritten.toLocaleString()} words`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send an achievement unlocked email
+ */
+export async function sendAchievementEmail(
+  userEmail: string,
+  userName: string,
+  achievementName: string,
+  description: string,
+  xpEarned?: number
+): Promise<{ success: boolean; error?: string }> {
+  const element = createElement(AchievementEmail, { userName, achievementName, description, xpEarned });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+
+  return sendEmail({
+    to: userEmail,
+    subject: `Achievement unlocked: ${achievementName}`,
+    html,
+    text,
+  });
+}

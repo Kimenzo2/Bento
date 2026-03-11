@@ -225,6 +225,68 @@ test.describe('Landing Page Performance', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // PWA Icons & Manifest
+  // ---------------------------------------------------------------------------
+
+  test('has complete favicon and apple-touch-icon references', async ({ page }) => {
+    const htmlContent = await page.content();
+
+    // Favicons
+    expect(htmlContent).toContain('sizes="16x16"');
+    expect(htmlContent).toContain('sizes="32x32"');
+    expect(htmlContent).toContain('sizes="192x192"');
+
+    // Apple touch icons
+    const appleTouchIcons = await page.locator('link[rel="apple-touch-icon"]').count();
+    expect(appleTouchIcons).toBeGreaterThanOrEqual(3); // 152, 167, 180
+  });
+
+  test('PWA manifest contains all required icon sizes', async ({ page }) => {
+    // Find the manifest link
+    const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
+    expect(manifestHref).toBeTruthy();
+
+    // Fetch and parse the manifest
+    const manifestResponse = await page.evaluate(async (href) => {
+      const res = await fetch(href!);
+      return res.json();
+    }, manifestHref);
+
+    // Required sizes for Android + desktop
+    const requiredSizes = ['48x48', '72x72', '96x96', '128x128', '144x144', '192x192', '384x384', '512x512'];
+    const iconSizes = manifestResponse.icons.map((i: { sizes: string }) => i.sizes);
+
+    for (const size of requiredSizes) {
+      expect(iconSizes, `Missing icon size ${size}`).toContain(size);
+    }
+
+    // At least one maskable icon
+    const maskableIcons = manifestResponse.icons.filter(
+      (i: { purpose: string }) => i.purpose === 'maskable'
+    );
+    expect(maskableIcons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('all manifest icon files are accessible', async ({ page }) => {
+    const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
+    expect(manifestHref).toBeTruthy();
+
+    const manifestResponse = await page.evaluate(async (href) => {
+      const res = await fetch(href!);
+      return res.json();
+    }, manifestHref);
+
+    // Check each icon src returns 200
+    for (const icon of manifestResponse.icons) {
+      const status = await page.evaluate(async (src: string) => {
+        const res = await fetch(src);
+        return res.status;
+      }, icon.src.startsWith('/') ? icon.src : `/${icon.src}`);
+      expect(status, `Icon ${icon.src} not accessible`).toBe(200);
+    }
+  });
+
+  // ---------------------------------------------------------------------------
   // Resource Loading
   // ---------------------------------------------------------------------------
 
