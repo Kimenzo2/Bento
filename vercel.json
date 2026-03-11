@@ -83,6 +83,14 @@
       "destination": "/api/dodo?action=webhook"
     },
     {
+      "source": "/api/inbound-email/",
+      "destination": "/api/inbound-email"
+    },
+    {
+      "source": "/api/delete-account/",
+      "destination": "/api/delete-account"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

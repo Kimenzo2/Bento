@@ -10,6 +10,7 @@ import {
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { authenticatedFetch } from '../../services/api/authenticatedFetch';
 import { supabase } from '../../services/supabaseClient';
 import { toast } from '../ui/sonner';
 
@@ -133,16 +134,21 @@ const DataManagement: React.FC<DataManagementProps> = ({ onShowSuccess }) => {
 
     setIsLoading(true);
     try {
-      // Delete user data
-      await supabase.from('projects').delete().eq('user_id', user.id);
-      await supabase.from('visual_generations').delete().eq('user_id', user.id);
-      await supabase.from('profiles').delete().eq('id', user.id);
+      const response = await authenticatedFetch('/api/delete-account', {
+        method: 'POST',
+      });
 
-      // Delete auth user (requires admin privileges or RLS policies)
-      // Note: In production, this should be done via a secure backend function
-      onShowSuccess('Account deletion initiated. Please contact support to complete.');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Account deletion failed');
+      }
 
-      // Sign out
+      // Clear all local data
+      localStorage.clear();
+      sessionStorage.clear();
+
+      onShowSuccess('Account deleted successfully. Redirecting...');
+
       setTimeout(() => {
         window.location.href = '/';
       }, 2000);

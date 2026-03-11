@@ -44,15 +44,8 @@ const GENESIS_TAILWIND_CONFIG = {
   },
 };
 
-// In preview server, static files are served from /static/
-// In production, from the CDN root
-const BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://iamazeyou.me'
-  : '';
-
-const ICON_SRC = process.env.NODE_ENV === 'production'
-  ? 'https://iamazeyou.me/genesis-icon-128.png'
-  : '/static/genesis-icon.png';
+const BASE_URL = 'https://iamazeyou.me';
+const ICON_SRC = 'https://iamazeyou.me/genesis-icon-128.png';
 
 // ── Shared inline style objects ──────────────────────────────────────────────
 

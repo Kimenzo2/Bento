@@ -75,7 +75,9 @@ const AuthPage: React.FC = () => {
       }
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Authentication error:', error);
-      setError('Authentication failed. Please check your credentials and try again.');
+      const message =
+        error instanceof Error ? error.message : 'Authentication failed. Please try again.';
+      setError(message);
       setIsLoading(false);
     }
   };
