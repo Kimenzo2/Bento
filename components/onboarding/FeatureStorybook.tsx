@@ -5,6 +5,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { useOnboarding } from './OnboardingState';
+import { Gen } from '../gen/Gen';
 
 // Image paths for features
 const featureImages = {
@@ -73,7 +74,7 @@ const features: Feature[] = [
   },
 ];
 
-// Gen Mascot component with image
+// Gen Mascot component using the official Gen component
 const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean }) => (
   <AnimatePresence>
     {isVisible && (
@@ -84,17 +85,7 @@ const GenMascot = ({ message, isVisible }: { message: string; isVisible: boolean
         transition={{ type: 'spring', bounce: 0.4 }}
         className="hidden lg:flex flex-col items-center"
       >
-        {/* Gen Mascot Image */}
-        <div className="relative">
-          <img
-            src={featureImages.genMascot}
-            alt="Gen - Your Creative Guide"
-            className="w-36 h-36 object-contain drop-shadow-2xl rounded-3xl"
-          />
-
-          {/* Glow behind */}
-          <div className="absolute inset-0 bg-purple-500/30 blur-3xl -z-10" />
-        </div>
+        <Gen mode="onboarding" size="md" />
 
         {/* Speech bubble */}
         <motion.div

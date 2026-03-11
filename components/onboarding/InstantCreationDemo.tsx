@@ -408,7 +408,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                         <img
                           src={content.visualImage}
                           alt="Generated visual"
-                          className="w-16 h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain drop-shadow-2xl rounded-xl md:rounded-3xl"
+                          className="w-16 h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain rounded-xl md:rounded-3xl"
                           loading="eager"
                           decoding="async"
                         />
