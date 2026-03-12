@@ -764,8 +764,8 @@ const LandingPage: React.FC = memo(() => {
   ];
 
   const VisualShowcase = (
-    <Section className="py-20 md:py-32 overflow-hidden">
-      <div className="grid grid-cols-2 gap-8 md:gap-12 max-w-3xl mx-auto px-6">
+    <div className="py-20 md:py-32 overflow-hidden">
+      <div className="grid grid-cols-2 gap-8 md:gap-12 max-w-2xl mx-auto px-8">
         {visualShowcaseItems.map((item, i) => (
           <motion.div
             key={item.caption}
@@ -798,7 +798,7 @@ const LandingPage: React.FC = memo(() => {
           </motion.div>
         ))}
       </div>
-    </Section>
+    </div>
   );
 
   // =========================================================================
@@ -1700,7 +1700,7 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   return (
-    <div className="bg-cream-base font-body overflow-x-hidden" style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}>
+    <div className="bg-cream-base font-body" style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}>
       {/* Skip to main content — WCAG 2.4.1 */}
       <a
         href="#main-content"
