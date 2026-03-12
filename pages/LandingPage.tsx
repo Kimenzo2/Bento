@@ -1700,7 +1700,7 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   return (
-    <div className="bg-cream-base font-body" style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}>
+    <div className="bg-cream-base font-body overflow-x-hidden" style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}>
       {/* Skip to main content — WCAG 2.4.1 */}
       <a
         href="#main-content"
