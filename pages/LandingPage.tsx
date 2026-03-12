@@ -755,41 +755,44 @@ const LandingPage: React.FC = memo(() => {
   // Clean, soft fade-in. No slants. Rounded with border.
   // =========================================================================
 
-  const VisualInterlude = ({
-    src, alt, caption,
-  }: { src: string; alt: string; caption: string }) => (
-    <div className="px-5 md:px-12 py-10 md:py-14">
-      <div className="mx-auto max-w-xs w-full">
-        <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.5, ease: APPLE_EASE }}
-          className="text-center"
-        >
-          <div className="rounded-2xl overflow-hidden border border-peach-soft">
-            <img
-              src={src}
-              alt={alt}
-              width={540}
-              height={960}
-              className="w-full h-auto block"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-          <p className="mt-3 text-xs font-medium font-body text-cocoa-light tracking-wide uppercase">
-            {caption}
-          </p>
-        </motion.div>
-      </div>
-    </div>
-  );
+  const visualShowcaseItems = [
+    { src: '/images/promo/design-your-hero-once.webp', alt: 'Design your hero once — consistent character across every scene', caption: 'Design your hero once' },
+    { src: '/images/promo/true-character-persistence.webp', alt: 'True character persistence — same hero across worlds', caption: 'True character persistence' },
+    { src: '/images/promo/illustrate-every-adventure.webp', alt: 'Illustrate every adventure with AI-powered visuals', caption: 'Illustrate every adventure' },
+    { src: '/images/promo/build-your-visual-legacy.webp', alt: 'Build your visual legacy — publish and share your stories', caption: 'Build your visual legacy' },
+  ];
 
-  const Interlude1 = <VisualInterlude src="/images/promo/design-your-hero-once.webp" alt="Design your hero once — consistent character across every scene" caption="Design your hero once" />;
-  const Interlude2 = <VisualInterlude src="/images/promo/true-character-persistence.webp" alt="True character persistence — same hero across worlds" caption="True character persistence" />;
-  const Interlude3 = <VisualInterlude src="/images/promo/illustrate-every-adventure.webp" alt="Illustrate every adventure with AI-powered visuals" caption="Illustrate every adventure" />;
-  const Interlude4 = <VisualInterlude src="/images/promo/build-your-visual-legacy.webp" alt="Build your visual legacy — publish and share your stories" caption="Build your visual legacy" />;
+  const VisualShowcase = (
+    <Section className="py-14 md:py-20">
+      <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-2xl mx-auto">
+        {visualShowcaseItems.map((item, i) => (
+          <motion.div
+            key={item.caption}
+            initial={reducedMotion ? {} : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.5, ease: APPLE_EASE, delay: i * 0.08 }}
+            className="text-center"
+          >
+            <div className="rounded-2xl overflow-hidden border border-peach-soft">
+              <img
+                src={item.src}
+                alt={item.alt}
+                width={540}
+                height={960}
+                className="w-full h-auto block"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <p className="mt-2 md:mt-3 text-[10px] md:text-xs font-medium font-body text-cocoa-light tracking-wide uppercase">
+              {item.caption}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+    </Section>
+  );
 
   // =========================================================================
   // KEY FEATURES GRID — bento, large card spans 2
@@ -1725,17 +1728,14 @@ const LandingPage: React.FC = memo(() => {
         {SocialProofBar}
         {RealmsSection}
         {HowItWorksSection}
-        {Interlude1}
+        {VisualShowcase}
         {FeaturesSection}
-        {Interlude2}
         {MascotSection}
         {DifferentiatorsSection}
         {TestimonialsSection}
         {AboutUsSection}
-        {Interlude3}
         {PricingSection}
         {UseCasesSection}
-        {Interlude4}
         {EducationSection}
         {FAQSection}
         {SupportSection}
