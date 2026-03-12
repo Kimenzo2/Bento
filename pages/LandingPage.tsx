@@ -16,6 +16,7 @@ import type React from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
 import {
+  ArrowRight,
   BookOpen,
   Briefcase,
   Check,
@@ -750,58 +751,45 @@ const LandingPage: React.FC = memo(() => {
   );
 
   // =========================================================================
-  // PROMO INTERLUDE 1 — Side-by-side: Professional Storytelling + Environments
-  // Opposing slants, no backdrop, compact
+  // VISUAL INTERLUDES — Four portrait promo images at natural breakpoints
+  // Clean, soft fade-in. No slants. Rounded with border.
   // =========================================================================
 
-  const PromoStorytellingInterlude = (
-    <div className="px-5 md:px-12 py-10 md:py-14" aria-hidden="true">
-      <div className="mx-auto max-w-4xl w-full grid grid-cols-2 gap-5 md:gap-8 items-center">
+  const VisualInterlude = ({
+    src, alt, caption,
+  }: { src: string; alt: string; caption: string }) => (
+    <div className="px-5 md:px-12 py-10 md:py-14">
+      <div className="mx-auto max-w-xs w-full">
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={reducedMotion ? {} : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-60px' }}
           transition={{ duration: 0.5, ease: APPLE_EASE }}
+          className="text-center"
         >
-          <div
-            className="rounded-2xl overflow-hidden border border-peach-soft"
-            style={{ transform: 'rotate(-2.5deg)' }}
-          >
+          <div className="rounded-2xl overflow-hidden border border-peach-soft">
             <img
-              src="/images/promo/professional-storytelling.webp"
-              alt="Professional storytelling — Three distinct Genesis art styles"
-              width={400}
-              height={400}
+              src={src}
+              alt={alt}
+              width={540}
+              height={960}
               className="w-full h-auto block"
               loading="lazy"
               decoding="async"
             />
           </div>
-        </motion.div>
-        <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.5, ease: APPLE_EASE, delay: 0.08 }}
-        >
-          <div
-            className="rounded-2xl overflow-hidden border border-peach-soft"
-            style={{ transform: 'rotate(2.5deg)' }}
-          >
-            <img
-              src="/images/promo/environments-that-stay-put.webp"
-              alt="Environments that stay put — Consistent library across day and night"
-              width={400}
-              height={400}
-              className="w-full h-auto block"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+          <p className="mt-3 text-xs font-medium font-body text-cocoa-light tracking-wide uppercase">
+            {caption}
+          </p>
         </motion.div>
       </div>
     </div>
   );
+
+  const Interlude1 = <VisualInterlude src="/images/promo/design-your-hero-once.webp" alt="Design your hero once — consistent character across every scene" caption="Design your hero once" />;
+  const Interlude2 = <VisualInterlude src="/images/promo/true-character-persistence.webp" alt="True character persistence — same hero across worlds" caption="True character persistence" />;
+  const Interlude3 = <VisualInterlude src="/images/promo/illustrate-every-adventure.webp" alt="Illustrate every adventure with AI-powered visuals" caption="Illustrate every adventure" />;
+  const Interlude4 = <VisualInterlude src="/images/promo/build-your-visual-legacy.webp" alt="Build your visual legacy — publish and share your stories" caption="Build your visual legacy" />;
 
   // =========================================================================
   // KEY FEATURES GRID — bento, large card spans 2
@@ -863,52 +851,6 @@ const LandingPage: React.FC = memo(() => {
         ))}
       </div>
     </Section>
-  );
-
-  // =========================================================================
-  // PROMO INTERLUDE 2 — One Hero, Endless Chapters (no slant, clean)
-  // =========================================================================
-
-  const PromoHeroInterlude = (
-    <div className="px-5 md:px-12 py-10 md:py-14" aria-hidden="true">
-      <div className="mx-auto max-w-5xl w-full">
-        <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6, ease: APPLE_EASE }}
-          className="grid md:grid-cols-5 gap-8 items-center"
-        >
-          <div className="md:col-span-3">
-            <div className="rounded-2xl overflow-hidden border border-peach-soft">
-              <img
-                src="/images/promo/one-hero-endless-chapters.webp"
-                alt="One hero, endless chapters — The same character rendered consistently across sci-fi, jungle, and castle worlds"
-                width={800}
-                height={800}
-                className="w-full h-auto block"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </div>
-          <div className="md:col-span-2 text-center md:text-left">
-            <div
-              className="w-12 h-1 mb-4 rounded-full mx-auto md:mx-0"
-              style={{
-                background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
-              }}
-            />
-            <h3 className="text-2xl md:text-3xl font-normal tracking-[-0.01em] mb-3 font-heading text-charcoal-soft">
-              One hero. Endless chapters.
-            </h3>
-            <p className="text-sm leading-relaxed font-body text-cocoa-light">
-              Your character stays pixel-perfect across every scene, every world, every page — no more re-describing from scratch.
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    </div>
   );
 
   // =========================================================================
@@ -1068,35 +1010,182 @@ const LandingPage: React.FC = memo(() => {
   );
 
   // =========================================================================
-  // PROMO INTERLUDE 3 — Publish Your Masterpiece (compact, slanted)
+  // ABOUT US — Mission, Vision, stats + imagery
   // =========================================================================
 
-  const PromoPublishInterlude = (
-    <div className="px-5 md:px-12 py-8 md:py-12" aria-hidden="true">
-      <div className="mx-auto max-w-sm w-full">
+  const aboutCards = [
+    {
+      type: 'stat' as const,
+      value: '100K+',
+      label: 'Creators',
+    },
+    {
+      type: 'content' as const,
+      title: 'Our Mission',
+      text: 'To make visual storytelling accessible to every writer, educator, and creator — regardless of artistic skill or budget.',
+    },
+    {
+      type: 'content' as const,
+      title: 'Our Vision',
+      text: 'A world where every story finds its visual form, and every creator has an AI companion that truly understands narrative.',
+    },
+    {
+      type: 'stat' as const,
+      value: '3',
+      label: 'Realms',
+    },
+  ];
+
+  const AboutUsSection = (
+    <Section className="py-20 md:py-28 relative overflow-hidden" aria-labelledby="about-heading">
+      <Blob variant="primary" size="280px" top="5%" left="-60px" opacity={0.06} animate delay="2s" />
+      <Blob variant="secondary" size="220px" bottom="10%" right="-50px" opacity={0.05} animate delay="5s" />
+
+      <div className="text-center mb-10">
+        <motion.h2
+          {...fadeUp}
+          id="about-heading"
+          className="max-w-3xl mx-auto text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-6 font-heading text-charcoal-soft"
+        >
+          Stories deserve to be seen — not just read. That is why Genesis exists.
+        </motion.h2>
+
         <motion.div
           initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.5, ease: APPLE_EASE }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.4, ease: APPLE_EASE, delay: 0.15 }}
         >
-          <div
-            className="rounded-2xl overflow-hidden border border-peach-soft"
-            style={{ transform: 'rotate(-2deg)' }}
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('pricing-heading');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className={`inline-flex items-center gap-2 pl-5 pr-2 py-2 rounded-full font-body text-sm font-medium text-white transition-colors ${BTN_PRESS}`}
+            style={{
+              background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
+            }}
           >
-            <img
-              src="/images/promo/publish-your-masterpiece.webp"
-              alt="Publish your masterpiece — Four consistent character panels ready for export"
-              width={400}
-              height={400}
-              className="w-full h-auto block"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+            More about us
+            <span
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.2)' }}
+            >
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </span>
+          </button>
         </motion.div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Left image */}
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, ease: APPLE_EASE, delay: 0.1 }}
+          className="rounded-2xl overflow-hidden h-[320px]"
+        >
+          <img
+            src="/images/promo/professional-storytelling.webp"
+            alt="Three distinct Genesis art styles side by side"
+            width={400}
+            height={400}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </motion.div>
+
+        {/* Stats + Mission column */}
+        <div className="flex flex-col gap-5">
+          <motion.div
+            initial={reducedMotion ? {} : { opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.4, ease: APPLE_EASE, delay: 0.2 }}
+          >
+            <GlowCard className="h-full">
+              <div className="p-6 flex justify-between items-center">
+                <span className="text-3xl font-bold font-heading text-charcoal-soft">{aboutCards[0].value}</span>
+                <span className="text-xs font-body text-cocoa-light uppercase tracking-widest">{aboutCards[0].label}</span>
+              </div>
+            </GlowCard>
+          </motion.div>
+          <motion.div
+            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.4, ease: APPLE_EASE, delay: 0.3 }}
+            className="flex-grow"
+          >
+            <GlowCard className="h-full">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold font-heading text-charcoal-soft mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary-start)' }} />
+                  {aboutCards[1].title}
+                </h3>
+                <p className="text-sm leading-relaxed font-body text-cocoa-light">{aboutCards[1].text}</p>
+              </div>
+            </GlowCard>
+          </motion.div>
+        </div>
+
+        {/* Vision + Stats column */}
+        <div className="flex flex-col gap-5">
+          <motion.div
+            initial={reducedMotion ? {} : { opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.4, ease: APPLE_EASE, delay: 0.35 }}
+            className="flex-grow"
+          >
+            <GlowCard className="h-full">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold font-heading text-charcoal-soft mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary-end)' }} />
+                  {aboutCards[2].title}
+                </h3>
+                <p className="text-sm leading-relaxed font-body text-cocoa-light">{aboutCards[2].text}</p>
+              </div>
+            </GlowCard>
+          </motion.div>
+          <motion.div
+            initial={reducedMotion ? {} : { opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.4, ease: APPLE_EASE, delay: 0.45 }}
+          >
+            <GlowCard className="h-full">
+              <div className="p-6 flex justify-between items-center">
+                <span className="text-3xl font-bold font-heading text-charcoal-soft">{aboutCards[3].value}</span>
+                <span className="text-xs font-body text-cocoa-light uppercase tracking-widest">{aboutCards[3].label}</span>
+              </div>
+            </GlowCard>
+          </motion.div>
+        </div>
+
+        {/* Right image */}
+        <motion.div
+          initial={reducedMotion ? {} : { opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, ease: APPLE_EASE, delay: 0.5 }}
+          className="rounded-2xl overflow-hidden h-[320px]"
+        >
+          <img
+            src="/images/promo/environments-that-stay-put.webp"
+            alt="Consistent environment library across day and night scenes"
+            width={400}
+            height={400}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </motion.div>
+      </div>
+    </Section>
   );
 
   // =========================================================================
@@ -1636,15 +1725,17 @@ const LandingPage: React.FC = memo(() => {
         {SocialProofBar}
         {RealmsSection}
         {HowItWorksSection}
-        {PromoStorytellingInterlude}
+        {Interlude1}
         {FeaturesSection}
-        {PromoHeroInterlude}
+        {Interlude2}
         {MascotSection}
         {DifferentiatorsSection}
         {TestimonialsSection}
-        {PromoPublishInterlude}
+        {AboutUsSection}
+        {Interlude3}
         {PricingSection}
         {UseCasesSection}
+        {Interlude4}
         {EducationSection}
         {FAQSection}
         {SupportSection}
