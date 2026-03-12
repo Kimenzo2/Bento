@@ -752,40 +752,47 @@ const LandingPage: React.FC = memo(() => {
 
   // =========================================================================
   // VISUAL INTERLUDES — Four portrait promo images at natural breakpoints
-  // Clean, soft fade-in. No slants. Rounded with border.
+  // Alternating slants + vertical offsets for a floating, editorial feel.
+  // object-cover with aspect-[4/5] keeps images square-ish without distortion.
   // =========================================================================
 
   const visualShowcaseItems = [
-    { src: '/images/promo/design-your-hero-once.webp', alt: 'Design your hero once — consistent character across every scene', caption: 'Design your hero once' },
-    { src: '/images/promo/true-character-persistence.webp', alt: 'True character persistence — same hero across worlds', caption: 'True character persistence' },
-    { src: '/images/promo/illustrate-every-adventure.webp', alt: 'Illustrate every adventure with AI-powered visuals', caption: 'Illustrate every adventure' },
-    { src: '/images/promo/build-your-visual-legacy.webp', alt: 'Build your visual legacy — publish and share your stories', caption: 'Build your visual legacy' },
+    { src: '/images/promo/design-your-hero-once.webp', alt: 'Design your hero once — consistent character across every scene', caption: 'Design your hero once', rotate: '-2.5deg', yOffset: '0px' },
+    { src: '/images/promo/true-character-persistence.webp', alt: 'True character persistence — same hero across worlds', caption: 'True character persistence', rotate: '1.8deg', yOffset: '28px' },
+    { src: '/images/promo/illustrate-every-adventure.webp', alt: 'Illustrate every adventure with AI-powered visuals', caption: 'Illustrate every adventure', rotate: '2deg', yOffset: '-12px' },
+    { src: '/images/promo/build-your-visual-legacy.webp', alt: 'Build your visual legacy — publish and share your stories', caption: 'Build your visual legacy', rotate: '-1.5deg', yOffset: '16px' },
   ];
 
   const VisualShowcase = (
-    <Section className="py-14 md:py-20">
-      <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-2xl mx-auto">
+    <Section className="py-16 md:py-24 overflow-hidden">
+      <div className="grid grid-cols-2 gap-6 md:gap-10 max-w-3xl mx-auto px-4">
         {visualShowcaseItems.map((item, i) => (
           <motion.div
             key={item.caption}
-            initial={reducedMotion ? {} : { opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={reducedMotion ? {} : { opacity: 0, y: 40, rotate: 0 }}
+            whileInView={{ opacity: 1, y: 0, rotate: parseFloat(item.rotate) }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.5, ease: APPLE_EASE, delay: i * 0.08 }}
+            transition={{ duration: 0.6, ease: APPLE_EASE, delay: i * 0.1 }}
             className="text-center"
+            style={{ marginTop: item.yOffset }}
           >
-            <div className="rounded-2xl overflow-hidden border border-peach-soft">
+            <div
+              className="rounded-2xl overflow-hidden border border-peach-soft"
+              style={{
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+              }}
+            >
               <img
                 src={item.src}
                 alt={item.alt}
                 width={540}
-                height={960}
-                className="w-full h-auto block"
+                height={675}
+                className="w-full h-auto block aspect-[4/5] object-cover object-top"
                 loading="lazy"
                 decoding="async"
               />
             </div>
-            <p className="mt-2 md:mt-3 text-[10px] md:text-xs font-medium font-body text-cocoa-light tracking-wide uppercase">
+            <p className="mt-3 md:mt-4 text-[10px] md:text-xs font-medium font-body text-cocoa-light tracking-wide uppercase">
               {item.caption}
             </p>
           </motion.div>
