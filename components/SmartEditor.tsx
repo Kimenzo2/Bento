@@ -1,20 +1,59 @@
-import { IcoBook, IcoPen, IcoStar, IcoZap, IcoWand } from './IconscoutIcons';
-import { AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Cloud, CloudOff, Compass, Edit3, Eye, GitFork, Globe, Image, ImageIcon, Lightbulb, MessageCircle, Redo, RefreshCw, Save, ShieldCheck, Undo, Users, Wand } from 'lucide-react';
+/**
+ * SmartEditor.tsx — Genesis Page Editor (Three-Panel Reimagination)
+ *
+ * Mobile-first, three-panel desktop layout:
+ *   Left  (260px): Writing companion — page nav + writing
+ *   Center (flex):  Illustration HERO + story text preview
+ *   Right (300px):  Intelligence — Gen companion + metrics + generation
+ *
+ * Responsive breakpoints:
+ *   Mobile (<768px):  Single column, Write/Preview swipe + bottom sheet
+ *   Tablet (768-1024): Two-panel split + slide-over intelligence
+ *   Desktop (≥1024):  Full three-panel
+ *
+ * Also handles:
+ *   - Standalone mode (Creative Hub, no project)
+ *   - Canvas view (ReactFlow)
+ *   - Green Room & Remix Studio modals
+ *   - Focus mode (sidebars collapse, center expands)
+ *   - Keyboard shortcuts
+ *   - Audience Safety panel
+ *
+ * DNA rules: zero hardcoded colours, zero filter:blur,
+ * active:scale-[0.98] on buttons, Geist for UI chrome.
+ */
+
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useAutoSave } from '../hooks/useAutoSave';
-import { useUndoRedo } from '../hooks/useUndoRedo';
-import { generateIllustration } from '../services/geminiService';
-import { persistImage } from '../services/imageStorage';
+import { useEffect, useState, lazy, Suspense, useMemo } from 'react';
+import { ReactFlowProvider } from '@xyflow/react';
 import {
-  checkCharacterConsistency,
-  getWritingSuggestions,
-  improveText,
-} from '../services/grokService';
-import { mastra, type ConsistencyReport as MastraConsistencyReport } from '../src/services/mastraClient';
-import { saveBook } from '../services/storageService';
-import { type ConsistencyIssue, storyBibleService } from '../services/storyBibleService';
+  ArrowLeft,
+  Brain,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  Edit3,
+  Eye,
+  GitFork,
+  Globe,
+  MessageCircle,
+  Users,
+  X,
+} from 'lucide-react';
+import { IcoBook, IcoPen, IcoStar, IcoWand, IcoZap } from './IconscoutIcons';
+
+import { useEditorState } from '@hooks/useEditorState';
+import EditorHeader from './editor/EditorHeader';
+import EditorLeftZone from './editor/EditorLeftZone';
+import CenterPanel from './editor/CenterPanel';
+import IntelligencePanel from './editor/IntelligencePanel';
+import FocusModeWritingPanel from './editor/FocusMode';
+
+import AudienceSafety from './AudienceSafety';
+import GreenRoom from './GreenRoom';
+import RemixStudio from './RemixStudio';
+import { Button } from '@components/ui/button';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ArtStyle,
   type BookProject,
@@ -23,13 +62,16 @@ import {
   type CharacterPersona,
   UserTier,
 } from '../types';
-import type { StoryBible } from '../types';
-import AudienceSafety from './AudienceSafety';
-import GreenRoom from './GreenRoom';
-import RemixStudio from './RemixStudio';
-import { toast } from './ui/sonner';
-import { Button } from '@components/ui/button';
-import { Label, Textarea } from '@components/ui/input';
+
+const StoryCanvas = lazy(() => import('./canvas/StoryCanvas'));
+
+const geist: React.CSSProperties = {
+  fontFamily: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
+};
+
+// ─────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────
 
 interface SmartEditorProps {
   project: BookProject | null;
@@ -42,559 +84,50 @@ interface SmartEditorProps {
   onToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
-interface WritingSuggestion {
-  type: string;
-  original: string;
-  suggestion: string;
-  reason: string;
-}
+// ─────────────────────────────────────────────────────────────
+// DEFAULT CHARACTERS — for standalone Creative Hub
+// ─────────────────────────────────────────────────────────────
 
-interface ConsistencyCharacter {
-  name: string;
-  inconsistencies: string[];
-  suggestions: string[];
-}
-
-interface ConsistencyReport {
-  overallScore: number;
-  characters: ConsistencyCharacter[];
-}
-
-// Default characters for standalone Green Room access
-// DEEP PERSONALITY SYSTEM: Each character has a rich psychological profile
 const defaultCharacters: Character[] = [
   {
     id: 'demo-luna',
     name: 'Luna the Moon Fairy',
-    description:
-      'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children. Behind her serene exterior lies a soul who once lost someone dear to the darkness, and now dedicates her eternal life to ensuring no child ever feels alone in the night.',
-    visualTraits:
-      'Translucent wings that shimmer with captured starlight, flowing silver hair that floats as if underwater, pale luminescent skin with a soft blue glow, wearing an ethereal dress woven from moonbeam silk and living flower petals that open and close with her emotions, bare feet that never quite touch the ground, eyes like twin moons—silver with flecks of gold',
+    description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
+    visualTraits: 'Translucent wings that shimmer with captured starlight, flowing silver hair, pale luminescent skin with a soft blue glow',
     imageUrl: '/assets/characters/Demo Character 1.jpeg',
     traits: ['ethereal', 'nurturing', 'melancholic', 'wise', 'gentle'],
-    personalityTraits: [
-      'Deeply empathetic',
-      'Quietly observant',
-      'Eternally patient',
-      'Subtly playful',
-      'Protectively fierce when children are threatened',
-    ],
-    backstory:
-      'Luna was once a human girl named Lily who lived in a small village centuries ago. When her younger brother fell ill with a fever that no healer could cure, she made a desperate bargain with the Moon itself—her mortality in exchange for the power to grant one wish to save him. The Moon accepted, transforming her into a fairy, but by the time she returned with her new powers, a hundred years had passed. Her brother had lived a full life and passed peacefully, never knowing what became of his sister. Now Luna spends eternity granting wishes to children, each one a tribute to the brother she saved but never saw again.',
-    appearance:
-      'Petite and willowy, standing about 8 inches tall in her natural form but can grow to human size. Her wings leave trails of silver dust. When she speaks, her voice sounds like wind chimes. She smells faintly of night-blooming jasmine.',
-    goals: [
-      'To ensure no child ever feels alone or afraid in the darkness',
-      'To find meaning in her eternal existence',
-      'To one day find peace with the sacrifice she made',
-    ],
-    fears: [
-      'The complete absence of moonlight (it weakens her)',
-      'Children who have given up hope',
-      'Being forgotten entirely',
-      'The dawn—not because it harms her, but because it means her time with the night children ends',
-    ],
-    quirks: [
-      'Hums lullabies from her human life that no one else remembers',
-      'Collects tears of joy in tiny crystal vials',
-      'Cannot tell a lie but can speak in riddles',
-      'Giggles cause nearby flowers to bloom',
-    ],
-    psychologicalProfile: {
-      openness: 85, // High creativity and wonder
-      conscientiousness: 70, // Devoted but not rigid
-      extraversion: 35, // Prefers quiet connection over crowds
-      agreeableness: 95, // Extremely compassionate
-      neuroticism: 55, // Carries ancient grief but has learned to live with it
-    },
-    coreIdentity: {
-      coreBelief: 'Every act of kindness creates ripples that echo through eternity',
-      greatestDesire: 'To feel truly connected to someone who understands the weight of forever',
-      greatestFear: 'That her sacrifice was meaningless—that she cannot truly help anyone',
-      moralCode: 'Protect the innocent, honor all promises, never take more than you give',
-      flaw: 'She gives so much of herself that she sometimes forgets she deserves care too',
-      strength:
-        'Her empathy allows her to understand what children truly need, not just what they ask for',
-      lie: 'I am complete as I am. I do not miss being human.',
-      truth: 'Connection and love are worth the pain of eventual loss',
-    },
-    formativeExperiences: {
-      childhoodMemory:
-        'Teaching her little brother to catch fireflies, his laughter filling the summer night',
-      biggestRegret: 'Not saying goodbye before she made the bargain with the Moon',
-      definingMoment:
-        'The moment she returned to find a hundred years had passed—standing in the ruins of her village, understanding what eternity truly meant',
-      secretShame:
-        'Sometimes she resents the Moon for taking her humanity, even though she made the choice freely',
-      proudestAchievement:
-        'A wish she granted to a lonely orphan girl who grew up to build a home for hundreds of children',
-    },
-    relationshipStyle: {
-      attachmentStyle: 'anxious',
-      trustLevel: 'cautious',
-      conflictStyle: 'diplomatic',
-      loveLanguage: 'acts',
-    },
-    behavioralPatterns: {
-      stressResponse: 'Withdraws into silence, dims her glow, tends her moonflowers obsessively',
-      joyTriggers: [
-        'Children laughing',
-        'Stargazing',
-        'The moment a wish comes true',
-        'Finding someone awake in the quiet hours',
-      ],
-      angerTriggers: [
-        "Adults who dismiss children's fears",
-        'Cruelty disguised as discipline',
-        'Broken promises to children',
-      ],
-      copingMechanisms: [
-        'Singing to her moonflowers',
-        'Flying high enough to touch the stars',
-        "Visiting the ocean to watch the moon's reflection",
-      ],
-      habits: [
-        'Blessing sleeping children with good dreams',
-        'Counting stars when anxious',
-        'Leaving small gifts for night workers',
-      ],
-      speechPatterns:
-        'Speaks softly and deliberately, often in gentle metaphors. Uses "little one" as a term of endearment. Occasionally slips into archaic phrases from her human era.',
-    },
-    voiceProfile: {
-      tone: 'Warm, melodic, with an undercurrent of ancient sadness',
-      vocabulary: 'sophisticated',
-      catchphrases: [
-        'The night holds many secrets, little one...',
-        'Every star was once a wish that came true',
-        'Even the darkest night ends with dawn',
-      ],
-      nonverbalTics: [
-        'Wings flutter faster when excited',
-        'Glow dims when sad',
-        'Tilts head like a curious owl when listening',
-      ],
-      laughStyle: 'Soft, musical, like distant bells—rarely laughs loudly but often smiles',
-    },
-    innerConflicts: [
-      'The loneliness of immortality versus her duty to help others',
-      'Wanting to connect deeply versus fear of losing someone again',
-      'Gratitude for her powers versus resentment for what she lost',
-      'The peace of the night versus longing for the warmth of day',
-    ],
-    arcPotential: {
-      startingState: 'A beautiful, giving spirit who hides her grief behind service to others',
-      potentialGrowth:
-        'Learning that accepting help is not weakness, and that connection is worth the risk of loss',
-      endingState:
-        'A fairy who grants wishes not just for children, but allows herself to receive kindness too',
-    },
+    personalityTraits: ['Deeply empathetic', 'Quietly observant', 'Eternally patient'],
   },
   {
     id: 'demo-blaze',
     name: 'Blaze the Dragon',
-    description:
-      "A young dragon who hatched with flames too powerful for his small body. Exiled from his clan for accidentally burning down the Elder Tree, he now wanders the realm seeking to prove that being different doesn't mean being dangerous—and that the biggest hearts often come in the scariest packages.",
-    visualTraits:
-      "Compact dragon about the size of a large dog, scales that shift from deep crimson to bright orange like living embers, oversized wings he hasn't quite grown into yet, big amber eyes with vertical pupils that widen comically when excited, small horns that glow when he uses fire, a tail tip that constantly smolders, tiny wisps of smoke puffing from nostrils when he breathes",
+    description: 'A young dragon who hatched with flames too powerful for his small body.',
+    visualTraits: 'Compact dragon about the size of a large dog, scales that shift from deep crimson to bright orange',
     imageUrl: '/assets/characters/Demo character 2.jpeg',
     traits: ['enthusiastic', 'clumsy', 'loyal', 'insecure', 'brave'],
-    personalityTraits: [
-      'Desperately eager to please',
-      'Tries too hard',
-      'Heart of gold',
-      'Self-deprecating humor',
-      'Fiercely protective of friends',
-    ],
-    backstory:
-      "Blaze was born during the Crimson Moon, a rare celestial event that occurs once every thousand years. Dragons born under this moon are blessed—or cursed—with flames far more powerful than normal. His first hiccup set his nest on fire. His first sneeze nearly burned down the hatchery. When he accidentally destroyed the Elder Tree (a 3000-year-old oak that held his clan's history), the Elder Council decided he was too dangerous to remain. His own mother voted for his exile, though she wept as she did. Now Blaze travels alone, afraid to get too close to anyone lest his flames harm them, yet desperately lonely and craving the family he lost.",
-    appearance:
-      'About 3 feet tall at the shoulder, with a wingspan of 8 feet (way too big for his body). His scales are warm to the touch. Scorch marks on his own wings from past accidents. A small scar on his snout from trying to blow out a candle (it exploded). Often covered in soot.',
-    goals: [
-      'To learn to control his flames completely',
-      "To prove to his clan that he's not a monster",
-      'To find a family that accepts him',
-      'To do one great heroic deed that makes up for destroying the Elder Tree',
-    ],
-    fears: [
-      'Hurting someone he cares about',
-      'Water (not because it harms him, but because it makes him feel powerless)',
-      'Being truly alone forever',
-      'Losing control of his fire in a moment of emotion',
-    ],
-    quirks: [
-      "Apologizes constantly, even for things that aren't his fault",
-      'Practices fire control by trying to light single candles (success rate: 12%)',
-      'Collects fireproof things obsessively',
-      'Sneezes smoke rings when nervous',
-    ],
-    psychologicalProfile: {
-      openness: 75, // Curious and imaginative
-      conscientiousness: 85, // Tries SO hard to be careful
-      extraversion: 70, // Wants connection but fears it
-      agreeableness: 90, // Too agreeable—people-pleasing
-      neuroticism: 75, // High anxiety about his powers
-    },
-    coreIdentity: {
-      coreBelief: 'Being different means being a burden to everyone around you',
-      greatestDesire: 'To be hugged without someone flinching away from his warmth',
-      greatestFear:
-        'That his mother was right to vote for his exile—that he truly is too dangerous to love',
-      moralCode:
-        'Never use your fire in anger, always protect those smaller than you, say sorry first',
-      flaw: 'His self-doubt causes him to hold back, often making him less effective when he needs to act',
-      strength: 'His kindness and determination to do good despite his fears',
-      lie: 'If I just try hard enough, I can make my fire small and safe and normal',
-      truth: "His fire isn't a curse to be suppressed—it's a gift to be mastered and used for good",
-    },
-    formativeExperiences: {
-      childhoodMemory:
-        'The one time his mother curled around him without flinching—during a thunderstorm when he was too scared to generate heat',
-      biggestRegret:
-        'The Elder Tree. Every night he dreams of the flames consuming centuries of carved history.',
-      definingMoment:
-        'Watching his mother raise her claw to vote for exile, the tear running down her scaled face',
-      secretShame:
-        "Part of him felt relief when he was exiled—at least now he couldn't hurt his family anymore",
-      proudestAchievement:
-        'Once saved a village from a blizzard by warming the town square for three days straight, never sleeping, never complaining',
-    },
-    relationshipStyle: {
-      attachmentStyle: 'anxious',
-      trustLevel: 'trusting',
-      conflictStyle: 'avoidant',
-      loveLanguage: 'acts',
-    },
-    behavioralPatterns: {
-      stressResponse:
-        'Temperature rises uncontrollably, smoke increases, tends to ramble apologies',
-      joyTriggers: [
-        'Someone not being afraid of him',
-        'Successfully controlling his fire',
-        'Roasting marshmallows perfectly',
-        'Warm hugs (his favorite thing ever)',
-      ],
-      angerTriggers: [
-        'Bullies picking on someone smaller',
-        "People assuming he's evil because he's a dragon",
-        'His own failures',
-      ],
-      copingMechanisms: [
-        'Counting backwards from 100 while breathing slowly',
-        'Finding something fireproof to focus on',
-        'Flying until exhaustion',
-      ],
-      habits: [
-        'Checking multiple times that his fire is out',
-        'Sleeping on stone or sand (never grass)',
-        'Compulsively testing his temperature',
-      ],
-      speechPatterns:
-        'Speaks quickly and nervously, lots of "um"s and "well"s. Uses self-deprecating humor. Gets adorably tongue-tied when complimented.',
-    },
-    voiceProfile: {
-      tone: "Eager, slightly squeaky (he's young), with nervous energy",
-      vocabulary: 'simple',
-      catchphrases: [
-        "Sorry! Sorry, that was me, I'm so sorry!",
-        "I'm working on it, I promise!",
-        "Wait, really? You're not scared?",
-        "That wasn't as bad as usual!",
-      ],
-      nonverbalTics: [
-        'Tail wags like a dog when happy',
-        'Wings droop when sad',
-        'Smoke puffs increase with emotion',
-        'Accidentally singes things when startled',
-      ],
-      laughStyle:
-        'Surprised snorty laugh followed by small flame bursts, then embarrassed covering of snout',
-    },
-    innerConflicts: [
-      'Wanting to be close to others versus fear of hurting them',
-      "Pride in his unique fire versus shame for the destruction it's caused",
-      'Loyalty to his clan versus anger at being abandoned',
-      'Desire to be normal versus growing acceptance that he never will be',
-    ],
-    arcPotential: {
-      startingState: 'A scared young dragon who sees his greatest gift as his greatest curse',
-      potentialGrowth: 'Learning that control comes from acceptance, not suppression',
-      endingState:
-        'A confident dragon who uses his extraordinary flames to protect and warm, not destroy',
-    },
+    personalityTraits: ['Desperately eager to please', 'Heart of gold', 'Self-deprecating humor'],
   },
   {
     id: 'demo-aurora',
     name: 'Princess Aurora',
-    description:
-      "Third in line to the throne and determined to stay that way. While her sisters prepare for crowns and marriages, Aurora trains with the Royal Guard, sneaks into the city in disguise, and dreams of adventures beyond the castle walls. But when duty calls, she discovers that true courage isn't about escaping responsibility—it's about choosing how to carry it.",
-    visualTraits:
-      'Athletic build unusual for a princess, calloused hands from sword training, wild auburn hair she refuses to tame into proper royal styles, bright green eyes that spark with mischief, a thin scar on her left eyebrow from a training accident she considers a badge of honor, modest golden circlet she often "forgets" to wear, practical purple dress modified for movement (hidden slits for running), worn leather boots hidden under skirts',
+    description: 'Third in line to the throne and determined to stay that way.',
+    visualTraits: 'Athletic build, wild auburn hair, bright green eyes that spark with mischief',
     imageUrl: '/assets/characters/Demo character 3.jpeg',
-    traits: ['rebellious', 'courageous', 'compassionate', 'stubborn', 'secretly insecure'],
-    personalityTraits: [
-      'Fiercely independent',
-      'Protector of the underdog',
-      'Quick-witted',
-      'Struggles with vulnerability',
-      "Natural leader who doesn't want to lead",
-    ],
-    backstory:
-      "Aurora was born during a siege. While her mother the Queen labored, her father the King held the castle walls. She came into the world to the sound of battle drums, and perhaps that's why peace has never felt quite right to her. Her older sisters, Crown Princess Celestia and Princess Seraphina, are everything a princess should be—graceful, diplomatic, content with their roles. Aurora has always been the \"problem child,\" the one who asked too many questions, climbed too many walls, and refused too many dancing lessons. When she was twelve, she witnessed the Captain of the Guard save a servant girl from a runaway horse and decided then that a sword was more useful than a scepter. She's spent years training in secret, but recently her father discovered her skills—and rather than punishing her, he's begun giving her real responsibilities, which terrifies her more than any battle.",
-    appearance:
-      "Tall for her age with an athletic frame. Moves with a warrior's awareness, always noting exits and threats. Freckles across her nose she's been told to powder over but refuses. A small callus on her right hand from gripping a sword. Often has grass stains or ink smudges she's forgotten to clean.",
-    goals: [
-      'To prove that she can protect her kingdom without being chained to a throne',
-      'To be seen for who she is, not what she was born as',
-      'To find a purpose that honors both her duty and her heart',
-      'Secretly: to make her father proud in her own way',
-    ],
-    fears: [
-      'Being trapped in the same life as her mother—beloved but caged',
-      'That her rebelliousness is actually selfishness',
-      'Failing people who depend on her',
-      'Letting her guard down and being seen as weak',
-    ],
-    quirks: [
-      'Keeps a dagger in her left boot at all times, even at formal dinners',
-      'Names all her swords (current favorite: "Lady Pointmaker")',
-      'Sneaks food from banquets to street children',
-      "Practices sword forms when she can't sleep",
-    ],
-    psychologicalProfile: {
-      openness: 80, // Adventurous and imaginative
-      conscientiousness: 65, // Dedicated but chafes against rigid structure
-      extraversion: 70, // Bold and social but guards her inner self
-      agreeableness: 55, // Caring but won\'t compromise her values
-      neuroticism: 50, // Outwardly confident but internally questioning
-    },
-    coreIdentity: {
-      coreBelief: 'True royalty is earned through action, not inherited through blood',
-      greatestDesire: 'To be loved for who she chooses to be, not the role she was born into',
-      greatestFear: "That she's running from responsibility, not toward something better",
-      moralCode:
-        'Protect those who cannot protect themselves, speak truth to power, never hide behind your crown',
-      flaw: 'Her pride makes her dismiss help and her fear of vulnerability makes her push people away',
-      strength: "Her courage to stand up for what's right, even against those she loves",
-      lie: "I don't need anyone—I'm stronger alone",
-      truth: "Strength isn't about needing no one—it's about choosing who you fight alongside",
-    },
-    formativeExperiences: {
-      childhoodMemory:
-        'Hiding in the war room during a council meeting, listening to her father make impossible choices to protect the kingdom',
-      biggestRegret:
-        "Yelling at her mother that she'd rather be a commoner than a princess—seeing the hurt in her eyes",
-      definingMoment:
-        'The day the Captain of the Guard told her she fought well enough to join his trainees, then bowed to her—not as a princess, but as a warrior',
-      secretShame:
-        "She's terrified she might actually be good at ruling, which would mean giving up her dreams",
-      proudestAchievement:
-        'Stopping a coup attempt by three corrupt nobles—though officially it was the Guard who discovered the plot',
-    },
-    relationshipStyle: {
-      attachmentStyle: 'avoidant',
-      trustLevel: 'cautious',
-      conflictStyle: 'confrontational',
-      loveLanguage: 'acts',
-    },
-    behavioralPatterns: {
-      stressResponse:
-        'Physical activity—will train until exhausted rather than talk about feelings',
-      joyTriggers: [
-        'A perfectly executed sword technique',
-        'Outsmarting someone who underestimates her',
-        'Seeing justice served',
-        'Genuine laughter with someone who sees the real her',
-      ],
-      angerTriggers: [
-        'Being dismissed because of her gender or age',
-        'Injustice against the powerless',
-        'Being told to "act like a princess"',
-        'Hypocrisy in those who hold power',
-      ],
-      copingMechanisms: [
-        'Sword practice until muscles ache',
-        'Sneaking into the city in disguise',
-        "Writing in a journal she'd die before letting anyone read",
-      ],
-      habits: [
-        'Scanning rooms for exits and threats',
-        'Testing chair sturdiness before sitting',
-        'Keeping her back to walls when possible',
-      ],
-      speechPatterns:
-        'Direct and confident in public, more hesitant and thoughtful in private. Uses formal speech sarcastically. Swears creatively when frustrated (learned from the guards).',
-    },
-    voiceProfile: {
-      tone: 'Bold and assertive, with hidden warmth for those she trusts',
-      vocabulary: 'moderate',
-      catchphrases: [
-        'My crown is not my chain',
-        "I'd rather die on my feet than live on my knees",
-        "Well, that's certainly one way to do it (sarcastic)",
-        'Don\'t "Your Highness" me—we\'re beyond that',
-      ],
-      nonverbalTics: [
-        'Hand moves to hip where sword would be',
-        'Eyebrow raise of skepticism',
-        'Crosses arms when defensive',
-        'Genuine smile (rare) transforms her whole face',
-      ],
-      laughStyle:
-        'Surprised, unguarded laugh that she quickly tries to compose into something more "proper"—and fails',
-    },
-    innerConflicts: [
-      'Duty to family versus duty to self',
-      'Wanting to be seen as strong versus needing to be vulnerable with someone',
-      'Love for her kingdom versus resentment of its expectations',
-      "Pride in her skills versus fear that she's still not good enough",
-    ],
-    arcPotential: {
-      startingState: 'A princess running from her destiny, defining herself by what she rejects',
-      potentialGrowth:
-        'Discovering that she can reshape what it means to be royal rather than rejecting it entirely',
-      endingState:
-        'A warrior-princess who leads not by birthright but by inspiring others to follow',
-    },
+    traits: ['rebellious', 'courageous', 'compassionate', 'stubborn'],
+    personalityTraits: ['Fiercely independent', 'Protector of the underdog', 'Quick-witted'],
   },
   {
     id: 'demo-captain',
     name: 'Captain Silverhook',
-    description:
-      'Once the most feared pirate on the seven seas, Captain Silverhook now sails under a different flag—his own redemption. After a dying child in a ransacked port looked at him without fear and asked him to tell her a story, something in his black heart cracked open. Now he uses his ship, his crew, and his fearsome reputation to hunt corrupt nobles and deliver their stolen wealth to orphanages across the realm.',
-    visualTraits:
-      "Weathered face with kind crinkles around steel-grey eyes, salt-and-pepper beard kept neat, distinctive silver hook replacing his left hand (lost to a sea monster he later befriended), worn but well-maintained captain's coat in deep navy, tricorn hat with a single phoenix feather, old scars crossing his face that he no longer hides, a genuine warm smile that transforms his fearsome appearance, walks with a slight limp from an old injury",
+    description: 'Once the most feared pirate, now sailing under a different flag — his own redemption.',
+    visualTraits: 'Weathered face with kind crinkles around steel-grey eyes, salt-and-pepper beard',
     imageUrl: '/assets/characters/Demo character 4.jpeg',
-    traits: ['reformed', 'wise', 'haunted', 'generous', 'unexpectedly gentle'],
-    personalityTraits: [
-      'Gruff exterior hiding a tender heart',
-      'Mentor figure',
-      'Carries guilt gracefully',
-      'Dark humor about his past',
-      'Protective of innocence',
-    ],
-    backstory:
-      'Born Marcus Thornwood to a noble family, young Marcus watched his parents hanged for debts they didn\'t owe—framed by a rival lord who wanted their lands. At fourteen, he stowed away on a merchant ship and never looked back. He rose through the ranks of piracy through cunning and ruthlessness, earning his hook, his ship (The Mourning Star), and a reputation that made grown men weep. For twenty years, he told himself he was just evening the scales the nobility had tipped against him. Then came Port Meridian. His crew ransacked the town, and in a burning orphanage, he found a little girl clutching a charred storybook. She wasn\'t afraid of him. She just asked, "Are you a pirate? Can you tell me a story?" He carried her to safety, stayed until dawn telling her tales, and by morning, Captain Silverhook the Terrible had died. Now Marcus sails still, but every gold coin he takes from the corrupt goes to children like that girl.',
-    appearance:
-      "Tall and broad-shouldered, built like the sailor he's been for forty years. His hook is actually beautifully crafted with small mechanisms—a gift from a grateful clockmaker. Deep tan from decades at sea. Moves with a rolling gait. His eyes tell the story of a man who has seen too much and is trying to make peace with it.",
-    goals: [
-      "To balance the scales for the evil he's done",
-      'To ensure no child suffers as he did',
-      'To die with a clean enough conscience to face whatever comes next',
-      'To find and bring to justice Lord Ashworth, the man who destroyed his family',
-    ],
-    fears: [
-      "Dying before he's atoned enough",
-      'His crew learning he\'s "gone soft" and mutinying',
-      'Becoming the monster he used to be if pushed too far',
-      'The nightmares that remind him of everyone he hurt',
-    ],
-    quirks: [
-      'Keeps a worn storybook in his coat at all times (the one from the orphanage girl)',
-      'Never drinks rum anymore—switched to tea',
-      "Names every cannon on his ship after children he's helped",
-      'Carves small wooden toys for orphanages during night watches',
-    ],
-    psychologicalProfile: {
-      openness: 60, // Set in his ways but open to redemption
-      conscientiousness: 75, // Dedicated to his new mission
-      extraversion: 55, // Leader who prefers meaningful connection to crowds
-      agreeableness: 65, // Developed compassion, still has an edge
-      neuroticism: 60, // Haunted but functioning
-    },
-    coreIdentity: {
-      coreBelief: 'Everyone deserves a second chance—but some things can never truly be forgiven',
-      greatestDesire: 'To one day look in the mirror and not see a monster',
-      greatestFear: "That he's not truly changed—that the monster is just sleeping",
-      moralCode:
-        'Never harm a child, steal only from those who stole first, give your crew fair shares and honest captainship',
-      flaw: "His self-loathing sometimes prevents him from accepting that he's already changed",
-      strength: 'His experience with darkness helps him understand and reach others lost in it',
-      lie: 'I can never be forgiven. The best I can hope for is balance.',
-      truth: "Forgiveness isn't earned through suffering—it's accepted through grace",
-    },
-    formativeExperiences: {
-      childhoodMemory:
-        'His mother reading to him by firelight, teaching him that every person contains multitudes',
-      biggestRegret:
-        "A merchant vessel called The Dawn's Promise. He ordered no survivors. He found a child's doll in the wreckage afterward. He still carries it.",
-      definingMoment:
-        'The girl in the burning orphanage asking for a story. Her name was Elena. He funds her education now—she wants to be a doctor.',
-      secretShame:
-        'He can list every person he killed. He knows their names. He learned them after his change. All 247 of them.',
-      proudestAchievement:
-        'The Orphan Fleet—a network of safe houses and funded homes across twelve port cities, all built with pirate gold',
-    },
-    relationshipStyle: {
-      attachmentStyle: 'avoidant',
-      trustLevel: 'cautious',
-      conflictStyle: 'diplomatic',
-      loveLanguage: 'acts',
-    },
-    behavioralPatterns: {
-      stressResponse: 'Gets quieter, retreats to his cabin, polishes his hook obsessively',
-      joyTriggers: [
-        'Letters from the orphanages',
-        "His crew choosing to stay despite knowing he's changed",
-        'Successfully outsmarting a corrupt lord',
-        'The sea at sunrise',
-      ],
-      angerTriggers: [
-        'Cruelty to children',
-        'Nobles abusing power',
-        'Anyone calling his redemption a "phase"',
-        'Reminders of Lord Ashworth',
-      ],
-      copingMechanisms: [
-        'Whittling toys',
-        'Reading the storybook',
-        'Sailing into storms to feel alive',
-        'Writing in a ledger of good deeds',
-      ],
-      habits: [
-        'Checking on his crew before sleeping',
-        'Giving coins to beggars without making eye contact',
-        'Polishing his hook when thinking',
-      ],
-      speechPatterns:
-        'Speaks like a captain—commanding but not unkind. Uses maritime metaphors constantly. Softens considerably around children. Has a rich, rolling voice made for telling tales.',
-    },
-    voiceProfile: {
-      tone: 'Deep, weathered, warm—like a crackling fire on a cold night',
-      vocabulary: 'moderate',
-      catchphrases: [
-        'Every tide turns, lad/lass',
-        'The sea remembers what land forgets',
-        "There's always a choice—I just made the wrong ones for too long",
-        "Now that's a tale worth telling...",
-      ],
-      nonverbalTics: [
-        'Rubs the base of his hook when uncomfortable',
-        'Distant look in his eyes during certain memories',
-        'Automatic protective stance around children',
-        'Tips his hat to women and children, never to nobility',
-      ],
-      laughStyle:
-        "A surprised bark of laughter he tries to suppress, as if he's not sure he deserves joy",
-    },
-    innerConflicts: [
-      "The man he was versus the man he's trying to be",
-      'Justice versus vengeance against Lord Ashworth',
-      'Pride in his skills versus shame for how he got them',
-      "Wanting to die peacefully versus fearing he doesn't deserve it",
-    ],
-    arcPotential: {
-      startingState: 'A reformed villain atoning through action but unable to forgive himself',
-      potentialGrowth:
-        "Learning that self-forgiveness doesn't mean forgetting, and that he can accept grace",
-      endingState:
-        'A man at peace with his past, using his story to help others find their own redemption',
-    },
+    traits: ['reformed', 'wise', 'haunted', 'generous'],
+    personalityTraits: ['Gruff exterior hiding a tender heart', 'Mentor figure', 'Carries guilt gracefully'],
   },
 ];
 
-// Demo project for standalone mode
-const createDemoProject = (): BookProject => ({
+const DEMO_PROJECT: BookProject = {
   id: 'demo-project',
   title: 'Creative Hub Demo',
   synopsis: 'Explore the creative tools without a project',
@@ -606,20 +139,22 @@ const createDemoProject = (): BookProject => ({
     {
       id: 'demo-chapter',
       title: 'Demo Chapter',
-      pages: [
-        {
-          id: 'demo-page',
-          pageNumber: 1,
-          text: 'Welcome to the Creative Hub! This is a demo space to explore features.',
-          imagePrompt: 'A magical workshop filled with creative tools and sparkling ideas',
-          layoutType: 'text-only',
-        },
-      ],
+      pages: [{
+        id: 'demo-page',
+        pageNumber: 1,
+        text: 'Welcome to the Creative Hub! This is a demo space to explore features.',
+        imagePrompt: 'A magical workshop filled with creative tools and sparkling ideas',
+        layoutType: 'text-only',
+      }],
     },
   ],
   characters: defaultCharacters,
   createdAt: new Date(),
-});
+};
+
+// ═════════════════════════════════════════════════════════════
+// SMART EDITOR COMPONENT
+// ═════════════════════════════════════════════════════════════
 
 const SmartEditor: React.FC<SmartEditorProps> = ({
   project,
@@ -631,430 +166,32 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   onNavigateToCreate,
 }) => {
   const { userProfile } = useAuth();
-  const [activePageIndex, setActivePageIndex] = useState(0);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
-  const [isSaving, setIsSaving] = useState(false);
+  const isStandaloneMode = !project;
+  const workingProject = project || DEMO_PROJECT;
 
-  // Standalone mode state (when no project)
+  // ── Standalone mode state ──
   const [showGreenRoomStandalone, setShowGreenRoomStandalone] = useState(false);
   const [showRemixStudioStandalone, setShowRemixStudioStandalone] = useState(false);
   const [selectedDemoCharacter, setSelectedDemoCharacter] = useState<Character | null>(null);
 
-  // Use demo project when no project is provided
-  const demoProject = createDemoProject();
-  const workingProject = project || demoProject;
-  const isStandaloneMode = !project;
-
-  // Deep Quality State
-  const [storyBible, setStoryBible] = useState<StoryBible | null>(
-    workingProject.storyBible || null
-  );
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [_showStoryboard, _setShowStoryboard] = useState(false);
-  const [_showEmotionalArc, _setShowEmotionalArc] = useState(false);
-  const [showAudienceSafety, setShowAudienceSafety] = useState(false);
-  const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
-
-  // Green Room & Remix State
-  const [showGreenRoom, setShowGreenRoom] = useState(false);
-  const [selectedCharacterForInterview, setSelectedCharacterForInterview] = useState<Character | null>(null);
-  const [showRemixStudio, setShowRemixStudio] = useState(false);
-
-  // Undo/Redo
-  const {
-    state: currentProject,
-    set: setProjectHistory,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-  } = useUndoRedo<BookProject>(workingProject);
-
-  // AutoSave (only for real projects)
-  const { state: autoSaveState, save: _triggerSave } = useAutoSave({
-    key: `book-${currentProject.id}`,
-    data: currentProject,
-    onSave: async (data) => {
-      if (!isStandaloneMode) {
-        await saveBook(data);
-        if (onSave) onSave(true, 'Auto-saved');
-      }
-    },
-    interval: 30000, // 30s
-  });
-
-  // Sync parent state when history changes (only for real projects)
-  useEffect(() => {
-    if (!isStandaloneMode && currentProject !== project) {
-      onUpdateProject(currentProject);
-    }
-  }, [currentProject, onUpdateProject, isStandaloneMode, project]);
-
-  // Feature #1: AI Improve
-  const [isImproving, setIsImproving] = useState(false);
-  const [showImproveOptions, setShowImproveOptions] = useState(false);
-
-  // Feature #2: Character Consistency
-  const [showConsistencyPanel, setShowConsistencyPanel] = useState(false);
-  const [isCheckingConsistency, setIsCheckingConsistency] = useState(false);
-  const [consistencyReport, setConsistencyReport] = useState<ConsistencyReport | null>(null);
-
-  // Feature #3: Writing Suggestions
-  const [suggestions, setSuggestions] = useState<WritingSuggestion[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup suggestion timeout on unmount to prevent memory leak
-  useEffect(() => {
-    return () => {
-      if (suggestionTimeoutRef.current) {
-        clearTimeout(suggestionTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const _handleAnalyzeStory = async () => {
-    setIsAnalyzing(true);
-    try {
-      const bible = await storyBibleService.analyzeStory(currentProject);
-      setStoryBible(bible);
-
-      // Update project with new bible
-      setProjectHistory((prev) => ({
-        ...prev,
-        storyBible: bible,
-        lastBibleUpdate: Date.now(),
-      }));
-
-      _setShowStoryboard(true);
-    } catch (error) {
-      console.error('Failed to analyze story:', error);
-      // Show error toast
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const _handleGenerateStoryboard = async () => {
-    if (!storyBible) return;
-    setIsAnalyzing(true);
-    try {
-      const beats = await storyBibleService.generateLivingStoryboard(currentProject);
-      const updatedBible = { ...storyBible, beats };
-      setStoryBible(updatedBible);
-      setProjectHistory((prev) => ({
-        ...prev,
-        storyBible: updatedBible,
-      }));
-    } catch (error) {
-      console.error('Failed to generate storyboard:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const _handleAnalyzeEmotionalArc = async () => {
-    setIsAnalyzing(true);
-    try {
-      const arcData = await storyBibleService.generateEmotionalArc(currentProject);
-      const updatedBible = { ...storyBible!, emotionalArc: arcData };
-      setStoryBible(updatedBible);
-      setProjectHistory((prev) => ({
-        ...prev,
-        storyBible: updatedBible,
-      }));
-    } catch (error) {
-      console.error('Failed to analyze emotional arc:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleAnalyzeAudienceSafety = async () => {
-    setIsAnalyzing(true);
-    try {
-      const safetyData = await storyBibleService.analyzeAudienceSafety(currentProject);
-      const updatedBible = { ...storyBible!, audienceSafety: safetyData };
-      setStoryBible(updatedBible);
-      setProjectHistory((prev) => ({
-        ...prev,
-        storyBible: updatedBible,
-      }));
-    } catch (error) {
-      console.error('Failed to analyze audience safety:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const allPages = currentProject.chapters.flatMap((c) => c.pages);
-  const activePage = allPages[activePageIndex];
-  const totalPages = allPages.length;
-
-  // Real-time consistency check (debounced)
-  useEffect(() => {
-    if (!storyBible || !activePage.text) return;
-
-    const timer = setTimeout(async () => {
-      const issues = await storyBibleService.checkConsistency(
-        activePage.text,
-        storyBible,
-        activePage.pageNumber
-      );
-      setConsistencyIssues(issues);
-    }, 2000); // Check 2 seconds after typing stops
-
-    return () => clearTimeout(timer);
-  }, [activePage.text, storyBible, activePage.pageNumber]);
-
-  // Helper to detect significant text changes that would invalidate image
-  const detectSignificantChange = useCallback((oldText: string, newText: string): boolean => {
-    // Quick length check - if it's significantly different, it's significant
-    if (Math.abs(oldText.length - newText.length) > oldText.length * 0.3) return true;
-
-    // Extract key visual words (nouns, adjectives) using simple patterns
-    const visualWords = (text: string) => {
-      const words =
-        text
-          .toLowerCase()
-          .match(
-            /\b(red|blue|green|yellow|black|white|pink|purple|orange|big|small|tall|short|young|old|happy|sad|angry|forest|ocean|mountain|castle|house|dog|cat|bird|dragon|princess|knight|wizard|sun|moon|stars|rain|snow|night|day)\b/g
-          ) || [];
-      return new Set(words);
-    };
-
-    const oldWords = visualWords(oldText);
-    const newWords = visualWords(newText);
-
-    // Check if visual keywords changed
-    const addedWords = [...newWords].filter((w) => !oldWords.has(w));
-    const removedWords = [...oldWords].filter((w) => !newWords.has(w));
-
-    return addedWords.length > 0 || removedWords.length > 0;
-  }, []);
-
-  // Track last saved text to detect significant changes
-  const lastSavedTextRef = useRef<string>(activePage.text);
-
-  const handleTextChange = (text: string) => {
-    const wasSignificantChange = detectSignificantChange(lastSavedTextRef.current, text);
-
-    setProjectHistory((prevProject) => {
-      // Use structuredClone for efficient deep copy (preserves Date objects, avoids JSON overhead)
-      const newProject = structuredClone(prevProject);
-      newProject.chapters.forEach((ch) => {
-        const page = ch.pages.find((p) => p.pageNumber === activePage.pageNumber);
-        if (page) {
-          page.text = text;
-          // Mark image as outdated if significant visual change detected
-          if (wasSignificantChange && page.imageUrl) {
-            page.isImageOutdated = true;
-          }
-        }
-      });
-      return newProject;
-    });
-
-    // Feature #3: Trigger suggestions with debounce
-    if (suggestionTimeoutRef.current) {
-      clearTimeout(suggestionTimeoutRef.current);
-    }
-    suggestionTimeoutRef.current = setTimeout(() => {
-      fetchWritingSuggestions(text);
-    }, 2000); // Wait 2s after user stops typing
-  };
-
-  // Feature #1: AI Improve Handler
-  // MASTRA MIGRATION: Try Mastra storyEditor agent first, fallback to legacy grokService
-  const handleImproveText = async (tone: string) => {
-    setIsImproving(true);
-    setShowImproveOptions(false);
-    try {
-      let improved: string;
-      try {
-        // NEW: Route through Mastra backend (server-side, no API key exposure)
-        improved = await mastra.agents.storyEditor.improveText(
-          activePage.text,
-          tone,
-          currentProject.targetAudience || 'children',
-          currentProject.id
-        );
-      } catch (mastraErr) {
-        // FALLBACK: If Mastra server is unreachable, use legacy direct call
-        console.warn('[SmartEditor] Mastra unavailable, falling back to grokService:', mastraErr);
-        improved = await improveText(
-          activePage.text,
-          tone,
-          currentProject.targetAudience || 'children'
-        );
-      }
-      handleTextChange(improved);
-    } catch (_error) {
-      toast.error('Failed to improve text. Please try again.');
-    } finally {
-      setIsImproving(false);
-    }
-  };
-
-  // Feature #2: Character Consistency Handler (Legacy + Deep Quality)
-  const handleCheckConsistency = async () => {
-    setIsCheckingConsistency(true);
-    try {
-      // If we have a Story Bible, use it for deeper checking
-      if (storyBible) {
-        const issues = await storyBibleService.checkConsistency(
-          activePage.text,
-          storyBible,
-          activePage.pageNumber
-        );
-        setConsistencyIssues(issues);
-        if (issues.length === 0) {
-          alert('✨ Perfect consistency! No issues found.');
-        } else {
-          setShowConsistencyPanel(true);
-        }
-      } else {
-        // MASTRA MIGRATION: Try Mastra first, fallback to legacy grokService
-        let report: ConsistencyReport;
-        try {
-          report = await mastra.agents.storyEditor.checkConsistency(currentProject);
-        } catch (mastraErr) {
-          console.warn('[SmartEditor] Mastra unavailable for consistency check, falling back:', mastraErr);
-          report = await checkCharacterConsistency(currentProject);
-        }
-        setConsistencyReport(report);
-        setShowConsistencyPanel(true);
-      }
-    } catch (_error) {
-      toast.error('Failed to check character consistency. Please try again.');
-    } finally {
-      setIsCheckingConsistency(false);
-    }
-  };
-
-  // Feature #3: Fetch Writing Suggestions
-  // MASTRA MIGRATION: Try Mastra storyEditor agent first, fallback to legacy grokService
-  const fetchWritingSuggestions = async (text: string) => {
-    if (text.length < 10) {
-      setSuggestions([]);
-      return;
-    }
-    setIsLoadingSuggestions(true);
-    try {
-      let newSuggestions: WritingSuggestion[];
-      const ctx = `Children's book for ${currentProject.targetAudience}`;
-      try {
-        newSuggestions = await mastra.agents.storyEditor.getSuggestions(text, ctx);
-      } catch (mastraErr) {
-        console.warn('[SmartEditor] Mastra unavailable for suggestions, falling back:', mastraErr);
-        newSuggestions = await getWritingSuggestions(text, ctx);
-      }
-      setSuggestions(newSuggestions);
-    } catch (error) {
-      console.error('Failed to get suggestions:', error);
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  };
-
-  // Apply a suggestion
-  const applySuggestion = (suggestion: WritingSuggestion) => {
-    const newText = activePage.text.replace(suggestion.original, suggestion.suggestion);
-    handleTextChange(newText);
-    setSuggestions(suggestions.filter((s) => s !== suggestion));
-  };
-
-  // Save Handler
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await saveBook(currentProject);
-      if (onSave) {
-        onSave(true, 'Book saved successfully! ✨');
-      }
-    } catch (error) {
-      console.error('Save failed:', error);
-      if (onSave) {
-        onSave(false, 'Failed to save book. Please try again.');
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleGenerateImage = async () => {
-    if (!activePage || isStandaloneMode) return;
-
-    // Check Limits
-    if (userTier === UserTier.SPARK) {
-      const currentCount = currentProject.aiImagesGenerated || 0;
-      if (currentCount >= 5) {
-        if (onShowUpgrade) {
-          onShowUpgrade();
-        } else {
-          toast.info(
-            "You've reached the limit of 5 AI illustrations per book on the Spark plan. Upgrade to Creator for unlimited magic!"
-          );
-        }
-        return;
-      }
-    }
-
-    setIsGeneratingImage(true);
-    try {
-      const rawImage = await generateIllustration(activePage.imagePrompt, currentProject.style);
-      if (rawImage) {
-        // Persist to Supabase Storage for a permanent URL
-        const userId = userProfile?.id || 'anonymous';
-        const permanentUrl = await persistImage(rawImage, userId, currentProject.id, activePage.pageNumber);
-
-        const newProject = structuredClone(currentProject);
-
-        // Increment count
-        newProject.aiImagesGenerated = (newProject.aiImagesGenerated || 0) + 1;
-
-        newProject.chapters.forEach((ch) => {
-          const page = ch.pages.find((p) => p.pageNumber === activePage.pageNumber);
-          if (page) page.imageUrl = permanentUrl;
-        });
-        onUpdateProject(newProject);
-      }
-    } catch (_e) {
-      toast.error('Failed to generate image. Please try again.');
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
-
-  const jumpToPageNumber = (num: number) => {
-    const idx = allPages.findIndex((p) => p.pageNumber === num);
-    if (idx !== -1) setActivePageIndex(idx);
-  };
-
-  // ============================================
-  // CREATIVE HUB - Standalone Mode (No Project)
-  // ============================================
+  // ═══════════════════════════════════════════════
+  // STANDALONE MODE — Creative Hub (no project)
+  // ═══════════════════════════════════════════════
   if (isStandaloneMode) {
     return (
-      <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto bg-linear-to-br from-cream-base via-peach-soft/20 to-cream-base">
+      <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto" style={{ background: 'linear-gradient(to bottom right, var(--color-background), color-mix(in srgb, var(--color-border) 20%, var(--color-background)), var(--color-background))' }}>
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-surface/80  border-b border-peach-soft/50   px-6 py-4">
+        <div className="sticky top-0 z-20 border-b border-peach-soft px-6 py-4" style={{ backgroundColor: 'color-mix(in srgb, var(--color-surface) 80%, transparent)' }}>
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               {onBack && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onBack}
-                  className="rounded-full"
-                >
-                  <ArrowLeft className="w-5 h-5 text-charcoal-soft " />
+                <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
+                  <ArrowLeft className="w-5 h-5 text-charcoal-soft" />
                 </Button>
               )}
               <div>
-                <h1 className="font-heading font-bold text-2xl text-charcoal-soft ">Creative Hub</h1>
-                <p className="text-sm text-cocoa-light  ">Explore creative tools & discover worlds</p>
+                <h1 className="font-heading font-bold text-2xl text-charcoal-soft">Creative Hub</h1>
+                <p className="text-sm text-cocoa-light">Explore creative tools & discover worlds</p>
               </div>
             </div>
           </div>
@@ -1064,14 +201,14 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         <div className="max-w-6xl mx-auto px-6 py-8">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 rounded-full text-sm font-bold text-coral-burst mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-coral-burst mb-4" style={{ background: 'linear-gradient(to right, color-mix(in srgb, var(--color-primary-end) 20%, transparent), color-mix(in srgb, var(--color-primary-start) 20%, transparent))' }}>
               <IcoWand className="w-4 h-4" />
               Welcome to the Creative Hub
             </div>
-            <h2 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft  mb-4">
+            <h2 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft mb-4">
               Your Creative Playground Awaits
             </h2>
-            <p className="text-cocoa-light   text-lg max-w-2xl mx-auto">
+            <p className="text-cocoa-light text-lg max-w-2xl mx-auto">
               Interview characters, discover remixable worlds, and unleash your creativity — all
               without needing a project first.
             </p>
@@ -1079,81 +216,46 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 
           {/* Feature Cards Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {/* Create a Book Card */}
-            <div className="bg-surface rounded-2xl p-6 border border-peach-soft   transition-all group">
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="rounded-2xl p-6 border border-peach-soft transition-all group" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{ background: 'linear-gradient(to bottom right, var(--color-primary-start), var(--color-primary-end))' }}>
                 <IcoPen className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft  mb-2">
-                Create a Book
-              </h3>
-              <p className="text-cocoa-light   text-sm mb-4">
-                Start your storytelling journey. Generate a complete illustrated book with AI
-                assistance.
-              </p>
-              <Button
-                variant="primary"
-                onClick={onNavigateToCreate}
-                className="w-full font-heading hover:opacity-90"
-              >
-                <IcoZap className="w-4 h-4" />
-                Start Creating
+              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">Create a Book</h3>
+              <p className="text-cocoa-light text-sm mb-4">Start your storytelling journey. Generate a complete illustrated book with AI assistance.</p>
+              <Button variant="primary" onClick={onNavigateToCreate} className="w-full font-heading hover:opacity-90">
+                <IcoZap className="w-4 h-4" /> Start Creating
               </Button>
             </div>
 
-            {/* Green Room Card */}
-            <div className="bg-surface rounded-2xl p-6 border border-peach-soft   transition-all group">
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="rounded-2xl p-6 border border-peach-soft transition-all group" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft  mb-2">
-                The Green Room
-              </h3>
-              <p className="text-cocoa-light   text-sm mb-4">
-                Interview characters to discover their personalities, backstories, and hidden
-                depths.
-              </p>
-              <Button
-                onClick={() => setShowGreenRoomStandalone(true)}
-                className="w-full bg-linear-to-r from-emerald-500 to-teal-500 text-white font-heading hover:opacity-90"
-              >
-                <Users className="w-4 h-4" />
-                Enter Green Room
+              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">The Green Room</h3>
+              <p className="text-cocoa-light text-sm mb-4">Interview characters to discover their personalities, backstories, and hidden depths.</p>
+              <Button onClick={() => setShowGreenRoomStandalone(true)} className="w-full bg-emerald-500 text-white font-heading hover:opacity-90">
+                <Users className="w-4 h-4" /> Enter Green Room
               </Button>
             </div>
 
-            {/* Remix Studio Card */}
-            <div className="bg-surface rounded-2xl p-6 border border-peach-soft   transition-all group">
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-purple-500 to-indigo-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <div className="rounded-2xl p-6 border border-peach-soft transition-all group" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="w-14 h-14 rounded-xl bg-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <GitFork className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft  mb-2">
-                Remix Studio
-              </h3>
-              <p className="text-cocoa-light   text-sm mb-4">
-                Discover and fork magical worlds created by other storytellers. Build upon shared
-                universes.
-              </p>
-              <Button
-                onClick={() => setShowRemixStudioStandalone(true)}
-                className="w-full bg-linear-to-r from-purple-500 to-indigo-500 text-white font-heading hover:opacity-90"
-              >
-                <Compass className="w-4 h-4" />
-                Explore Worlds
+              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">Remix Studio</h3>
+              <p className="text-cocoa-light text-sm mb-4">Discover and fork magical worlds created by other storytellers.</p>
+              <Button onClick={() => setShowRemixStudioStandalone(true)} className="w-full bg-purple-500 text-white font-heading hover:opacity-90">
+                <Compass className="w-4 h-4" /> Explore Worlds
               </Button>
             </div>
           </div>
 
-          {/* Demo Characters Section */}
+          {/* Demo Characters */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="font-heading font-bold text-xl text-charcoal-soft ">
-                  Meet Demo Characters
-                </h3>
-                <p className="text-sm text-cocoa-light  ">
-                  Try interviewing these characters in the Green Room
-                </p>
+                <h3 className="font-heading font-bold text-xl text-charcoal-soft">Meet Demo Characters</h3>
+                <p className="text-sm text-cocoa-light">Try interviewing these characters in the Green Room</p>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1161,53 +263,43 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 <button
                   type="button"
                   key={char.id}
-                  onClick={() => {
-                    setSelectedDemoCharacter(char);
-                    setShowGreenRoomStandalone(true);
-                  }}
-                  className="bg-surface p-4 rounded-xl border border-peach-soft/50   hover:border-emerald-300 group text-left flex flex-col cursor-pointer transition-all w-full"
+                  onClick={() => { setSelectedDemoCharacter(char); setShowGreenRoomStandalone(true); }}
+                  className="p-4 rounded-xl border border-peach-soft/50 hover:border-emerald-300 group text-left flex flex-col cursor-pointer transition-all w-full"
+                  style={{ backgroundColor: 'var(--color-surface)' }}
                 >
-                  <div className="w-12 h-12 rounded-full bg-linear-to-br from-emerald-400 to-teal-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative shrink-0">
                     {char.imageUrl ? (
-                      <img
-                        src={char.imageUrl}
-                        alt={char.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={char.imageUrl} alt={char.name} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-white text-xl font-bold">{char.name[0]}</span>
                     )}
                   </div>
-                  <h4 className="font-heading font-bold text-charcoal-soft  text-sm mb-1 truncate">
-                    {char.name}
-                  </h4>
-                  <p className="text-xs text-cocoa-light   line-clamp-2">{char.description}</p>
+                  <h4 className="font-heading font-bold text-charcoal-soft text-sm mb-1 truncate">{char.name}</h4>
+                  <p className="text-xs text-cocoa-light line-clamp-2">{char.description}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Stats/Features Section */}
-          <div className="bg-linear-to-r from-charcoal-soft to-charcoal-soft/90 rounded-2xl p-8 text-white">
+          {/* Stats */}
+          <div className="rounded-2xl p-8 text-white" style={{ background: 'linear-gradient(to right, var(--color-text), color-mix(in srgb, var(--color-text) 90%, transparent))' }}>
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div>
-                <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <IcoStar className="w-6 h-6 text-gold-sunshine" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">AI-Powered</div>
-                <div className="text-white/70 text-sm">
-                  Characters respond with unique personalities
-                </div>
+                <div className="text-white/70 text-sm">Characters respond with unique personalities</div>
               </div>
               <div>
-                <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <Globe className="w-6 h-6 text-coral-burst" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">Community</div>
                 <div className="text-white/70 text-sm">Discover worlds from other creators</div>
               </div>
               <div>
-                <div className="w-12 h-12 rounded-full bg-surface/10 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <IcoBook className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div className="font-heading font-bold text-2xl mb-1">Story Bible</div>
@@ -1221,11 +313,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
         {showGreenRoomStandalone && (
           <GreenRoom
             isOpen={showGreenRoomStandalone}
-            onClose={() => {
-              setShowGreenRoomStandalone(false);
-              setSelectedDemoCharacter(null);
-            }}
-            project={demoProject}
+            onClose={() => { setShowGreenRoomStandalone(false); setSelectedDemoCharacter(null); }}
+            project={DEMO_PROJECT}
             character={selectedDemoCharacter || defaultCharacters[0]}
             userId={userProfile?.id}
           />
@@ -1237,741 +326,485 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           onClose={() => setShowRemixStudioStandalone(false)}
           userId={userProfile?.id}
           userName={userProfile?.display_name || userProfile?.email}
-          onForkWorld={(world) => {
-            console.warn('Forked world in standalone mode:', world);
-            setShowRemixStudioStandalone(false);
-          }}
+          onForkWorld={(world) => { if (import.meta.env.DEV) console.warn('Forked world in standalone mode:', world); setShowRemixStudioStandalone(false); }}
         />
       </div>
     );
   }
 
-  if (!activePage)
+  // ═══════════════════════════════════════════════
+  // EDITOR MODE — Three-panel layout
+  // ═══════════════════════════════════════════════
+
+  return (
+    <EditorInner
+      project={workingProject}
+      onUpdateProject={onUpdateProject}
+      userTier={userTier}
+      onShowUpgrade={onShowUpgrade}
+      onSave={onSave}
+      onBack={onBack}
+    />
+  );
+};
+
+// ═════════════════════════════════════════════════════════════
+// EDITOR INNER — the actual three-panel editor
+// Separated so hooks are only called when we have a project.
+// ═════════════════════════════════════════════════════════════
+
+interface EditorInnerProps {
+  project: BookProject;
+  onUpdateProject: (project: BookProject) => void;
+  userTier?: UserTier;
+  onShowUpgrade?: () => void;
+  onSave?: (success: boolean, message: string) => void;
+  onBack?: () => void;
+}
+
+const EditorInner: React.FC<EditorInnerProps> = ({
+  project,
+  onUpdateProject,
+  userTier = UserTier.SPARK,
+  onShowUpgrade,
+  onSave,
+  onBack,
+}) => {
+  const { userProfile } = useAuth();
+  const [showIntelligenceSheet, setShowIntelligenceSheet] = useState(false);
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false);
+
+  const editor = useEditorState({
+    project,
+    onUpdateProject,
+    userTier,
+    onShowUpgrade,
+    onSave,
+  });
+
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+
+      // Cmd+S — save
+      if (isMod && e.key === 's') {
+        e.preventDefault();
+        editor.handleSave();
+        return;
+      }
+
+      // Cmd+Shift+F — focus mode
+      if (isMod && e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+        e.preventDefault();
+        editor.toggleFocusMode();
+        return;
+      }
+
+      // Cmd+G — generate
+      if (isMod && e.key === 'g') {
+        e.preventDefault();
+        editor.handleGenerateImage();
+        return;
+      }
+
+      // Cmd+→ — next page
+      if (isMod && e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (editor.activePageIndex < editor.totalPages - 1) {
+          editor.setActivePageIndex(editor.activePageIndex + 1);
+        }
+        return;
+      }
+
+      // Cmd+← — prev page
+      if (isMod && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (editor.activePageIndex > 0) {
+          editor.setActivePageIndex(editor.activePageIndex - 1);
+        }
+        return;
+      }
+
+      // Cmd+Enter — new page
+      if (isMod && e.key === 'Enter') {
+        e.preventDefault();
+        editor.addPage();
+        return;
+      }
+
+      // Cmd+[ — toggle left sidebar
+      if (isMod && e.key === '[') {
+        e.preventDefault();
+        setIsLeftCollapsed((v) => !v);
+        return;
+      }
+
+      // Cmd+] — toggle right sidebar
+      if (isMod && e.key === ']') {
+        e.preventDefault();
+        setIsRightCollapsed((v) => !v);
+        return;
+      }
+
+      // Escape — exit focus mode / close panels
+      if (e.key === 'Escape') {
+        if (editor.isFocusMode) {
+          e.preventDefault();
+          editor.setIsFocusMode(false);
+        }
+        if (showIntelligenceSheet) {
+          setShowIntelligenceSheet(false);
+        }
+        editor.setShowImproveOptions(false);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editor, showIntelligenceSheet]);
+
+  const activePage = editor.activePage;
+
+  if (!activePage) {
     return (
-      <div className="text-center p-20 font-heading text-2xl text-cocoa-light  ">
+      <div className="text-center p-20 font-heading text-2xl text-cocoa-light">
         Loading masterpiece...
       </div>
     );
+  }
+
+  // ── Reduced-motion check (cached, won't change during session) ──
+  const prefersReducedMotion = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    []
+  );
+
+  const transitionStyle = prefersReducedMotion ? 'none' : 'all 280ms ease-out';
 
   return (
-    <div className="h-[calc(100dvh-80px)] w-full flex flex-col lg:flex-row bg-cream-base relative overflow-x-hidden overflow-y-auto lg:overflow-hidden">
-      {/* Mobile Tab Toggle */}
-      <div className="lg:hidden h-16 bg-surface border-b border-peach-soft   flex items-center justify-center px-4 shrink-0 z-30">
-        <div className="flex p-1 bg-cream-soft rounded-xl w-full max-w-xs border border-peach-soft/50  ">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMobileView('edit')}
-            className={`flex-1 ${mobileView === 'edit' ? 'bg-surface text-coral-burst border border-peach-soft/50  ' : 'text-cocoa-light  '}`}
-          >
-            <Edit3 className="w-3.5 h-3.5" /> Editor
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMobileView('preview')}
-            className={`flex-1 ${mobileView === 'preview' ? 'bg-surface text-coral-burst border border-peach-soft/50  ' : 'text-cocoa-light  '}`}
-          >
-            <Eye className="w-3.5 h-3.5" /> Preview
-          </Button>
-        </div>
-      </div>
-
-      {/* Left Panel: Tools & Text */}
-      <div
-        className={`w-full lg:w-[40%] flex-col border-r border-peach-soft  bg-cream-soft  z-10 ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex h-[calc(100dvh-80px)] pb-32 lg:pb-0'}`}
-      >
-        {/* Header */}
-        <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-peach-soft/30   shrink-0 gap-4">
-          <div className="flex items-center gap-3 overflow-hidden">
-            {onBack && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onBack}
-                className="-ml-2 rounded-full text-cocoa-light   hover:text-coral-burst shrink-0"
-                aria-label="Go back"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            )}
-            <div className="overflow-hidden">
-              <h2 className="font-heading font-bold text-xl text-charcoal-soft  truncate max-w-50">
-                {project.title}
-              </h2>
-              <div className="flex items-center gap-2 text-xs text-cocoa-light   mt-1">
-                <span className="font-bold text-coral-burst">Page {activePage.pageNumber}</span>
-                <span>of {totalPages}</span>
-                {project.isBranching && (
-                  <span className="bg-gold-sunshine/20 text-yellow-600 px-1.5 rounded">
-                    Interactive
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2 items-center">
-            {/* Undo/Redo */}
-            <div className="hidden sm:flex items-center bg-surface/50 rounded-lg p-1 mr-2 border border-peach-soft/30  ">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={undo}
-                disabled={!canUndo}
-                className="p-1.5 text-cocoa-light   hover:text-coral-burst disabled:opacity-30"
-                title="Undo"
-              >
-                <Undo className="w-4 h-4" />
-              </Button>
-              <div className="w-px h-4 bg-peach-soft/50 mx-1" />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={redo}
-                disabled={!canRedo}
-                className="p-1.5 text-cocoa-light   hover:text-coral-burst disabled:opacity-30"
-                title="Redo"
-              >
-                <Redo className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* AutoSave Indicator */}
-            <div
-              className="hidden sm:flex items-center mr-2 text-xs text-cocoa-light  "
-              title={
-                autoSaveState.lastSaved
-                  ? `Last saved: ${autoSaveState.lastSaved.toLocaleTimeString()}`
-                  : 'Unsaved changes'
-              }
-            >
-              {autoSaveState.isSaving ? (
-                <RefreshCw className="w-3 h-3 animate-spin mr-1" />
-              ) : autoSaveState.hasUnsavedChanges ? (
-                <CloudOff className="w-3 h-3 mr-1 text-orange-400" />
-              ) : (
-                <Cloud className="w-3 h-3 mr-1 text-green-500" />
-              )}
-            </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="text-cocoa-light   hover:text-coral-burst"
-              title={isSaving ? 'Saving...' : 'Save'}
-            >
-              {isSaving ? (
-                <RefreshCw className="w-5 h-5 animate-spin" />
-              ) : (
-                <Save className="w-5 h-5" />
-              )}
-            </Button>
-
-            {/* Deep Quality Toggles */}
-            <div className="flex items-center gap-1 border-l border-peach-soft/30   pl-2 ml-2">
-              {/* HIDDEN FOR SIMPLICITY
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowStoryboard(!showStoryboard)}
-                                className={`p-2 ${showStoryboard ? 'bg-purple-100 text-purple-600' : 'text-cocoa-light   hover:text-purple-500'}`}
-                                title="Living Storyboard"
-                            >
-                                <LayoutTemplate className="w-5 h-5" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowEmotionalArc(!showEmotionalArc)}
-                                className={`p-2 ${showEmotionalArc ? 'bg-blue-100 text-blue-600' : 'text-cocoa-light   hover:text-blue-500'}`}
-                                title="Emotional Arc"
-                            >
-                                <Activity className="w-5 h-5" />
-                            </Button>
-                            */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowAudienceSafety(!showAudienceSafety)}
-                className={`p-2 ${showAudienceSafety ? 'bg-green-100 text-green-600' : 'text-cocoa-light   hover:text-green-500'}`}
-                title="Audience Safety"
-              >
-                <ShieldCheck className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {/* Green Room & Remix Toggles */}
-            <div className="flex items-center gap-1 border-l border-peach-soft/30   pl-2 ml-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  // Open Green Room with first character if available
-                  if (currentProject.characters.length > 0) {
-                    setSelectedCharacterForInterview(currentProject.characters[0]);
-                    setShowGreenRoom(true);
-                  } else {
-                    toast.info('Add a character to your story first!');
-                  }
-                }}
-                className={`p-2 ${showGreenRoom ? 'bg-emerald-100 text-emerald-600' : 'text-cocoa-light   hover:text-emerald-500'}`}
-                title="Green Room - Interview Characters"
-              >
-                <MessageCircle className="w-5 h-5" />
-              </Button>
-              {/* HIDDEN FOR SIMPLICITY
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowRemixStudio(true)}
-                                className={`p-2 ${showRemixStudio ? 'bg-indigo-100 text-indigo-600' : 'text-cocoa-light   hover:text-indigo-500'}`}
-                                title="Remix Studio - Share & Discover Worlds"
-                            >
-                                <Globe className="w-5 h-5" />
-                            </Button>
-                            */}
-            </div>
-          </div>
-        </div>
-
-        {/* Deep Quality Panels */}
-        <div className="flex flex-col bg-slate-900/5 ">
-          {/* HIDDEN FOR SIMPLICITY
-                    {showStoryboard && (
-                        <div className="border-b border-peach-soft/30  ">
-                            <LivingStoryboard
-                                beats={storyBible?.beats || []}
-                                onBeatClick={(page) => jumpToPageNumber(page)}
-                                onGenerate={storyBible ? handleGenerateStoryboard : handleAnalyzeStory}
-                                isGenerating={isAnalyzing}
-                            />
-                        </div>
-                    )}
-
-                    {showEmotionalArc && (
-                        <div className="border-b border-peach-soft/30   p-4">
-                            {storyBible?.emotionalArc ? (
-                                <EmotionalArc
-                                    arc={storyBible.emotionalArc.arc}
-                                    climaxPage={storyBible.emotionalArc.climaxPage}
-                                    pacing={storyBible.emotionalArc.pacing}
-                                    suggestions={storyBible.emotionalArc.suggestions}
-                                    onPageClick={(page) => jumpToPageNumber(page)}
-                                    currentPage={activePage.pageNumber}
-                                />
-                            ) : (
-                                <div className="text-center py-8">
-                                    <p className="text-cocoa-light   mb-4">Visualize the emotional journey of your story.</p>
-                                    <Button
-                                        onClick={handleAnalyzeEmotionalArc}
-                                        disabled={isAnalyzing}
-                                        className="bg-blue-500 text-white hover:bg-blue-600"
-                                    >
-                                        {isAnalyzing ? 'Analyzing...' : 'Generate Emotional Arc'}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    */}
-
-          {showAudienceSafety && (
-            <div className="border-b border-peach-soft/30   p-4">
-              {storyBible?.audienceSafety ? (
-                <AudienceSafety
-                  isAppropriate={storyBible.audienceSafety.isAppropriate}
-                  warnings={storyBible.audienceSafety.warnings}
-                  readingLevel={storyBible.audienceSafety.readingLevel}
-                  recommendedAgeRange={storyBible.audienceSafety.recommendedAgeRange}
-                  targetAudience={project.targetAudience}
-                  isAnalyzing={isAnalyzing}
-                />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-cocoa-light   mb-4">
-                    Check content safety and age appropriateness.
-                  </p>
-                  <Button
-                    onClick={handleAnalyzeAudienceSafety}
-                    disabled={isAnalyzing}
-                    className="bg-green-500 text-white hover:bg-green-600"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Check Safety'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8">
-          <div className="space-y-3">
-            <Label className="uppercase tracking-wider flex justify-between items-center">
-              Story Text
-              <div className="flex gap-2 items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCheckConsistency}
-                  disabled={isCheckingConsistency}
-                  className="text-purple-600 hover:underline capitalize gap-1"
-                  title="Check Character Consistency"
-                >
-                  {isCheckingConsistency ? (
-                    <RefreshCw className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-3 h-3" />
-                  )}
-                  {isCheckingConsistency ? 'Checking...' : 'Check Characters'}
-                </Button>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowImproveOptions(!showImproveOptions)}
-                    disabled={isImproving}
-                    className="text-coral-burst hover:underline capitalize gap-1"
-                  >
-                    {isImproving ? (
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Wand className="w-3 h-3" />
-                    )}
-                    {isImproving ? 'Improving...' : 'AI Improve'}
-                  </Button>
-                  {showImproveOptions && (
-                    <div className="absolute right-0 top-full mt-2 bg-surface rounded-xl border border-peach-soft   p-2 z-50 min-w-40">
-                      {['more dramatic', 'funnier', 'simpler', 'more descriptive'].map((tone) => (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          key={tone}
-                          onClick={() => handleImproveText(tone)}
-                          className="w-full text-left text-charcoal-soft  capitalize"
-                        >
-                          {tone}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Label>
-            <Textarea
-              className={`h-50 rounded-2xl p-6 text-lg leading-loose ${
-                consistencyIssues.length > 0
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10'
-                  : ''
-              }`}
-              value={activePage.text}
-              onChange={(e) => handleTextChange(e.target.value)}
-              placeholder="Once upon a time..."
+    <div className="h-[calc(100dvh-80px)] w-full flex flex-col relative overflow-hidden">
+      {/* ── CANVAS VIEW — desktop only overlay ── */}
+      {editor.editorView === 'canvas' && (
+        <>
+          {/* Mobile canvas fallback */}
+          <div className="lg:hidden absolute inset-0 z-40 flex flex-col items-center justify-center px-8 text-center" style={{ backgroundColor: 'var(--color-background)' }}>
+            <img
+              src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
+              alt="Gen, your AI creative assistant"
+              className="w-24 h-24 rounded-full object-cover mb-6"
+              style={{ boxShadow: '0 0 30px 6px color-mix(in srgb, var(--color-primary-start) 30%, transparent)' }}
+              draggable={false}
             />
-
-            {/* Deep Quality: Real-time Consistency Warning */}
-            {consistencyIssues.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 animate-fadeIn">
-                <div className="flex items-center gap-2 text-red-700 font-bold text-xs mb-1">
-                  <AlertCircle className="w-4 h-4" />
-                  Consistency Issue Detected
-                </div>
-                <ul className="list-disc list-inside text-xs text-red-600 space-y-1">
-                  {consistencyIssues.map((issue, i) => (
-                    <li key={i}>{issue.description}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Learning Content Display */}
-            {activePage.learningContent && (
-              <div className="bg-linear-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 border border-emerald-200 mt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">🎓</span>
-                  <h4 className="font-heading font-bold text-sm text-emerald-900 uppercase">
-                    Learning Content
-                  </h4>
-                  {activePage.learningContent.topic && (
-                    <span className="ml-auto px-2 py-1 bg-emerald-200 text-emerald-800 text-xs rounded-full font-medium">
-                      {activePage.learningContent.topic}
-                    </span>
-                  )}
-                </div>
-
-                {activePage.learningContent.mentorDialogue && (
-                  <div className="bg-surface rounded-xl p-4 mb-3 border border-emerald-100">
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl">🦉</span>
-                      <div>
-                        <p className="text-xs font-bold text-emerald-700 mb-1">Mentor Says:</p>
-                        <p className="text-sm text-charcoal-soft  italic">
-                          "{activePage.learningContent.mentorDialogue}"
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activePage.learningContent.quiz && (
-                  <div className="bg-surface rounded-xl p-4 border border-emerald-100">
-                    <p className="text-xs font-bold text-emerald-700 mb-2">📝 Quiz Question:</p>
-                    <p className="text-sm text-charcoal-soft  font-medium mb-3">
-                      {activePage.learningContent.quiz.question}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {activePage.learningContent.quiz.options?.map(
-                        (option: string, idx: number) => (
-                          <div
-                            key={idx}
-                            className={`px-3 py-2 rounded-lg text-xs font-medium ${
-                              option === activePage.learningContent?.quiz?.correctAnswer
-                                ? 'bg-green-100 text-green-800 border border-green-300'
-                                : 'bg-peach-soft/30   text-cocoa-light  '
-                            }`}
-                          >
-                            {option}{' '}
-                            {option === activePage.learningContent?.quiz?.correctAnswer && '✓'}
-                          </div>
-                        )
-                      )}
-                    </div>
-                    {activePage.learningContent.quiz.explanation && (
-                      <p className="mt-3 text-xs text-emerald-600 italic">
-                        💡 {activePage.learningContent.quiz.explanation}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Feature #3: Real-Time Suggestions */}
-            {suggestions.length > 0 && (
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <Lightbulb className="w-4 h-4 text-blue-600" />
-                  <h4 className="font-heading font-bold text-xs text-blue-900 uppercase">
-                    Writing Suggestions
-                  </h4>
-                </div>
-                <div className="space-y-2">
-                  {suggestions.map((sug, i) => (
-                    <div key={i} className="bg-surface rounded-lg p-3 text-xs">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-charcoal-soft  capitalize">{sug.type}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => applySuggestion(sug)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                      <p className="text-cocoa-light   mb-1">
-                        <span className="line-through">{sug.original}</span> →{' '}
-                        <span className="text-green-600 font-medium">{sug.suggestion}</span>
-                      </p>
-                      <p className="text-cocoa-light   italic">{sug.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {isLoadingSuggestions && (
-              <div className="flex items-center gap-2 text-xs text-cocoa-light  ">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                Analyzing your writing...
-              </div>
-            )}
-          </div>
-
-          {/* Feature #2: Character Consistency Panel */}
-          {showConsistencyPanel && consistencyReport && (
-            <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <IcoWand className="w-5 h-5 text-purple-600" />
-                  <h3 className="font-heading font-bold text-sm text-purple-900">
-                    Character Consistency Report
-                  </h3>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowConsistencyPanel(false)}
-                  className="text-purple-600 hover:text-purple-800"
-                >
-                  ×
-                </Button>
-              </div>
-              <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="font-heading font-bold text-2xl text-purple-900">
-                    {consistencyReport.overallScore}
-                  </span>
-                  <span className="text-xs text-purple-700">/100 Consistency Score</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {consistencyReport.characters.map((char: ConsistencyCharacter, i: number) => (
-                  <div key={i} className="bg-surface rounded-xl p-4">
-                    <h4 className="font-heading font-bold text-sm text-charcoal-soft  mb-2">
-                      {char.name}
-                    </h4>
-                    {char.inconsistencies.length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
-                          <div className="text-xs">
-                            <p className="font-bold text-orange-900 mb-1">Issues Found:</p>
-                            <ul className="list-disc list-inside text-cocoa-light   space-y-1">
-                              {char.inconsistencies.map((inc: string, j: number) => (
-                                <li key={j}>{inc}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                        {char.suggestions.length > 0 && (
-                          <div className="flex items-start gap-2">
-                            <Lightbulb className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                            <div className="text-xs">
-                              <p className="font-bold text-blue-900 mb-1">Suggestions:</p>
-                              <ul className="list-disc list-inside text-cocoa-light   space-y-1">
-                                {char.suggestions.map((sug: string, j: number) => (
-                                  <li key={j}>{sug}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-xs text-green-700">
-                        <CheckCircle2 className="w-4 h-4" />
-                        No inconsistencies found!
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* CYOA Choices */}
-          {project.isBranching && activePage.choices && (
-            <div className="bg-surface rounded-2xl p-6 border border-peach-soft/50  ">
-              <Label className="uppercase tracking-wider mb-4 flex items-center gap-2">
-                <GitFork className="w-4 h-4 text-gold-sunshine" /> Branching Choices
-              </Label>
-              <div className="space-y-3">
-                {activePage.choices.map((choice, i) => (
-                  <Button
-                    variant="outline"
-                    key={i}
-                    onClick={() => jumpToPageNumber(choice.targetPageNumber)}
-                    className="w-full justify-between bg-cream-base p-4 border-peach-soft/30   hover:bg-peach-soft hover:border-coral-burst group text-left h-auto"
-                  >
-                    <span className="text-charcoal-soft  font-medium text-sm flex-1 mr-3 group-hover:text-charcoal-soft  transition-colors">
-                      {choice.text}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded-lg whitespace-nowrap group-hover:bg-coral-burst group-hover:text-white transition-colors">
-                        Go to pg {choice.targetPageNumber}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-coral-burst opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Image Prompt */}
-          <div className="bg-cream-base rounded-2xl p-6 border border-peach-soft/50  ">
-            <Label className="uppercase tracking-wider mb-2">
-              Visual Description
-            </Label>
-            <p className="text-sm text-charcoal-soft  leading-relaxed italic">
-              "{activePage.imagePrompt}"
+            <p className="font-heading text-lg text-charcoal-soft mb-2">Canvas view is best on desktop</p>
+            <p className="font-body text-sm text-cocoa-light mb-6 max-w-xs">
+              I can show you the full picture on a bigger screen. For now, Pages view is your best way to create.
             </p>
-          </div>
-        </div>
-
-        {/* Bottom Navigation Strip */}
-        <div className="h-24 bg-surface border-t border-peach-soft/50   flex items-center gap-3 px-6 overflow-x-auto pb-2 pt-2 shrink-0">
-          {allPages.map((p, idx) => (
-            <Button
-              variant="ghost"
-              key={p.id}
-              onClick={() => setActivePageIndex(idx)}
-              className={`shrink-0 w-14 h-14 flex flex-col font-heading text-lg
-                        ${
-                          activePageIndex === idx
-                            ? 'bg-coral-burst text-white border border-white/20 scale-110'
-                            : 'bg-cream-base text-cocoa-light   hover:bg-peach-soft'
-                        }`}
+            <button
+              type="button"
+              onClick={() => editor.setEditorView('pages')}
+              className="px-5 py-2 rounded-lg bg-coral-burst text-white font-body text-sm font-medium cursor-pointer"
             >
-              {p.pageNumber}
-              {p.choices && p.choices.length > 0 && (
-                <div className="w-1.5 h-1.5 rounded-full bg-gold-sunshine mt-1" />
-              )}
-            </Button>
-          ))}
-        </div>
-      </div>
+              Switch to Pages
+            </button>
+          </div>
 
-      {/* Right Panel: Preview */}
-      <div
-        className={`w-full lg:w-[60%] bg-peach-soft/20  items-center justify-center p-0 lg:p-8 lg:pt-16 relative overflow-hidden transition-all duration-500 z-20 overflow-y-auto lg:overflow-y-hidden ${mobileView === 'edit' ? 'hidden lg:flex' : 'flex h-[calc(100dvh-80px)] lg:h-full lg:relative flex-col'}`}
-      >
-        <div
-          className="absolute inset-0 pointer-events-none opacity-30 bg-[radial-gradient(var(--color-primary-start)_1px,transparent_1px)] bg-size-[24px_24px]"
-        ></div>
-
-        {/* Book Page Container */}
-        <div className="w-full min-h-full lg:min-h-0 lg:h-auto lg:max-w-2xl lg:aspect-3/4 bg-surface border border-transparent lg:border-peach-soft lg:rounded-2xl rounded-none relative flex flex-col transform transition-transform duration-500 shadow-none lg:shadow-xl">
-          {/* Texture Overlay */}
-          <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none z-10"></div>
-
-          {/* Illustration */}
-          <div className="relative h-[55%] w-full bg-peach-soft/30   overflow-hidden group">
-            {activePage.imageUrl ? (
-              <>
-                <img
-                  src={activePage.imageUrl}
-                  className={`w-full h-full object-cover transition-all ${activePage.isImageOutdated ? 'opacity-60' : ''}`}
-                  alt="Scene"
+          {/* Desktop canvas */}
+          <div className="hidden lg:block absolute inset-0 z-30">
+            <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cocoa-light font-body">Loading canvas…</div>}>
+              <ReactFlowProvider>
+                <StoryCanvas
+                  project={editor.currentProject}
+                  onSwitchToPages={(pageNum) => {
+                    editor.setEditorView('pages');
+                    if (pageNum) editor.jumpToPageNumber(pageNum);
+                  }}
                 />
-                {/* Text-to-Visual Ripple: Outdated Image Warning */}
-                {activePage.isImageOutdated && (
-                  <div className="absolute inset-0 bg-orange-500/20   flex items-center justify-center">
-                    <div className="bg-surface/90  rounded-2xl px-6 py-4 text-center border border-peach-soft  ">
-                      <RefreshCw className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                      <p className="text-sm font-bold text-orange-700">Image may be outdated</p>
-                      <p className="text-xs text-orange-600 mb-3">
-                        Your text has changed significantly
-                      </p>
-                      <Button
-                        onClick={() => {
-                          handleGenerateImage();
-                          // Clear the outdated flag
-                          setProjectHistory((prev) => {
-                            const newProject = structuredClone(prev);
-                            newProject.chapters.forEach((ch) => {
-                              const page = ch.pages.find(
-                                (p) => p.pageNumber === activePage.pageNumber
-                              );
-                              if (page) page.isImageOutdated = false;
-                            });
-                            return newProject;
-                          });
-                        }}
-                        className="bg-orange-500 text-white hover:bg-orange-600"
-                      >
-                        Regenerate
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-cream-base/50   text-cocoa-light   gap-4">
-                <ImageIcon className="w-12 h-12 opacity-20" />
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateImage}
-                  className="rounded-full bg-surface text-coral-burst font-heading hover:border-coral-burst hover:scale-105 z-20"
-                >
-                  {isGeneratingImage ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Wand className="w-4 h-4" />
-                  )}
-                  Generate Illustration
-                </Button>
-              </div>
-            )}
-            {/* Gradient overlay for text readability if needed */}
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-linear-to-t from-cream-base to-transparent opacity-50"></div>
+              </ReactFlowProvider>
+            </Suspense>
           </div>
+        </>
+      )}
 
-          {/* Text Content */}
-          <div className="flex-1 p-6 md:p-12 relative z-20 flex flex-col overflow-y-auto">
-            <p className="font-heading text-xl md:text-2xl lg:text-3xl text-charcoal-soft  leading-normal mb-auto">
-              {activePage.text}
-            </p>
+      {/* ── PAGES VIEW — the three-panel editor ── */}
+      {editor.editorView === 'pages' && (
+        <>
+          {/* ── EDITOR HEADER (52px sticky) ── */}
+          <EditorHeader editor={editor} onBack={onBack} />
 
-            {/* Interactive Buttons in Preview */}
-            {project.isBranching && activePage.choices && (
-              <div className="mt-8 space-y-3">
-                {activePage.choices.map((choice, idx) => (
-                  <Button
-                    variant="outline"
-                    key={idx}
-                    onClick={() => jumpToPageNumber(choice.targetPageNumber)}
-                    className="w-full border-charcoal-soft/10 bg-surface hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft  font-heading justify-between group"
-                  >
-                    {choice.text}
-                    <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-6 text-center">
-              <span className="font-heading font-bold text-cocoa-light   text-sm tracking-widest">
-                - {activePage.pageNumber} -
-              </span>
+          {/* ── MOBILE: Write/Preview Swipe Toggle + Intelligence Button ── */}
+          <div
+            className="lg:hidden h-12 flex items-center justify-between px-4 shrink-0 z-30 border-b"
+            style={{
+              borderColor: 'var(--color-border)',
+              backgroundColor: 'var(--color-surface)',
+            }}
+          >
+            {/* Write / Preview toggle */}
+            <div
+              className="flex p-0.5 rounded-lg border border-peach-soft/50"
+              style={{ backgroundColor: 'var(--color-background)' }}
+            >
+              <button
+                type="button"
+                onClick={() => editor.setMobileView('edit')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                  editor.mobileView === 'edit'
+                    ? 'text-coral-burst'
+                    : 'text-cocoa-light'
+                }`}
+                style={{
+                  backgroundColor: editor.mobileView === 'edit' ? 'var(--color-surface)' : 'transparent',
+                  ...geist,
+                  fontSize: 12,
+                }}
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Write
+              </button>
+              <button
+                type="button"
+                onClick={() => editor.setMobileView('preview')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                  editor.mobileView === 'preview'
+                    ? 'text-coral-burst'
+                    : 'text-cocoa-light'
+                }`}
+                style={{
+                  backgroundColor: editor.mobileView === 'preview' ? 'var(--color-surface)' : 'transparent',
+                  ...geist,
+                  fontSize: 12,
+                }}
+              >
+                <Eye className="w-3.5 h-3.5" /> Preview
+              </button>
             </div>
+
+            {/* Intelligence button — opens bottom sheet on mobile */}
+            <button
+              type="button"
+              onClick={() => setShowIntelligenceSheet(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                text-cocoa-light hover:text-charcoal-soft hover:bg-peach-soft/40
+                transition-all cursor-pointer active:scale-[0.98]"
+              style={{ ...geist, fontSize: 12 }}
+              aria-label="Open intelligence panel"
+            >
+              <Brain className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Intelligence</span>
+            </button>
+          </div>
+
+          {/* ── MAIN THREE-PANEL AREA ── */}
+          <div className="flex-1 flex overflow-hidden relative" role="group" aria-label="Editor panels">
+            {/* ── LEFT SIDEBAR (260px, desktop only; full-width on mobile Write view) ── */}
+            <aside
+              aria-label="Writing companion"
+              className={`${
+                editor.mobileView === 'preview' ? 'hidden lg:flex' : 'flex'
+              } ${
+                editor.isFocusMode ? 'lg:hidden' : ''
+              } flex-col h-full overflow-hidden`}
+              style={{
+                transition: transitionStyle,
+                width: isLeftCollapsed ? 0 : undefined,
+                minWidth: isLeftCollapsed ? 0 : undefined,
+                opacity: isLeftCollapsed ? 0 : 1,
+              }}
+            >
+              <div className="w-full lg:w-auto h-full">
+                <EditorLeftZone editor={editor} />
+              </div>
+            </aside>
+
+            {/* ── LEFT COLLAPSE TOGGLE (desktop only) ── */}
+            {!editor.isFocusMode && (
+              <button
+                type="button"
+                onClick={() => setIsLeftCollapsed((v) => !v)}
+                className="hidden lg:flex items-center justify-center shrink-0
+                  text-cocoa-light hover:text-charcoal-soft
+                  transition-all cursor-pointer z-10
+                  hover:bg-peach-soft/40"
+                style={{
+                  width: 20,
+                  height: '100%',
+                  borderRight: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-background)',
+                }}
+                aria-label={isLeftCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+                title={isLeftCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+              >
+                {isLeftCollapsed ? (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+
+            {/* ── CENTER PANEL (flex: 1, illustration HERO) ── */}
+            <main
+              aria-label="Story editor"
+              className={`flex-1 min-w-0 ${
+                editor.mobileView === 'edit' ? 'hidden lg:flex' : 'flex'
+              }`}
+              style={{ transition: transitionStyle }}
+            >
+              <CenterPanel editor={editor} />
+            </main>
+
+            {/* ── RIGHT COLLAPSE TOGGLE (desktop only) ── */}
+            {!editor.isFocusMode && (
+              <button
+                type="button"
+                onClick={() => setIsRightCollapsed((v) => !v)}
+                className="hidden lg:flex items-center justify-center shrink-0
+                  text-cocoa-light hover:text-charcoal-soft
+                  transition-all cursor-pointer z-10
+                  hover:bg-peach-soft/40"
+                style={{
+                  width: 20,
+                  height: '100%',
+                  borderLeft: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-surface)',
+                }}
+                aria-label={isRightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
+                title={isRightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
+              >
+                {isRightCollapsed ? (
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+
+            {/* ── RIGHT SIDEBAR (300px, desktop only) ── */}
+            <aside
+              aria-label="Intelligence panel"
+              className={`hidden ${
+                editor.isFocusMode ? '' : 'lg:flex'
+              } overflow-hidden`}
+              style={{
+                transition: transitionStyle,
+                width: isRightCollapsed ? 0 : undefined,
+                minWidth: isRightCollapsed ? 0 : undefined,
+                opacity: isRightCollapsed ? 0 : 1,
+              }}
+            >
+              <IntelligencePanel editor={editor} />
+            </aside>
+          </div>
+
+          {/* ── MOBILE: Intelligence Bottom Sheet ── */}
+          {showIntelligenceSheet && (
+            <div
+              className="lg:hidden fixed inset-0 z-[70] flex flex-col justify-end"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Intelligence panel"
+              tabIndex={-1}
+              onClick={() => setShowIntelligenceSheet(false)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setShowIntelligenceSheet(false); }}
+            >
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: 'color-mix(in srgb, var(--color-text) 30%, transparent)' }}
+              />
+
+              {/* Sheet */}
+              <div
+                className="relative w-full rounded-t-2xl overflow-hidden"
+                style={{
+                  maxHeight: '75dvh',
+                  backgroundColor: 'var(--color-surface)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drag handle */}
+                <div className="flex justify-center py-2">
+                  <div
+                    className="w-10 h-1 rounded-full"
+                    style={{ backgroundColor: 'var(--color-border)' }}
+                  />
+                </div>
+
+                {/* Close button */}
+                <button
+                  type="button"
+                  onClick={() => setShowIntelligenceSheet(false)}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center
+                    text-cocoa-light hover:text-charcoal-soft hover:bg-peach-soft/40
+                    transition-all cursor-pointer
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/40"
+                  aria-label="Close intelligence panel"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Intelligence content — reuse the panel in fluid mode */}
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(75dvh - 40px)' }}>
+                  <IntelligencePanel editor={editor} fluid />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── FOCUS MODE: Floating writing panel ── */}
+          <FocusModeWritingPanel
+            text={activePage.text}
+            onChange={editor.handleTextChange}
+            isVisible={editor.isFocusMode}
+          />
+        </>
+      )}
+
+      {/* ── AUDIENCE SAFETY PANEL (slide-over) ── */}
+      {editor.showAudienceSafety && editor.storyBible?.audienceSafety && (
+        <div
+          className="fixed inset-0 z-[80] flex justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Audience safety review"
+          tabIndex={-1}
+          onClick={() => editor.setShowAudienceSafety(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') editor.setShowAudienceSafety(false); }}
+        >          <div className="absolute inset-0" style={{ backgroundColor: 'color-mix(in srgb, var(--color-text) 20%, transparent)' }} />
+          <div
+            className="relative w-full max-w-md h-full overflow-y-auto border-l border-peach-soft p-6"
+            style={{ backgroundColor: 'var(--color-surface)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <AudienceSafety
+              isAppropriate={editor.storyBible.audienceSafety.isAppropriate}
+              warnings={editor.storyBible.audienceSafety.warnings}
+              readingLevel={editor.storyBible.audienceSafety.readingLevel}
+              recommendedAgeRange={editor.storyBible.audienceSafety.recommendedAgeRange}
+              targetAudience={editor.currentProject.targetAudience}
+              isAnalyzing={editor.isAnalyzing}
+            />
           </div>
         </div>
+      )}
 
-        {/* Floating Action Bar */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-surface/90  rounded-full px-6 py-3 flex items-center gap-6 border border-peach-soft   z-30">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActivePageIndex(Math.max(0, activePageIndex - 1))}
-            className="rounded-full text-charcoal-soft "
-            aria-label="Previous page"
-            title="Previous page"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <span className="font-heading font-bold text-charcoal-soft  text-sm whitespace-nowrap">
-            Preview Mode
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActivePageIndex(Math.min(totalPages - 1, activePageIndex + 1))}
-            className="rounded-full text-charcoal-soft "
-            aria-label="Next page"
-            title="Next page"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Green Room Modal */}
-      {showGreenRoom && selectedCharacterForInterview && (
+      {/* ── GREEN ROOM MODAL ── */}
+      {editor.showGreenRoom && editor.selectedCharacterForInterview && (
         <GreenRoom
-          isOpen={showGreenRoom}
+          isOpen={editor.showGreenRoom}
           onClose={() => {
-            setShowGreenRoom(false);
-            setSelectedCharacterForInterview(null);
+            editor.setShowGreenRoom(false);
+            editor.setSelectedCharacterForInterview(null);
           }}
-          project={currentProject}
-          character={selectedCharacterForInterview}
+          project={editor.currentProject}
+          character={editor.selectedCharacterForInterview}
           onPersonaUpdate={(persona: CharacterPersona) => {
-            // Update character with extracted facts
-            const updatedCharacters = currentProject.characters.map((c) =>
-              c.id === selectedCharacterForInterview.id
+            const updatedCharacters = editor.currentProject.characters.map((c) =>
+              c.id === editor.selectedCharacterForInterview!.id
                 ? {
                     ...c,
                     personalityTraits: [...(c.personalityTraits || []), ...persona.personality],
@@ -1979,26 +812,22 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                   }
                 : c
             );
-            setProjectHistory((prev) => ({
-              ...prev,
-              characters: updatedCharacters,
-            }));
+            editor.setProjectHistory((prev) => ({ ...prev, characters: updatedCharacters }));
           }}
           userId={userProfile?.id}
         />
       )}
 
-      {/* Remix Studio Modal */}
+      {/* ── REMIX STUDIO MODAL ── */}
       <RemixStudio
-        isOpen={showRemixStudio}
-        onClose={() => setShowRemixStudio(false)}
+        isOpen={editor.showRemixStudio}
+        onClose={() => editor.setShowRemixStudio(false)}
         userId={userProfile?.id}
         userName={userProfile?.display_name || userProfile?.email}
-        currentProject={currentProject}
+        currentProject={editor.currentProject}
         onForkWorld={(world) => {
-          // Handle forked world - could create a new project based on it
-          console.warn('Forked world:', world);
-          setShowRemixStudio(false);
+          if (import.meta.env.DEV) console.warn('Forked world:', world);
+          editor.setShowRemixStudio(false);
         }}
       />
     </div>
@@ -2006,4 +835,3 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
 };
 
 export default SmartEditor;
-

@@ -26,11 +26,11 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 -- Policies for profiles table
 CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
+  USING ((SELECT auth.uid()) = id);
 
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING ((SELECT auth.uid()) = id);
 
 -- =============================================
 -- 2. BOOKS TABLE
@@ -54,19 +54,19 @@ ALTER TABLE public.books ENABLE ROW LEVEL SECURITY;
 -- Policies for books table
 CREATE POLICY "Users can view own books"
   ON public.books FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 CREATE POLICY "Users can insert own books"
   ON public.books FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 CREATE POLICY "Users can update own books"
   ON public.books FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 CREATE POLICY "Users can delete own books"
   ON public.books FOR DELETE
-  USING (auth.uid() = user_id);
+  USING ((SELECT auth.uid()) = user_id);
 
 -- Index for faster queries
 CREATE INDEX IF NOT EXISTS books_user_id_idx ON public.books(user_id);

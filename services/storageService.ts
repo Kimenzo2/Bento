@@ -48,7 +48,7 @@ export const saveBook = async (project: BookProject): Promise<void> => {
     if (session?.user) {
       // Save to Supabase
       await booksApi.createBook(savedBook, session.user.id);
-      console.log('✅ Book saved to Supabase:', project.title);
+      if (import.meta.env.DEV) console.log('✅ Book saved to Supabase:', project.title);
 
       // MASTRA MIGRATION: Track book creation for gamification XP
       try {
@@ -72,7 +72,7 @@ export const saveBook = async (project: BookProject): Promise<void> => {
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-      console.log('✅ Book saved to LocalStorage:', project.title);
+      if (import.meta.env.DEV) console.log('✅ Book saved to LocalStorage:', project.title);
     }
   } catch (error) {
     console.error('Failed to save book:', error);
@@ -173,12 +173,12 @@ export const deleteBook = async (id: string): Promise<void> => {
 
     if (session?.user) {
       await booksApi.delete(id);
-      console.log('✅ Book deleted from Supabase:', id);
+      if (import.meta.env.DEV) console.log('✅ Book deleted from Supabase:', id);
     } else {
       const books = await getAllBooks(true);
       const filtered = books.filter((b) => b.id !== id);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-      console.log('✅ Book deleted from LocalStorage:', id);
+      if (import.meta.env.DEV) console.log('✅ Book deleted from LocalStorage:', id);
     }
 
     // PERFORMANCE: Invalidate cache after delete
@@ -207,5 +207,5 @@ export const clearAllBooks = async (): Promise<void> => {
   booksCache.clear();
   singleBookCache.clear();
   cacheInvalidated = true;
-  console.log('✅ All books cleared');
+  if (import.meta.env.DEV) console.log('✅ All books cleared');
 };

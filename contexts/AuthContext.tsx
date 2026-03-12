@@ -259,7 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithIdToken = async (token: string, nonce?: string | null) => {
-    console.warn('[Auth] Starting Google One Tap sign-in with ID token');
+    if (import.meta.env.DEV) console.warn('[Auth] Starting Google One Tap sign-in with ID token');
     if (import.meta.env.DEV) {
       console.warn('[Auth] Token length:', token?.length);
       console.warn('[Auth] Nonce provided:', nonce ? 'yes' : 'no');
@@ -301,12 +301,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Manually update state immediately for faster UI response
       if (data.session) {
-        console.warn('[Auth] Setting session and user state...');
+        if (import.meta.env.DEV) console.warn('[Auth] Setting session and user state...');
         setSession(data.session);
         setUser(data.user);
-        console.warn('[Auth] State updated successfully');
+        if (import.meta.env.DEV) console.warn('[Auth] State updated successfully');
       } else {
-        console.warn('[Auth] No session in response despite successful sign-in');
+        if (import.meta.env.DEV) console.warn('[Auth] No session in response despite successful sign-in');
       }
 
       return { data, error: null };

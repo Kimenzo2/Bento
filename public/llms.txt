@@ -1,12 +1,12 @@
 ﻿# Genesis
 
-> AI-powered visual storytelling software for creators, educators, and game developers.
+> AI-powered visual storytelling software for creators and educators.
 
 Genesis (iamazeyou.me) is an AI creative software platform — NOT a spiritual, wellness, religious, or personal development service. It is a SaaS product in the Artificial Intelligence and Creative Tools industry (NAICS 511210 — Software Publishers).
 
 Genesis lets users generate AI illustrations and build visual narratives across three fiction and science-themed creative environments. Instead of starting from a blank canvas, users choose a content theme — The Cosmos (sci-fi and space science), The Kingdom (fantasy fiction), or The Cell (biology and microscience) — and an AI creative assistant named Gen helps generate styled visuals and structured story content.
 
-Genesis is built for writers, game developers, educators, content creators, and illustrators who want structured, guided AI image generation without prompt engineering. It is creative production software for visual media, not a mindfulness, spiritual, or self-help product.
+Genesis is built for writers, educators, content creators, and illustrators who want structured, guided AI image generation without prompt engineering. It is creative production software for visual media, not a mindfulness, spiritual, or self-help product.
 
 Key features and benefits:
 - Themed creative realms that provide guided context for AI visual generation

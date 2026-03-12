@@ -55,11 +55,11 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.log('[ProfileService] No authenticated user');
+      if (import.meta.env.DEV) console.log('[ProfileService] No authenticated user');
       return null;
     }
 
-    console.log('[ProfileService] Ensuring profile exists for:', user.email);
+    if (import.meta.env.DEV) console.log('[ProfileService] Ensuring profile exists for:', user.email);
 
     // First, try to get existing profile
     const { data: existingProfile, error: fetchError } = await supabase
@@ -69,7 +69,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
       .maybeSingle();
 
     if (existingProfile) {
-      console.log('[ProfileService] Profile exists:', existingProfile.email);
+      if (import.meta.env.DEV) console.log('[ProfileService] Profile exists:', existingProfile.email);
 
       // Patch missing fields from auth metadata (trigger may have missed avatar_url/full_name)
       const updates: Record<string, any> = {};
@@ -83,7 +83,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
 
       if (Object.keys(updates).length > 0) {
         updates.updated_at = new Date().toISOString();
-        console.log('[ProfileService] Patching missing profile fields:', Object.keys(updates));
+        if (import.meta.env.DEV) console.log('[ProfileService] Patching missing profile fields:', Object.keys(updates));
         await supabase.from('profiles').update(updates).eq('id', user.id);
         // Re-fetch after patch
         const { data: patchedProfile } = await supabase
@@ -101,7 +101,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
     }
 
     // Profile doesn't exist, create it
-    console.log('[ProfileService] Creating new profile for:', user.email);
+    if (import.meta.env.DEV) console.log('[ProfileService] Creating new profile for:', user.email);
 
     const derivedName =
         user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
@@ -127,7 +127,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
 
       // If it's a duplicate key error, the trigger already created it
       if (insertError.code === '23505') {
-        console.log('[ProfileService] Profile was created by trigger, fetching...');
+        if (import.meta.env.DEV) console.log('[ProfileService] Profile was created by trigger, fetching...');
         const { data: triggerProfile } = await supabase
           .from('profiles')
           .select('*')
@@ -138,7 +138,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
       return null;
     }
 
-    console.log('[ProfileService] Profile created successfully');
+    if (import.meta.env.DEV) console.log('[ProfileService] Profile created successfully');
     return createdProfile as UserProfile;
   } catch (error) {
     console.error('[ProfileService] Error in ensureUserProfile:', error);
@@ -157,7 +157,7 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.log('[ProfileService] No authenticated user');
+      if (import.meta.env.DEV) console.log('[ProfileService] No authenticated user');
       return null;
     }
 
@@ -172,7 +172,7 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
     return deduplicateRequest(
       `profile:${user.id}`,
       async () => {
-        console.log('[ProfileService] Fetching profile for:', user.email);
+        if (import.meta.env.DEV) console.log('[ProfileService] Fetching profile for:', user.email);
 
         const { data, error } = await supabase
           .from('profiles')
@@ -186,11 +186,11 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
         }
 
         if (!data) {
-          console.log('[ProfileService] Profile not found, creating...');
+          if (import.meta.env.DEV) console.log('[ProfileService] Profile not found, creating...');
           return await ensureUserProfile();
         }
 
-        console.log('[ProfileService] Profile found:', data.email);
+        if (import.meta.env.DEV) console.log('[ProfileService] Profile found:', data.email);
         const profile = data as UserProfile;
 
         // PERFORMANCE: Cache the result
@@ -268,7 +268,7 @@ export const updateUserProfile = async (
     // Invalidate cache so next read gets fresh data
     invalidateProfileCache(user.id);
 
-    console.log('[ProfileService] Profile updated successfully');
+    if (import.meta.env.DEV) console.log('[ProfileService] Profile updated successfully');
     return data as UserProfile;
   } catch (error) {
     console.error('[ProfileService] Error in updateUserProfile:', error);

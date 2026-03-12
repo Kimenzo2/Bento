@@ -82,6 +82,8 @@ const LearnPage = lazy(() => import('./components/learn/LearnPage'));
 const LearnArticlePage = lazy(() => import('./components/learn/LearnArticlePage'));
 const TransparencyPage = lazy(() => import('./components/learn/TransparencyPage'));
 const LegalViewer = lazy(() => import('./components/LegalViewer'));
+const PrivacyPage = lazy(() => import('./pages/legal/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const PublicLegalPage: React.FC<{ initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use' }> = ({
@@ -171,6 +173,11 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const hasCompletedOnboarding = localStorage.getItem('genesis_onboarding_completed') === 'true';
 
+  // E2E test bypass — only in dev mode with explicit flag
+  if (import.meta.env.DEV && localStorage.getItem('genesis_e2e_bypass') === 'true') {
+    return <>{children}</>;
+  }
+
   // For authenticated users without the localStorage flag, check Supabase profile
   // to determine if they're a returning user (already onboarded previously).
   useEffect(() => {
@@ -245,13 +252,13 @@ export const AppRouter: React.FC = () => {
         </Route>
 
         {/* Public legal pages for SEO and direct access */}
-        <Route path="/legal" element={<PublicLegalPage initialDoc="privacy" />} />
-        <Route path="/legal/privacy" element={<PublicLegalPage initialDoc="privacy" />} />
-        <Route path="/legal/terms" element={<PublicLegalPage initialDoc="terms" />} />
+        <Route path="/legal" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
+        <Route path="/legal/privacy" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
+        <Route path="/legal/terms" element={<ThemeProvider><TermsPage /></ThemeProvider>} />
         <Route path="/legal/cookies" element={<PublicLegalPage initialDoc="cookies" />} />
         <Route path="/legal/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
-        <Route path="/privacy" element={<PublicLegalPage initialDoc="privacy" />} />
-        <Route path="/terms" element={<PublicLegalPage initialDoc="terms" />} />
+        <Route path="/privacy" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
+        <Route path="/terms" element={<ThemeProvider><TermsPage /></ThemeProvider>} />
         <Route path="/cookies" element={<PublicLegalPage initialDoc="cookies" />} />
         <Route path="/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
 
