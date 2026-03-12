@@ -757,29 +757,29 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const visualShowcaseItems = [
-    { src: '/images/promo/design-your-hero-once.webp', alt: 'Design your hero once — consistent character across every scene', caption: 'Design your hero once', rotate: '-2.5deg', yOffset: '0px' },
-    { src: '/images/promo/true-character-persistence.webp', alt: 'True character persistence — same hero across worlds', caption: 'True character persistence', rotate: '1.8deg', yOffset: '28px' },
-    { src: '/images/promo/illustrate-every-adventure.webp', alt: 'Illustrate every adventure with AI-powered visuals', caption: 'Illustrate every adventure', rotate: '2deg', yOffset: '-12px' },
-    { src: '/images/promo/build-your-visual-legacy.webp', alt: 'Build your visual legacy — publish and share your stories', caption: 'Build your visual legacy', rotate: '-1.5deg', yOffset: '16px' },
+    { src: '/images/promo/design-your-hero-once.webp', alt: 'Design your hero once — consistent character across every scene', caption: 'Design your hero once', rotate: '-4.5deg', yOffset: '0px' },
+    { src: '/images/promo/true-character-persistence.webp', alt: 'True character persistence — same hero across worlds', caption: 'True character persistence', rotate: '3.5deg', yOffset: '48px' },
+    { src: '/images/promo/illustrate-every-adventure.webp', alt: 'Illustrate every adventure with AI-powered visuals', caption: 'Illustrate every adventure', rotate: '3deg', yOffset: '-20px' },
+    { src: '/images/promo/build-your-visual-legacy.webp', alt: 'Build your visual legacy — publish and share your stories', caption: 'Build your visual legacy', rotate: '-3.5deg', yOffset: '36px' },
   ];
 
   const VisualShowcase = (
-    <Section className="py-16 md:py-24 overflow-hidden">
-      <div className="grid grid-cols-2 gap-6 md:gap-10 max-w-3xl mx-auto px-4">
+    <Section className="py-20 md:py-32 overflow-hidden">
+      <div className="grid grid-cols-2 gap-8 md:gap-12 max-w-3xl mx-auto px-6">
         {visualShowcaseItems.map((item, i) => (
           <motion.div
             key={item.caption}
-            initial={reducedMotion ? {} : { opacity: 0, y: 40, rotate: 0 }}
+            initial={reducedMotion ? {} : { opacity: 0, y: 50, rotate: 0 }}
             whileInView={{ opacity: 1, y: 0, rotate: parseFloat(item.rotate) }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, ease: APPLE_EASE, delay: i * 0.1 }}
+            transition={{ duration: 0.7, ease: APPLE_EASE, delay: i * 0.12 }}
             className="text-center"
             style={{ marginTop: item.yOffset }}
           >
             <div
               className="rounded-2xl overflow-hidden border border-peach-soft"
               style={{
-                boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06)',
               }}
             >
               <img
@@ -787,7 +787,7 @@ const LandingPage: React.FC = memo(() => {
                 alt={item.alt}
                 width={540}
                 height={675}
-                className="w-full h-auto block aspect-[4/5] object-cover object-top"
+                className="w-full h-auto block aspect-[3/4] object-cover object-top"
                 loading="lazy"
                 decoding="async"
               />
