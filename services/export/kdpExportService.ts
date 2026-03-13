@@ -247,7 +247,7 @@ export async function exportToKDP(
   // BODY MATTER - Story Pages
   const pages = sourcePages.slice(0, pageCount);
   while (pages.length < pageCount) {
-    pages.push({ text: '', imageUrl: undefined, choices: [] } as (typeof pages)[number]);
+    pages.push({ text: '', imageUrl: undefined, choices: [] } as unknown as (typeof pages)[number]);
   }
 
   for (let i = 0; i < pages.length; i++) {
