@@ -84,6 +84,7 @@ const TransparencyPage = lazy(() => import('./components/learn/TransparencyPage'
 const LegalViewer = lazy(() => import('./components/LegalViewer'));
 const PrivacyPage = lazy(() => import('./pages/legal/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
+const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const PublicLegalPage: React.FC<{ initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use' }> = ({
@@ -255,11 +256,11 @@ export const AppRouter: React.FC = () => {
         <Route path="/legal" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
         <Route path="/legal/privacy" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
         <Route path="/legal/terms" element={<ThemeProvider><TermsPage /></ThemeProvider>} />
-        <Route path="/legal/cookies" element={<PublicLegalPage initialDoc="cookies" />} />
+        <Route path="/legal/cookies" element={<ThemeProvider><CookiePolicyPage /></ThemeProvider>} />
         <Route path="/legal/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
         <Route path="/privacy" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
         <Route path="/terms" element={<ThemeProvider><TermsPage /></ThemeProvider>} />
-        <Route path="/cookies" element={<PublicLegalPage initialDoc="cookies" />} />
+        <Route path="/cookies" element={<ThemeProvider><CookiePolicyPage /></ThemeProvider>} />
         <Route path="/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
 
         {/* Blog — public, SEO-indexed, inherits user theme from localStorage */}

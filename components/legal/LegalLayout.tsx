@@ -201,6 +201,7 @@ const LegalFooter: React.FC = () => {
   const location = useLocation();
   const isPrivacy = location.pathname.includes('privacy');
   const isTerms = location.pathname.includes('terms');
+  const isCookies = location.pathname.includes('cookies');
 
   return (
     <footer
@@ -221,6 +222,12 @@ const LegalFooter: React.FC = () => {
           <span className="text-charcoal-soft font-medium">Terms of Use</span>
         ) : (
           <Link to="/legal/terms" className="text-coral-burst hover:underline">Terms of Use</Link>
+        )}
+        <span className="text-cocoa-light">&middot;</span>
+        {isCookies ? (
+          <span className="text-charcoal-soft font-medium">Cookie Policy</span>
+        ) : (
+          <Link to="/legal/cookies" className="text-coral-burst hover:underline">Cookie Policy</Link>
         )}
         <span className="text-cocoa-light">&middot;</span>
         <a href="mailto:legal@iamazeyou.me" className="text-coral-burst hover:underline">Contact</a>
