@@ -269,7 +269,31 @@ async function mastraSSE(
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        throw new MastraError(`SSE request failed: ${response.status}`, response.status, errorText);
+        let message = `SSE request failed: ${response.status}`;
+        let details: unknown = errorText;
+
+        try {
+          const parsed = JSON.parse(errorText);
+          details = parsed;
+
+          if (typeof parsed?.error === 'string' && parsed.error.trim()) {
+            message = parsed.error.trim();
+          }
+
+          if (Array.isArray(parsed?.details) && parsed.details.length > 0) {
+            message = `${message} (${parsed.details.join('; ')})`;
+          } else if (typeof parsed?.details === 'string' && parsed.details.trim()) {
+            message = `${message} (${parsed.details.trim()})`;
+          }
+        } catch {
+          // non-JSON error body; keep default message
+        }
+
+        if (!message.includes(String(response.status))) {
+          message = `${message} (status ${response.status})`;
+        }
+
+        throw new MastraError(message, response.status, details);
       }
 
       const reader = response.body?.getReader();

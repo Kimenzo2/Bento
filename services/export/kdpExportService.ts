@@ -148,8 +148,9 @@ export async function exportToKDP(
 
   // Calculate dimensions and layout
   const dimensions = calculatePageDimensions(opts.trimSize, opts.includeBleed);
-  const pageValidation = validatePageCount(project.chapters[0]?.pages?.length || 0);
-  const pageCount = pageValidation.adjustedCount || project.chapters[0]?.pages?.length || 24;
+  const sourcePages = project.chapters[0]?.pages || [];
+  const pageValidation = validatePageCount(sourcePages.length);
+  const pageCount = pageValidation.adjustedCount || sourcePages.length || 24;
   const margins = calculateMargins(pageCount, opts.includeBleed);
   const fontSizes = getFontSizes(project.targetAudience || 'Children 4-6');
   const safeArea = getSafeContentArea(dimensions, margins, opts.includeBleed);
@@ -244,7 +245,10 @@ export async function exportToKDP(
   });
 
   // BODY MATTER - Story Pages
-  const pages = project.chapters[0]?.pages || [];
+  const pages = sourcePages.slice(0, pageCount);
+  while (pages.length < pageCount) {
+    pages.push({ text: '', imageUrl: undefined, choices: [] } as (typeof pages)[number]);
+  }
 
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
@@ -427,6 +431,11 @@ export async function exportToKDP(
     doc.setTextColor(0, 0, 0);
   }
 
+  // Ensure final page count is even (KDP requirement)
+  if (currentPage % 2 !== 0) {
+    addNewPage();
+  }
+
   // Generate PDF blob
   onProgress?.(85, 'Generating PDF file...');
   const pdfBlob = doc.output('blob');
@@ -496,14 +505,15 @@ export async function previewKDPExport(
   estimatedFileSize: number;
 }> {
   const opts = { ...DEFAULT_KDP_OPTIONS, ...options };
-  const pageCount = project.chapters[0]?.pages?.length || 0;
+  const rawPageCount = project.chapters[0]?.pages?.length || 0;
+  const adjustedCount = validatePageCount(rawPageCount).adjustedCount || rawPageCount;
   const imageCount = project.chapters[0]?.pages?.filter((p) => p.imageUrl).length || 0;
 
   // Estimate file size (rough calculation)
-  const estimatedFileSize = imageCount * 500000 + pageCount * 50000; // 500KB per image, 50KB per page
+  const estimatedFileSize = imageCount * 500000 + adjustedCount * 50000; // 500KB per image, 50KB per page
 
   const partialValidation: Partial<KDPValidationResult> = {
-    pageCount: validatePageCount(pageCount).adjustedCount || pageCount,
+    pageCount: adjustedCount,
     resolution: opts.dpi,
     hasBleed: opts.includeBleed,
     colorMode: opts.colorMode,

@@ -26,7 +26,7 @@ import { serve } from '@hono/node-server';
 import { createClient } from '@supabase/supabase-js';
 import { mastra, supabaseUrl, supabaseServiceRoleKey, getEnv } from './index';
 import { evaluateBookQuality } from './evals/bookQualityEval';
-import { GenerationSettingsSchema } from './schemas';
+import { ArtStyleSchema, BookToneSchema, GenerationSettingsSchema } from './schemas';
 import {
   cancelBookGenerationWorkflow,
   releaseBookGenerationWorkflow,
@@ -76,6 +76,138 @@ setInterval(() => {
     if (now > entry.resetAt) rateLimitMap.delete(key);
   }
 }, 300_000);
+
+// ─── Generation Settings Normalization (Defensive) ──────────────────────────
+const DEFAULT_AUDIENCE = 'Children 4-6';
+const DEFAULT_PAGE_COUNT = 10;
+
+const ART_STYLE_ALIASES: Array<[RegExp, string]> = [
+  [/watercolor/i, 'Watercolor'],
+  [/pixar|3d|render/i, '3D Render (Pixar Style)'],
+  [/manga|anime/i, 'Japanese Manga'],
+  [/corporate|minimal(ist)?/i, 'Corporate Minimalist'],
+  [/cyberpunk|neon/i, 'Cyberpunk Neon'],
+  [/vintage|storybook|classic|traditional|oil|fantasy/i, 'Vintage Illustration'],
+  [/paper|cutout|papercraft|collage/i, 'Paper Cutout Art'],
+  [/flat|vector/i, 'Flat Design'],
+  [/infographic/i, 'Modern Infographic'],
+  [/blueprint|technical/i, 'Technical Blueprint'],
+];
+
+const BOOK_TONE_ALIASES: Array<[RegExp, string]> = [
+  [/playful|fun|whimsical|cheerful|lighthearted/i, 'Playful'],
+  [/serious|formal|grave/i, 'Serious'],
+  [/inspir/i, 'Inspirational'],
+  [/educat|instruction|inform/i, 'Educational'],
+  [/dram/i, 'Dramatic'],
+  [/calm|soothing|gentle|relax/i, 'Calm'],
+  [/advent|excite|action|epic/i, 'Adventurous'],
+];
+
+function normalizeEnumValue(
+  input: unknown,
+  options: readonly string[],
+  aliases: Array<[RegExp, string]>,
+  fallback: string
+): string {
+  if (typeof input === 'string' && options.includes(input)) {
+    return input;
+  }
+
+  if (typeof input === 'string') {
+    for (const [pattern, value] of aliases) {
+      if (pattern.test(input)) return value;
+    }
+  }
+
+  return fallback;
+}
+
+function normalizeBooleanValue(input: unknown, fallback: boolean): boolean {
+  if (typeof input === 'boolean') return input;
+  if (typeof input === 'string') {
+    const normalized = input.trim().toLowerCase();
+    if (['true', 'yes', 'y', '1'].includes(normalized)) return true;
+    if (['false', 'no', 'n', '0'].includes(normalized)) return false;
+  }
+  return fallback;
+}
+
+function normalizeNumberValue(input: unknown, fallback: number): number {
+  if (typeof input === 'number' && Number.isFinite(input)) {
+    return Math.max(1, Math.floor(input));
+  }
+  if (typeof input === 'string') {
+    const parsed = Number.parseInt(input, 10);
+    if (!Number.isNaN(parsed)) return Math.max(1, parsed);
+  }
+  return fallback;
+}
+
+function normalizeAudienceValue(raw: Record<string, any>): string {
+  const candidates = [
+    raw.audience,
+    raw.targetAudience,
+    raw.ageRange,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return DEFAULT_AUDIENCE;
+}
+
+function normalizeGenerationSettings(raw: unknown): Record<string, any> {
+  const input = typeof raw === 'object' && raw !== null ? (raw as Record<string, any>) : {};
+
+  const normalizedPrompt =
+    typeof input.prompt === 'string' && input.prompt.trim()
+      ? input.prompt.trim()
+      : typeof input.topic === 'string' && input.topic.trim()
+        ? input.topic.trim()
+        : input.prompt;
+
+  const normalizedStyle = normalizeEnumValue(
+    input.style ?? input.artStyle ?? input.visualStyle,
+    ArtStyleSchema.options,
+    ART_STYLE_ALIASES,
+    ArtStyleSchema.options[0]
+  );
+
+  const normalizedTone = normalizeEnumValue(
+    input.tone ?? input.narrativeTone ?? input.storyTone,
+    BookToneSchema.options,
+    BOOK_TONE_ALIASES,
+    BookToneSchema.options[0]
+  );
+
+  return {
+    ...input,
+    prompt: normalizedPrompt,
+    style: normalizedStyle,
+    tone: normalizedTone,
+    stylePrompt:
+      typeof input.stylePrompt === 'string' && input.stylePrompt.trim()
+        ? input.stylePrompt.trim()
+        : input.stylePrompt,
+    audience: normalizeAudienceValue(input),
+    pageCount: normalizeNumberValue(
+      input.pageCount ?? input.pages ?? input.page_count,
+      DEFAULT_PAGE_COUNT
+    ),
+    isBranching: normalizeBooleanValue(
+      input.isBranching ?? input.branching ?? input.interactive,
+      false
+    ),
+    educational: normalizeBooleanValue(
+      input.educational ?? input.learningMode ?? input.learning,
+      false
+    ),
+  };
+}
 
 // ─── CORS Middleware ─────────────────────────────────────────────────────────
 // Allow requests from the Vite dev server (localhost:5173) and
@@ -403,13 +535,15 @@ app.post('/api/workflows/book-generation/start', async (c) => {
   const body = await c.req.json();
 
   // Validate settings before starting the expensive workflow
-  const settingsParse = GenerationSettingsSchema.safeParse(body.settings);
+  const normalizedSettings = normalizeGenerationSettings(body?.settings ?? body);
+  const settingsParse = GenerationSettingsSchema.safeParse(normalizedSettings);
   if (!settingsParse.success) {
     return c.json({
       error: 'Invalid generation settings',
       details: settingsParse.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
     }, 400);
   }
+  const settings = settingsParse.data;
 
   // Return SSE stream with per-step progress via Mastra run.stream()
   return new Response(
@@ -460,7 +594,7 @@ app.post('/api/workflows/book-generation/start', async (c) => {
           // Use run.stream() for per-step progress events
           const stream = run.stream({
             inputData: {
-              settings: body.settings,
+              settings,
               userId: auth.userId,
               userTier: auth.tier as 'SPARK' | 'CREATOR' | 'STUDIO' | 'EMPIRE',
               workflowId,

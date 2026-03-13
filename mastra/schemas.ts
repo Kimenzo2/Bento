@@ -196,6 +196,7 @@ export const BrandProfileSchema = z.object({
 export const GenerationSettingsSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
   style: ArtStyleSchema,
+  stylePrompt: z.string().optional(),
   tone: BookToneSchema,
   pageCount: z.number().min(1).max(999),
   audience: z.string().min(1, 'Audience is required'),

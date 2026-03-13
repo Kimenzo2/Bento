@@ -3,7 +3,7 @@ import type { BookProject } from '../../types';
 
 export interface PDFExportOptions {
   includeImages: boolean;
-  pageSize: 'A4' | 'Letter' | 'A5';
+  pageSize: 'A4' | 'Letter' | 'A5' | '6x9';
   orientation: 'portrait' | 'landscape';
   margins: {
     top: number;
@@ -38,6 +38,43 @@ const DEFAULT_OPTIONS: PDFExportOptions = {
   includeWatermark: false,
 };
 
+type ResolvedImage = { dataUrl: string; format: 'PNG' | 'JPEG' };
+
+const PAGE_SIZE_MM: Record<string, [number, number]> = {
+  '6x9': [152.4, 228.6],
+};
+
+const blobToDataUrl = async (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+const inferFormatFromMime = (mime: string): 'PNG' | 'JPEG' =>
+  mime.includes('png') ? 'PNG' : 'JPEG';
+
+const inferFormatFromDataUrl = (dataUrl: string): 'PNG' | 'JPEG' =>
+  dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+
+const resolveImageData = async (url: string): Promise<ResolvedImage | null> => {
+  if (url.startsWith('data:')) {
+    return { dataUrl: url, format: inferFormatFromDataUrl(url) };
+  }
+
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const dataUrl = await blobToDataUrl(blob);
+    const format = blob.type ? inferFormatFromMime(blob.type) : inferFormatFromDataUrl(dataUrl);
+    return { dataUrl, format };
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Exports a book project to PDF format
  */
@@ -47,10 +84,13 @@ export const exportToPDF = async (
 ): Promise<Blob> => {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
+  const pageSizeKey = opts.pageSize.toLowerCase();
+  const format = PAGE_SIZE_MM[pageSizeKey] ?? pageSizeKey;
+
   const doc = new jsPDF({
     orientation: opts.orientation,
     unit: 'mm',
-    format: opts.pageSize.toLowerCase(),
+    format,
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -84,14 +124,19 @@ export const exportToPDF = async (
       if (opts.includeImages && page.imageUrl) {
         try {
           const imgHeight = (pageHeight - opts.margins.top - opts.margins.bottom) * 0.5;
-          doc.addImage(
-            page.imageUrl,
-            'PNG',
-            opts.margins.left,
-            opts.margins.top,
-            contentWidth,
-            imgHeight
-          );
+          const imageData = await resolveImageData(page.imageUrl);
+          if (imageData) {
+            doc.addImage(
+              imageData.dataUrl,
+              imageData.format,
+              opts.margins.left,
+              opts.margins.top,
+              contentWidth,
+              imgHeight
+            );
+          } else {
+            console.warn('Failed to load image for PDF:', page.imageUrl);
+          }
         } catch (error) {
           console.warn('Failed to add image to PDF:', error);
         }

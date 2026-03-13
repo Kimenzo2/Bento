@@ -1,0 +1,527 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "Skip to main content" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - navigation "Primary navigation" [ref=e5]:
+    - generic [ref=e6]:
+      - button "Scroll to top" [ref=e7] [cursor=pointer]:
+        - img "Genesis" [ref=e9]
+        - generic [ref=e10]: Genesis
+      - button "Open menu" [ref=e11] [cursor=pointer]:
+        - img [ref=e12]
+  - main [ref=e16]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e22]:
+          - img [ref=e23]
+          - text: Start free with Spark
+        - heading "Every journey begins with a spark." [level=1] [ref=e29]:
+          - text: Every journey begins
+          - text: with a spark.
+        - paragraph [ref=e30]: Genesis transforms your imagination into living, breathing worlds. What universe calls to you?
+        - generic [ref=e31]:
+          - button "Choose Your Realm" [ref=e32] [cursor=pointer]
+          - button "Compare Plans" [ref=e33] [cursor=pointer]
+          - link "Contact Support" [ref=e34] [cursor=pointer]:
+            - /url: mailto:support@iamazeyou.me
+        - generic [ref=e35]:
+          - generic [ref=e36]: Start free with Spark
+          - generic [ref=e37]: Commercial use on paid tiers
+          - generic [ref=e38]: Export to PDF and ebook
+      - generic [ref=e42]:
+        - img "Gen - Your Creative Guide" [ref=e43]
+        - paragraph [ref=e44]: Gen, your AI creative guide
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - img [ref=e49]
+        - text: Join 100,000+ creators
+      - generic [ref=e54]:
+        - img [ref=e55]
+        - text: SSL-secured checkout
+      - generic [ref=e57]:
+        - img [ref=e58]
+        - text: Cancel anytime
+      - generic [ref=e60]:
+        - img [ref=e61]
+        - text: Export ownership
+    - region "Choose the realm that matches your project" [ref=e65]:
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - heading "Choose the realm that matches your project" [level=2] [ref=e68]
+          - paragraph [ref=e69]: Each realm gives Genesis the right creative context, so your first outputs are more coherent, more on-brand, and easier to refine.
+        - generic [ref=e70]:
+          - button "Choose The Cosmos realm" [ref=e71] [cursor=pointer]:
+            - generic [ref=e74]:
+              - img "The Cosmos" [ref=e75]
+              - heading "The Cosmos" [level=3] [ref=e76]
+              - paragraph [ref=e77]: Explore galaxies, supernovas & celestial wonders
+          - button "Choose The Kingdom realm" [ref=e78] [cursor=pointer]:
+            - generic [ref=e81]:
+              - img "The Kingdom" [ref=e82]
+              - heading "The Kingdom" [level=3] [ref=e83]
+              - paragraph [ref=e84]: Knights, dragons & enchanted realms await
+          - button "Choose The Cell realm" [ref=e85] [cursor=pointer]:
+            - generic [ref=e88]:
+              - img "The Cell" [ref=e89]
+              - heading "The Cell" [level=3] [ref=e90]
+              - paragraph [ref=e91]: Dive into the microscopic universe of life
+        - paragraph [ref=e92]: Pick a realm to start free, or review plans and support information below.
+    - region "How Genesis works" [ref=e93]:
+      - generic [ref=e94]:
+        - heading "How Genesis works" [level=2] [ref=e96]
+        - generic [ref=e97]:
+          - generic [ref=e99]:
+            - generic [ref=e100]: "01"
+            - heading "Choose a Realm" [level=3] [ref=e102]
+            - paragraph [ref=e103]: Pick Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context.
+          - generic [ref=e105]:
+            - generic [ref=e106]: "02"
+            - heading "Describe Your Vision" [level=3] [ref=e108]
+            - paragraph [ref=e109]: Gen guides you with questions and narrative suggestions instead of passive prompts.
+          - generic [ref=e111]:
+            - generic [ref=e112]: "03"
+            - heading "Create and Refine" [level=3] [ref=e114]
+            - paragraph [ref=e115]: Generate illustrated scenes with consistent characters across every page.
+          - generic [ref=e117]:
+            - generic [ref=e118]: "04"
+            - heading "Export and Publish" [level=3] [ref=e120]
+            - paragraph [ref=e121]: Ship polished PDFs, ebooks, and commercial-ready assets in one workflow.
+    - generic [ref=e124]:
+      - generic [ref=e125]:
+        - img "Design your hero once — consistent character across every scene" [ref=e127]
+        - paragraph [ref=e128]: Design your hero once
+      - generic [ref=e129]:
+        - img "True character persistence — same hero across worlds" [ref=e131]
+        - paragraph [ref=e132]: True character persistence
+      - generic [ref=e133]:
+        - img "Illustrate every adventure with AI-powered visuals" [ref=e135]
+        - paragraph [ref=e136]: Illustrate every adventure
+      - generic [ref=e137]:
+        - img "Build your visual legacy — publish and share your stories" [ref=e139]
+        - paragraph [ref=e140]: Build your visual legacy
+    - region "What you can create with Genesis" [ref=e141]:
+      - generic [ref=e142]:
+        - generic [ref=e143]:
+          - heading "What you can create with Genesis" [level=2] [ref=e144]
+          - paragraph [ref=e145]: Genesis is not a generic image box. It is a guided AI workspace for story creation, visual education, character design, and export-ready publishing.
+        - generic [ref=e146]:
+          - generic [ref=e150]:
+            - img [ref=e152]
+            - generic [ref=e155]:
+              - heading "Illustrated Storybooks" [level=3] [ref=e156]
+              - paragraph [ref=e157]: Create children's books, visual explainers, fantasy adventures, and narrative ebooks with scenes, text, and consistent characters.
+          - generic [ref=e161]:
+            - img [ref=e163]
+            - generic [ref=e169]:
+              - heading "Character Design" [level=3] [ref=e170]
+              - paragraph [ref=e171]: Generate heroes, villains, mascots, and concept sheets with stronger visual consistency than one-off prompt tools.
+          - generic [ref=e175]:
+            - img [ref=e177]
+            - generic [ref=e181]:
+              - heading "Lesson and Curriculum Visuals" [level=3] [ref=e182]
+              - paragraph [ref=e183]: Turn science topics, classroom modules, and training content into visual materials that are easier to teach and easier to retain.
+          - generic [ref=e187]:
+            - img [ref=e189]
+            - generic [ref=e193]:
+              - heading "Export and Publishing" [level=3] [ref=e194]
+              - paragraph [ref=e195]: Ship polished PDFs, ebooks, and commercial-ready assets without moving through a fragmented multi-tool workflow.
+    - region "Meet Gen, your AI creative guide" [ref=e196]:
+      - generic [ref=e198]:
+        - img "Gen - Your AI Creative Guide" [ref=e203]
+        - generic [ref=e204]:
+          - heading "Meet Gen, your AI creative guide" [level=2] [ref=e205]
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - img [ref=e209]
+              - paragraph [ref=e215]: An AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.
+            - generic [ref=e216]:
+              - img [ref=e218]
+              - paragraph [ref=e223]: Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.
+            - generic [ref=e224]:
+              - img [ref=e226]
+              - paragraph [ref=e229]: From concept to export, Gen guides the entire creative journey — not just single images.
+    - region "Why Genesis stands out" [ref=e230]:
+      - generic [ref=e231]:
+        - heading "Why Genesis stands out" [level=2] [ref=e233]
+        - generic [ref=e234]:
+          - generic [ref=e238]:
+            - img [ref=e240]
+            - generic [ref=e243]:
+              - heading "Realm-guided creation" [level=3] [ref=e244]
+              - paragraph [ref=e245]: Choose Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context, unlike generic tools that start from a blank prompt.
+          - generic [ref=e249]:
+            - img [ref=e251]
+            - generic [ref=e255]:
+              - heading "Educator-ready outputs" [level=3] [ref=e256]
+              - paragraph [ref=e257]: Built-in curriculum tools and illustrated lesson plans so teachers ship classroom materials in minutes, not hours.
+          - generic [ref=e261]:
+            - img [ref=e263]
+            - generic [ref=e269]:
+              - heading "Consistent characters" [level=3] [ref=e270]
+              - paragraph [ref=e271]: Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.
+          - generic [ref=e275]:
+            - img [ref=e277]
+            - generic [ref=e287]:
+              - heading "Guided by Gen" [level=3] [ref=e288]
+              - paragraph [ref=e289]: An AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.
+    - region "What creators use Genesis for" [ref=e290]:
+      - generic [ref=e291]:
+        - heading "What creators use Genesis for" [level=2] [ref=e293]
+        - generic [ref=e294]:
+          - figure [ref=e296]:
+            - generic [ref=e298]:
+              - generic [ref=e299]: “
+              - blockquote [ref=e300]: Genesis helped us move from loose ideas to presentable concept sheets in the same afternoon.
+              - generic [ref=e301]: Indie game studio
+          - figure [ref=e303]:
+            - generic [ref=e305]:
+              - generic [ref=e306]: “
+              - blockquote [ref=e307]: The Cell realm made our biology diagrams clearer and much faster to produce than our old slide workflow.
+              - generic [ref=e308]: Secondary science teacher
+          - figure [ref=e310]:
+            - generic [ref=e312]:
+              - generic [ref=e313]: “
+              - blockquote [ref=e314]: We used Genesis to shape a full illustrated book pitch before hiring a production illustrator.
+              - generic [ref=e315]: Children's author
+    - region "Stories deserve to be seen — not just read. That is why Genesis exists." [ref=e316]:
+      - generic [ref=e317]:
+        - generic [ref=e318]:
+          - heading "Stories deserve to be seen — not just read. That is why Genesis exists." [level=2] [ref=e319]
+          - button "More about us" [ref=e321] [cursor=pointer]:
+            - text: More about us
+            - img [ref=e323]
+        - generic [ref=e326]:
+          - img "Three distinct Genesis art styles side by side" [ref=e328]
+          - generic [ref=e329]:
+            - generic [ref=e333]:
+              - generic [ref=e334]: 100K+
+              - generic [ref=e335]: Creators
+            - generic [ref=e339]:
+              - heading "Our Mission" [level=3] [ref=e340]: Our Mission
+              - paragraph [ref=e342]: To make visual storytelling accessible to every writer, educator, and creator — regardless of artistic skill or budget.
+          - generic [ref=e343]:
+            - generic [ref=e347]:
+              - heading "Our Vision" [level=3] [ref=e348]: Our Vision
+              - paragraph [ref=e350]: A world where every story finds its visual form, and every creator has an AI companion that truly understands narrative.
+            - generic [ref=e354]:
+              - generic [ref=e355]: "3"
+              - generic [ref=e356]: Realms
+          - img "Consistent environment library across day and night scenes" [ref=e358]
+    - region "Choose your creative journey" [ref=e359]:
+      - generic [ref=e360]:
+        - generic [ref=e361]:
+          - heading "Choose your creative journey" [level=2] [ref=e362]
+          - paragraph [ref=e363]: Join 100,000+ creators making beautiful books today.
+        - generic [ref=e364]:
+          - generic [ref=e366]:
+            - generic [ref=e367]:
+              - generic [ref=e368]:
+                - img [ref=e369]
+                - generic [ref=e371]: Spark
+              - generic [ref=e372]:
+                - generic [ref=e373]: $0
+                - generic [ref=e374]: Free forever
+              - paragraph [ref=e375]: The Hook That Gets You Addicted
+            - list [ref=e376]:
+              - listitem [ref=e377]:
+                - img [ref=e378]
+                - generic [ref=e380]: "Included:"
+                - generic [ref=e381]: 3 ebooks per month
+              - listitem [ref=e382]:
+                - img [ref=e383]
+                - generic [ref=e385]: "Included:"
+                - generic [ref=e386]: Max 4 pages per book
+              - listitem [ref=e387]:
+                - img [ref=e388]
+                - generic [ref=e390]: "Included:"
+                - generic [ref=e391]: 5 illustration styles
+              - listitem [ref=e392]:
+                - img [ref=e393]
+                - generic [ref=e395]: "Included:"
+                - generic [ref=e396]: Standard templates
+              - listitem [ref=e397]:
+                - img [ref=e398]
+                - generic [ref=e400]: "Included:"
+                - generic [ref=e401]: Community support
+              - listitem [ref=e402]:
+                - img [ref=e403]
+                - generic [ref=e406]: "Not included:"
+                - generic [ref=e407]: Watermarked exports
+              - listitem [ref=e408]:
+                - img [ref=e409]
+                - generic [ref=e412]: "Not included:"
+                - generic [ref=e413]: Basic AI writing
+              - listitem [ref=e414]:
+                - img [ref=e415]
+                - generic [ref=e418]: "Not included:"
+                - generic [ref=e419]: No commercial license
+            - button "Start Creating Free" [ref=e420] [cursor=pointer]
+          - generic [ref=e422]:
+            - generic [ref=e423]:
+              - generic [ref=e424]:
+                - img [ref=e425]
+                - generic [ref=e427]: Creator
+              - generic [ref=e428]:
+                - generic [ref=e429]: $19.99
+                - generic [ref=e430]: /month
+              - paragraph [ref=e431]: The Sweet Spot
+            - list [ref=e432]:
+              - listitem [ref=e433]:
+                - img [ref=e434]
+                - generic [ref=e436]: "Included:"
+                - generic [ref=e437]: 30 ebooks per month
+              - listitem [ref=e438]:
+                - img [ref=e439]
+                - generic [ref=e441]: "Included:"
+                - generic [ref=e442]: Up to 12 pages/book
+              - listitem [ref=e443]:
+                - img [ref=e444]
+                - generic [ref=e446]: "Included:"
+                - generic [ref=e447]: NO watermarks
+              - listitem [ref=e448]:
+                - img [ref=e449]
+                - generic [ref=e451]: "Included:"
+                - generic [ref=e452]: 20+ illustration styles
+              - listitem [ref=e453]:
+                - img [ref=e454]
+                - generic [ref=e456]: "Included:"
+                - generic [ref=e457]: Commercial license
+              - listitem [ref=e458]:
+                - img [ref=e459]
+                - generic [ref=e461]: "Included:"
+                - generic [ref=e462]: Priority rendering
+            - button "Upgrade Now" [ref=e463] [cursor=pointer]
+          - generic [ref=e465]:
+            - generic [ref=e466]: Most Popular
+            - generic [ref=e467]:
+              - generic [ref=e468]:
+                - img [ref=e469]
+                - generic [ref=e472]: Studio
+              - generic [ref=e473]:
+                - generic [ref=e474]: $59.99
+                - generic [ref=e475]: /month
+              - paragraph [ref=e476]: The Professional Choice
+            - list [ref=e477]:
+              - listitem [ref=e478]:
+                - img [ref=e479]
+                - generic [ref=e481]: "Included:"
+                - generic [ref=e482]: Everything in Creator
+              - listitem [ref=e483]:
+                - img [ref=e484]
+                - generic [ref=e486]: "Included:"
+                - generic [ref=e487]: 5 team seats
+              - listitem [ref=e488]:
+                - img [ref=e489]
+                - generic [ref=e491]: "Included:"
+                - generic [ref=e492]: 500 pages/book
+              - listitem [ref=e493]:
+                - img [ref=e494]
+                - generic [ref=e496]: "Included:"
+                - generic [ref=e497]: ALL 50+ styles
+              - listitem [ref=e498]:
+                - img [ref=e499]
+                - generic [ref=e501]: "Included:"
+                - generic [ref=e502]: White-label exports
+              - listitem [ref=e503]:
+                - img [ref=e504]
+                - generic [ref=e506]: "Included:"
+                - generic [ref=e507]: Brand Hub & Style Guides
+              - listitem [ref=e508]:
+                - img [ref=e509]
+                - generic [ref=e511]: "Included:"
+                - generic [ref=e512]: Video book exports
+            - button "Upgrade Now" [ref=e513] [cursor=pointer]
+          - generic [ref=e515]:
+            - generic [ref=e516]:
+              - generic [ref=e517]:
+                - img [ref=e518]
+                - generic [ref=e545]: Empire
+              - generic [ref=e546]:
+                - generic [ref=e547]: $199.99
+                - generic [ref=e548]: /month
+              - paragraph [ref=e549]: Best Value for Scale
+            - list [ref=e550]:
+              - listitem [ref=e551]:
+                - img [ref=e552]
+                - generic [ref=e554]: "Included:"
+                - generic [ref=e555]: Everything in Studio
+              - listitem [ref=e556]:
+                - img [ref=e557]
+                - generic [ref=e559]: "Included:"
+                - generic [ref=e560]: Unlimited team members
+              - listitem [ref=e561]:
+                - img [ref=e562]
+                - generic [ref=e564]: "Included:"
+                - generic [ref=e565]: Unlimited pages
+              - listitem [ref=e566]:
+                - img [ref=e567]
+                - generic [ref=e569]: "Included:"
+                - generic [ref=e570]: Custom AI Model Training
+              - listitem [ref=e571]:
+                - img [ref=e572]
+                - generic [ref=e574]: "Included:"
+                - generic [ref=e575]: Dedicated Account Manager
+              - listitem [ref=e576]:
+                - img [ref=e577]
+                - generic [ref=e579]: "Included:"
+                - generic [ref=e580]: API Access
+              - listitem [ref=e581]:
+                - img [ref=e582]
+                - generic [ref=e584]: "Included:"
+                - generic [ref=e585]: VIP 24/7 Support
+            - button "Upgrade Now" [ref=e586] [cursor=pointer]
+        - generic [ref=e587]:
+          - img "Genesis community of creators" [ref=e588]
+          - paragraph [ref=e589]: Join creators, educators, and storytellers already using Genesis.
+    - region "Use cases and examples" [ref=e590]:
+      - generic [ref=e591]:
+        - heading "Use cases and examples" [level=2] [ref=e593]
+        - generic [ref=e594]:
+          - generic [ref=e598]:
+            - img [ref=e600]
+            - heading "Indie authors" [level=3] [ref=e605]
+            - paragraph [ref=e606]: Draft illustrated children's books and fantasy shorts with consistent scenes, then export directly for publishing.
+          - generic [ref=e610]:
+            - img [ref=e612]
+            - heading "Teachers and tutors" [level=3] [ref=e616]
+            - paragraph [ref=e617]: Build biology explainers, astronomy handouts, and classroom-ready visual lessons in a single workflow.
+          - generic [ref=e621]:
+            - img [ref=e623]
+            - heading "Game teams" [level=3] [ref=e629]
+            - paragraph [ref=e630]: Prototype fantasy and sci-fi characters, factions, environments, and narrative assets before full production.
+          - generic [ref=e634]:
+            - img [ref=e636]
+            - heading "Science communicators" [level=3] [ref=e640]
+            - paragraph [ref=e641]: Translate dense research into visual explainers that audiences can understand and share.
+    - region "Built for the classroom" [ref=e642]:
+      - generic [ref=e644]:
+        - generic [ref=e645]:
+          - generic [ref=e646]:
+            - img [ref=e647]
+            - text: For Educators
+          - heading "Built for the classroom" [level=2] [ref=e651]
+          - paragraph [ref=e652]: Turn science topics, classroom modules, and training content into visual materials that are easier to teach and easier to retain. Genesis gives educators curriculum-ready tools, not a blank canvas.
+          - generic [ref=e653]:
+            - generic [ref=e654]:
+              - img [ref=e655]
+              - generic [ref=e657]: Curriculum tools and illustrated lesson plans
+            - generic [ref=e658]:
+              - img [ref=e659]
+              - generic [ref=e661]: Classroom-ready visual lessons in a single workflow
+            - generic [ref=e662]:
+              - img [ref=e663]
+              - generic [ref=e665]: Export to PDF for immediate distribution
+            - generic [ref=e666]:
+              - img [ref=e667]
+              - generic [ref=e669]: Realm-guided context for subject-specific content
+        - generic [ref=e671]:
+          - img "The Cell - Biology learning realm" [ref=e672]
+          - paragraph [ref=e673]: The Cell — Microscopic universe of life
+    - region "Frequently asked questions" [ref=e674]:
+      - generic [ref=e675]:
+        - heading "Frequently asked questions" [level=2] [ref=e677]
+        - generic [ref=e678]:
+          - button "Do I need prompt engineering skills?" [ref=e681] [cursor=pointer]:
+            - generic [ref=e682]: Do I need prompt engineering skills?
+            - img [ref=e684]
+          - button "Can I start free?" [ref=e688] [cursor=pointer]:
+            - generic [ref=e689]: Can I start free?
+            - img [ref=e691]
+          - button "What does Genesis do better than a generic AI image tool?" [ref=e695] [cursor=pointer]:
+            - generic [ref=e696]: What does Genesis do better than a generic AI image tool?
+            - img [ref=e698]
+          - button "Where can I get help or ask sales questions?" [ref=e702] [cursor=pointer]:
+            - generic [ref=e703]: Where can I get help or ask sales questions?
+            - img [ref=e705]
+    - region "Support, pricing, and next steps" [ref=e707]:
+      - generic [ref=e709]:
+        - generic [ref=e710]:
+          - heading "Support, pricing, and next steps" [level=2] [ref=e711]
+          - paragraph [ref=e712]: Need onboarding help, plan guidance, or a custom workflow conversation? Reach the Genesis team directly. If you are ready, start with Spark or review paid plans before continuing.
+          - generic [ref=e713]:
+            - link "support@iamazeyou.me" [ref=e714] [cursor=pointer]:
+              - /url: mailto:support@iamazeyou.me
+            - button "Review Pricing" [ref=e715] [cursor=pointer]
+        - generic [ref=e718]:
+          - heading "Included trust signals" [level=3] [ref=e719]
+          - list [ref=e720]:
+            - listitem [ref=e721]:
+              - img [ref=e722]
+              - generic [ref=e724]: Secure checkout and account flows
+            - listitem [ref=e725]:
+              - img [ref=e726]
+              - generic [ref=e728]: Clear free and paid plan separation
+            - listitem [ref=e729]:
+              - img [ref=e730]
+              - generic [ref=e732]: Commercial rights on paid tiers
+            - listitem [ref=e733]:
+              - img [ref=e734]
+              - generic [ref=e736]: Human support available by email
+    - region "The page is blank. The tools are yours." [ref=e737]:
+      - generic [ref=e738]:
+        - heading "The page is blank. The tools are yours." [level=2] [ref=e739]
+        - paragraph [ref=e740]: Let’s make something amazing.
+        - button "Choose Your Realm" [ref=e742] [cursor=pointer]
+  - contentinfo [ref=e743]:
+    - generic [ref=e744]:
+      - generic [ref=e745]:
+        - generic [ref=e746]:
+          - generic [ref=e747]:
+            - img "Genesis" [ref=e749]
+            - generic [ref=e750]: Genesis
+          - paragraph [ref=e751]: AI visual storytelling for writers, educators, and creators.
+        - generic [ref=e752]:
+          - heading "Product" [level=4] [ref=e753]
+          - list [ref=e754]:
+            - listitem [ref=e755]:
+              - button "Choose a realm" [ref=e756] [cursor=pointer]
+            - listitem [ref=e757]:
+              - button "What you can create" [ref=e758] [cursor=pointer]
+            - listitem [ref=e759]:
+              - button "Pricing" [ref=e760] [cursor=pointer]
+            - listitem [ref=e761]:
+              - button "Use cases" [ref=e762] [cursor=pointer]
+        - generic [ref=e763]:
+          - heading "Resources" [level=4] [ref=e764]
+          - list [ref=e765]:
+            - listitem [ref=e766]:
+              - link "Blog" [ref=e767] [cursor=pointer]:
+                - /url: /blog
+            - listitem [ref=e768]:
+              - link "Learn" [ref=e769] [cursor=pointer]:
+                - /url: /learn
+            - listitem [ref=e770]:
+              - link "Transparency" [ref=e771] [cursor=pointer]:
+                - /url: /transparency
+            - listitem [ref=e772]:
+              - button "FAQ" [ref=e773] [cursor=pointer]
+        - generic [ref=e774]:
+          - heading "Support" [level=4] [ref=e775]
+          - list [ref=e776]:
+            - listitem [ref=e777]:
+              - link "support@iamazeyou.me" [ref=e778] [cursor=pointer]:
+                - /url: mailto:support@iamazeyou.me
+            - listitem [ref=e779]:
+              - link "Privacy Policy" [ref=e780] [cursor=pointer]:
+                - /url: /legal/privacy
+            - listitem [ref=e781]:
+              - link "Terms of Service" [ref=e782] [cursor=pointer]:
+                - /url: /legal/terms
+            - listitem [ref=e783]:
+              - link "Cookie Policy" [ref=e784] [cursor=pointer]:
+                - /url: /legal/cookies
+      - generic [ref=e786]:
+        - paragraph [ref=e787]: © 2026 Genesis. All rights reserved.
+        - generic [ref=e788]:
+          - generic [ref=e789]:
+            - img [ref=e790]
+            - text: Secure Payment
+          - generic [ref=e792]:
+            - img [ref=e793]
+            - text: Cancel anytime
+          - generic [ref=e795]:
+            - img [ref=e796]
+            - text: 7-day money back
+```

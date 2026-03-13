@@ -5,6 +5,12 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { type GrokMessage, callAPI } from '../services/grokService';
 import { ArtStyle, BookTone, type GenerationSettings } from '../types';
+import {
+  normalizeArtStyle,
+  normalizeBookTone,
+  normalizeBoolean,
+  normalizePageCount,
+} from '../utils/aiSettings';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
@@ -151,14 +157,21 @@ Only set "complete": true when you have at least: prompt, style, tone, and audie
   const handleGenerate = () => {
     if (!extractedSettings.complete || !extractedSettings.prompt) return;
 
+    const normalizedPrompt = extractedSettings.prompt.trim();
+    const normalizedStyle = normalizeArtStyle(extractedSettings.style);
+    const normalizedTone = normalizeBookTone(extractedSettings.tone);
+    const normalizedPageCount = normalizePageCount(extractedSettings.pageCount) ?? 10;
+    const normalizedEducational = normalizeBoolean(extractedSettings.educational) ?? false;
+    const normalizedBranching = normalizeBoolean(extractedSettings.isBranching) ?? false;
+
     const settings: GenerationSettings = {
-      prompt: extractedSettings.prompt,
-      style: extractedSettings.style || ArtStyle.WATERCOLOR,
-      tone: extractedSettings.tone || BookTone.PLAYFUL,
+      prompt: normalizedPrompt,
+      style: normalizedStyle,
+      tone: normalizedTone,
       audience: extractedSettings.audience || 'Children 4-6',
-      pageCount: extractedSettings.pageCount || 10,
-      educational: extractedSettings.educational || false,
-      isBranching: extractedSettings.isBranching || false,
+      pageCount: normalizedPageCount,
+      educational: normalizedEducational,
+      isBranching: normalizedBranching,
     };
 
     onGenerate(settings);
