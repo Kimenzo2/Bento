@@ -199,6 +199,7 @@ function buildGenerationPrompt(settings: WorkflowInput['settings']): string {
     `- Audience: ${settings.audience}`,
     `- Tone: ${settings.tone}`,
     `- Art style: ${settings.style}`,
+    ...(settings.stylePrompt ? [`- Style details: ${settings.stylePrompt}`] : []),
     `- Branching: ${settings.isBranching ? 'yes' : 'no'}`,
     `- Educational mode: ${settings.educational ? 'yes' : 'no'}`,
     `- Content mode: ${isBrandContent ? 'brand-content' : 'storybook'}`,
@@ -703,6 +704,13 @@ const persistBook = createStep({
         });
       } catch (error) {
         console.warn('[bookGenerationWorkflow] XP award failed:', error);
+      }
+
+      // Increment monthly book usage counter
+      try {
+        await db.rpc('increment_book_usage', { p_user_id: inputData.userId });
+      } catch (error) {
+        console.warn('[bookGenerationWorkflow] Usage tracking increment failed:', error);
       }
     }
 

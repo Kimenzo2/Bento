@@ -27,7 +27,8 @@ import { useGoogleOneTap } from './hooks/useGoogleOneTap';
 import { type UserProfile, getUserProfile } from './services/profileService';
 import { invalidateBooksCache } from './services/storageService';
 import { supabase } from './services/supabaseClient';
-import { getMaxPages } from './services/tierLimits';
+import { getEntitlements, isUnlimited, type TierName, userTierToTierName } from './config/entitlements';
+import { getCurrentMonthUsage, incrementBookCount } from './services/usageService';
 import { FontProvider } from './src/contexts/FontContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { mastra } from './src/services/mastraClient';
@@ -84,6 +85,7 @@ const GenerationTheater = lazyWithRetry(() => import('./components/GenerationThe
 const StorybookViewer = lazyWithRetry(() => import('./components/StorybookViewer'));
 const SharedBookViewer = lazyWithRetry(() => import('./components/SharedBookViewer'));
 const LegalViewer = lazyWithRetry(() => import('./components/LegalViewer'));
+const AccountPage = lazyWithRetry(() => import('./components/AccountPage'));
 
 // ── Path-based routing helpers ────────────────────────────────────────────────
 const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
@@ -97,6 +99,7 @@ const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
   [AppMode.SUCCESS]:       '/success',
   [AppMode.VIEWER]:        '/viewer',
   [AppMode.LEGAL]:         '/legal',
+  [AppMode.ACCOUNT]:       '/account',
 };
 
 const PATH_TO_MODE = new Map<string, AppMode>(
@@ -280,13 +283,31 @@ const MainAppContent: React.FC = () => {
     dailyChallenges: [],
   };
 
-  const checkTierLimits = (settings: GenerationSettings): boolean => {
-    const maxPages = getMaxPages(currentUserTier);
-    if (settings.pageCount > maxPages) {
+  const checkTierLimits = async (settings: GenerationSettings): Promise<boolean> => {
+    const tierName = userTierToTierName(currentUserTier);
+    const ent = getEntitlements(tierName);
+
+    // Check page limit
+    if (!isUnlimited(ent.pages_per_book) && settings.pageCount > ent.pages_per_book) {
       setShowUpgradeModal(true);
-      addToast(`Your tier allows up to ${maxPages} pages per book. Upgrade for more!`, 'error');
+      addToast(`Your plan allows up to ${ent.pages_per_book} pages per book. Upgrade for more!`, 'error');
       return false;
     }
+
+    // Check monthly book limit
+    if (!isUnlimited(ent.books_per_month) && user) {
+      try {
+        const usage = await getCurrentMonthUsage(user.id);
+        if (usage >= ent.books_per_month) {
+          setShowUpgradeModal(true);
+          addToast(`You've used all ${ent.books_per_month} books this month. Upgrade for more!`, 'error');
+          return false;
+        }
+      } catch {
+        // If usage check fails, allow creation (server-side will enforce)
+      }
+    }
+
     return true;
   };
 
@@ -326,7 +347,7 @@ const MainAppContent: React.FC = () => {
   }, []);
 
   const handleGenerateProject = async (settings: GenerationSettings) => {
-    if (!checkTierLimits(settings)) return;
+    if (!(await checkTierLimits(settings))) return;
 
     cancelledByUserRef.current = false;
     generationCancelRef.current?.();
@@ -530,6 +551,8 @@ const MainAppContent: React.FC = () => {
         return <PricingPage onUpgrade={handleUpgrade} />;
       case AppMode.GAMIFICATION:
         return <GamificationHub gameState={gamificationState} setMode={navigateTo} />;
+      case AppMode.ACCOUNT:
+        return <AccountPage onNavigate={navigateTo} />;
       default:
         return (
           <CreationCanvas

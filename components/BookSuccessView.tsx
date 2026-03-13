@@ -5,8 +5,8 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { sendBookCompletionEmail } from '../services/emailService';
-import { exportToPDF } from '../services/generator/pdfService';
-import { hasCommercialLicense, hasWatermark } from '../services/tierLimits';
+import { downloadPDF } from '../services/generator/pdfService';
+import { getEntitlements, userTierToTierName } from '../config/entitlements';
 import { AppMode, type BookProject, type UserTier } from '../types';
 import { generateParticles, type Particle, updateParticle } from '../utils/particles';
 import { ShareModal } from './BookSharing';
@@ -76,10 +76,12 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
   }, [user?.email, project.title]);
 
   const handleDownload = async () => {
-    const needsWatermark = hasWatermark(userTier);
+    const tierName = userTierToTierName(userTier);
+    const ent = getEntitlements(tierName);
+    const needsWatermark = ent.watermark;
 
     try {
-      await exportToPDF(project, {
+      await downloadPDF(project, {
         includeWatermark: needsWatermark,
         watermarkText: 'Created with Genesis - Upgrade to remove',
       });
@@ -245,7 +247,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                       <span className="px-3 py-1 bg-mint-breeze/30 text-emerald-700 rounded-full font-heading font-bold">
                         {project.tone}
                       </span>
-                      {hasCommercialLicense(userTier) && (
+                      {getEntitlements(userTierToTierName(userTier)).commercial_license && (
                         <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-heading font-bold flex items-center gap-1">
                           <ShieldCheck className="w-3 h-3" />
                           Commercial License

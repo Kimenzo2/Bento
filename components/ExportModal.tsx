@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import {
   AlertCircle,
-  Book,
   Check,
   Download,
   FileText,
@@ -10,8 +9,13 @@ import {
   Settings,
 } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SavedBook } from '../types';
+import { exportToPDF } from '../services/generator/pdfService';
+import { useAuth } from '../contexts/AuthContext';
+import { getEntitlements, userTierToTierName, type TierName } from '../config/entitlements';
+import { getUserProfile } from '../services/profileService';
+import { UserTier } from '../types';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Label } from './ui/input';
@@ -19,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from './ui/switch';
 
 interface ExportOptions {
-  format: 'epub' | 'pdf' | 'html';
+  format: 'pdf' | 'html';
   includeImages: boolean;
   fontSize: 'small' | 'medium' | 'large';
   fontFamily: string;
@@ -28,7 +32,7 @@ interface ExportOptions {
 }
 
 const defaultOptions: ExportOptions = {
-  format: 'epub',
+  format: 'pdf',
   includeImages: true,
   fontSize: 'medium',
   fontFamily: 'Georgia',
@@ -43,11 +47,25 @@ interface ExportModalProps {
 }
 
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
+  const { user } = useAuth();
   const [options, setOptions] = useState<ExportOptions>(defaultOptions);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [tierName, setTierName] = useState<TierName>('SPARK');
+
+  // Load user tier
+  useEffect(() => {
+    if (!user) return;
+    getUserProfile().then((profile) => {
+      if (profile) {
+        setTierName(userTierToTierName(profile.user_tier || UserTier.SPARK));
+      }
+    }).catch(() => {});
+  }, [user]);
+
+  const entitlements = getEntitlements(tierName);
 
   const handleExport = async () => {
     if (!book) return;
@@ -68,12 +86,8 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
       let filename: string;
 
       switch (options.format) {
-        case 'epub':
-          blob = await generateEPUB(book, options);
-          filename = `${sanitizeFilename(book.title)}.epub`;
-          break;
         case 'pdf':
-          blob = await generatePDF(book, options);
+          blob = await generatePDF(book, options, entitlements.watermark);
           filename = `${sanitizeFilename(book.title)}.pdf`;
           break;
         case 'html':
@@ -126,7 +140,6 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
             </Label>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { id: 'epub', label: 'EPUB', icon: Book, desc: 'E-readers' },
                 { id: 'pdf', label: 'PDF', icon: FileText, desc: 'Print & share' },
                 { id: 'html', label: 'HTML', icon: Settings, desc: 'Web viewing' },
               ].map(({ id, label, icon: Icon, desc }) => (
@@ -284,26 +297,38 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
 };
 
 // Helper functions for generating exports
-async function generateEPUB(book: SavedBook, options: ExportOptions): Promise<Blob> {
-  // Generate EPUB content (simplified - in production use a library like epub-gen)
-  const content = generateEPUBContent(book, options);
-  return new Blob([content], { type: 'application/epub+zip' });
-}
+async function generatePDF(book: SavedBook, options: ExportOptions, includeWatermark: boolean): Promise<Blob> {
+  const fontSizeMap = { small: 10, medium: 12, large: 14 };
+  const marginMap = { narrow: 10, normal: 20, wide: 30 };
+  const sizeMap: Record<ExportOptions['pageSize'], 'A4' | 'A5' | 'Letter' | '6x9'> = {
+    a4: 'A4',
+    a5: 'A5',
+    letter: 'Letter',
+    '6x9': '6x9',
+  };
 
-async function generatePDF(book: SavedBook, options: ExportOptions): Promise<Blob> {
-  // Generate HTML that can be converted to PDF
-  const html = generatePrintableHTML(book, options);
-  return new Blob([html], { type: 'application/pdf' });
+  return exportToPDF(book.project, {
+    includeImages: options.includeImages,
+    includeWatermark,
+    watermarkText: includeWatermark ? 'Created with Genesis - Upgrade to remove' : undefined,
+    pageSize: sizeMap[options.pageSize],
+    margins: {
+      top: marginMap[options.margins],
+      right: marginMap[options.margins],
+      bottom: marginMap[options.margins],
+      left: marginMap[options.margins],
+    },
+    fontSize: {
+      title: fontSizeMap[options.fontSize] + 12,
+      heading: fontSizeMap[options.fontSize] + 6,
+      body: fontSizeMap[options.fontSize],
+    },
+  });
 }
 
 async function generateHTML(book: SavedBook, options: ExportOptions): Promise<Blob> {
   const html = generateFullHTML(book, options);
   return new Blob([html], { type: 'text/html' });
-}
-
-function generateEPUBContent(book: SavedBook, options: ExportOptions): string {
-  // Simplified EPUB generation - returns HTML that represents the content
-  return generateFullHTML(book, options);
 }
 
 function generatePrintableHTML(book: SavedBook, options: ExportOptions): string {

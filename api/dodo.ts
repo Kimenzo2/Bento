@@ -761,6 +761,9 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
             },
             'subscription.active'
           );
+
+          // Initialize usage_tracking for the current month (no reset if row exists)
+          await initUsageTracking(db, userId);
         }
 
         await logPayment(db, {
@@ -784,10 +787,14 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               dodo_customer_id: data.customer?.customer_id ?? null,
               dodo_subscription_id: data.subscription_id ?? null,
               subscription_end_date: data.next_billing_date ?? null,
+              cancel_at_period_end: false,
               updated_at: new Date().toISOString(),
             },
             'subscription.renewed'
           );
+
+          // Reset usage counter for the new billing month
+          await resetUsageTracking(db, userId);
         }
 
         await logPayment(db, {
@@ -922,7 +929,8 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
       `[dodo-webhook] Processing error for ${type}:`,
       error instanceof Error ? error.message : error
     );
-    return res.status(500).json({ error: 'Processing error' });
+    // Always return 200 so Dodo marks the webhook as received and does not retry
+    return res.status(200).json({ received: true, error: 'Processing error' });
   }
 }
 
@@ -955,5 +963,41 @@ async function logPayment(
 
   if (error) {
     throw new Error(`Failed to log payment: ${error.message}`);
+  }
+}
+
+/**
+ * Initialize a usage_tracking row for the current month if one does not exist.
+ * Does NOT reset books_created if the row already exists.
+ */
+async function initUsageTracking(
+  db: SupabaseClient<any>,
+  userId: string
+): Promise<void> {
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const { error } = await db.from('usage_tracking').upsert(
+    { user_id: userId, month, books_created: 0 },
+    { onConflict: 'user_id,month', ignoreDuplicates: true }
+  );
+  if (error) {
+    console.error('[dodo-webhook] Failed to init usage_tracking:', error.message);
+  }
+}
+
+/**
+ * Reset the usage counter for the new billing month.
+ * Upserts a row with books_created = 0 for the current month.
+ */
+async function resetUsageTracking(
+  db: SupabaseClient<any>,
+  userId: string
+): Promise<void> {
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const { error } = await db.from('usage_tracking').upsert(
+    { user_id: userId, month, books_created: 0, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id,month' }
+  );
+  if (error) {
+    console.error('[dodo-webhook] Failed to reset usage_tracking:', error.message);
   }
 }

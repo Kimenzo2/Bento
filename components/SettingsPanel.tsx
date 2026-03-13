@@ -3,7 +3,7 @@ import { ArrowLeft, Bell, Calendar, CheckCircle, CreditCard, Database, Eye, Fold
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile, updateUserProfile, type UserProfile } from '../services/profileService';
-import { getTierLimits } from '../services/tierLimits';
+import { getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
 import { AppMode, type SavedBook, UserTier } from '../types';
 import AboutSection from './settings/AboutSection';
 import AccessibilitySettings from './settings/AccessibilitySettings';
@@ -670,11 +670,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 md:mb-6">
                       <div>
                         <p className="text-white/50 text-xs mb-1">{t('subscriptionSection.ebooksPerMonth', { defaultValue: 'Ebooks / Month' })}</p>
-                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(actualUserTier).ebooksPerMonth === Number.POSITIVE_INFINITY ? '∞' : getTierLimits(actualUserTier).ebooksPerMonth}</p>
+                        <p className="text-white font-bold text-lg md:text-xl">{isUnlimited(getEntitlements(userTierToTierName(actualUserTier)).books_per_month) ? '∞' : getEntitlements(userTierToTierName(actualUserTier)).books_per_month}</p>
                       </div>
                       <div>
                         <p className="text-white/50 text-xs mb-1">{t('subscriptionSection.maxPages', { defaultValue: 'Max Pages' })}</p>
-                        <p className="text-white font-bold text-lg md:text-xl">{getTierLimits(actualUserTier).maxPagesPerBook === 999 ? '∞' : getTierLimits(actualUserTier).maxPagesPerBook}</p>
+                        <p className="text-white font-bold text-lg md:text-xl">{isUnlimited(getEntitlements(userTierToTierName(actualUserTier)).pages_per_book) ? '∞' : getEntitlements(userTierToTierName(actualUserTier)).pages_per_book}</p>
                       </div>
                     </div>
 

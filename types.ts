@@ -12,6 +12,7 @@ export enum AppMode {
   VIEWER = 'VIEWER',
   AUTH = 'AUTH',
   LEGAL = 'LEGAL',
+  ACCOUNT = 'ACCOUNT',
 }
 
 export enum ArtStyle {
@@ -383,6 +384,7 @@ export interface LearningConfig {
 export interface GenerationSettings {
   prompt: string;
   style: ArtStyle;
+  stylePrompt?: string;
   tone: BookTone;
   pageCount: number;
   audience: string;

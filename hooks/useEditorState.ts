@@ -26,6 +26,7 @@ import {
   type StoryBible,
   UserTier,
 } from '../types';
+import { getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -344,6 +345,14 @@ export function useEditorState({
   }, [currentProject, storyBible, setProjectHistory]);
 
   const addPage = useCallback(() => {
+    // Enforce page limit
+    const tierName = userTierToTierName(userTier);
+    const ent = getEntitlements(tierName);
+    if (!isUnlimited(ent.pages_per_book) && totalPages >= ent.pages_per_book) {
+      onShowUpgrade?.();
+      return;
+    }
+
     setProjectHistory((prev) => {
       const newProject = structuredClone(prev);
       const newPageNumber = totalPages + 1;
@@ -363,7 +372,7 @@ export function useEditorState({
     });
     // Navigate to the new page
     setTimeout(() => setActivePageIndex(totalPages), 0);
-  }, [totalPages, setProjectHistory]);
+  }, [totalPages, setProjectHistory, userTier, onShowUpgrade]);
 
   const reorderPages = useCallback((oldIndex: number, newIndex: number) => {
     if (oldIndex === newIndex) return;

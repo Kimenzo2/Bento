@@ -3,7 +3,8 @@ import { IcoBuilding, IcoRocket, IcoWand, IcoPalette } from './IconscoutIcons';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
 import { deleteBook, getAllBooks } from '../services/storageService';
-import { getAvailableStyles } from '../services/tierLimits';
+import { getStylesForTier } from '../config/entitlements';
+import { normalizeArtStyle } from '../utils/aiSettings';
 import {
   ArtStyle,
   BookTone,
@@ -243,6 +244,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       ? (savedStyle as ArtStyle)
       : ArtStyle.WATERCOLOR;
   });
+  const [stylePrompt, setStylePrompt] = useState('');
   const [tone, setTone] = useState<BookTone>(BookTone.PLAYFUL);
   const [audience, setAudience] = useState('Children 4-6');
   const [pageCount, setPageCount] = useState(10);
@@ -536,8 +538,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
   // Memoize expensive computations
   const _allStyles = useMemo(() => Object.values(ArtStyle), []);
-  const _availableStyles = useMemo(() => getAvailableStyles(userTier), [userTier]);
+  const _availableStyles = useMemo(() => getStylesForTier(userTier), [userTier]);
   const tones = useMemo(() => Object.values(BookTone), []);
+
+  const applyArtStyle = useCallback((nextStyle: ArtStyle, detail?: string) => {
+    setStyle(nextStyle);
+    setStylePrompt(detail?.trim() ? detail.trim() : '');
+  }, []);
 
   const handleGenerate = useCallback(() => {
     if (!prompt.trim()) return;
@@ -588,6 +595,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     onGenerate({
       prompt,
       style,
+      stylePrompt: stylePrompt.trim() ? stylePrompt.trim() : undefined,
       tone,
       audience,
       pageCount,
@@ -610,6 +618,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   }, [
     prompt,
     style,
+    stylePrompt,
     tone,
     audience,
     pageCount,
@@ -730,7 +739,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               handleQuickStartClick(() => {
                 setPrompt('A magical adventure about a shy dragon who loves to bake cookies.');
                 setAudience('Children 4-6');
-                setStyle(ArtStyle.WATERCOLOR);
+                applyArtStyle(ArtStyle.WATERCOLOR);
               })
             }
           />
@@ -748,7 +757,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               handleQuickStartClick(() => {
                 setPrompt('A cyberpunk detective solving crimes in a neon-lit underwater city.');
                 setAudience('Young Adult');
-                setStyle(ArtStyle.CYBERPUNK);
+                applyArtStyle(ArtStyle.CYBERPUNK);
                 setTone(BookTone.DRAMATIC);
               })
             }
@@ -769,7 +778,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   'Our company journey from a garage startup to a global eco-friendly leader.'
                 );
                 setAudience('Stakeholders');
-                setStyle(ArtStyle.CORPORATE);
+                applyArtStyle(ArtStyle.CORPORATE);
                 setShowBrandPanel(true);
               })
             }
@@ -1622,7 +1631,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         isOpen={isStylePresetsOpen}
         onClose={() => setIsStylePresetsOpen(false)}
         onSelect={(preset) => {
-          setStyle(preset.style as ArtStyle);
+          const resolvedStyle = normalizeArtStyle(preset.artStyle ?? preset.style);
+          applyArtStyle(resolvedStyle, preset.style);
           setIsStylePresetsOpen(false);
         }}
       />
