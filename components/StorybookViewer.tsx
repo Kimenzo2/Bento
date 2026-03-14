@@ -18,8 +18,10 @@ import {
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBookSwipeNavigation } from '../hooks/useSwipeGesture';
+import { useEntitlements } from '../hooks/useEntitlements';
 import { keyboardNav, screenReaderAnnounce } from '../services/accessibilityService';
 import type { BookProject } from '../types';
+import { UserTier } from '../types';
 import AudioPlayer from './AudioPlayer';
 import { ShareModal } from './BookSharing';
 import ExportModal from './ExportModal';
@@ -58,6 +60,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   onShare,
 }) => {
   // ── State ────────────────────────────────────────────────────────────────
+  const { tier } = useEntitlements();
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -772,7 +775,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
       )}
 
       {showKDPExportModal && (
-        <KDPExportModal project={project} isOpen={true} onClose={() => setShowKDPExportModal(false)} />
+        <KDPExportModal project={project} isOpen={true} onClose={() => setShowKDPExportModal(false)} userTier={tier as UserTier} />
       )}
 
       {showShareModal && (
