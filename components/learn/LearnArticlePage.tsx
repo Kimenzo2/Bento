@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { getArticleBySlug, getRelatedArticles, LEARN_CATEGORIES, type LearnArticle } from '../../data/learnContent';
 import { usePageSEO } from '../../hooks/usePageSEO';

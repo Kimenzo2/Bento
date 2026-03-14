@@ -40,7 +40,7 @@ import { IcoCrown, IcoRocket, IcoWand } from '../components/IconscoutIcons';
 import SparkleCursor from '../components/SparkleCursor';
 import { usePageSEO } from '../hooks/usePageSEO';
 import { useTheme } from '../contexts/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 // ---------------------------------------------------------------------------
 // DESIGN TOKENS — CSS VARIABLE REFERENCES

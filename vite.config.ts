@@ -269,7 +269,7 @@ export default defineConfig(({ mode }) => {
       force: false, // only re-bundle when deps actually change
       include: [
         // Core React
-        'react', 'react-dom', 'react-dom/client', 'react-router-dom',
+        'react', 'react-dom', 'react-dom/client', 'react-router',
         // Supabase
         '@supabase/supabase-js',
         // i18n
@@ -292,7 +292,7 @@ export default defineConfig(({ mode }) => {
       ],
       // Exclude server-only packages from client bundle
       exclude: ['@mastra/core', '@mastra/pg', '@mastra/rag', '@mastra/memory',
-                '@hono/node-server', 'newrelic', '@arcjet/node'],
+                '@hono/node-server', '@arcjet/node'],
     },
     build: {
       commonjsOptions: {

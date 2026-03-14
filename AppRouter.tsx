@@ -19,7 +19,7 @@
 
 import type React from 'react';
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
 import AppSkeleton from './components/AppSkeleton';
 import { useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';

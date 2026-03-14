@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Clock } from 'lucide-react';
 import { type BlogPost, formatDate } from '../../lib/blog/posts';
 

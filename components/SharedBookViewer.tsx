@@ -2,7 +2,7 @@ import { IcoBook, IcoPen } from './IconscoutIcons';
 import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, Clock, Download, Lock, User } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { shareService, type ShareSettings } from '../services/shareService';
 import type { BookProject, Page } from '../types';
 import { Button } from '@/components/ui/button';

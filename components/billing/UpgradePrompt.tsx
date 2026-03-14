@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Rocket, Sparkles, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import {
   type TierName,
   TIER_DISPLAY,

@@ -27,9 +27,6 @@ import {
   statsig,
 } from './statsig';
 
-import { hyperdx, initializeHyperDX } from './hyperdx';
-import type { HyperDXConfig } from './hyperdx';
-
 import { initializeCheckly } from './checkly';
 import type { ChecklyConfig } from './checkly';
 
@@ -47,7 +44,6 @@ export interface IntegrationConfig {
   upstash?: Partial<UpstashConfig>;
   sentry?: Partial<SentryConfig>;
   statsig?: Partial<StatsigConfig>;
-  hyperdx?: Partial<HyperDXConfig>;
   checkly?: Partial<ChecklyConfig>;
   arcjet?: Partial<ArcjetConfig>;
   cloudinary?: Partial<CloudinaryConfig>;
@@ -74,7 +70,6 @@ export interface IntegrationHealth {
     upstash: { healthy: boolean; latency?: number };
     sentry: { healthy: boolean };
     statsig: { healthy: boolean };
-    hyperdx: { healthy: boolean };
     checkly: { healthy: boolean };
     arcjet: { healthy: boolean };
     cloudinary: { healthy: boolean };
@@ -171,44 +166,6 @@ async function initStatsig(
   } catch (error) {
     return {
       name: 'statsig',
-      initialized: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      latency: performance.now() - start,
-    };
-  }
-}
-
-/**
- * Initialize HyperDX
- */
-async function initHyperDX(config?: Partial<HyperDXConfig>): Promise<IntegrationStatus> {
-  const start = performance.now();
-
-  try {
-    // Check if enabled via feature flag
-    const enabled = statsig.isInitialized()
-      ? await statsig.checkGate(FEATURE_FLAGS.HYPERDX_OBSERVABILITY)
-      : true;
-
-    if (!enabled) {
-      return {
-        name: 'hyperdx',
-        initialized: false,
-        error: 'Disabled by feature flag',
-        latency: performance.now() - start,
-      };
-    }
-
-    await initializeHyperDX(config);
-
-    return {
-      name: 'hyperdx',
-      initialized: hyperdx.isInitialized(),
-      latency: performance.now() - start,
-    };
-  } catch (error) {
-    return {
-      name: 'hyperdx',
       initialized: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       latency: performance.now() - start,
@@ -351,17 +308,11 @@ export async function bootstrapIntegrations(
     }
 
     // Phase 2: Non-critical services (parallel)
-    const [hyperdxStatus, checklyStatus, arcjetStatus, cloudinaryStatus] = await Promise.all([
-      initHyperDX(config?.hyperdx),
+    const [checklyStatus, arcjetStatus, cloudinaryStatus] = await Promise.all([
       initCheckly(config?.checkly),
       initArcjet(config?.arcjet),
       initCloudinary(config?.cloudinary),
     ]);
-
-    services.push(hyperdxStatus);
-    if (!hyperdxStatus.initialized && !hyperdxStatus.error?.includes('feature flag')) {
-      errors.push(`HyperDX: ${hyperdxStatus.error}`);
-    }
 
     services.push(checklyStatus);
     if (!checklyStatus.initialized) {
@@ -392,16 +343,6 @@ export async function bootstrapIntegrations(
 
     bootstrapped = true;
 
-    // Report to observability
-    if (hyperdx.isInitialized()) {
-      hyperdx.info('Integrations bootstrapped', {
-        successCount,
-        totalServices: services.length,
-        totalTime,
-        errors: errors.length,
-      });
-    }
-
     return bootstrapResult;
   })();
 
@@ -425,10 +366,6 @@ export async function updateIntegrationUser(user: StatsigUser): Promise<void> {
       id: user.userID,
       email: user.email,
       tier: user.custom?.tier,
-    }),
-    hyperdx.setUser(user.userID, {
-      tier: user.custom?.tier ?? 'SPARK',
-      email: user.email ?? '',
     }),
   ]);
 }
@@ -460,14 +397,13 @@ export async function getIntegrationHealth(): Promise<IntegrationHealth> {
     upstash: { healthy: upstashHealthy, latency: upstashLatency },
     sentry: { healthy: sentry.isInitialized() },
     statsig: { healthy: statsig.isInitialized() },
-    hyperdx: { healthy: hyperdx.isInitialized() },
     checkly: { healthy: true }, // Checkly is external
     arcjet: { healthy: true }, // Arcjet is stateless
     cloudinary: { healthy: cloudinary.isInitialized() },
   };
 
   const healthyCount = Object.values(services).filter((s) => s.healthy).length;
-  const overall = healthyCount === 7 ? 'healthy' : healthyCount >= 5 ? 'degraded' : 'unhealthy';
+  const overall = healthyCount === 6 ? 'healthy' : healthyCount >= 4 ? 'degraded' : 'unhealthy';
 
   return {
     overall,
@@ -480,7 +416,7 @@ export async function getIntegrationHealth(): Promise<IntegrationHealth> {
  * Shutdown all integrations
  */
 export async function shutdownIntegrations(): Promise<void> {
-  await Promise.all([statsig.shutdown(), sentry.flush(), hyperdx.shutdown()]);
+  await Promise.all([statsig.shutdown(), sentry.flush()]);
 
   bootstrapped = false;
   bootstrapResult = null;

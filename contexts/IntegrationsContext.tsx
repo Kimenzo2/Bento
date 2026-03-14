@@ -43,7 +43,6 @@ import {
 
 import { arcjet } from '../services/integrations/arcjet';
 import { checkly } from '../services/integrations/checkly';
-import { hyperdx } from '../services/integrations/hyperdx';
 import { sentry } from '../services/integrations/sentry';
 import {
   FEATURE_FLAGS,
@@ -68,7 +67,6 @@ export interface IntegrationsContextValue {
   // Services
   sentry: typeof sentry;
   statsig: typeof statsig;
-  hyperdx: typeof hyperdx;
   upstash: UpstashRedis | null;
   checkly: typeof checkly;
   arcjet: typeof arcjet;
@@ -257,7 +255,6 @@ export function IntegrationsProvider({
       result,
       sentry,
       statsig,
-      hyperdx,
       upstash: getUpstashOrNull(),
       checkly,
       arcjet,

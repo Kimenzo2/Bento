@@ -1,9 +1,7 @@
-import { ErrorBoundary as RollbarErrorBoundary, Provider as RollbarProvider } from '@rollbar/react';
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import App from './App';
-import { rollbarConfig } from './config/rollbar';
 import { AuthProvider } from './contexts/AuthContext';
 import { IntegrationsProvider } from './contexts/IntegrationsContext';
 import { Button } from './components/ui/button';
@@ -117,26 +115,22 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <RollbarProvider config={rollbarConfig}>
-      <RollbarErrorBoundary>
-        <ErrorBoundary>
-          <IntegrationsProvider
-            onReady={(_result) => {
-              if (import.meta.env.DEV) console.warn('[Genesis] Integrations ready:', _result.initialized);
-            }}
-            onError={(_error) => {
-              if (import.meta.env.DEV) console.error('[Genesis] Integrations failed:', _error);
-            }}
-          >
-            <AuthProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </AuthProvider>
-          </IntegrationsProvider>
-        </ErrorBoundary>
-      </RollbarErrorBoundary>
-    </RollbarProvider>
+    <ErrorBoundary>
+      <IntegrationsProvider
+        onReady={(_result) => {
+          if (import.meta.env.DEV) console.warn('[Genesis] Integrations ready:', _result.initialized);
+        }}
+        onError={(_error) => {
+          if (import.meta.env.DEV) console.error('[Genesis] Integrations failed:', _error);
+        }}
+      >
+        <AuthProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AuthProvider>
+      </IntegrationsProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

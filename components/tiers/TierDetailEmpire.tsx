@@ -9,7 +9,7 @@
 
 import { Brain, Check, Clock, Code, Fingerprint, Headphones, Infinity, Lock, Rocket, Server, Shield, Users } from 'lucide-react';
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 import {
   BackToPricing,

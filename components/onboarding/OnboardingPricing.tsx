@@ -2,7 +2,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Briefcase, Check, Crown, Loader, Shield, Star, X, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useOnboarding } from './OnboardingState';
 import { UserTier } from '../../types';
 import { createDodoCheckout } from '../../services/dodoService';

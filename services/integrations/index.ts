@@ -105,28 +105,6 @@ export {
 } from './statsig';
 
 // ============================================================================
-// HYPERDX (Observability)
-// ============================================================================
-
-export {
-  // Main service
-  hyperdx,
-  initializeHyperDX,
-  // Hooks
-  useHyperDXLogger,
-  useTraceRender,
-  useTrackAction,
-  // Utilities
-  createInstrumentedFetch,
-  withTiming,
-  // Types
-  type HyperDXConfig,
-  type LogEntry,
-  type SpanData,
-  type MetricData,
-} from './hyperdx';
-
-// ============================================================================
 // CHECKLY (Synthetic Monitoring)
 // ============================================================================
 
@@ -296,22 +274,6 @@ export {
   type BookSearchRecord,
   type AlgoliaConfig,
 } from './algolia';
-
-// ============================================================================
-// LIVEBLOCKS COLLABORATION
-// ============================================================================
-
-export {
-  liveblocks,
-  initializeLiveblocks,
-  ROOM_TYPES,
-  COLLABORATION_COLORS,
-  type User as LiveblocksUser,
-  type Presence,
-  type Thread,
-  type ThreadComment,
-  type LiveblocksConfig,
-} from './liveblocks';
 
 // ============================================================================
 // INNGEST BACKGROUND JOBS

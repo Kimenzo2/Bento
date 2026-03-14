@@ -1,7 +1,7 @@
 import { IcoZap } from './IconscoutIcons';
 import { BookOpen, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUserSettings } from '../hooks/useUserSettings';

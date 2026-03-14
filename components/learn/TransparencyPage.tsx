@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ArrowLeft, TrendingUp, TrendingDown, Globe, BarChart3, CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, Search, Shield, FileText, Activity } from 'lucide-react';
 import { getPublicReports, type WeeklyReport } from '../../data/transparencyReports';
 import { usePageSEO } from '../../hooks/usePageSEO';

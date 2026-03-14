@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 import '../../src/config/i18n'; // Initialize i18n
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { FontProvider } from '../../src/contexts/FontContext';

@@ -1,7 +1,7 @@
 import { IcoZap, IcoWand } from './IconscoutIcons';
 import { ArrowRight, Cloud, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { usePageSEO } from '../hooks/usePageSEO';
 import { Button } from './ui/button';

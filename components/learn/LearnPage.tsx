@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ArrowLeft, Search } from 'lucide-react';
 import { getAllArticles, searchArticles, LEARN_CATEGORIES, type LearnCategory } from '../../data/learnContent';
 import { usePageSEO } from '../../hooks/usePageSEO';

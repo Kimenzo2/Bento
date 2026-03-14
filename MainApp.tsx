@@ -15,7 +15,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import type React from 'react';
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPWA from './components/InstallPWA';
 import Navigation from './components/Navigation';
