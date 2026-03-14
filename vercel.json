@@ -19,7 +19,7 @@
       ]
     },
     {
-      "source": "/og-genesis-hero-v2.png",
+      "source": "/og-genesis-hero-v2.webp",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" },
         { "key": "X-Content-Type-Options", "value": "nosniff" }
