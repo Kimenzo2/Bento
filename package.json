@@ -42,7 +42,6 @@
     "@google/genai": "^1.30.0",
     "@hono/node-server": "^1.19.11",
     "@mastra/core": "^1.13.2",
-    "@mastra/deployer": "^1.13.2",
     "@mastra/memory": "^1.8.2",
     "@mastra/observability": "^1.5.0",
     "@mastra/pg": "^1.8.0",
@@ -107,6 +106,7 @@
     "@commitlint/cli": "^20.4.4",
     "@commitlint/config-conventional": "^20.4.4",
     "@eslint/js": "^9.17.0",
+    "@mastra/deployer": "^1.13.2",
     "@playwright/test": "^1.58.2",
     "@react-email/preview-server": "^5.2.9",
     "@sentry/vite-plugin": "^5.1.1",
@@ -118,6 +118,7 @@
     "@vercel/node": "^5.6.15",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.0",
+    "baseline-browser-mapping": "^2.10.8",
     "checkly": "^7.6.1",
     "dotenv": "^17.3.1",
     "eslint": "^10.0.3",
@@ -149,7 +150,10 @@
     },
     "eslint-plugin-react-hooks": {
       "eslint": "$eslint"
-    }
+    },
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5"
   },
   "packageManager": "npm@10.9.0",
   "engines": {
