@@ -509,7 +509,7 @@ const LandingPage: React.FC = memo(() => {
               variants={fadeUp}
               className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-[-0.01em] leading-[1.15] mb-5 font-heading text-charcoal-soft"
             >
-              Every journey begins
+              Write the story.
               <br />
               <span
                 style={{
@@ -519,7 +519,7 @@ const LandingPage: React.FC = memo(() => {
                   backgroundClip: 'text',
                 }}
               >
-                with a spark.
+                Genesis illustrates every page.
               </span>
             </motion.h1>
 
@@ -528,9 +528,9 @@ const LandingPage: React.FC = memo(() => {
               variants={fadeUp}
               className="text-base md:text-lg leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0 font-body text-cocoa-light"
             >
-              Genesis transforms your imagination into living, breathing worlds.
+              Every scene painted. Every character remembered.
               <br className="hidden md:block" />
-              <span className="text-charcoal-soft">What universe calls to you?</span>
+              <span className="text-charcoal-soft">Your story, finished.</span>
             </motion.p>
 
             {/* CTAs */}
