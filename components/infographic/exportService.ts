@@ -1,6 +1,3 @@
-import { toPng, toCanvas } from 'html-to-image';
-import { jsPDF } from 'jspdf';
-
 /**
  * Exports a DOM element as a high-quality PNG image
  * @param elementId The ID of the DOM element to export
@@ -14,6 +11,7 @@ export const exportToPNG = async (elementId: string, fileName: string) => {
   }
 
   try {
+    const { toPng } = await import('html-to-image');
     const dataUrl = await toPng(element, {
       pixelRatio: 3,
       backgroundColor: '#ffffff',
@@ -41,6 +39,10 @@ export const exportToPDF = async (elementId: string, fileName: string) => {
   }
 
   try {
+    const [{ toCanvas }, { jsPDF }] = await Promise.all([
+      import('html-to-image'),
+      import('jspdf'),
+    ]);
     const canvas = await toCanvas(element, {
       pixelRatio: 2,
       backgroundColor: '#ffffff',

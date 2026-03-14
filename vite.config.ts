@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -284,7 +284,8 @@ export default defineConfig(({ mode }) => {
       ],
       // Exclude server-only packages from client bundle
       exclude: ['@mastra/core', '@mastra/pg', '@mastra/rag', '@mastra/memory',
-                '@hono/node-server'],
+                '@hono/node-server',
+                '@react-email/components', 'react-email'],
     },
     build: {
       commonjsOptions: {
@@ -309,12 +310,8 @@ export default defineConfig(({ mode }) => {
               if (id.includes('framer-motion')) return 'vendor-motion';
               // Icons
               if (id.includes('lucide-react')) return 'vendor-icons';
-              // Sentry
-              if (id.includes('@sentry')) return 'vendor-sentry';
               // i18n
               if (id.includes('i18next') || id.includes('react-i18next')) return 'vendor-i18n';
-              // PDF generation
-              if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html-to-image')) return 'vendor-export';
             }
           },
         },

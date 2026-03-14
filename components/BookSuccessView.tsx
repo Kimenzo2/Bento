@@ -4,7 +4,6 @@ import { Download, Edit3, Eye, Gift, PartyPopper, Share2, ShieldCheck } from 'lu
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { sendBookCompletionEmail } from '../services/emailService';
 import { downloadPDF } from '../services/generator/pdfService';
 import { getEntitlements, userTierToTierName } from '../config/entitlements';
 import { AppMode, type BookProject, type UserTier } from '../types';
@@ -47,8 +46,10 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
         user.email.split('@')[0];
-      sendBookCompletionEmail(user.email, userName, project.title).catch((err) => {
-        console.error('[BookSuccess] Failed to send completion email:', err);
+      import('../services/emailService').then(({ sendBookCompletionEmail }) => {
+        sendBookCompletionEmail(user.email!, userName, project.title).catch((err) => {
+          console.error('[BookSuccess] Failed to send completion email:', err);
+        });
       });
     }
 

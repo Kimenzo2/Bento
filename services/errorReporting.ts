@@ -24,8 +24,12 @@
  * ```
  */
 
-import * as Sentry from '@sentry/react';
+import type React from 'react';
 import { redactPII } from './security/sanitizationService';
+
+// Sentry is loaded lazily to keep it out of the critical path.
+// All calls go through this helper which dynamically imports the SDK.
+const getSentry = () => import('@sentry/react');
 
 // ============================================================================
 // TYPES
@@ -192,14 +196,16 @@ class ErrorReporter {
     this.userContext = { ...this.userContext, ...context };
 
     if (this.config.dsn) {
-      Sentry.setUser({
-        id: context.userId,
-        email: context.email ? redactPII(context.email) : undefined,
-      });
+      getSentry().then((Sentry) => {
+        Sentry.setUser({
+          id: context.userId,
+          email: context.email ? redactPII(context.email) : undefined,
+        });
 
-      if (context.tier) {
-        Sentry.setTag('user.tier', context.tier);
-      }
+        if (context.tier) {
+          Sentry.setTag('user.tier', context.tier);
+        }
+      });
     }
   }
 
@@ -208,7 +214,9 @@ class ErrorReporter {
    */
   clearUser(): void {
     this.userContext = {};
-    Sentry.setUser(null);
+    if (this.config.dsn) {
+      getSentry().then((Sentry) => Sentry.setUser(null));
+    }
   }
 
   /**
@@ -218,12 +226,16 @@ class ErrorReporter {
     const breadcrumb: Breadcrumb = { category, message, data };
     this.breadcrumbManager.add(breadcrumb);
 
-    Sentry.addBreadcrumb({
-      category,
-      message,
-      data,
-      level: 'info',
-    });
+    if (this.config.dsn) {
+      getSentry().then((Sentry) => {
+        Sentry.addBreadcrumb({
+          category,
+          message,
+          data,
+          level: 'info',
+        });
+      });
+    }
   }
 
   /**
@@ -249,30 +261,32 @@ class ErrorReporter {
 
     // Report to Sentry
     if (this.config.dsn) {
-      Sentry.withScope((scope) => {
-        scope.setLevel(this.mapSeverity(severity));
+      getSentry().then((Sentry) => {
+        Sentry.withScope((scope) => {
+          scope.setLevel(this.mapSeverity(severity));
 
-        if (fullContext.action) {
-          scope.setTag('action', fullContext.action);
-        }
-        if (fullContext.component) {
-          scope.setTag('component', fullContext.component);
-        }
-        if (fullContext.metadata) {
-          scope.setExtras(fullContext.metadata);
-        }
+          if (fullContext.action) {
+            scope.setTag('action', fullContext.action);
+          }
+          if (fullContext.component) {
+            scope.setTag('component', fullContext.component);
+          }
+          if (fullContext.metadata) {
+            scope.setExtras(fullContext.metadata);
+          }
 
-        // Attach breadcrumbs
-        for (const crumb of this.breadcrumbManager.getAll()) {
-          scope.addBreadcrumb({
-            category: crumb.category,
-            message: crumb.message,
-            data: crumb.data,
-            timestamp: crumb.timestamp ? crumb.timestamp / 1000 : undefined,
-          });
-        }
+          // Attach breadcrumbs
+          for (const crumb of this.breadcrumbManager.getAll()) {
+            scope.addBreadcrumb({
+              category: crumb.category,
+              message: crumb.message,
+              data: crumb.data,
+              timestamp: crumb.timestamp ? crumb.timestamp / 1000 : undefined,
+            });
+          }
 
-        Sentry.captureException(error);
+          Sentry.captureException(error);
+        });
       });
     }
 
@@ -288,14 +302,16 @@ class ErrorReporter {
     console.log(`[ErrorReporter] [${severity}]`, sanitizedMessage, context);
 
     if (this.config.dsn) {
-      Sentry.withScope((scope) => {
-        scope.setLevel(this.mapSeverity(severity));
+      getSentry().then((Sentry) => {
+        Sentry.withScope((scope) => {
+          scope.setLevel(this.mapSeverity(severity));
 
-        if (context) {
-          scope.setExtras(context as Record<string, unknown>);
-        }
+          if (context) {
+            scope.setExtras(context as Record<string, unknown>);
+          }
 
-        Sentry.captureMessage(sanitizedMessage);
+          Sentry.captureMessage(sanitizedMessage);
+        });
       });
     }
   }
@@ -304,9 +320,11 @@ class ErrorReporter {
    * Create an error boundary wrapper for React components
    */
   createErrorBoundary(
-    fallback: React.ReactNode
+    _fallback: React.ReactNode
   ): React.ComponentType<{ children: React.ReactNode }> {
-    return Sentry.ErrorBoundary as React.ComponentType<{ children: React.ReactNode }>;
+    // Sentry ErrorBoundary is not used — the app uses its own ErrorBoundary
+    // in index.tsx. This returns a pass-through wrapper.
+    return ({ children }: { children: React.ReactNode }) => children as React.ReactElement;
   }
 
   /**
@@ -328,8 +346,8 @@ class ErrorReporter {
   /**
    * Map severity to Sentry level
    */
-  private mapSeverity(severity: ErrorSeverity): Sentry.SeverityLevel {
-    const map: Record<ErrorSeverity, Sentry.SeverityLevel> = {
+  private mapSeverity(severity: ErrorSeverity): 'fatal' | 'error' | 'warning' | 'info' | 'debug' {
+    const map: Record<ErrorSeverity, 'fatal' | 'error' | 'warning' | 'info' | 'debug'> = {
       fatal: 'fatal',
       error: 'error',
       warning: 'warning',
@@ -343,6 +361,8 @@ class ErrorReporter {
    * Flush pending events (call before page unload)
    */
   async flush(timeout = 2000): Promise<boolean> {
+    if (!this.config.dsn) return true;
+    const Sentry = await getSentry();
     return Sentry.flush(timeout);
   }
 }

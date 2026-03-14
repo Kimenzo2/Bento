@@ -1,7 +1,6 @@
 // Amazon KDP Professional Export Service
 // High-quality PDF generation optimized for print publishing
 
-import jsPDF from 'jspdf';
 import type { BookProject } from '../../types';
 import type { KDPExportOptions, KDPValidationResult, QualityMetrics } from './kdpTypes';
 
@@ -156,6 +155,7 @@ export async function exportToKDP(
   const safeArea = getSafeContentArea(dimensions, margins, opts.includeBleed);
 
   // Create PDF with proper dimensions
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({
     orientation: dimensions.width > dimensions.height ? 'landscape' : 'portrait',
     unit: 'in',

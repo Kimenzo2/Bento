@@ -1,4 +1,3 @@
-import jsPDF from 'jspdf';
 import type { BookProject } from '../../types';
 
 export interface PDFExportOptions {
@@ -87,6 +86,7 @@ export const exportToPDF = async (
   const pageSizeKey = opts.pageSize.toLowerCase();
   const format = PAGE_SIZE_MM[pageSizeKey] ?? pageSizeKey;
 
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({
     orientation: opts.orientation,
     unit: 'mm',
