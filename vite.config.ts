@@ -1,5 +1,4 @@
 import { resolve } from 'path';
-import os from 'node:os';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
@@ -77,7 +76,7 @@ export default defineConfig(({ mode }) => {
               /^\/api\//,
               /\.(?:js|css|png|jpg|jpeg|svg|ico|woff|woff2|webp|json|txt|map)$/,
             ],
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+            globPatterns: ['**/*.{css,html,ico,woff,woff2}'],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -256,14 +255,8 @@ export default defineConfig(({ mode }) => {
         '@types': resolve(__dirname, './types'),
       },
     },
-    esbuild: {
-      // Drop debugger in prod; keep console.error/warn for observability
-      drop: isProduction ? ['debugger'] : [],
-      // esbuild is already fast; target modern engines to skip transpilation
-      target: 'esnext',
-      // Faster JSX transform
-      jsx: 'automatic',
-    },
+    // Vite 8 uses Oxc for transforms by default; no explicit config needed.
+    // Production minification (oxc) automatically strips debugger statements.
     // ─── Pre-bundle everything heavy so dev server starts in < 1 s ──────────
     optimizeDeps: {
       force: false, // only re-bundle when deps actually change
@@ -288,26 +281,22 @@ export default defineConfig(({ mode }) => {
         // Other runtime deps
         'clsx', 'tailwind-merge', 'class-variance-authority',
         'sonner', 'react-error-boundary',
-        'bytez.js',
       ],
       // Exclude server-only packages from client bundle
       exclude: ['@mastra/core', '@mastra/pg', '@mastra/rag', '@mastra/memory',
-                '@hono/node-server', '@arcjet/node'],
+                '@hono/node-server'],
     },
     build: {
       commonjsOptions: {
-        include: [/bytez\.js/, /node_modules/],
-        // Avoid transforming ESM-only packages → faster
-        transformMixedEsModules: false,
+        include: [/node_modules/],
       },
       target: 'esnext',
-      minify: 'esbuild',
+      minify: 'oxc',
       // Only generate sourcemaps in production (hidden); skip entirely in dev builds
       sourcemap: isProduction ? 'hidden' : false,
       chunkSizeWarningLimit: 2000,
-      // ── Parallel workers for Rollup (use all CPU cores) ─────────────────
+      // ── Rolldown output configuration ─────────────────
       rollupOptions: {
-        maxParallelFileOps: Math.max(1, (os.cpus?.()?.length ?? 4) - 1),
         output: {
           // Fine-grained manual chunks → smaller initial bundle, better long-term cache
           manualChunks(id) {
@@ -320,6 +309,12 @@ export default defineConfig(({ mode }) => {
               if (id.includes('framer-motion')) return 'vendor-motion';
               // Icons
               if (id.includes('lucide-react')) return 'vendor-icons';
+              // Sentry
+              if (id.includes('@sentry')) return 'vendor-sentry';
+              // i18n
+              if (id.includes('i18next') || id.includes('react-i18next')) return 'vendor-i18n';
+              // PDF generation
+              if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html-to-image')) return 'vendor-export';
             }
           },
         },

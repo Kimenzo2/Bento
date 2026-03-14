@@ -20,6 +20,8 @@
  * @see https://www.checklyhq.com/docs/
  */
 
+import { getUpstashOrNull } from './upstash';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -366,7 +368,6 @@ class ChecklyService {
       }),
 
       this.runCheck('upstash', async () => {
-        const { getUpstashOrNull } = await import('./upstash');
         const upstash = getUpstashOrNull();
         if (!upstash) return { healthy: false, message: 'Not configured' };
         const healthy = await upstash.ping();

@@ -15,6 +15,8 @@
  * @see https://docs.arcjet.com/
  */
 
+import { getUpstashOrNull } from './upstash';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -343,7 +345,6 @@ class ArcjetService {
 
     // Check with Upstash if available
     try {
-      const { getUpstashOrNull } = await import('./upstash');
       const upstash = getUpstashOrNull();
 
       if (upstash) {

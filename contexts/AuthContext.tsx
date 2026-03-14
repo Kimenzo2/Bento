@@ -1,7 +1,6 @@
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type React from 'react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { sendWelcomeEmail } from '../services/emailService';
 import { ensureUserProfile, getUserProfile, invalidateProfileCache } from '../services/profileService';
 import { supabase } from '../services/supabaseClient';
 
@@ -56,6 +55,7 @@ async function flushPendingWelcomeEmail(expectedEmail?: string): Promise<void> {
   if (!pending) return;
   if (expectedEmail && pending.email !== expectedEmail) return;
 
+  const { sendWelcomeEmail } = await import('../services/emailService');
   const result = await sendWelcomeEmail(pending.email, pending.name);
   if (result.success) {
     clearPendingWelcomeEmail();
@@ -241,7 +241,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
 
       if (data.session) {
-        sendWelcomeEmail(data.user.email, userName)
+        import('../services/emailService').then(({ sendWelcomeEmail }) =>
+          sendWelcomeEmail(data.user.email, userName)
+        )
           .then((result) => {
             if (!result.success) {
               queuePendingWelcomeEmail(data.user!.email!, userName);
