@@ -6,7 +6,7 @@
  */
 
 import 'dotenv/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -15,17 +15,17 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenAI({ apiKey: API_KEY });
 
 // ─── Test 1: Direct Gemini API call ──────────────────────────────────────────
 async function testGeminiDirect() {
   console.log('\n=== TEST 1: Direct Gemini API Call ===');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(
-      'Respond with exactly one sentence: What is a storybook?'
-    );
-    const text = result.response.text();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: 'Respond with exactly one sentence: What is a storybook?',
+    });
+    const text = result.text ?? '';
     console.log('  Response:', text.trim().slice(0, 200));
     console.log('  PASS: Gemini API key works, model responds\n');
     return true;
@@ -39,11 +39,11 @@ async function testGeminiDirect() {
 async function testEmbedding() {
   console.log('=== TEST 2: Embedding Generation ===');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
-    const result = await model.embedContent({
-      content: { parts: [{ text: 'Once upon a time in a magical kingdom' }], role: 'user' },
+    const result = await genAI.models.embedContent({
+      model: 'gemini-embedding-001',
+      contents: ['Once upon a time in a magical kingdom'],
     });
-    const embedding = result.embedding.values;
+    const embedding = result.embeddings?.[0]?.values ?? [];
     console.log('  Embedding dimension:', embedding.length);
     console.log('  First 5 values:', embedding.slice(0, 5).map(v => v.toFixed(4)));
     console.log('  PASS: Embedding generation works (dim:', embedding.length, ')\n');
@@ -58,19 +58,18 @@ async function testEmbedding() {
 async function testBatchEmbedding() {
   console.log('=== TEST 3: Batch Embedding (Brand Voice RAG) ===');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
     const texts = [
       'Our brand speaks with confidence and warmth.',
       'We prioritize clarity and accessibility in all communications.',
       'Innovation drives everything we do at Acme Corp.',
     ];
-    const result = await model.batchEmbedContents({
-      requests: texts.map((text) => ({
-        content: { parts: [{ text }], role: 'user' as const },
-      })),
+    const result = await genAI.models.embedContent({
+      model: 'gemini-embedding-001',
+      contents: texts,
     });
-    console.log('  Chunks embedded:', result.embeddings.length);
-    console.log('  Each dimension:', result.embeddings[0].values.length);
+    const embeddings = result.embeddings ?? [];
+    console.log('  Chunks embedded:', embeddings.length);
+    console.log('  Each dimension:', embeddings[0]?.values?.length ?? 0);
     console.log('  PASS: Batch embedding works for RAG pipeline\n');
     return true;
   } catch (err: any) {

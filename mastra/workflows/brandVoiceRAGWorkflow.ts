@@ -29,7 +29,7 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -78,34 +78,32 @@ function getSupabaseAdmin() {
 function getGoogleAI() {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set');
-  return new GoogleGenerativeAI(apiKey);
+  return new GoogleGenAI({ apiKey });
 }
 
 /**
- * Embed an array of texts using Google's text-embedding-004 model.
- * Uses @google/generative-ai directly — no Vercel AI SDK needed.
+ * Embed an array of texts using Google's embedding model.
+ * Uses @google/genai directly — no Vercel AI SDK needed.
  */
 async function embedTexts(texts: string[]): Promise<number[][]> {
-  const genAI = getGoogleAI();
-  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
-  const result = await model.batchEmbedContents({
-    requests: texts.map((text) => ({
-      content: { parts: [{ text }], role: 'user' },
-    })),
+  const ai = getGoogleAI();
+  const result = await ai.models.embedContent({
+    model: EMBEDDING_MODEL,
+    contents: texts,
   });
-  return result.embeddings.map((e) => e.values);
+  return (result.embeddings ?? []).map((e) => e.values ?? []);
 }
 
 /**
- * Embed a single text using Google's text-embedding-004 model.
+ * Embed a single text using Google's embedding model.
  */
 async function embedSingleText(text: string): Promise<number[]> {
-  const genAI = getGoogleAI();
-  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
-  const result = await model.embedContent({
-    content: { parts: [{ text }], role: 'user' },
+  const ai = getGoogleAI();
+  const result = await ai.models.embedContent({
+    model: EMBEDDING_MODEL,
+    contents: [text],
   });
-  return result.embedding.values;
+  return result.embeddings?.[0]?.values ?? [];
 }
 
 function estimateTokens(text: string): number {
