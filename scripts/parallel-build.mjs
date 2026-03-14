@@ -25,8 +25,8 @@ console.log(`\n⚡ Parallel build starting (mode: ${isProduction ? 'production' 
 
 try {
   await Promise.all([
-    run('npx', ['-p', 'typescript', 'tsc', '--noEmit', '--incremental'], 'TypeScript'),
-    run('npx', ['-p', 'vite', 'vite', 'build', ...(isProduction ? ['--mode', 'production'] : [])], 'Vite'),
+    run('node', ['node_modules/typescript/bin/tsc', '--noEmit', '--incremental'], 'TypeScript'),
+    run('npx', ['vite', 'build', ...(isProduction ? ['--mode', 'production'] : [])], 'Vite'),
   ]);
   const elapsed = ((performance.now() - start) / 1000).toFixed(1);
   console.log(`\n✅ Build complete in ${elapsed}s\n`);
