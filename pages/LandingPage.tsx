@@ -377,7 +377,7 @@ const LandingPage: React.FC = memo(() => {
           </button>
           <button
             type="button"
-            className={`px-5 py-2.5 text-sm font-medium font-heading text-white rounded-full transition-opacity duration-200 hover:opacity-90 ${BTN_PRESS}`}
+            className={`px-5 py-2.5 text-sm font-medium font-body text-white rounded-full transition-opacity duration-200 hover:opacity-90 ${BTN_PRESS}`}
             style={{
               background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
             }}
@@ -434,7 +434,7 @@ const LandingPage: React.FC = memo(() => {
                 </button>
                 <button
                   type="button"
-                  className={`text-center px-4 py-3 text-sm font-medium font-heading text-white rounded-full ${BTN_PRESS}`}
+                  className={`text-center px-4 py-3 text-sm font-medium font-body text-white rounded-full ${BTN_PRESS}`}
                   style={{
                     background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                   }}
@@ -538,7 +538,7 @@ const LandingPage: React.FC = memo(() => {
               <button
                 type="button"
                 onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
-                className={`px-6 py-3 text-sm font-medium font-heading text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
+                className={`px-6 py-3 text-sm font-medium font-body text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
                 style={{
                   background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                 }}
@@ -1237,7 +1237,7 @@ const LandingPage: React.FC = memo(() => {
             >
               {tier.popular && (
                 <span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 text-xs font-medium font-heading text-white rounded-full"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 text-xs font-medium font-body text-white rounded-full"
                   style={{
                     background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                   }}
@@ -1249,7 +1249,7 @@ const LandingPage: React.FC = memo(() => {
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-2">
                   <tier.icon className="w-5 h-5 text-coral-burst" aria-hidden="true" />
-                  <span className="text-sm font-medium font-heading text-charcoal-soft uppercase tracking-wider">{tier.name}</span>
+                  <span className="text-sm font-medium font-body text-charcoal-soft uppercase tracking-wider">{tier.name}</span>
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-normal font-heading text-charcoal-soft">{tier.price}</span>
@@ -1278,7 +1278,7 @@ const LandingPage: React.FC = memo(() => {
               <button
                 type="button"
                 onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
-                className={`w-full py-3 text-sm font-medium font-heading rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS} ${
+                className={`w-full py-3 text-sm font-medium font-body rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS} ${
                   tier.popular ? 'text-white' : 'text-charcoal-soft border border-peach-soft'
                 }`}
                 style={
@@ -1495,7 +1495,7 @@ const LandingPage: React.FC = memo(() => {
           <div className="flex flex-wrap gap-3">
             <a
               href="mailto:support@iamazeyou.me"
-              className={`px-6 py-3 text-sm font-medium font-heading text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
+              className={`px-6 py-3 text-sm font-medium font-body text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
               style={{ background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))' }}
             >
               support@iamazeyou.me
@@ -1568,7 +1568,7 @@ const LandingPage: React.FC = memo(() => {
           <button
             type="button"
             onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
-            className={`px-8 py-4 text-base font-medium font-heading text-charcoal-soft bg-surface rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
+            className={`px-8 py-4 text-base font-medium font-body text-charcoal-soft bg-surface rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
           >
             Choose Your Realm
           </button>

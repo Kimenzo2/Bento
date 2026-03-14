@@ -595,6 +595,7 @@ const MainAppContent: React.FC = () => {
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={navigateTo} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <h1 className="sr-only">Genesis</h1>
         {/* key is on the inner div, NOT on Suspense — this way theme/language
             re-renders remount the content without re-triggering the skeleton
             (Suspense only suspends when a lazy import is actually pending). */}
