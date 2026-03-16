@@ -1,6 +1,7 @@
 import { IcoZap } from './IconscoutIcons';
 import { BookOpen, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,6 +23,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { displayName, avatarUrl } = useUserSettings();
   const navigate = useNavigate();
+  const { t } = useTranslation('navigation');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -52,7 +54,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   }, [user]);
 
   const currentUserTier = userProfile?.user_tier || UserTier.SPARK;
-  const accountLabel = displayName || user?.email?.split('@')[0] || 'Account';
+  const accountLabel = displayName || user?.email?.split('@')[0] || t('userMenu', 'Account');
 
   const tierBadge = useMemo(() => {
     switch (currentUserTier) {
@@ -68,10 +70,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   }, [currentUserTier]);
 
   const menuItems = [
-    { mode: AppMode.DASHBOARD, icon: LayoutDashboard, label: 'Home' },
-    { mode: AppMode.CREATION, icon: PenTool, label: 'Create' },
-    { mode: AppMode.EDITOR, icon: BookOpen, label: 'Editor' },
-    { mode: AppMode.VISUAL_STUDIO, icon: ImageIcon, label: 'Visual Studio' },
+    { mode: AppMode.DASHBOARD, icon: LayoutDashboard, label: t('home', 'Home') },
+    { mode: AppMode.CREATION, icon: PenTool, label: t('create', 'Create') },
+    { mode: AppMode.EDITOR, icon: BookOpen, label: t('editor', 'Editor') },
+    { mode: AppMode.VISUAL_STUDIO, icon: ImageIcon, label: t('visualStudio', 'Visual Studio') },
   ];
 
   const handleModeChange = (mode: AppMode) => {
@@ -127,7 +129,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             size="icon"
             onClick={toggleDarkMode}
             className="rounded-full w-10 h-10 bg-surface/50 border-peach-soft hover:bg-surface"
-            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={isDarkMode ? t('lightMode', 'Switch to Light Mode') : t('darkMode', 'Switch to Dark Mode')}
           >
             {isDarkMode ? (
               <Sun className="w-5 h-5 text-gold-sunshine" />
@@ -157,7 +159,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               {tierBadge.label.charAt(0)}
             </Badge>
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">Plan</span>
+              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">{t('plan', 'Plan')}</span>
               <span className="text-xs font-bold text-charcoal-soft leading-none">{tierBadge.label}</span>
             </div>
           </Button>
@@ -168,10 +170,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               size="sm"
               onClick={() => handleModeChange(AppMode.PRICING)}
               className="rounded-full ring-2 ring-gold-sunshine/40"
-              aria-label="Upgrade"
+              aria-label={t('common:upgrade', 'Upgrade')}
             >
               <IcoZap className="w-4 h-4 fill-white" />
-              Upgrade
+              {t('common:upgrade', 'Upgrade')}
             </Button>
           )}
 
@@ -179,7 +181,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             variant="outline"
             onClick={() => handleModeChange(AppMode.SETTINGS)}
             className="flex p-2 md:pl-2 md:pr-4 md:py-2 rounded-full bg-surface border border-peach-soft hover:border-coral-burst/30 group min-h-11"
-            aria-label="Account"
+            aria-label={t('userMenu', 'Account')}
           >
             <Avatar className="w-8 h-8 group-hover:scale-110 transition-transform">
               <AvatarImage src={avatarUrl || undefined} alt="Avatar" />
@@ -197,7 +199,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             size="icon"
             onClick={() => setIsMobileMenuOpen((open) => !open)}
             className="lg:hidden min-h-11 text-charcoal-soft hover:text-coral-burst"
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={isMobileMenuOpen ? t('closeMenu', 'Close menu') : t('openMenu', 'Open menu')}
           >
             {isMobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
           </Button>
@@ -212,24 +214,24 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
           size="xl"
           onClick={() => handleModeChange(AppMode.PRICING)}
           className="w-full rounded-2xl text-lg mb-4"
-          aria-label="Upgrade to Premium"
+          aria-label={t('upgradePremium', 'Upgrade to Premium')}
         >
           <IcoZap className="w-6 h-6 fill-white" />
-          Upgrade to Premium
+          {t('upgradePremium', 'Upgrade to Premium')}
         </Button>
 
         <Button
           variant="outline"
           onClick={() => handleModeChange(AppMode.GAMIFICATION)}
           className="w-full flex justify-between px-6 py-4 bg-surface border border-peach-soft rounded-2xl min-h-16"
-          aria-label="Open gamification"
+          aria-label={t('gamification', 'Rewards')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gold-sunshine text-white flex items-center justify-center font-bold text-lg">
               {gameState?.level ?? 1}
             </div>
             <div className="text-left">
-              <div className="font-bold text-charcoal-soft">{gameState?.levelTitle ?? 'Aspiring Author'}</div>
+              <div className="font-bold text-charcoal-soft">{gameState?.levelTitle ?? t('aspiringAuthor', 'Aspiring Author')}</div>
               <div className="text-xs text-cocoa-light">{gameState?.currentXP ?? 0} / {gameState?.nextLevelXP ?? 100} XP</div>
             </div>
           </div>

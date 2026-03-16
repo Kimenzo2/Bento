@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "आपकी योजना प्रति पुस्तक {{count}} पृष्ठों तक की अनुमति देती है। और अधिक के लिए अपग्रेड करें!",
+  "monthlyLimitExceeded": "आपने इस महीने सभी {{count}} पुस्तकों का उपयोग कर लिया है। और अधिक के लिए अपग्रेड करें!",
+  "generationFailed": "पुस्तक निर्माण विफल।",
+  "saveFailed": "पुस्तक बनाई गई, लेकिन स्वचालित पुस्तकालय सहेजना विफल रहा। आप इसे अभी संपादित कर सकते हैं।",
+  "generationError": "प्रोजेक्ट जनरेट करने में विफल: {{message}}"
 }

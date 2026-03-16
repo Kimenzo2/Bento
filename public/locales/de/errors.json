@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "Dein Plan erlaubt bis zu {{count}} Seiten pro Buch. Upgrade für mehr!",
+  "monthlyLimitExceeded": "Du hast alle {{count}} Bücher diesen Monat verwendet. Upgrade für mehr!",
+  "generationFailed": "Bucherstellung fehlgeschlagen.",
+  "saveFailed": "Buch erstellt, aber automatisches Speichern in der Bibliothek fehlgeschlagen. Du kannst es jetzt bearbeiten.",
+  "generationError": "Projekterstellung fehlgeschlagen: {{message}}"
 }

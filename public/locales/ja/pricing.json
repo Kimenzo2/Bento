@@ -4,5 +4,6 @@
   "pro": "Pro",
   "enterprise": "Enterprise",
   "subscribe": "Subscribe",
-  "currentPlan": "Current Plan"
+  "currentPlan": "Current Plan",
+  "tierWelcome": "{{tier}}プランへようこそ！"
 }

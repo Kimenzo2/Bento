@@ -362,6 +362,14 @@ html[dir="rtl"] select {
   font-family: "Noto Sans Arabic Variable", var(--font-body), system-ui, sans-serif;
 }
 
+/* RTL layout overrides — mirror text alignment and direction */
+html[dir="rtl"] {
+  direction: rtl;
+}
+html[dir="rtl"] body {
+  text-align: right;
+}
+
 /* Global cursor styles for interactive elements */
 button,
 a,

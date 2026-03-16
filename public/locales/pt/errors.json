@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "Seu plano permite até {{count}} páginas por livro. Atualize para mais!",
+  "monthlyLimitExceeded": "Você usou todos os {{count}} livros deste mês. Atualize para mais!",
+  "generationFailed": "A geração do livro falhou.",
+  "saveFailed": "Livro gerado, mas o salvamento automático na biblioteca falhou. Você pode editá-lo agora.",
+  "generationError": "Falha ao gerar o projeto: {{message}}"
 }

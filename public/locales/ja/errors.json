@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "お使いのプランでは1冊あたり{{count}}ページまでです。アップグレードしてもっと作りましょう！",
+  "monthlyLimitExceeded": "今月の{{count}}冊をすべて使い切りました。アップグレードしてもっと作りましょう！",
+  "generationFailed": "本の生成に失敗しました。",
+  "saveFailed": "本は生成されましたが、ライブラリへの自動保存に失敗しました。今すぐ編集できます。",
+  "generationError": "プロジェクトの生成に失敗しました：{{message}}"
 }

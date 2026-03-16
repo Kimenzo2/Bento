@@ -77,5 +77,29 @@
   "public": "Public",
   "draft": "Draft",
   "published": "Published",
-  "archived": "Archived"
+  "archived": "Archived",
+  "aspiringAuthor": "Aspiring Author",
+  "landing": {
+    "badge": "Start free with Spark",
+    "heroLine1": "Write the story.",
+    "heroLine2": "Genesis illustrates every page.",
+    "subheadline": "Every scene painted. Every character remembered.",
+    "subheadline2": "Your story, finished.",
+    "getStarted": "Get Started",
+    "chooseRealm": "Choose Your Realm",
+    "comparePlans": "Compare Plans",
+    "contactSupport": "Contact Support",
+    "pillFree": "Start free with Spark",
+    "pillCommercial": "Commercial use on paid tiers",
+    "pillExport": "Export to PDF and ebook",
+    "navRealms": "Choose a realm",
+    "navFeatures": "What you can create",
+    "navUseCases": "Use cases",
+    "navFaq": "FAQ",
+    "navSupport": "Support",
+    "howItWorks": "How Genesis works",
+    "whatYouCanCreate": "What you can create with Genesis",
+    "whyStandsOut": "Why Genesis stands out",
+    "chooseJourney": "Choose your creative journey"
+  }
 }

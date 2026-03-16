@@ -14,6 +14,7 @@
 
 import type React from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
 import {
   ArrowRight,
@@ -273,6 +274,7 @@ const LandingPage: React.FC = memo(() => {
   const [scrolled, setScrolled] = useState(false);
   const { currentTheme, isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   // Extract the dark-mode CSS variables from the ACTIVE theme.
   // This allows dark sections (Education, Footer) to use the correct
@@ -314,11 +316,11 @@ const LandingPage: React.FC = memo(() => {
   }, []);
 
   const navLinks = [
-    { label: 'Choose a realm', id: 'realms' },
-    { label: 'What you can create', id: 'features' },
-    { label: 'Use cases', id: 'use-cases' },
-    { label: 'FAQ', id: 'faq' },
-    { label: 'Support', id: 'support' },
+    { label: t('landing.navRealms', 'Choose a realm'), id: 'realms' },
+    { label: t('landing.navFeatures', 'What you can create'), id: 'features' },
+    { label: t('landing.navUseCases', 'Use cases'), id: 'use-cases' },
+    { label: t('landing.navFaq', 'FAQ'), id: 'faq' },
+    { label: t('landing.navSupport', 'Support'), id: 'support' },
   ];
 
   // =========================================================================
@@ -373,7 +375,7 @@ const LandingPage: React.FC = memo(() => {
             onClick={() => navigate('/auth')}
             className="px-4 py-2 text-sm font-semibold font-body text-charcoal-soft rounded-full transition-colors duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
           >
-            Sign In
+            {t('navigation:login', 'Sign In')}
           </button>
           <button
             type="button"
@@ -383,7 +385,7 @@ const LandingPage: React.FC = memo(() => {
             }}
             onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
           >
-            Get Started
+            {t('landing.getStarted', 'Get Started')}
           </button>
         </div>
 
@@ -392,7 +394,7 @@ const LandingPage: React.FC = memo(() => {
           type="button"
           className="md:hidden p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-lg"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-label={mobileMenuOpen ? t('navigation:closeMenu', 'Close menu') : t('navigation:openMenu', 'Open menu')}
           aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
@@ -430,7 +432,7 @@ const LandingPage: React.FC = memo(() => {
                   onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
                   className="text-center px-4 py-3 text-sm font-semibold text-charcoal-soft border border-peach-soft rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
                 >
-                  Sign In
+                  {t('navigation:login', 'Sign In')}
                 </button>
                 <button
                   type="button"
@@ -443,7 +445,7 @@ const LandingPage: React.FC = memo(() => {
                     navigate('/auth?returnTo=/welcome/onboarding');
                   }}
                 >
-                  Get Started
+                  {t('landing.getStarted', 'Get Started')}
                 </button>
               </div>
             </div>
@@ -500,7 +502,7 @@ const LandingPage: React.FC = memo(() => {
                 }}
               >
                 <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-                Start free with Spark
+                {t('landing.badge', 'Start free with Spark')}
               </span>
             </motion.div>
 
@@ -509,7 +511,7 @@ const LandingPage: React.FC = memo(() => {
               variants={fadeUp}
               className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-[-0.01em] leading-[1.15] mb-5 font-heading text-charcoal-soft"
             >
-              Write the story.
+              {t('landing.heroLine1', 'Write the story.')}
               <br />
               <span
                 style={{
@@ -519,7 +521,7 @@ const LandingPage: React.FC = memo(() => {
                   backgroundClip: 'text',
                 }}
               >
-                Genesis illustrates every page.
+                {t('landing.heroLine2', 'Genesis illustrates every page.')}
               </span>
             </motion.h1>
 
@@ -528,9 +530,9 @@ const LandingPage: React.FC = memo(() => {
               variants={fadeUp}
               className="text-base md:text-lg leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0 font-body text-cocoa-light"
             >
-              Every scene painted. Every character remembered.
+              {t('landing.subheadline', 'Every scene painted. Every character remembered.')}
               <br className="hidden md:block" />
-              <span className="text-charcoal-soft">Your story, finished.</span>
+              <span className="text-charcoal-soft">{t('landing.subheadline2', 'Your story, finished.')}</span>
             </motion.p>
 
             {/* CTAs */}
@@ -543,26 +545,26 @@ const LandingPage: React.FC = memo(() => {
                   background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                 }}
               >
-                Choose Your Realm
+                {t('landing.chooseRealm', 'Choose Your Realm')}
               </button>
               <button
                 type="button"
                 onClick={() => scrollTo('pricing')}
                 className={`px-6 py-3 text-sm font-semibold font-body text-charcoal-soft border border-peach-soft rounded-full transition-colors hover:opacity-80 ${BTN_PRESS}`}
               >
-                Compare Plans
+                {t('landing.comparePlans', 'Compare Plans')}
               </button>
               <a
                 href="mailto:support@iamazeyou.me"
                 className="px-6 py-3 text-sm font-semibold font-body text-cocoa-light rounded-full transition-colors hover:opacity-80"
               >
-                Contact Support
+                {t('landing.contactSupport', 'Contact Support')}
               </a>
             </motion.div>
 
             {/* Social proof pills */}
             <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-6">
-              {['Start free with Spark', 'Commercial use on paid tiers', 'Export to PDF and ebook'].map((pill) => (
+              {[t('landing.pillFree', 'Start free with Spark'), t('landing.pillCommercial', 'Commercial use on paid tiers'), t('landing.pillExport', 'Export to PDF and ebook')].map((pill) => (
                 <span
                   key={pill}
                   className="px-3 py-1.5 text-xs font-body text-cocoa-light border border-peach-soft rounded-full"
@@ -715,7 +717,7 @@ const LandingPage: React.FC = memo(() => {
     <Section id="how-it-works" className="py-20 md:py-28" aria-labelledby="how-heading">
       <div className="text-center mb-12">
         <motion.h2 {...fadeUp} id="how-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
-          How Genesis works
+          {t('landing.howItWorks', 'How Genesis works')}
         </motion.h2>
       </div>
 
@@ -823,7 +825,7 @@ const LandingPage: React.FC = memo(() => {
       />
       <div className="text-center mb-12">
         <motion.h2 {...fadeUp} id="features-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
-          What you can create with Genesis
+          {t('landing.whatYouCanCreate', 'What you can create with Genesis')}
         </motion.h2>
         <motion.p {...fadeUp} className="text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-body text-cocoa-light">
           Genesis is not a generic image box. It is a guided AI workspace for story creation, visual education, character design, and export-ready publishing.
@@ -933,7 +935,7 @@ const LandingPage: React.FC = memo(() => {
     <Section className="py-20 md:py-28" aria-labelledby="diff-heading">
       <div className="text-center mb-12">
         <motion.h2 {...fadeUp} id="diff-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
-          Why Genesis stands out
+          {t('landing.whyStandsOut', 'Why Genesis stands out')}
         </motion.h2>
       </div>
 
@@ -1213,7 +1215,7 @@ const LandingPage: React.FC = memo(() => {
     <Section id="pricing" className="py-20 md:py-28" aria-labelledby="pricing-heading">
       <div className="text-center mb-12">
         <motion.h2 {...fadeUp} id="pricing-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
-          Choose your creative journey
+          {t('landing.chooseJourney', 'Choose your creative journey')}
         </motion.h2>
         <motion.p {...fadeUp} className="text-base md:text-lg font-body text-cocoa-light">
           Join 100,000+ creators making beautiful books today.

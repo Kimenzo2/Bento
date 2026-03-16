@@ -3,5 +3,7 @@
   "newBook": "New Book",
   "newStory": "New Story",
   "generate": "Generate",
-  "generating": "Generating..."
+  "generating": "Generating...",
+  "startingGeneration": "पुस्तक निर्माण शुरू हो रहा है...",
+  "generatingBook": "आपकी पुस्तक बनाई जा रही है..."
 }

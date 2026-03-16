@@ -44,5 +44,11 @@
   "blueprintReview": "Blueprint Review",
   "creationCanvas": "Creation Canvas",
   "generationTheater": "Generation Theater",
-  "smartEditor": "Smart Editor"
+  "smartEditor": "Smart Editor",
+  "editor": "Editor",
+  "lightMode": "Switch to Light Mode",
+  "darkMode": "Switch to Dark Mode",
+  "plan": "Plan",
+  "upgradePremium": "Upgrade to Premium",
+  "aspiringAuthor": "Aspiring Author"
 }

@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "خطتك تسمح بـ {{count}} صفحة لكل كتاب. قم بالترقية للمزيد!",
+  "monthlyLimitExceeded": "لقد استخدمت كل {{count}} كتب هذا الشهر. قم بالترقية للمزيد!",
+  "generationFailed": "فشل إنشاء الكتاب.",
+  "saveFailed": "تم إنشاء الكتاب، لكن الحفظ التلقائي في المكتبة فشل. يمكنك تحريره الآن.",
+  "generationError": "فشل إنشاء المشروع: {{message}}"
 }

@@ -3,5 +3,7 @@
   "newBook": "New Book",
   "newStory": "New Story",
   "generate": "Generate",
-  "generating": "Generating..."
+  "generating": "Generating...",
+  "startingGeneration": "正在开始生成书籍...",
+  "generatingBook": "正在生成您的书籍..."
 }

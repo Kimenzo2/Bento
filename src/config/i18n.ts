@@ -10,7 +10,13 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import HttpBackend from 'i18next-http-backend';
 import { initReactI18next } from 'react-i18next';
 
-import { FALLBACK_LANGUAGE, LANGUAGE_STORAGE_KEY, TRANSLATION_NAMESPACES } from './languages';
+import {
+  FALLBACK_LANGUAGE,
+  LANGUAGE_STORAGE_KEY,
+  TRANSLATION_NAMESPACES,
+  getLanguageByCode,
+} from './languages';
+import type { LanguageCode } from '../types/language.d';
 
 // Initialize i18next with error handling
 const initPromise = i18n
@@ -142,6 +148,29 @@ const initPromise = i18n
   .catch((err) => {
     console.error('[i18n] Initialization failed:', err);
   });
+
+// Synchronize document attributes whenever the language changes.
+// This fires at the i18n layer — before React re-renders — so the
+// <html> element gets the correct dir/lang/data-language immediately.
+const RTL_LANGUAGES = new Set(['ar']);
+
+i18n.on('languageChanged', (lng: string) => {
+  const html = document.documentElement;
+  const lang = getLanguageByCode(lng as LanguageCode);
+  const dir = lang?.isRTL ? 'rtl' : 'ltr';
+
+  html.setAttribute('lang', lng);
+  html.setAttribute('dir', dir);
+  html.setAttribute('data-language', lng);
+
+  if (RTL_LANGUAGES.has(lng)) {
+    html.classList.add('rtl');
+    html.classList.remove('ltr');
+  } else {
+    html.classList.add('ltr');
+    html.classList.remove('rtl');
+  }
+});
 
 // Export the initialization promise for components that need to wait
 export const i18nReady = initPromise;

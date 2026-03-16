@@ -7,6 +7,9 @@ import { IntegrationsProvider } from './contexts/IntegrationsContext';
 import { Button } from './components/ui/button';
 import './index.css';
 
+// Initialize i18n before React renders — sets dir/lang on <html> immediately
+import './src/config/i18n';
+
 // Log app initialization for debugging (only in development)
 if (import.meta.env.DEV) {
   console.warn('[Genesis] Application starting - Mode:', import.meta.env.MODE);

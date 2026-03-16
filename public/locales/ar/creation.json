@@ -3,5 +3,7 @@
   "newBook": "New Book",
   "newStory": "New Story",
   "generate": "Generate",
-  "generating": "Generating..."
+  "generating": "Generating...",
+  "startingGeneration": "بدء إنشاء الكتاب...",
+  "generatingBook": "جارٍ إنشاء كتابك..."
 }

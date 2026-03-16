@@ -73,6 +73,9 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     // Set direction attribute
     html.setAttribute('dir', language.direction);
 
+    // Set data-language for CSS selectors
+    html.setAttribute('data-language', language.code);
+
     // Add RTL class for Tailwind utilities
     if (language.isRTL) {
       html.classList.add('rtl');

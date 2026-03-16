@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "Your plan allows up to {{count}} pages per book. Upgrade for more!",
+  "monthlyLimitExceeded": "You've used all {{count}} books this month. Upgrade for more!",
+  "generationFailed": "Book generation failed.",
+  "saveFailed": "Book generated, but automatic library save failed. You can still edit it now.",
+  "generationError": "Failed to generate project: {{message}}"
 }

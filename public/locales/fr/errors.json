@@ -67,5 +67,10 @@
   "contactSupport": "Contact Support",
   "reportProblem": "Report Problem",
   "errorCode": "Error code: {{code}}",
-  "errorId": "Error ID: {{id}}"
+  "errorId": "Error ID: {{id}}",
+  "pageLimitExceeded": "Votre plan permet jusqu'à {{count}} pages par livre. Mettez à niveau pour plus !",
+  "monthlyLimitExceeded": "Vous avez utilisé vos {{count}} livres ce mois-ci. Mettez à niveau pour plus !",
+  "generationFailed": "La génération du livre a échoué.",
+  "saveFailed": "Livre généré, mais la sauvegarde automatique a échoué. Vous pouvez le modifier maintenant.",
+  "generationError": "Échec de la génération du projet : {{message}}"
 }

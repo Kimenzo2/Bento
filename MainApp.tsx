@@ -15,6 +15,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import type React from 'react';
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Route, Routes, useLocation, useNavigate } from 'react-router';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPWA from './components/InstallPWA';
@@ -114,6 +115,9 @@ function modeFromPathname(pathname: string): AppMode {
 const MainAppContent: React.FC = () => {
   // Initialize Google One Tap
   useGoogleOneTap();
+
+  // Translation
+  const { t } = useTranslation('common');
 
   // Initialize Vercel Speed Insights
   useEffect(() => {
@@ -273,7 +277,7 @@ const MainAppContent: React.FC = () => {
   // Clean default — no hardcoded badges/challenges; GamificationHub fetches live data from DB
   const gamificationState: GamificationState = userProfile?.gamification_data || {
     level: 1,
-    levelTitle: 'Aspiring Author',
+    levelTitle: t('aspiringAuthor', 'Aspiring Author'),
     currentXP: 0,
     nextLevelXP: 100,
     booksCreatedCount: 0,
@@ -290,7 +294,7 @@ const MainAppContent: React.FC = () => {
     // Check page limit
     if (!isUnlimited(ent.pages_per_book) && settings.pageCount > ent.pages_per_book) {
       setShowUpgradeModal(true);
-      addToast(`Your plan allows up to ${ent.pages_per_book} pages per book. Upgrade for more!`, 'error');
+      addToast(t('errors:pageLimitExceeded', { count: ent.pages_per_book, defaultValue: `Your plan allows up to ${ent.pages_per_book} pages per book. Upgrade for more!` }), 'error');
       return false;
     }
 
@@ -300,7 +304,7 @@ const MainAppContent: React.FC = () => {
         const usage = await getCurrentMonthUsage(user.id);
         if (usage >= ent.books_per_month) {
           setShowUpgradeModal(true);
-          addToast(`You've used all ${ent.books_per_month} books this month. Upgrade for more!`, 'error');
+          addToast(t('errors:monthlyLimitExceeded', { count: ent.books_per_month, defaultValue: `You've used all ${ent.books_per_month} books this month. Upgrade for more!` }), 'error');
           return false;
         }
       } catch {
@@ -353,7 +357,7 @@ const MainAppContent: React.FC = () => {
     generationCancelRef.current?.();
     setIsGenerating(true);
     setGenerationProgress(0);
-    setGenerationStatus('Starting book generation...');
+    setGenerationStatus(t('creation:startingGeneration', 'Starting book generation...'));
     setActiveWorkflowId(null);
 
     try {
@@ -377,7 +381,7 @@ const MainAppContent: React.FC = () => {
           }
 
           setGenerationProgress(Math.max(0, Math.min(100, event.percent)));
-          setGenerationStatus(event.message || 'Generating your book...');
+          setGenerationStatus(event.message || t('creation:generatingBook', 'Generating your book...'));
         },
         (result) => {
           if (cancelledByUserRef.current) {
@@ -391,7 +395,7 @@ const MainAppContent: React.FC = () => {
               setShowUpgradeModal(true);
             }
 
-            addToast(result.message || result.error || 'Book generation failed.', 'error');
+            addToast(result.message || result.error || t('errors:generationFailed', 'Book generation failed.'), 'error');
             resetGenerationState();
             return;
           }
@@ -400,7 +404,7 @@ const MainAppContent: React.FC = () => {
 
           if (result.saved === false) {
             addToast(
-              'Book generated, but automatic library save failed. You can still edit it now.',
+              t('errors:saveFailed', 'Book generated, but automatic library save failed. You can still edit it now.'),
               'warning'
             );
           }
@@ -422,7 +426,7 @@ const MainAppContent: React.FC = () => {
             setShowUpgradeModal(true);
           }
 
-          addToast(`Failed to generate project: ${error.message || 'Unknown error'}`, 'error');
+          addToast(t('errors:generationError', { message: error.message || 'Unknown error', defaultValue: `Failed to generate project: ${error.message || 'Unknown error'}` }), 'error');
           resetGenerationState();
         }
       );
@@ -431,7 +435,7 @@ const MainAppContent: React.FC = () => {
     } catch (error) {
       console.error('Generation failed', error);
       addToast(
-        `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        t('errors:generationError', { message: error instanceof Error ? error.message : 'Unknown error', defaultValue: `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}` }),
         'error'
       );
       resetGenerationState();
@@ -454,7 +458,7 @@ const MainAppContent: React.FC = () => {
     const profile = await getUserProfile();
     setUserProfile(profile);
     setShowUpgradeModal(false);
-    addToast(`Welcome to the ${newTier} tier!`, 'success');
+    addToast(t('pricing:tierWelcome', { tier: newTier, defaultValue: `Welcome to the ${newTier} tier!` }), 'success');
   };
 
   const renderContent = () => {
@@ -595,7 +599,7 @@ const MainAppContent: React.FC = () => {
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={navigateTo} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <h1 className="sr-only">Genesis</h1>
+        <h1 className="sr-only">{t('common:appName', 'Genesis')}</h1>
         {/* key is on the inner div, NOT on Suspense — this way theme/language
             re-renders remount the content without re-triggering the skeleton
             (Suspense only suspends when a lazy import is actually pending). */}

@@ -4,5 +4,6 @@
   "pro": "Pro",
   "enterprise": "Enterprise",
   "subscribe": "Subscribe",
-  "currentPlan": "Current Plan"
+  "currentPlan": "Current Plan",
+  "tierWelcome": "欢迎加入{{tier}}等级！"
 }
