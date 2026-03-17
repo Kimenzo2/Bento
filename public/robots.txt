@@ -37,6 +37,8 @@ Disallow: /viewer
 Disallow: /curriculum
 Disallow: /pricing
 Disallow: /payment-callback
+Disallow: /infographics
+Disallow: /account
 
 # Sitemap
 Sitemap: https://iamazeyou.me/sitemap.xml

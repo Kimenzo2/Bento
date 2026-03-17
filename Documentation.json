@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Genesis",
+  "description": "AI Visual Storytelling Platform - Create illustrated stories, character worlds, and visual learning content",
+  "version": "2.0.0",
+  "url": "https://iamazeyou.me",
+  "repository": "https://github.com/Kimenzo/Genesis",
+  "lastUpdated": "2026-03-17",
+  "architecture": {
+    "type": "Single Page Application (SPA)",
+    "framework": "React 18",
+    "bundler": "Vite",
+    "hosting": "Vercel",
+    "database": "Supabase (PostgreSQL)",
+    "authentication": "Supabase Auth",
+    "payments": "Dodo Payments",
+    "ai": {
+      "textGeneration": "Google Gemini",
+      "imageGeneration": "Multiple providers"
+    }
+  },
+  "routes": {
+    "public": [
+      {
+        "path": "/welcome",
+        "component": "LandingPage",
+        "description": "Main landing page with realm selection",
+        "priority": 1.0
+      },
+      {
+        "path": "/auth",
+        "component": "AuthPage",
+        "description": "Sign in and sign up page",
+        "priority": 0.4
+      },
+      {
+        "path": "/blog",
+        "component": "BlogIndex",
+        "description": "Blog listing page",
+        "priority": 0.8
+      },
+      {
+        "path": "/blog/:slug",
+        "component": "BlogPost",
+        "description": "Individual blog post",
+        "priority": 0.7
+      },
+      {
+        "path": "/learn",
+        "component": "LearnPage",
+        "description": "Knowledge base and tutorials",
+        "priority": 0.8
+      },
+      {
+        "path": "/learn/:slug",
+        "component": "LearnArticlePage",
+        "description": "Individual learn article",
+        "priority": 0.7
+      },
+      {
+        "path": "/transparency",
+        "component": "TransparencyPage",
+        "description": "AI transparency and data handling",
+        "priority": 0.6
+      },
+      {
+        "path": "/tier/creator",
+        "component": "TierDetailPage",
+        "description": "Creator plan details ($19.99/mo)",
+        "priority": 0.7
+      },
+      {
+        "path": "/tier/studio",
+        "component": "TierDetailPage",
+        "description": "Studio plan details ($59.99/mo)",
+        "priority": 0.7
+      },
+      {
+        "path": "/tier/empire",
+        "component": "TierDetailPage",
+        "description": "Empire plan details ($199.99/mo)",
+        "priority": 0.7
+      },
+      {
+        "path": "/legal",
+        "component": "LegalViewer",
+        "description": "Legal information hub",
+        "priority": 0.3
+      },
+      {
+        "path": "/legal/privacy",
+        "component": "PrivacyPage",
+        "description": "Privacy policy",
+        "priority": 0.3
+      },
+      {
+        "path": "/legal/terms",
+        "component": "TermsPage",
+        "description": "Terms of service",
+        "priority": 0.3
+      },
+      {
+        "path": "/legal/cookies",
+        "component": "CookiePolicyPage",
+        "description": "Cookie policy",
+        "priority": 0.3
+      },
+      {
+        "path": "/legal/acceptable-use",
+        "component": "AcceptableUsePage",
+        "description": "Acceptable use policy",
+        "priority": 0.3
+      },
+      {
+        "path": "/privacy",
+        "component": "PrivacyPage",
+        "description": "Privacy policy (shortcut)",
+        "priority": 0.3
+      },
+      {
+        "path": "/terms",
+        "component": "TermsPage",
+        "description": "Terms of service (shortcut)",
+        "priority": 0.3
+      },
+      {
+        "path": "/cookies",
+        "component": "CookiePolicyPage",
+        "description": "Cookie policy (shortcut)",
+        "priority": 0.3
+      },
+      {
+        "path": "/acceptable-use",
+        "component": "AcceptableUsePage",
+        "description": "Acceptable use policy (shortcut)",
+        "priority": 0.3
+      }
+    ],
+    "protected": [
+      {
+        "path": "/",
+        "component": "CreationCanvas",
+        "description": "Main dashboard and creation interface"
+      },
+      {
+        "path": "/create",
+        "component": "CreationCanvas",
+        "description": "Story and content creation workspace"
+      },
+      {
+        "path": "/visual-studio",
+        "component": "VisualStudio",
+        "description": "AI image refinement and editing"
+      },
+      {
+        "path": "/editor",
+        "component": "SmartEditor",
+        "description": "Text and content editor"
+      },
+      {
+        "path": "/infographics",
+        "component": "InfographicsPage",
+        "description": "Infographic creation wizard"
+      },
+      {
+        "path": "/settings",
+        "component": "SettingsPanel",
+        "description": "User settings and preferences"
+      },
+      {
+        "path": "/pricing",
+        "component": "PricingPage",
+        "description": "Subscription plans and pricing"
+      },
+      {
+        "path": "/gamification",
+        "component": "GamificationHub",
+        "description": "Achievements and rewards"
+      },
+      {
+        "path": "/account",
+        "component": "AccountPage",
+        "description": "Account management"
+      },
+      {
+        "path": "/success",
+        "component": "BookSuccessView",
+        "description": "Book creation success page"
+      },
+      {
+        "path": "/viewer",
+        "component": "StorybookViewer",
+        "description": "Book viewer"
+      },
+      {
+        "path": "/shared/:shortCode",
+        "component": "SharedBookViewer",
+        "description": "Shared book public viewer"
+      }
+    ]
+  },
+  "features": {
+    "creativeRealms": [
+      {
+        "id": "cosmos",
+        "name": "The Cosmos",
+        "description": "Space, galaxies, and science-inspired visual stories"
+      },
+      {
+        "id": "kingdom",
+        "name": "The Kingdom",
+        "description": "Fantasy, knights, dragons, and enchanted worlds"
+      },
+      {
+        "id": "cell",
+        "name": "The Cell",
+        "description": "Biology, microscopic universe, and science education"
+      }
+    ],
+    "visualStyles": [
+      "watercolor",
+      "pixel-art",
+      "anime",
+      "cyberpunk",
+      "realistic",
+      "sketch",
+      "corporate-diagram",
+      "childrens-book",
+      "comic-book",
+      "fantasy-art",
+      "sci-fi",
+      "minimalist",
+      "vintage",
+      "pop-art",
+      "impressionist",
+      "abstract",
+      "3d-render",
+      "isometric",
+      "line-art",
+      "storyboard"
+    ],
+    "exports": ["PDF", "eBook (EPUB)", "PNG", "Share Link"],
+    "aiCompanion": {
+      "name": "Gen",
+      "capabilities": [
+        "Guided story creation",
+        "Character consistency",
+        "Narrative branching",
+        "Context memory",
+        "Style recommendations"
+      ]
+    }
+  },
+  "subscriptionTiers": [
+    {
+      "id": "spark",
+      "name": "Spark",
+      "price": 0,
+      "currency": "USD",
+      "billing": "free",
+      "features": [
+        "3 creations per month",
+        "Basic visual styles",
+        "Community gallery access",
+        "Personal use only"
+      ]
+    },
+    {
+      "id": "creator",
+      "name": "Creator",
+      "price": 19.99,
+      "currency": "USD",
+      "billing": "monthly",
+      "features": [
+        "30 creations per month",
+        "12 pages per creation",
+        "No watermarks",
+        "Commercial license",
+        "20+ visual styles",
+        "PDF and eBook export",
+        "Priority AI generation"
+      ]
+    },
+    {
+      "id": "studio",
+      "name": "Studio",
+      "price": 59.99,
+      "currency": "USD",
+      "billing": "monthly",
+      "features": [
+        "Unlimited creations",
+        "All visual styles",
+        "Curriculum tools",
+        "Team access",
+        "Collaborative editing",
+        "Advanced export formats",
+        "Priority support"
+      ]
+    },
+    {
+      "id": "empire",
+      "name": "Empire",
+      "price": 199.99,
+      "currency": "USD",
+      "billing": "monthly",
+      "features": [
+        "Unlimited team seats",
+        "API access",
+        "White-label options",
+        "Dedicated account manager",
+        "Advanced analytics",
+        "SLA-backed uptime",
+        "Custom integrations"
+      ]
+    }
+  ],
+  "api": {
+    "endpoints": [
+      {
+        "path": "/api/dodo",
+        "method": "POST",
+        "description": "Dodo payment webhook handler",
+        "frozen": true
+      },
+      {
+        "path": "/api/dodo-webhook",
+        "method": "POST",
+        "description": "Dodo webhook endpoint (alternate path)",
+        "frozen": true
+      }
+    ],
+    "notes": "api/dodo.ts is FROZEN - do not modify without owner approval"
+  },
+  "database": {
+    "provider": "Supabase",
+    "tables": [
+      "profiles",
+      "payment_history",
+      "processed_webhooks",
+      "books",
+      "book_pages",
+      "infographics",
+      "saved_images"
+    ],
+    "securityNotes": [
+      "RLS policies must use (SELECT auth.uid()) not bare auth.uid()",
+      "Do not drop or rename columns referenced by api/dodo.ts",
+      "Do not drop or rename columns referenced by apply_dodo_webhook_profile_sync trigger"
+    ]
+  },
+  "seo": {
+    "sitemap": "/sitemap.xml",
+    "robots": "/robots.txt",
+    "llmsTxt": "/llms.txt",
+    "structuredData": [
+      "WebApplication",
+      "WebSite",
+      "Organization",
+      "BreadcrumbList",
+      "FAQPage",
+      "Product (ItemList)"
+    ],
+    "dynamicMetaTags": true,
+    "routeAwareSEO": "Inline script in index.html sets canonical, title, description per route before React loads"
+  },
+  "i18n": {
+    "defaultLocale": "en",
+    "supportedLocales": ["en", "es", "fr", "de", "pt", "zh", "ja", "ko", "ar"],
+    "implementation": "React context with JSON translation files"
+  },
+  "pwa": {
+    "enabled": true,
+    "serviceWorker": "Workbox via vite-plugin-pwa",
+    "manifest": "Auto-injected at build time",
+    "offlineSupport": true
+  },
+  "deployment": {
+    "platform": "Vercel",
+    "config": "vercel.json",
+    "criticalSettings": {
+      "trailingSlash": false,
+      "note": "Setting trailingSlash to true breaks webhook delivery"
+    }
+  },
+  "frozenFiles": [
+    "api/dodo.ts",
+    "vercel.json (trailingSlash setting)"
+  ],
+  "contacts": {
+    "support": "support@iamazeyou.me",
+    "website": "https://iamazeyou.me"
+  }
+}

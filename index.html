@@ -20,7 +20,7 @@
   <meta property="og:image:width" content="1920" />
   <meta property="og:image:height" content="990" />
   <meta property="og:image:type" content="image/webp" />
-  <meta property="og:url" content="https://iamazeyou.me/welcome" />
+  <meta property="og:url" content="https://iamazeyou.me/" />
   <meta property="og:site_name" content="Genesis" />
 
   <!-- Twitter Card -->
@@ -33,7 +33,49 @@
 
   <!-- Additional SEO Meta Tags -->
   <meta name="application-name" content="Genesis" />
-  <link rel="canonical" href="https://iamazeyou.me/welcome" />
+  <link rel="canonical" href="https://iamazeyou.me/" />
+
+  <!-- Inline route-aware SEO: sets correct canonical, title, description BEFORE React loads.
+       This ensures Googlebot sees unique metadata per page on initial HTML parse,
+       even before the JS framework renders. Critical for SPA indexing. -->
+  <script>
+  (function(){
+    var p=location.pathname,b='https://iamazeyou.me',r={
+      '/welcome':['Genesis | AI Visual Storytelling for the Next Generation','Create illustrated stories, character worlds, and visual learning content with Genesis AI. Choose Cosmos, Kingdom, or Cell — start free.'],
+      '/auth':['Sign In — Genesis','Sign in or create your Genesis account to start creating AI-powered visual stories.'],
+      '/blog':['Blog — Genesis AI Visual Storytelling','Insights, comparisons, and guides on AI-powered visual storytelling, character design, and illustrated content creation.'],
+      '/learn':['Learn — Genesis AI Visual Storytelling','Tutorials and guides for creating AI-powered illustrated books, character designs, and visual learning content.'],
+      '/transparency':['Transparency — Genesis','How Genesis uses AI, handles your data, and our commitment to ethical AI practices.'],
+      '/legal':['Legal — Genesis','Genesis legal information including privacy policy, terms of service, and acceptable use policy.'],
+      '/legal/privacy':['Privacy Policy — Genesis','How Genesis collects, uses, and protects your personal data.'],
+      '/legal/terms':['Terms of Service — Genesis','Terms and conditions for using the Genesis AI visual storytelling platform.'],
+      '/legal/cookies':['Cookie Policy — Genesis','How Genesis uses cookies and similar tracking technologies.'],
+      '/legal/acceptable-use':['Acceptable Use Policy — Genesis','Guidelines for acceptable use of the Genesis platform.'],
+      '/tier/creator':['Creator Plan — Genesis Pricing','Genesis Creator plan for individual storytellers. Start creating AI-powered visual content.'],
+      '/tier/studio':['Studio Plan — Genesis Pricing','Genesis Studio plan for professionals. Advanced AI visual storytelling tools and features.'],
+      '/tier/empire':['Empire Plan — Genesis Pricing','Genesis Empire plan for teams and organizations. Full AI visual storytelling platform.'],
+      '/privacy':['Privacy Policy — Genesis','How Genesis collects, uses, and protects your personal data.'],
+      '/terms':['Terms of Service — Genesis','Terms and conditions for using the Genesis AI visual storytelling platform.'],
+      '/cookies':['Cookie Policy — Genesis','How Genesis uses cookies and similar tracking technologies.'],
+      '/acceptable-use':['Acceptable Use Policy — Genesis','Guidelines for acceptable use of the Genesis platform.']
+    };
+    var m=r[p];
+    if(!m&&p.indexOf('/blog/')===0)m=['Blog — Genesis AI Visual Storytelling','Read this article on AI-powered visual storytelling, character design, and creative tools from Genesis.'];
+    if(!m&&p.indexOf('/learn/')===0)m=['Learn — Genesis AI Visual Storytelling','Learn about AI-powered visual storytelling, character design, and illustrated content creation with Genesis.'];
+    var c=document.querySelector('link[rel="canonical"]');
+    if(c)c.href=b+p;
+    var u=document.querySelector('meta[property="og:url"]');
+    if(u)u.setAttribute('content',b+p);
+    if(m){
+      document.title=m[0];
+      var d=document.querySelector('meta[name="description"]');if(d)d.setAttribute('content',m[1]);
+      var ot=document.querySelector('meta[property="og:title"]');if(ot)ot.setAttribute('content',m[0]);
+      var od=document.querySelector('meta[property="og:description"]');if(od)od.setAttribute('content',m[1]);
+      var tt=document.querySelector('meta[name="twitter:title"]');if(tt)tt.setAttribute('content',m[0]);
+      var td=document.querySelector('meta[name="twitter:description"]');if(td)td.setAttribute('content',m[1]);
+    }
+  })();
+  </script>
 
   <!-- JSON-LD Structured Data for SEO -->
   <script type="application/ld+json">

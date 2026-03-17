@@ -3,7 +3,7 @@
   <!-- Landing page — the primary public entry point -->
   <url>
     <loc>https://iamazeyou.me/welcome</loc>
-    <lastmod>2026-03-12</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -11,7 +11,7 @@
   <!-- Auth page -->
   <url>
     <loc>https://iamazeyou.me/auth</loc>
-    <lastmod>2026-03-07</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
@@ -19,19 +19,19 @@
   <!-- Tier detail pages — public, accessible without auth -->
   <url>
     <loc>https://iamazeyou.me/tier/creator</loc>
-    <lastmod>2026-03-07</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/tier/studio</loc>
-    <lastmod>2026-03-07</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/tier/empire</loc>
-    <lastmod>2026-03-07</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -39,31 +39,31 @@
   <!-- Legal pages -->
   <url>
     <loc>https://iamazeyou.me/legal</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/legal/privacy</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/legal/terms</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/legal/cookies</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/legal/acceptable-use</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -71,31 +71,31 @@
   <!-- Blog -->
   <url>
     <loc>https://iamazeyou.me/blog</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/blog/perplexity-vs-genesis-general-purpose-ai-friction</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/blog/genesis-vs-ltx-studio-ai-visual-storytelling</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/blog/genesis-vs-artbreeder-ai-character-generator</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/blog/we-built-genesis-ai-visual-storytelling-platform</loc>
-    <lastmod>2026-03-07</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -103,61 +103,61 @@
   <!-- Learn / Knowledge base -->
   <url>
     <loc>https://iamazeyou.me/learn</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/how-to-create-illustrated-childrens-books-with-ai</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/best-ai-tools-for-classroom-visual-content</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/how-ai-character-consistency-works</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/best-ai-tools-for-visual-storytelling-analytics</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/challenges-in-ai-character-design-and-how-to-fix-them</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/best-ai-character-design-tools-2026</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/what-makes-genesis-unique-for-ai-storytelling</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/ai-character-design-for-games-comics-and-animation</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iamazeyou.me/learn/best-ai-platforms-for-visual-narrative-creation-2026</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -165,8 +165,34 @@
   <!-- Transparency -->
   <url>
     <loc>https://iamazeyou.me/transparency</loc>
-    <lastmod>2026-03-10</lastmod>
+    <lastmod>2026-03-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+  </url>
+
+  <!-- Shortcut legal aliases — these redirect to /legal/* pages but are discoverable URLs -->
+  <url>
+    <loc>https://iamazeyou.me/privacy</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://iamazeyou.me/terms</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://iamazeyou.me/cookies</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://iamazeyou.me/acceptable-use</loc>
+    <lastmod>2026-03-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>
