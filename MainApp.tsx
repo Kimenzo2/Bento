@@ -87,6 +87,7 @@ const StorybookViewer = lazyWithRetry(() => import('./components/StorybookViewer
 const SharedBookViewer = lazyWithRetry(() => import('./components/SharedBookViewer'));
 const LegalViewer = lazyWithRetry(() => import('./components/LegalViewer'));
 const AccountPage = lazyWithRetry(() => import('./components/AccountPage'));
+const InfographicsPage = lazyWithRetry(() => import('./components/InfographicsPage'));
 
 // ── Path-based routing helpers ────────────────────────────────────────────────
 const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
@@ -101,6 +102,7 @@ const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
   [AppMode.VIEWER]:        '/viewer',
   [AppMode.LEGAL]:         '/legal',
   [AppMode.ACCOUNT]:       '/account',
+  [AppMode.INFOGRAPHICS]:  '/infographics',
 };
 
 const PATH_TO_MODE = new Map<string, AppMode>(
@@ -557,6 +559,8 @@ const MainAppContent: React.FC = () => {
         return <GamificationHub gameState={gamificationState} setMode={navigateTo} />;
       case AppMode.ACCOUNT:
         return <AccountPage onNavigate={navigateTo} />;
+      case AppMode.INFOGRAPHICS:
+        return <InfographicsPage />;
       default:
         return (
           <CreationCanvas

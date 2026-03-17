@@ -71,9 +71,9 @@ const InfographicResultPage: React.FC<InfographicResultPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-cream-base overflow-y-auto animate-slideUp">
+    <div className="min-h-screen bg-cream-base animate-slideUp">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-40 bg-surface/80  border-b border-peach-soft/30">
+      <div className="sticky top-0 z-40 bg-surface/80 border-b border-peach-soft/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button

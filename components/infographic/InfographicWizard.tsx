@@ -2,7 +2,6 @@ import { IcoWand } from '../IconscoutIcons';
 import { AlertTriangle } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { InfographicService } from '../../services/generator/infographicService';
 import {
   AgeGroup,
@@ -68,8 +67,22 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
     }
   };
 
+  // When showing results, render only the result page (no wizard chrome)
+  if (step === 4 && generatedData) {
+    return (
+      <InfographicResultPage
+        data={generatedData}
+        onClose={onClose}
+        onRegenerate={() => {
+          setGeneratedData(null);
+          setStep(1);
+        }}
+      />
+    );
+  }
+
   return (
-    <>
+    <div className="max-w-4xl mx-auto px-4 pt-8 md:pt-16 pb-32">
       {/* Header */}
       <div className="mb-8">
         <h2 className="font-heading font-bold text-2xl text-charcoal-soft flex items-center gap-2 mb-2">
@@ -122,22 +135,7 @@ const InfographicWizard: React.FC<InfographicWizardProps> = ({ onClose }) => {
         )}
         {step === 3 && <GenerationLoading topic={request.topic} />}
       </div>
-
-      {/* Render InfographicResultPage in a Portal so it escapes overflow:hidden containers */}
-      {step === 4 &&
-        generatedData &&
-        createPortal(
-          <InfographicResultPage
-            data={generatedData}
-            onClose={onClose}
-            onRegenerate={() => {
-              setGeneratedData(null);
-              setStep(1);
-            }}
-          />,
-          document.body
-        )}
-    </>
+    </div>
   );
 };
 

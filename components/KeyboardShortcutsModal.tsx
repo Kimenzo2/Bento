@@ -2,14 +2,12 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   Bold,
   Clipboard,
   Copy,
   Home,
   Italic,
   Keyboard,
-  MessageSquare,
   Plus,
   Redo,
   Save,
@@ -138,21 +136,6 @@ const SHORTCUTS: Shortcut[] = [
     category: 'Book Viewer',
     icon: <ZoomOut className="w-4 h-4" />,
   },
-
-  // Chat
-  {
-    keys: ['Ctrl/⌘', 'Enter'],
-    description: 'Send message',
-    category: 'Chat',
-    icon: <MessageSquare className="w-4 h-4" />,
-  },
-  {
-    keys: ['↑'],
-    description: 'Edit last message (in empty input)',
-    category: 'Chat',
-    icon: <ArrowUp className="w-4 h-4" />,
-  },
-  { keys: ['Esc'], description: 'Cancel reply', category: 'Chat' },
 
   // Actions
   {

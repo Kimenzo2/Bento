@@ -1,6 +1,6 @@
-import { ArrowLeft, BookOpen, Briefcase, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, MessageCircle, Sparkles, Users } from 'lucide-react';
-import { IcoBuilding, IcoRocket, IcoWand, IcoPalette } from './IconscoutIcons';
+import { ArrowLeft, BarChart3, BookOpen, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, Palette, Rocket, Sparkles, Users, Wand2 } from 'lucide-react';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
 import { deleteBook, getAllBooks } from '../services/storageService';
 import { getStylesForTier } from '../config/entitlements';
@@ -8,14 +8,12 @@ import { normalizeArtStyle } from '../utils/aiSettings';
 import {
   ArtStyle,
   BookTone,
-  type BrandProfile,
   type Character,
   type GenerationSettings,
   type SavedBook,
   UserTier,
 } from '../types';
 import SavedBookCard from './SavedBookCard';
-import InfographicWizard from './infographic/InfographicWizard';
 import { Button } from './ui/button';
 import { Input, Label, Textarea } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -39,9 +37,6 @@ const { ShareModal } = BookSharingPkg;
 
 // Teaching Characters Data
 import { TEACHING_CHARACTERS } from '../src/data/teachingCharacters';
-
-// Conversation Mode for natural story creation
-import ConversationMode from './ConversationMode';
 
 // ===== OPTIMIZED MASCOT COMPONENT =====
 interface MascotProps {
@@ -230,8 +225,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       // Small delay to ensure render is complete
       setTimeout(() => {
         promptSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Also ensure we're in book mode if that's what we want
-        setCreationMode('book');
       }, 100);
     }
   }, [shouldFocusCreation]);
@@ -251,42 +244,10 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
 
   const [isBranching, setIsBranching] = useState(false);
   const [educational, setEducational] = useState(false);
-  const [showBrandPanel, setShowBrandPanel] = useState(false);
-  const [brandName, setBrandName] = useState('');
-  const [brandGuidelines, _setBrandGuidelines] = useState('');
-  const [brandColors, setBrandColors] = useState('#FF9B71, #FFF4A3');
-  const [brandSample, _setBrandSample] = useState('');
-
-  // Brand Story Configuration
-  const [brandContentType, setBrandContentType] = useState<
-    'brand-story' | 'annual-report' | 'company-history' | 'product-launch' | 'investor-pitch'
-  >('brand-story');
-  const [brandIndustry, setBrandIndustry] = useState('Technology');
-  const [brandFounded, setBrandFounded] = useState('');
-  const [brandHeadquarters, setBrandHeadquarters] = useState('');
-  const [brandDescription, setBrandDescription] = useState('');
-  const [brandTone, setBrandTone] = useState<
-    'professional' | 'inspiring' | 'conversational' | 'formal' | 'bold'
-  >('professional');
-  const [brandFiscalYear, setBrandFiscalYear] = useState(new Date().getFullYear().toString());
-  const [brandSections, setBrandSections] = useState({
-    cover: true,
-    ceoLetter: true,
-    originStory: true,
-    missionValues: true,
-    milestones: true,
-    achievements: true,
-    financials: false,
-    esg: false,
-    team: true,
-    futureOutlook: true,
-    callToAction: true,
-  });
 
   // New Feature State
   const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
   const [isStylePresetsOpen, setIsStylePresetsOpen] = useState(false);
-  const [isConversationModeOpen, setIsConversationModeOpen] = useState(false);
 
   // Learning Goals State
   const [learningSubject, setLearningSubject] = useState('Math');
@@ -549,49 +510,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   const handleGenerate = useCallback(() => {
     if (!prompt.trim()) return;
 
-    let brandProfile: BrandProfile | undefined = undefined;
-    if (showBrandPanel && brandName) {
-      brandProfile = {
-        name: brandName,
-        guidelines: brandGuidelines,
-        colors: brandColors.split(',').map((c) => c.trim()),
-        sampleText: brandSample,
-      };
-    }
-
-    // Build brandStoryConfig for professional brand content
-    const brandStoryConfig =
-      showBrandPanel && brandName
-        ? {
-            contentType: brandContentType,
-            companyInfo: {
-              name: brandName,
-              tagline: '',
-              industry: brandIndustry,
-              founded: brandFounded,
-              headquarters: brandHeadquarters,
-              description: brandDescription,
-            },
-            sections: [
-              { type: 'cover' as const, enabled: brandSections.cover, order: 1 },
-              { type: 'ceo-letter' as const, enabled: brandSections.ceoLetter, order: 2 },
-              { type: 'origin-story' as const, enabled: brandSections.originStory, order: 3 },
-              { type: 'mission-values' as const, enabled: brandSections.missionValues, order: 4 },
-              { type: 'milestones' as const, enabled: brandSections.milestones, order: 5 },
-              { type: 'achievements' as const, enabled: brandSections.achievements, order: 6 },
-              { type: 'financials' as const, enabled: brandSections.financials, order: 7 },
-              { type: 'esg' as const, enabled: brandSections.esg, order: 8 },
-              { type: 'team' as const, enabled: brandSections.team, order: 9 },
-              { type: 'future-outlook' as const, enabled: brandSections.futureOutlook, order: 10 },
-              { type: 'call-to-action' as const, enabled: brandSections.callToAction, order: 11 },
-            ],
-            tone: brandTone,
-            visualStyle: 'corporate-clean' as const,
-            colorScheme: brandColors.split(',').map((c) => c.trim()),
-            fiscalYear: brandFiscalYear,
-          }
-        : undefined;
-
     onGenerate({
       prompt,
       style,
@@ -611,8 +529,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           }
         : undefined,
       teacherCharacter: educational && selectedTeacher ? selectedTeacher : undefined,
-      brandProfile,
-      brandStoryConfig,
       templateStructure: selectedTemplateStructure,
     });
   }, [
@@ -624,11 +540,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     pageCount,
     isBranching,
     educational,
-    showBrandPanel,
-    brandName,
-    brandGuidelines,
-    brandColors,
-    brandSample,
     learningSubject,
     learningObjectives,
     integrationMode,
@@ -636,26 +547,16 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     selectedTeacher,
     onGenerate,
     selectedTemplateStructure,
-    brandContentType,
-    brandIndustry,
-    brandFounded,
-    brandHeadquarters,
-    brandDescription,
-    brandTone,
-    brandSections,
-    brandFiscalYear,
   ]);
 
-  const [creationMode, setCreationMode] = useState<'book' | 'feature'>('book');
+  const navigate = useNavigate();
 
     const handleQuickStartClick = useCallback((action: () => void) => {
-    setCreationMode('book');
     action();
   }, []);
 
   const resetForm = useCallback(() => {
     setPrompt('');
-    setShowBrandPanel(false);
     setEducational(false);
     setIsBranching(false);
     setAudience('Children 4-6');
@@ -728,7 +629,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         >
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
-            icon={IcoWand}
+            icon={Wand2}
             title="Children's Story"
             desc="Create a magical tale with vibrant illustrations and moral lessons."
             colorClass="from-gold-sunshine to-orange-400"
@@ -746,7 +647,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
-            icon={IcoRocket}
+            icon={Rocket}
             title="Sci-Fi Novel"
             desc="Build a futuristic world with deep lore and complex characters."
             colorClass="from-purple-400 to-coral-burst"
@@ -765,23 +666,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
-            icon={IcoBuilding}
-            title="Brand Story"
-            desc="Generate a professional company history or annual report."
+            icon={BarChart3}
+            title="Infographics"
+            desc="Create stunning educational infographics with AI-powered visuals."
             colorClass="from-mint-breeze to-emerald-400"
             glowColor="rgba(16, 185, 129, 0.35)"
             decorationPosition="top-left"
             defaultGlowPosition="bottom-right"
-            onClick={() =>
-              handleQuickStartClick(() => {
-                setPrompt(
-                  'Our company journey from a garage startup to a global eco-friendly leader.'
-                );
-                setAudience('Stakeholders');
-                applyArtStyle(ArtStyle.CORPORATE);
-                setShowBrandPanel(true);
-              })
-            }
+            onClick={() => navigate('/infographics')}
           />
           </motion.div>
         </motion.div>
@@ -898,7 +790,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-coral-burst rounded-full animate-ping opacity-20"></div>
                 <div className="w-20 h-20 bg-linear-to-br from-coral-burst to-gold-sunshine rounded-full flex items-center justify-center animate-bounce-slow relative z-10">
-                  <IcoWand className="w-10 h-10 text-white animate-pulse" />
+                  <Wand2 className="w-10 h-10 text-white animate-pulse" />
                 </div>
               </div>
               <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
@@ -915,23 +807,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             <div className="bg-cream-soft p-1 rounded-full flex items-center border border-peach-soft/50">
               <Button
                 variant="ghost"
-                onClick={() => setCreationMode('book')}
-                className={`px-6 py-2 rounded-full ${
-                  creationMode === 'book'
-                    ? 'bg-surface text-coral-burst border border-peach-soft/50'
-                    : 'text-cocoa-light hover:text-charcoal-soft'
-                }`}
+                className="px-6 py-2 rounded-full bg-surface text-coral-burst border border-peach-soft/50"
               >
                 Create Book
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => setCreationMode('feature')}
-                className={`px-6 py-2 rounded-full relative ${
-                  creationMode === 'feature'
-                    ? 'bg-surface text-coral-burst border border-peach-soft/50'
-                    : 'text-cocoa-light hover:text-charcoal-soft'
-                }`}
+                onClick={() => navigate('/infographics')}
+                className="px-6 py-2 rounded-full relative text-cocoa-light hover:text-charcoal-soft"
               >
                 Infographics
                 <span className="absolute -top-1 -right-1 bg-linear-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -941,8 +824,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             </div>
           </div>
 
-          {creationMode === 'book' ? (
-            <>
               {prompt && (
                 <Button
                   variant="ghost"
@@ -999,34 +880,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     <div className="text-xs text-cocoa-light">Learning & Vocabulary</div>
                   </div>
                 </Button>
-
-                {showBrandPanel && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowBrandPanel(!showBrandPanel)}
-                    className={`flex-1 p-4 flex gap-4 group ${
-                      showBrandPanel
-                        ? 'border-mint-breeze bg-mint-breeze/20'
-                        : 'hover:border-mint-breeze/50'
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${showBrandPanel ? 'bg-mint-breeze text-emerald-600' : 'bg-cream-base text-cocoa-light'}`}
-                    >
-                      <Briefcase className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-heading font-bold text-charcoal-soft">Brand Voice</div>
-                      <div className="text-xs text-cocoa-light">Custom guidelines & style</div>
-                    </div>
-                  </Button>
-                )}
               </div>
 
               <div ref={promptSectionRef} className="mb-10">
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-lg flex items-center gap-2">
-                    <IcoWand className="w-5 h-5 text-gold-sunshine" />
+                    <Wand2 className="w-5 h-5 text-gold-sunshine" />
                     Tell us about your book idea
                   </Label>
                   <Button
@@ -1060,7 +919,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     className="w-full p-4 font-body focus:border-coral-burst hover:border-coral-burst/50 text-left flex justify-between group"
                   >
                     <span className="flex items-center gap-2">
-                      <IcoPalette className="w-5 h-5 text-coral-burst" />
+                      <Palette className="w-5 h-5 text-coral-burst" />
                       {style}
                     </span>
                     <ChevronRight className="w-5 h-5 text-cocoa-light/60 group-hover:translate-x-1 transition-transform" />
@@ -1124,233 +983,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Brand Panel Expansion */}
-              {showBrandPanel && (
-                <div className="bg-linear-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl p-8 mb-10 animate-fadeIn">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <Briefcase className="w-5 h-5" />
-                      <h3 className="font-heading font-bold text-lg">Professional Brand Content</h3>
-                    </div>
-                    <span className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold">
-                      {brandContentType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-                    </span>
-                  </div>
-
-                  {/* Content Type Selection */}
-                  <div className="mb-6">
-                    <Label className="text-xs text-cocoa-light uppercase mb-3">
-                      Document Type
-                    </Label>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                      {[
-                        { id: 'brand-story', label: 'Brand Story', icon: '📖' },
-                        { id: 'annual-report', label: 'Annual Report', icon: '📊' },
-                        { id: 'company-history', label: 'Company History', icon: '🏛️' },
-                        { id: 'product-launch', label: 'Product Launch', icon: '🚀' },
-                        { id: 'investor-pitch', label: 'Investor Pitch', icon: '💼' },
-                      ].map((type) => (
-                        <Button
-                          variant="ghost"
-                          key={type.id}
-                          onClick={() => setBrandContentType(type.id as typeof brandContentType)}
-                          className={`p-3 ${
-                            brandContentType === type.id
-                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                              : 'bg-surface text-charcoal-soft hover:bg-emerald-100'
-                          }`}
-                        >
-                          <span className="mr-1">{type.icon}</span> {type.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Company Info Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
-                        Company Name *
-                      </Label>
-                      <Input
-                        type="text"
-                        value={brandName}
-                        onChange={(e) => setBrandName(e.target.value)}
-                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
-                        placeholder="Acme Corporation"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
-                        Industry
-                      </Label>
-                      <Select value={brandIndustry} onValueChange={setBrandIndustry}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select industry" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Technology">Technology</SelectItem>
-                          <SelectItem value="Healthcare">Healthcare</SelectItem>
-                          <SelectItem value="Finance">Finance & Banking</SelectItem>
-                          <SelectItem value="Retail">Retail & E-commerce</SelectItem>
-                          <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-                          <SelectItem value="Education">Education</SelectItem>
-                          <SelectItem value="Real Estate">Real Estate</SelectItem>
-                          <SelectItem value="Media">Media & Entertainment</SelectItem>
-                          <SelectItem value="Energy">Energy & Utilities</SelectItem>
-                          <SelectItem value="Non-Profit">Non-Profit</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
-                        Founded
-                      </Label>
-                      <Input
-                        type="text"
-                        value={brandFounded}
-                        onChange={(e) => setBrandFounded(e.target.value)}
-                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
-                        placeholder="2010"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
-                        Headquarters
-                      </Label>
-                      <Input
-                        type="text"
-                        value={brandHeadquarters}
-                        onChange={(e) => setBrandHeadquarters(e.target.value)}
-                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
-                        placeholder="San Francisco, CA"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-cocoa-light uppercase mb-2">
-                        Brand Colors
-                      </Label>
-                      <Input
-                        type="text"
-                        value={brandColors}
-                        onChange={(e) => setBrandColors(e.target.value)}
-                        className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
-                        placeholder="#FF9B71, #10B981"
-                      />
-                    </div>
-                    {brandContentType === 'annual-report' && (
-                      <div>
-                        <Label className="text-xs text-cocoa-light uppercase mb-2">
-                          Fiscal Year
-                        </Label>
-                        <Input
-                          type="text"
-                          value={brandFiscalYear}
-                          onChange={(e) => setBrandFiscalYear(e.target.value)}
-                          className="border-emerald-200 p-3 focus:ring-2 focus:ring-emerald-300"
-                          placeholder="2024"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Company Description */}
-                  <div className="mb-6">
-                    <Label className="text-xs text-cocoa-light uppercase mb-2">
-                      Company Description
-                    </Label>
-                    <Textarea
-                      value={brandDescription}
-                      onChange={(e) => setBrandDescription(e.target.value)}
-                      className="border-emerald-200 p-3 h-20 focus:ring-2 focus:ring-emerald-300"
-                      placeholder="Describe your company's mission, what you do, and what makes you unique..."
-                    />
-                  </div>
-
-                  {/* Tone Selection */}
-                  <div className="mb-6">
-                    <Label className="text-xs text-cocoa-light uppercase mb-3">
-                      Content Tone
-                    </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { id: 'professional', label: 'Professional', desc: 'Business formal' },
-                        { id: 'inspiring', label: 'Inspiring', desc: 'Visionary & uplifting' },
-                        {
-                          id: 'conversational',
-                          label: 'Conversational',
-                          desc: 'Friendly & approachable',
-                        },
-                        { id: 'formal', label: 'Formal', desc: 'Corporate & traditional' },
-                        { id: 'bold', label: 'Bold', desc: 'Confident & disruptive' },
-                      ].map((tone) => (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          key={tone.id}
-                          onClick={() => setBrandTone(tone.id as typeof brandTone)}
-                          className={`px-4 py-2 rounded-full ${
-                            brandTone === tone.id
-                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                              : 'bg-surface text-charcoal-soft hover:bg-emerald-100 border border-emerald-200'
-                          }`}
-                        >
-                          {tone.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Sections to Include */}
-                  <div>
-                    <Label className="text-xs text-cocoa-light uppercase mb-3">
-                      Sections to Include
-                    </Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { key: 'cover', label: 'Cover Page' },
-                        { key: 'ceoLetter', label: 'CEO Letter' },
-                        { key: 'originStory', label: 'Origin Story' },
-                        { key: 'missionValues', label: 'Mission & Values' },
-                        { key: 'milestones', label: 'Key Milestones' },
-                        { key: 'achievements', label: 'Achievements' },
-                        { key: 'financials', label: 'Financials' },
-                        { key: 'esg', label: 'ESG / Sustainability' },
-                        { key: 'team', label: 'Leadership Team' },
-                        { key: 'futureOutlook', label: 'Future Outlook' },
-                        { key: 'callToAction', label: 'Call to Action' },
-                      ].map((section) => (
-                        <Label
-                          key={section.key}
-                          className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
-                            brandSections[section.key as keyof typeof brandSections]
-                              ? 'bg-emerald-100 border border-emerald-400'
-                              : 'bg-surface border border-peach-soft hover:border-emerald-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={brandSections[section.key as keyof typeof brandSections]}
-                            onChange={(e) =>
-                              setBrandSections((prev) => ({
-                                ...prev,
-                                [section.key]: e.target.checked,
-                              }))
-                            }
-                            aria-label={section.label}
-                            className="w-4 h-4 accent-emerald-500"
-                          />
-                          <span className="text-sm font-medium text-charcoal-soft">
-                            {section.label}
-                          </span>
-                        </Label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Educational Panel Expansion */}
               {educational && (
@@ -1570,36 +1202,20 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   </div>
                 </div>
               )}
-            </>
-          ) : (
-            <InfographicWizard onClose={() => setCreationMode('book')} />
-          )}
 
-          {/* Action Buttons - Only show in book mode for now */}
-          {creationMode === 'book' && (
-            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-10">
-              {/* Conversation Mode Button */}
-              <Button
-                variant="outline"
-                size="xl"
-                onClick={() => setIsConversationModeOpen(true)}
-                className="rounded-full transform hover:-translate-y-1 flex gap-3 border-coral-burst text-coral-burst hover:bg-coral-burst/10"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Chat to Create
-              </Button>
-
+          {/* Action Buttons */}
+            <div className="flex justify-end mt-10">
               {/* Main Generate Button */}
               <Button
                 variant="primary"
                 size="xl"
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
-                className={`px-12 rounded-full transform hover:-translate-y-1 flex gap-3
+                className={`rounded-l-xl px-3 text-gray-700 dark:text-gray-300 py-1.5 border border-gray-200 dark:border-white/[0.07] bg-background-light dark:bg-background-dark hover:bg-gray-600/5 dark:hover:bg-gray-200/5 border-r-0 flex gap-3
                                 ${
                                   isGenerating
-                                    ? 'bg-cocoa-light text-white opacity-70'
-                                    : 'hover:scale-105'
+                                    ? 'opacity-70'
+                                    : ''
                                 }`}
               >
                 {isGenerating ? (
@@ -1609,13 +1225,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   </>
                 ) : (
                   <>
-                    <IcoWand className="w-5 h-5" />
+                    <Wand2 className="w-5 h-5" />
                     Generate Masterpiece
                   </>
                 )}
               </Button>
             </div>
-          )}
         </div>
       </div>
       </section>
@@ -1658,13 +1273,6 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
       {sharingBook && (
         <ShareModal isOpen={true} onClose={() => setSharingBook(null)} book={sharingBook.project} />
       )}
-
-      {/* Conversation Mode Modal */}
-      <ConversationMode
-        isOpen={isConversationModeOpen}
-        onClose={() => setIsConversationModeOpen(false)}
-        onGenerate={onGenerate}
-      />
     </>
   );
 };

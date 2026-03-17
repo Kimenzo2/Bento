@@ -13,6 +13,7 @@ export enum AppMode {
   AUTH = 'AUTH',
   LEGAL = 'LEGAL',
   ACCOUNT = 'ACCOUNT',
+  INFOGRAPHICS = 'INFOGRAPHICS',
 }
 
 export enum ArtStyle {

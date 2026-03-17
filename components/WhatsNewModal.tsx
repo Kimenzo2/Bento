@@ -24,7 +24,7 @@ const CHANGELOG: ChangelogEntry[] = [
     version: '2.5.0',
     date: 'December 4, 2025',
     highlights: [
-      'Dark mode as default in chat',
+      'Dark mode support',
       'Interactive notifications system',
       'Improved mobile experience',
     ],
@@ -32,7 +32,7 @@ const CHANGELOG: ChangelogEntry[] = [
       {
         type: 'feature',
         title: 'Dark Mode Default',
-        description: 'Chat system now defaults to dark mode for better reading experience',
+        description: 'App now defaults to dark mode for better reading experience',
       },
       {
         type: 'feature',
@@ -111,22 +111,12 @@ const CHANGELOG: ChangelogEntry[] = [
   {
     version: '2.3.0',
     date: 'November 28, 2025',
-    highlights: ['Real-time Collaboration', 'Voice Channels', 'AI Assistant in Chat'],
+    highlights: ['Visual Studio Enhancements', 'Mobile Improvements', 'AI Generation'],
     changes: [
       {
         type: 'feature',
-        title: 'Real-time Chat',
-        description: 'Supabase-powered real-time messaging',
-      },
-      {
-        type: 'feature',
-        title: 'Voice Channels',
-        description: 'Voice communication for team collaboration',
-      },
-      {
-        type: 'feature',
-        title: 'Genesis AI in Chat',
-        description: 'Get AI assistance directly in project channels',
+        title: 'Visual Studio',
+        description: 'Enhanced visual editing with character depth panels',
       },
       {
         type: 'improvement',

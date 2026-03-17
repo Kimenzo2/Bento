@@ -1,5 +1,5 @@
-import { IcoBell, IcoPalette, IcoWand } from './IconscoutIcons';
-import { ArrowLeft, Download, Edit2, Map, Maximize2, Plus, Radio, RefreshCw, Share2, Sliders } from 'lucide-react';
+import { IcoPalette, IcoWand } from './IconscoutIcons';
+import { ArrowLeft, Download, Edit2, Map, Maximize2, Plus, RefreshCw, Share2, Sliders } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { generateRefinedImage } from '../services/geminiService';
@@ -8,7 +8,6 @@ import { AppMode, ArtStyle, type BookProject, type Character, type VisualSetting
 import CharacterDepthPanel from './CharacterDepthPanel';
 import MobileBottomNav from './MobileBottomNav';
 import StoryMap from './StoryMap';
-import { BroadcastStudio, NotificationCenter } from './collaboration';
 import { Button } from './ui/button';
 import { Label, Textarea } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -42,11 +41,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   const [viewMode, setViewMode] = useState<'individual' | 'storymap'>('individual');
 
   // Advanced features state
-  const [showBroadcastStudio, setShowBroadcastStudio] = useState(false);
-  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [showCharacterDepth, setShowCharacterDepth] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
-  const notificationBtnRef = useRef<HTMLButtonElement>(null);
 
   // Settings state
   const [settings, setSettings] = useState<VisualSettings>({
@@ -67,8 +63,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   // UI State
   const [_showShareModal, setShowShareModal] = useState(false);
   const [_expandedVisual, setExpandedVisual] = useState<'current' | null>(null);
-  const [unreadCount, _setUnreadCount] = useState(0);
-  const [mobileActiveTab, setMobileActiveTab] = useState<'character' | 'scene' | 'style' | 'chat'>(
+  const [mobileActiveTab, setMobileActiveTab] = useState<'character' | 'scene' | 'style'>(
     'character'
   );
 
@@ -158,13 +153,9 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
     }
   };
 
-  const handleMobileTabChange = (tab: 'character' | 'scene' | 'style' | 'chat') => {
-    if (tab === 'chat') {
-      // Chat removed, maybe show toast or ignore
-    } else {
-      setMobileActiveTab(tab);
-      setActiveTab(tab);
-    }
+  const handleMobileTabChange = (tab: 'character' | 'scene' | 'style') => {
+    setMobileActiveTab(tab);
+    setActiveTab(tab);
   };
 
   const handleCreateNewCharacter = () => {
@@ -236,28 +227,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
 
         {/* Right Side Actions - Notifications, Go Live */}
         <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
-          {/* Notification Bell Button */}
-          <Button
-            ref={notificationBtnRef}
-            variant="ghost"
-            size="icon"
-            onClick={() => userProfile && setShowNotificationCenter(!showNotificationCenter)}
-            className={`relative p-2 border border-peach-soft/50 min-h-11 min-w-11 ${userProfile ? 'bg-surface/80 hover:bg-surface text-cocoa-light hover:text-coral-burst' : 'bg-peach-soft/30 text-cocoa-light/60'}`}
-            title={userProfile ? 'Notifications' : 'Login to access notifications'}
-          >
-            <IcoBell className="w-4 h-4 md:w-5 md:h-5" />
-          </Button>
-
-          {/* Go Live Button - Always visible if user is logged in */}
-          <Button
-            variant="destructive"
-            onClick={() => userProfile && setShowBroadcastStudio(true)}
-            className={`hidden xs:flex px-2 md:px-4 py-2 border border-white/20 min-h-11 ${userProfile ? 'bg-linear-to-r from-red-500 to-pink-500 text-white hover:scale-105 active:scale-95' : 'bg-peach-light/50 text-cocoa-light/60'}`}
-            disabled={!userProfile}
-          >
-            <Radio className="w-4 h-4 animate-pulse" />
-            <span className="hidden sm:inline">Live</span>
-          </Button>
         </div>
 
         {/* Mode Switcher */}
@@ -687,24 +656,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
           ))}
       </div>
 
-      {/* Notification Center Modal */}
-      {showNotificationCenter && userProfile && (
-        <NotificationCenter
-          isOpen={showNotificationCenter}
-          onClose={() => setShowNotificationCenter(false)}
-          anchorRef={notificationBtnRef}
-        />
-      )}
-
-      {/* Broadcast Studio Modal */}
-      {showBroadcastStudio && userProfile && (
-        <div className="fixed inset-0 bg-black/50  z-70 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-3xl w-full max-w-6xl h-[90vh] overflow-hidden animate-fadeIn flex flex-col">
-            <BroadcastStudio onClose={() => setShowBroadcastStudio(false)} />
-          </div>
-        </div>
-      )}
-
       {/* Character Depth Panel */}
       {showCharacterDepth && editingCharacter && (
         <CharacterDepthPanel
@@ -721,7 +672,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
       <MobileBottomNav
         activeTab={mobileActiveTab}
         onTabChange={handleMobileTabChange}
-        unreadCount={unreadCount}
       />
     </div>
   );

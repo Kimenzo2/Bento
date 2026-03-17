@@ -1,5 +1,5 @@
 import { IcoZap } from './IconscoutIcons';
-import { BookOpen, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
+import { BarChart3, BookOpen, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -72,6 +72,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
   const menuItems = [
     { mode: AppMode.DASHBOARD, icon: LayoutDashboard, label: t('home', 'Home') },
     { mode: AppMode.CREATION, icon: PenTool, label: t('create', 'Create') },
+    { mode: AppMode.INFOGRAPHICS, icon: BarChart3, label: t('infographic', 'Infographics') },
     { mode: AppMode.EDITOR, icon: BookOpen, label: t('editor', 'Editor') },
     { mode: AppMode.VISUAL_STUDIO, icon: ImageIcon, label: t('visualStudio', 'Visual Studio') },
   ];
