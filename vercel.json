@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "npm install",
-  "devCommand": "npm run dev",
+  "installCommand": "bun install",
+  "devCommand": "bun run dev",
   "trailingSlash": false,
   "functions": {
     "api/ai-generate.ts": { "maxDuration": 60 },
