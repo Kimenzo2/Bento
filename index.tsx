@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
+import { GenProvider } from './contexts/GenContext';
 import { IntegrationsProvider } from './contexts/IntegrationsContext';
 import { Button } from './components/ui/button';
 import './index.css';
@@ -128,9 +129,11 @@ root.render(
         }}
       >
         <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <GenProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </GenProvider>
         </AuthProvider>
       </IntegrationsProvider>
     </ErrorBoundary>
