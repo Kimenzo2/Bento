@@ -1,22 +1,23 @@
 /**
  * useGenSync
  *
+ * STUBBED VERSION - gen-engine packages temporarily removed for deployment.
+ *
  * Reads Genesis state (realm, tier, generation status)
  * and publishes it to Gen on every change.
  *
  * Call this hook once at the top of the main layout component.
+ *
+ * TODO: Restore full functionality when gen-engine packages are published to npm.
  */
-import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router';
-import { useGen } from '../contexts/GenContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
-import type { Realm } from '@gen-engine/bridge';
 
-// Map Genesis theme to Gen realm
+// Stub type matching @gen-engine/bridge
+type Realm = 'kingdom' | 'cosmos' | 'cell';
+
+// Map Genesis theme to Gen realm (kept for future use)
 // Genesis themes: 'genesis' | 'aurora' | 'ocean' | 'forest' | 'nebula' | 'sunset'
 // Gen realms: 'kingdom' | 'cosmos' | 'cell'
-function themeToRealm(themeId: string): Realm {
+export function _themeToRealm(themeId: string): Realm {
   switch (themeId) {
     case 'nebula':
     case 'ocean':
@@ -32,35 +33,6 @@ function themeToRealm(themeId: string): Realm {
 }
 
 export function useGenSync() {
-  const { publishContext, fireTrigger, isMounted } = useGen();
-  const location = useLocation();
-  const { currentTheme } = useTheme();
-  const { user } = useAuth();
-  const hasTriggeredSessionStart = useRef(false);
-
-  // Sync route changes
-  useEffect(() => {
-    if (!isMounted) return;
-
-    publishContext({
-      route: location.pathname,
-    });
-    fireTrigger('page_change');
-  }, [location.pathname, publishContext, fireTrigger, isMounted]);
-
-  // Sync theme/realm changes
-  useEffect(() => {
-    if (!isMounted) return;
-
-    const realm = themeToRealm(currentTheme.id);
-    publishContext({ realm });
-  }, [currentTheme.id, publishContext, isMounted]);
-
-  // Session start trigger on first mount with authenticated user
-  useEffect(() => {
-    if (!isMounted || !user || hasTriggeredSessionStart.current) return;
-
-    hasTriggeredSessionStart.current = true;
-    fireTrigger('session_start');
-  }, [isMounted, user, fireTrigger]);
+  // No-op stub: gen-engine not available
+  // The hook is called but does nothing until gen-engine is integrated
 }
