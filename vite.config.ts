@@ -295,16 +295,30 @@ export default defineConfig(({ mode }) => {
       minify: 'oxc',
       // Only generate sourcemaps in production (hidden); skip entirely in dev builds
       sourcemap: isProduction ? 'hidden' : false,
-      chunkSizeWarningLimit: 2000,
+      // Warn at 500KB — action required. Previously 2000 which hid regressions.
+      chunkSizeWarningLimit: 500,
       // ── Rolldown output configuration ─────────────────
       rollupOptions: {
+        // Prevent server-only code from being bundled into client
+        external: [
+          '@mastra/core',
+          '@mastra/pg',
+          '@mastra/rag',
+          '@mastra/memory',
+          '@mastra/observability',
+          '@hono/node-server',
+          // Server-side mastra folder should never be imported by client
+          /^\.\.\/mastra\//,
+          /^\.\/mastra\//,
+        ],
         output: {
           // Fine-grained manual chunks → smaller initial bundle, better long-term cache
           manualChunks(id) {
+            // ── Vendor chunks (from node_modules) ──
             if (id.includes('node_modules')) {
-              // Radix UI
+              // Radix UI - always needed for UI
               if (id.includes('@radix-ui')) return 'vendor-radix';
-              // Supabase
+              // Supabase - auth/db core
               if (id.includes('@supabase')) return 'vendor-supabase';
               // Animation
               if (id.includes('framer-motion')) return 'vendor-motion';
@@ -312,7 +326,31 @@ export default defineConfig(({ mode }) => {
               if (id.includes('lucide-react')) return 'vendor-icons';
               // i18n
               if (id.includes('i18next') || id.includes('react-i18next')) return 'vendor-i18n';
+              // PDF export - lazy loaded on export action
+              if (id.includes('jspdf')) return 'vendor-export';
+              // Image capture - lazy loaded on export action
+              if (id.includes('html-to-image') || id.includes('html2canvas')) return 'vendor-export';
+              // React Email - lazy loaded on email send
+              if (id.includes('@react-email') || id.includes('react-email')) return 'vendor-email';
+              // Sentry - should be lazy loaded
+              if (id.includes('@sentry')) return 'vendor-sentry';
+              // Markdown - lazy loaded for blog/learn pages
+              if (id.includes('react-markdown') || id.includes('remark')) return 'vendor-markdown';
+              // ReactFlow - lazy loaded for StoryCanvas
+              if (id.includes('@xyflow')) return 'vendor-flow';
             }
+
+            // ── Application code chunks ──
+            // Services that should be co-located
+            if (id.includes('/services/supabaseClient')) return 'vendor-supabase';
+            if (id.includes('/services/profileService')) return 'vendor-supabase';
+
+            // AI services - lazy loaded when generating
+            if (id.includes('/services/geminiService')) return 'services-ai';
+            if (id.includes('/services/grokService')) return 'services-ai';
+
+            // Email service - lazy loaded when sending
+            if (id.includes('/services/emailService')) return 'vendor-email';
           },
         },
       },

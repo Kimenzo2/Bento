@@ -1,14 +1,28 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
+    // Entry point
     './index.html',
-    './*.{js,ts,jsx,tsx}',
-    './components/**/*.{js,ts,jsx,tsx}',
-    './contexts/**/*.{js,ts,jsx,tsx}',
-    './hooks/**/*.{js,ts,jsx,tsx}',
-    './pages/**/*.{js,ts,jsx,tsx}',
-    './services/**/*.{js,ts,jsx,tsx}',
-    './src/**/*.{js,ts,jsx,tsx}',
+    // Root-level TSX files (App.tsx, AppRouter.tsx, MainApp.tsx, index.tsx)
+    './*.tsx',
+    // UI Components - the main source of Tailwind classes
+    './components/**/*.tsx',
+    // Page components
+    './pages/**/*.tsx',
+    // Context providers (may have UI elements)
+    './contexts/**/*.tsx',
+    // Hooks with JSX (rare but possible)
+    './hooks/**/*.tsx',
+    // Email templates (for react-email)
+    './emails/**/*.tsx',
+    // src/config for i18n UI
+    './src/config/**/*.tsx',
+    // DO NOT include:
+    // - ./services/**/* (no UI, just logic)
+    // - ./src/services/**/* (no UI, just API clients)
+    // - ./mastra/**/* (server-only code)
+    // - ./api/**/* (serverless functions)
+    // - ./*.ts (config files, no classes)
   ],
   // Tailwind v4 uses CSS-first configuration
   // Most theme customizations should be in index.css using @theme
