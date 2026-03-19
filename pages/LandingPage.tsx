@@ -1598,6 +1598,19 @@ const LandingPage: React.FC = memo(() => {
             <p className="text-sm leading-relaxed font-body landing-dark-muted">
               AI visual storytelling for writers, educators, and creators.
             </p>
+            <a
+              href="https://neeed.directory/products/genesis?utm_source=genesis"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-4"
+            >
+              <img
+                src="https://neeed.directory/badges/neeed-badge-light.svg"
+                alt="Featured on neeed.directory"
+                width={139}
+                height={32}
+              />
+            </a>
           </div>
 
           {/* Product */}
