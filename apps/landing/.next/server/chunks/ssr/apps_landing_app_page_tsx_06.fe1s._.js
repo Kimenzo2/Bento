@@ -1,0 +1,3 @@
+module.exports=[69903,a=>{"use strict";var b=a.i(10637);a.s(["default",0,function(){return(0,b.jsxs)("main",{children:[(0,b.jsx)("h1",{children:"Genesis Landing"}),(0,b.jsx)("p",{children:"This is the new Next.js landing app in the monorepo. The authenticated product experience remains in the Vite app under apps/genesis-app."})]})}])},93976,a=>{a.n(a.i(69903))}];
+
+//# sourceMappingURL=apps_landing_app_page_tsx_06.fe1s._.js.map

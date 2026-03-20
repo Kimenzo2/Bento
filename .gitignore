@@ -123,3 +123,20 @@ yarn-error.log*
 .vercel
 .env*.local
 package-lock.json
+
+# Binary image assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tif
+*.tiff
+*.ico
+*.avif
+*.heic
+*.heif
+
+# Playwright results
+tests/playwright/results/

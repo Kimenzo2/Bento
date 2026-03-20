@@ -1,0 +1,32 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Inter", sans-serif;
+  background: radial-gradient(circle at top left, #f8fafc 0%, #ffffff 45%, #eef2ff 100%);
+  color: #0f172a;
+}
+
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 6rem 1.5rem;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.1;
+  margin: 0 0 1rem;
+}
+
+p {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  margin: 0;
+}

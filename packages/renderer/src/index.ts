@@ -75,6 +75,7 @@ export function isWebGPUSupported(): boolean {
 export function isOffscreenCanvasSupported(): boolean {
   return (
     typeof OffscreenCanvas !== 'undefined' &&
+    typeof Worker !== 'undefined' &&
     'transferControlToOffscreen' in HTMLCanvasElement.prototype
   );
 }
@@ -89,14 +90,25 @@ export function isOffscreenCanvasSupported(): boolean {
  */
 export async function createRenderer(config: RendererConfig): Promise<GenRenderer> {
   const supportsOffscreen = isOffscreenCanvasSupported();
+  const preferredMode = supportsOffscreen ? 'OffscreenCanvas' : 'main-thread';
+
+  // WHY: the Playwright suite needs a deterministic signal for which render path
+  // the engine selected, and production debugging needs the same visibility.
+  console.info(`[gen-engine] Renderer: ${preferredMode}`);
 
   if (supportsOffscreen) {
-    // OffscreenCanvas path — renderer runs in Web Worker
-    return createOffscreenRenderer(config);
-  } else {
-    // Fallback — main thread renderer
-    return createMainThreadRenderer(config);
+    try {
+      // WHY: if worker boot fails after capability detection succeeds, falling back
+      // keeps Gen visible instead of leaving the container empty on public routes.
+      return await createOffscreenRenderer(config);
+    } catch (error) {
+      console.error('[gen-engine] OffscreenCanvas initialization failed, falling back to main-thread renderer.', error);
+      return createMainThreadRenderer(config);
+    }
   }
+
+  // Fallback — main thread renderer
+  return createMainThreadRenderer(config);
 }
 
 // ============================================================================
