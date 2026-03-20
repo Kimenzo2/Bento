@@ -35,6 +35,8 @@ import type { ArcjetConfig } from './arcjet';
 
 import { cloudinary } from './cloudinary';
 import type { CloudinaryConfig } from './cloudinary';
+import { braintrust, initializeBraintrust } from './braintrust';
+import type { BraintrustConfig } from './braintrust';
 
 // ============================================================================
 // TYPES
@@ -47,6 +49,7 @@ export interface IntegrationConfig {
   checkly?: Partial<ChecklyConfig>;
   arcjet?: Partial<ArcjetConfig>;
   cloudinary?: Partial<CloudinaryConfig>;
+  braintrust?: Partial<BraintrustConfig>;
 }
 
 export interface IntegrationStatus {
@@ -73,6 +76,7 @@ export interface IntegrationHealth {
     checkly: { healthy: boolean };
     arcjet: { healthy: boolean };
     cloudinary: { healthy: boolean };
+    braintrust: { healthy: boolean };
   };
   timestamp: number;
 }
@@ -264,6 +268,43 @@ async function initCloudinary(config?: Partial<CloudinaryConfig>): Promise<Integ
 }
 
 /**
+ * Initialize Braintrust
+ */
+async function initBraintrust(config?: Partial<BraintrustConfig>): Promise<IntegrationStatus> {
+  const start = performance.now();
+
+  try {
+    const configured =
+      Boolean(config?.apiKey && config?.projectId) ||
+      (typeof process !== 'undefined' &&
+        Boolean(process.env.BRAINTRUST_API_KEY && process.env.BRAINTRUST_PROJECT_ID));
+
+    if (!configured) {
+      return {
+        name: 'braintrust',
+        initialized: true,
+        latency: performance.now() - start,
+      };
+    }
+
+    await initializeBraintrust(config);
+
+    return {
+      name: 'braintrust',
+      initialized: braintrust.isInitialized(),
+      latency: performance.now() - start,
+    };
+  } catch (error) {
+    return {
+      name: 'braintrust',
+      initialized: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      latency: performance.now() - start,
+    };
+  }
+}
+
+/**
  * Bootstrap all integrations
  */
 export async function bootstrapIntegrations(
@@ -308,10 +349,11 @@ export async function bootstrapIntegrations(
     }
 
     // Phase 2: Non-critical services (parallel)
-    const [checklyStatus, arcjetStatus, cloudinaryStatus] = await Promise.all([
+    const [checklyStatus, arcjetStatus, cloudinaryStatus, braintrustStatus] = await Promise.all([
       initCheckly(config?.checkly),
       initArcjet(config?.arcjet),
       initCloudinary(config?.cloudinary),
+      initBraintrust(config?.braintrust),
     ]);
 
     services.push(checklyStatus);
@@ -327,6 +369,11 @@ export async function bootstrapIntegrations(
     services.push(cloudinaryStatus);
     if (!cloudinaryStatus.initialized) {
       errors.push(`Cloudinary: ${cloudinaryStatus.error}`);
+    }
+
+    services.push(braintrustStatus);
+    if (!braintrustStatus.initialized && braintrustStatus.error) {
+      errors.push(`Braintrust: ${braintrustStatus.error}`);
     }
 
     const totalTime = performance.now() - startTime;
@@ -393,6 +440,10 @@ export async function getIntegrationHealth(): Promise<IntegrationHealth> {
     upstashLatency = performance.now() - start;
   }
 
+  const braintrustConfigured =
+    typeof process !== 'undefined' &&
+    Boolean(process.env.BRAINTRUST_API_KEY && process.env.BRAINTRUST_PROJECT_ID);
+
   const services = {
     upstash: { healthy: upstashHealthy, latency: upstashLatency },
     sentry: { healthy: sentry.isInitialized() },
@@ -400,10 +451,11 @@ export async function getIntegrationHealth(): Promise<IntegrationHealth> {
     checkly: { healthy: true }, // Checkly is external
     arcjet: { healthy: true }, // Arcjet is stateless
     cloudinary: { healthy: cloudinary.isInitialized() },
+    braintrust: { healthy: braintrustConfigured ? braintrust.isInitialized() : true },
   };
 
   const healthyCount = Object.values(services).filter((s) => s.healthy).length;
-  const overall = healthyCount === 6 ? 'healthy' : healthyCount >= 4 ? 'degraded' : 'unhealthy';
+  const overall = healthyCount === 7 ? 'healthy' : healthyCount >= 5 ? 'degraded' : 'unhealthy';
 
   return {
     overall,
@@ -416,7 +468,7 @@ export async function getIntegrationHealth(): Promise<IntegrationHealth> {
  * Shutdown all integrations
  */
 export async function shutdownIntegrations(): Promise<void> {
-  await Promise.all([statsig.shutdown(), sentry.flush()]);
+  await Promise.all([statsig.shutdown(), sentry.flush(), braintrust.flush()]);
 
   bootstrapped = false;
   bootstrapResult = null;

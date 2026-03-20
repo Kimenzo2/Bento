@@ -184,6 +184,17 @@ export {
 } from './vercel-analytics';
 
 // ============================================================================
+// BRAINTRUST (LLM Observability)
+// ============================================================================
+
+export {
+  braintrust,
+  initializeBraintrust,
+  type BraintrustConfig,
+  type BraintrustLogPayload,
+} from './braintrust';
+
+// ============================================================================
 // BOOTSTRAP & CONTEXT
 // ============================================================================
 
