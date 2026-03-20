@@ -17,9 +17,9 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
   const [showExportModal, setShowExportModal] = useState(false);
   const currentPage = allPages[currentPageIndex];
   const viewerIconButtonClass =
-    'h-10 w-10 rounded-[12px] border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
+    'h-10 w-10 rounded-[12px] border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
   const viewerPillButtonClass =
-    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
+    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
 
   const goToNextPage = () => {
     if (currentPageIndex < allPages.length - 1) {
@@ -47,16 +47,16 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
 
   if (!currentPage) {
     return (
-      <div className="fixed inset-0 bg-charcoal-soft flex items-center justify-center z-50">
-        <p className="text-white text-xl">Loading...</p>
+      <div className="fixed inset-0 bg-cream-base flex items-center justify-center z-50">
+        <p className="text-charcoal-soft text-xl">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-linear-to-br from-charcoal-soft via-charcoal-soft to-coral-burst/20 z-50 overflow-hidden">
+    <div className="fixed inset-0 bg-linear-to-br from-cream-base via-cream-soft to-peach-soft/35 z-50 overflow-hidden">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 h-14 sm:h-16 bg-charcoal-soft/90  border-b border-white/10 flex items-center justify-between px-3 sm:px-6 z-10">
+      <div className="absolute top-0 left-0 right-0 h-14 sm:h-16 bg-surface/92 border-b border-charcoal-soft/12 flex items-center justify-between px-3 sm:px-6 z-10">
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <Button
             variant="ghost"
@@ -68,10 +68,10 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             <X className="w-5 h-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-white font-heading font-bold text-sm sm:text-lg truncate">
+            <h1 className="text-charcoal-soft font-heading font-bold text-sm sm:text-lg truncate">
               {project.title}
             </h1>
-            <p className="text-white/60 text-xs hidden sm:block">
+            <p className="text-cocoa-light text-xs hidden sm:block">
               Page {currentPage.pageNumber} of {allPages.length}
             </p>
           </div>
@@ -137,7 +137,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
                       variant="outline"
                       key={idx}
                       onClick={() => handleChoice(choice.targetPageNumber)}
-                      className="w-full h-10 sm:h-11 px-4 sm:px-5 rounded-[12px] border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 sm:text-base flex justify-between group transition-all duration-200"
+                      className="w-full h-10 sm:h-11 px-4 sm:px-5 rounded-[12px] border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 sm:text-base flex justify-between group transition-all duration-200"
                     >
                       {choice.text}
                       <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -158,19 +158,19 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
       </div>
 
       {/* Navigation Controls */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-charcoal-soft/90  border-t border-white/10 flex items-center justify-center gap-3 sm:gap-6 px-3 sm:px-6">
+      <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-surface/92 border-t border-charcoal-soft/12 flex items-center justify-center gap-3 sm:gap-6 px-3 sm:px-6">
         <Button
           variant="ghost"
           onClick={goToPrevPage}
           disabled={currentPageIndex === 0}
-          className="h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 disabled:opacity-30 disabled:hover:text-charcoal-soft disabled:hover:bg-surface/70 disabled:hover:border-peach-soft/60 transition-all duration-200 sm:text-base"
+          className="h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 disabled:opacity-30 disabled:hover:text-charcoal-soft disabled:hover:bg-surface/80 disabled:hover:border-charcoal-soft/22 transition-all duration-200 sm:text-base"
         >
           <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="hidden xs:inline">Previous</span>
           <span className="xs:hidden">Prev</span>
         </Button>
 
-        <div className="text-white text-xs sm:text-sm font-medium bg-surface/10 px-3 sm:px-4 py-2 rounded-full">
+        <div className="text-charcoal-soft text-xs sm:text-sm font-medium bg-surface/80 border border-charcoal-soft/15 px-3 sm:px-4 py-2 rounded-full">
           {currentPageIndex + 1} / {allPages.length}
         </div>
 
@@ -178,7 +178,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           variant="ghost"
           onClick={goToNextPage}
           disabled={currentPageIndex === allPages.length - 1}
-          className="h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 disabled:opacity-30 disabled:hover:text-charcoal-soft disabled:hover:bg-surface/70 disabled:hover:border-peach-soft/60 transition-all duration-200 sm:text-base"
+          className="h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 disabled:opacity-30 disabled:hover:text-charcoal-soft disabled:hover:bg-surface/80 disabled:hover:border-charcoal-soft/22 transition-all duration-200 sm:text-base"
         >
           <span className="hidden xs:inline">Next</span>
           <span className="xs:hidden">Next</span>

@@ -225,9 +225,9 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
   };
 
   const viewerIconButtonClass =
-    'h-10 w-10 rounded-[12px] border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
+    'h-10 w-10 rounded-[12px] border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
   const viewerPillButtonClass =
-    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
+    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
 
   return (
     <div className="fixed inset-0 z-50 bg-peach-soft/30  flex flex-col">
@@ -277,7 +277,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="h-10 inline-flex items-center gap-2 px-3.5 rounded-[12px] border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200 text-sm font-medium"
+            className="h-10 inline-flex items-center gap-2 px-3.5 rounded-[12px] border-[0.5px] border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200 text-sm font-medium"
           >
             <IcoPen className="w-4 h-4" />
             Create Your Own
@@ -334,8 +334,8 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                                 h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px]
                                 ${
                                   currentPageIndex === 0
-                                    ? 'bg-surface/70 text-charcoal-soft border-peach-soft/60 opacity-30 cursor-not-allowed'
-                                    : 'border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35'
+                                    ? 'bg-surface/80 text-charcoal-soft border-charcoal-soft/22 opacity-30 cursor-not-allowed'
+                                    : 'border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35'
                                 }
                                 transition-all duration-200
                             `}
@@ -373,8 +373,8 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
                                 h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px]
                                 ${
                                   currentPageIndex === pages.length - 1
-                                    ? 'bg-surface/70 text-charcoal-soft border-peach-soft/60 opacity-30 cursor-not-allowed'
-                                    : 'border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35'
+                                    ? 'bg-surface/80 text-charcoal-soft border-charcoal-soft/22 opacity-30 cursor-not-allowed'
+                                    : 'border-charcoal-soft/22 bg-surface/80 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35'
                                 }
                                 transition-all duration-200
                             `}

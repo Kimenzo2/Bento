@@ -102,6 +102,10 @@
   animation: bounce-slow 2s infinite;
 }
 
+/* Theme-aware capsule button utilities.
+   Colors are derived from active theme variables, so they adapt across all themes and modes. */
+
+
 @keyframes bounce-slow {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
