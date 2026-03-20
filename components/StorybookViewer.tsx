@@ -77,9 +77,9 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const viewerIconButtonClass =
-    'h-10 w-10 rounded-[12px] border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
+    'h-10 w-10 rounded-[12px] border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
   const viewerPillButtonClass =
-    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
+    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
 
   // ── Derived data ─────────────────────────────────────────────────────────
   const allPages = useMemo(
@@ -557,7 +557,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         );
                         if (targetIdx >= 0) goToPage(targetIdx);
                       }}
-                      className="w-full min-h-10 rounded-[12px] px-3.5 py-2.5 text-left justify-start border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200"
+                      className="w-full min-h-10 rounded-[12px] px-3.5 py-2.5 text-left justify-start border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200"
                     >
                       <ChevronRight className="w-4 h-4 shrink-0 text-coral-burst mr-2" />
                       {choice.text}

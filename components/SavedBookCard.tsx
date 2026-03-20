@@ -29,7 +29,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
 
   const pageCount = book.project.chapters.flatMap((c) => c.pages).length;
   const actionButtonBaseClass =
-    'h-10 rounded-[12px] px-3 inline-flex items-center gap-1.5 font-heading font-medium border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
+    'h-10 rounded-[12px] px-3 inline-flex items-center gap-1.5 font-heading font-medium border-[0.5px] border-peach-soft/60 bg-surface/70 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/35 transition-all duration-200';
 
   return (
     <motion.div
