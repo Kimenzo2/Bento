@@ -12,7 +12,9 @@
 
 import type React from 'react';
 import { useState } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 import { resolveImageUrl } from '../../services/resolveImageUrl';
+import { IllustrationCanvas } from '../../src/components/IllustrationCanvas';
 
 const geist: React.CSSProperties = {
   fontFamily: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
@@ -34,8 +36,16 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
   onGenerate,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const { currentTheme } = useTheme();
   const resolvedUrl = resolveImageUrl(imageUrl);
   const hasValidImage = !!resolvedUrl && !imageError;
+
+  const realm =
+    currentTheme.id === 'nebula'
+      ? 'cosmos'
+      : currentTheme.id === 'forest'
+        ? 'cell'
+        : 'kingdom';
 
   // Respect prefers-reduced-motion
   const prefersReducedMotion =
@@ -109,17 +119,13 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
   if (hasValidImage) {
     return (
       <div className="relative w-full overflow-hidden rounded-xl">
-        <img
+        <IllustrationCanvas
           src={resolvedUrl}
-          alt="Page illustration"
-          className={`w-full object-cover transition-opacity duration-300 rounded-xl ${isOutdated ? 'opacity-60' : 'opacity-100'}`}
-          style={{
-            aspectRatio: '4 / 3',
-            boxShadow: '0 2px 16px color-mix(in srgb, var(--color-text) 8%, transparent)',
-          }}
           width={640}
           height={480}
-          draggable={false}
+          realm={realm}
+          alt="Page illustration"
+          className={`w-full rounded-xl transition-opacity duration-300 ${isOutdated ? 'opacity-60' : 'opacity-100'}`}
           onError={() => setImageError(true)}
         />
 

@@ -13,6 +13,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createAuthenticatedHandler, type ApiContext } from './_middleware';
 
 // ============================================================================
 // TYPES
@@ -54,6 +55,8 @@ const jobs = new Map<
   string,
   {
     id: string;
+    ownerId: string;
+    streamToken: string;
     type: string;
     data: Record<string, unknown>;
     status: JobStatusResponse['status'];
@@ -74,6 +77,10 @@ function generateJobId(): string {
   return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+function generateStreamToken(): string {
+  return `stream_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
+}
+
 function resolveJobsPath(req: VercelRequest): string {
   const queryPath = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
   if (typeof queryPath === 'string' && queryPath.length > 0) {
@@ -88,7 +95,7 @@ function resolveJobsPath(req: VercelRequest): string {
 // HANDLERS
 // ============================================================================
 
-async function handleSubmit(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleSubmit(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const body = req.body as JobSubmission;
 
@@ -109,6 +116,8 @@ async function handleSubmit(req: VercelRequest, res: VercelResponse): Promise<vo
     // Create job
     const job = {
       id: jobId,
+      ownerId: userId,
+      streamToken: generateStreamToken(),
       type: body.type,
       data: body.data,
       status: 'pending' as const,
@@ -133,6 +142,7 @@ async function handleSubmit(req: VercelRequest, res: VercelResponse): Promise<vo
 
     res.status(202).json({
       jobId,
+      streamToken: job.streamToken,
       position,
       estimatedWaitMs: position * 5000,
     });
@@ -142,7 +152,7 @@ async function handleSubmit(req: VercelRequest, res: VercelResponse): Promise<vo
   }
 }
 
-async function handleStatus(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleStatus(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const jobId = req.query.id as string;
 
@@ -155,6 +165,11 @@ async function handleStatus(req: VercelRequest, res: VercelResponse): Promise<vo
 
     if (!job) {
       res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    if (job.ownerId !== userId) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
@@ -177,8 +192,9 @@ async function handleStatus(req: VercelRequest, res: VercelResponse): Promise<vo
   }
 }
 
-async function handleStream(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleStream(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   const jobId = req.query.id as string;
+  const streamToken = typeof req.query.streamToken === 'string' ? req.query.streamToken : '';
 
   if (!jobId) {
     res.status(400).json({ error: 'Job ID is required' });
@@ -189,6 +205,11 @@ async function handleStream(req: VercelRequest, res: VercelResponse): Promise<vo
 
   if (!job) {
     res.status(404).json({ error: 'Job not found' });
+    return;
+  }
+
+  if (job.ownerId !== userId || !streamToken || streamToken !== job.streamToken) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
 
@@ -240,7 +261,7 @@ async function handleStream(req: VercelRequest, res: VercelResponse): Promise<vo
   });
 }
 
-async function handleCancel(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleCancel(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const jobId = req.query.id as string;
 
@@ -253,6 +274,11 @@ async function handleCancel(req: VercelRequest, res: VercelResponse): Promise<vo
 
     if (!job) {
       res.status(404).json({ error: 'Job not found' });
+      return;
+    }
+
+    if (job.ownerId !== userId) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
@@ -275,7 +301,7 @@ async function handleCancel(req: VercelRequest, res: VercelResponse): Promise<vo
   }
 }
 
-async function handleStats(req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleStats(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
   try {
     const stats: QueueStats = {
       waiting: 0,
@@ -286,6 +312,10 @@ async function handleStats(req: VercelRequest, res: VercelResponse): Promise<voi
     };
 
     for (const job of jobs.values()) {
+      if (job.ownerId !== userId) {
+        continue;
+      }
+
       switch (job.status) {
         case 'pending':
         case 'waiting':
@@ -400,7 +430,14 @@ function notifySubscribers(jobId: string): void {
 // MAIN HANDLER
 // ============================================================================
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+export default createAuthenticatedHandler(async (ctx: ApiContext): Promise<void> => {
+  const { req, res, userId } = ctx;
+
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
   // CORS headers — restrict to app origin in production
   const allowedOrigin = process.env.ALLOWED_ORIGIN || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '*');
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
@@ -416,29 +453,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // Route requests
   if (req.method === 'POST' && path === '/submit') {
-    return handleSubmit(req, res);
+    return handleSubmit(req, res, userId);
   }
 
   if (req.method === 'GET' && path.match(/^\/[^/]+\/status$/)) {
     req.query.id = path.split('/')[1];
-    return handleStatus(req, res);
+    return handleStatus(req, res, userId);
   }
 
   if (req.method === 'GET' && path.match(/^\/[^/]+\/stream$/)) {
     req.query.id = path.split('/')[1];
-    return handleStream(req, res);
+    return handleStream(req, res, userId);
   }
 
   if (req.method === 'POST' && path.match(/^\/[^/]+\/cancel$/)) {
     req.query.id = path.split('/')[1];
-    return handleCancel(req, res);
+    return handleCancel(req, res, userId);
   }
 
   if (req.method === 'GET' && path === '/stats') {
-    return handleStats(req, res);
+    return handleStats(req, res, userId);
   }
 
   res.status(404).json({ error: 'Not found' });
-}
+});
 
 

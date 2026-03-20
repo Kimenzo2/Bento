@@ -122,3 +122,4 @@ yarn-error.log*
 # Vercel
 .vercel
 .env*.local
+package-lock.json

@@ -24,6 +24,8 @@
  * 5. Final result stored in Supabase
  */
 
+import { authenticatedFetch } from '../api/authenticatedFetch';
+
 // ============================================================================
 // JOB TYPES
 // ============================================================================
@@ -160,6 +162,8 @@ export interface JobProgress {
   progress: number; // 0-100
   stage: string;
   message: string;
+  result?: JobResult;
+  error?: string;
   estimatedTimeRemainingMs?: number;
   startedAt?: string;
   updatedAt: string;
@@ -256,7 +260,8 @@ export const QUEUE_CONFIGS: Record<string, QueueConfig> = {
  */
 export class JobQueueClient {
   private readonly apiBase: string;
-  private readonly eventSource: Map<string, EventSource> = new Map();
+  private readonly progressPollers: Map<string, ReturnType<typeof setInterval>> = new Map();
+  private readonly streamTokens: Map<string, string> = new Map();
 
   constructor(apiBase = '/api/jobs') {
     this.apiBase = apiBase;
@@ -273,8 +278,8 @@ export class JobQueueClient {
       delay?: number;
       deduplicate?: boolean;
     }
-  ): Promise<{ jobId: string; position: number }> {
-    const response = await fetch(`${this.apiBase}/submit`, {
+  ): Promise<{ jobId: string; position: number; streamToken: string }> {
+    const response = await authenticatedFetch(`${this.apiBase}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -291,14 +296,19 @@ export class JobQueueClient {
       throw new Error(error.message || 'Failed to submit job');
     }
 
-    return response.json();
+    const payload = await response.json();
+    if (payload?.jobId && payload?.streamToken) {
+      this.streamTokens.set(payload.jobId, payload.streamToken);
+    }
+
+    return payload;
   }
 
   /**
    * Get job status
    */
   async getJobStatus(jobId: string): Promise<JobProgress> {
-    const response = await fetch(`${this.apiBase}/${jobId}/status`);
+    const response = await authenticatedFetch(`${this.apiBase}/${jobId}/status`);
 
     if (!response.ok) {
       throw new Error('Failed to get job status');
@@ -308,7 +318,8 @@ export class JobQueueClient {
   }
 
   /**
-   * Subscribe to job progress updates via SSE
+   * Subscribe to job progress updates via authenticated polling.
+   * Native EventSource cannot send Authorization headers.
    */
   subscribeToProgress(
     jobId: string,
@@ -319,32 +330,41 @@ export class JobQueueClient {
     // Close existing subscription for this job
     this.unsubscribeFromProgress(jobId);
 
-    const eventSource = new EventSource(`${this.apiBase}/${jobId}/stream`);
-
-    eventSource.onmessage = (event) => {
+    let inFlight = false;
+    const poll = async (): Promise<void> => {
+      if (inFlight) return;
+      inFlight = true;
       try {
-        const data = JSON.parse(event.data);
+        const progress = await this.getJobStatus(jobId);
+        onProgress(progress);
 
-        if (data.type === 'progress') {
-          onProgress(data.payload);
-        } else if (data.type === 'complete') {
-          onComplete(data.payload);
+        if (progress.status === 'completed' && progress.result) {
+          onComplete(progress.result);
           this.unsubscribeFromProgress(jobId);
-        } else if (data.type === 'error') {
-          onError(new Error(data.payload.message));
+          return;
+        }
+
+        if (progress.status === JobStatus.FAILED) {
+          const message = progress.error || `Job ${progress.status}`;
+          onError(new Error(message));
           this.unsubscribeFromProgress(jobId);
         }
-      } catch (e) {
-        console.error('Failed to parse SSE message:', e);
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error('Failed to poll job progress');
+        onError(err);
+        this.unsubscribeFromProgress(jobId);
+      } finally {
+        inFlight = false;
       }
     };
 
-    eventSource.onerror = () => {
-      onError(new Error('Connection lost'));
-      this.unsubscribeFromProgress(jobId);
-    };
+    // Poll immediately, then at an interval.
+    void poll();
+    const poller = setInterval(() => {
+      void poll();
+    }, 1500);
 
-    this.eventSource.set(jobId, eventSource);
+    this.progressPollers.set(jobId, poller);
 
     // Return unsubscribe function
     return () => this.unsubscribeFromProgress(jobId);
@@ -354,18 +374,19 @@ export class JobQueueClient {
    * Unsubscribe from job progress
    */
   unsubscribeFromProgress(jobId: string): void {
-    const eventSource = this.eventSource.get(jobId);
-    if (eventSource) {
-      eventSource.close();
-      this.eventSource.delete(jobId);
+    const poller = this.progressPollers.get(jobId);
+    if (poller) {
+      clearInterval(poller);
+      this.progressPollers.delete(jobId);
     }
+    this.streamTokens.delete(jobId);
   }
 
   /**
    * Cancel a job
    */
   async cancelJob(jobId: string): Promise<boolean> {
-    const response = await fetch(`${this.apiBase}/${jobId}/cancel`, {
+    const response = await authenticatedFetch(`${this.apiBase}/${jobId}/cancel`, {
       method: 'POST',
     });
 
@@ -382,7 +403,7 @@ export class JobQueueClient {
     failed: number;
     delayed: number;
   }> {
-    const response = await fetch(`${this.apiBase}/stats`);
+    const response = await authenticatedFetch(`${this.apiBase}/stats`);
 
     if (!response.ok) {
       throw new Error('Failed to get queue stats');
@@ -395,7 +416,7 @@ export class JobQueueClient {
    * Cleanup subscriptions
    */
   dispose(): void {
-    for (const jobId of this.eventSource.keys()) {
+    for (const jobId of this.progressPollers.keys()) {
       this.unsubscribeFromProgress(jobId);
     }
   }

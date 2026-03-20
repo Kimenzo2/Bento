@@ -23,6 +23,7 @@ import Navigation from './components/Navigation';
 import { Toaster, toast } from './components/ui/sonner';
 import UpgradeModal from './components/UpgradeModal';
 import { useAuth } from './contexts/AuthContext';
+import { useGen } from './contexts/GenContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useGoogleOneTap } from './hooks/useGoogleOneTap';
 import { type UserProfile, getUserProfile } from './services/profileService';
@@ -50,6 +51,7 @@ import { DirectionProvider } from './components/ui/direction';
 // Global Components
 import WhatsNewModal from './components/WhatsNewModal';
 import { OfflineIndicator, useNetworkStatus } from './hooks/useNetworkStatus';
+import { useGenSync } from './hooks/useGenSync';
 import { useLanguageContext } from './src/contexts/LanguageContext';
 
 // PERFORMANCE: Lazy load heavy components with stale-chunk recovery.
@@ -117,6 +119,12 @@ function modeFromPathname(pathname: string): AppMode {
 const MainAppContent: React.FC = () => {
   // Initialize Google One Tap
   useGoogleOneTap();
+
+  // Sync Genesis state to Gen AI companion
+  useGenSync();
+
+  // Gen AI companion context - for publishing generation state
+  const { publishContext, fireTrigger } = useGen();
 
   // Translation
   const { t } = useTranslation('common');
@@ -362,6 +370,10 @@ const MainAppContent: React.FC = () => {
     setGenerationStatus(t('creation:startingGeneration', 'Starting book generation...'));
     setActiveWorkflowId(null);
 
+    // Notify Gen AI companion that generation started
+    publishContext({ isGenerating: true, hasError: false });
+    fireTrigger('generation_started');
+
     try {
       const cancel = await mastra.workflows.startBookGeneration(
         settings,
@@ -397,6 +409,10 @@ const MainAppContent: React.FC = () => {
               setShowUpgradeModal(true);
             }
 
+            // Notify Gen AI companion of generation error
+            publishContext({ isGenerating: false, hasError: true, errorMessage: result.error });
+            fireTrigger('generation_error');
+
             addToast(result.message || result.error || t('errors:generationFailed', 'Book generation failed.'), 'error');
             resetGenerationState();
             return;
@@ -412,6 +428,11 @@ const MainAppContent: React.FC = () => {
           }
 
           setCurrentProject(result.project);
+
+          // Notify Gen AI companion generation completed successfully
+          publishContext({ isGenerating: false, hasError: false });
+          fireTrigger('generation_complete');
+
           navigateTo(AppMode.SUCCESS);
           resetGenerationState();
         },
@@ -428,6 +449,10 @@ const MainAppContent: React.FC = () => {
             setShowUpgradeModal(true);
           }
 
+          // Notify Gen AI companion of generation error
+          publishContext({ isGenerating: false, hasError: true, errorMessage: error.message });
+          fireTrigger('generation_error');
+
           addToast(t('errors:generationError', { message: error.message || 'Unknown error', defaultValue: `Failed to generate project: ${error.message || 'Unknown error'}` }), 'error');
           resetGenerationState();
         }
@@ -436,6 +461,11 @@ const MainAppContent: React.FC = () => {
       generationCancelRef.current = cancel;
     } catch (error) {
       console.error('Generation failed', error);
+
+      // Notify Gen AI companion of generation error
+      publishContext({ isGenerating: false, hasError: true, errorMessage: error instanceof Error ? error.message : 'Unknown error' });
+      fireTrigger('generation_error');
+
       addToast(
         t('errors:generationError', { message: error instanceof Error ? error.message : 'Unknown error', defaultValue: `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}` }),
         'error'

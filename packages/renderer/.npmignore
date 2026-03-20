@@ -1,0 +1,5 @@
+src/
+*.spec.ts
+*.test.ts
+tsconfig.json
+vite.config.ts

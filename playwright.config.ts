@@ -10,6 +10,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 
 export default defineConfig({
+  
+  // Allow external production URL runs (no local web server bootstrap).
+  // If PLAYWRIGHT_BASE_URL is unset, default local dev server behavior remains.
+  
   // Look for test files in the e2e directory
   testDir: './e2e',
 
@@ -85,12 +89,14 @@ export default defineConfig({
   ],
 
   // Run local dev server before starting tests
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:3000',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120000,
+      },
 
   // Test timeout
   timeout: 60000,

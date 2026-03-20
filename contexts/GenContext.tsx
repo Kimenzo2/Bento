@@ -3,6 +3,11 @@
  *
  * Manages Gen's lifecycle within Genesis.
  * Handles mount/unmount, context publishing, and trigger firing.
+ *
+ * Phase 2 Features:
+ * - Automatic OffscreenCanvas detection (rendering moves to Web Worker)
+ * - SharedArrayBuffer support for 344Hz lip sync (requires COOP/COEP)
+ * - Graceful fallback to main thread rendering when unavailable
  */
 import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -17,11 +22,18 @@ import {
   type Realm,
   type TriggerType,
 } from '@lorenzootieno/gen-bridge';
+import {
+  detectGenCapabilities,
+  logGenCapabilities,
+  type GenCapabilities,
+} from '../lib/gen/genCapabilities';
 
 interface GenContextValue {
   gen: Gen | null;
   isReady: boolean;
   isMounted: boolean;
+  /** Detected rendering capabilities (OffscreenCanvas, SharedArrayBuffer, etc.) */
+  capabilities: GenCapabilities | null;
   publishContext: (partial: Partial<AppContext>) => void;
   fireTrigger: (type: TriggerType) => void;
 }
@@ -32,9 +44,18 @@ export function GenProvider({ children }: { children: React.ReactNode }) {
   const [gen, setGen] = useState<Gen | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [capabilities, setCapabilities] = useState<GenCapabilities | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const currentContextRef = useRef<Partial<AppContext>>({});
   const mountAttemptedRef = useRef(false);
+
+  // Detect capabilities on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const caps = detectGenCapabilities();
+    setCapabilities(caps);
+    logGenCapabilities(caps);
+  }, []);
 
   // Preload on idle
   useEffect(() => {
@@ -114,7 +135,7 @@ export function GenProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <GenContext.Provider value={{ gen, isReady, isMounted, publishContext, fireTrigger }}>
+    <GenContext.Provider value={{ gen, isReady, isMounted, capabilities, publishContext, fireTrigger }}>
       {children}
       {/* Gen's render container - positioned fixed, always on top */}
       <div

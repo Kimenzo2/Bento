@@ -23,6 +23,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FORWARD_TO = 'otienolorenzo704@gmail.com';
 const FORWARD_FROM = 'Genesis Mail <hello@iamazeyou.me>';
+const MAX_ATTACHMENTS = 10;
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB per attachment
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -128,12 +130,26 @@ export default async function handler(
   try {
     const attachmentList = await resend.emails.receiving.attachments.list(emailId);
     if (attachmentList?.data && Array.isArray(attachmentList.data)) {
+      const safeAttachments = attachmentList.data.slice(0, MAX_ATTACHMENTS);
+
       // Download each attachment
       const downloads = await Promise.all(
-        attachmentList.data.map(async (att: any) => {
+        safeAttachments.map(async (att: any) => {
           try {
             const response = await fetch(att.download_url);
-            const buffer = Buffer.from(await response.arrayBuffer());
+            const contentLength = Number(response.headers.get('content-length') || '0');
+            if (contentLength > MAX_ATTACHMENT_BYTES) {
+              console.warn('[inbound-email] Attachment too large, skipped:', att.filename);
+              return null;
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            if (arrayBuffer.byteLength > MAX_ATTACHMENT_BYTES) {
+              console.warn('[inbound-email] Attachment exceeded max size, skipped:', att.filename);
+              return null;
+            }
+
+            const buffer = Buffer.from(arrayBuffer);
             return { filename: att.filename || 'attachment', content: buffer };
           } catch {
             console.warn('[inbound-email] Failed to download attachment:', att.filename);

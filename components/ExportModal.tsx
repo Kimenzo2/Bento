@@ -7,6 +7,7 @@ import {
   Image,
   Loader,
   Settings,
+  Video,
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -21,9 +22,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Label } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
+import { ExportVideoButton } from '../src/components/ExportVideoButton';
 
 interface ExportOptions {
-  format: 'pdf' | 'html';
+  format: 'pdf' | 'html' | 'video';
   includeImages: boolean;
   fontSize: 'small' | 'medium' | 'large';
   fontFamily: string;
@@ -142,6 +144,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
               {[
                 { id: 'pdf', label: 'PDF', icon: FileText, desc: 'Print & share' },
                 { id: 'html', label: 'HTML', icon: Settings, desc: 'Web viewing' },
+                { id: 'video', label: 'Video', icon: Video, desc: 'Animated story' },
               ].map(({ id, label, icon: Icon, desc }) => (
                 <Button
                   key={id}
@@ -274,22 +277,31 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            {isExporting ? (
-              <>
-                <Loader className="w-4 h-4 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Export {options.format.toUpperCase()}
-              </>
-            )}
-          </Button>
+          {options.format === 'video' ? (
+            <div className="min-w-55">
+              <ExportVideoButton
+                book={book}
+                tier={tierName as UserTier}
+              />
+            </div>
+          ) : (
+            <Button
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Export {options.format.toUpperCase()}
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
