@@ -104,16 +104,16 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
           </span>
         </div>
 
-        <div className="hidden lg:flex items-center gap-1 bg-surface/50 p-1.5 rounded-full border border-peach-soft/50 backdrop-blur-sm">
+        <div className="hidden lg:flex items-center gap-1 bg-surface/35 p-1.5 rounded-full border-[0.5px] border-peach-soft/25">
           {menuItems.map((item) => (
             <Button
               key={item.mode}
               variant="ghost"
               onClick={() => handleModeChange(item.mode)}
-              className={`group flex px-4 py-2 rounded-full font-heading font-medium ${
+              className={`group h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] transition-all duration-200 ${
                 currentMode === item.mode
-                  ? 'bg-linear-to-r from-gold-sunshine to-coral-burst text-white transform scale-105'
-                  : 'text-cocoa-light hover:text-coral-burst hover:bg-cream-soft'
+                  ? 'bg-linear-to-r from-gold-sunshine to-coral-burst text-white border-transparent'
+                  : 'border-peach-soft/22 dark:border-white/6 bg-surface/55 dark:bg-transparent text-cocoa-light dark:text-gray-300 hover:text-coral-burst dark:hover:text-white hover:bg-cream-soft/70 dark:hover:bg-white/4 hover:border-peach-soft/30 dark:hover:border-white/10'
               }`}
             >
               <item.icon
