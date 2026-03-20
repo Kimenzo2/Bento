@@ -294,7 +294,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
       className="flex flex-col h-full overflow-y-auto"
       style={{
         ...(fluid ? {} : { width: 300, minWidth: 300 }),
-        backgroundColor: 'var(--color-surface)',
+        backgroundColor: 'var(--color-background)',
         borderLeft: fluid ? 'none' : '1px solid var(--color-border)',
         scrollbarWidth: 'thin',
       }}
@@ -449,7 +449,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
                     alignItems: 'center',
                     backgroundColor: isActive
                       ? undefined
-                      : 'var(--color-surface)',
+                      : 'color-mix(in srgb, var(--color-background) 88%, var(--color-surface))',
                     border: isActive
                       ? 'none'
                       : '1px solid var(--color-border)',

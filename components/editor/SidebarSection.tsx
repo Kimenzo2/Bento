@@ -89,13 +89,15 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({
             backgroundColor: 'transparent',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--color-surface)';
+            e.currentTarget.style.backgroundColor =
+              'color-mix(in srgb, var(--color-border) 22%, var(--color-background))';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
           onFocus={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--color-surface)';
+            e.currentTarget.style.backgroundColor =
+              'color-mix(in srgb, var(--color-border) 22%, var(--color-background))';
           }}
           onBlur={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';

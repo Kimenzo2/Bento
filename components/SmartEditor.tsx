@@ -670,7 +670,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   width: 20,
                   height: '100%',
                   borderLeft: '1px solid var(--color-border)',
-                  backgroundColor: 'var(--color-surface)',
+                  backgroundColor: 'var(--color-background)',
                 }}
                 aria-label={isRightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
                 title={isRightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
@@ -722,7 +722,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                 className="relative w-full rounded-t-2xl overflow-hidden"
                 style={{
                   maxHeight: '75dvh',
-                  backgroundColor: 'var(--color-surface)',
+                  backgroundColor: 'var(--color-background)',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
