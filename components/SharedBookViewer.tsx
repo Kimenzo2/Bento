@@ -224,6 +224,11 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
     }
   };
 
+  const viewerIconButtonClass =
+    'h-10 w-10 rounded-[12px] border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
+  const viewerPillButtonClass =
+    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
+
   return (
     <div className="fixed inset-0 z-50 bg-peach-soft/30  flex flex-col">
       {/* Header */}
@@ -233,9 +238,9 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="h-10 w-10 rounded-xl border-[0.5px] border-peach-soft/45 dark:border-white/12 bg-surface/60 dark:bg-white/5 text-cocoa-light dark:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/20 transition-all duration-200"
+            className={viewerIconButtonClass}
           >
-            <ArrowLeft className="w-5 h-5 text-cocoa-light " />
+            <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="font-bold text-charcoal-soft  flex items-center gap-2">
@@ -260,7 +265,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             <Button
               variant="ghost"
               onClick={handleDownload}
-              className="h-10 rounded-xl px-3.5 inline-flex items-center gap-2 border-[0.5px] border-peach-soft/45 dark:border-white/12 bg-surface/60 dark:bg-white/5 text-cocoa-light dark:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/20 transition-all duration-200"
+              className={viewerPillButtonClass}
               title="Download Book"
             >
               <Download className="w-5 h-5" />
@@ -272,7 +277,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="h-10 inline-flex items-center gap-2 px-3.5 rounded-xl border-[0.5px] border-coral-burst/35 bg-coral-burst/10 text-coral-burst hover:bg-coral-burst/15 hover:border-coral-burst/55 transition-all duration-200 text-sm font-medium"
+            className="h-10 inline-flex items-center gap-2 px-3.5 rounded-[12px] border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200 text-sm font-medium"
           >
             <IcoPen className="w-4 h-4" />
             Create Your Own
@@ -326,11 +331,11 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               onClick={prevPage}
               disabled={currentPageIndex === 0}
               className={`
-                                h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px]
+                                h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px]
                                 ${
                                   currentPageIndex === 0
-                                    ? 'bg-peach-light/50 text-cocoa-light/60 border-peach-soft/30 cursor-not-allowed'
-                                    : 'bg-surface/70 text-charcoal-soft border-peach-soft/45 hover:border-coral-burst/45 hover:text-coral-burst'
+                                    ? 'bg-surface/50 text-charcoal-soft dark:bg-white/5 dark:text-white border-peach-soft dark:border-white/10 opacity-30 cursor-not-allowed'
+                                    : 'border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16'
                                 }
                                 transition-all duration-200
                             `}
@@ -365,11 +370,11 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               onClick={nextPage}
               disabled={currentPageIndex === pages.length - 1}
               className={`
-                                h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px]
+                                h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px]
                                 ${
                                   currentPageIndex === pages.length - 1
-                                    ? 'bg-peach-light/50 text-cocoa-light/60 border-peach-soft/30 cursor-not-allowed'
-                                    : 'bg-surface/70 text-charcoal-soft border-peach-soft/45 hover:border-coral-burst/45 hover:text-coral-burst'
+                                    ? 'bg-surface/50 text-charcoal-soft dark:bg-white/5 dark:text-white border-peach-soft dark:border-white/10 opacity-30 cursor-not-allowed'
+                                    : 'border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16'
                                 }
                                 transition-all duration-200
                             `}

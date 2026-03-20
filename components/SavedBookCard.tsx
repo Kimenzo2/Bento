@@ -29,7 +29,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
 
   const pageCount = book.project.chapters.flatMap((c) => c.pages).length;
   const actionButtonBaseClass =
-    'h-10 rounded-[12px] px-3 inline-flex items-center gap-1.5 font-heading font-medium border-[0.5px] border-white/22 bg-white/8 text-white hover:bg-white/14 hover:border-white/34 transition-all duration-200';
+    'h-10 rounded-[12px] px-3 inline-flex items-center gap-1.5 font-heading font-medium border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
 
   return (
     <motion.div
@@ -94,7 +94,7 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
                 cancel: { label: 'Cancel', onClick: () => {} },
               });
             }}
-            className={`${actionButtonBaseClass} border-red-300/50 bg-red-500/12 text-red-100 hover:bg-red-500/22 hover:border-red-200/70`}
+            className={actionButtonBaseClass}
             title="Delete"
             aria-label="Delete book"
           >

@@ -16,6 +16,10 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showExportModal, setShowExportModal] = useState(false);
   const currentPage = allPages[currentPageIndex];
+  const viewerIconButtonClass =
+    'h-10 w-10 rounded-[12px] border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
+  const viewerPillButtonClass =
+    'h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 transition-all duration-200';
 
   const goToNextPage = () => {
     if (currentPageIndex < allPages.length - 1) {
@@ -58,10 +62,10 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-10 w-10 shrink-0 rounded-xl border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-all duration-200"
+            className={`${viewerIconButtonClass} shrink-0`}
             title="Exit"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-5 h-5" />
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="text-white font-heading font-bold text-sm sm:text-lg truncate">
@@ -77,7 +81,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowExportModal(true)}
-            className="h-10 w-10 rounded-xl border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-all duration-200"
+            className={viewerIconButtonClass}
             title="Export Book"
           >
             <Share2 className="w-5 h-5" />
@@ -86,7 +90,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="hidden sm:inline-flex h-10 rounded-xl px-3.5 border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-all duration-200 shrink-0"
+            className={`hidden sm:inline-flex shrink-0 ${viewerPillButtonClass}`}
           >
             <Home className="w-4 h-4" />
             Back to Dashboard
@@ -133,7 +137,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
                       variant="outline"
                       key={idx}
                       onClick={() => handleChoice(choice.targetPageNumber)}
-                      className="w-full h-10 sm:h-11 px-4 sm:px-5 rounded-xl border-[0.5px] border-charcoal-soft/20 bg-surface/85 hover:bg-surface hover:border-charcoal-soft/35 hover:text-coral-burst text-charcoal-soft sm:text-base flex justify-between group transition-all duration-200"
+                      className="w-full h-10 sm:h-11 px-4 sm:px-5 rounded-[12px] border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 sm:text-base flex justify-between group transition-all duration-200"
                     >
                       {choice.text}
                       <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -159,7 +163,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           variant="ghost"
           onClick={goToPrevPage}
           disabled={currentPageIndex === 0}
-          className="h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:border-white/15 transition-all duration-200 sm:text-base"
+          className="h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 disabled:opacity-30 disabled:hover:text-charcoal-soft dark:disabled:hover:text-white disabled:hover:bg-surface/50 dark:disabled:hover:bg-white/5 disabled:hover:border-peach-soft dark:disabled:hover:border-white/10 transition-all duration-200 sm:text-base"
         >
           <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="hidden xs:inline">Previous</span>
@@ -174,7 +178,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           variant="ghost"
           onClick={goToNextPage}
           disabled={currentPageIndex === allPages.length - 1}
-          className="h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:border-white/15 transition-all duration-200 sm:text-base"
+          className="h-10 rounded-[12px] px-3.5 inline-flex items-center gap-1 border-[0.5px] border-peach-soft bg-surface/50 text-charcoal-soft dark:border-white/10 dark:bg-white/5 dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-coral-burst/30 dark:hover:border-white/16 disabled:opacity-30 disabled:hover:text-charcoal-soft dark:disabled:hover:text-white disabled:hover:bg-surface/50 dark:disabled:hover:bg-white/5 disabled:hover:border-peach-soft dark:disabled:hover:border-white/10 transition-all duration-200 sm:text-base"
         >
           <span className="hidden xs:inline">Next</span>
           <span className="xs:hidden">Next</span>
