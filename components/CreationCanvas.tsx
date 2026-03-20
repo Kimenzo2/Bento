@@ -1211,7 +1211,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 size="xl"
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
-                className={`group h-10 rounded-[12px] px-3.5 text-gray-700 dark:text-gray-200 border-[0.5px] border-gray-200/35 dark:border-white/6 bg-surface/70 dark:bg-transparent inline-flex items-center gap-2 transition-all duration-200 hover:border-gray-300/45 dark:hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-dark
+                className={`group h-10 rounded-[12px] px-3.5 text-gray-700 dark:text-gray-200 border-[0.5px] border-gray-300/55 dark:border-white/5 bg-surface/70 dark:bg-transparent inline-flex items-center gap-2 transition-all duration-200 hover:border-gray-300/75 dark:hover:border-white/9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background-light dark:focus-visible:ring-offset-background-dark
                                 ${
                                   isGenerating
                                     ? 'opacity-70'

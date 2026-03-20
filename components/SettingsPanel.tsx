@@ -786,11 +786,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 variant="primary"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full md:w-auto rounded-full"
+                className="group w-full md:w-auto h-10 rounded-xl px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft/40 dark:border-white/10 bg-surface/60 dark:bg-white/5 text-charcoal-soft dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/55 dark:hover:border-white/16 transition-all duration-200"
               >
                 {isSaving ? (
                   <>
-                    <div className="w-4 h-4 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border border-current/30 border-t-current rounded-full animate-spin"></div>
                     {t('actions.saving', { defaultValue: 'Saving...' })}
                   </>
                 ) : (

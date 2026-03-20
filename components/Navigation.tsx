@@ -104,7 +104,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
           </span>
         </div>
 
-        <div className="hidden lg:flex items-center gap-1 bg-surface/35 p-1.5 rounded-full border-[0.5px] border-peach-soft/25">
+        <div className="hidden lg:flex items-center gap-1 bg-surface/50 p-1.5 rounded-full border-[0.5px] border-peach-soft/50">
           {menuItems.map((item) => (
             <Button
               key={item.mode}
@@ -112,12 +112,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               onClick={() => handleModeChange(item.mode)}
               className={`group h-10 rounded-[12px] px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] transition-all duration-200 ${
                 currentMode === item.mode
-                  ? 'bg-linear-to-r from-gold-sunshine to-coral-burst text-white border-transparent'
-                  : 'border-peach-soft/22 dark:border-white/6 bg-surface/55 dark:bg-transparent text-cocoa-light dark:text-gray-300 hover:text-coral-burst dark:hover:text-white hover:bg-cream-soft/70 dark:hover:bg-white/4 hover:border-peach-soft/30 dark:hover:border-white/10'
+                  ? 'bg-linear-to-r from-gold-sunshine to-coral-burst text-charcoal-soft dark:text-white border-transparent'
+                  : 'border-peach-soft bg-surface/50 text-charcoal-soft hover:text-coral-burst hover:bg-surface hover:border-coral-burst/30'
               }`}
             >
               <item.icon
-                className={`w-4 h-4 group-hover:animate-nav-dance ${currentMode === item.mode ? 'text-white' : ''}`}
+                className={`w-4 h-4 group-hover:animate-nav-dance ${currentMode === item.mode ? 'text-charcoal-soft dark:text-white' : ''}`}
               />
               <span>{item.label}</span>
             </Button>

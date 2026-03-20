@@ -222,7 +222,7 @@ const CharacterDepthPanel: React.FC<CharacterDepthPanelProps> = ({
                 variant="default"
                 size="sm"
                 onClick={handleSave}
-                className="flex px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                className="group h-10 rounded-xl px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-white/14 bg-white/6 text-white hover:bg-white/10 hover:border-white/22 transition-all duration-200"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
