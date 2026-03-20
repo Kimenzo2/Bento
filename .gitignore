@@ -95,6 +95,8 @@ refactor.cjs
 
 # Build artifacts
 *.tsbuildinfo
+.turbo/
+apps/landing/.next/
 
 # OS Files
 Thumbs.db
