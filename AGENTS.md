@@ -153,3 +153,30 @@ If you are unsure whether a change affects payments:
 2. Search `api/dodo.ts` for any column or table name you plan to change
 3. Search `supabase/migrations/012_dodo_profile_reconciliation.sql` for the same
 4. Test webhook delivery: `POST https://iamazeyou.me/api/dodo-webhook` should return 400 "Missing webhook headers" (not 308, not 404, not 500)
+
+---
+
+## Genesis Architecture Context (Appended)
+
+The Genesis system is evolving to a monorepo architecture with two apps and shared packages:
+
+- `apps/landing`: Next.js marketing/front-door application
+- `apps/genesis-app`: existing Vite 8 application (moved as-is)
+- `packages/ui`: shared presentational UI primitives/components
+- `packages/types`: shared public TypeScript types
+
+### Deployment model
+
+- Public domain: `https://iamazeyou.me`
+- Landing app handles public marketing pages.
+- Vite app handles authenticated/product experience.
+- Vercel path-based routing and rewrites proxy app routes transparently.
+
+### Performance mission
+
+Performance is the primary architecture filter. For landing and app surfaces, choose the fastest safe option first, then optimize for maintainability.
+
+### Hard rule: Vite app migration
+
+The Vite application must not be migrated to Next.js. It may be relocated inside a monorepo, but the runtime framework and behavior of the app must remain Vite-based unless the owner explicitly directs otherwise.
+

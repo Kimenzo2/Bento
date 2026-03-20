@@ -14,3 +14,11 @@ Read and obey all rules in `AGENTS.md` at the project root before making any cha
 - The Dodo webhook URL is `https://iamazeyou.me/api/dodo-webhook` (no trailing slash). Both slash and no-slash rewrite variants must exist in `vercel.json`.
 
 For the full frozen file list, schema details, and architecture diagram, see `AGENTS.md`.
+
+## Claude-Specific Architecture Context
+
+- Always treat `AGENTS.md` as the source of truth for payment safety and architecture rules.
+- Do not suggest migrating the Vite application to Next.js.
+- The Vite application may be moved into a monorepo folder, but must remain Vite-based.
+- `gen-engine` packages are published under the `@lorenzootieno/*` npm scope.
+- Performance is the primary decision filter for architecture and implementation choices.
