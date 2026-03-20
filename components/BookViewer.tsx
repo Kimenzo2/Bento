@@ -58,7 +58,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="p-2 hover:bg-surface/10 rounded-full shrink-0"
+            className="h-10 w-10 shrink-0 rounded-xl border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-all duration-200"
             title="Exit"
           >
             <X className="w-5 h-5 text-white" />
@@ -77,7 +77,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             variant="ghost"
             size="icon"
             onClick={() => setShowExportModal(true)}
-            className="p-2 hover:bg-surface/10 rounded-full text-white"
+            className="h-10 w-10 rounded-xl border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-all duration-200"
             title="Export Book"
           >
             <Share2 className="w-5 h-5" />
@@ -86,7 +86,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="hidden sm:flex px-4 py-2 bg-surface/10 hover:bg-surface/20 rounded-full text-white shrink-0"
+            className="hidden sm:inline-flex h-10 rounded-xl px-3.5 border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 transition-all duration-200 shrink-0"
           >
             <Home className="w-4 h-4" />
             Back to Dashboard
@@ -133,7 +133,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
                       variant="outline"
                       key={idx}
                       onClick={() => handleChoice(choice.targetPageNumber)}
-                      className="w-full py-3 sm:py-3 px-4 sm:px-6 border border-charcoal-soft/20 bg-surface hover:bg-coral-burst hover:border-coral-burst hover:text-white text-charcoal-soft sm:text-base flex justify-between group active:scale-95"
+                      className="w-full h-10 sm:h-11 px-4 sm:px-5 rounded-xl border-[0.5px] border-charcoal-soft/20 bg-surface/85 hover:bg-surface hover:border-charcoal-soft/35 hover:text-coral-burst text-charcoal-soft sm:text-base flex justify-between group transition-all duration-200"
                     >
                       {choice.text}
                       <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -159,7 +159,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           variant="ghost"
           onClick={goToPrevPage}
           disabled={currentPageIndex === 0}
-          className="flex gap-1 px-4 sm:px-6 py-2 sm:py-3 bg-surface/10 hover:bg-surface/20 disabled:opacity-30 rounded-full text-white sm:text-base active:scale-95"
+          className="h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:border-white/15 transition-all duration-200 sm:text-base"
         >
           <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="hidden xs:inline">Previous</span>
@@ -174,7 +174,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
           variant="ghost"
           onClick={goToNextPage}
           disabled={currentPageIndex === allPages.length - 1}
-          className="flex gap-1 px-4 sm:px-6 py-2 sm:py-3 bg-surface/10 hover:bg-surface/20 disabled:opacity-30 rounded-full text-white sm:text-base active:scale-95"
+          className="h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px] border-white/15 bg-white/5 text-white hover:bg-white/10 hover:border-white/25 disabled:opacity-30 disabled:hover:bg-white/5 disabled:hover:border-white/15 transition-all duration-200 sm:text-base"
         >
           <span className="hidden xs:inline">Next</span>
           <span className="xs:hidden">Next</span>

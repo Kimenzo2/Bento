@@ -28,6 +28,8 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
   };
 
   const pageCount = book.project.chapters.flatMap((c) => c.pages).length;
+  const actionButtonBaseClass =
+    'h-10 rounded-[12px] px-3 inline-flex items-center gap-1.5 font-heading font-medium border-[0.5px] border-white/22 bg-white/8 text-white hover:bg-white/14 hover:border-white/34 transition-all duration-200';
 
   return (
     <motion.div
@@ -48,34 +50,42 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
         )}
 
         {/* Hover Overlay - Action Buttons */}
-        <div className="absolute inset-0 z-20 bg-black/80 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-center justify-center gap-3  pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
+        <div className="absolute inset-0 z-20 bg-linear-to-t from-black/85 via-black/78 to-black/66 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-end justify-center p-3 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
+          <div className="flex flex-wrap items-center justify-center gap-2">
           <button
+            type="button"
             onClick={() => onEdit(book)}
-            className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+            className={actionButtonBaseClass}
             title="Edit"
             aria-label="Edit book"
           >
-            <Edit3 className="w-5 h-5 text-coral-burst" />
+            <Edit3 className="w-4 h-4" />
+            <span>Edit</span>
           </button>
           <button
+            type="button"
             onClick={() => onRead(book)}
-            className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+            className={actionButtonBaseClass}
             title="Read"
             aria-label="Read book"
           >
-            <Eye className="w-5 h-5 text-blue-600" />
+            <Eye className="w-4 h-4" />
+            <span>Read</span>
           </button>
           {onShare && (
             <button
+              type="button"
               onClick={() => onShare(book)}
-              className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+              className={actionButtonBaseClass}
               title="Share"
               aria-label="Share book"
             >
-              <Share2 className="w-5 h-5 text-green-500" />
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
             </button>
           )}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               toast(`Delete "${book.title}"?`, {
@@ -84,12 +94,14 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
                 cancel: { label: 'Cancel', onClick: () => {} },
               });
             }}
-            className="p-3 bg-surface rounded-full hover:scale-110 active:scale-95 transition-transform border border-peach-soft/50"
+            className={`${actionButtonBaseClass} border-red-300/50 bg-red-500/12 text-red-100 hover:bg-red-500/22 hover:border-red-200/70`}
             title="Delete"
             aria-label="Delete book"
           >
-            <Trash2 className="w-5 h-5 text-red-600" />
+            <Trash2 className="w-4 h-4" />
+            <span>Delete</span>
           </button>
+          </div>
         </div>
       </div>
 

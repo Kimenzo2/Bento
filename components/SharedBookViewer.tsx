@@ -233,7 +233,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="p-2 hover:bg-peach-soft/30 :bg-gray-700 rounded-full"
+            className="h-10 w-10 rounded-xl border-[0.5px] border-peach-soft/45 dark:border-white/12 bg-surface/60 dark:bg-white/5 text-cocoa-light dark:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/20 transition-all duration-200"
           >
             <ArrowLeft className="w-5 h-5 text-cocoa-light " />
           </Button>
@@ -260,7 +260,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             <Button
               variant="ghost"
               onClick={handleDownload}
-              className="p-2 text-cocoa-light  hover:bg-peach-soft/30 :bg-gray-700 flex"
+              className="h-10 rounded-xl px-3.5 inline-flex items-center gap-2 border-[0.5px] border-peach-soft/45 dark:border-white/12 bg-surface/60 dark:bg-white/5 text-cocoa-light dark:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/20 transition-all duration-200"
               title="Download Book"
             >
               <Download className="w-5 h-5" />
@@ -272,7 +272,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-coral-burst/10 text-coral-burst rounded-lg hover:bg-coral-burst/20 transition-colors text-sm font-medium"
+            className="h-10 inline-flex items-center gap-2 px-3.5 rounded-xl border-[0.5px] border-coral-burst/35 bg-coral-burst/10 text-coral-burst hover:bg-coral-burst/15 hover:border-coral-burst/55 transition-all duration-200 text-sm font-medium"
           >
             <IcoPen className="w-4 h-4" />
             Create Your Own
@@ -326,12 +326,13 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               onClick={prevPage}
               disabled={currentPageIndex === 0}
               className={`
-                                flex px-6 py-3
+                                h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px]
                                 ${
                                   currentPageIndex === 0
-                                    ? 'bg-peach-light/50  text-cocoa-light/60 cursor-not-allowed'
-                                    : 'bg-surface  text-charcoal-soft  border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
+                                    ? 'bg-peach-light/50 text-cocoa-light/60 border-peach-soft/30 cursor-not-allowed'
+                                    : 'bg-surface/70 text-charcoal-soft border-peach-soft/45 hover:border-coral-burst/45 hover:text-coral-burst'
                                 }
+                                transition-all duration-200
                             `}
             >
               <ChevronLeft className="w-5 h-5" />
@@ -364,12 +365,13 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
               onClick={nextPage}
               disabled={currentPageIndex === pages.length - 1}
               className={`
-                                flex px-6 py-3
+                                h-10 rounded-xl px-3.5 inline-flex items-center gap-1 border-[0.5px]
                                 ${
                                   currentPageIndex === pages.length - 1
-                                    ? 'bg-peach-light/50  text-cocoa-light/60 cursor-not-allowed'
-                                    : 'bg-surface  text-charcoal-soft  border border-peach-soft hover:border-coral-burst hover:-translate-y-1'
+                                    ? 'bg-peach-light/50 text-cocoa-light/60 border-peach-soft/30 cursor-not-allowed'
+                                    : 'bg-surface/70 text-charcoal-soft border-peach-soft/45 hover:border-coral-burst/45 hover:text-coral-burst'
                                 }
+                                transition-all duration-200
                             `}
             >
               Next

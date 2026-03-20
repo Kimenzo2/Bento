@@ -76,6 +76,11 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   const toolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  const viewerIconButtonClass =
+    'h-10 w-10 rounded-xl border-[0.5px] border-peach-soft/45 dark:border-white/10 bg-surface/60 dark:bg-white/5 text-charcoal-soft dark:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/16 transition-all duration-200';
+  const viewerPillButtonClass =
+    'h-10 rounded-xl px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft/45 dark:border-white/10 bg-surface/60 dark:bg-white/5 text-charcoal-soft dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/16 transition-all duration-200';
+
   // ── Derived data ─────────────────────────────────────────────────────────
   const allPages = useMemo(
     () => project.chapters.flatMap((chapter) => chapter.pages),
@@ -268,7 +273,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="shrink-0"
+              className={`${viewerIconButtonClass} shrink-0`}
               title="Close"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -289,6 +294,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               variant="ghost"
               size="icon"
               onClick={() => setShowTOC(!showTOC)}
+              className={viewerIconButtonClass}
               title="Table of Contents"
             >
               <List className="w-[18px] h-[18px]" />
@@ -297,7 +303,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               variant="ghost"
               size="icon"
               onClick={(e) => { e.stopPropagation(); toggleSpeech(); }}
-              className={isSpeaking ? 'text-coral-burst' : ''}
+              className={`${viewerIconButtonClass} ${isSpeaking ? 'text-coral-burst dark:text-coral-burst border-coral-burst/45' : ''}`}
               title={isSpeaking ? 'Stop Reading' : 'Read Aloud'}
             >
               {isSpeaking ? <VolumeX className="w-[18px] h-[18px]" /> : <Volume2 className="w-[18px] h-[18px]" />}
@@ -306,13 +312,13 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               variant="ghost"
               size="icon"
               onClick={() => setShowAudioPlayer(!showAudioPlayer)}
-              className={showAudioPlayer ? 'text-coral-burst' : ''}
+              className={`${viewerIconButtonClass} ${showAudioPlayer ? 'text-coral-burst dark:text-coral-burst border-coral-burst/45' : ''}`}
               title="Audio Player"
             >
               <BookOpen className="w-[18px] h-[18px]" />
             </Button>
             <div className="hidden md:flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} title="Fullscreen">
+              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className={viewerIconButtonClass} title="Fullscreen">
                 {isFullscreen ? <Minimize2 className="w-[18px] h-[18px]" /> : <Maximize2 className="w-[18px] h-[18px]" />}
               </Button>
             </div>
@@ -551,7 +557,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         );
                         if (targetIdx >= 0) goToPage(targetIdx);
                       }}
-                      className="w-full text-left justify-start py-4"
+                      className="w-full min-h-10 rounded-xl px-3.5 py-2.5 text-left justify-start border-[0.5px] border-peach-soft/45 dark:border-white/10 bg-surface/70 dark:bg-white/5 text-charcoal-soft dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/65 dark:hover:border-white/16 transition-all duration-200"
                     >
                       <ChevronRight className="w-4 h-4 shrink-0 text-coral-burst mr-2" />
                       {choice.text}
@@ -581,6 +587,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 size="icon"
                 onClick={prevPage}
                 disabled={currentPageIndex === 0}
+                className={viewerIconButtonClass}
                 title="Previous"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -593,6 +600,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 size="icon"
                 onClick={nextPage}
                 disabled={currentPageIndex === totalPages - 1}
+                className={viewerIconButtonClass}
                 title="Next"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -606,20 +614,21 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   variant={learningMode ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setLearningMode(!learningMode)}
-                  className="hidden md:flex"
+                  className={`hidden md:inline-flex ${viewerPillButtonClass} ${learningMode ? 'border-coral-burst/45 text-coral-burst dark:text-white bg-coral-burst/10 dark:bg-coral-burst/20 hover:bg-coral-burst/15 dark:hover:bg-coral-burst/25' : ''}`}
                   title="Learning Mode"
                 >
                   <BookOpen className="w-4 h-4" />
                   <span className="hidden lg:inline ml-1.5">Learn</span>
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={onEdit} title="Edit">
+              <Button variant="ghost" size="icon" onClick={onEdit} className={viewerIconButtonClass} title="Edit">
                 <Edit3 className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowExportModal(true)}
+                className={viewerIconButtonClass}
                 title="Export"
               >
                 <Download className="w-4 h-4" />
@@ -628,6 +637,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowKDPExportModal(true)}
+                className={viewerIconButtonClass}
                 title="Amazon KDP"
               >
                 <IcoBook className="w-4 h-4" />
@@ -639,6 +649,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   setShowShareModal(true);
                   onShare();
                 }}
+                className={viewerIconButtonClass}
                 title="Share"
               >
                 <Share2 className="w-4 h-4" />
