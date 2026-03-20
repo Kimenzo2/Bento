@@ -13,7 +13,7 @@
     "dev:all": "bun run dev:both",
     "dev:genesis": "turbo dev --filter=@genesis/app",
     "dev:landing": "turbo dev --filter=@genesis/landing",
-    "build": "turbo build",
+    "build": "turbo build && node scripts/sync-root-dist.cjs",
     "build:genesis": "turbo build --filter=@genesis/app",
     "build:landing": "turbo build --filter=@genesis/landing",
     "lint": "turbo lint",
