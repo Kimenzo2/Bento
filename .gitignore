@@ -140,19 +140,5 @@ package-lock.json
 *.heic
 *.heif
 
-# Keep migrated app public assets versioned for deployment.
-!apps/genesis-app/public/**/*.png
-!apps/genesis-app/public/**/*.jpg
-!apps/genesis-app/public/**/*.jpeg
-!apps/genesis-app/public/**/*.gif
-!apps/genesis-app/public/**/*.webp
-!apps/genesis-app/public/**/*.bmp
-!apps/genesis-app/public/**/*.tif
-!apps/genesis-app/public/**/*.tiff
-!apps/genesis-app/public/**/*.ico
-!apps/genesis-app/public/**/*.avif
-!apps/genesis-app/public/**/*.heic
-!apps/genesis-app/public/**/*.heif
-
 # Playwright results
 tests/playwright/results/
