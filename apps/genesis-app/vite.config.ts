@@ -245,6 +245,7 @@ export default defineConfig(({ mode }) => {
     ],
     // Path aliases matching tsconfig.json
     resolve: {
+      dedupe: ['react', 'react-dom'],
       alias: {
         '@': resolve(__dirname, '.'),
         '@components': resolve(__dirname, './components'),
@@ -262,7 +263,7 @@ export default defineConfig(({ mode }) => {
       force: false, // only re-bundle when deps actually change
       include: [
         // Core React
-        'react', 'react-dom', 'react-dom/client', 'react-router',
+        'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', 'react-router',
         // Supabase
         '@supabase/supabase-js',
         // i18n

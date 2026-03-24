@@ -11,22 +11,14 @@
  */
 import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import {
-  preload,
-  mount,
-  unmount,
-  publish,
-  trigger,
-  type Gen,
-  type AppContext,
-  type Realm,
-  type TriggerType,
-} from '@lorenzootieno/gen-bridge';
+import type { Gen, AppContext, Realm, TriggerType } from '@lorenzootieno/gen-bridge';
 import {
   detectGenCapabilities,
   logGenCapabilities,
   type GenCapabilities,
 } from '../lib/gen/genCapabilities';
+
+type GenBridgeModule = typeof import('@lorenzootieno/gen-bridge');
 
 interface GenContextValue {
   gen: Gen | null;
@@ -39,6 +31,12 @@ interface GenContextValue {
 }
 
 const GenContext = createContext<GenContextValue | null>(null);
+
+function isGenRuntimeEnabled(): boolean {
+  const env = import.meta.env as Record<string, string | boolean | undefined>;
+  // Gen runtime stays off unless explicitly enabled to prevent model fetches in all environments.
+  return env.VITE_ENABLE_GEN_RUNTIME === 'true' || env.VITE_ENABLE_GEN_RUNTIME === true;
+}
 
 function resolveGeminiApiKey(): string | undefined {
   const env = import.meta.env as Record<string, string | undefined>;
@@ -61,11 +59,13 @@ function resolveGeminiApiKey(): string | undefined {
 }
 
 export function GenProvider({ children }: { children: React.ReactNode }) {
+  const genRuntimeEnabled = isGenRuntimeEnabled();
   const [gen, setGen] = useState<Gen | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [capabilities, setCapabilities] = useState<GenCapabilities | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const bridgeRef = useRef<GenBridgeModule | null>(null);
   const currentContextRef = useRef<Partial<AppContext>>({});
   const mountAttemptedRef = useRef(false);
   const mountedGenRef = useRef<Gen | null>(null);
@@ -80,20 +80,40 @@ export function GenProvider({ children }: { children: React.ReactNode }) {
 
   // Preload on idle
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !genRuntimeEnabled) return;
+
+    let cancelled = false;
 
     const id = requestIdleCallback(() => {
-      preload({
-        // PLACEHOLDER: Replace with real GLTF path when model is commissioned
-        // File should be placed at: public/gen-engine/gen-character.glb
-        modelUrl: '/gen-engine/gen-character.glb',
-      });
+      import('@lorenzootieno/gen-bridge')
+        .then((bridge) => {
+          if (cancelled) return;
+          bridgeRef.current = bridge;
+          bridge.preload({
+            // PLACEHOLDER: Replace with real GLTF path when model is commissioned
+            // File should be placed at: public/gen-engine/gen-character.glb
+            modelUrl: '/gen-engine/gen-character.glb',
+          });
+        })
+        .catch((error) => {
+          console.error('[GenContext] Preload failed:', error);
+        });
     });
-    return () => cancelIdleCallback(id);
-  }, []);
+    return () => {
+      cancelled = true;
+      cancelIdleCallback(id);
+    };
+  }, [genRuntimeEnabled]);
 
   // Mount Gen when container is ready
   useEffect(() => {
+    if (!genRuntimeEnabled) {
+      setGen(null);
+      setIsMounted(false);
+      setIsReady(false);
+      return;
+    }
+
     if (!containerRef.current || isMounted || mountAttemptedRef.current) return;
     mountAttemptedRef.current = true;
 
@@ -110,16 +130,20 @@ export function GenProvider({ children }: { children: React.ReactNode }) {
     // Default to kingdom realm
     const initialRealm: Realm = (currentContextRef.current.realm as Realm) ?? 'kingdom';
 
-    mount(
-      {
-        realm: initialRealm,
-        geminiApiKey,
-        elevenLabsApiKey,
-        voiceId,
-        homePosition: { x: window.innerWidth - 100, y: window.innerHeight - 120 },
-      },
-      containerRef.current
-    )
+    import('@lorenzootieno/gen-bridge')
+      .then((bridge) => {
+        bridgeRef.current = bridge;
+        return bridge.mount(
+          {
+            realm: initialRealm,
+            geminiApiKey,
+            elevenLabsApiKey,
+            voiceId,
+            homePosition: { x: window.innerWidth - 100, y: window.innerHeight - 120 },
+          },
+          containerRef.current as HTMLDivElement
+        );
+      })
       .then((instance) => {
         mountedGenRef.current = instance;
         setGen(instance);
@@ -139,7 +163,7 @@ export function GenProvider({ children }: { children: React.ReactNode }) {
       if (mountedGen) {
         // WHY: the mounted instance is created asynchronously, so cleanup must read
         // from a ref instead of a stale effect closure to avoid leaking the renderer.
-        unmount(mountedGen);
+        bridgeRef.current?.unmount(mountedGen);
         mountedGenRef.current = null;
       }
 
@@ -148,34 +172,29 @@ export function GenProvider({ children }: { children: React.ReactNode }) {
       setIsReady(false);
       mountAttemptedRef.current = false;
     };
-  }, [isMounted]);
+  }, [genRuntimeEnabled, isMounted]);
 
   const publishContext = useCallback((partial: Partial<AppContext>) => {
     currentContextRef.current = { ...currentContextRef.current, ...partial };
-    publish(partial);
-  }, []);
+    if (!genRuntimeEnabled) return;
+    bridgeRef.current?.publish(partial);
+  }, [genRuntimeEnabled]);
 
   const fireTrigger = useCallback((type: TriggerType) => {
-    trigger(type);
-  }, []);
+    if (!genRuntimeEnabled) return;
+    bridgeRef.current?.trigger(type);
+  }, [genRuntimeEnabled]);
 
   return (
     <GenContext.Provider value={{ gen, isReady, isMounted, capabilities, publishContext, fireTrigger }}>
       {children}
-      {/* Gen's render container - positioned fixed, always on top */}
-      <div
-        ref={containerRef}
-        id="gen-container"
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 20,
-          width: 160,
-          height: 180,
-          zIndex: 9999,
-          pointerEvents: 'none',
-        }}
-      />
+      {genRuntimeEnabled && (
+        <div
+          ref={containerRef}
+          id="gen-container"
+          className="gen-runtime-container"
+        />
+      )}
     </GenContext.Provider>
   );
 }

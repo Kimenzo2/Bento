@@ -78,6 +78,16 @@
   }
 }
 
+.gen-runtime-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 160px;
+  height: 180px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
 @keyframes bounce-subtle {
   0%,
   100% {

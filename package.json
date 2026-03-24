@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:both": "turbo dev --filter=@genesis/app --filter=@genesis/landing",
-    "dev:all": "bun run dev:both",
+    "dev:all": " bun run dev:both",
     "dev:genesis": "turbo dev --filter=@genesis/app",
     "dev:landing": "turbo dev --filter=@genesis/landing",
     "build": "turbo build && node scripts/sync-root-dist.cjs",
@@ -29,5 +29,9 @@
   },
   "dependencies": {
     "resend": "^6.9.4"
+  },
+  "overrides": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   }
 }
