@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "turbo dev",
+    "dev:api": "bun dev-api-server.mjs",
     "dev:both": "turbo dev --filter=@genesis/app --filter=@genesis/landing",
     "dev:all": " bun run dev:both",
     "dev:genesis": "turbo dev --filter=@genesis/app",
@@ -28,6 +29,9 @@
     "turbo": "^2.8.20"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "dodopayments": "^2.23.2",
+    "jose": "^6.2.1",
     "resend": "^6.9.4"
   },
   "overrides": {

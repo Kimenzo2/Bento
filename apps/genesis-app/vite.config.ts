@@ -37,6 +37,8 @@ function nonBlockingAssets(): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
+  const devApiPort = env.DEV_API_PORT || '3002';
+  const devApiTarget = env.VITE_DEV_API_TARGET || `http://localhost:${devApiPort}`;
   const isProtectedPreview = env.VERCEL === '1' && env.VERCEL_ENV && env.VERCEL_ENV !== 'production';
   const enablePwa = isProduction && !isProtectedPreview;
 
@@ -365,10 +367,10 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       strictPort: true,
       allowedHosts: ['.ngrok-free.dev', '.ngrok.io'],
-      // Proxy API routes to dev-api-server (port 3001)
+      // Proxy API routes to local dev-api-server (default: port 3002)
       proxy: {
         '/api': {
-          target: 'http://localhost:3002',
+          target: devApiTarget,
           changeOrigin: true,
         },
       },

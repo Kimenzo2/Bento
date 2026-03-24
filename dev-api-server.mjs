@@ -1,8 +1,8 @@
 /**
  * Dev API Server — runs Vercel-style serverless functions locally.
  *
- * Usage:  node dev-api-server.mjs
- * Listens on port 3001. Vite proxies /api/* requests here.
+ * Usage:  bun dev-api-server.mjs
+ * Listens on port 3002 by default (or DEV_API_PORT). Vite proxies /api/* requests here.
  *
  * Supports the same ?action= routing and vercel.json rewrites
  * that production uses.
@@ -67,7 +67,7 @@ const server = http.createServer(async (req, res) => {
   const apiFile = pathname.slice(1); // remove leading /
 
   // Parse query params and attach to req
-  const url = new URL(rewrittenUrl, `http://${req.headers.host || 'localhost:3001'}`);
+  const url = new URL(rewrittenUrl, `http://${req.headers.host || 'localhost:3002'}`);
   req.query = Object.fromEntries(url.searchParams.entries());
   req.url = rewrittenUrl;
 

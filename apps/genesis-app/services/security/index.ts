@@ -73,6 +73,20 @@ const securityStatus: SecurityStatus = {
 };
 
 let currentConfig: SecurityConfig = DEFAULT_CONFIG;
+let cspViolationHandler: ((event: SecurityPolicyViolationEvent) => void) | null = null;
+let rateLimitCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function cleanupSecurityResources(): void {
+  if (typeof document !== 'undefined' && cspViolationHandler) {
+    document.removeEventListener('securitypolicyviolation', cspViolationHandler);
+    cspViolationHandler = null;
+  }
+
+  if (rateLimitCleanupInterval) {
+    clearInterval(rateLimitCleanupInterval);
+    rateLimitCleanupInterval = null;
+  }
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -84,6 +98,12 @@ let currentConfig: SecurityConfig = DEFAULT_CONFIG;
 export async function initializeSecurity(
   config: Partial<SecurityConfig> = {}
 ): Promise<SecurityStatus> {
+  // In dev/HMR or re-bootstrap flows this can be called repeatedly.
+  // Tear down previous observers/intervals first to avoid stacking handlers.
+  if (securityStatus.initialized) {
+    cleanupSecurityResources();
+  }
+
   currentConfig = { ...DEFAULT_CONFIG, ...config };
 
   console.log('[Security] Initializing security layers...');
@@ -159,8 +179,11 @@ function initializeCsrf(): void {
 function initializeCspReporting(): void {
   if (typeof document === 'undefined') return;
 
-  // Listen for CSP violations
-  document.addEventListener('securitypolicyviolation', (event) => {
+  if (cspViolationHandler) {
+    document.removeEventListener('securitypolicyviolation', cspViolationHandler);
+  }
+
+  cspViolationHandler = (event: SecurityPolicyViolationEvent) => {
     const violationData = {
       blockedUri: event.blockedURI,
       violatedDirective: event.violatedDirective,
@@ -178,7 +201,10 @@ function initializeCspReporting(): void {
         metadata: violationData,
       });
     }
-  });
+  };
+
+  // Listen for CSP violations
+  document.addEventListener('securitypolicyviolation', cspViolationHandler);
 }
 
 /**
@@ -187,10 +213,20 @@ function initializeCspReporting(): void {
 function initializeRateLimiting(): void {
   // Clean up rate limit entries periodically
   if (typeof window !== 'undefined') {
-    setInterval(() => {
+    if (rateLimitCleanupInterval) {
+      clearInterval(rateLimitCleanupInterval);
+    }
+
+    rateLimitCleanupInterval = setInterval(() => {
       securityGuard.cleanupRateLimits();
     }, 60000); // Every minute
   }
+}
+
+if (typeof import.meta !== 'undefined' && (import.meta as { hot?: { dispose(cb: () => void): void } }).hot) {
+  (import.meta as { hot?: { dispose(cb: () => void): void } }).hot?.dispose(() => {
+    cleanupSecurityResources();
+  });
 }
 
 // ============================================================================

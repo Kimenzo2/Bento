@@ -5,6 +5,9 @@
     "": {
       "name": "genesis-ebook-generator",
       "dependencies": {
+        "@supabase/supabase-js": "^2.99.1",
+        "dodopayments": "^2.23.2",
+        "jose": "^6.2.1",
         "resend": "^6.9.4",
       },
       "devDependencies": {
