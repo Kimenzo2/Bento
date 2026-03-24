@@ -141,9 +141,11 @@
       "name": "@genesis/landing",
       "version": "0.1.0",
       "dependencies": {
+        "@fontsource-variable/noto-sans-arabic": "^5.2.10",
         "next": "16.2.0",
         "react": "19.2.4",
         "react-dom": "19.2.4",
+        "tailwindcss": "^4.2.1",
       },
       "devDependencies": {
         "@types/node": "^22.10.2",
