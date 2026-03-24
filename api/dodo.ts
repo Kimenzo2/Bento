@@ -1,6 +1,6 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { jwtVerify } from 'jose';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+type SupabaseClient<T = any> = any;
 
 export const config = {
   api: {
@@ -14,15 +14,48 @@ const supabaseServiceKey =
 const supabaseAnonKey =
   process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabaseAdmin: SupabaseClient<any> | null =
-  supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
+// Lazily load Supabase client factory at runtime to avoid cold-start invocation crashes
+// when transitive packages are unavailable in the serverless bundle.
+let supabaseAdmin: SupabaseClient<any> | null | undefined;
+let supabaseAuth: SupabaseClient<any> | null | undefined;
+let supabaseInitError: Error | null = null;
+let supabaseClientFactory:
+  | ((url: string, key: string) => SupabaseClient<any>)
+  | null = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabaseAuth: SupabaseClient<any> | null =
-  supabaseUrl && (supabaseServiceKey || supabaseAnonKey)
-    ? createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey!)
-    : null;
+async function ensureSupabaseClientsLoaded(): Promise<void> {
+  if (supabaseAdmin !== undefined || supabaseAuth !== undefined || supabaseInitError) {
+    return;
+  }
+
+  if (!supabaseUrl) {
+    supabaseAdmin = null;
+    supabaseAuth = null;
+    return;
+  }
+
+  try {
+    if (!supabaseClientFactory) {
+      const mod = await import('@supabase/supabase-js');
+      supabaseClientFactory = mod.createClient;
+    }
+
+    supabaseAdmin =
+      supabaseServiceKey && supabaseClientFactory
+        ? supabaseClientFactory(supabaseUrl, supabaseServiceKey)
+        : null;
+
+    supabaseAuth =
+      (supabaseServiceKey || supabaseAnonKey) && supabaseClientFactory
+        ? supabaseClientFactory(supabaseUrl, supabaseServiceKey || supabaseAnonKey!)
+        : null;
+  } catch (error) {
+    supabaseAdmin = null;
+    supabaseAuth = null;
+    supabaseInitError = error instanceof Error ? error : new Error(String(error));
+    console.error('[dodo] Failed to initialize Supabase clients:', supabaseInitError.message);
+  }
+}
 
 type DodoEnvironment = 'live_mode' | 'test_mode';
 
@@ -59,7 +92,13 @@ const DODO_ENV: DodoEnvironment =
 const SUPPORTED_TIERS = ['CREATOR', 'STUDIO', 'EMPIRE'] as const;
 const SUPPORTED_INTERVALS = ['MONTHLY', 'YEARLY'] as const;
 
-function requireSupabaseAdmin(): SupabaseClient<any> {
+async function requireSupabaseAdmin(): Promise<SupabaseClient<any>> {
+  await ensureSupabaseClientsLoaded();
+
+  if (supabaseInitError) {
+    throw new Error(`Supabase client failed to load: ${supabaseInitError.message}`);
+  }
+
   if (!supabaseAdmin) {
     throw new Error(
       'Supabase client not initialised - missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
@@ -69,7 +108,13 @@ function requireSupabaseAdmin(): SupabaseClient<any> {
   return supabaseAdmin;
 }
 
-function requireSupabaseAuth(): SupabaseClient<any> {
+async function requireSupabaseAuth(): Promise<SupabaseClient<any>> {
+  await ensureSupabaseClientsLoaded();
+
+  if (supabaseInitError) {
+    throw new Error(`Supabase auth client failed to load: ${supabaseInitError.message}`);
+  }
+
   if (!supabaseAuth) {
     throw new Error(
       'Supabase auth client not initialised - missing SUPABASE_URL and a Supabase API key'
@@ -281,6 +326,7 @@ async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutU
     console.warn('[dodo-checkout] SUPABASE_JWT_SECRET is not configured, falling back to Auth API validation');
   } else {
     try {
+      const { jwtVerify } = await import('jose');
       const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret), {
         algorithms: ['HS256'],
       });
@@ -304,7 +350,7 @@ async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutU
   }
 
   try {
-    const db = requireSupabaseAuth();
+    const db = await requireSupabaseAuth();
     const {
       data: { user },
       error,
@@ -643,7 +689,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 
   let db: SupabaseClient<any>;
   try {
-    db = requireSupabaseAdmin();
+    db = await requireSupabaseAdmin();
   } catch (error) {
     console.error('[dodo-webhook]', error instanceof Error ? error.message : error);
     return res.status(500).json({ error: 'Database not configured' });
