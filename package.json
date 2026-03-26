@@ -10,11 +10,12 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:api": "bun dev-api-server.mjs",
+    "guard:payments": "node scripts/check-payment-guardrails.cjs",
     "dev:both": "turbo dev --filter=@genesis/app --filter=@genesis/landing",
     "dev:all": " bun run dev:both",
     "dev:genesis": "turbo dev --filter=@genesis/app",
     "dev:landing": "turbo dev --filter=@genesis/landing",
-    "build": "turbo build && node scripts/sync-root-dist.cjs",
+    "build": "node scripts/check-payment-guardrails.cjs && turbo build && node scripts/sync-root-dist.cjs",
     "build:genesis": "turbo build --filter=@genesis/app",
     "build:landing": "turbo build --filter=@genesis/landing",
     "lint": "turbo lint",
@@ -25,7 +26,7 @@
     "@vercel/node": "^5.6.18",
     "@playwright/test": "^1.58.2",
     "playwright": "^1.58.2",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "turbo": "^2.8.20"
   },
   "dependencies": {
