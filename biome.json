@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["node_modules", "dist", "dev-dist", "*.min.js", "*.min.css"]
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/dev-dist/**",
+      "!**/*.min.js",
+      "!**/*.min.css"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -15,9 +22,6 @@
     "indentWidth": 2,
     "lineWidth": 100,
     "lineEnding": "lf"
-  },
-  "organizeImports": {
-    "enabled": true
   },
   "linter": {
     "enabled": true,
@@ -56,21 +60,18 @@
           }
         },
         "useForOf": "warn",
-        "useShorthandArrayType": "warn",
         "useShorthandAssign": "warn",
-        "useSingleCaseStatement": "off",
         "useTemplate": "warn"
       },
       "suspicious": {
         "noArrayIndexKey": "warn",
         "noAssignInExpressions": "warn",
-        "noConsoleLog": "warn",
+        "noConsole": "warn",
         "noDoubleEquals": "error",
         "noEmptyBlockStatements": "warn",
         "noExplicitAny": "warn"
       },
       "a11y": {
-        "noBlankTarget": "error",
         "useAltText": "warn",
         "useButtonType": "warn",
         "useKeyWithClickEvents": "warn"
