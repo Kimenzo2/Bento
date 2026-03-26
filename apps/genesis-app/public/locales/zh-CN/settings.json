@@ -188,5 +188,8 @@
   "data": "数据",
   "help": "帮助",
   "all": "全部",
-  "reset": "重置"
+  "reset": "重置",
+  "selectLanguageAria": "选择 {{language}} 语言",
+  "beta": "测试版",
+  "translation": "翻译"
 }

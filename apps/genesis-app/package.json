@@ -32,6 +32,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
     "email": "email dev --dir emails --port 3001",
+    "i18n:check": "node scripts/check-i18n-parity.mjs",
+    "i18n:sweep": "node scripts/sweep-hardcoded-i18n.mjs",
     "audit": "bun pm ls",
     "audit:fix": "bun update"
   },

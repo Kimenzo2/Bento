@@ -188,5 +188,8 @@
   "data": "البيانات",
   "help": "المساعدة",
   "all": "الكل",
-  "reset": "إعادة تعيين"
+  "reset": "إعادة تعيين",
+  "selectLanguageAria": "اختر لغة {{language}}",
+  "beta": "بيتا",
+  "translation": "الترجمة"
 }

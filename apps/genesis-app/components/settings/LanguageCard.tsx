@@ -6,6 +6,7 @@
 
 import { AlertCircle, Check } from 'lucide-react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Language } from '../../src/types/language.d';
 
 interface LanguageCardProps {
@@ -21,6 +22,8 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
   isLoading,
   onClick,
 }) => {
+  const { t } = useTranslation('settings');
+
   const completionColor =
     language.completionPercentage >= 90
       ? 'bg-green-500'
@@ -44,7 +47,9 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
         }
       `}
       aria-pressed={isActive ? 'true' : 'false'}
-      aria-label={`Select ${language.englishName} language`}
+      aria-label={t('selectLanguageAria', 'Select {{language}} language', {
+        language: language.englishName,
+      })}
     >
       {/* Active indicator */}
       {isActive && (
@@ -56,7 +61,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       {/* Beta badge */}
       {language.isBeta && (
         <div className="absolute top-2 left-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
-          Beta
+          {t('beta', 'Beta')}
         </div>
       )}
 
@@ -77,14 +82,14 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
       {language.isRTL && (
         <div className="flex items-center gap-1 text-xs text-blue-600 mb-3">
           <AlertCircle className="w-3 h-3" />
-          <span>RTL</span>
+          <span>{t('rtlLanguages', 'RTL')}</span>
         </div>
       )}
 
       {/* Completion progress */}
       <div className="w-full">
         <div className="flex items-center justify-between text-xs text-cocoa-light mb-1">
-          <span>Translation</span>
+          <span>{t('translation', 'Translation')}</span>
           <span>{language.completionPercentage}%</span>
         </div>
         <div className="w-full h-1.5 bg-peach-soft/30 rounded-full overflow-hidden">

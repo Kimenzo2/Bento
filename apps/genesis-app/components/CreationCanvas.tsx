@@ -1,5 +1,6 @@
 import { ArrowLeft, BarChart3, BookOpen, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, Palette, Rocket, Sparkles, Users, Wand2 } from 'lucide-react';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
 import { deleteBook, getAllBooks } from '../services/storageService';
@@ -113,6 +114,7 @@ interface CreationCanvasProps {
     defaultGlowPosition?: 'bottom-left' | 'bottom-middle' | 'bottom-right';
     onClick: () => void;
   }) => {
+    const { t } = useTranslation('creation');
     const cardRef = React.useRef<HTMLButtonElement>(null);
     const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
     const [isHovered, setIsHovered] = React.useState(false);
@@ -193,7 +195,7 @@ interface CreationCanvasProps {
           <h2 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{title}</h2>
           <p className="font-body text-cocoa-light text-sm leading-relaxed mb-6 flex-1">{desc}</p>
           <div className="flex items-center text-coral-burst font-heading font-bold text-sm group-hover:gap-2 transition-all">
-            Start Creating <ChevronRight className="w-4 h-4" />
+            {t('creationCanvas.startCreating', 'Start Creating')} <ChevronRight className="w-4 h-4" />
           </div>
         </div>
       </button>
@@ -211,6 +213,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   userTier = UserTier.SPARK,
   shouldFocusCreation = false,
 }) => {
+  const { t } = useTranslation('creation');
   const promptSectionRef = React.useRef<HTMLDivElement>(null);
 
   usePageSEO({
@@ -559,40 +562,40 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
     setPrompt('');
     setEducational(false);
     setIsBranching(false);
-    setAudience('Children 4-6');
+    setAudience(t('creationCanvas.audienceChildren46', 'Children 4-6'));
   }, []);
 
   return (
     <>
-      <section aria-label="Creation canvas" className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
+      <section aria-label={t('creationCanvas.sectionAria', 'Creation canvas')} className="w-full flex flex-col items-center pb-32 animate-fadeIn relative">
         {/* ===== OPTIMIZED MASCOTS ===== */}
       <Mascot
         src="/assets/mascots/joy-musician.png"
-        alt="Joy the Musician"
+        alt={t('creationCanvas.mascotJoy', 'Joy the Musician')}
         position="header-left"
       />
       <Mascot
         src="/assets/mascots/zara-scientist.png"
-        alt="Zara the Scientist"
+        alt={t('creationCanvas.mascotZara', 'Zara the Scientist')}
         position="header-right"
         delay="1s"
       />
       <Mascot
         src="/assets/mascots/wise-sage.png"
-        alt="Wise Sage"
+        alt={t('creationCanvas.mascotWiseSage', 'Wise Sage')}
         position="middle-left"
         delay="0.5s"
       />
       <Mascot
         src="/assets/mascots/explorer-boy.png"
-        alt="Explorer Boy"
+        alt={t('creationCanvas.mascotExplorerBoy', 'Explorer Boy')}
         position="middle-right"
         delay="1.5s"
       />
-      <Mascot src="/assets/mascots/wise-owl.png" alt="Wise Owl" position="bottom-left" delay="2s" />
+      <Mascot src="/assets/mascots/wise-owl.png" alt={t('creationCanvas.mascotWiseOwl', 'Wise Owl')} position="bottom-left" delay="2s" />
       <Mascot
         src="/assets/mascots/magic-dragon.png"
-        alt="Magic Dragon"
+        alt={t('creationCanvas.mascotMagicDragon', 'Magic Dragon')}
         position="bottom-right"
         delay="2.5s"
       />
@@ -605,14 +608,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         <h1 className="font-heading font-bold text-[2.2rem] leading-[1.1] tracking-tight md:tracking-normal md:text-5xl lg:text-6xl text-charcoal-soft mb-2 md:mb-4 max-w-[260px] md:max-w-none mx-auto">
-          Create Your{' '}
+          {t('creationCanvas.heroCreateYour', 'Create Your')}{' '}
           <span className="text-transparent bg-clip-text bg-linear-to-r from-coral-burst to-gold-sunshine block mt-1 md:inline md:mt-0">
-            Masterpiece
+            {t('creationCanvas.heroMasterpiece', 'Masterpiece')}
           </span>
         </h1>
         <p className="font-body text-[15px] leading-relaxed md:text-xl text-cocoa-light max-w-2xl mx-auto pt-2">
-          Describe your story idea, choose a style, and let Genesis weave a magical tale just for
-          you.
+          {t('creationCanvas.heroDescription', 'Describe your story idea, choose a style, and let Genesis weave a magical tale just for you.')}
         </p>
       </motion.div>
 
@@ -630,8 +632,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
             icon={Wand2}
-            title="Children's Story"
-            desc="Create a magical tale with vibrant illustrations and moral lessons."
+            title={t('creationCanvas.quickStartChildrenTitle', "Children's Story")}
+            desc={t('creationCanvas.quickStartChildrenDesc', 'Create a magical tale with vibrant illustrations and moral lessons.')}
             colorClass="from-gold-sunshine to-orange-400"
             glowColor="rgba(251, 146, 60, 0.35)"
             decorationPosition="top-right"
@@ -639,7 +641,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             onClick={() =>
               handleQuickStartClick(() => {
                 setPrompt('A magical adventure about a shy dragon who loves to bake cookies.');
-                setAudience('Children 4-6');
+                setAudience(t('creationCanvas.audienceChildren46', 'Children 4-6'));
                 applyArtStyle(ArtStyle.WATERCOLOR);
               })
             }
@@ -648,8 +650,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
             icon={Rocket}
-            title="Sci-Fi Novel"
-            desc="Build a futuristic world with deep lore and complex characters."
+            title={t('creationCanvas.quickStartSciFiTitle', 'Sci-Fi Novel')}
+            desc={t('creationCanvas.quickStartSciFiDesc', 'Build a futuristic world with deep lore and complex characters.')}
             colorClass="from-purple-400 to-coral-burst"
             glowColor="rgba(147, 51, 234, 0.35)"
             decorationPosition="top-middle"
@@ -657,7 +659,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
             onClick={() =>
               handleQuickStartClick(() => {
                 setPrompt('A cyberpunk detective solving crimes in a neon-lit underwater city.');
-                setAudience('Young Adult');
+                setAudience(t('creationCanvas.audienceYoungAdult', 'Young Adult'));
                 applyArtStyle(ArtStyle.CYBERPUNK);
                 setTone(BookTone.DRAMATIC);
               })
@@ -667,8 +669,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
             icon={BarChart3}
-            title="Infographics"
-            desc="Create stunning educational infographics with AI-powered visuals."
+            title={t('creationCanvas.quickStartInfographicsTitle', 'Infographics')}
+            desc={t('creationCanvas.quickStartInfographicsDesc', 'Create stunning educational infographics with AI-powered visuals.')}
             colorClass="from-mint-breeze to-emerald-400"
             glowColor="rgba(16, 185, 129, 0.35)"
             decorationPosition="top-left"
@@ -684,9 +686,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
         <div className="w-full max-w-6xl px-4 mb-16">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="font-heading font-bold text-3xl text-charcoal-soft">My Saved Books</h2>
+              <h2 className="font-heading font-bold text-3xl text-charcoal-soft">{t('creationCanvas.mySavedBooks', 'My Saved Books')}</h2>
               <p className="text-cocoa-light text-sm mt-1">
-                {savedBooks.length} {savedBooks.length === 1 ? 'book' : 'books'} saved
+                {t('creationCanvas.savedBooksCount', '{{count}} {{bookLabel}} saved', { count: savedBooks.length, bookLabel: savedBooks.length === 1 ? t('creationCanvas.bookSingular', 'book') : t('creationCanvas.bookPlural', 'books') })}
               </p>
             </div>
 
@@ -706,11 +708,11 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                                 `}
               >
                 {isSelectionMode ? (
-                  <>Cancel Selection</>
+                  <>{t('creationCanvas.cancelSelection', 'Cancel Selection')}</>
                 ) : (
                   <>
                     <Grid className="w-4 h-4" />
-                    Select Books
+                    {t('creationCanvas.selectBooks', 'Select Books')}
                   </>
                 )}
               </Button>
@@ -770,12 +772,12 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
               <BookOpen className="w-10 h-10 text-coral-burst/70" />
             </div>
             <div>
-              <p className="font-heading font-bold text-charcoal-soft text-lg">Your library is empty</p>
-              <p className="text-cocoa-light text-sm mt-1">Pick a Quick Start above or describe your own story to begin.</p>
+              <p className="font-heading font-bold text-charcoal-soft text-lg">{t('creationCanvas.libraryEmpty', 'Your library is empty')}</p>
+              <p className="text-cocoa-light text-sm mt-1">{t('creationCanvas.libraryEmptyHint', 'Pick a Quick Start above or describe your own story to begin.')}</p>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-coral-burst/80 font-medium">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Your first masterpiece awaits</span>
+              <span>{t('creationCanvas.firstMasterpieceAwaits', 'Your first masterpiece awaits')}</span>
             </div>
           </div>
         </motion.div>
@@ -794,10 +796,10 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 </div>
               </div>
               <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
-                Weaving Magic...
+                {t('creationCanvas.weavingMagic', 'Weaving Magic...')}
               </h3>
               <p className="text-cocoa-light text-center max-w-md px-4 animate-pulse">
-                {generationStatus || 'Crafting your story, characters, and world...'}
+                {generationStatus || t('creationCanvas.craftingStory', 'Crafting your story, characters, and world...')}
               </p>
             </div>
           )}
@@ -809,16 +811,16 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 variant="ghost"
                 className="px-6 py-2 rounded-full bg-surface text-coral-burst border border-peach-soft/50"
               >
-                Create Book
+                {t('creationCanvas.createBook', 'Create Book')}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => navigate('/infographics')}
                 className="px-6 py-2 rounded-full relative text-cocoa-light hover:text-charcoal-soft"
               >
-                Infographics
+                {t('creationCanvas.infographics', 'Infographics')}
                 <span className="absolute -top-1 -right-1 bg-linear-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  BETA
+                  {t('creationCanvas.beta', 'BETA')}
                 </span>
               </Button>
             </div>
@@ -833,7 +835,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   <div className="w-8 h-8 rounded-full bg-surface border border-peach-soft flex items-center justify-center group-hover:border-coral-burst transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </div>
-                  Back to Home
+                  {t('creationCanvas.backToHome', 'Back to Home')}
                 </Button>
               )}
 
@@ -855,9 +857,9 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                   </div>
                   <div className="text-left">
                     <div className="font-heading font-bold text-charcoal-soft">
-                      Interactive Mode
+                      {t('creationCanvas.interactiveMode', 'Interactive Mode')}
                     </div>
-                    <div className="text-xs text-cocoa-light">Choose-your-own-adventure</div>
+                    <div className="text-xs text-cocoa-light">{t('creationCanvas.chooseYourOwnAdventure', 'Choose-your-own-adventure')}</div>
                   </div>
                 </Button>
 
@@ -876,8 +878,8 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     <Leaf className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <div className="font-heading font-bold text-charcoal-soft">Educational</div>
-                    <div className="text-xs text-cocoa-light">Learning & Vocabulary</div>
+                    <div className="font-heading font-bold text-charcoal-soft">{t('creationCanvas.educational', 'Educational')}</div>
+                    <div className="text-xs text-cocoa-light">{t('creationCanvas.learningAndVocabulary', 'Learning & Vocabulary')}</div>
                   </div>
                 </Button>
               </div>
@@ -886,7 +888,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-lg flex items-center gap-2">
                     <Wand2 className="w-5 h-5 text-gold-sunshine" />
-                    Tell us about your book idea
+                    {t('creationCanvas.tellUsYourBookIdea', 'Tell us about your book idea')}
                   </Label>
                   <Button
                     variant="ghost"
@@ -895,13 +897,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     className="text-coral-burst hover:text-coral-burst/80 flex gap-1"
                   >
                     <LayoutTemplate className="w-4 h-4" />
-                    Use Template
+                    {t('creationCanvas.useTemplate', 'Use Template')}
                   </Button>
                 </div>
                 <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Once upon a time, in a land made of candy..."
+                  placeholder={t('creationCanvas.promptPlaceholder', 'Once upon a time, in a land made of candy...')}
                   className="bg-cream-soft rounded-3xl p-6 text-lg h-40"
                 />
               </div>
@@ -911,7 +913,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 {/* Style */}
                 <div className="space-y-3">
                   <Label className="text-cocoa-light uppercase tracking-wide">
-                    Visual Style
+                    {t('creationCanvas.visualStyle', 'Visual Style')}
                   </Label>
                   <Button
                     variant="outline"
@@ -929,11 +931,11 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 {/* Tone */}
                 <div className="space-y-3">
                   <Label className="text-cocoa-light uppercase tracking-wide">
-                    Narrative Tone
+                    {t('creationCanvas.narrativeTone', 'Narrative Tone')}
                   </Label>
                   <Select value={tone} onValueChange={(v) => setTone(v as BookTone)}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select tone" />
+                      <SelectValue placeholder={t('creationCanvas.selectTone', 'Select tone')} />
                     </SelectTrigger>
                     <SelectContent>
                       {tones.map((t) => (
@@ -948,19 +950,19 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 {/* Audience */}
                 <div className="space-y-3">
                   <Label className="text-cocoa-light uppercase tracking-wide">
-                    Target Audience
+                    {t('creationCanvas.targetAudience', 'Target Audience')}
                   </Label>
                   <Select value={audience} onValueChange={setAudience}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select audience" />
+                      <SelectValue placeholder={t('creationCanvas.selectAudience', 'Select audience')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Toddlers 1-3">Toddlers 1-3</SelectItem>
-                      <SelectItem value="Children 4-6">Children 4-6</SelectItem>
-                      <SelectItem value="Children 7-9">Children 7-9</SelectItem>
-                      <SelectItem value="Pre-teens 10-12">Pre-teens 10-12</SelectItem>
-                      <SelectItem value="Young Adult">Young Adult</SelectItem>
-                      <SelectItem value="Stakeholders">Stakeholders</SelectItem>
+                      <SelectItem value={t('creationCanvas.audienceToddlers13', 'Toddlers 1-3')}>{t('creationCanvas.audienceToddlers13', 'Toddlers 1-3')}</SelectItem>
+                      <SelectItem value={t('creationCanvas.audienceChildren46', 'Children 4-6')}>{t('creationCanvas.audienceChildren46', 'Children 4-6')}</SelectItem>
+                      <SelectItem value={t('creationCanvas.audienceChildren79', 'Children 7-9')}>{t('creationCanvas.audienceChildren79', 'Children 7-9')}</SelectItem>
+                      <SelectItem value={t('creationCanvas.audiencePreTeens1012', 'Pre-teens 10-12')}>{t('creationCanvas.audiencePreTeens1012', 'Pre-teens 10-12')}</SelectItem>
+                      <SelectItem value={t('creationCanvas.audienceYoungAdult', 'Young Adult')}>{t('creationCanvas.audienceYoungAdult', 'Young Adult')}</SelectItem>
+                      <SelectItem value={t('creationCanvas.audienceStakeholders', 'Stakeholders')}>{t('creationCanvas.audienceStakeholders', 'Stakeholders')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -968,7 +970,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 {/* Length */}
                 <div className="space-y-3">
                   <Label className="text-cocoa-light uppercase tracking-wide">
-                    Length: {pageCount} Pages
+                    {t('creationCanvas.lengthPages', 'Length: {{count}} Pages', { count: pageCount })}
                   </Label>
                   <div className="flex items-center gap-4 bg-surface border border-peach-soft rounded-2xl p-4">
                     <Clock className="text-coral-burst w-5 h-5" />
@@ -978,7 +980,7 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                       step={2}
                       value={[pageCount]}
                       onValueChange={(value) => setPageCount(value[0])}
-                      aria-label="Page count"
+                      aria-label={t('creationCanvas.pageCount', 'Page count')}
                     />
                   </div>
                 </div>
@@ -989,16 +991,16 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 <div className="bg-white/95 backdrop-blur-sm border border-cream-soft rounded-3xl p-6 mb-10 shadow-sm animate-fadeIn">
                   <div className="flex items-center gap-2 text-primary mb-6">
                     <Leaf className="w-5 h-5" />
-                    <h3 className="font-heading font-bold text-lg text-charcoal-base ">Learning Goals</h3>
+                    <h3 className="font-heading font-bold text-lg text-charcoal-base ">{t('creationCanvas.learningGoals', 'Learning Goals')}</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <Label className="text-xs text-cocoa-light  uppercase mb-2">
-                        Subject
+                        {t('creationCanvas.subject', 'Subject')}
                       </Label>
                       <Select value={learningSubject} onValueChange={setLearningSubject}>
                         <SelectTrigger className="w-full bg-white border-cream-soft">
-                          <SelectValue placeholder="Select subject" />
+                          <SelectValue placeholder={t('creationCanvas.selectSubject', 'Select subject')} />
                         </SelectTrigger>
                         <SelectContent className="bg-white border-cream-soft">
                           <SelectItem value="Math">Math</SelectItem>
@@ -1013,11 +1015,11 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     </div>
                     <div>
                       <Label className="text-xs text-cocoa-light  uppercase mb-2">
-                        Difficulty
+                        {t('creationCanvas.difficulty', 'Difficulty')}
                       </Label>
                       <Select value={learningDifficulty} onValueChange={(v: string) => setLearningDifficulty(v as typeof learningDifficulty)}>
                         <SelectTrigger className="w-full bg-white border-cream-soft">
-                          <SelectValue placeholder="Select difficulty" />
+                          <SelectValue placeholder={t('creationCanvas.selectDifficulty', 'Select difficulty')} />
                         </SelectTrigger>
                         <SelectContent className="bg-white border-cream-soft">
                           <SelectItem value="beginner">Beginner</SelectItem>
@@ -1028,18 +1030,18 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     </div>
                     <div className="md:col-span-2">
                       <Label className="text-xs text-cocoa-light  uppercase mb-2">
-                        Learning Objectives
+                        {t('creationCanvas.learningObjectives', 'Learning Objectives')}
                       </Label>
                       <Textarea
                         value={learningObjectives}
                         onChange={(e) => setLearningObjectives(e.target.value)}
                         className="bg-white border-cream-soft p-3 h-20 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-charcoal-soft placeholder:text-cocoa-light"
-                        placeholder="e.g., Counting to 10, Understanding Photosynthesis, Managing Anger..."
+                        placeholder={t('creationCanvas.learningObjectivesPlaceholder', 'e.g., Counting to 10, Understanding Photosynthesis, Managing Anger...')}
                       />
                     </div>
                     <div className="md:col-span-2">
                       <Label className="text-xs text-cocoa-light  uppercase mb-2">
-                        Integration Mode
+                        {t('creationCanvas.integrationMode', 'Integration Mode')}
                       </Label>
                       <div className="grid grid-cols-1 xs:grid-cols-3 gap-3">
                         {[
@@ -1072,11 +1074,10 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                     <div className="md:col-span-2 mt-2 pt-6 border-t border-cream-soft ">
                       <Label className="text-xs text-cocoa-light uppercase mb-2 flex items-center gap-2">
                         <Users className="w-4 h-4 text-primary" />
-                        Choose Your Teaching Guide
+                        {t('creationCanvas.chooseTeachingGuide', 'Choose Your Teaching Guide')}
                       </Label>
                       <p className="text-sm text-cocoa-light  mb-4">
-                        Select a character to guide the learning journey. They'll teach concepts in
-                        their unique voice!
+                        {t('creationCanvas.teachingGuideDescription', "Select a character to guide the learning journey. They'll teach concepts in their unique voice!")}
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto p-3 border border-cream-soft rounded-xl bg-white/50 custom-scrollbar">
                         {teachingCharacters.map((char) => (
@@ -1183,13 +1184,13 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                             />
                             <div className="flex-1">
                               <div className="font-bold text-charcoal-base ">
-                                {selectedTeacher.name} will be your guide!
+                                {t('creationCanvas.selectedTeacherGuide', '{{name}} will be your guide!', { name: selectedTeacher.name })}
                               </div>
                               <p className="text-sm text-cocoa-light italic mt-1">
                                 "{selectedTeacher.voiceProfile?.catchphrases?.[0]}"
                               </p>
                               <div className="text-xs text-cocoa-light  mt-2">
-                                Teaching style:{' '}
+                                {t('creationCanvas.teachingStyle', 'Teaching style:')}{' '}
                                 <span className="font-medium capitalize text-charcoal-soft ">
                                   {selectedTeacher.teachingStyle?.teachingApproach}
                                 </span>
@@ -1221,14 +1222,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
                 {isGenerating ? (
                   <>
                     <div className="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Creating Magic...
+                    {t('creationCanvas.creatingMagic', 'Creating Magic...')}
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-4 h-4 transition-transform duration-200 group-hover:rotate-[-8deg] group-hover:scale-105" />
                     <span className="text-left leading-[1.02] tracking-[0.01em]">
-                      <span className="block text-[12px] font-medium">Generate</span>
-                      <span className="block text-[12px] font-semibold">Masterpiece</span>
+                      <span className="block text-[12px] font-medium">{t('creationCanvas.generate', 'Generate')}</span>
+                      <span className="block text-[12px] font-semibold">{t('creationCanvas.masterpiece', 'Masterpiece')}</span>
                     </span>
                   </>
                 )}

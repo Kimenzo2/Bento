@@ -2,6 +2,7 @@ import { IcoPalette, IcoWand } from './IconscoutIcons';
 import { ArrowLeft, Download, Edit2, Map, Maximize2, Plus, RefreshCw, Share2, Sliders } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { generateRefinedImage } from '../services/geminiService';
 import type { UserProfile } from '../services/profileService';
 import { AppMode, ArtStyle, type BookProject, type Character, type VisualSettings } from '../types';
@@ -37,6 +38,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
+  const { t } = useTranslation('creation');
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'individual' | 'storymap'>('individual');
 
@@ -219,7 +221,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             size="icon"
             onClick={onBack}
             className="absolute left-1 md:left-4 top-1/2 -translate-y-1/2 rounded-full text-cocoa-light hover:text-coral-burst hover:bg-cream-soft z-10 min-h-11 min-w-11"
-            aria-label="Go back"
+            aria-label={t('visualStudio.goBack', 'Go back')}
           >
             <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
           </Button>
@@ -241,8 +243,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             }`}
           >
             <IcoWand className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden xs:inline">Individual</span>
-            <span className="xs:hidden">Solo</span>
+            <span className="hidden xs:inline">{t('visualStudio.individual', 'Individual')}</span>
+            <span className="xs:hidden">{t('visualStudio.solo', 'Solo')}</span>
           </Button>
           <Button
             variant="ghost"
@@ -254,15 +256,15 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             }`}
           >
             <Map className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden xs:inline">Story Map</span>
-            <span className="xs:hidden">Map</span>
+            <span className="hidden xs:inline">{t('visualStudio.storyMap', 'Story Map')}</span>
+            <span className="xs:hidden">{t('visualStudio.map', 'Map')}</span>
           </Button>
         </div>
 
         <p className="text-cocoa-light font-body text-xs sm:text-sm mt-2 md:mt-3 px-2 line-clamp-2">
           {viewMode === 'individual'
-            ? 'Fine-tune characters, compose scenes, and experiment with style alchemy.'
-            : 'Visualize your narrative journey and structure.'}
+            ? t('visualStudio.modeIndividualDescription', 'Fine-tune characters, compose scenes, and experiment with style alchemy.')
+            : t('visualStudio.modeStoryMapDescription', 'Visualize your narrative journey and structure.')}
         </p>
       </div>
 
@@ -305,7 +307,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         size="sm"
                         onClick={handleCreateNewCharacter}
                         className="flex px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white"
-                        title="Create new character"
+                        title={t('visualStudio.createNewCharacter', 'Create new character')}
                       >
                         <Plus className="w-3 h-3" />
                         New
@@ -341,7 +343,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                                 {char.name}
                               </div>
                               <div className="text-[10px] md:text-xs text-cocoa-light truncate">
-                                {char.role || 'Character'}
+                                {char.role || t('visualStudio.character', 'Character')}
                               </div>
                             </div>
                           </div>
@@ -354,7 +356,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                               setShowCharacterDepth(true);
                             }}
                             className="absolute top-1 right-1 p-1 bg-surface hover:bg-emerald-50 opacity-0 group-hover:opacity-100 border border-peach-soft/50"
-                            title="Edit character depth"
+                            title={t('visualStudio.editCharacterDepth', 'Edit character depth')}
                           >
                             <Edit2 className="w-3 h-3 text-emerald-600" />
                           </Button>
@@ -362,7 +364,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       ))}
                       {availableCharacters.length === 0 && (
                         <div className="col-span-2 text-center py-8 text-cocoa-light/60 text-sm">
-                          No characters yet. Click "New" to create one!
+                          {t('visualStudio.noCharactersYet', 'No characters yet. Click "New" to create one!')}
                         </div>
                       )}
                     </div>
@@ -375,28 +377,28 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                     <div className="grid grid-cols-2 gap-3">
                       <Select value={settings.expression} onValueChange={(v) => setSettings(prev => ({ ...prev, expression: v }))}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Expression" />
+                          <SelectValue placeholder={t('visualStudio.expression', 'Expression')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="neutral">Neutral</SelectItem>
-                          <SelectItem value="happy">Happy</SelectItem>
-                          <SelectItem value="sad">Sad</SelectItem>
-                          <SelectItem value="angry">Angry</SelectItem>
-                          <SelectItem value="surprised">Surprised</SelectItem>
-                          <SelectItem value="determined">Determined</SelectItem>
+                          <SelectItem value="neutral">{t('visualStudio.expressionNeutral', 'Neutral')}</SelectItem>
+                          <SelectItem value="happy">{t('visualStudio.expressionHappy', 'Happy')}</SelectItem>
+                          <SelectItem value="sad">{t('visualStudio.expressionSad', 'Sad')}</SelectItem>
+                          <SelectItem value="angry">{t('visualStudio.expressionAngry', 'Angry')}</SelectItem>
+                          <SelectItem value="surprised">{t('visualStudio.expressionSurprised', 'Surprised')}</SelectItem>
+                          <SelectItem value="determined">{t('visualStudio.expressionDetermined', 'Determined')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select value={settings.pose} onValueChange={(v) => setSettings(prev => ({ ...prev, pose: v }))}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Pose" />
+                          <SelectValue placeholder={t('visualStudio.pose', 'Pose')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="standing">Standing</SelectItem>
-                          <SelectItem value="sitting">Sitting</SelectItem>
-                          <SelectItem value="walking">Walking</SelectItem>
-                          <SelectItem value="running">Running</SelectItem>
-                          <SelectItem value="fighting">Fighting</SelectItem>
-                          <SelectItem value="flying">Flying</SelectItem>
+                          <SelectItem value="standing">{t('visualStudio.poseStanding', 'Standing')}</SelectItem>
+                          <SelectItem value="sitting">{t('visualStudio.poseSitting', 'Sitting')}</SelectItem>
+                          <SelectItem value="walking">{t('visualStudio.poseWalking', 'Walking')}</SelectItem>
+                          <SelectItem value="running">{t('visualStudio.poseRunning', 'Running')}</SelectItem>
+                          <SelectItem value="fighting">{t('visualStudio.poseFighting', 'Fighting')}</SelectItem>
+                          <SelectItem value="flying">{t('visualStudio.poseFlying', 'Flying')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -414,28 +416,28 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                     <div className="grid grid-cols-2 gap-3">
                       <Select value={settings.lighting} onValueChange={(v) => setSettings(prev => ({ ...prev, lighting: v }))}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Lighting" />
+                          <SelectValue placeholder={t('visualStudio.lighting', 'Lighting')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="natural">Natural Light</SelectItem>
-                          <SelectItem value="golden-hour">Golden Hour</SelectItem>
-                          <SelectItem value="night">Night / Dark</SelectItem>
-                          <SelectItem value="studio">Studio Lighting</SelectItem>
-                          <SelectItem value="neon">Neon / Cyberpunk</SelectItem>
-                          <SelectItem value="dramatic">Dramatic Shadows</SelectItem>
+                          <SelectItem value="natural">{t('visualStudio.lightNatural', 'Natural Light')}</SelectItem>
+                          <SelectItem value="golden-hour">{t('visualStudio.lightGoldenHour', 'Golden Hour')}</SelectItem>
+                          <SelectItem value="night">{t('visualStudio.lightNightDark', 'Night / Dark')}</SelectItem>
+                          <SelectItem value="studio">{t('visualStudio.lightStudio', 'Studio Lighting')}</SelectItem>
+                          <SelectItem value="neon">{t('visualStudio.lightNeon', 'Neon / Cyberpunk')}</SelectItem>
+                          <SelectItem value="dramatic">{t('visualStudio.lightDramatic', 'Dramatic Shadows')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <Select value={settings.cameraAngle} onValueChange={(v) => setSettings(prev => ({ ...prev, cameraAngle: v }))}>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Camera angle" />
+                          <SelectValue placeholder={t('visualStudio.cameraAngle', 'Camera angle')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="eye-level">Eye Level</SelectItem>
-                          <SelectItem value="low-angle">Low Angle</SelectItem>
-                          <SelectItem value="high-angle">High Angle</SelectItem>
-                          <SelectItem value="wide-shot">Wide Shot</SelectItem>
-                          <SelectItem value="close-up">Close Up</SelectItem>
-                          <SelectItem value="aerial">Aerial View</SelectItem>
+                          <SelectItem value="eye-level">{t('visualStudio.cameraEyeLevel', 'Eye Level')}</SelectItem>
+                          <SelectItem value="low-angle">{t('visualStudio.cameraLow', 'Low Angle')}</SelectItem>
+                          <SelectItem value="high-angle">{t('visualStudio.cameraHigh', 'High Angle')}</SelectItem>
+                          <SelectItem value="wide-shot">{t('visualStudio.cameraWide', 'Wide Shot')}</SelectItem>
+                          <SelectItem value="close-up">{t('visualStudio.cameraClose', 'Close Up')}</SelectItem>
+                          <SelectItem value="aerial">{t('visualStudio.cameraAerial', 'Aerial View')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -449,7 +451,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       value={settings.prompt}
                       onChange={(e) => setSettings(prev => ({ ...prev, prompt: e.target.value }))}
                       className="h-24 md:h-32 bg-cream-base p-2.5 md:p-3 md:text-base"
-                      placeholder="Describe the setting, props, and atmosphere..."
+                      placeholder={t('visualStudio.describeScene', 'Describe the setting, props, and atmosphere...')}
                     />
                   </div>
                 </div>
@@ -469,7 +471,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         </div>
                         <Select value={settings.styleA} onValueChange={(v) => setSettings(prev => ({ ...prev, styleA: v as ArtStyle }))}>
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Primary style" />
+                            <SelectValue placeholder={t('visualStudio.primaryStyle', 'Primary style')} />
                           </SelectTrigger>
                           <SelectContent>
                             {styles.map((s) => (
@@ -491,8 +493,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                           onChange={(e) =>
                             setSettings(prev => ({ ...prev, mixRatio: Number.parseInt(e.target.value) }))
                           }
-                          title={`Mix ratio: ${settings.mixRatio}%`}
-                          aria-label="Style mix ratio"
+                          title={t('visualStudio.mixRatioTitle', 'Mix ratio: {{ratio}}%', { ratio: settings.mixRatio })}
+                          aria-label={t('visualStudio.styleMixRatio', 'Style mix ratio')}
                           className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
                         />
                       </div>
@@ -503,7 +505,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         </div>
                         <Select value={settings.styleB} onValueChange={(v) => setSettings(prev => ({ ...prev, styleB: v as ArtStyle }))}>
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Secondary style" />
+                            <SelectValue placeholder={t('visualStudio.secondaryStyle', 'Secondary style')} />
                           </SelectTrigger>
                           <SelectContent>
                             {styles.map((s) => (
@@ -524,7 +526,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                       value={settings.prompt}
                       onChange={(e) => setSettings(prev => ({ ...prev, prompt: e.target.value }))}
                       className="h-20 md:h-24 bg-cream-base p-2.5 md:p-3 md:text-base"
-                      placeholder="A landscape with a castle..."
+                      placeholder={t('visualStudio.testPromptPlaceholder', 'A landscape with a castle...')}
                     />
                   </div>
                 </div>
@@ -542,7 +544,11 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 ) : (
                   <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
                 )}
-                {activeTab === 'character' ? 'Generate' : activeTab === 'scene' ? 'Render' : 'Mix'}
+                {activeTab === 'character'
+                  ? t('visualStudio.generate', 'Generate')
+                  : activeTab === 'scene'
+                    ? t('visualStudio.render', 'Render')
+                    : t('visualStudio.mix', 'Mix')}
               </Button>
             </div>
 
@@ -552,7 +558,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 <>
                   <img
                     src={settings.generatedImage}
-                    alt="Generated result"
+                    alt={t('visualStudio.generatedResult', 'Generated result')}
                     className="w-full h-full object-contain bg-surface/50"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end">

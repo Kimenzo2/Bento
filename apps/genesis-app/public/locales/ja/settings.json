@@ -188,5 +188,8 @@
   "data": "データ",
   "help": "ヘルプ",
   "all": "すべて",
-  "reset": "リセット"
+  "reset": "リセット",
+  "selectLanguageAria": "{{language}} 言語を選択",
+  "beta": "ベータ",
+  "translation": "翻訳"
 }

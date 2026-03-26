@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import LegalLayout, { P, Sub, DashList, B } from '../../components/legal/LegalLayout';
 import type { LegalSection } from '../../components/legal/LegalLayout';
 import { usePageSEO } from '../../hooks/usePageSEO';
@@ -222,16 +223,24 @@ const sections: LegalSection[] = [
 ];
 
 const CookiePolicyPage: React.FC = () => {
+  const { t } = useTranslation('legal');
+
   usePageSEO({
-    title: 'Cookie Policy — Genesis',
-    description: 'How Genesis uses cookies and similar technologies to keep you signed in, remember your preferences, and understand how creators use the platform.',
+    title: t('cookies.seoTitle', 'Cookie Policy — Genesis'),
+    description: t(
+      'cookies.seoDescription',
+      'How Genesis uses cookies and similar technologies to keep you signed in, remember your preferences, and understand how creators use the platform.'
+    ),
     canonical: '/legal/cookies',
   });
 
   return (
     <LegalLayout
-      title="Cookie Policy"
-      description="How Genesis uses cookies and similar technologies to make the platform work, remember your preferences, and understand how creators use the product."
+      title={t('cookies.title', 'Cookie Policy')}
+      description={t(
+        'cookies.description',
+        'How Genesis uses cookies and similar technologies to make the platform work, remember your preferences, and understand how creators use the product.'
+      )}
       effectiveDate={EFFECTIVE_DATE}
       sections={sections}
     />

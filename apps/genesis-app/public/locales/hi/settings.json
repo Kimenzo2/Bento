@@ -188,5 +188,8 @@
   "data": "डेटा",
   "help": "सहायता",
   "all": "सभी",
-  "reset": "रीसेट"
+  "reset": "रीसेट",
+  "selectLanguageAria": "{{language}} भाषा चुनें",
+  "beta": "बीटा",
+  "translation": "अनुवाद"
 }

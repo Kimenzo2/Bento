@@ -100,6 +100,24 @@
     "howItWorks": "How Genesis works",
     "whatYouCanCreate": "What you can create with Genesis",
     "whyStandsOut": "Why Genesis stands out",
-    "chooseJourney": "Choose your creative journey"
+    "chooseJourney": "Choose your creative journey",
+    "ariaPrimaryNavigation": "Primary navigation",
+    "ariaScrollToTop": "Scroll to top",
+    "altGenCreativeGuide": "Gen - Your Creative Guide",
+    "titleGenCreativeGuide": "Gen, your AI creative guide",
+    "genCreativeGuideLabel": "Gen, your AI creative guide",
+    "altGenAICreativeGuide": "Gen - Your AI Creative Guide",
+    "meetGenGuide": "Meet Gen, your AI creative guide",
+    "altThreeStyles": "Three distinct Genesis art styles side by side",
+    "altEnvironmentLibrary": "Consistent environment library across day and night scenes",
+    "included": "Included: ",
+    "notIncluded": "Not included: ",
+    "altCreatorCommunity": "Genesis community of creators",
+    "includedTrustSignals": "Included trust signals",
+    "altGenesisLogo": "Genesis",
+    "altFeaturedBadge": "Featured on neeed.directory",
+    "footerProduct": "Product",
+    "footerResources": "Resources",
+    "footerSupport": "Support"
   }
 }

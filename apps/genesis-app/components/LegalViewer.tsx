@@ -2,6 +2,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import { AppMode } from '../types';
 import { usePageSEO } from '../hooks/usePageSEO';
 
@@ -11,9 +12,14 @@ interface LegalViewerProps {
 }
 
 const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'privacy' }) => {
+  const { t } = useTranslation('legal');
+
   usePageSEO({
-    title: 'Legal — Genesis AI Visual Storytelling',
-    description: 'Genesis legal documents including Privacy Policy, Terms of Service, Cookie Policy, and Acceptable Use Policy.',
+    title: t('seo.title', 'Legal — Genesis AI Visual Storytelling'),
+    description: t(
+      'seo.description',
+      'Genesis legal documents including Privacy Policy, Terms of Service, Cookie Policy, and Acceptable Use Policy.'
+    ),
     canonical: '/legal',
   });
 
@@ -24,28 +30,28 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
 
   const documents = {
     privacy: {
-      title: 'Privacy Policy',
+      title: t('docs.privacy', 'Privacy Policy'),
       icon: Shield,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       file: 'PRIVACY_POLICY.md',
     },
     terms: {
-      title: 'Terms of Service',
+      title: t('docs.termsService', 'Terms of Service'),
       icon: FileText,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       file: 'TERMS_OF_SERVICE.md',
     },
     cookies: {
-      title: 'Cookie Policy',
+      title: t('docs.cookies', 'Cookie Policy'),
       icon: Cookie,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
       file: 'COOKIE_POLICY.md',
     },
     'acceptable-use': {
-      title: 'Acceptable Use Policy',
+      title: t('docs.acceptableUse', 'Acceptable Use Policy'),
       icon: AlertCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
@@ -81,7 +87,7 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
             <button
               onClick={() => onNavigate(AppMode.SETTINGS)}
               className="p-2 -ml-2 rounded-full hover:bg-cream-soft text-cocoa-light hover:text-coral-burst transition-colors touch-manipulation"
-              aria-label="Go back"
+              aria-label={t('actions.goBack', 'Go back')}
             >
               <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
             </button>
@@ -95,7 +101,7 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
             <h1 className="font-heading font-bold text-2xl md:text-4xl text-charcoal-soft">
               {currentDoc.title}
             </h1>
-            <p className="text-cocoa-light text-sm md:text-base">Legal Information & Policies</p>
+            <p className="text-cocoa-light text-sm md:text-base">{t('header.infoPolicies', 'Legal Information & Policies')}</p>
           </div>
         </div>
 
@@ -146,9 +152,9 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
 
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-cocoa-light/70">
-          <p>Last Updated: December 9, 2025</p>
+          <p>{t('footer.lastUpdated', 'Last Updated: December 9, 2025')}</p>
           <p className="mt-2">
-            Questions? Contact us at{' '}
+            {t('contact.questionsPrompt', 'Questions? Contact us at')}{' '}
             <a href="mailto:legal@iamazeyou.me" className="text-coral-burst hover:underline">
               legal@iamazeyou.me
             </a>

@@ -180,5 +180,16 @@
     "deleteAccountRequested": "Account deletion requested. Please contact support to finalize."
   },
   "cookiePolicy": "Cookie Policy",
-  "acceptableUse": "Acceptable Use"
+  "acceptableUse": "Acceptable Use",
+  "selectLanguageAria": "Select {{language}} language",
+  "beta": "Beta",
+  "translation": "Translation",
+  "title": "Settings",
+  "general": "General",
+  "darkMode": "Dark Mode",
+  "security": "Security",
+  "data": "Data",
+  "help": "Help",
+  "all": "All",
+  "reset": "Reset"
 }

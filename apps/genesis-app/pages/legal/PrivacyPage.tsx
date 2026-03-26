@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import LegalLayout, { P, Sub, DashList, B } from '../../components/legal/LegalLayout';
 import type { LegalSection } from '../../components/legal/LegalLayout';
 import { usePageSEO } from '../../hooks/usePageSEO';
@@ -307,16 +308,24 @@ const sections: LegalSection[] = [
 ];
 
 const PrivacyPage: React.FC = () => {
+  const { t } = useTranslation('legal');
+
   usePageSEO({
-    title: 'Privacy Policy — Genesis',
-    description: 'How Genesis collects, uses, and protects your information when you use our AI visual storytelling platform.',
+    title: t('privacy.seoTitle', 'Privacy Policy — Genesis'),
+    description: t(
+      'privacy.seoDescription',
+      'How Genesis collects, uses, and protects your information when you use our AI visual storytelling platform.'
+    ),
     canonical: '/legal/privacy',
   });
 
   return (
     <LegalLayout
-      title="Privacy Policy"
-      description="How Genesis collects, uses, and protects your information when you use our AI visual storytelling platform."
+      title={t('privacy.title', 'Privacy Policy')}
+      description={t(
+        'privacy.description',
+        'How Genesis collects, uses, and protects your information when you use our AI visual storytelling platform.'
+      )}
       effectiveDate={EFFECTIVE_DATE}
       sections={sections}
     />

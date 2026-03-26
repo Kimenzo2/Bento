@@ -329,7 +329,7 @@ const LandingPage: React.FC = memo(() => {
 
   const Nav = (
     <nav
-      aria-label="Primary navigation"
+      aria-label={t('landing.ariaPrimaryNavigation', 'Primary navigation')}
       className="fixed top-0 left-0 right-0 z-50 bg-cream-base transition-[border-color] duration-300"
       style={{
         borderBottom: scrolled
@@ -339,7 +339,7 @@ const LandingPage: React.FC = memo(() => {
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-5 md:px-12 h-16">
         {/* Logo */}
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-xl" aria-label="Scroll to top">
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-xl" aria-label={t('landing.ariaScrollToTop', 'Scroll to top')}>
           <div className="w-10 h-10 overflow-hidden rounded-xl border border-peach-soft">
             <img
               src="/genesis-icon.jpg"
@@ -586,8 +586,8 @@ const LandingPage: React.FC = memo(() => {
               <div className="p-6 md:p-8">
                 <img
                   src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
-                  alt="Gen - Your Creative Guide"
-                  title="Gen, your AI creative guide"
+                  alt={t('landing.altGenCreativeGuide', 'Gen - Your Creative Guide')}
+                  title={t('landing.titleGenCreativeGuide', 'Gen, your AI creative guide')}
                   width={332}
                   height={302}
                   className="w-full object-contain rounded-3xl"
@@ -596,7 +596,7 @@ const LandingPage: React.FC = memo(() => {
                   fetchPriority="high"
                 />
                 <p className="text-center mt-4 text-sm font-medium font-body text-cocoa-light">
-                  Gen, your AI creative guide
+                  {t('landing.genCreativeGuideLabel', 'Gen, your AI creative guide')}
                 </p>
               </div>
             </GlowCard>
@@ -885,7 +885,7 @@ const LandingPage: React.FC = memo(() => {
             <div className="p-6 md:p-8">
               <img
                 src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
-                alt="Gen - Your AI Creative Guide"
+                alt={t('landing.altGenAICreativeGuide', 'Gen - Your AI Creative Guide')}
                 width={332}
                 height={302}
                 className="w-full object-contain rounded-3xl"
@@ -903,7 +903,7 @@ const LandingPage: React.FC = memo(() => {
           transition={{ duration: 0.5, ease: APPLE_EASE, delay: 0.1 }}
         >
           <h2 id="mascot-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-5 font-heading text-charcoal-soft">
-            Meet Gen, your AI creative guide
+            {t('landing.meetGenGuide', 'Meet Gen, your AI creative guide')}
           </h2>
           <div className="space-y-4">
             {[
@@ -1101,7 +1101,7 @@ const LandingPage: React.FC = memo(() => {
         >
           <img
             src="/images/promo/professional-storytelling.webp"
-            alt="Three distinct Genesis art styles side by side"
+            alt={t('landing.altThreeStyles', 'Three distinct Genesis art styles side by side')}
             width={400}
             height={400}
             className="w-full h-full object-cover"
@@ -1188,7 +1188,7 @@ const LandingPage: React.FC = memo(() => {
         >
           <img
             src="/images/promo/environments-that-stay-put.webp"
-            alt="Consistent environment library across day and night scenes"
+            alt={t('landing.altEnvironmentLibrary', 'Consistent environment library across day and night scenes')}
             width={400}
             height={400}
             className="w-full h-full object-cover"
@@ -1264,14 +1264,14 @@ const LandingPage: React.FC = memo(() => {
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="w-4 h-4 mt-0.5 shrink-0 text-coral-burst" aria-hidden="true" />
-                    <span className="sr-only">Included: </span>
+                    <span className="sr-only">{t('landing.included', 'Included: ')}</span>
                     <span className="text-sm font-body text-charcoal-soft">{f}</span>
                   </li>
                 ))}
                 {tier.limitations.map((l) => (
                   <li key={l} className="flex items-start gap-2">
                     <X className="w-4 h-4 mt-0.5 shrink-0 text-cocoa-light" aria-hidden="true" />
-                    <span className="sr-only">Not included: </span>
+                    <span className="sr-only">{t('landing.notIncluded', 'Not included: ')}</span>
                     <span className="text-sm font-body text-cocoa-light">{l}</span>
                   </li>
                 ))}
@@ -1306,7 +1306,7 @@ const LandingPage: React.FC = memo(() => {
       >
         <img
           src="/assets/mascots/8k_3d_pixar_202512022053.jpeg"
-          alt="Genesis community of creators"
+          alt={t('landing.altCreatorCommunity', 'Genesis community of creators')}
           width={1365}
           height={768}
           className="mx-auto max-w-sm w-full rounded-3xl border border-peach-soft"
@@ -1514,7 +1514,7 @@ const LandingPage: React.FC = memo(() => {
 
         <GlowCard>
           <div className="p-6">
-            <h3 className="text-lg font-normal mb-4 font-heading text-charcoal-soft">Included trust signals</h3>
+            <h3 className="text-lg font-normal mb-4 font-heading text-charcoal-soft">{t('landing.includedTrustSignals', 'Included trust signals')}</h3>
             <ul className="space-y-3">
               {['Secure checkout and account flows', 'Clear free and paid plan separation', 'Commercial rights on paid tiers', 'Human support available by email'].map((item) => (
                 <li key={item} className="flex items-center gap-3">
@@ -1591,7 +1591,7 @@ const LandingPage: React.FC = memo(() => {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 overflow-hidden rounded-xl landing-dark-card-border">
-                <img src="/genesis-icon.jpg" alt="Genesis" width={378} height={369} className="w-full h-full object-cover" />
+                <img src="/genesis-icon.jpg" alt={t('landing.altGenesisLogo', 'Genesis')} width={378} height={369} className="w-full h-full object-cover" />
               </div>
               <span className="font-heading font-normal text-xl tracking-normal landing-dark-text">Genesis</span>
             </div>
@@ -1606,7 +1606,7 @@ const LandingPage: React.FC = memo(() => {
             >
               <img
                 src="https://neeed.directory/badges/neeed-badge-light.svg"
-                alt="Featured on neeed.directory"
+                alt={t('landing.altFeaturedBadge', 'Featured on neeed.directory')}
                 width={139}
                 height={32}
               />
@@ -1615,7 +1615,7 @@ const LandingPage: React.FC = memo(() => {
 
           {/* Product */}
           <div>
-            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">Product</h4>
+            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">{t('landing.footerProduct', 'Product')}</h4>
             <ul className="space-y-2">
               {['Choose a realm', 'What you can create', 'Pricing', 'Use cases'].map((link) => (
                 <li key={link}>
@@ -1633,7 +1633,7 @@ const LandingPage: React.FC = memo(() => {
 
           {/* Resources */}
           <div>
-            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">Resources</h4>
+            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">{t('landing.footerResources', 'Resources')}</h4>
             <ul className="space-y-2">
               {[
                 { label: 'Blog', href: '/blog' },
@@ -1665,7 +1665,7 @@ const LandingPage: React.FC = memo(() => {
 
           {/* Support */}
           <div>
-            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">Support</h4>
+            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">{t('landing.footerSupport', 'Support')}</h4>
             <ul className="space-y-2">
               {[
                 { label: 'support@iamazeyou.me', href: 'mailto:support@iamazeyou.me', external: true },

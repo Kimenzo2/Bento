@@ -25,6 +25,7 @@
 
 import type React from 'react';
 import { useEffect, useState, lazy, Suspense, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ReactFlowProvider } from '@xyflow/react';
 import {
   ArrowLeft,
@@ -165,6 +166,7 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   onBack,
   onNavigateToCreate,
 }) => {
+  const { t } = useTranslation('editor');
   const { userProfile } = useAuth();
   const isStandaloneMode = !project;
   const workingProject = project || DEMO_PROJECT;
@@ -190,8 +192,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 </Button>
               )}
               <div>
-                <h1 className="font-heading font-bold text-2xl text-charcoal-soft">Creative Hub</h1>
-                <p className="text-sm text-cocoa-light">Explore creative tools & discover worlds</p>
+                <h1 className="font-heading font-bold text-2xl text-charcoal-soft">{t('smartEditor.creativeHub', 'Creative Hub')}</h1>
+                <p className="text-sm text-cocoa-light">{t('smartEditor.exploreCreativeTools', 'Explore creative tools & discover worlds')}</p>
               </div>
             </div>
           </div>
@@ -203,14 +205,13 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-coral-burst mb-4" style={{ background: 'linear-gradient(to right, color-mix(in srgb, var(--color-primary-end) 20%, transparent), color-mix(in srgb, var(--color-primary-start) 20%, transparent))' }}>
               <IcoWand className="w-4 h-4" />
-              Welcome to the Creative Hub
+              {t('smartEditor.welcomeCreativeHub', 'Welcome to the Creative Hub')}
             </div>
             <h2 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft mb-4">
-              Your Creative Playground Awaits
+              {t('smartEditor.creativePlaygroundAwaits', 'Your Creative Playground Awaits')}
             </h2>
             <p className="text-cocoa-light text-lg max-w-2xl mx-auto">
-              Interview characters, discover remixable worlds, and unleash your creativity — all
-              without needing a project first.
+              {t('smartEditor.creativePlaygroundDescription', 'Interview characters, discover remixable worlds, and unleash your creativity - all without needing a project first.')}
             </p>
           </div>
 
@@ -220,10 +221,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{ background: 'linear-gradient(to bottom right, var(--color-primary-start), var(--color-primary-end))' }}>
                 <IcoPen className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">Create a Book</h3>
-              <p className="text-cocoa-light text-sm mb-4">Start your storytelling journey. Generate a complete illustrated book with AI assistance.</p>
+              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{t('smartEditor.createBook', 'Create a Book')}</h3>
+              <p className="text-cocoa-light text-sm mb-4">{t('smartEditor.createBookDescription', 'Start your storytelling journey. Generate a complete illustrated book with AI assistance.')}</p>
               <Button variant="primary" onClick={onNavigateToCreate} className="w-full font-heading hover:opacity-90">
-                <IcoZap className="w-4 h-4" /> Start Creating
+                <IcoZap className="w-4 h-4" /> {t('smartEditor.startCreating', 'Start Creating')}
               </Button>
             </div>
 
@@ -231,10 +232,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">The Green Room</h3>
-              <p className="text-cocoa-light text-sm mb-4">Interview characters to discover their personalities, backstories, and hidden depths.</p>
+              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{t('smartEditor.greenRoom', 'The Green Room')}</h3>
+              <p className="text-cocoa-light text-sm mb-4">{t('smartEditor.greenRoomDescription', 'Interview characters to discover their personalities, backstories, and hidden depths.')}</p>
               <Button onClick={() => setShowGreenRoomStandalone(true)} className="w-full bg-emerald-500 text-white font-heading hover:opacity-90">
-                <Users className="w-4 h-4" /> Enter Green Room
+                <Users className="w-4 h-4" /> {t('smartEditor.enterGreenRoom', 'Enter Green Room')}
               </Button>
             </div>
 
@@ -242,10 +243,10 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
               <div className="w-14 h-14 rounded-xl bg-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <GitFork className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">Remix Studio</h3>
-              <p className="text-cocoa-light text-sm mb-4">Discover and fork magical worlds created by other storytellers.</p>
+              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{t('smartEditor.remixStudio', 'Remix Studio')}</h3>
+              <p className="text-cocoa-light text-sm mb-4">{t('smartEditor.remixStudioDescription', 'Discover and fork magical worlds created by other storytellers.')}</p>
               <Button onClick={() => setShowRemixStudioStandalone(true)} className="w-full bg-purple-500 text-white font-heading hover:opacity-90">
-                <Compass className="w-4 h-4" /> Explore Worlds
+                <Compass className="w-4 h-4" /> {t('smartEditor.exploreWorlds', 'Explore Worlds')}
               </Button>
             </div>
           </div>
@@ -254,8 +255,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="font-heading font-bold text-xl text-charcoal-soft">Meet Demo Characters</h3>
-                <p className="text-sm text-cocoa-light">Try interviewing these characters in the Green Room</p>
+                <h3 className="font-heading font-bold text-xl text-charcoal-soft">{t('smartEditor.meetDemoCharacters', 'Meet Demo Characters')}</h3>
+                <p className="text-sm text-cocoa-light">{t('smartEditor.tryInterviewingCharacters', 'Try interviewing these characters in the Green Room')}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -288,22 +289,22 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <IcoStar className="w-6 h-6 text-gold-sunshine" />
                 </div>
-                <div className="font-heading font-bold text-2xl mb-1">AI-Powered</div>
-                <div className="text-white/70 text-sm">Characters respond with unique personalities</div>
+                <div className="font-heading font-bold text-2xl mb-1">{t('smartEditor.aiPowered', 'AI-Powered')}</div>
+                <div className="text-white/70 text-sm">{t('smartEditor.aiPoweredDescription', 'Characters respond with unique personalities')}</div>
               </div>
               <div>
                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <Globe className="w-6 h-6 text-coral-burst" />
                 </div>
-                <div className="font-heading font-bold text-2xl mb-1">Community</div>
-                <div className="text-white/70 text-sm">Discover worlds from other creators</div>
+                <div className="font-heading font-bold text-2xl mb-1">{t('smartEditor.community', 'Community')}</div>
+                <div className="text-white/70 text-sm">{t('smartEditor.communityDescription', 'Discover worlds from other creators')}</div>
               </div>
               <div>
                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <IcoBook className="w-6 h-6 text-emerald-400" />
                 </div>
-                <div className="font-heading font-bold text-2xl mb-1">Story Bible</div>
-                <div className="text-white/70 text-sm">Extract facts to enrich your stories</div>
+                <div className="font-heading font-bold text-2xl mb-1">{t('smartEditor.storyBible', 'Story Bible')}</div>
+                <div className="text-white/70 text-sm">{t('smartEditor.storyBibleDescription', 'Extract facts to enrich your stories')}</div>
               </div>
             </div>
           </div>
@@ -370,6 +371,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
   onSave,
   onBack,
 }) => {
+  const { t } = useTranslation('editor');
   const { userProfile } = useAuth();
   const [showIntelligenceSheet, setShowIntelligenceSheet] = useState(false);
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
@@ -471,7 +473,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
   if (!activePage) {
     return (
       <div className="text-center p-20 font-heading text-2xl text-cocoa-light">
-        Loading masterpiece...
+        {t('smartEditor.loadingMasterpiece', 'Loading masterpiece...')}
       </div>
     );
   }
@@ -495,27 +497,27 @@ const EditorInner: React.FC<EditorInnerProps> = ({
           <div className="lg:hidden absolute inset-0 z-40 flex flex-col items-center justify-center px-8 text-center" style={{ backgroundColor: 'var(--color-background)' }}>
             <img
               src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
-              alt="Gen, your AI creative assistant"
+              alt={t('smartEditor.genAssistantAlt', 'Gen, your AI creative assistant')}
               className="w-24 h-24 rounded-full object-cover mb-6"
               style={{ boxShadow: '0 0 30px 6px color-mix(in srgb, var(--color-primary-start) 30%, transparent)' }}
               draggable={false}
             />
-            <p className="font-heading text-lg text-charcoal-soft mb-2">Canvas view is best on desktop</p>
+            <p className="font-heading text-lg text-charcoal-soft mb-2">{t('smartEditor.canvasBestOnDesktop', 'Canvas view is best on desktop')}</p>
             <p className="font-body text-sm text-cocoa-light mb-6 max-w-xs">
-              I can show you the full picture on a bigger screen. For now, Pages view is your best way to create.
+              {t('smartEditor.canvasDesktopHint', 'I can show you the full picture on a bigger screen. For now, Pages view is your best way to create.')}
             </p>
             <button
               type="button"
               onClick={() => editor.setEditorView('pages')}
               className="px-5 py-2 rounded-lg bg-coral-burst text-white font-body text-sm font-medium cursor-pointer"
             >
-              Switch to Pages
+              {t('smartEditor.switchToPages', 'Switch to Pages')}
             </button>
           </div>
 
           {/* Desktop canvas */}
           <div className="hidden lg:block absolute inset-0 z-30">
-            <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cocoa-light font-body">Loading canvas…</div>}>
+            <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cocoa-light font-body">{t('smartEditor.loadingCanvas', 'Loading canvas...')}</div>}>
               <ReactFlowProvider>
                 <StoryCanvas
                   project={editor.currentProject}
@@ -563,7 +565,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   fontSize: 12,
                 }}
               >
-                <Edit3 className="w-3.5 h-3.5" /> Write
+                <Edit3 className="w-3.5 h-3.5" /> {t('smartEditor.write', 'Write')}
               </button>
               <button
                 type="button"
@@ -579,7 +581,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   fontSize: 12,
                 }}
               >
-                <Eye className="w-3.5 h-3.5" /> Preview
+                <Eye className="w-3.5 h-3.5" /> {t('smartEditor.preview', 'Preview')}
               </button>
             </div>
 
@@ -591,18 +593,18 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                 text-cocoa-light hover:text-charcoal-soft hover:bg-peach-soft/40
                 transition-all cursor-pointer active:scale-[0.98]"
               style={{ ...geist, fontSize: 12 }}
-              aria-label="Open intelligence panel"
+              aria-label={t('smartEditor.openIntelligencePanel', 'Open intelligence panel')}
             >
               <Brain className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Intelligence</span>
+              <span className="hidden sm:inline">{t('smartEditor.intelligence', 'Intelligence')}</span>
             </button>
           </div>
 
           {/* ── MAIN THREE-PANEL AREA ── */}
-          <div className="flex-1 flex overflow-hidden relative" role="group" aria-label="Editor panels">
+          <div className="flex-1 flex overflow-hidden relative" role="group" aria-label={t('smartEditor.editorPanels', 'Editor panels')}>
             {/* ── LEFT SIDEBAR (260px, desktop only; full-width on mobile Write view) ── */}
             <aside
-              aria-label="Writing companion"
+              aria-label={t('smartEditor.writingCompanion', 'Writing companion')}
               className={`${
                 editor.mobileView === 'preview' ? 'hidden lg:flex' : 'flex'
               } ${
@@ -635,8 +637,8 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   borderRight: '1px solid var(--color-border)',
                   backgroundColor: 'var(--color-background)',
                 }}
-                aria-label={isLeftCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
-                title={isLeftCollapsed ? 'Expand left sidebar' : 'Collapse left sidebar'}
+                aria-label={isLeftCollapsed ? t('smartEditor.expandLeftSidebar', 'Expand left sidebar') : t('smartEditor.collapseLeftSidebar', 'Collapse left sidebar')}
+                title={isLeftCollapsed ? t('smartEditor.expandLeftSidebar', 'Expand left sidebar') : t('smartEditor.collapseLeftSidebar', 'Collapse left sidebar')}
               >
                 {isLeftCollapsed ? (
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -648,7 +650,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
 
             {/* ── CENTER PANEL (flex: 1, illustration HERO) ── */}
             <main
-              aria-label="Story editor"
+              aria-label={t('smartEditor.storyEditor', 'Story editor')}
               className={`flex-1 min-w-0 ${
                 editor.mobileView === 'edit' ? 'hidden lg:flex' : 'flex'
               }`}
@@ -672,8 +674,8 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   borderLeft: '1px solid var(--color-border)',
                   backgroundColor: 'var(--color-background)',
                 }}
-                aria-label={isRightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
-                title={isRightCollapsed ? 'Expand right sidebar' : 'Collapse right sidebar'}
+                aria-label={isRightCollapsed ? t('smartEditor.expandRightSidebar', 'Expand right sidebar') : t('smartEditor.collapseRightSidebar', 'Collapse right sidebar')}
+                title={isRightCollapsed ? t('smartEditor.expandRightSidebar', 'Expand right sidebar') : t('smartEditor.collapseRightSidebar', 'Collapse right sidebar')}
               >
                 {isRightCollapsed ? (
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -685,7 +687,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
 
             {/* ── RIGHT SIDEBAR (300px, desktop only) ── */}
             <aside
-              aria-label="Intelligence panel"
+              aria-label={t('smartEditor.intelligencePanel', 'Intelligence panel')}
               className={`hidden ${
                 editor.isFocusMode ? '' : 'lg:flex'
               } overflow-hidden`}
@@ -706,7 +708,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
               className="lg:hidden fixed inset-0 z-[70] flex flex-col justify-end"
               role="dialog"
               aria-modal="true"
-              aria-label="Intelligence panel"
+              aria-label={t('smartEditor.intelligencePanel', 'Intelligence panel')}
               tabIndex={-1}
               onClick={() => setShowIntelligenceSheet(false)}
               onKeyDown={(e) => { if (e.key === 'Escape') setShowIntelligenceSheet(false); }}
@@ -742,7 +744,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                     text-cocoa-light hover:text-charcoal-soft hover:bg-peach-soft/40
                     transition-all cursor-pointer
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/40"
-                  aria-label="Close intelligence panel"
+                  aria-label={t('smartEditor.closeIntelligencePanel', 'Close intelligence panel')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -770,7 +772,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
           className="fixed inset-0 z-[80] flex justify-end"
           role="dialog"
           aria-modal="true"
-          aria-label="Audience safety review"
+          aria-label={t('smartEditor.audienceSafetyReview', 'Audience safety review')}
           tabIndex={-1}
           onClick={() => editor.setShowAudienceSafety(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') editor.setShowAudienceSafety(false); }}

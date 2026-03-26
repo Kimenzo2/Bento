@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import LegalLayout, { P, Sub, DashList, B } from '../../components/legal/LegalLayout';
 import type { LegalSection } from '../../components/legal/LegalLayout';
 import { usePageSEO } from '../../hooks/usePageSEO';
@@ -377,16 +378,24 @@ const sections: LegalSection[] = [
 ];
 
 const TermsPage: React.FC = () => {
+  const { t } = useTranslation('legal');
+
   usePageSEO({
-    title: 'Terms of Use — Genesis',
-    description: 'The rules and rights that govern your use of the Genesis platform and everything you create here.',
+    title: t('terms.seoTitle', 'Terms of Use — Genesis'),
+    description: t(
+      'terms.seoDescription',
+      'The rules and rights that govern your use of the Genesis platform and everything you create here.'
+    ),
     canonical: '/legal/terms',
   });
 
   return (
     <LegalLayout
-      title="Terms of Use"
-      description="The rules and rights that govern your use of the Genesis platform and everything you create here."
+      title={t('terms.title', 'Terms of Use')}
+      description={t(
+        'terms.description',
+        'The rules and rights that govern your use of the Genesis platform and everything you create here.'
+      )}
       effectiveDate={EFFECTIVE_DATE}
       sections={sections}
     />

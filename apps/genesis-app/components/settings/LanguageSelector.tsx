@@ -65,8 +65,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
   // Reset to browser default
   const handleReset = async () => {
-    const browserLang = navigator.language.split('-')[0] as LanguageCode;
-    const supportedLang = getLanguageByCode(browserLang);
+    const browserLang = navigator.language;
+    const exactMatch = getLanguageByCode(browserLang as LanguageCode);
+    const baseMatch = getLanguageByCode(browserLang.split('-')[0] as LanguageCode);
+    const languageFamilyMatch = SUPPORTED_LANGUAGES.find(
+      (lang) => lang.code.toLowerCase().split('-')[0] === browserLang.toLowerCase().split('-')[0]
+    );
+    const supportedLang = exactMatch || baseMatch || languageFamilyMatch;
+
     if (supportedLang && supportedLang.code !== currentLanguage.code) {
       await handleLanguageSelect(supportedLang.code);
     }
@@ -77,7 +83,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     return (
       <Select value={currentLanguage.code} onValueChange={(v) => handleLanguageSelect(v as LanguageCode)} disabled={isLoading}>
         <SelectTrigger aria-label={t('selectLanguage', 'Select language')}>
-          <SelectValue placeholder="Select language" />
+          <SelectValue placeholder={t('selectLanguage', 'Select language')} />
         </SelectTrigger>
         <SelectContent>
           {SUPPORTED_LANGUAGES.map((lang) => (

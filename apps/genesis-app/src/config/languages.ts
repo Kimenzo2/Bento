@@ -211,6 +211,7 @@ export const TRANSLATION_NAMESPACES = [
   'curriculum',
   'pricing',
   'gamification',
+  'legal',
 ] as const;
 
 export type TranslationNamespace = (typeof TRANSLATION_NAMESPACES)[number];

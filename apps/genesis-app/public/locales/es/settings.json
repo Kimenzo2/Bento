@@ -188,5 +188,8 @@
   "data": "Datos",
   "help": "Ayuda",
   "all": "Todos",
-  "reset": "Restablecer"
+  "reset": "Restablecer",
+  "selectLanguageAria": "Seleccionar idioma {{language}}",
+  "beta": "Beta",
+  "translation": "Traduccion"
 }
