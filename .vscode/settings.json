@@ -57,6 +57,7 @@
   "eslint.run": "onSave",
 
   // ─── Terminal / Shell ────────────────────────────────────────────────────────
+  "terminal.integrated.shellIntegration.enabled": true,
   // Skip PowerShell profile loading for extension terminals (faster startup)
   "terminal.integrated.shellArgs.windows": ["-NoLogo"],
   "terminal.integrated.env.windows": {

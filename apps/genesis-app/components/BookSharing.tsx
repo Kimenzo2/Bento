@@ -7,17 +7,14 @@ import {
   Copy,
   Download,
   Eye,
-  Facebook,
   Globe,
   Link,
-  Linkedin,
   Lock,
   Mail,
   MessageCircle,
   QrCode,
   Share2,
   Shield,
-  Twitter,
   X,
 } from 'lucide-react';
 import type React from 'react';
@@ -462,7 +459,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                             title="Share on Twitter"
                             className="flex-1 py-2.5 bg-[#1DA1F2] text-white hover:opacity-90"
                           >
-                            <Twitter className="w-4 h-4" />
+                            <MessageCircle className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="default"
@@ -471,7 +468,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                             title="Share on Facebook"
                             className="flex-1 py-2.5 bg-[#4267B2] text-white hover:opacity-90"
                           >
-                            <Facebook className="w-4 h-4" />
+                            <Globe className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="default"
@@ -480,7 +477,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                             title="Share on LinkedIn"
                             className="flex-1 py-2.5 bg-[#0077B5] text-white hover:opacity-90"
                           >
-                            <Linkedin className="w-4 h-4" />
+                            <Link className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="default"
