@@ -5,7 +5,8 @@
   "packageManager": "bun@1.3.11",
   "workspaces": [
     "mastra",
-    "apps/*",
+    "apps/genesis-app",
+    "apps/landing",
     "packages/*"
   ],
   "scripts": {
