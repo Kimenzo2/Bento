@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch server.ts",
     "start": "node scripts/patch-durable-shim.mjs && npx mastra start --dir ../.mastra/output",
-    "build": "npx mastra build --dir mastra --root .. && node scripts/patch-durable-shim.mjs",
+    "build": "MASTRA_CONCURRENCY=1 bun x mastra build --dir mastra --root .. && node scripts/patch-durable-shim.mjs",
     "type-check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
     "server:deploy": "bun run build && node scripts/deploy.mjs server",
