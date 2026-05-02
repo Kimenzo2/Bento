@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,8 +28,6 @@ const observabilityIndexDts = resolve(observabilityDir, 'index.d.ts');
 const storageIndexJs = resolve(outputRoot, 'node_modules/@mastra/core/dist/storage/index.js');
 const storageIndexCjs = resolve(outputRoot, 'node_modules/@mastra/core/dist/storage/index.cjs');
 const storageIndexDts = resolve(outputRoot, 'node_modules/@mastra/core/dist/storage/index.d.ts');
-const requestContextEsm = resolve(outputRoot, 'node_modules/@mastra/core/dist/chunk-JGOH7RWL.js');
-const requestContextCjs = resolve(outputRoot, 'node_modules/@mastra/core/dist/chunk-5WBEMKE2.cjs');
 const requestContextIndexJs = resolve(outputRoot, 'node_modules/@mastra/core/dist/request-context/index.js');
 const requestContextIndexCjs = resolve(outputRoot, 'node_modules/@mastra/core/dist/request-context/index.cjs');
 const requestContextIndexDts = resolve(outputRoot, 'node_modules/@mastra/core/dist/request-context/index.d.ts');
@@ -634,12 +632,43 @@ const postinstallSourceCjs = [
   `replace(path.join(root,'node_modules/@mastra/core/dist/request-context/index.d.ts'), /export declare const MASTRA_THREAD_ID_KEY = "mastra__threadId";(?:\\nexport declare const MASTRA_VERSIONS_KEY = "mastra__versions";)*/g, "export declare const MASTRA_THREAD_ID_KEY = \\"mastra__threadId\\";\\nexport declare const MASTRA_VERSIONS_KEY = \\"mastra__versions\\";");`,
 ].join('\n');
 
-const postinstallCommand = `node -e "eval(Buffer.from('${Buffer.from(postinstallSourceCjs).toString('base64')}','base64').toString())"`;
+const postinstallCommand = 'node ./patch-durable-shim.mjs';
 
 const REQUEST_CONTEXT_VERSIONS_KEY = 'mastra__versions';
 
 function normalizeEol(value) {
   return value.replace(/\r\n/g, '\n');
+}
+
+async function findChunkFile(rootDir, extension, requiredSnippets) {
+  let entries;
+
+  try {
+    entries = await readdir(rootDir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    if (!entry.name.startsWith('chunk-')) continue;
+    if (!entry.name.endsWith(extension)) continue;
+
+    const candidate = resolve(rootDir, entry.name);
+
+    let content;
+    try {
+      content = normalizeEol(await readFile(candidate, 'utf8'));
+    } catch {
+      continue;
+    }
+
+    if (requiredSnippets.every((snippet) => content.includes(snippet))) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 async function transformFile(filePath, transforms) {
@@ -661,6 +690,19 @@ async function main() {
   await mkdir(dirname(diIndexJs), { recursive: true });
   await mkdir(durableDir, { recursive: true });
   await mkdir(streamDir, { recursive: true });
+  const coreDistRoot = resolve(outputRoot, 'node_modules/@mastra/core/dist');
+  const requestContextEsm = await findChunkFile(coreDistRoot, '.js', [
+    'var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";',
+    'var MASTRA_THREAD_ID_KEY = "mastra__threadId";',
+    'var MASTRA_AUTH_TOKEN_KEY = "mastra__authToken";',
+    'var RequestContext = class {',
+  ]);
+  const requestContextCjs = await findChunkFile(coreDistRoot, '.cjs', [
+    'var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";',
+    'var MASTRA_THREAD_ID_KEY = "mastra__threadId";',
+    'var MASTRA_AUTH_TOKEN_KEY = "mastra__authToken";',
+    'var RequestContext = class {',
+  ]);
   const selfSource = await readFile(sourcePath, 'utf8');
   await writeFile(outputScriptPath, selfSource, 'utf8');
   const outputPackage = JSON.parse(await readFile(outputPackageJsonPath, 'utf8'));
@@ -722,68 +764,77 @@ async function main() {
     },
   ]);
 
-  await transformFile(requestContextEsm, [
-    {
-      pattern:
-        /var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";\nvar MASTRA_THREAD_ID_KEY = "mastra__threadId";(?:\nvar MASTRA_VERSIONS_KEY = "mastra__versions";)*/g,
-      replacement: [
-        'var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";',
-        'var MASTRA_THREAD_ID_KEY = "mastra__threadId";',
-        `var MASTRA_VERSIONS_KEY = "${REQUEST_CONTEXT_VERSIONS_KEY}";`,
-      ].join('\n'),
-    },
-    {
-      pattern:
-        /export \{ MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY(?:, MASTRA_VERSIONS_KEY)?, RequestContext \};/g,
-      replacement: 'export { MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY, MASTRA_VERSIONS_KEY, RequestContext };',
-    },
-  ]);
+  if (requestContextEsm) {
+    await transformFile(requestContextEsm, [
+      {
+        pattern:
+          /var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";\nvar MASTRA_THREAD_ID_KEY = "mastra__threadId";(?:\nvar MASTRA_VERSIONS_KEY = "mastra__versions";)*/g,
+        replacement: [
+          'var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";',
+          'var MASTRA_THREAD_ID_KEY = "mastra__threadId";',
+          `var MASTRA_VERSIONS_KEY = "${REQUEST_CONTEXT_VERSIONS_KEY}";`,
+        ].join('\n'),
+      },
+      {
+        pattern:
+          /export \{ MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY(?:, MASTRA_VERSIONS_KEY)?, RequestContext \};/g,
+        replacement: 'export { MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY, MASTRA_VERSIONS_KEY, RequestContext };',
+      },
+    ]);
+  } else {
+    console.warn('[patch-durable-shim] request-context ESM chunk not found; skipping chunk patch.');
+  }
 
-  await transformFile(requestContextCjs, [
-    {
-      pattern:
-        /var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";\nvar MASTRA_THREAD_ID_KEY = "mastra__threadId";(?:\nvar MASTRA_VERSIONS_KEY = "mastra__versions";)*/g,
-      replacement: [
-        'var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";',
-        'var MASTRA_THREAD_ID_KEY = "mastra__threadId";',
-        `var MASTRA_VERSIONS_KEY = "${REQUEST_CONTEXT_VERSIONS_KEY}";`,
-      ].join('\n'),
-    },
-    {
-      pattern:
-        /exports\.MASTRA_RESOURCE_ID_KEY = MASTRA_RESOURCE_ID_KEY;\nexports\.MASTRA_THREAD_ID_KEY = MASTRA_THREAD_ID_KEY;(?:\nexports\.MASTRA_VERSIONS_KEY = MASTRA_VERSIONS_KEY;)*\nexports\.RequestContext = RequestContext;/g,
-      replacement: [
-        'exports.MASTRA_RESOURCE_ID_KEY = MASTRA_RESOURCE_ID_KEY;',
-        'exports.MASTRA_THREAD_ID_KEY = MASTRA_THREAD_ID_KEY;',
-        'exports.MASTRA_VERSIONS_KEY = MASTRA_VERSIONS_KEY;',
-        'exports.RequestContext = RequestContext;',
-      ].join('\n'),
-    },
-  ]);
+  if (requestContextCjs) {
+    await transformFile(requestContextCjs, [
+      {
+        pattern:
+          /var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";\nvar MASTRA_THREAD_ID_KEY = "mastra__threadId";(?:\nvar MASTRA_VERSIONS_KEY = "mastra__versions";)*/g,
+        replacement: [
+          'var MASTRA_RESOURCE_ID_KEY = "mastra__resourceId";',
+          'var MASTRA_THREAD_ID_KEY = "mastra__threadId";',
+          `var MASTRA_VERSIONS_KEY = "${REQUEST_CONTEXT_VERSIONS_KEY}";`,
+        ].join('\n'),
+      },
+      {
+        pattern:
+          /exports\.MASTRA_RESOURCE_ID_KEY = MASTRA_RESOURCE_ID_KEY;\nexports\.MASTRA_THREAD_ID_KEY = MASTRA_THREAD_ID_KEY;(?:\nexports\.MASTRA_VERSIONS_KEY = MASTRA_VERSIONS_KEY;)*\nexports\.RequestContext = RequestContext;/g,
+        replacement: [
+          'exports.MASTRA_RESOURCE_ID_KEY = MASTRA_RESOURCE_ID_KEY;',
+          'exports.MASTRA_THREAD_ID_KEY = MASTRA_THREAD_ID_KEY;',
+          'exports.MASTRA_VERSIONS_KEY = MASTRA_VERSIONS_KEY;',
+          'exports.RequestContext = RequestContext;',
+        ].join('\n'),
+      },
+    ]);
+  } else {
+    console.warn('[patch-durable-shim] request-context CJS chunk not found; skipping chunk patch.');
+  }
 
   await transformFile(requestContextIndexJs, [
     {
       pattern:
-        /export \{ MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY(?:, MASTRA_VERSIONS_KEY)?, RequestContext \} from '\.\.\/chunk-JGOH7RWL\.js';/g,
-      replacement:
-        "export { MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY, MASTRA_VERSIONS_KEY, RequestContext } from '../chunk-JGOH7RWL.js';",
+        /export \{ MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY(?:, MASTRA_VERSIONS_KEY)?, RequestContext \} from '\.\.\/(chunk-[^']+\.js)';/g,
+      replacement: (_, chunkName) =>
+        `export { MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY, MASTRA_VERSIONS_KEY, RequestContext } from '../${chunkName}';`,
     },
   ]);
 
   await transformFile(requestContextIndexCjs, [
     {
       pattern:
-        /Object\.defineProperty\(exports, "MASTRA_THREAD_ID_KEY", \{\n  enumerable: true,\n  get: function \(\) \{ return chunk5WBEMKE2_cjs\.MASTRA_THREAD_ID_KEY; \}\n\}\);(?:\nObject\.defineProperty\(exports, "MASTRA_VERSIONS_KEY", \{\n  enumerable: true,\n  get: function \(\) \{ return chunk5WBEMKE2_cjs\.MASTRA_VERSIONS_KEY; \}\n\}\);)*/g,
-      replacement: [
-        'Object.defineProperty(exports, "MASTRA_THREAD_ID_KEY", {',
-        '  enumerable: true,',
-        '  get: function () { return chunk5WBEMKE2_cjs.MASTRA_THREAD_ID_KEY; }',
-        '});',
-        'Object.defineProperty(exports, "MASTRA_VERSIONS_KEY", {',
-        '  enumerable: true,',
-        '  get: function () { return chunk5WBEMKE2_cjs.MASTRA_VERSIONS_KEY; }',
-        '});',
-      ].join('\n'),
+        /Object\.defineProperty\(exports, "MASTRA_THREAD_ID_KEY", \{\n  enumerable: true,\n  get: function \(\) \{ return (chunk[A-Za-z0-9]+_cjs)\.MASTRA_THREAD_ID_KEY; \}\n\}\);(?:\nObject\.defineProperty\(exports, "MASTRA_VERSIONS_KEY", \{\n  enumerable: true,\n  get: function \(\) \{ return \1\.MASTRA_VERSIONS_KEY; \}\n\}\);)?/g,
+      replacement: (_, chunkVar) =>
+        [
+          'Object.defineProperty(exports, "MASTRA_THREAD_ID_KEY", {',
+          '  enumerable: true,',
+          `  get: function () { return ${chunkVar}.MASTRA_THREAD_ID_KEY; }`,
+          '});',
+          'Object.defineProperty(exports, "MASTRA_VERSIONS_KEY", {',
+          '  enumerable: true,',
+          `  get: function () { return ${chunkVar}.MASTRA_VERSIONS_KEY; }`,
+          '});',
+        ].join('\n'),
     },
   ]);
 
