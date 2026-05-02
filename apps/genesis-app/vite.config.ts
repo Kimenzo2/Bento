@@ -1,4 +1,5 @@
 import { resolve } from 'path';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -45,6 +46,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // React with SWC for faster builds (20x faster than Babel)
       react(),
+      // Tailwind v4 Vite integration replaces the PostCSS plugin path.
+      tailwindcss(),
       // Non-blocking CSS and deferred scripts for Core Web Vitals
       nonBlockingAssets(),
 
