@@ -18,7 +18,7 @@ import type {
 
 import { authenticatedFetch } from './api/authenticatedFetch';
 
-const GEMINI_TEXT_MODEL = 'gemini-2.0-flash';
+const AI_TEXT_MODEL = 'openai/gpt-4o-mini';
 
 /**
  * The comprehensive curriculum generation system prompt
@@ -348,12 +348,12 @@ async function callCurriculumAPI(prompt: string, _maxTokens = 16384): Promise<st
       prompt +
       '\n\nRespond with valid JSON only.';
 
-    console.log(`🔄 Curriculum: Calling Gemini API via proxy with ${GEMINI_TEXT_MODEL}...`);
+    console.log(`🔄 Curriculum: Calling Mastra AI gateway with ${AI_TEXT_MODEL}...`);
 
     const resp = await authenticatedFetch('/api/ai-generate', {
       method: 'POST',
       body: JSON.stringify({
-        model: GEMINI_TEXT_MODEL,
+        model: AI_TEXT_MODEL,
         contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
         generationConfig: {
           maxOutputTokens: _maxTokens,
@@ -371,7 +371,7 @@ async function callCurriculumAPI(prompt: string, _maxTokens = 16384): Promise<st
     const content = data.text;
 
     if (!content || content.trim().length === 0) {
-      throw new Error('Empty response from Gemini API');
+      throw new Error('Empty response from AI gateway');
     }
 
     console.log('✅ Curriculum generated successfully');

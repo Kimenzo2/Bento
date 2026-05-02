@@ -1,5 +1,4 @@
 import { resolve } from 'path';
-import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -46,8 +45,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // React with SWC for faster builds (20x faster than Babel)
       react(),
-      // Tailwind CSS v4 Vite plugin
-      tailwindcss(),
       // Non-blocking CSS and deferred scripts for Core Web Vitals
       nonBlockingAssets(),
 
@@ -316,7 +313,7 @@ export default defineConfig(({ mode }) => {
         ],
         output: {
           // Fine-grained manual chunks → smaller initial bundle, better long-term cache
-          manualChunks(id) {
+          manualChunks(id: string) {
             // ── Vendor chunks (from node_modules) ──
             if (id.includes('node_modules')) {
               // Radix UI - always needed for UI
@@ -349,7 +346,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/services/profileService')) return 'vendor-supabase';
 
             // AI services - lazy loaded when generating
-            if (id.includes('/services/geminiService')) return 'services-ai';
+            if (id.includes('/services/aiGatewayService')) return 'services-ai';
             if (id.includes('/services/grokService')) return 'services-ai';
 
             // Email service - lazy loaded when sending

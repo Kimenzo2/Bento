@@ -2,7 +2,7 @@
  * Green Room AI Service
  *
  * Dedicated API service for Green Room character conversations.
- * Uses Bytez API keys to avoid resource crowding with storybook generation (which uses Gemini API keys).
+ * Uses Bytez API keys to avoid resource crowding with storybook generation (which uses the shared AI gateway keys).
  *
  * Extended with visual generation for:
  * - Character portrait generation
@@ -17,7 +17,7 @@ import {
   buildCharacterReference,
   extractVisualProfile,
 } from './characterConsistencyService';
-import { generateIllustration } from './geminiService';
+import { generateIllustration } from './aiGatewayService';
 
 /**
  * Green Room AI is disabled to preserve API quota.

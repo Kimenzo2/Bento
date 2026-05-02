@@ -46,19 +46,23 @@ export const saveBook = async (project: BookProject): Promise<void> => {
     };
 
     if (session?.user) {
+      const existedBeforeSave = await booksApi.existsForUser(project.id, session.user.id);
+
       // Save to Supabase
       await booksApi.createBook(savedBook, session.user.id);
       if (import.meta.env.DEV) console.log('✅ Book saved to Supabase:', project.title);
 
-      // MASTRA MIGRATION: Track book creation for gamification XP
-      try {
-        const { mastra } = await import('../src/services/mastraClient');
-        await mastra.agents.gamification.trackAction('book_created', {
-          bookId: project.id,
-          title: project.title,
-        });
-      } catch (mastraErr) {
-        console.warn('[storageService] Mastra gamification tracking unavailable:', mastraErr);
+      // Only first-time authenticated saves should count as a new book creation.
+      if (!existedBeforeSave) {
+        try {
+          const { mastra } = await import('../src/services/mastraClient');
+          await mastra.agents.gamification.trackAction('book_created', {
+            bookId: project.id,
+            title: project.title,
+          });
+        } catch (mastraErr) {
+          console.warn('[storageService] Mastra gamification tracking unavailable:', mastraErr);
+        }
       }
     } else {
       // Save to LocalStorage

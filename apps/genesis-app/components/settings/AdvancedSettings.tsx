@@ -13,18 +13,21 @@ interface AdvancedSettingsProps {
     autoSave: boolean;
   };
   onUpdate: (settings: any) => void;
+  onResetLocalPreferences: () => void;
 }
 
-const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate }) => {
+const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
+  settings,
+  onUpdate,
+  onResetLocalPreferences,
+}) => {
   const handleResetSettings = () => {
-    toast('Reset all settings to defaults?', {
-      description: 'This cannot be undone.',
+    toast('Reset local preferences to defaults?', {
+      description: 'This restores device-specific preferences and debugging toggles.',
       action: {
         label: 'Reset',
         onClick: () => {
-          localStorage.removeItem('genesis_settings');
-          localStorage.removeItem('genesis_avatar');
-          window.location.reload();
+          onResetLocalPreferences();
         },
       },
       cancel: { label: 'Cancel', onClick: () => {} },
@@ -179,9 +182,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, onUpdate 
               <RefreshCw className="w-5 h-5 text-orange-600" />
               <div className="text-left">
                 <div className="font-bold text-sm md:text-base text-charcoal-soft group-hover:text-orange-700">
-                  Reset Settings
+                  Reset Local Preferences
                 </div>
-                <div className="text-xs text-cocoa-light">Restore defaults</div>
+                <div className="text-xs text-cocoa-light">Restore UI defaults</div>
               </div>
             </div>
             <span className="text-sm font-bold text-orange-600">Reset</span>

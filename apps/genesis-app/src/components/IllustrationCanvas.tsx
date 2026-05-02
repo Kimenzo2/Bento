@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { Realm } from '@lorenzootieno/gen-bridge';
+import type { Realm } from '../../lib/gen/genPersonality';
 
 interface IllustrationCanvasProps {
   src: string;

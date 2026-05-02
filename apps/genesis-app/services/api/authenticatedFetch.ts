@@ -4,6 +4,19 @@
  */
 import { supabase } from '../supabaseClient';
 
+const MASTRA_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MASTRA_URL) ||
+  'http://localhost:4111';
+
+function shouldRouteToMastra(url: string): boolean {
+  return (
+    url === '/api/ai-generate' ||
+    url === '/api/ai-bytez' ||
+    url === '/api/life-in-colour/generate' ||
+    url.startsWith('/api/life-in-colour/generations/')
+  );
+}
+
 export async function authenticatedFetch(
   url: string,
   options: RequestInit = {}
@@ -23,5 +36,6 @@ export async function authenticatedFetch(
     headers.set('Content-Type', 'application/json');
   }
 
-  return fetch(url, { ...options, headers });
+  const resolvedUrl = shouldRouteToMastra(url) ? `${MASTRA_BASE_URL}${url}` : url;
+  return fetch(resolvedUrl, { ...options, headers });
 }

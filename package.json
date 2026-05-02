@@ -4,6 +4,7 @@
   "version": "2.0.0",
   "packageManager": "bun@1.3.11",
   "workspaces": [
+    "mastra",
     "apps/*",
     "packages/*"
   ],
@@ -15,19 +16,27 @@
     "dev:all": " bun run dev:both",
     "dev:genesis": "turbo dev --filter=@genesis/app",
     "dev:landing": "turbo dev --filter=@genesis/landing",
+    "dev:mastra": "bun run --cwd mastra dev",
+    "mastra:build": "bun run --cwd mastra build",
+    "mastra:start": "bun run --cwd mastra start",
     "build": "node scripts/check-payment-guardrails.cjs && turbo build && node scripts/sync-root-dist.cjs",
     "build:genesis": "turbo build --filter=@genesis/app",
     "build:landing": "turbo build --filter=@genesis/landing",
+    "type-check:mastra": "bun run --cwd mastra type-check",
+    "test:mastra": "bun run --cwd mastra test",
+    "mastra:deploy": "bun run --cwd mastra server:deploy",
+    "mastra:studio": "bun run --cwd mastra studio:deploy",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "test": "turbo test"
   },
   "devDependencies": {
-    "@vercel/node": "^5.6.18",
     "@playwright/test": "^1.58.2",
+    "@vercel/node": "^5.6.18",
     "playwright": "^1.58.2",
+    "turbo": "^2.8.20",
     "typescript": "^6.0.2",
-    "turbo": "^2.8.20"
+    "vitest": "4.1.2"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",

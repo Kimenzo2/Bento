@@ -25,8 +25,17 @@ import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
 import { createClient } from '@supabase/supabase-js';
 import { mastra, supabaseUrl, supabaseServiceRoleKey, getEnv } from './index';
+import {
+  generateBytezImage,
+  generateTextFromRequest,
+} from './lib/aiGateway';
 import { evaluateBookQuality } from './evals/bookQualityEval';
-import { ArtStyleSchema, BookToneSchema, GenerationSettingsSchema } from './schemas';
+import {
+  ArtStyleSchema,
+  BookToneSchema,
+  ColoringOutlineModeSchema,
+  GenerationSettingsSchema,
+} from './schemas';
 import {
   cancelBookGenerationWorkflow,
   releaseBookGenerationWorkflow,
@@ -102,6 +111,12 @@ const BOOK_TONE_ALIASES: Array<[RegExp, string]> = [
   [/dram/i, 'Dramatic'],
   [/calm|soothing|gentle|relax/i, 'Calm'],
   [/advent|excite|action|epic/i, 'Adventurous'],
+];
+
+const OUTLINE_MODE_ALIASES: Array<[RegExp, string]> = [
+  [/simple|minimal|open|clean/i, 'simple'],
+  [/detail|dense|rich|full/i, 'detailed'],
+  [/mandala|radial|symmet|ornament|decorat/i, 'mandala'],
 ];
 
 function normalizeEnumValue(
@@ -193,6 +208,12 @@ function normalizeGenerationSettings(raw: unknown): Record<string, any> {
       typeof input.stylePrompt === 'string' && input.stylePrompt.trim()
         ? input.stylePrompt.trim()
         : input.stylePrompt,
+    outlineMode: normalizeEnumValue(
+      input.outlineMode ?? input.mode ?? input.lineMode,
+      ColoringOutlineModeSchema.options,
+      OUTLINE_MODE_ALIASES,
+      'detailed'
+    ),
     audience: normalizeAudienceValue(input),
     pageCount: normalizeNumberValue(
       input.pageCount ?? input.pages ?? input.page_count,
@@ -290,6 +311,37 @@ const healthHandler = (c: any) => {
 };
 app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
+
+// ─── AI Gateway Compatibility Routes ────────────────────────────────────────
+// These routes replace the old browser-side AI proxy surface with Mastra-backed calls.
+app.post('/api/ai-generate', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const result = await generateTextFromRequest(body ?? {});
+    return c.json(result);
+  } catch (err: any) {
+    console.error('[Mastra AI Generate]', err);
+    return c.json({ error: err.message ?? 'AI generation failed' }, 500);
+  }
+});
+
+app.post('/api/ai-bytez', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const model = typeof body?.model === 'string' ? body.model : 'google/imagen-4.0-generate-001';
+    const prompt = typeof body?.input === 'string' ? body.input : '';
+
+    if (!prompt) {
+      return c.json({ error: 'Missing required fields: model, input' }, 400);
+    }
+
+    const imageUrl = await generateBytezImage({ model, prompt });
+    return c.json({ imageUrl });
+  } catch (err: any) {
+    console.error('[Mastra AI Bytez]', err);
+    return c.json({ error: err.message ?? 'Image generation failed' }, 500);
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AGENT ENDPOINTS

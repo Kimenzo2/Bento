@@ -1,6 +1,13 @@
-import { Type } from '@google/genai';
 import type { ColorPalette, EbookRequest, StyleGuide } from '../../types/generator';
-import { generateStructuredContent } from '../geminiService';
+import { generateStructuredContent } from '../aiGatewayService';
+
+const Type = {
+  OBJECT: 'object',
+  STRING: 'string',
+  ARRAY: 'array',
+  NUMBER: 'number',
+  INTEGER: 'integer',
+} as const;
 
 const SYSTEM_INSTRUCTION_STYLE_ARCHITECT = `
 You are the "Lead Art Director" for a premium ebook studio.

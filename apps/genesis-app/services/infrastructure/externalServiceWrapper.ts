@@ -3,7 +3,7 @@
  * @description ENFORCED circuit breaker wrapper for ALL external service calls
  *
  * This module provides resilient wrappers around external services:
- * - AI providers (Bytez, Grok, Gemini)
+ * - AI providers (Bytez, Grok, shared text/image gateway)
  * - Payment providers (Dodo Payments)
  * - Storage services (Supabase Storage)
  *
@@ -31,7 +31,7 @@ import { securityAudit } from '../security/auditLogger';
 export type ExternalServiceType =
   | 'ai:bytez'
   | 'ai:grok'
-  | 'ai:gemini'
+  | 'ai:gateway'
   | 'payment:dodo'
   | 'storage:supabase'
   | 'email:resend'
@@ -81,8 +81,8 @@ const CIRCUIT_CONFIGS: Record<ExternalServiceType, CircuitBreakerConfig> = {
     callTimeoutMs: 45000,
     monitorWindowMs: 120000,
   },
-  'ai:gemini': {
-    name: 'gemini-ai',
+  'ai:gateway': {
+    name: 'ai-gateway',
     failureThreshold: 5,
     resetTimeoutMs: 60000,
     successThreshold: 2,
@@ -276,7 +276,7 @@ export async function callExternalService<T>(
  * Call AI service with circuit breaker protection
  */
 export async function callAIService<T>(
-  provider: 'bytez' | 'grok' | 'gemini',
+  provider: 'bytez' | 'grok' | 'gateway',
   operation: string,
   fn: () => Promise<T>,
   userId?: string

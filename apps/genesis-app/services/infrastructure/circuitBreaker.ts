@@ -470,9 +470,9 @@ export class BulkheadQueueTimeoutError extends Error {
 // PRE-CONFIGURED CIRCUIT BREAKERS FOR GENESIS SERVICES
 // ============================================================================
 
-/** Circuit breaker for Gemini AI calls */
-export const geminiCircuitBreaker = new CircuitBreaker({
-  name: 'gemini-ai',
+/** Circuit breaker for AI gateway calls */
+export const aiGatewayCircuitBreaker = new CircuitBreaker({
+  name: 'ai-gateway',
   failureThreshold: 5,
   resetTimeoutMs: 30000, // 30 second cooldown
   successThreshold: 2, // 2 successes to close
@@ -582,7 +582,7 @@ export function getResilienceHealth(): {
 } {
   return {
     circuitBreakers: {
-      gemini: geminiCircuitBreaker.getStats(),
+      aiGateway: aiGatewayCircuitBreaker.getStats(),
       imagen: imagenCircuitBreaker.getStats(),
       supabase: supabaseCircuitBreaker.getStats(),
       storage: storageCircuitBreaker.getStats(),

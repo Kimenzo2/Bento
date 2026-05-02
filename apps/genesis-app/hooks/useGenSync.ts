@@ -11,7 +11,7 @@ import { useLocation } from 'react-router';
 import { useGen } from '../contexts/GenContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { Realm } from '@lorenzootieno/gen-bridge';
+import type { Realm } from '../lib/gen/genPersonality';
 
 // Map Genesis theme to Gen realm
 // Genesis themes: 'genesis' | 'aurora' | 'ocean' | 'forest' | 'nebula' | 'sunset'

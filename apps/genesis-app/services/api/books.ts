@@ -16,6 +16,18 @@ export class BooksApiService extends BaseApiService<BookEntity> {
     super('books');
   }
 
+  async existsForUser(bookId: string, userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('id')
+      .eq('id', bookId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return Boolean(data);
+  }
+
   // Override create to map camelCase to snake_case
   async createBook(book: SavedBook, userId: string): Promise<BookEntity> {
     const entity = {

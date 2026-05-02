@@ -3,11 +3,11 @@
  *
  * ## What This File Does
  * This Mastra agent replaces the `generateBookStructure()` function
- * in geminiService.ts. It generates complete ContentStructure blueprints
- * from user GenerationSettings using Gemini 2.0 Flash.
+ * in the legacy AI gateway. It generates complete ContentStructure
+ * blueprints from user GenerationSettings using the Mastra model router.
  *
  * ## What It Replaces
- * - `generateBookStructure()` in services/geminiService.ts
+ * - `generateBookStructure()` in services/aiGatewayService.ts
  * - `SYSTEM_INSTRUCTION_ARCHITECT` prompt logic
  * - `SYSTEM_INSTRUCTION_BRAND` for brand content
  * - Brand profile conditional logic scattered in generation functions
@@ -21,7 +21,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { getGeminiModel } from '../lib/geminiProvider';
+import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
 import {
   GenerationSettingsSchema,
@@ -217,7 +217,7 @@ const writePageTool = createTool({
 });
 
 // ─── System Prompt ───────────────────────────────────────────────────────────
-// This consolidates SYSTEM_INSTRUCTION_ARCHITECT from geminiService.ts
+// This consolidates SYSTEM_INSTRUCTION_ARCHITECT from the legacy gateway service
 const STORY_ARCHITECT_SYSTEM_PROMPT = `You are the Story Architect for Genesis, an AI-powered ebook creation platform. Your primary function is to generate complete, structured ebook blueprints that the application renders into beautiful interactive books.
 
 ## Core Responsibilities
@@ -281,7 +281,7 @@ export const storyArchitectAgent = new Agent({
   id: 'story-architect',
   name: 'Story Architect',
   instructions: STORY_ARCHITECT_SYSTEM_PROMPT,
-  model: getGeminiModel(),
+  model: getMastraModel(),
   tools: {
     validateBookRequest,
     enforceAgeAppropriate,

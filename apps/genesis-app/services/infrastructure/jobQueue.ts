@@ -19,7 +19,7 @@
  * ARCHITECTURE:
  * 1. User clicks "Create Book" → API pushes job to Redis queue
  * 2. API returns jobId immediately
- * 3. Worker fleet processes jobs (Gemini → Imagen → Storage)
+ * 3. Worker fleet processes jobs (text generation → image generation → storage)
  * 4. Progress updates streamed to frontend
  * 5. Final result stored in Supabase
  */

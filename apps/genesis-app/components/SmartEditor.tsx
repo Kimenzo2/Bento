@@ -525,6 +525,10 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                     editor.setEditorView('pages');
                     if (pageNum) editor.jumpToPageNumber(pageNum);
                   }}
+                  onAddScene={() => {
+                    editor.addPage();
+                    editor.setEditorView('pages');
+                  }}
                 />
               </ReactFlowProvider>
             </Suspense>

@@ -23,10 +23,10 @@ import {
 import { authenticatedFetch } from './api/authenticatedFetch';
 
 // ============================================================================
-// TEXT GENERATION: Routed through server-side /api/ai-generate proxy
+// TEXT GENERATION: Routed through the Mastra server-side AI gateway
 // ============================================================================
-// API keys are server-side only (GEMINI_API_KEY_1 to _20, no VITE_ prefix)
-// Client calls authenticatedFetch → /api/ai-generate → Gemini API
+// API keys are server-side only (OPENAI_API_KEY, no VITE_ prefix)
+// Client calls authenticatedFetch → Mastra server → OpenAI-compatible text generation
 // ============================================================================
 
 // Helper function to get Imagen model ID based on tier (Bytez model names)
@@ -75,7 +75,7 @@ class TokenBucketRateLimiter {
     if (this.tokens < 1) {
       const waitTime = ((1 - this.tokens) / this.refillRate) * 1000;
       console.log(
-        `[RateLimiter] Waiting ${Math.round(waitTime)}ms for token - geminiService.ts:172`
+        `[RateLimiter] Waiting ${Math.round(waitTime)}ms for token - aiGatewayService.ts:172`
       );
       await new Promise((r) => setTimeout(r, waitTime));
       this.refill();
@@ -112,7 +112,7 @@ const rateLimiter = {
   },
 };
 
-const GEMINI_TEXT_MODEL = 'gemini-2.0-flash';
+const AI_TEXT_MODEL = 'openai/gpt-4o-mini';
 
 // ============================================================================
 // PERSISTENT PROMPT CACHE — localStorage-backed, 7-day TTL
@@ -165,21 +165,21 @@ function setPromptCache(key: string, text: string): void {
   } catch { /* storage full — silently skip */ }
 }
 
-// Helper: call Gemini text generation via the server-side proxy
-async function callGeminiAPI(
+// Helper: call AI text generation via the server-side gateway
+async function callAiGatewayAPI(
   prompt: string,
-  modelName: string = GEMINI_TEXT_MODEL,
+  modelName: string = AI_TEXT_MODEL,
   maxTokens = 4096
 ): Promise<string> {
   // ── AGGRESSIVE CACHE: check localStorage before touching the API ──────────
   const cacheKey = hashStr(`${modelName}:${maxTokens}:${prompt}`);
   const cached = getPromptCache(cacheKey);
   if (cached) {
-    console.log('📦 Gemini cache hit — skipping API call (quota preserved)');
+    console.log('📦 AI cache hit — skipping API call (quota preserved)');
     return cached;
   }
 
-  console.log(`🔄 Calling Gemini API (${modelName}) via proxy...`);
+  console.log(`🔄 Calling AI gateway (${modelName}) via proxy...`);
   const res = await authenticatedFetch('/api/ai-generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -192,14 +192,14 @@ async function callGeminiAPI(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Gemini proxy request failed');
+    throw new Error(err.error || 'AI gateway request failed');
   }
 
   const data = await res.json();
-  if (!data.text) throw new Error('No output received from Gemini API');
+  if (!data.text) throw new Error('No output received from AI gateway');
   // Persist to localStorage so future identical prompts skip the API entirely
   setPromptCache(cacheKey, data.text);
-  console.log('✅ Gemini API response received');
+  console.log('✅ AI gateway response received');
   return data.text;
 }
 
@@ -945,9 +945,9 @@ IMPORTANT:
         - Create professional image prompts suitable for corporate materials`;
 
   try {
-    console.log('🏢 Generating brand content with Gemini API...');
+    console.log('🏢 Generating brand content via AI gateway...');
 
-    const text = await callGeminiAPI(prompt, GEMINI_TEXT_MODEL, 8192);
+    const text = await callAiGatewayAPI(prompt, AI_TEXT_MODEL, 8192);
 
     console.log(`✅ Brand content generated (${text.length} chars)`);
 
@@ -957,7 +957,7 @@ IMPORTANT:
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn('JSON Parse failed, attempting repair... - geminiService.ts:909', parseError);
+      console.warn('JSON Parse failed, attempting repair... - aiGatewayService.ts:909', parseError);
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -1007,7 +1007,7 @@ IMPORTANT:
 
     return project;
   } catch (error) {
-    console.error('Brand content generation failed: - geminiService.ts:957', error);
+    console.error('Brand content generation failed: - aiGatewayService.ts:957', error);
     throw error;
   }
 };
@@ -1026,6 +1026,7 @@ export const generateBookStructure = async (
     pageCount: settings.pageCount,
     genre: 'Fiction', // Could be inferred or added to settings
     artStyle: settings.style,
+    outlineMode: settings.outlineMode,
     interactive: settings.isBranching,
     educational: settings.educational || false,
     learningConfig: settings.learningConfig,
@@ -1206,9 +1207,9 @@ Generate a book based on this request:
 ${JSON.stringify(inputPayload, null, 2)} `;
 
   try {
-    console.log('🤖 Generating book structure with Gemini API...');
+    console.log('🤖 Generating book structure via AI gateway...');
 
-    const text = await callGeminiAPI(prompt, GEMINI_TEXT_MODEL, 8192); // Increased token limit for full book
+    const text = await callAiGatewayAPI(prompt, AI_TEXT_MODEL, 8192); // Increased token limit for full book
 
     console.log(`✅ Book structure generated (${text.length} chars)`);
 
@@ -1218,7 +1219,7 @@ ${JSON.stringify(inputPayload, null, 2)} `;
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn('JSON Parse failed, attempting repair... - geminiService.ts:1158', parseError);
+      console.warn('JSON Parse failed, attempting repair... - aiGatewayService.ts:1158', parseError);
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -1286,13 +1287,13 @@ ${JSON.stringify(inputPayload, null, 2)} `;
 
     return project;
   } catch (error) {
-    console.error('Story Architect failed: - geminiService.ts:1224', error);
+    console.error('Story Architect failed: - aiGatewayService.ts:1224', error);
     throw error;
   }
 };
 
 /**
- * Generic function to generate structured JSON content using Gemini
+ * Generic function to generate structured JSON content using the AI gateway
  * @param prompt - The prompt to send to the model
  * @param schema - The JSON schema to enforce structure (optional but recommended)
  * @param systemInstruction - System prompt to guide the model
@@ -1308,14 +1309,14 @@ export const generateStructuredContent = async <T>(
   try {
     const fullPrompt = `${systemInstruction || ''} \n\n${prompt} \n\nReturn VALID JSON only.`;
 
-    console.log('🤖 Generating structured content with Gemini API...');
+    console.log('🤖 Generating structured content via AI gateway...');
 
-    const text = await callGeminiAPI(fullPrompt, GEMINI_TEXT_MODEL, 2048);
+    const text = await callAiGatewayAPI(fullPrompt, AI_TEXT_MODEL, 2048);
 
     const jsonString = extractJson(text);
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error('Structured generation failed: - geminiService.ts:1257', error);
+    console.error('Structured generation failed: - aiGatewayService.ts:1257', error);
     throw error;
   }
 };
@@ -1341,7 +1342,7 @@ export const generateIllustration = async (
   // PERFORMANCE: Check cache first
   const cachedUrl = getCachedImageUrl(cacheKey);
   if (cachedUrl) {
-    console.log('📦 Using cached illustration - geminiService.ts:1269');
+    console.log('📦 Using cached illustration - aiGatewayService.ts:1269');
     return cachedUrl;
   }
 
@@ -1351,7 +1352,7 @@ export const generateIllustration = async (
     async () => {
       const modelId = getModelId(tier);
       console.log(
-        `🎨 Generating illustration using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1276`
+        `🎨 Generating illustration using model: ${modelId} (Tier: ${tier}) - aiGatewayService.ts:1276`
       );
 
       // PERFORMANCE: Use request queue to limit concurrent API calls
@@ -1410,10 +1411,10 @@ export const generateIllustration = async (
             setCachedImageUrl(cacheKey, output);
           }
 
-          console.log('✅ Bytez image generation successful - geminiService.ts:1316');
+          console.log('✅ Bytez image generation successful - aiGatewayService.ts:1316');
           return output;
         } catch (error) {
-          console.error('❌ All Bytez keys exhausted for image generation - geminiService.ts:1319', error);
+          console.error('❌ All Bytez keys exhausted for image generation - aiGatewayService.ts:1319', error);
           return null;
         }
       });
@@ -1439,7 +1440,7 @@ export const generateRefinedImage = async (
   const qualityConfig = TIER_QUALITY_CONFIG[tier.toString()] || TIER_QUALITY_CONFIG['SPARK'];
 
   console.log(
-    `🎨 Generating refined image using model: ${modelId} (Tier: ${tier}) - geminiService.ts:1340`
+    `🎨 Generating refined image using model: ${modelId} (Tier: ${tier}) - aiGatewayService.ts:1340`
   );
 
   // Get style configurations
@@ -1518,10 +1519,10 @@ ${styleAConfig?.avoidances || 'No muddy colors, no inconsistent lighting, no ana
   try {
     const output = await callBytezImageProxy(fullPrompt, modelId);
 
-    console.log('✅ Bytez image generation successful - geminiService.ts:1378');
+    console.log('✅ Bytez image generation successful - aiGatewayService.ts:1378');
     return output;
   } catch (error) {
-    console.error('❌ All Bytez keys exhausted for image generation - geminiService.ts:1381', error);
+    console.error('❌ All Bytez keys exhausted for image generation - aiGatewayService.ts:1381', error);
     return null;
   }
 };

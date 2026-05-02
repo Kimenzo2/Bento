@@ -20,7 +20,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { getGeminiModel } from '../lib/geminiProvider';
+import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
 import { QualityMetricsSchema } from '../schemas';
 
@@ -287,7 +287,7 @@ export const qualityAssuranceAgent = new Agent({
   id: 'quality-assurance',
   name: 'Quality Assurance',
   instructions: QA_SYSTEM_PROMPT,
-  model: getGeminiModel(),
+  model: getMastraModel(),
   tools: {
     analyzePageQuality,
     improvePageContent,

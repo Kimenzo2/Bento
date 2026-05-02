@@ -145,7 +145,7 @@ export function checkCircuitBreaker(
       allowed: false,
       reason: 'monthly_limit',
       suggestedAction: 'downgrade',
-      suggestedModel: 'gemini-1.5-flash', // Cheaper model
+      suggestedModel: 'openai/gpt-4o-mini', // Cheaper text model
       remainingBudget: limits.monthlyLimitUsd - budget.monthlySpend,
     };
   }
@@ -160,7 +160,7 @@ export function checkCircuitBreaker(
       allowed: false,
       reason: 'daily_limit',
       suggestedAction: 'downgrade',
-      suggestedModel: 'gemini-1.5-flash',
+      suggestedModel: 'openai/gpt-4o-mini',
       remainingBudget: limits.dailyLimitUsd - budget.dailySpend,
       resetTime: tomorrow.getTime(),
     };
@@ -244,8 +244,8 @@ export function getSpendingStatus(
 // ============================================================================
 
 const MODEL_DOWNGRADES: Record<string, string> = {
-  'gemini-2.5-pro': 'gemini-1.5-flash',
-  'gemini-1.5-pro': 'gemini-1.5-flash',
+  'openai/gpt-4o': 'openai/gpt-4o-mini',
+  'openai/gpt-4o-mini': 'openai/gpt-4o-mini',
   'imagen-4.0-ultra-generate-exp-05-20': 'imagen-4.0-generate-preview-05-20',
   'grok-3': 'grok-3-mini',
 };

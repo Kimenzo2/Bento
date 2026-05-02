@@ -221,7 +221,7 @@ We **DO NOT** sell your personal information. We may share data with:
 
 ### Service Providers
 - **Payment Processing**: Dodo Payments for subscription management
-- **AI Services**: Google Gemini for content generation (anonymized prompts)
+- **AI Services**: Mastra-backed AI services for content generation (anonymized prompts)
 - **Analytics**: Performance monitoring (anonymized data)
 - **Email Services**: Transactional email delivery
 

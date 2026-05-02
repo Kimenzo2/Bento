@@ -39,8 +39,8 @@
  * } from '@services/infrastructure';
  *
  * // Example: Cached AI call
- * const cachedGemini = createCachedAIService(semanticCache, geminiService.chat);
- * const response = await cachedGemini("How does photosynthesis work?", { subject: "science" });
+ * const cachedAI = createCachedAIService(semanticCache, aiGatewayService.chat);
+ * const response = await cachedAI("How does photosynthesis work?", { subject: "science" });
  *
  * // Example: Job queue submission
  * const jobId = await jobQueue.submitJob(JobType.GENERATE_BOOK, {
@@ -293,7 +293,7 @@ export {
   CircuitOpenError,
   TimeoutError,
   // Pre-configured breakers
-  geminiCircuitBreaker,
+  aiGatewayCircuitBreaker,
   imagenCircuitBreaker,
   supabaseCircuitBreaker,
   storageCircuitBreaker,

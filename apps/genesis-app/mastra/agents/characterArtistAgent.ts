@@ -25,7 +25,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { getGeminiModel } from '../lib/geminiProvider';
+import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
 import {
   CharacterProfileSchema,
@@ -231,7 +231,7 @@ export const characterArtistAgent = new Agent({
   id: 'character-artist',
   name: 'Character Artist',
   instructions: CHARACTER_ARTIST_SYSTEM_PROMPT,
-  model: getGeminiModel(),
+  model: getMastraModel(),
   tools: {
     generateVisualIdentity,
     validateColorPalette,

@@ -7,7 +7,7 @@
  * Falls back to Canvas 2D if WebGPU is unavailable.
  */
 
-import type { Realm } from '@lorenzootieno/gen-bridge';
+import type { Realm } from '../../lib/gen/genPersonality';
 
 type GPUNavigatorLike = {
   requestAdapter: (options?: { powerPreference?: 'high-performance' | 'low-power' }) => Promise<GPUAdapterLike | null>;

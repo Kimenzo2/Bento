@@ -1,5 +1,12 @@
-import { Type } from '@google/genai';
-import { generateStructuredContent } from '../geminiService';
+import { generateStructuredContent } from '../aiGatewayService';
+
+const Type = {
+  OBJECT: 'object',
+  STRING: 'string',
+  ARRAY: 'array',
+  NUMBER: 'number',
+  INTEGER: 'integer',
+} as const;
 
 export interface QualityMetrics {
   readabilityScore: number;

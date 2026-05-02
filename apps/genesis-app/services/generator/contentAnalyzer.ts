@@ -1,6 +1,13 @@
-import { Type } from '@google/genai';
 import type { ContentStructure, EbookRequest } from '../../types/generator';
-import { generateStructuredContent } from '../geminiService';
+import { generateStructuredContent } from '../aiGatewayService';
+
+const Type = {
+  OBJECT: 'object',
+  STRING: 'string',
+  ARRAY: 'array',
+  NUMBER: 'number',
+  INTEGER: 'integer',
+} as const;
 
 const SYSTEM_INSTRUCTION_ANALYZER = `
 You are the "Brain" of the Next-Gen Ebook Generator.

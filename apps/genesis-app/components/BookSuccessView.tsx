@@ -112,7 +112,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
           onNavigate(AppMode.EDITOR);
         }}
         onDownload={handleDownload}
-        onShare={handleShare}
+        onShare={() => {}}
       />
     );
   }

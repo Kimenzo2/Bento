@@ -1,6 +1,6 @@
 // ============================================================================
 // GEN — LAYER 4: INTELLIGENCE ENGINE (Brain)
-// Powered by Gemini via the existing /api/ai-generate proxy.
+// Powered by the Mastra AI gateway via the existing /api/ai-generate route.
 // Gen's system prompt is her soul — never shown to the user,
 // never overridden by user input.
 // ============================================================================
@@ -131,7 +131,7 @@ export class GenBrain {
 
   /**
    * Gen thinks about the user's message and responds.
-   * Routes through the server-side /api/ai-generate proxy.
+   * Routes through the server-side Mastra AI gateway.
    */
   async think(userMessage: string): Promise<GenThinkResult> {
     // Add user message to history

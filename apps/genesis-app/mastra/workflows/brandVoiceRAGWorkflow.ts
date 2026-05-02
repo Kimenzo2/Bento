@@ -3,7 +3,7 @@
  *
  * ## Pipeline Steps:
  * 1. chunkBrandText  — Split sample text into overlapping chunks (512 tokens, 50 overlap)
- * 2. generateEmbeddings — Embed each chunk via Google text-embedding-004
+ * 2. generateEmbeddings — Embed each chunk via Mastra-backed OpenAI embeddings
  * 3. storeInPgVector — Upsert chunks + embeddings into Supabase brand_voice_chunks table
  * 4. confirmIngestion — Return chunk count + brand profile metadata
  *
@@ -29,7 +29,12 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
+import {
+  DEFAULT_EMBEDDING_DIMENSIONS,
+  DEFAULT_EMBEDDING_MODEL,
+  generateEmbeddingVector,
+  generateEmbeddings as generateEmbeddingVectors,
+} from '../lib/aiGateway';
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -62,8 +67,8 @@ const IngestionResultSchema = z.object({
 
 const CHUNK_SIZE_TOKENS = 512;
 const CHUNK_OVERLAP_TOKENS = 50;
-const EMBEDDING_MODEL = 'gemini-embedding-001';
-const EMBEDDING_DIMENSION = 768;
+const EMBEDDING_MODEL = DEFAULT_EMBEDDING_MODEL;
+const EMBEDDING_DIMENSION = DEFAULT_EMBEDDING_DIMENSIONS;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -75,35 +80,24 @@ function getSupabaseAdmin() {
   });
 }
 
-function getGoogleAI() {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set');
-  return new GoogleGenAI({ apiKey });
-}
-
 /**
- * Embed an array of texts using Google's embedding model.
- * Uses @google/genai directly — no Vercel AI SDK needed.
+ * Embed an array of texts using the shared Mastra AI gateway.
  */
 async function embedTexts(texts: string[]): Promise<number[][]> {
-  const ai = getGoogleAI();
-  const result = await ai.models.embedContent({
+  return generateEmbeddingVectors(texts, {
     model: EMBEDDING_MODEL,
-    contents: texts,
+    dimensions: EMBEDDING_DIMENSION,
   });
-  return (result.embeddings ?? []).map((e) => e.values ?? []);
 }
 
 /**
- * Embed a single text using Google's embedding model.
+ * Embed a single text using the shared Mastra AI gateway.
  */
 async function embedSingleText(text: string): Promise<number[]> {
-  const ai = getGoogleAI();
-  const result = await ai.models.embedContent({
+  return generateEmbeddingVector(text, {
     model: EMBEDDING_MODEL,
-    contents: [text],
+    dimensions: EMBEDDING_DIMENSION,
   });
-  return result.embeddings?.[0]?.values ?? [];
 }
 
 function estimateTokens(text: string): number {

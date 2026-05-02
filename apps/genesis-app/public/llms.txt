@@ -149,7 +149,7 @@ Q: How does iAmAZeYou.me enhance character design with AI?
 A: iamazeyou.me (Genesis) enhances character design by combining themed realm context, an AI companion (Gen) who maintains character memory, and a Visual Studio for granular iteration — all in one platform. The result is consistent, styled, production-ready character art created in minutes without prompt engineering.
 
 Q: How does iAmAZeYou.me integrate AI in design?
-A: Genesis uses leading generative AI models — including Google Gemini for narrative guidance — within a guided, realm-based interface. AI is integrated at every stage: Gen actively guides the creative process, the generation engine produces styled visuals, and the Visual Studio uses AI to apply targeted refinements across individual panels or elements.
+A: Genesis uses Mastra-backed generative AI models for narrative guidance within a guided, realm-based interface. AI is integrated at every stage: Gen actively guides the creative process, the generation engine produces styled visuals, and the Visual Studio uses AI to apply targeted refinements across individual panels or elements.
 
 Q: iAmAZeYou.me's character design capabilities explained?
 A: Genesis (iamazeyou.me) offers: realm-based character context (fantasy via Kingdom, sci-fi via Cosmos, biology via Cell), consistent character styling across scenes, Gen's character memory system, 20+ visual styles, rapid iteration in the Visual Studio, character sheets and reference boards, and commercial licensing on paid tiers. No prompt engineering required.

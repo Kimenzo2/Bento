@@ -74,17 +74,17 @@ const CHANGELOG: ChangelogEntry[] = [
   {
     version: '2.4.0',
     date: 'December 3, 2025',
-    highlights: ['Bytez AI Integration', 'Google Gemini 2.5 Pro', 'Enhanced Learning Mode'],
+    highlights: ['Bytez AI Integration', 'Mastra AI Routing', 'Enhanced Learning Mode'],
     changes: [
       {
         type: 'feature',
         title: 'Bytez API Integration',
-        description: 'Switched to Bytez for reliable AI text generation',
+        description: 'Switched to Bytez for reliable image generation',
       },
       {
         type: 'feature',
-        title: 'Gemini 2.5 Pro',
-        description: "Upgraded to Google's latest and most capable model",
+        title: 'Mastra AI Routing',
+        description: 'Routed text generation through the Mastra AI gateway',
       },
       {
         type: 'improvement',

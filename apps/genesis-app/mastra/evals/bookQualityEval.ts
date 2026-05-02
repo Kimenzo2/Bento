@@ -12,7 +12,7 @@
  *
  * ## What It Replaces
  * Previously, quality checks were done ad-hoc in
- * services/generator/qaService.ts using raw Gemini calls.
+ * services/generator/qaService.ts using raw AI calls.
  * This scorer can be attached to the qualityAssurance agent or run
  * via `runEvals()` in CI for regression testing.
  *

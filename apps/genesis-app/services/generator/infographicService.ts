@@ -1,4 +1,4 @@
-import { generateIllustration, generateStructuredContent } from '../../services/geminiService';
+import { generateIllustration, generateStructuredContent } from '../../services/aiGatewayService';
 import {
   type GenerationRequest,
   type InfographicData,
@@ -119,10 +119,10 @@ export const InfographicService = {
   },
 
   /**
-   * Step 2: Generate Visual (The "Gemini" Step)
+   * Step 2: Generate Visual (the AI image step)
    */
   generateImage: async (content: GeneratedContent, request: GenerationRequest): Promise<string> => {
-    console.log('Generating infographic image with Gemini persona...');
+    console.log('Generating infographic image with Mastra-routed image generation...');
 
     const prompt = MASTER_GEMINI_PROMPT.replace(
       '{INSERT_GROK_JSON_OUTPUT_HERE}',

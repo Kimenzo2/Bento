@@ -137,7 +137,7 @@ export {
   // Circuit Breaker & Resilience
   CircuitBreaker,
   CircuitState,
-  geminiCircuitBreaker,
+  aiGatewayCircuitBreaker,
   imagenCircuitBreaker,
   supabaseCircuitBreaker,
   storageCircuitBreaker,

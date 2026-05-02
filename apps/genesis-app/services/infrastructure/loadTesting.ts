@@ -19,7 +19,7 @@
  * 2. Dependency Failure: Redis latency spike
  * 3. WebSocket Storm: 100k Realtime connections
  * 4. Database Saturation: Connection pool exhaustion
- * 5. AI Rate Limiting: Gemini quota exceeded
+ * 5. AI Rate Limiting: text quota exceeded
  */
 
 // ============================================================================

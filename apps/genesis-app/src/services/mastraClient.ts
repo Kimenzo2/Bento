@@ -4,7 +4,7 @@
  * ## What This File Does
  * Provides a fully typed, thin HTTP client that the React frontend uses to
  * communicate with the Mastra backend (Hono server on port 4111). All AI
- * operations now flow through this client instead of calling geminiService
+ * operations now flow through this client instead of calling the legacy gateway
  * or grokService directly from the browser.
  *
  * ## Key Design Decisions
@@ -15,7 +15,7 @@
  * - Graceful fallback: if Mastra server is unreachable, surfaces clear errors
  *
  * ## What It Replaces
- * - Direct `geminiService.generateBookStructure()` calls from components
+ * - Direct `aiGatewayService.generateBookStructure()` calls from components
  * - Direct `grokService.improveText()` calls from SmartEditor
  * - Direct `generateIllustration()` calls from SmartEditor
  * - localStorage-based tier usage tracking (now server-enforced)
@@ -35,7 +35,16 @@
  */
 
 import { supabase } from '../../services/supabaseClient';
-import type { BookProject, GenerationSettings, GamificationState } from '../../types';
+import type {
+  BookProject,
+  GenerationSettings,
+  GamificationState,
+  LifeInColourGenerationRecord,
+  LifeInColourGenerationListResponse,
+  LifeInColourGenerationResponse,
+  LifeInColourStartRequest,
+  LifeInColourStartResponse,
+} from '../../types';
 import type { ContentStructure } from '../../types/generator';
 import type { CharacterSheet, StyleGuide } from '../../types/generator';
 
@@ -127,6 +136,48 @@ export interface BrandVoiceIngestionResult {
   userId: string;
   success: boolean;
   error?: string;
+}
+
+interface RawLifeInColourGenerationRecord {
+  id: string;
+  user_id: string;
+  status: LifeInColourGenerationRecord['status'];
+  title: string;
+  brief: string;
+  outline_mode: LifeInColourGenerationRecord['outlineMode'];
+  source_bucket: string;
+  source_path: string;
+  source_mime_type: string | null;
+  source_file_name: string | null;
+  generated_bucket: string | null;
+  generated_path: string | null;
+  generated_public_url: string | null;
+  provider: string | null;
+  model: string | null;
+  analysis_model: string | null;
+  render_model: string | null;
+  prompt_version: string | null;
+  retry_count: number;
+  normalized_prompt: string | null;
+  source_analysis_summary: LifeInColourGenerationRecord['sourceAnalysisSummary'];
+  critique_summary: LifeInColourGenerationRecord['critiqueSummary'];
+  quality_flags: LifeInColourGenerationRecord['qualityFlags'];
+  fallback_eligible: boolean;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RawLifeInColourGenerationResponse {
+  generation: RawLifeInColourGenerationRecord;
+  active: boolean;
+  fallbackEligible: boolean;
+}
+
+interface RawLifeInColourGenerationListResponse {
+  generations: RawLifeInColourGenerationRecord[];
 }
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
@@ -366,6 +417,42 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function mapLifeInColourGenerationRecord(
+  record: RawLifeInColourGenerationRecord
+): LifeInColourGenerationRecord {
+  return {
+    id: record.id,
+    userId: record.user_id,
+    status: record.status,
+    title: record.title,
+    brief: record.brief,
+    outlineMode: record.outline_mode,
+    sourceBucket: record.source_bucket,
+    sourcePath: record.source_path,
+    sourceMimeType: record.source_mime_type,
+    sourceFileName: record.source_file_name,
+    generatedBucket: record.generated_bucket,
+    generatedPath: record.generated_path,
+    generatedPublicUrl: record.generated_public_url,
+    provider: record.provider,
+    model: record.model,
+    analysisModel: record.analysis_model,
+    renderModel: record.render_model,
+    promptVersion: record.prompt_version,
+    retryCount: record.retry_count,
+    normalizedPrompt: record.normalized_prompt,
+    sourceAnalysisSummary: record.source_analysis_summary,
+    critiqueSummary: record.critique_summary,
+    qualityFlags: record.quality_flags,
+    fallbackEligible: record.fallback_eligible,
+    errorMessage: record.error_message,
+    startedAt: record.started_at,
+    completedAt: record.completed_at,
+    createdAt: record.created_at,
+    updatedAt: record.updated_at,
+  };
+}
+
 // ─── Mastra Client ───────────────────────────────────────────────────────────
 
 export const mastra = {
@@ -585,6 +672,41 @@ export const mastra = {
         method: 'POST',
         body: JSON.stringify({ brandName, sampleText }),
       });
+    },
+  },
+
+  lifeInColour: {
+    async startGeneration(
+      request: LifeInColourStartRequest
+    ): Promise<LifeInColourStartResponse> {
+      return mastraFetch('/api/life-in-colour/generate', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      });
+    },
+
+    async getGeneration(
+      generationId: string
+    ): Promise<LifeInColourGenerationResponse> {
+      const response = await mastraFetch<RawLifeInColourGenerationResponse>(
+        `/api/life-in-colour/generations/${generationId}`
+      );
+
+      return {
+        generation: mapLifeInColourGenerationRecord(response.generation),
+        active: response.active,
+        fallbackEligible: response.fallbackEligible,
+      };
+    },
+
+    async listGenerations(limit = 8): Promise<LifeInColourGenerationListResponse> {
+      const response = await mastraFetch<RawLifeInColourGenerationListResponse>(
+        `/api/life-in-colour/generations?limit=${encodeURIComponent(String(limit))}`
+      );
+
+      return {
+        generations: response.generations.map(mapLifeInColourGenerationRecord),
+      };
     },
   },
 

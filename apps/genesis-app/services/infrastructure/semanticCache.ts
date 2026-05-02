@@ -97,7 +97,7 @@ export const DEFAULT_CACHE_CONFIG: SemanticCacheConfig = {
 };
 
 // Cost estimates for savings calculation
-const COST_PER_AI_CALL = 0.01; // ~$0.01 per Gemini call
+const COST_PER_AI_CALL = 0.01; // ~$0.01 per AI call
 const COST_PER_EMBEDDING = 0.00001; // ~$0.00001 per embedding
 const COST_PER_CACHE_HIT = 0.0001; // ~$0.0001 for Redis lookup
 
@@ -550,7 +550,7 @@ export type AICallFunction = (query: string, context: CacheContext) => Promise<s
  *
  * Usage:
  * ```typescript
- * const cachedAI = createCachedAIService(semanticCache, geminiService.chat);
+ * const cachedAI = createCachedAIService(semanticCache, aiGatewayService.chat);
  * const response = await cachedAI("How does photosynthesis work?", { subject: "science" });
  * ```
  */

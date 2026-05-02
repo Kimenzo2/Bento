@@ -26,7 +26,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { getGeminiModel } from '../lib/geminiProvider';
+import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
 
 // ─── Session Memory ──────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ export const storyEditorAgent = new Agent({
   id: 'story-editor',
   name: 'Story Editor',
   instructions: STORY_EDITOR_SYSTEM_PROMPT,
-  model: getGeminiModel(),
+  model: getMastraModel(),
   tools: {
     improveTool,
     consistencyCheckTool,

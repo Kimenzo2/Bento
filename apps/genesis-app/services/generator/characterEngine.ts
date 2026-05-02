@@ -1,11 +1,18 @@
-import { Type } from '@google/genai';
 import type {
   CharacterProfile,
   CharacterSheet,
   EbookRequest,
   VisualIdentity,
 } from '../../types/generator';
-import { generateStructuredContent } from '../geminiService';
+import { generateStructuredContent } from '../aiGatewayService';
+
+const Type = {
+  OBJECT: 'object',
+  STRING: 'string',
+  ARRAY: 'array',
+  NUMBER: 'number',
+  INTEGER: 'integer',
+} as const;
 
 const SYSTEM_INSTRUCTION_ARTIST = `
 You are the "Lead Character Artist" for a high-end animation studio (Pixar/Ghibli level).

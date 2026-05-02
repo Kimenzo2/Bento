@@ -130,7 +130,7 @@ const sections: LegalSection[] = [
           Genesis uses third-party AI model providers to power its creative engine. When you create content, your prompts and relevant story context are sent to these providers to generate illustrations, refine narratives, and deliver Gen&rsquo;s guidance.
         </P>
         <P>
-          Our current AI providers include <B>Google Gemini</B> for text generation and guidance, and image generation APIs for visual content. These providers process your prompts under their own privacy policies and data handling practices.
+          Our current AI providers include <B>Mastra-backed OpenAI routing</B> for text generation and guidance, and image generation APIs for visual content. These providers process your prompts under their own privacy policies and data handling practices.
         </P>
         <P>
           We take steps to minimise the personal information included in AI requests. However, because you control what you write in your prompts and stories, we strongly recommend that you <B>do not include sensitive personal information</B> — such as real addresses, financial details, or medical information — in your creative prompts.

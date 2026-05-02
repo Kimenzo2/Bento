@@ -78,6 +78,7 @@ function lazyWithRetry(
 }
 
 const CreationCanvas = lazyWithRetry(() => import('./components/CreationCanvas'));
+const LifeInColourPage = lazyWithRetry(() => import('./components/LifeInColourPage'));
 const SmartEditor = lazyWithRetry(() => import('./components/SmartEditor'));
 const VisualStudio = lazyWithRetry(() => import('./components/VisualStudio'));
 const SettingsPanel = lazyWithRetry(() => import('./components/SettingsPanel'));
@@ -95,6 +96,7 @@ const InfographicsPage = lazyWithRetry(() => import('./components/InfographicsPa
 const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
   [AppMode.DASHBOARD]:     '/',
   [AppMode.CREATION]:      '/create',
+  [AppMode.LIFE_IN_COLOUR]: '/life-in-colour',
   [AppMode.EDITOR]:        '/editor',
   [AppMode.VISUAL_STUDIO]: '/visual-studio',
   [AppMode.SETTINGS]:      '/settings',
@@ -508,6 +510,8 @@ const MainAppContent: React.FC = () => {
             shouldFocusCreation={currentMode === AppMode.CREATION}
           />
         );
+      case AppMode.LIFE_IN_COLOUR:
+        return <LifeInColourPage />;
       case AppMode.SUCCESS:
         if (!currentProject)
           return (

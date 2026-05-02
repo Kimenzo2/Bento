@@ -27,9 +27,10 @@ const edgeTypes = { sceneEdge: SceneEdge }
 interface StoryCanvasProps {
   project: BookProject
   onSwitchToPages: (pageNumber?: number) => void
+  onAddScene: () => void
 }
 
-export function StoryCanvas({ project, onSwitchToPages }: StoryCanvasProps) {
+export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanvasProps) {
   const { nodes, edges, totalPages, allPages } = useStoryCanvas({
     project,
     onEditPage: onSwitchToPages,
@@ -65,8 +66,8 @@ export function StoryCanvas({ project, onSwitchToPages }: StoryCanvasProps) {
   }, [])
 
   const handleAddScene = useCallback(() => {
-    onSwitchToPages(undefined)
-  }, [onSwitchToPages])
+    onAddScene()
+  }, [onAddScene])
 
   const handleDetailNavigate = useCallback(
     (pageNumber: number) => {
@@ -81,7 +82,19 @@ export function StoryCanvas({ project, onSwitchToPages }: StoryCanvasProps) {
           isImageOutdated: page.isImageOutdated ?? false,
           onEdit: onSwitchToPages,
         })
-        reactFlowInstance.setCenter(0, 0, { duration: 300 })
+
+        const node = reactFlowInstance.getNode(`page-${page.pageNumber}`)
+        if (node) {
+          const position = node.position
+          const width = node.measured?.width ?? node.width ?? 0
+          const height = node.measured?.height ?? node.height ?? 0
+
+          reactFlowInstance.setCenter(
+            position.x + width / 2,
+            position.y + height / 2,
+            { duration: 300 }
+          )
+        }
       }
     },
     [allPages, onSwitchToPages, reactFlowInstance]

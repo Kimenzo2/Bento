@@ -103,7 +103,7 @@ export const bookGenerationProcessor: JobProcessor<GenerateBookJobData> = {
 
       if (signal.aborted) throw new Error('Job cancelled');
 
-      // This would call geminiService.generateBookStructure
+      // This would call the AI gateway's book generation path
       // const structure = await generateBookStructure(data);
       await simulateWork(2000);
       tokensUsed += 2000;
@@ -120,7 +120,7 @@ export const bookGenerationProcessor: JobProcessor<GenerateBookJobData> = {
           `Writing chapter ${i + 1} of ${chaptersCount}...`
         );
 
-        // This would call geminiService.generateChapter
+        // This would call the AI gateway's chapter generation path
         await simulateWork(3000);
         tokensUsed += 3000;
       }
@@ -167,7 +167,7 @@ export const bookGenerationProcessor: JobProcessor<GenerateBookJobData> = {
         metrics: {
           processingTimeMs,
           aiTokensUsed: tokensUsed,
-          aiCostUsd: (tokensUsed / 1000000) * 1.25, // Gemini 2.5 Pro pricing
+          aiCostUsd: (tokensUsed / 1000000) * 1.25, // Current text-model pricing baseline
           retryCount: 0,
         },
       };

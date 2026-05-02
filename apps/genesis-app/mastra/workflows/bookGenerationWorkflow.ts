@@ -3,7 +3,7 @@
  *
  * Architecture:
  * 1. Validate request and enforce tier limits server-side
- * 2. Generate the full book in one Gemini call for consistency
+ * 2. Generate the full book in one Mastra-backed OpenAI call for consistency
  * 3. Generate illustrations server-side with bounded, sequential execution
  * 4. Persist the exact BookProject shape used by the frontend
  */
@@ -16,9 +16,12 @@ import {
   UserTierSchema,
 } from '../schemas';
 import { db } from '../db';
-
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const BYTEZ_IMAGE_MODEL = 'google/imagen-4.0-generate-001';
+import {
+  DEFAULT_BYTEZ_IMAGE_MODEL,
+  generateBytezImage,
+  generateTextFromRequest,
+} from '../lib/aiGateway';
+import { getColoringOutlineModeConfig } from '../../services/generator/prompts/lifeInColourPrompts';
 const WORKFLOW_CANCELLED = 'WORKFLOW_CANCELLED';
 
 const cancelledWorkflowIds = new Set<string>();
@@ -199,7 +202,9 @@ function buildGenerationPrompt(settings: WorkflowInput['settings']): string {
     `- Audience: ${settings.audience}`,
     `- Tone: ${settings.tone}`,
     `- Art style: ${settings.style}`,
+    `- Outline mode: ${getColoringOutlineModeConfig(settings.outlineMode).label}`,
     ...(settings.stylePrompt ? [`- Style details: ${settings.stylePrompt}`] : []),
+    `- Outline treatment: ${settings.stylePrompt?.trim() || getColoringOutlineModeConfig(settings.outlineMode).prompt}`,
     `- Branching: ${settings.isBranching ? 'yes' : 'no'}`,
     `- Educational mode: ${settings.educational ? 'yes' : 'no'}`,
     `- Content mode: ${isBrandContent ? 'brand-content' : 'storybook'}`,
@@ -260,74 +265,6 @@ function buildGenerationPrompt(settings: WorkflowInput['settings']): string {
     `Learning config:\n${learningContext}`,
     `Template structure:\n${templateContext}`,
   ].join('\n');
-}
-
-async function callGemini(prompt: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY_1;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY_1 is not configured.');
-  }
-
-  const controller = new AbortController();
-  const deadline = setTimeout(() => controller.abort(), 55_000);
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: 8192,
-            responseMimeType: 'application/json',
-          },
-        }),
-        signal: controller.signal,
-      }
-    );
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Gemini request failed (${response.status}): ${body}`);
-    }
-
-    const payload = await response.json();
-    return (
-      payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? '').join('') ??
-      ''
-    );
-  } finally {
-    clearTimeout(deadline);
-  }
-}
-
-async function callBytez(prompt: string): Promise<string | null> {
-  const apiKey = process.env.BYTEZ_API_KEY_1;
-  if (!apiKey) {
-    return null;
-  }
-
-  const response = await fetch('https://api.bytez.com/models/v2/run', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Key ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: BYTEZ_IMAGE_MODEL,
-      input: prompt,
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Bytez request failed (${response.status}): ${body}`);
-  }
-
-  const payload = await response.json();
-  return payload?.imageUrl ?? payload?.output?.[0] ?? null;
 }
 
 function normalizeProject(
@@ -412,7 +349,14 @@ function normalizeProject(
 }
 
 async function generateProjectContent(settings: WorkflowInput['settings'], workflowId: string) {
-  const rawText = await callGemini(buildGenerationPrompt(settings));
+  const { text: rawText } = await generateTextFromRequest({
+    model: 'openai/gpt-4o',
+    prompt: buildGenerationPrompt(settings),
+    generationConfig: {
+      maxOutputTokens: 8192,
+      responseMimeType: 'application/json',
+    },
+  });
   const payload = parseGeneratedPayload(rawText);
   return normalizeProject(payload, settings, workflowId);
 }
@@ -487,7 +431,10 @@ async function addIllustrationsToProject(
       }
 
       try {
-        const imageUrl = await callBytez(page.imagePrompt);
+        const imageUrl = await generateBytezImage({
+          model: DEFAULT_BYTEZ_IMAGE_MODEL,
+          prompt: page.imagePrompt,
+        });
         if (imageUrl) {
           page.imageUrl = await persistImageToStorage(imageUrl, userId, project.id, `page-${page.pageNumber}`);
           successCount += 1;
@@ -508,7 +455,10 @@ async function addIllustrationsToProject(
       ...clonedProject.characters.slice(0, 2).map((character) => character.visualPrompt ?? character.visualTraits),
     ].join(' ');
 
-    const coverImage = await callBytez(coverPrompt);
+    const coverImage = await generateBytezImage({
+      model: DEFAULT_BYTEZ_IMAGE_MODEL,
+      prompt: coverPrompt,
+    });
     if (coverImage) {
       clonedProject.coverImage = await persistImageToStorage(coverImage, userId, project.id, 'cover');
     }

@@ -50,13 +50,14 @@ export interface CostSummary {
 // COST ESTIMATION (No API calls - pure calculation)
 // ============================================================================
 
-// Approximate costs per 1K tokens (USD) - updated Dec 2024
+// Approximate costs per 1K tokens (USD) - used for relative analytics only
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
-  // Gemini models
-  'gemini-2.5-pro': { input: 0.00125, output: 0.005 },
-  'gemini-1.5-pro': { input: 0.00125, output: 0.005 },
-  'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
-  // Imagen models
+  // Text models
+  'openai/gpt-4o': { input: 0.00125, output: 0.005 },
+  'openai/gpt-4o-mini': { input: 0.000075, output: 0.0003 },
+  'openai/text-embedding-3-small': { input: 0.00002, output: 0 },
+  // Image models
+  'google/imagen-4.0-generate-001': { input: 0.02, output: 0 },
   'imagen-4.0-generate-preview-05-20': { input: 0.02, output: 0 },
   'imagen-4.0-ultra-generate-exp-05-20': { input: 0.04, output: 0 },
   // Grok models
@@ -239,7 +240,7 @@ export function trackBookCreation(params: {
   // Estimate total cost for a book (multiple images + text)
   const imageCost =
     params.imageCount * estimateCost('imagen-4.0-generate-preview-05-20', 0, 0, true);
-  const textCost = estimateCost('gemini-2.5-pro', 2000, 5000); // Approximate tokens for book
+  const textCost = estimateCost('openai/gpt-4o', 2000, 5000); // Approximate tokens for book
 
   trackUsage({
     userId: params.userId,

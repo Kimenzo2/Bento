@@ -1,6 +1,7 @@
 export enum AppMode {
   DASHBOARD = 'DASHBOARD',
   CREATION = 'CREATION',
+  LIFE_IN_COLOUR = 'LIFE_IN_COLOUR',
   EDITOR = 'EDITOR',
   VISUAL_STUDIO = 'VISUAL_STUDIO',
   LAYOUT_LAB = 'LAYOUT_LAB',
@@ -37,6 +38,95 @@ export enum BookTone {
   DRAMATIC = 'Dramatic',
   CALM = 'Calm',
   ADVENTUROUS = 'Adventurous',
+}
+
+export type ColoringOutlineMode = 'simple' | 'detailed' | 'mandala';
+export type LifeInColourGenerationStatus = 'queued' | 'processing' | 'ready' | 'failed';
+
+export interface LifeInColourQualityFlags {
+  printableLineClarity: boolean;
+  subjectRecognizable: boolean;
+  cleanNegativeSpace: boolean;
+  familySafe: boolean;
+  outlineModeCompatible: boolean;
+}
+
+export interface LifeInColourCritiqueSummary {
+  passed: boolean;
+  summary: string;
+  flags: LifeInColourQualityFlags;
+  refinements?: string[];
+  retryRecommended?: boolean;
+  [key: string]: unknown;
+}
+
+export interface LifeInColourSourceAnalysisSummary {
+  promptVersion: 'andrew-v2';
+  subjectSummary: string;
+  sceneSummary: string;
+  compositionSummary: string;
+  usefulDetails: string[];
+  cautionFlags: string[];
+  recommendedOutlineMode: ColoringOutlineMode;
+  recommendedDetailLevel: 'low' | 'auto' | 'high';
+  lineArtNotes: string[];
+}
+
+export interface LifeInColourStartRequest {
+  title: string;
+  brief: string;
+  outlineMode: ColoringOutlineMode;
+  sourcePath: string;
+  sourceMimeType: string;
+  sourceFileName: string;
+}
+
+export interface LifeInColourStartResponse {
+  generationId: string;
+  status: 'queued';
+  fallbackEligible: boolean;
+}
+
+export interface LifeInColourGenerationRecord {
+  id: string;
+  userId: string;
+  status: LifeInColourGenerationStatus;
+  title: string;
+  brief: string;
+  outlineMode: ColoringOutlineMode;
+  sourceBucket: string;
+  sourcePath: string;
+  sourceMimeType: string | null;
+  sourceFileName: string | null;
+  generatedBucket: string | null;
+  generatedPath: string | null;
+  generatedPublicUrl: string | null;
+  provider: string | null;
+  model: string | null;
+  analysisModel: string | null;
+  renderModel: string | null;
+  promptVersion: string | null;
+  retryCount: number;
+  normalizedPrompt: string | null;
+  sourceAnalysisSummary: LifeInColourSourceAnalysisSummary | null;
+  critiqueSummary: LifeInColourCritiqueSummary | null;
+  qualityFlags: Record<string, unknown> | null;
+  fallbackEligible: boolean;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LifeInColourGenerationResponse {
+  generation: LifeInColourGenerationRecord;
+  active: boolean;
+  fallbackEligible: boolean;
+}
+
+export interface LifeInColourGenerationListResponse {
+  generations: LifeInColourGenerationRecord[];
 }
 
 export enum UserTier {
@@ -386,6 +476,7 @@ export interface GenerationSettings {
   prompt: string;
   style: ArtStyle;
   stylePrompt?: string;
+  outlineMode?: ColoringOutlineMode;
   tone: BookTone;
   pageCount: number;
   audience: string;

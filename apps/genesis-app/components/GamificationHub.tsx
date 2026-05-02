@@ -43,6 +43,22 @@ const BADGE_ICON_MAP: Record<string, React.ReactNode> = {
 const BadgeIcon: React.FC<{ icon: string }> = ({ icon }) =>
   (BADGE_ICON_MAP[icon] as React.ReactElement) ?? <IcoStar className="w-8 h-8 text-cocoa-light" />;
 
+const CHALLENGE_TARGETS: Record<string, { mode: AppMode; label: string }> = {
+  create_book_today: { mode: AppMode.CREATION, label: 'Create' },
+  create_first_book: { mode: AppMode.CREATION, label: 'Create' },
+  start_streak: { mode: AppMode.CREATION, label: 'Create' },
+  maintain_streak_3: { mode: AppMode.CREATION, label: 'Create' },
+  maintain_streak_7: { mode: AppMode.CREATION, label: 'Create' },
+  edit_pages: { mode: AppMode.EDITOR, label: 'Edit' },
+  generate_images: { mode: AppMode.EDITOR, label: 'Illustrate' },
+  qa_score_high: { mode: AppMode.EDITOR, label: 'Polish' },
+  brand_content: { mode: AppMode.CREATION, label: 'Create' },
+};
+
+function getChallengeTarget(challengeId: string) {
+  return CHALLENGE_TARGETS[challengeId] ?? { mode: AppMode.CREATION, label: 'Go' };
+}
+
 // ── Time-to-midnight helper (updates every minute) ────────────────────────────
 function timeUntilMidnight(): string {
   const now      = new Date();
@@ -220,15 +236,18 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {gameState.dailyChallenges.map((challenge) => (
-                <div
-                  key={challenge.id}
-                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                    challenge.completed
-                      ? 'bg-mint-breeze/20 border-mint-breeze'
-                      : 'bg-cream-soft border-peach-soft hover:border-coral-burst/50'
-                  }`}
-                >
+              {gameState.dailyChallenges.map((challenge) => {
+                const challengeTarget = getChallengeTarget(challenge.id);
+
+                return (
+                  <div
+                    key={challenge.id}
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                      challenge.completed
+                        ? 'bg-mint-breeze/20 border-mint-breeze'
+                        : 'bg-cream-soft border-peach-soft hover:border-coral-burst/50'
+                    }`}
+                  >
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-6 h-6 rounded-full border flex items-center justify-center ${
@@ -259,14 +278,15 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setMode(AppMode.CREATION)}
+                      onClick={() => setMode(challengeTarget.mode)}
                       className="px-4 py-2 bg-surface text-coral-burst border border-peach-soft/50 hover:bg-coral-burst hover:text-white"
                     >
-                      Go
+                      {challengeTarget.label}
                     </Button>
                   )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

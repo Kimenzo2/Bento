@@ -20,7 +20,7 @@
 
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { getGeminiModel } from '../lib/geminiProvider';
+import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
 import { StyleGuideSchema, ColorPaletteSchema } from '../schemas';
 
@@ -197,7 +197,7 @@ export const styleArchitectAgent = new Agent({
   id: 'style-architect',
   name: 'Style Architect',
   instructions: STYLE_ARCHITECT_SYSTEM_PROMPT,
-  model: getGeminiModel(),
+  model: getMastraModel(),
   tools: {
     enforceStyleConsistency,
     prepareForVideoGeneration,

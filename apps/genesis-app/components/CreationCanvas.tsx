@@ -1,7 +1,7 @@
-import { ArrowLeft, BarChart3, BookOpen, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, Palette, Rocket, Sparkles, Users, Wand2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, BookOpen, Camera, ChevronRight, Clock, GitFork, Grid, LayoutTemplate, Leaf, Palette, Sparkles, Users, Wand2 } from 'lucide-react';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { getDefaultArtStyle } from '../hooks/useUserSettings';
 import { deleteBook, getAllBooks } from '../services/storageService';
 import { getStylesForTier } from '../config/entitlements';
@@ -92,6 +92,14 @@ interface CreationCanvasProps {
   onReadBook?: (book: SavedBook) => void;
   userTier?: UserTier;
   shouldFocusCreation?: boolean;
+}
+
+interface LifeInColourDraft {
+  prompt: string;
+  pageCount: number;
+  tone: BookTone;
+  style: ArtStyle;
+  stylePrompt?: string;
 }
 
 // Quick Start Card Component with Vercel-style cursor glow effect
@@ -553,8 +561,31 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
   ]);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-    const handleQuickStartClick = useCallback((action: () => void) => {
+  useEffect(() => {
+    const incomingState = location.state as { lifeInColourDraft?: LifeInColourDraft } | null;
+    const draft = incomingState?.lifeInColourDraft;
+
+    if (!draft) {
+      return;
+    }
+
+    if (draft.prompt.trim()) {
+      setPrompt(draft.prompt);
+    }
+    if (draft.pageCount > 0) {
+      setPageCount(draft.pageCount);
+    }
+    setTone(draft.tone);
+    setEducational(false);
+    setIsBranching(false);
+    if (draft.style) {
+      applyArtStyle(draft.style, draft.stylePrompt);
+    }
+  }, [applyArtStyle, location.state]);
+
+  const handleQuickStartClick = useCallback((action: () => void) => {
     action();
   }, []);
 
@@ -649,21 +680,14 @@ const CreationCanvas: React.FC<CreationCanvasProps> = ({
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>
           <QuickStartCard
-            icon={Rocket}
-            title={t('creationCanvas.quickStartSciFiTitle', 'Sci-Fi Novel')}
-            desc={t('creationCanvas.quickStartSciFiDesc', 'Build a futuristic world with deep lore and complex characters.')}
-            colorClass="from-purple-400 to-coral-burst"
-            glowColor="rgba(147, 51, 234, 0.35)"
+            icon={Camera}
+            title={t('creationCanvas.quickStartLifeInColourTitle', 'Life in Colour')}
+            desc={t('creationCanvas.quickStartLifeInColourDesc', 'Turn a camera-roll moment or uploaded photo into a finished colouring page, then expand it into a book only if you want to.')}
+            colorClass="from-sky-400 to-emerald-400"
+            glowColor="rgba(56, 189, 248, 0.35)"
             decorationPosition="top-middle"
             defaultGlowPosition="bottom-middle"
-            onClick={() =>
-              handleQuickStartClick(() => {
-                setPrompt('A cyberpunk detective solving crimes in a neon-lit underwater city.');
-                setAudience(t('creationCanvas.audienceYoungAdult', 'Young Adult'));
-                applyArtStyle(ArtStyle.CYBERPUNK);
-                setTone(BookTone.DRAMATIC);
-              })
-            }
+            onClick={() => handleQuickStartClick(() => navigate('/life-in-colour'))}
           />
           </motion.div>
           <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}>

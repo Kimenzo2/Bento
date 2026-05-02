@@ -47,6 +47,8 @@ export const BookToneSchema = z.enum([
   'Adventurous',
 ]);
 
+export const ColoringOutlineModeSchema = z.enum(['simple', 'detailed', 'mandala']);
+
 export const UserTierSchema = z.enum(['SPARK', 'CREATOR', 'STUDIO', 'EMPIRE']);
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -197,6 +199,7 @@ export const GenerationSettingsSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
   style: ArtStyleSchema,
   stylePrompt: z.string().optional(),
+  outlineMode: ColoringOutlineModeSchema.optional(),
   tone: BookToneSchema,
   pageCount: z.number().min(1).max(999),
   audience: z.string().min(1, 'Audience is required'),

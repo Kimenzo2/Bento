@@ -26,7 +26,7 @@
  * // Use throughout app
  * logger.info('User action', { userId, action });
  * recordRequest('/api/books', 150, true);
- * recordAIUsage({ model: 'gemini-2.5-pro', tokensUsed: 1000, ... });
+ * recordAIUsage({ model: 'openai/gpt-4o', tokensUsed: 1000, ... });
  * ```
  */
 

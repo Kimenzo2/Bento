@@ -24,10 +24,10 @@ import type { BookProject } from '../types';
 import { UserTier } from '../types';
 import AudioPlayer from './AudioPlayer';
 import { ShareModal } from './BookSharing';
-import ExportModal from './ExportModal';
 import { InteractiveCharacterTutor } from './InteractiveCharacterTutor';
 import KDPExportModal from './KDPExportModal';
 import { Button } from '@components/ui/button';
+import { toast } from './ui/sonner';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,6 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showToolbar, setShowToolbar] = useState(true);
   const [showTOC, setShowTOC] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [showKDPExportModal, setShowKDPExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
@@ -218,6 +217,17 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     });
     return result.filter((p) => p.length > 0);
   }, [currentPage.text]);
+
+  const showQuizFeedback = useCallback((isCorrect: boolean, celebration: string, explanation?: string) => {
+    if (isCorrect) {
+      toast.success(celebration, {
+        description: explanation,
+      });
+      return;
+    }
+
+    toast(celebration);
+  }, []);
 
   // ── Learning mode character ──────────────────────────────────────────────
   const teacherChar = useMemo(
@@ -523,10 +533,14 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                             onClick={() => {
                               if (option === currentPage.learningContent?.quiz?.correctAnswer) {
                                 const celebration = teacherChar?.teachingStyle?.encouragementStyle || "That's correct!";
-                                alert(`🎉 ${celebration}\n\n${currentPage.learningContent?.quiz?.explanation}`);
+                                showQuizFeedback(
+                                  true,
+                                  celebration,
+                                  currentPage.learningContent?.quiz?.explanation
+                                );
                               } else {
                                 const encouragement = teacherChar?.teachingStyle?.correctionStyle || 'Try again!';
-                                alert(`💪 ${encouragement}`);
+                                showQuizFeedback(false, encouragement);
                               }
                             }}
                             className="w-full text-left justify-start"
@@ -614,7 +628,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   variant={learningMode ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setLearningMode(!learningMode)}
-                  className={`hidden md:inline-flex ${viewerPillButtonClass} ${learningMode ? 'border-coral-burst/45 text-coral-burst dark:text-white bg-coral-burst/10 dark:bg-coral-burst/20 hover:bg-coral-burst/15 dark:hover:bg-coral-burst/25' : ''}`}
+                  className={`inline-flex ${viewerPillButtonClass} ${learningMode ? 'border-coral-burst/45 text-coral-burst dark:text-white bg-coral-burst/10 dark:bg-coral-burst/20 hover:bg-coral-burst/15 dark:hover:bg-coral-burst/25' : ''}`}
                   title="Learning Mode"
                 >
                   <BookOpen className="w-4 h-4" />
@@ -627,7 +641,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowExportModal(true)}
+                onClick={onDownload}
                 className={viewerIconButtonClass}
                 title="Export"
               >
@@ -723,9 +737,16 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                       size="sm"
                       onClick={() => {
                         if (option === currentPage.learningContent?.quiz?.correctAnswer) {
-                          alert(`🎉 ${teacherChar?.teachingStyle?.encouragementStyle || "Correct!"}\n\n${currentPage.learningContent?.quiz?.explanation}`);
+                          showQuizFeedback(
+                            true,
+                            teacherChar?.teachingStyle?.encouragementStyle || 'Correct!',
+                            currentPage.learningContent?.quiz?.explanation
+                          );
                         } else {
-                          alert(`💪 ${teacherChar?.teachingStyle?.correctionStyle || 'Try again!'}`);
+                          showQuizFeedback(
+                            false,
+                            teacherChar?.teachingStyle?.correctionStyle || 'Try again!'
+                          );
                         }
                       }}
                       className="w-full text-left justify-start text-xs"
@@ -769,22 +790,6 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
       </AnimatePresence>
 
       {/* ── Modals ────────────────────────────────────────────────────────── */}
-      {showExportModal && (
-        <ExportModal
-          isOpen={true}
-          book={{
-            id: project.id,
-            title: project.title,
-            synopsis: project.synopsis || '',
-            coverImage: project.chapters[0]?.pages[0]?.imageUrl,
-            project,
-            savedAt: new Date(),
-            lastModified: new Date(),
-          }}
-          onClose={() => setShowExportModal(false)}
-        />
-      )}
-
       {showKDPExportModal && (
         <KDPExportModal project={project} isOpen={true} onClose={() => setShowKDPExportModal(false)} userTier={tier as UserTier} />
       )}

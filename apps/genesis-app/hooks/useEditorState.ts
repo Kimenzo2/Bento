@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAutoSave } from './useAutoSave';
 import { useUndoRedo } from './useUndoRedo';
-import { generateIllustration } from '../services/geminiService';
+import { generateIllustration } from '../services/aiGatewayService';
 import { persistImage } from '../services/imageStorage';
 import {
   checkCharacterConsistency,
@@ -27,6 +27,40 @@ import {
   UserTier,
 } from '../types';
 import { getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
+
+function redistributePagesAcrossChapters(
+  chapters: BookProject['chapters'],
+  orderedPages: Page[]
+): BookProject['chapters'] {
+  if (chapters.length === 0) return [];
+
+  const originalCounts = chapters.map((chapter) => chapter.pages.length);
+  let cursor = 0;
+
+  return chapters.map((chapter, index) => {
+    const isLastChapter = index === chapters.length - 1;
+    const remainingPages = Math.max(orderedPages.length - cursor, 0);
+    const pageCount = isLastChapter
+      ? remainingPages
+      : Math.min(originalCounts[index] ?? 0, remainingPages);
+    const pages = orderedPages.slice(cursor, cursor + pageCount);
+    cursor += pageCount;
+
+    return {
+      ...chapter,
+      pages,
+    };
+  });
+}
+
+function renumberProjectPages(project: BookProject): void {
+  let pageNumber = 1;
+  project.chapters.forEach((chapter) => {
+    chapter.pages.forEach((page) => {
+      page.pageNumber = pageNumber++;
+    });
+  });
+}
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -167,12 +201,16 @@ export function useEditorState({
     return addedWords.length > 0 || removedWords.length > 0;
   }, []);
 
-  const lastSavedTextRef = useRef<string>(activePage?.text || '');
+  const imageChangeBaselineRef = useRef<string>(activePage?.text || '');
+
+  useEffect(() => {
+    imageChangeBaselineRef.current = activePage?.text || '';
+  }, [activePage?.id]);
 
   // ── Actions ──
 
   const handleTextChange = useCallback((text: string) => {
-    const wasSignificantChange = detectSignificantChange(lastSavedTextRef.current, text);
+    const wasSignificantChange = detectSignificantChange(imageChangeBaselineRef.current, text);
     setProjectHistory((prevProject) => {
       const newProject = structuredClone(prevProject);
       newProject.chapters.forEach((ch) => {
@@ -236,6 +274,7 @@ export function useEditorState({
           }
         });
         setProjectHistory(() => newProject);
+        imageChangeBaselineRef.current = activePage.text;
       }
     } catch (_e) {
       console.error('Failed to generate image');
@@ -378,20 +417,28 @@ export function useEditorState({
     if (oldIndex === newIndex) return;
     setProjectHistory((prev) => {
       const newProject = structuredClone(prev);
-      // Flatten, reorder, renumber
-      const flat = newProject.chapters.flatMap((c) => c.pages);
-      const [moved] = flat.splice(oldIndex, 1);
-      flat.splice(newIndex, 0, moved);
-      // Renumber
-      flat.forEach((p, i) => { p.pageNumber = i + 1; });
-      // Put back into first chapter (simple flat model)
-      if (newProject.chapters[0]) {
-        newProject.chapters[0].pages = flat;
-        // Clear other chapters
-        for (let i = 1; i < newProject.chapters.length; i++) {
-          newProject.chapters[i].pages = [];
-        }
+      if (newProject.chapters.length === 0) {
+        return prev;
       }
+
+      const flat = newProject.chapters.flatMap((c) => c.pages);
+      if (
+        oldIndex < 0 ||
+        newIndex < 0 ||
+        oldIndex >= flat.length ||
+        newIndex >= flat.length
+      ) {
+        return prev;
+      }
+
+      const [moved] = flat.splice(oldIndex, 1);
+      if (!moved) {
+        return prev;
+      }
+
+      flat.splice(newIndex, 0, moved);
+      newProject.chapters = redistributePagesAcrossChapters(newProject.chapters, flat);
+      renumberProjectPages(newProject);
       return newProject;
     });
     setActivePageIndex(newIndex);

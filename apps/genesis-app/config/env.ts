@@ -32,7 +32,7 @@ const envSchema = z.object({
   VITE_SUPABASE_ANON_KEY: z.string().min(1).optional(),
 
   // AI Services — keys are now server-side only (no VITE_ prefix)
-  // Client calls go through /api/ai-generate and /api/ai-bytez proxies
+  // Client calls go through the Mastra server routes for /api/ai-generate and /api/ai-bytez
 
   // Payments — Dodo Payments (server-side only, no VITE_ env vars needed)
 

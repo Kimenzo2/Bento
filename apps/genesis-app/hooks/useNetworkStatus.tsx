@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface NetworkInformation extends EventTarget {
   effectiveType?: string;
@@ -144,14 +144,21 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   const { isOnline, isSlowConnection, checkConnection } = useNetworkStatus();
   const [isChecking, setIsChecking] = React.useState(false);
   const [showOnlineMessage, setShowOnlineMessage] = React.useState(false);
+  const previousOnlineStateRef = useRef<boolean | null>(null);
 
   // Show "back online" message briefly when reconnecting
   useEffect(() => {
-    if (isOnline && !showWhenOnline) {
+    const previousOnlineState = previousOnlineStateRef.current;
+
+    if (!isOnline) {
+      setShowOnlineMessage(false);
+    } else if (previousOnlineState === false && !showWhenOnline) {
       setShowOnlineMessage(true);
       const timer = setTimeout(() => setShowOnlineMessage(false), 3000);
       return () => clearTimeout(timer);
     }
+
+    previousOnlineStateRef.current = isOnline;
   }, [isOnline, showWhenOnline]);
 
   const handleRetry = async () => {

@@ -206,8 +206,8 @@ function checkCircuitBreakers(): ServiceHealth {
   try {
     // Simulate circuit breaker states
     const circuits = {
-      gemini: { state: 'CLOSED', failures: 0, successRate: 0.99 },
-      imagen: { state: 'CLOSED', failures: 0, successRate: 0.98 },
+      aiGateway: { state: 'CLOSED', failures: 0, successRate: 0.99 },
+      imageGeneration: { state: 'CLOSED', failures: 0, successRate: 0.98 },
       supabase: { state: 'CLOSED', failures: 0, successRate: 1.0 },
       storage: { state: 'CLOSED', failures: 0, successRate: 0.99 },
     };
@@ -249,7 +249,21 @@ function checkRateLimiting(): ServiceHealth {
 // HANDLERS
 // ============================================================================
 
-async function handleFullHealth(_req: VercelRequest, res: VercelResponse): Promise<void> {
+function sendHealthResponse(
+  req: VercelRequest,
+  res: VercelResponse,
+  status: number,
+  payload?: unknown
+): void {
+  if (req.method === 'HEAD') {
+    res.status(status).end();
+    return;
+  }
+
+  res.status(status).json(payload);
+}
+
+async function handleFullHealth(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
     // Run all health checks in parallel
     const [database, redis, r2Storage] = await Promise.all([
@@ -310,10 +324,10 @@ async function handleFullHealth(_req: VercelRequest, res: VercelResponse): Promi
     // Set appropriate status code
     const statusCode = status === 'healthy' ? 200 : status === 'degraded' ? 200 : 503;
 
-    res.status(statusCode).json(response);
+    sendHealthResponse(req, res, statusCode, response);
   } catch (error) {
     console.error('[Health API] Error:', error);
-    res.status(500).json({
+    sendHealthResponse(req, res, 500, {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -321,16 +335,16 @@ async function handleFullHealth(_req: VercelRequest, res: VercelResponse): Promi
   }
 }
 
-async function handleLiveness(_req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleLiveness(req: VercelRequest, res: VercelResponse): Promise<void> {
   // Liveness probe - just check if the service is running
-  res.status(200).json({
+  sendHealthResponse(req, res, 200, {
     status: 'alive',
     timestamp: new Date().toISOString(),
     uptime: Date.now() - startTime,
   });
 }
 
-async function handleReadiness(_req: VercelRequest, res: VercelResponse): Promise<void> {
+async function handleReadiness(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
     // Readiness probe - check critical dependencies
     const [database, redis] = await Promise.all([checkDatabase(), checkRedis()]);
@@ -338,19 +352,19 @@ async function handleReadiness(_req: VercelRequest, res: VercelResponse): Promis
     const isReady = database.healthy && redis.healthy;
 
     if (isReady) {
-      res.status(200).json({
+      sendHealthResponse(req, res, 200, {
         status: 'ready',
         timestamp: new Date().toISOString(),
       });
     } else {
-      res.status(503).json({
+      sendHealthResponse(req, res, 503, {
         status: 'not_ready',
         timestamp: new Date().toISOString(),
         reason: database.healthy ? 'redis' : 'database',
       });
     }
   } catch (error) {
-    res.status(503).json({
+    sendHealthResponse(req, res, 503, {
       status: 'not_ready',
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -365,7 +379,7 @@ async function handleReadiness(_req: VercelRequest, res: VercelResponse): Promis
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   // Set CORS headers — health endpoints can remain open for monitoring tools
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // Handle preflight
@@ -374,9 +388,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  // Only allow GET
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
+  // Only allow GET/HEAD
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    sendHealthResponse(req, res, 405, { error: 'Method not allowed' });
     return;
   }
 
@@ -400,7 +414,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       break;
 
     default:
-      res.status(404).json({ error: 'Not found' });
+      sendHealthResponse(req, res, 404, { error: 'Not found' });
   }
 }
 

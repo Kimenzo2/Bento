@@ -2,6 +2,7 @@ import { IcoBook } from './IconscoutIcons';
 import { ArrowLeft, Bell, Calendar, CheckCircle, CreditCard, Database, Eye, FolderOpen, Globe, Image, ImageIcon, Info, LogOut, Newspaper, Save, Shield, Smartphone, Type, Upload, User, Wrench } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { persistAvatarImage } from '../services/avatarStorage';
 import { getUserProfile, updateUserProfile, type UserProfile } from '../services/profileService';
 import { getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
 import { AppMode, type SavedBook, UserTier } from '../types';
@@ -31,6 +32,78 @@ interface SettingsPanelProps {
   onViewBook?: (book: SavedBook) => void;
 }
 
+type SettingsFormData = {
+  displayName: string;
+  email: string;
+  bio: string;
+  defaultStyle: string;
+  temperature: number;
+  emailUpdates: boolean;
+  marketingEmails: boolean;
+  publicProfile: boolean;
+  dataSharing: boolean;
+  autoRotate: boolean;
+  reducedMotion: boolean;
+  highContrast: boolean;
+  screenReaderMode: boolean;
+  keyboardNavigation: boolean;
+  fontSize: 'small' | 'medium' | 'large';
+  soundEffects: boolean;
+  developerMode: boolean;
+  debugLogs: boolean;
+  betaFeatures: boolean;
+  experimentalUI: boolean;
+  showPerformanceMetrics: boolean;
+  autoSave: boolean;
+};
+
+const DEFAULT_FORM_DATA: SettingsFormData = {
+  displayName: '',
+  email: '',
+  bio: 'I love creating magical stories for children...',
+  defaultStyle: 'Watercolor',
+  temperature: 0.7,
+  emailUpdates: true,
+  marketingEmails: false,
+  publicProfile: true,
+  dataSharing: false,
+  autoRotate: false,
+  reducedMotion: false,
+  highContrast: false,
+  screenReaderMode: false,
+  keyboardNavigation: true,
+  fontSize: 'medium',
+  soundEffects: true,
+  developerMode: false,
+  debugLogs: false,
+  betaFeatures: false,
+  experimentalUI: false,
+  showPerformanceMetrics: false,
+  autoSave: true,
+};
+
+const LOCAL_PREFERENCE_DEFAULTS = {
+  autoRotate: DEFAULT_FORM_DATA.autoRotate,
+  reducedMotion: DEFAULT_FORM_DATA.reducedMotion,
+  highContrast: DEFAULT_FORM_DATA.highContrast,
+  screenReaderMode: DEFAULT_FORM_DATA.screenReaderMode,
+  keyboardNavigation: DEFAULT_FORM_DATA.keyboardNavigation,
+  fontSize: DEFAULT_FORM_DATA.fontSize,
+  soundEffects: DEFAULT_FORM_DATA.soundEffects,
+  developerMode: DEFAULT_FORM_DATA.developerMode,
+  debugLogs: DEFAULT_FORM_DATA.debugLogs,
+  betaFeatures: DEFAULT_FORM_DATA.betaFeatures,
+  experimentalUI: DEFAULT_FORM_DATA.experimentalUI,
+  showPerformanceMetrics: DEFAULT_FORM_DATA.showPerformanceMetrics,
+  autoSave: DEFAULT_FORM_DATA.autoSave,
+};
+
+const getSettingsStorageKey = (userId?: string) =>
+  userId ? `genesis_settings:${userId}` : 'genesis_settings';
+
+const getAvatarStorageKey = (userId?: string) =>
+  userId ? `genesis_avatar:${userId}` : 'genesis_avatar';
+
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onNavigate,
   onViewBook,
@@ -51,14 +124,62 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   // Fetch user profile to get real tier
   React.useEffect(() => {
-    const fetchProfile = async () => {
-      setIsLoadingProfile(true);
-      const profile = await getUserProfile();
-      setUserProfile(profile);
+    if (!user?.id) {
+      profileLoadedRef.current = false;
+      setUserProfile(null);
       setIsLoadingProfile(false);
+      setFormData(DEFAULT_FORM_DATA);
+      setAvatarPreview(null);
+      return;
+    }
+
+    profileLoadedRef.current = false;
+    setUserProfile(null);
+    setIsLoadingProfile(true);
+
+    try {
+      const savedSettings = localStorage.getItem(getSettingsStorageKey(user.id));
+      if (savedSettings) {
+        setFormData({ ...DEFAULT_FORM_DATA, ...JSON.parse(savedSettings) });
+      } else {
+        setFormData(DEFAULT_FORM_DATA);
+      }
+    } catch (_error) {
+      setFormData(DEFAULT_FORM_DATA);
+    }
+
+    try {
+      setAvatarPreview(localStorage.getItem(getAvatarStorageKey(user.id)) || null);
+    } catch (_error) {
+      setAvatarPreview(null);
+    }
+
+    let cancelled = false;
+
+    const fetchProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        if (!cancelled) {
+          setUserProfile(profile);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load settings profile:', error);
+          setUserProfile(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProfile(false);
+        }
+      }
     };
+
     fetchProfile();
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // Get actual user tier from profile, fallback to props or SPARK
   const actualUserTier = userProfile?.user_tier || propsUserTier || UserTier.SPARK;
@@ -96,42 +217,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   });
 
   // Initialize form data from localStorage or defaults
-  const [formData, setFormData] = useState(() => {
-    const defaults = {
-      displayName: '',
-      email: '',
-      bio: 'I love creating magical stories for children...',
-      defaultStyle: 'Watercolor',
-      temperature: 0.7,
-      emailUpdates: true,
-      marketingEmails: false,
-      publicProfile: true,
-      dataSharing: false,
-      autoRotate: false,
-      // Accessibility
-      reducedMotion: false,
-      highContrast: false,
-      screenReaderMode: false,
-      keyboardNavigation: true,
-      fontSize: 'medium',
-      soundEffects: true,
-      // Advanced
-      developerMode: false,
-      debugLogs: false,
-      betaFeatures: false,
-      experimentalUI: false,
-      showPerformanceMetrics: false,
-      autoSave: true,
-    };
-
+  const [formData, setFormData] = useState<SettingsFormData>(() => {
     try {
       const saved = localStorage.getItem('genesis_settings');
       if (saved) {
-        return { ...defaults, ...JSON.parse(saved) };
+        return { ...DEFAULT_FORM_DATA, ...JSON.parse(saved) };
       }
-      return defaults;
+      return DEFAULT_FORM_DATA;
     } catch (_e) {
-      return defaults;
+      return DEFAULT_FORM_DATA;
     }
   });
 
@@ -175,7 +269,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         null;
       if (dbAvatar) {
         // Only override if user hasn't uploaded a custom avatar
-        const customAvatar = localStorage.getItem('genesis_avatar');
+        const customAvatar = localStorage.getItem(getAvatarStorageKey(user.id));
         if (!customAvatar || !customAvatar.startsWith('data:')) {
           setAvatarPreview(dbAvatar);
         }
@@ -201,28 +295,50 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         user.user_metadata?.avatar_url ||
         user.user_metadata?.picture ||
         null;
-      if (metaAvatar && !localStorage.getItem('genesis_avatar')) {
+      if (metaAvatar && !localStorage.getItem(getAvatarStorageKey(user.id))) {
         setAvatarPreview(metaAvatar);
       }
     }
   }, [user, userProfile]);
 
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: value }));
+  const handleChange = <K extends keyof SettingsFormData>(field: K, value: SettingsFormData[K]) => {
+    setFormData((prev: SettingsFormData) => ({ ...prev, [field]: value }));
+  };
+
+  const handleResetLocalPreferences = () => {
+    setFormData((prev: SettingsFormData) => {
+      const nextSettings = { ...prev, ...LOCAL_PREFERENCE_DEFAULTS };
+      if (user?.id) {
+        localStorage.setItem(getSettingsStorageKey(user.id), JSON.stringify(nextSettings));
+      } else {
+        localStorage.setItem('genesis_settings', JSON.stringify(nextSettings));
+      }
+      localStorage.removeItem('genesis_debug');
+      window.dispatchEvent(new Event('genesis-settings-changed'));
+      return nextSettings;
+    });
+
+    toast.success(t('messages.preferencesReset', { defaultValue: 'Local preferences reset' }));
   };
 
   const handleSave = async () => {
     setIsSaving(true);
 
     try {
-      // 1. Persist UI preferences to localStorage (themes, toggles, etc.)
-      localStorage.setItem('genesis_settings', JSON.stringify(formData));
-      if (avatarPreview) {
-        localStorage.setItem('genesis_avatar', avatarPreview);
-      }
-      window.dispatchEvent(new Event('genesis-settings-changed'));
+      let persistedAvatarPreview = avatarPreview;
 
-      // 2. Persist profile data to Supabase DB (the source of truth)
+      if (avatarPreview?.startsWith('data:')) {
+        if (!user) {
+          throw new Error('You must be signed in to update your avatar.');
+        }
+
+        persistedAvatarPreview = await persistAvatarImage(avatarPreview, user.id);
+        if (persistedAvatarPreview === avatarPreview) {
+          throw new Error('Avatar upload failed. Please try a different image.');
+        }
+      }
+
+      // 1. Persist profile data to Supabase DB (the source of truth)
       if (user) {
         const profileUpdates: Record<string, any> = {
           display_name: formData.displayName || undefined,
@@ -236,9 +352,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           data_sharing_enabled: formData.dataSharing,
         };
 
-        // If avatar is a URL (not base64), persist it to DB
-        if (avatarPreview && !avatarPreview.startsWith('data:')) {
-          profileUpdates.avatar_url = avatarPreview;
+        if (persistedAvatarPreview && !persistedAvatarPreview.startsWith('data:')) {
+          profileUpdates.avatar_url = persistedAvatarPreview;
         }
 
         const updatedProfile = await updateUserProfile(profileUpdates);
@@ -247,9 +362,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           // Refresh AuthContext's profile so all components get fresh data
           await refreshProfile();
         } else {
-          console.error('[Settings] Failed to save profile to database');
+          throw new Error('Failed to save profile to database');
         }
       }
+
+      const settingsStorageKey = user?.id ? getSettingsStorageKey(user.id) : 'genesis_settings';
+      localStorage.setItem(settingsStorageKey, JSON.stringify(formData));
+      if (persistedAvatarPreview) {
+        const avatarStorageKey = user?.id ? getAvatarStorageKey(user.id) : 'genesis_avatar';
+        localStorage.setItem(avatarStorageKey, persistedAvatarPreview);
+      } else {
+        const avatarStorageKey = user?.id ? getAvatarStorageKey(user.id) : 'genesis_avatar';
+        localStorage.removeItem(avatarStorageKey);
+      }
+      if (persistedAvatarPreview !== avatarPreview) {
+        setAvatarPreview(persistedAvatarPreview);
+      }
+      window.dispatchEvent(new Event('genesis-settings-changed'));
     } catch (e) {
       console.error('Failed to save settings:', e);
       setIsSaving(false);
@@ -315,7 +444,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 pb-24 animate-fadeIn relative">
-
 
       <div className="mb-6 md:mb-10 flex items-center gap-3 md:gap-4">
         {onNavigate && (
@@ -387,7 +515,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-surface rounded-2xl md:rounded-3xl border border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-[500px] relative">
+        <div className="flex-1 bg-surface rounded-2xl md:rounded-3xl border border-peach-soft/50 p-4 md:p-8 min-h-100 md:min-h-125 relative">
           {/* Content Area */}
           <div className="space-y-6">
             {activeTab === 'profile' && (
@@ -517,10 +645,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <Label className="text-xs text-cocoa-light uppercase">
+                    <Label>
                       {t('creativityTemperature', { defaultValue: 'Creativity (Temperature)' })}
                     </Label>
-                    <span className="text-xs font-bold text-coral-burst bg-coral-burst/10 px-2 py-1 rounded">
+                    <span className="text-sm font-semibold text-coral-burst bg-coral-burst/8 px-2.5 py-1 rounded-lg">
                       {formData.temperature}
                     </span>
                   </div>
@@ -623,7 +751,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {activeTab === 'subscriptions' && (
               <div className="animate-fadeIn space-y-6">
                 <div>
-                  <h3 className="font-heading font-bold text-xl md:text-2xl text-charcoal-soft mb-2">
+                  <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
                     {t('currentPlan', { defaultValue: 'Current Plan' })}
                   </h3>
                   <p className="text-cocoa-light text-sm">{t('manageSubscriptionBilling', { defaultValue: 'Manage your subscription and billing' })}</p>
@@ -764,29 +892,33 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             )}
 
             {activeTab === 'advanced' && (
-              <AdvancedSettings settings={formData} onUpdate={setFormData} />
+              <AdvancedSettings
+                settings={formData}
+                onUpdate={setFormData}
+                onResetLocalPreferences={handleResetLocalPreferences}
+              />
             )}
 
             {activeTab === 'about' && <AboutSection />}
           </div>
 
           {/* Footer */}
-          <div className="mt-8 md:mt-10 pt-5 md:pt-6 border-t border-peach-soft/50">
-            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4 mb-4">
+          <div className="mt-10 md:mt-12 pt-6 md:pt-8 border-t border-peach-soft/30">
+            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-4 mb-6">
               <Button
                 variant="ghost"
                 onClick={async () => {
                   await signOut();
                   window.location.href = '/auth';
                 }}
-                className="md:justify-start text-cocoa-light hover:text-red-500 px-4 py-3 md:py-2 hover:bg-red-50 touch-manipulation">
+                className="md:justify-start text-cocoa-light hover:text-red-500 px-4 py-3 md:py-2 hover:bg-red-50/50 touch-manipulation text-sm md:text-base">
                 <LogOut className="w-4 h-4" /> {t('actions.signOut', { defaultValue: 'Sign Out' })}
               </Button>
               <Button
                 variant="primary"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="group w-full md:w-auto h-10 rounded-xl px-3.5 inline-flex items-center gap-2 font-heading font-medium border-[0.5px] border-peach-soft/40 dark:border-white/10 bg-surface/60 dark:bg-white/5 text-charcoal-soft dark:text-white hover:text-coral-burst dark:hover:text-white hover:bg-surface dark:hover:bg-white/10 hover:border-peach-soft/55 dark:hover:border-white/16 transition-all duration-200"
+                className="group h-10 md:h-auto rounded-lg px-6 inline-flex items-center justify-center gap-2 font-medium bg-coral-burst text-white hover:bg-coral-burst/90 transition-all duration-200 touch-manipulation"
               >
                 {isSaving ? (
                   <>
@@ -803,12 +935,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </div>
 
             {/* Legal Links */}
-            <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs text-cocoa-light/70 pt-3 border-t border-peach-soft/30">
+            <div className="flex flex-wrap justify-start gap-4 text-xs text-cocoa-light/70 pt-4 border-t border-peach-soft/20">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst"
+                className="hover:text-coral-burst px-0"
               >
                 {t('privacyPolicy', { defaultValue: 'Privacy Policy' })}
               </Button>
@@ -817,7 +949,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst"
+                className="hover:text-coral-burst px-0"
               >
                 {t('termsOfService', { defaultValue: 'Terms of Service' })}
               </Button>
@@ -826,7 +958,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst"
+                className="hover:text-coral-burst px-0"
               >
                 {t('cookiePolicy', { defaultValue: 'Cookie Policy' })}
               </Button>
@@ -835,7 +967,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => onNavigate?.(AppMode.LEGAL)}
-                className="hover:text-coral-burst"
+                className="hover:text-coral-burst px-0"
               >
                 {t('acceptableUse', { defaultValue: 'Acceptable Use' })}
               </Button>

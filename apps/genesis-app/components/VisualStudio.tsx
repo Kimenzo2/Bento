@@ -3,7 +3,7 @@ import { ArrowLeft, Download, Edit2, Map, Maximize2, Plus, RefreshCw, Share2, Sl
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { generateRefinedImage } from '../services/geminiService';
+import { generateRefinedImage } from '../services/aiGatewayService';
 import type { UserProfile } from '../services/profileService';
 import { AppMode, ArtStyle, type BookProject, type Character, type VisualSettings } from '../types';
 import CharacterDepthPanel from './CharacterDepthPanel';

@@ -2,10 +2,10 @@ import type { BookProject } from '../types';
 import { callAIService } from './infrastructure/externalServiceWrapper';
 import { authenticatedFetch } from './api/authenticatedFetch';
 
-const TEXT_MODEL = 'gemini-2.0-flash';
+const TEXT_MODEL = 'openai/gpt-4o-mini';
 
 /**
- * Check if the Gemini API is available (always true — server proxy handles keys)
+ * Check if the Mastra AI gateway is available (always true — server proxy handles keys)
  */
 export const isGrokAvailable = (): boolean => {
   return true;
@@ -17,11 +17,11 @@ export interface GrokMessage {
 }
 
 /**
- * Helper function to make API calls using server-side Gemini proxy
+ * Helper function to make API calls using the server-side Mastra AI gateway
  * ENFORCED: All calls go through circuit breaker for resilience
  */
 export async function callAPI(messages: GrokMessage[]): Promise<string> {
-  const result = await callAIService('gemini', 'callAPI', async () => {
+  const result = await callAIService('gateway', 'callAPI', async () => {
     const systemMessage = messages.find((m) => m.role === 'system');
     const conversationMessages = messages.filter((m) => m.role !== 'system');
 
@@ -56,10 +56,10 @@ export async function callAPI(messages: GrokMessage[]): Promise<string> {
     const data = await resp.json();
     const text = data.text;
     if (!text || text.trim().length === 0) {
-      throw new Error('Empty response received from Gemini API');
+      throw new Error('Empty response received from AI gateway');
     }
 
-    if (import.meta.env.DEV) console.log('✅ Gemini API response received (grokService)');
+    if (import.meta.env.DEV) console.log('✅ AI response received (grokService)');
     return text.trim();
   });
 

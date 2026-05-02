@@ -219,7 +219,7 @@ const sections: LegalSection[] = [
     content: (
       <>
         <P>
-          Genesis integrates third-party services to deliver its functionality, including AI model providers (such as Google Gemini and image generation APIs), payment processors (Dodo Payments), cloud infrastructure providers, and email delivery services.
+          Genesis integrates third-party services to deliver its functionality, including AI model providers (such as Mastra-backed text generation and image generation APIs), payment processors (Dodo Payments), cloud infrastructure providers, and email delivery services.
         </P>
         <P>
           These third-party providers operate under their own terms of service and privacy policies. Genesis is not responsible for the practices, content, availability, or data handling of third-party services. Links to third-party services or content within Genesis do not constitute endorsement.

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Home, Share2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Home, X } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
@@ -84,7 +84,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
             className={viewerIconButtonClass}
             title="Export Book"
           >
-            <Share2 className="w-5 h-5" />
+            <Download className="w-5 h-5" />
           </Button>
           <Button
             variant="ghost"
@@ -105,7 +105,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ project, onClose }) => {
       >
         <div className="w-full max-w-4xl h-full flex items-center justify-center">
           {/* Book Page - Mobile: Full height vertical stack, Desktop: Aspect ratio card */}
-          <div className="w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-3/4 bg-[#FFFCF8] border border-peach-soft rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
+          <div className="relative w-full h-full sm:h-auto sm:max-w-2xl sm:aspect-3/4 bg-[#FFFCF8] border border-peach-soft rounded-lg overflow-hidden transform transition-all duration-500 animate-fadeIn flex flex-col">
             {/* Texture Overlay */}
             <div className="absolute inset-0 bg-[url('/textures/cream-paper.png')] opacity-40 mix-blend-multiply pointer-events-none"></div>
 

@@ -19,7 +19,7 @@
 import { type InfrastructureConfig, config, validateOnStartup } from '../../config/infrastructure';
 import {
   type CircuitBreaker,
-  geminiCircuitBreaker,
+  aiGatewayCircuitBreaker,
   imagenCircuitBreaker,
   storageCircuitBreaker,
   supabaseCircuitBreaker,
@@ -42,7 +42,7 @@ export interface InfrastructureServices {
   jobs: JobQueueClient | null;
   tracer: Tracer | null;
   circuitBreakers: {
-    gemini: CircuitBreaker;
+    aiGateway: CircuitBreaker;
     imagen: CircuitBreaker;
     supabase: CircuitBreaker;
     storage: CircuitBreaker;
@@ -147,7 +147,7 @@ export async function bootstrapInfrastructure(
       jobs: null,
       tracer: null,
       circuitBreakers: {
-        gemini: geminiCircuitBreaker,
+        aiGateway: aiGatewayCircuitBreaker,
         imagen: imagenCircuitBreaker,
         supabase: supabaseCircuitBreaker,
         storage: storageCircuitBreaker,

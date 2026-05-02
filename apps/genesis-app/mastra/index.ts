@@ -9,7 +9,7 @@
  * (book generation pipeline, brand voice RAG).
  *
  * ## What It Replaces
- * Previously, Genesis called AI APIs (Gemini, Bytez/Imagen) directly from
+ * Previously, Genesis called AI APIs (provider-specific text and image calls) directly from
  * the browser via proxy endpoints. This file moves all AI orchestration to
  * a server-side Mastra backend, eliminating client-side API key exposure
  * and enabling durable workflow state, agent memory, and structured

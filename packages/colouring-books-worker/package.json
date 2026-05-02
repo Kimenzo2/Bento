@@ -1,0 +1,26 @@
+{
+  "name": "@genesis/colouring-books-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deterministic backend worker for Genesis Colouring Books",
+  "scripts": {
+    "dev": "node --watch --import tsx src/worker.ts",
+    "start": "node --import tsx src/worker.ts",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rimraf .tsbuildinfo"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.1",
+    "pdfkit": "^0.17.1",
+    "sharp": "^0.34.5",
+    "svg-to-pdfkit": "^0.1.8",
+    "ts-potrace": "^0.1.0",
+    "tsx": "^4.20.6"
+  },
+  "devDependencies": {
+    "@typescript/native-preview": "beta",
+    "@types/node": "^22.10.2",
+    "typescript": "^6.0.2"
+  }
+}

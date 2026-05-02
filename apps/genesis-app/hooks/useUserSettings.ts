@@ -110,8 +110,9 @@ export const useUserSettings = (): UserDisplayData & {
 
   // Determine best avatar to use: custom upload > DB profile > user metadata > null
   const avatarUrl =
-    customAvatar ||
+    (customAvatar && customAvatar.startsWith('data:') ? customAvatar : null) ||
     userProfile?.avatar_url ||
+    customAvatar ||
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
     null;
