@@ -32,6 +32,7 @@ import { supabase } from './services/supabaseClient';
 import { getEntitlements, isUnlimited, type TierName, userTierToTierName } from './config/entitlements';
 import { getCurrentMonthUsage, incrementBookCount } from './services/usageService';
 import { FontProvider } from './src/contexts/FontContext';
+import { LifeInColourWorkspaceProvider } from './src/contexts/LifeInColourWorkspaceContext';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import { mastra } from './src/services/mastraClient';
 import {
@@ -160,7 +161,6 @@ const MainAppContent: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [forceRenderKey, setForceRenderKey] = useState(0);
   const generationCancelRef = useRef<(() => void) | null>(null);
   const cancelledByUserRef = useRef(false);
 
@@ -183,27 +183,6 @@ const MainAppContent: React.FC = () => {
              : toast.info;
     fn(message);
   };
-
-  // Listen for theme and language changes
-  useEffect(() => {
-    const handleThemeChange = () => {
-      console.log('[MainApp] Theme changed, forcing re-render');
-      setForceRenderKey((prev) => prev + 1);
-    };
-
-    const handleLanguageChange = () => {
-      console.log('[MainApp] Language changed, forcing re-render');
-      setForceRenderKey((prev) => prev + 1);
-    };
-
-    window.addEventListener('themeChanged', handleThemeChange);
-    window.addEventListener('languageChanged', handleLanguageChange);
-
-    return () => {
-      window.removeEventListener('themeChanged', handleThemeChange);
-      window.removeEventListener('languageChanged', handleLanguageChange);
-    };
-  }, []);
 
   // Handle Screen Orientation
   useEffect(() => {
@@ -638,11 +617,8 @@ const MainAppContent: React.FC = () => {
       <Navigation currentMode={currentMode} setMode={navigateTo} gameState={gamificationState} />
       <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
         <h1 className="sr-only">{t('common:appName', 'Genesis')}</h1>
-        {/* key is on the inner div, NOT on Suspense — this way theme/language
-            re-renders remount the content without re-triggering the skeleton
-            (Suspense only suspends when a lazy import is actually pending). */}
         <Suspense fallback={<AppSkeleton />}>
-          <div key={forceRenderKey}>{renderContent()}</div>
+          <div>{renderContent()}</div>
         </Suspense>
       </main>
 
@@ -698,9 +674,11 @@ const MainApp: React.FC = () => (
     <ThemeProvider>
       <FontProvider>
         <LanguageProvider>
-          <DirectionBridge>
-            <MainAppContent />
-          </DirectionBridge>
+          <LifeInColourWorkspaceProvider>
+            <DirectionBridge>
+              <MainAppContent />
+            </DirectionBridge>
+          </LifeInColourWorkspaceProvider>
         </LanguageProvider>
       </FontProvider>
     </ThemeProvider>

@@ -177,166 +177,8 @@ const SmartEditor: React.FC<SmartEditorProps> = ({
   const [selectedDemoCharacter, setSelectedDemoCharacter] = useState<Character | null>(null);
 
   // ═══════════════════════════════════════════════
-  // STANDALONE MODE — Creative Hub (no project)
-  // ═══════════════════════════════════════════════
-  if (isStandaloneMode) {
-    return (
-      <div className="min-h-[calc(100dvh-80px)] w-full overflow-auto" style={{ background: 'linear-gradient(to bottom right, var(--color-background), color-mix(in srgb, var(--color-border) 20%, var(--color-background)), var(--color-background))' }}>
-        {/* Header */}
-        <div className="sticky top-0 z-20 border-b border-peach-soft px-6 py-4" style={{ backgroundColor: 'color-mix(in srgb, var(--color-surface) 80%, transparent)' }}>
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {onBack && (
-                <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
-                  <ArrowLeft className="w-5 h-5 text-charcoal-soft" />
-                </Button>
-              )}
-              <div>
-                <h1 className="font-heading font-bold text-2xl text-charcoal-soft">{t('smartEditor.creativeHub', 'Creative Hub')}</h1>
-                <p className="text-sm text-cocoa-light">{t('smartEditor.exploreCreativeTools', 'Explore creative tools & discover worlds')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          {/* Hero Section */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-coral-burst mb-4" style={{ background: 'linear-gradient(to right, color-mix(in srgb, var(--color-primary-end) 20%, transparent), color-mix(in srgb, var(--color-primary-start) 20%, transparent))' }}>
-              <IcoWand className="w-4 h-4" />
-              {t('smartEditor.welcomeCreativeHub', 'Welcome to the Creative Hub')}
-            </div>
-            <h2 className="font-heading font-bold text-3xl md:text-4xl text-charcoal-soft mb-4">
-              {t('smartEditor.creativePlaygroundAwaits', 'Your Creative Playground Awaits')}
-            </h2>
-            <p className="text-cocoa-light text-lg max-w-2xl mx-auto">
-              {t('smartEditor.creativePlaygroundDescription', 'Interview characters, discover remixable worlds, and unleash your creativity - all without needing a project first.')}
-            </p>
-          </div>
-
-          {/* Feature Cards Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            <div className="rounded-2xl p-6 border border-peach-soft transition-all group" style={{ backgroundColor: 'var(--color-surface)' }}>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{ background: 'linear-gradient(to bottom right, var(--color-primary-start), var(--color-primary-end))' }}>
-                <IcoPen className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{t('smartEditor.createBook', 'Create a Book')}</h3>
-              <p className="text-cocoa-light text-sm mb-4">{t('smartEditor.createBookDescription', 'Start your storytelling journey. Generate a complete illustrated book with AI assistance.')}</p>
-              <Button variant="primary" onClick={onNavigateToCreate} className="w-full font-heading hover:opacity-90">
-                <IcoZap className="w-4 h-4" /> {t('smartEditor.startCreating', 'Start Creating')}
-              </Button>
-            </div>
-
-            <div className="rounded-2xl p-6 border border-peach-soft transition-all group" style={{ backgroundColor: 'var(--color-surface)' }}>
-              <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <MessageCircle className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{t('smartEditor.greenRoom', 'The Green Room')}</h3>
-              <p className="text-cocoa-light text-sm mb-4">{t('smartEditor.greenRoomDescription', 'Interview characters to discover their personalities, backstories, and hidden depths.')}</p>
-              <Button onClick={() => setShowGreenRoomStandalone(true)} className="w-full bg-emerald-500 text-white font-heading hover:opacity-90">
-                <Users className="w-4 h-4" /> {t('smartEditor.enterGreenRoom', 'Enter Green Room')}
-              </Button>
-            </div>
-
-            <div className="rounded-2xl p-6 border border-peach-soft transition-all group" style={{ backgroundColor: 'var(--color-surface)' }}>
-              <div className="w-14 h-14 rounded-xl bg-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <GitFork className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="font-heading font-bold text-xl text-charcoal-soft mb-2">{t('smartEditor.remixStudio', 'Remix Studio')}</h3>
-              <p className="text-cocoa-light text-sm mb-4">{t('smartEditor.remixStudioDescription', 'Discover and fork magical worlds created by other storytellers.')}</p>
-              <Button onClick={() => setShowRemixStudioStandalone(true)} className="w-full bg-purple-500 text-white font-heading hover:opacity-90">
-                <Compass className="w-4 h-4" /> {t('smartEditor.exploreWorlds', 'Explore Worlds')}
-              </Button>
-            </div>
-          </div>
-
-          {/* Demo Characters */}
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="font-heading font-bold text-xl text-charcoal-soft">{t('smartEditor.meetDemoCharacters', 'Meet Demo Characters')}</h3>
-                <p className="text-sm text-cocoa-light">{t('smartEditor.tryInterviewingCharacters', 'Try interviewing these characters in the Green Room')}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {defaultCharacters.map((char) => (
-                <button
-                  type="button"
-                  key={char.id}
-                  onClick={() => { setSelectedDemoCharacter(char); setShowGreenRoomStandalone(true); }}
-                  className="p-4 rounded-xl border border-peach-soft/50 hover:border-emerald-300 group text-left flex flex-col cursor-pointer transition-all w-full"
-                  style={{ backgroundColor: 'var(--color-surface)' }}
-                >
-                  <div className="w-12 h-12 rounded-full bg-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform overflow-hidden relative shrink-0">
-                    {char.imageUrl ? (
-                      <img src={char.imageUrl} alt={char.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-white text-xl font-bold">{char.name[0]}</span>
-                    )}
-                  </div>
-                  <h4 className="font-heading font-bold text-charcoal-soft text-sm mb-1 truncate">{char.name}</h4>
-                  <p className="text-xs text-cocoa-light line-clamp-2">{char.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="rounded-2xl p-8 text-white" style={{ background: 'linear-gradient(to right, var(--color-text), color-mix(in srgb, var(--color-text) 90%, transparent))' }}>
-            <div className="grid md:grid-cols-3 gap-6 text-center">
-              <div>
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-                  <IcoStar className="w-6 h-6 text-gold-sunshine" />
-                </div>
-                <div className="font-heading font-bold text-2xl mb-1">{t('smartEditor.aiPowered', 'AI-Powered')}</div>
-                <div className="text-white/70 text-sm">{t('smartEditor.aiPoweredDescription', 'Characters respond with unique personalities')}</div>
-              </div>
-              <div>
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-                  <Globe className="w-6 h-6 text-coral-burst" />
-                </div>
-                <div className="font-heading font-bold text-2xl mb-1">{t('smartEditor.community', 'Community')}</div>
-                <div className="text-white/70 text-sm">{t('smartEditor.communityDescription', 'Discover worlds from other creators')}</div>
-              </div>
-              <div>
-                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-                  <IcoBook className="w-6 h-6 text-emerald-400" />
-                </div>
-                <div className="font-heading font-bold text-2xl mb-1">{t('smartEditor.storyBible', 'Story Bible')}</div>
-                <div className="text-white/70 text-sm">{t('smartEditor.storyBibleDescription', 'Extract facts to enrich your stories')}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Green Room Modal for Standalone */}
-        {showGreenRoomStandalone && (
-          <GreenRoom
-            isOpen={showGreenRoomStandalone}
-            onClose={() => { setShowGreenRoomStandalone(false); setSelectedDemoCharacter(null); }}
-            project={DEMO_PROJECT}
-            character={selectedDemoCharacter || defaultCharacters[0]}
-            userId={userProfile?.id}
-          />
-        )}
-
-        {/* Remix Studio Modal for Standalone */}
-        <RemixStudio
-          isOpen={showRemixStudioStandalone}
-          onClose={() => setShowRemixStudioStandalone(false)}
-          userId={userProfile?.id}
-          userName={userProfile?.display_name || userProfile?.email}
-          onForkWorld={(world) => { if (import.meta.env.DEV) console.warn('Forked world in standalone mode:', world); setShowRemixStudioStandalone(false); }}
-        />
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════════
   // EDITOR MODE — Three-panel layout
   // ═══════════════════════════════════════════════
-
   return (
     <EditorInner
       project={workingProject}
@@ -709,7 +551,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
           {/* ── MOBILE: Intelligence Bottom Sheet ── */}
           {showIntelligenceSheet && (
             <div
-              className="lg:hidden fixed inset-0 z-[70] flex flex-col justify-end"
+              className="lg:hidden fixed inset-0 z-70 flex flex-col justify-end"
               role="dialog"
               aria-modal="true"
               aria-label={t('smartEditor.intelligencePanel', 'Intelligence panel')}
@@ -773,7 +615,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
       {/* ── AUDIENCE SAFETY PANEL (slide-over) ── */}
       {editor.showAudienceSafety && editor.storyBible?.audienceSafety && (
         <div
-          className="fixed inset-0 z-[80] flex justify-end"
+          className="fixed inset-0 z-80 flex justify-end"
           role="dialog"
           aria-modal="true"
           aria-label={t('smartEditor.audienceSafetyReview', 'Audience safety review')}

@@ -69,67 +69,16 @@ test.describe('Editor Loading', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// CREATIVE HUB (STANDALONE MODE — no project)
+// EDITOR SHELL (standalone fallback — no project)
 // ─────────────────────────────────────────────────────────────
 
-test.describe('Creative Hub Standalone Mode', () => {
-  test('should show Creative Hub when no project is loaded', async ({ editorPage: page }) => {
-    // Without a project, SmartEditor renders Creative Hub
+test.describe('Editor Standalone Mode', () => {
+  test('should show the editor shell when no project is loaded', async ({ editorPage: page }) => {
+    // Without a project, SmartEditor now renders the actual editor shell
     // Wait for full hydration
     await page.waitForLoadState('networkidle');
-    const hub = page.getByText('Creative Hub', { exact: false });
-    await expect(hub.first()).toBeVisible({ timeout: 15000 });
-  });
-
-  test('should display demo characters', async ({ editorPage: page }) => {
-    // Wait for full render including lazy components
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
-
-    // Check for the demo character names in the Creative Hub
-    const luna = page.getByText('Luna the Moon Fairy');
-    const blaze = page.getByText('Blaze the Dragon');
-    const aurora = page.getByText('Princess Aurora');
-    const silverhook = page.getByText('Captain Silverhook');
-
-    const lunaVisible = await luna.isVisible().catch(() => false);
-    const blazeVisible = await blaze.isVisible().catch(() => false);
-    const auroraVisible = await aurora.isVisible().catch(() => false);
-    const silverhookVisible = await silverhook.isVisible().catch(() => false);
-
-    const hasSpecificCharacters = lunaVisible || blazeVisible || auroraVisible || silverhookVisible;
-
-    if (!hasSpecificCharacters) {
-      // The page might be rendering the editor (with a project) instead of
-      // Creative Hub standalone. Verify the page has rendered meaningful content.
-      const bodyText = await page.locator('body').textContent().catch(() => '');
-      expect((bodyText ?? '').trim().length).toBeGreaterThan(0);
-    }
-  });
-
-  test('should display feature cards', async ({ editorPage: page }) => {
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    const createBook = page.getByText('Create a Book');
-    const greenRoom = page.getByText('The Green Room');
-    const remixStudio = page.getByText('Remix Studio');
-
-    // Check if any feature cards are visible (requires Creative Hub standalone mode)
-    const createBookVisible = await createBook.first().isVisible().catch(() => false);
-    const greenRoomVisible = await greenRoom.first().isVisible().catch(() => false);
-    const remixStudioVisible = await remixStudio.first().isVisible().catch(() => false);
-
-    if (createBookVisible || greenRoomVisible || remixStudioVisible) {
-      // All three feature cards should be visible in Creative Hub
-      await expect(createBook.first()).toBeVisible({ timeout: 10000 });
-      await expect(greenRoom.first()).toBeVisible({ timeout: 10000 });
-      await expect(remixStudio.first()).toBeVisible({ timeout: 10000 });
-    } else {
-      // Editor may have loaded with a project — verify page rendered
-      const bodyText = await page.locator('body').textContent().catch(() => '');
-      expect((bodyText ?? '').trim().length).toBeGreaterThan(0);
-    }
+    await expect(page.getByRole('group', { name: /editor panels/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByLabel('Story editor')).toBeVisible({ timeout: 15000 });
   });
 
   test('should have working navigation back button', async ({ editorPage: page }) => {

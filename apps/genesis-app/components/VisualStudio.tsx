@@ -1,5 +1,5 @@
 import { IcoPalette, IcoWand } from './IconscoutIcons';
-import { ArrowLeft, Download, Edit2, Map, Maximize2, Plus, RefreshCw, Share2, Sliders } from 'lucide-react';
+import { ArrowLeft, Download, Edit2, Maximize2, Plus, RefreshCw, Share2, Sliders } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,6 @@ import type { UserProfile } from '../services/profileService';
 import { AppMode, ArtStyle, type BookProject, type Character, type VisualSettings } from '../types';
 import CharacterDepthPanel from './CharacterDepthPanel';
 import MobileBottomNav from './MobileBottomNav';
-import StoryMap from './StoryMap';
 import { Button } from './ui/button';
 import { Label, Textarea } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -40,8 +39,6 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   const [activeTab, setActiveTab] = useState<'character' | 'scene' | 'style'>('character');
   const { t } = useTranslation('creation');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [viewMode, setViewMode] = useState<'individual' | 'storymap'>('individual');
-
   // Advanced features state
   const [showCharacterDepth, setShowCharacterDepth] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
@@ -208,12 +205,10 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
     : null;
 
   return (
-    <div
-      className={`w-full mx-auto animate-fadeIn ${viewMode === 'storymap' ? 'h-dvh flex flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden' : 'max-w-[1800px] p-3 md:p-6 pb-20 md:pb-24'}`}
-    >
-      {/* Header with Mode Switcher */}
+    <div className="w-full mx-auto animate-fadeIn max-w-450 p-3 md:p-6 pb-20 md:pb-24">
+      {/* Header */}
       <div
-        className={`relative text-center mb-4 md:mb-6 shrink-0 ${viewMode === 'storymap' ? 'px-2 sm:px-4 md:px-8 pt-2 md:pt-4' : 'px-10 sm:px-12 md:px-20'}`}
+        className="relative text-center mb-4 md:mb-6 shrink-0 px-10 sm:px-12 md:px-20"
       >
         {onBack && (
           <Button
@@ -228,183 +223,110 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
         )}
 
         {/* Right Side Actions - Notifications, Go Live */}
-        <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
-        </div>
-
-        {/* Mode Switcher */}
-        <div className="inline-flex bg-cream-soft p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-peach-soft/50">
-          <Button
-            variant="ghost"
-            onClick={() => setViewMode('individual')}
-            className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
-              viewMode === 'individual'
-                ? 'bg-surface text-coral-burst border border-peach-soft'
-                : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
-            }`}
-          >
-            <IcoWand className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden xs:inline">{t('visualStudio.individual', 'Individual')}</span>
-            <span className="xs:hidden">{t('visualStudio.solo', 'Solo')}</span>
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setViewMode('storymap')}
-            className={`px-3 sm:px-4 md:px-6 py-2 md:py-2.5 font-heading flex min-h-10 ${
-              viewMode === 'storymap'
-                ? 'bg-surface text-emerald-500 border border-peach-soft'
-                : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'
-            }`}
-          >
-            <Map className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden xs:inline">{t('visualStudio.storyMap', 'Story Map')}</span>
-            <span className="xs:hidden">{t('visualStudio.map', 'Map')}</span>
-          </Button>
-        </div>
+        <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10" />
 
         <p className="text-cocoa-light font-body text-xs sm:text-sm mt-2 md:mt-3 px-2 line-clamp-2">
-          {viewMode === 'individual'
-            ? t('visualStudio.modeIndividualDescription', 'Fine-tune characters, compose scenes, and experiment with style alchemy.')
-            : t('visualStudio.modeStoryMapDescription', 'Visualize your narrative journey and structure.')}
+          {t('visualStudio.modeIndividualDescription', 'Fine-tune characters, compose scenes, and experiment with style alchemy.')}
         </p>
       </div>
 
-      <div
-        className={`flex flex-col gap-4 md:gap-6 ${viewMode === 'storymap' ? 'flex-1 overflow-hidden' : 'min-h-[600px]'}`}
-      >
-        {/* Individual Mode Content */}
-        {viewMode === 'individual' && (
-          <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
-            {/* Control Panel - Left Side (40%) */}
-            <div className="bg-surface rounded-3xl border border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-[680px] panel-breathing">
-              {/* Tabs */}
-              <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
-                {['character', 'scene', 'style'].map((tab) => (
-                  <Button
-                    key={tab}
-                    variant="ghost"
-                    onClick={() => {
-                      setActiveTab(tab as 'character' | 'scene' | 'style');
-                      setSettings(prev => ({ ...prev, generatedImage: null }));
-                    }}
-                    className={`flex-1 py-2 md:py-2.5 font-heading capitalize
-                                ${activeTab === tab ? 'bg-surface text-coral-burst border border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'}`}
-                  >
-                    {tab}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Tab Content: Character */}
-              {activeTab === 'character' && (
-                <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-cocoa-light uppercase">
-                        Select Character
-                      </Label>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleCreateNewCharacter}
-                        className="flex px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white"
-                        title={t('visualStudio.createNewCharacter', 'Create new character')}
-                      >
-                        <Plus className="w-3 h-3" />
-                        New
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-50 md:max-h-75 overflow-y-auto pr-1 custom-scrollbar">
-                      {availableCharacters.map((char) => (
-                        <div
-                          key={char.id}
-                          className={`p-2 rounded-xl border cursor-pointer transition-all relative group
-                                            ${
-                                              settings.selectedCharacterId === char.id
-                                                ? 'border-coral-burst bg-cream-base'
-                                                : 'border-transparent hover:bg-surface/50'
-                                            }`}
-                        >
-                          <div
-                            onClick={() =>
-                              setSettings(prev => ({ ...prev, selectedCharacterId: char.id }))
-                            }
-                            className="flex items-center gap-2 md:gap-3"
-                          >
-                            <img
-                              src={
-                                char.imageUrl ||
-                                `https://api.dicebear.com/7.x/avataaars/svg?seed=${char.name}`
-                              }
-                              alt={char.name}
-                              className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface border border-peach-soft/50 object-cover"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-xs md:text-sm text-charcoal-soft truncate">
-                                {char.name}
-                              </div>
-                              <div className="text-[10px] md:text-xs text-cocoa-light truncate">
-                                {char.role || t('visualStudio.character', 'Character')}
-                              </div>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingCharacterId(char.id);
-                              setShowCharacterDepth(true);
-                            }}
-                            className="absolute top-1 right-1 p-1 bg-surface hover:bg-emerald-50 opacity-0 group-hover:opacity-100 border border-peach-soft/50"
-                            title={t('visualStudio.editCharacterDepth', 'Edit character depth')}
-                          >
-                            <Edit2 className="w-3 h-3 text-emerald-600" />
-                          </Button>
-                        </div>
-                      ))}
-                      {availableCharacters.length === 0 && (
-                        <div className="col-span-2 text-center py-8 text-cocoa-light/60 text-sm">
-                          {t('visualStudio.noCharactersYet', 'No characters yet. Click "New" to create one!')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
+      <div className="flex flex-col gap-4 md:gap-6 min-h-150">
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
+          {/* Control Panel - Left Side (40%) */}
+          <div className="bg-surface rounded-3xl border border-peach-soft overflow-y-auto transition-all duration-500 ease-in-out z-20 w-full lg:w-2/5 p-4 md:p-6 max-h-125 lg:max-h-170 panel-breathing">
+            {/* Tabs */}
+            <div className="flex bg-cream-soft p-1.5 rounded-2xl mb-6 md:mb-8 border border-peach-soft/50">
+              {['character', 'scene', 'style'].map((tab) => (
+                <Button
+                  key={tab}
+                  variant="ghost"
+                  onClick={() => {
+                    setActiveTab(tab as 'character' | 'scene' | 'style');
+                    setSettings(prev => ({ ...prev, generatedImage: null }));
+                  }}
+                  className={`flex-1 py-2 md:py-2.5 font-heading capitalize
+                              ${activeTab === tab ? 'bg-surface text-coral-burst border border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'}`}
+                >
+                  {tab}
+                </Button>
+              ))}
+            </div>
+            {/* Tab Content: Character */}
+            {activeTab === 'character' && (
+              <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <Label className="text-xs text-cocoa-light uppercase">
-                      Expression & Pose
+                      Select Character
                     </Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Select value={settings.expression} onValueChange={(v) => setSettings(prev => ({ ...prev, expression: v }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t('visualStudio.expression', 'Expression')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="neutral">{t('visualStudio.expressionNeutral', 'Neutral')}</SelectItem>
-                          <SelectItem value="happy">{t('visualStudio.expressionHappy', 'Happy')}</SelectItem>
-                          <SelectItem value="sad">{t('visualStudio.expressionSad', 'Sad')}</SelectItem>
-                          <SelectItem value="angry">{t('visualStudio.expressionAngry', 'Angry')}</SelectItem>
-                          <SelectItem value="surprised">{t('visualStudio.expressionSurprised', 'Surprised')}</SelectItem>
-                          <SelectItem value="determined">{t('visualStudio.expressionDetermined', 'Determined')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={settings.pose} onValueChange={(v) => setSettings(prev => ({ ...prev, pose: v }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t('visualStudio.pose', 'Pose')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="standing">{t('visualStudio.poseStanding', 'Standing')}</SelectItem>
-                          <SelectItem value="sitting">{t('visualStudio.poseSitting', 'Sitting')}</SelectItem>
-                          <SelectItem value="walking">{t('visualStudio.poseWalking', 'Walking')}</SelectItem>
-                          <SelectItem value="running">{t('visualStudio.poseRunning', 'Running')}</SelectItem>
-                          <SelectItem value="fighting">{t('visualStudio.poseFighting', 'Fighting')}</SelectItem>
-                          <SelectItem value="flying">{t('visualStudio.poseFlying', 'Flying')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleCreateNewCharacter}
+                      className="flex px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                      title={t('visualStudio.createNewCharacter', 'Create new character')}
+                    >
+                      <Plus className="w-3 h-3" />
+                      New
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 md:gap-3 max-h-50 md:max-h-75 overflow-y-auto pr-1 custom-scrollbar">
+                    {availableCharacters.map((char) => (
+                      <div
+                        key={char.id}
+                        className={`p-2 rounded-xl border cursor-pointer transition-all relative group
+                          ${settings.selectedCharacterId === char.id ? 'border-coral-burst bg-coral-burst/5' : 'border-peach-soft hover:border-coral-burst/30'}`}
+                        onClick={() => setSettings(prev => ({ ...prev, selectedCharacterId: char.id }))}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center text-white text-xs font-bold">
+                            {char.name.slice(0, 1)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-charcoal-soft truncate">{char.name}</p>
+                            <p className="text-xs text-cocoa-light truncate">{char.role || 'Character'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-cocoa-light uppercase">
+                    Expression & Pose
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select value={settings.expression} onValueChange={(v) => setSettings(prev => ({ ...prev, expression: v }))}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('visualStudio.expression', 'Expression')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="neutral">{t('visualStudio.expressionNeutral', 'Neutral')}</SelectItem>
+                        <SelectItem value="happy">{t('visualStudio.expressionHappy', 'Happy')}</SelectItem>
+                        <SelectItem value="sad">{t('visualStudio.expressionSad', 'Sad')}</SelectItem>
+                        <SelectItem value="angry">{t('visualStudio.expressionAngry', 'Angry')}</SelectItem>
+                        <SelectItem value="surprised">{t('visualStudio.expressionSurprised', 'Surprised')}</SelectItem>
+                        <SelectItem value="determined">{t('visualStudio.expressionDetermined', 'Determined')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={settings.pose} onValueChange={(v) => setSettings(prev => ({ ...prev, pose: v }))}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('visualStudio.pose', 'Pose')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standing">{t('visualStudio.poseStanding', 'Standing')}</SelectItem>
+                        <SelectItem value="sitting">{t('visualStudio.poseSitting', 'Sitting')}</SelectItem>
+                        <SelectItem value="walking">{t('visualStudio.poseWalking', 'Walking')}</SelectItem>
+                        <SelectItem value="running">{t('visualStudio.poseRunning', 'Running')}</SelectItem>
+                        <SelectItem value="fighting">{t('visualStudio.poseFighting', 'Fighting')}</SelectItem>
+                        <SelectItem value="flying">{t('visualStudio.poseFlying', 'Flying')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
 
               {/* Tab Content: Scene */}
               {activeTab === 'scene' && (
@@ -553,7 +475,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
             </div>
 
             {/* Preview Panel - Right Side (60%) */}
-            <div className="w-full lg:w-3/5 h-100 lg:h-[680px] bg-surface rounded-3xl border border-peach-soft overflow-hidden relative group">
+            <div className="w-full lg:w-3/5 h-100 lg:h-170 bg-surface rounded-3xl border border-peach-soft overflow-hidden relative group">
               {settings.generatedImage ? (
                 <>
                   <img
@@ -633,33 +555,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               )}
             </div>
           </div>
-        )}
 
-        {/* Story Map Mode */}
-        {viewMode === 'storymap' &&
-          (project ? (
-            <StoryMap
-              project={project}
-              onNavigateToEditor={() => onNavigate?.(AppMode.EDITOR)}
-              onClose={() => setViewMode('individual')}
-              onUpdateProject={onUpdateProject}
-            />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-              <Map className="w-16 h-16 text-slate-300 mb-4" />
-              <h3 className="text-xl font-bold text-slate-600 mb-2">No Project Loaded</h3>
-              <p className="text-slate-500 max-w-md">
-                Please open a project from the Dashboard to view its Story Map.
-              </p>
-              <Button
-                variant="primary"
-                onClick={onBack}
-                className="mt-6"
-              >
-                Go to Dashboard
-              </Button>
-            </div>
-          ))}
       </div>
 
       {/* Character Depth Panel */}

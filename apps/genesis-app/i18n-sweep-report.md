@@ -330,12 +330,6 @@ Total findings: 579
 - L513 [jsx-text] Modern Infographic
 - L514 [jsx-text] Technical Blueprint
 
-## components/StoryMap.tsx (11)
-- L92 [jsx-text] Story Map
-- L105 [title] Zoom out (-)
-- L114 [title] Reset zoom (0)
-- L123 [title] Zoom in (+)
-- L136 [title] Edit pages in Editor
 - L139 [jsx-text] Edit Pages
 - L148 [title] Close (Esc)
 - L204 [alt] Scene

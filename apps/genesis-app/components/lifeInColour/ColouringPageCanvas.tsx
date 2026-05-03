@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Brush, Copy, Download, Eraser, Trash2, Undo2, Upload } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -11,6 +10,8 @@ import {
 } from '../ui/dropdown-menu';
 import { toast } from '../ui/sonner';
 import { createOutlineImageData } from '../../src/lib/colouringPagePipeline';
+import type { LifeInColourDisplaySize } from './lifeInColourSizing';
+import { LIFE_IN_COLOUR_DISPLAY_SIZE_CONFIG } from './lifeInColourSizing';
 
 type ColouringPageCanvasData =
   | {
@@ -30,7 +31,7 @@ interface ColouringPageCanvasProps {
   canvas: ColouringPageCanvasData;
   sourceName: string;
   onReplacePhoto: () => void;
-  renderModeLabel?: string;
+  displaySize?: LifeInColourDisplaySize;
 }
 
 interface Point {
@@ -173,7 +174,7 @@ export function ColouringPageCanvas({
   canvas,
   sourceName,
   onReplacePhoto,
-  renderModeLabel = 'Andrew page',
+  displaySize = 'medium',
 }: ColouringPageCanvasProps) {
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const paintCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -186,10 +187,11 @@ export function ColouringPageCanvas({
   const [strokeCount, setStrokeCount] = useState(0);
   const [baseLayerReady, setBaseLayerReady] = useState(false);
 
-  const statusLabel = useMemo(() => sourceName, [sourceName]);
   const canvasWidth = normalizeCanvasDimension(canvas.width);
   const canvasHeight = normalizeCanvasDimension(canvas.height);
   const brushSize = BRUSH_SIZE_VALUES[brushSizePreset];
+  const displayConfig = LIFE_IN_COLOUR_DISPLAY_SIZE_CONFIG[displaySize];
+  const stageWidthCap = Math.round(displayConfig.maxStageHeight * (canvasWidth / canvasHeight));
 
   const clearPaintLayer = useCallback(() => {
     const canvas = paintCanvasRef.current;
@@ -461,14 +463,6 @@ export function ColouringPageCanvas({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Colouring page</div>
-          <div className="mt-1 text-sm font-semibold text-charcoal-soft">{statusLabel}</div>
-        </div>
-        <Badge variant="secondary">{renderModeLabel}</Badge>
-      </div>
-
       <div className="rounded-[28px] border border-peach-soft bg-surface/90 p-4 shadow-[0_18px_44px_-32px_rgba(0,0,0,0.45)] md:p-5">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -496,7 +490,7 @@ export function ColouringPageCanvas({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-heading uppercase tracking-[0.18em] text-cocoa-light">Size</span>
+              <span className="text-xs font-heading uppercase tracking-[0.18em] text-cocoa-light">Brush size</span>
               <div className="flex items-center gap-1 rounded-full border border-peach-soft bg-cream-base p-1">
                 {BRUSH_SIZE_PRESETS.map((preset) => {
                   const active = brushSizePreset === preset;
@@ -588,8 +582,14 @@ export function ColouringPageCanvas({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[28px] border border-peach-soft bg-white shadow-[0_18px_44px_-32px_rgba(0,0,0,0.45)]">
-        <div className="relative w-full" style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }}>
+      <div
+        className="mx-auto w-full overflow-hidden rounded-[28px] border border-peach-soft bg-white shadow-[0_18px_44px_-32px_rgba(0,0,0,0.45)]"
+        style={{ maxWidth: `${stageWidthCap}px` }}
+      >
+        <div
+          className="relative w-full"
+          style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}`, maxHeight: `${displayConfig.maxStageHeight}px` }}
+        >
           <div className="absolute inset-0 bg-white" />
           <canvas
             ref={paintCanvasRef}

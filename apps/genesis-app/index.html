@@ -607,7 +607,7 @@
     
     /* ── Genesis App Skeleton — shown before React mounts ──
        All colours come from CSS vars set by the theme-detection script below.
-       Defaults match the Genesis Classic light theme.
+      Defaults match the Sunset Scholar light theme.
     */
     :root {
       --sk-bg:      #FFF8E7;
@@ -713,7 +713,7 @@
       nebula: {l:['#EDE7F6','#FFFFFF','#D1C4E9','rgba(255,255,255,0.55)'],d:['#100C1A','#1A152A','#2A2244','rgba(255,255,255,0.05)']},
       sunset: {l:['#FFF3E0','#FFFFFF','#FFCCBC','rgba(255,255,255,0.55)'],d:['#1C120C','#2D1C12','#4A2E1F','rgba(255,255,255,0.05)']}
     };
-    var id=localStorage.getItem('genesis_theme_id')||'genesis';
+    var id=localStorage.getItem('genesis_theme_id')||'sunset';
     var dark=localStorage.getItem('genesis_dark_mode')==='true';
     var t=T[id]||T.genesis;
     var c=dark?t.d:t.l;

@@ -15,18 +15,15 @@ import {
   Users,
 } from 'lucide-react';
 import type { ChangeEvent, DragEvent, ElementType } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { downloadPDF } from '../../services/generator/pdfService';
 import { mastra } from '../../src/services/mastraClient';
 import { usePageSEO } from '../../hooks/usePageSEO';
-import { useLifeInColourHistory } from '../../hooks/useLifeInColourHistory';
-import { useLifeInColourGeneration } from '../../hooks/useLifeInColourGeneration';
 import {
   ArtStyle,
   BookTone,
-  type BookProject,
   type ColoringOutlineMode,
   type GenerationSettings,
 } from '../../types';
@@ -36,6 +33,7 @@ import {
   getColoringOutlineModeConfig,
 } from '../../services/generator/prompts/lifeInColourPrompts';
 import { ColouringPageCanvas } from './ColouringPageCanvas';
+import { LifeInColourHeroBand } from './LifeInColourHeroBand';
 import { SavedGenerationPanel } from './SavedGenerationPanel';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -44,14 +42,15 @@ import { Input, Label, Textarea } from '../ui/input';
 import { Progress } from '../ui/progress';
 import { Slider } from '../ui/slider';
 import { toast } from '../ui/sonner';
+import {
+  type LifeInColourDisplaySize,
+} from './lifeInColourSizing';
+import { LifeInColourPhotoRail, type LifeInColourPhotoItem } from './LifeInColourPhotoRail';
+import { useLifeInColourWorkspace } from '../../src/contexts/LifeInColourWorkspaceContext';
 
 type BookPreset = 'single' | 'family' | 'trip';
 
-interface SelectedPhoto {
-  name: string;
-  sizeLabel: string;
-  file: File;
-}
+type SelectedPhoto = LifeInColourPhotoItem;
 
 const PRESETS: Record<
   BookPreset,
@@ -111,16 +110,13 @@ const joinSignature = (parts: Array<string | number>) => parts.join('::');
 
 function LoadingPanel({ message }: { message: string }) {
   return (
-    <div className="rounded-[28px] border border-peach-soft bg-surface/65 p-5">
-      <div className="flex aspect-[4/5] items-center justify-center rounded-[24px] border border-peach-soft bg-white px-6 text-center">
-        <div className="max-w-xs">
+    <div className="mx-auto w-full max-w-[48rem] rounded-[28px] border border-peach-soft bg-surface/65 p-4">
+      <div className="flex min-h-[18rem] items-center justify-center rounded-[24px] border border-peach-soft bg-white px-6 py-10 text-center">
+        <div className="max-w-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-coral-burst/10 text-coral-burst">
             <Sparkles className="h-6 w-6" />
           </div>
           <p className="font-heading text-lg font-bold text-charcoal-soft">{message}</p>
-          <p className="mt-2 text-sm leading-relaxed text-cocoa-light">
-            Andrew is generating the primary page. The browser fallback stays warm in case the AI run stalls.
-          </p>
         </div>
       </div>
     </div>
@@ -135,9 +131,9 @@ function ErrorPanel({
   onReplacePhoto: () => void;
 }) {
   return (
-    <div className="rounded-[28px] border border-peach-soft bg-surface/65 p-5">
-      <div className="flex aspect-[4/5] items-center justify-center rounded-[24px] border border-coral-burst/20 bg-white px-6 text-center">
-        <div className="max-w-xs">
+    <div className="mx-auto w-full max-w-[48rem] rounded-[28px] border border-peach-soft bg-surface/65 p-4">
+      <div className="flex min-h-[18rem] items-center justify-center rounded-[24px] border border-coral-burst/20 bg-white px-6 py-10 text-center">
+        <div className="max-w-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-coral-burst/10 text-coral-burst">
             <ImageIcon className="h-6 w-6" />
           </div>
@@ -157,45 +153,56 @@ function ErrorPanel({
 
 const LifeInColourPageView = () => {
   const navigate = useNavigate();
-  const [photo, setPhoto] = useState<SelectedPhoto | null>(null);
-  const [preset, setPreset] = useState<BookPreset>('family');
-  const [title, setTitle] = useState(PRESETS.family.title);
-  const [brief, setBrief] = useState(PRESETS.family.brief);
-  const [pageCount, setPageCount] = useState(PRESETS.family.pageCount);
-  const [outlineMode, setOutlineMode] = useState<ColoringOutlineMode>('detailed');
-  const [bookFlowOpen, setBookFlowOpen] = useState(false);
-  const [bookPhase, setBookPhase] = useState<'idle' | 'generating' | 'ready' | 'error'>('idle');
-  const [bookProgress, setBookProgress] = useState(0);
-  const [bookMessage, setBookMessage] = useState('');
-  const [bookProject, setBookProject] = useState<BookProject | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [selectedSavedGenerationId, setSelectedSavedGenerationId] = useState<string | null>(null);
+  const {
+    photos,
+    setPhotos,
+    preset,
+    setPreset,
+    title,
+    setTitle,
+    brief,
+    setBrief,
+    pageCount,
+    setPageCount,
+    outlineMode,
+    setOutlineMode,
+    bookFlowOpen,
+    setBookFlowOpen,
+    bookPhase,
+    setBookPhase,
+    bookProgress,
+    setBookProgress,
+    bookMessage,
+    setBookMessage,
+    bookProject,
+    setBookProject,
+    isExporting,
+    setIsExporting,
+    selectedSavedGenerationId,
+    setSelectedSavedGenerationId,
+    generationCancelRef,
+    generatedBookSignatureRef,
+    pageGeneration,
+    savedHistory,
+  } = useLifeInColourWorkspace();
+  const stageSize: LifeInColourDisplaySize = 'medium';
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const generationCancelRef = useRef<(() => void) | null>(null);
-  const generatedBookSignatureRef = useRef<string | null>(null);
-  const savedHistory = useLifeInColourHistory();
+  const photosRef = useRef<SelectedPhoto[]>([]);
 
   usePageSEO({
     title: 'Life in Colour',
     description:
-      'Upload a photo, generate an AI colouring page, and optionally expand it into a printable book.',
+      'Upload your images, generate colouring pages, and optionally expand them into a printable book.',
     canonical: '/life-in-colour',
   });
 
   useEffect(() => {
-    return () => {
-      generationCancelRef.current?.();
-    };
-  }, []);
+    photosRef.current = photos;
+  }, [photos]);
 
   const currentPreset = PRESETS[preset];
   const currentOutlineMode = getColoringOutlineModeConfig(outlineMode);
-  const pageGeneration = useLifeInColourGeneration({
-    photo,
-    title: title.trim() || currentPreset.title,
-    brief: brief.trim() || currentPreset.brief,
-    outlineMode,
-  });
+  const photo = photos[0] ?? null;
   const isPageReady = pageGeneration.phase === 'ready_ai' || pageGeneration.phase === 'fallback_local';
   const isBookWorking = bookPhase === 'generating';
   const selectedSavedGeneration =
@@ -207,14 +214,16 @@ const LifeInColourPageView = () => {
   const bookSignature = useMemo(
     () =>
       joinSignature([
+        photo?.id ?? '',
         photo?.name ?? '',
+        photos.map((photoItem) => photoItem.id).join('|'),
         preset,
         outlineMode,
         title.trim() || currentPreset.title,
         brief.trim() || currentPreset.brief,
         pageCount,
       ]),
-    [brief, currentPreset.brief, currentPreset.title, outlineMode, pageCount, photo?.name, preset, title]
+    [brief, currentPreset.brief, currentPreset.title, outlineMode, pageCount, photo?.id, photo?.name, photos, preset, title]
   );
 
   const isBookResultStale = Boolean(bookProject) && generatedBookSignatureRef.current !== null
@@ -229,7 +238,9 @@ const LifeInColourPageView = () => {
     generationCancelRef.current?.();
     generationCancelRef.current = null;
     generatedBookSignatureRef.current = null;
-    setPhoto(null);
+    photosRef.current.forEach((photoItem) => URL.revokeObjectURL(photoItem.previewUrl));
+    photosRef.current = [];
+    setPhotos([]);
     setPreset('family');
     setTitle(PRESETS.family.title);
     setBrief(PRESETS.family.brief);
@@ -258,22 +269,19 @@ const LifeInColourPageView = () => {
         return;
       }
 
-      if (incomingFiles.length > 1) {
-        toast.info('Using the first photo only.', {
-          description: 'Life in Colour starts from one image, then expands if you want a book.',
-        });
-      }
+      const nextPhotos = incomingFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        name: file.name,
+        sizeLabel: formatFileSize(file.size),
+        previewUrl: URL.createObjectURL(file),
+      }));
 
-      const file = incomingFiles[0];
-      if (!file) {
+      if (nextPhotos.length === 0) {
         return;
       }
 
-      setPhoto({
-        name: file.name,
-        sizeLabel: formatFileSize(file.size),
-        file,
-      });
+      setPhotos((current) => [...current, ...nextPhotos]);
       setBookFlowOpen(false);
       setBookProject(null);
       setSelectedSavedGenerationId(null);
@@ -281,6 +289,12 @@ const LifeInColourPageView = () => {
       setBookProgress(0);
       setBookMessage('');
       generatedBookSignatureRef.current = null;
+
+      if (nextPhotos.length > 1) {
+        toast.success('Photos added', {
+          description: `${nextPhotos.length} images are now in the Life in Colour rail.`,
+        });
+      }
     },
     []
   );
@@ -312,6 +326,29 @@ const LifeInColourPageView = () => {
     setBookPhase('idle');
     setBookProgress(0);
     setBookMessage('');
+  }, []);
+
+  const handleRemovePhoto = useCallback((photoId: string) => {
+    setPhotos((current) => {
+      const removedPhoto = current.find((photoItem) => photoItem.id === photoId) ?? null;
+      const nextPhotos = current.filter((photoItem) => photoItem.id !== photoId);
+
+      if (removedPhoto) {
+        URL.revokeObjectURL(removedPhoto.previewUrl);
+      }
+
+      if (nextPhotos.length === 0) {
+        setBookFlowOpen(false);
+        setBookProject(null);
+        setSelectedSavedGenerationId(null);
+        setBookPhase('idle');
+        setBookProgress(0);
+        setBookMessage('');
+        generatedBookSignatureRef.current = null;
+      }
+
+      return nextPhotos;
+    });
   }, []);
 
   const handleCancelGeneration = useCallback(() => {
@@ -351,7 +388,7 @@ const LifeInColourPageView = () => {
     });
 
     setBookProject(null);
-    const bookPrompt = `${prompt}\n\nSource photo: ${photo.name}`;
+    const bookPrompt = `${prompt}\n\nSource image: uploaded photo`;
 
     setBookPhase('generating');
     setBookProgress(8);
@@ -529,14 +566,14 @@ const LifeInColourPageView = () => {
         event.preventDefault();
       }}
       onDrop={handleDrop}
-      className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-[28px] border border-peach-soft bg-cream-base/90 px-6 py-8 text-center outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-coral-burst/35 hover:bg-coral-burst/5 active:scale-[0.99]"
+      className="mx-auto flex min-h-[170px] w-full max-w-[44rem] cursor-pointer flex-col items-center justify-center rounded-[28px] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-6 py-6 text-center outline-none"
     >
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] bg-linear-to-br from-sky-400 to-emerald-400 text-white shadow-sm">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[color:var(--color-background)] text-coral-burst shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_10px_24px_-18px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
         <Upload className="h-7 w-7" />
       </div>
-      <p className="font-heading text-lg font-bold text-charcoal-soft">Drop one photo here</p>
+      <p className="font-heading text-lg font-bold text-charcoal-soft">Drop one or more photos here</p>
       <p className="mt-2 max-w-lg text-sm leading-relaxed text-cocoa-light">
-        Andrew turns one photo into a printable colouring page first. If the AI run fails, the browser fallback takes over automatically.
+        Andrew turns your images into printable colouring pages. Add more photos when you want options.
       </p>
     </button>
   );
@@ -624,53 +661,25 @@ const LifeInColourPageView = () => {
             <ArrowLeft className="h-4 w-4" />
             Back to Create
           </Button>
-          <Badge variant="primary" className="gap-2 px-3 py-1.5">
-            <Sparkles className="h-3.5 w-3.5" />
-            Camera roll to colouring page
-          </Badge>
         </div>
 
-        <div className="mb-8 max-w-4xl md:mb-10">
-          <h1 className="font-heading text-4xl font-bold tracking-tight text-charcoal-soft md:text-5xl">
-            Life in Colour
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-cocoa-light md:text-lg">
-            Upload one photo, trace it into a colouring page in your browser, and open the book flow only if you want
-            to expand that page into a printable set.
-          </p>
-        </div>
+      </div>
 
-        <div className={`grid gap-6 ${bookFlowOpen ? 'lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]' : 'lg:grid-cols-1'}`}>
+      <div className="px-3 md:px-4 lg:px-6">
+        <LifeInColourHeroBand />
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <div className={`mt-6 grid gap-6 md:mt-8 ${bookFlowOpen ? 'lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]' : 'lg:grid-cols-1'}`}>
           <Card className="overflow-hidden">
             <CardHeader className="pb-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Camera className="h-5 w-5 text-coral-burst" />
-                    {photo ? 'Colouring page' : 'Photo source'}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {photo
-                      ? pageGeneration.phase === 'fallback_local'
-                        ? `Andrew fell back to a local page for ${photo.name}.`
-                        : `Andrew is building ${photo.name} into a colouring page.`
-                      : 'Camera roll or upload. The page is created automatically.'}
-                  </CardDescription>
-                </div>
-                <Badge variant="secondary">
-                  {photo
-                    ? pageGeneration.phase === 'uploading'
-                      ? 'Uploading'
-                      : pageGeneration.phase === 'generating_ai'
-                        ? 'Andrew'
-                        : pageGeneration.phase === 'fallback_local'
-                          ? 'Fallback'
-                          : pageGeneration.phase === 'error'
-                            ? 'Needs attention'
-                            : 'Ready'
-                    : '1 photo only'}
-                </Badge>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-coral-burst" />
+                {photo ? 'Colouring page' : 'Photo source'}
+              </CardTitle>
+              <CardDescription className="mt-1">
+                {photo ? 'Andrew is building a colouring page from your uploads.' : 'Upload your images to begin.'}
+              </CardDescription>
             </CardHeader>
 
             <CardContent className="flex flex-col gap-5">
@@ -685,38 +694,47 @@ const LifeInColourPageView = () => {
               {!photo ? (
                 uploadZone
               ) : pageGeneration.phase === 'uploading' || pageGeneration.phase === 'generating_ai' ? (
-                <LoadingPanel message={pageGeneration.message || 'Andrew is drawing the colouring page...'} />
+                <LoadingPanel message={pageGeneration.message || 'Andrew is drawing your colouring page...'} />
               ) : pageGeneration.phase === 'error' ? (
                 <ErrorPanel
                   message={pageGeneration.errorMessage || pageGeneration.message || 'The page could not be processed.'}
                   onReplacePhoto={handleChoosePhoto}
                 />
               ) : (
-                <ColouringPageCanvas
-                  key={photo.name}
-                  canvas={
-                    pageGeneration.phase === 'ready_ai' && pageGeneration.aiImageUrl
-                      ? {
-                          kind: 'image',
-                          width: pageGeneration.localPipeline.width || 1536,
-                          height: pageGeneration.localPipeline.height || 1536,
-                          imageUrl: pageGeneration.aiImageUrl,
-                        }
-                      : {
-                          kind: 'outline',
-                          width: pageGeneration.localPipeline.width,
-                          height: pageGeneration.localPipeline.height,
-                          outlinePixels: pageGeneration.localPipeline.outlinePixels ?? new Uint8ClampedArray(),
-                        }
-                  }
-                  sourceName={
-                    pageGeneration.phase === 'ready_ai'
-                      ? pageGeneration.generation?.title || photo.name
-                      : pageGeneration.localPipeline.sourceName ?? photo.name
-                  }
-                  onReplacePhoto={handleChoosePhoto}
-                  renderModeLabel={pageGeneration.phase === 'fallback_local' ? 'Local fallback' : 'Andrew page'}
-                />
+                <div className="flex flex-col gap-4">
+                  <LifeInColourPhotoRail
+                    photos={photos}
+                    layoutSize={stageSize}
+                    onAddPhoto={handleChoosePhoto}
+                    onRemovePhoto={handleRemovePhoto}
+                  />
+
+                  <ColouringPageCanvas
+                    key={photo.id}
+                    canvas={
+                      pageGeneration.phase === 'ready_ai' && pageGeneration.aiImageUrl
+                        ? {
+                            kind: 'image',
+                            width: pageGeneration.localPipeline.width || 1536,
+                            height: pageGeneration.localPipeline.height || 1536,
+                            imageUrl: pageGeneration.aiImageUrl,
+                          }
+                        : {
+                            kind: 'outline',
+                            width: pageGeneration.localPipeline.width,
+                            height: pageGeneration.localPipeline.height,
+                            outlinePixels: pageGeneration.localPipeline.outlinePixels ?? new Uint8ClampedArray(),
+                          }
+                    }
+                    sourceName={
+                      pageGeneration.phase === 'ready_ai'
+                        ? pageGeneration.generation?.title || 'Your colouring page'
+                        : pageGeneration.localPipeline.sourceName ?? 'Your colouring page'
+                    }
+                    onReplacePhoto={handleChoosePhoto}
+                    displaySize={stageSize}
+                  />
+                </div>
               )}
 
               <div className="flex flex-wrap gap-3">
@@ -738,16 +756,18 @@ const LifeInColourPageView = () => {
             </CardContent>
           </Card>
 
-          <div className="lg:col-span-1">
-            <SavedGenerationPanel
-              generations={savedHistory.generations}
-              selectedId={selectedSavedGenerationId}
-              onSelect={(generation) => setSelectedSavedGenerationId(generation.id)}
-              onClear={() => setSelectedSavedGenerationId(null)}
-              isLoading={savedHistory.isLoading}
-              error={savedHistory.error}
-            />
-          </div>
+          {savedHistory.isLoading || savedHistory.error || savedHistory.generations.length > 0 ? (
+            <div className="lg:col-span-1">
+              <SavedGenerationPanel
+                generations={savedHistory.generations}
+                selectedId={selectedSavedGenerationId}
+                onSelect={(generation) => setSelectedSavedGenerationId(generation.id)}
+                onClear={() => setSelectedSavedGenerationId(null)}
+                isLoading={savedHistory.isLoading}
+                error={savedHistory.error}
+              />
+            </div>
+          ) : null}
 
           {savedGenerationPreview ? (
             <div className="lg:col-span-1">{savedGenerationPreview}</div>

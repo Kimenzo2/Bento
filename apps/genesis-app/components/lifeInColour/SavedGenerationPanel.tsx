@@ -32,12 +32,16 @@ export function SavedGenerationPanel({
   isLoading,
   error,
 }: SavedGenerationPanelProps) {
+  if (!isLoading && !error && generations.length === 0) {
+    return null;
+  }
+
   return (
     <div className="rounded-[28px] border border-peach-soft bg-surface/75 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Saved pages</div>
-          <div className="mt-1 text-sm font-semibold text-charcoal-soft">Reopen a previous Andrew run</div>
+          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Previous colouring pages</div>
+          <div className="mt-1 text-sm font-semibold text-charcoal-soft">Open a saved colouring page</div>
         </div>
         <Badge variant="secondary">{generations.length}</Badge>
       </div>
@@ -51,11 +55,7 @@ export function SavedGenerationPanel({
       <div className="mt-4 flex flex-col gap-3">
         {isLoading ? (
           <div className="rounded-2xl border border-peach-soft bg-white px-4 py-5 text-sm text-cocoa-light">
-            Loading saved pages...
-          </div>
-        ) : generations.length === 0 ? (
-          <div className="rounded-2xl border border-peach-soft bg-white px-4 py-5 text-sm text-cocoa-light">
-            Your saved Andrew generations will appear here after the first render.
+            Loading previous colouring pages...
           </div>
         ) : (
           generations.map((generation) => {
