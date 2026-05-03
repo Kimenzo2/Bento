@@ -13,17 +13,17 @@ explicitly requests a change and confirms they understand the payment impact.
 
 ### Frozen Files (DO NOT MODIFY)
 
-| File | Why it is frozen |
-|---|---|
-| `api/dodo.ts` | The entire Dodo Payments server — checkout, webhook handler, profile sync |
-| `vercel.json` | Contains webhook/checkout rewrites and `trailingSlash: false` — changing this breaks webhooks |
-| `supabase/migrations/007_add_dodo_payments.sql` | Live DB schema for payment_provider column |
-| `supabase/migrations/009_payment_history.sql` | Live DB schema for payment_history table |
-| `supabase/migrations/011_dodo_subscription_management.sql` | Live DB schema for subscription columns |
-| `supabase/migrations/012_dodo_profile_reconciliation.sql` | Webhook trigger that syncs profiles on payment events |
-| `services/dodoService.ts` | Frontend service that calls checkout endpoint |
-| `components/onboarding/ProRevealMoment.tsx` | Listens to payment_history realtime for upgrade animation |
-| `components/PaymentCallback.tsx` | Post-checkout redirect handler |
+| File                                                       | Why it is frozen                                                                              |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `api/dodo.ts`                                              | The entire Dodo Payments server — checkout, webhook handler, profile sync                     |
+| `vercel.json`                                              | Contains webhook/checkout rewrites and `trailingSlash: false` — changing this breaks webhooks |
+| `supabase/migrations/007_add_dodo_payments.sql`            | Live DB schema for payment_provider column                                                    |
+| `supabase/migrations/009_payment_history.sql`              | Live DB schema for payment_history table                                                      |
+| `supabase/migrations/011_dodo_subscription_management.sql` | Live DB schema for subscription columns                                                       |
+| `supabase/migrations/012_dodo_profile_reconciliation.sql`  | Webhook trigger that syncs profiles on payment events                                         |
+| `services/dodoService.ts`                                  | Frontend service that calls checkout endpoint                                                 |
+| `components/onboarding/ProRevealMoment.tsx`                | Listens to payment_history realtime for upgrade animation                                     |
+| `components/PaymentCallback.tsx`                           | Post-checkout redirect handler                                                                |
 
 ### Frozen Configuration Values
 
@@ -39,6 +39,7 @@ These values are set correctly. Changing them breaks payments:
 These columns and tables are written to by the live webhook handler. Do not rename, drop, or change their types:
 
 **`profiles` table:**
+
 - `user_tier` (text) — CHECK: `'SPARK', 'CREATOR', 'STUDIO', 'EMPIRE'`
 - `subscription_status` (text) — CHECK: `'none', 'inactive', 'active', 'cancelled', 'on_hold', 'past_due', 'payment_failed'`
 - `subscription_plan_code` (text)
@@ -49,15 +50,18 @@ These columns and tables are written to by the live webhook handler. Do not rena
 - `payment_provider` (text) — CHECK: `'none', 'dodo'`
 
 **`payment_history` table:**
+
 - `user_id`, `provider`, `payment_id`, `subscription_id`, `amount`, `currency`, `plan`, `status`, `event_type`, `metadata`, `created_at`
 - `provider` CHECK: `'dodo'`
 - `plan` CHECK: `'spark', 'creator', 'studio', 'empire', NULL`
 
 **`processed_webhooks` table:**
+
 - `webhook_id`, `event_type`, `processed_at`, `payload`
 - Has an AFTER INSERT trigger (`trg_processed_webhooks_dodo_profile_sync`) that calls `apply_dodo_webhook_profile_sync()` — do not drop this trigger
 
 **RPC functions (do not drop or rename):**
+
 - `downgrade_to_spark(p_user_id UUID)`
 - `get_today_upgrade_count(p_user_id UUID)`
 - `apply_dodo_webhook_profile_sync(p_event_type TEXT, p_payload JSONB)`
@@ -73,6 +77,7 @@ These Vercel env vars are configured for live Dodo payments. Do not change the v
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`
 
 When adding env vars via `vercel env add`, pipe the value through `printf` (not `echo`) to avoid trailing newline corruption:
+
 ```bash
 printf 'the_value' | npx vercel env add VAR_NAME production --yes
 ```
@@ -89,13 +94,14 @@ The checkout uses `checkoutSessions.create()` (see `api/dodo.ts`). Do not change
 
 This causes Vercel to issue 308 redirects on webhook URLs, which silently drops the POST body. Dodo's webhook client does not follow redirects. This was the root cause of a production outage.
 
-### 3. Never import _middleware.ts in api/dodo.ts
+### 3. Never import \_middleware.ts in api/dodo.ts
 
 The `_middleware.ts` file imports `jose` which is ESM-only. A static import at module level crashes the entire serverless function before any handler code runs, causing `FUNCTION_INVOCATION_FAILED` on every request.
 
 ### 4. Never add Paystack references back
 
 Paystack has been fully removed. The payment provider is Dodo. Do not:
+
 - Add `paystack` to any CHECK constraint
 - Create columns with `paystack_` prefix
 - Import Paystack SDKs
@@ -108,6 +114,7 @@ All RLS policies use `(SELECT auth.uid())` and `(SELECT auth.role())` with the `
 ### 6. Database changes require verification
 
 Before modifying any migration file or running SQL against production:
+
 - Verify the column/table is not referenced in `api/dodo.ts`
 - Verify it is not referenced in `supabase/migrations/012_dodo_profile_reconciliation.sql`
 - Verify the CHECK constraints allow all values the webhook handler writes
@@ -149,6 +156,7 @@ Frontend (React SPA)
 ## When in Doubt
 
 If you are unsure whether a change affects payments:
+
 1. **ASK the project owner** before proceeding
 2. Search `api/dodo.ts` for any column or table name you plan to change
 3. Search `supabase/migrations/012_dodo_profile_reconciliation.sql` for the same
@@ -179,4 +187,3 @@ Performance is the primary architecture filter. For landing and app surfaces, ch
 ### Hard rule: Vite app migration
 
 The Vite application must not be migrated to Next.js. It may be relocated inside a monorepo, but the runtime framework and behavior of the app must remain Vite-based unless the owner explicitly directs otherwise.
-

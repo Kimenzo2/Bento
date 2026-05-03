@@ -47,7 +47,10 @@ async function testEmbedding() {
   try {
     const embedding = await generateEmbeddingVector('Once upon a time in a magical kingdom');
     console.log('  Embedding dimension:', embedding.length);
-    console.log('  First 5 values:', embedding.slice(0, 5).map((v) => v.toFixed(4)));
+    console.log(
+      '  First 5 values:',
+      embedding.slice(0, 5).map((v) => v.toFixed(4))
+    );
     console.log('  PASS: Embedding generation works (dim:', embedding.length, ')\n');
     return true;
   } catch (err: any) {
@@ -172,4 +175,3 @@ main().catch((err) => {
   console.error('Unhandled error:', err);
   process.exit(1);
 });
-

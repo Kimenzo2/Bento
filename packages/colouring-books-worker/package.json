@@ -1,9 +1,9 @@
 {
   "name": "@genesis/colouring-books-worker",
-  "private": true,
   "version": "0.1.0",
-  "type": "module",
+  "private": true,
   "description": "Deterministic backend worker for Genesis Colouring Books",
+  "type": "module",
   "scripts": {
     "dev": "node --watch --import tsx src/worker.ts",
     "start": "node --import tsx src/worker.ts",
@@ -19,8 +19,8 @@
     "tsx": "^4.20.6"
   },
   "devDependencies": {
-    "@typescript/native-preview": "beta",
     "@types/node": "^22.10.2",
+    "@typescript/native-preview": "beta",
     "typescript": "^6.0.2"
   }
 }

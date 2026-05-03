@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type {
-  ColoringOutlineMode,
-  LifeInColourGenerationRecord,
-} from '../types';
+import type { ColoringOutlineMode, LifeInColourGenerationRecord } from '../types';
 import { mastra } from '../src/services/mastraClient';
 import { useColouringPagePipeline } from './useColouringPagePipeline';
 import { uploadLifeInColourSource } from '../services/lifeInColourStorage';
@@ -204,7 +201,9 @@ export function useLifeInColourGeneration({
           }
 
           if (response.generation.status === 'failed') {
-            failWithFallback(response.generation.errorMessage || 'Andrew could not finish this page.');
+            failWithFallback(
+              response.generation.errorMessage || 'Andrew could not finish this page.'
+            );
             return;
           }
 
@@ -216,7 +215,8 @@ export function useLifeInColourGeneration({
           await sleep(POLL_INTERVAL_MS);
         }
       } catch (error) {
-        const nextMessage = error instanceof Error ? error.message : 'Andrew could not finish this page.';
+        const nextMessage =
+          error instanceof Error ? error.message : 'Andrew could not finish this page.';
         failWithFallback(nextMessage);
       }
     };
@@ -240,6 +240,16 @@ export function useLifeInColourGeneration({
       fallbackReason: pendingFallbackReason,
       localPipeline,
     }),
-    [active, aiImageUrl, errorMessage, generation, generationId, localPipeline, message, pendingFallbackReason, phase]
+    [
+      active,
+      aiImageUrl,
+      errorMessage,
+      generation,
+      generationId,
+      localPipeline,
+      message,
+      pendingFallbackReason,
+      phase,
+    ]
   );
 }

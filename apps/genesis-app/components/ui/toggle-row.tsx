@@ -65,9 +65,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
           !disabled ? 'cursor-pointer' : 'cursor-not-allowed'
         )}
       >
-        {Icon && (
-          <Icon className="w-5 h-5 text-coral-burst shrink-0" aria-hidden="true" />
-        )}
+        {Icon && <Icon className="w-5 h-5 text-coral-burst shrink-0" aria-hidden="true" />}
         <div className="flex flex-col min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
             <span
@@ -85,9 +83,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
             )}
           </div>
           {description && (
-            <span className="text-xs text-cocoa-light mt-0.5 line-clamp-2">
-              {description}
-            </span>
+            <span className="text-xs text-cocoa-light mt-0.5 line-clamp-2">{description}</span>
           )}
         </div>
       </label>

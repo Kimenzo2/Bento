@@ -44,7 +44,8 @@ function storeStyleGuide(bookId: string, guide: z.infer<typeof StyleGuideSchema>
  */
 const enforceStyleConsistency = createTool({
   id: 'enforceStyleConsistency',
-  description: 'Wraps an image generation prompt with style enforcement from the StyleGuide to ensure visual consistency across all illustrations',
+  description:
+    'Wraps an image generation prompt with style enforcement from the StyleGuide to ensure visual consistency across all illustrations',
   inputSchema: z.object({
     prompt: z.string().describe('The raw image generation prompt'),
     styleGuide: StyleGuideSchema.describe('The book style guide to enforce'),
@@ -103,7 +104,8 @@ const enforceStyleConsistency = createTool({
  */
 const prepareForVideoGeneration = createTool({
   id: 'prepareForVideoGeneration',
-  description: '[STUB] Prepares style guide for video generation pipeline. Returns null — video generation not yet implemented.',
+  description:
+    '[STUB] Prepares style guide for video generation pipeline. Returns null — video generation not yet implemented.',
   inputSchema: z.object({
     styleGuide: StyleGuideSchema,
   }),
@@ -123,7 +125,8 @@ const prepareForVideoGeneration = createTool({
     return {
       videoReady: false,
       videoStyleParams: null,
-      message: 'Video generation coming to Empire tier. Style guide prepared for future Veo 3.1 integration.',
+      message:
+        'Video generation coming to Empire tier. Style guide prepared for future Veo 3.1 integration.',
     };
   },
 });

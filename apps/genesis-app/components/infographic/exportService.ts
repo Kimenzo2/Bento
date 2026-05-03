@@ -39,10 +39,7 @@ export const exportToPDF = async (elementId: string, fileName: string) => {
   }
 
   try {
-    const [{ toCanvas }, { jsPDF }] = await Promise.all([
-      import('html-to-image'),
-      import('jspdf'),
-    ]);
+    const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')]);
     const canvas = await toCanvas(element, {
       pixelRatio: 2,
       backgroundColor: '#ffffff',

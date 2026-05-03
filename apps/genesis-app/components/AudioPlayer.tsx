@@ -14,7 +14,13 @@ import { useEffect, useState } from 'react';
 import { type NarrationOptions, useAudioImmersion } from '../services/audioImmersionService';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AudioPlayerProps {
   pages: string[];
@@ -308,10 +314,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               {audio.childFriendlyVoices.length > 0 && (
                 <div>
                   <Label className="text-cocoa-light mb-2">Voice</Label>
-                  <Select onValueChange={(v) => {
-                    const voice = audio.voices.find((voice) => voice.name === v);
-                    if (voice) audio.setOptions({ voice });
-                  }}>
+                  <Select
+                    onValueChange={(v) => {
+                      const voice = audio.voices.find((voice) => voice.name === v);
+                      if (voice) audio.setOptions({ voice });
+                    }}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Auto-select" />
                     </SelectTrigger>

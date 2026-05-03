@@ -62,9 +62,7 @@ export class GenRendererProxy {
       );
       this.sharedArray = new Float32Array(this.sharedBuffer);
     } catch {
-      console.warn(
-        '[GenRendererProxy] SharedArrayBuffer unavailable, using postMessage fallback'
-      );
+      console.warn('[GenRendererProxy] SharedArrayBuffer unavailable, using postMessage fallback');
     }
 
     // Create worker
@@ -115,10 +113,7 @@ export class GenRendererProxy {
       this.onReadyCallbacks.push(resolve);
       this.onErrorCallbacks.push((msg) => reject(new Error(msg)));
       // Timeout after 5 seconds
-      setTimeout(
-        () => reject(new Error('[GenRendererProxy] Init timeout')),
-        5000
-      );
+      setTimeout(() => reject(new Error('[GenRendererProxy] Init timeout')), 5000);
     });
   }
 

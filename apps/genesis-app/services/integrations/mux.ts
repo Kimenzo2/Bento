@@ -214,10 +214,7 @@ class MuxService {
   /**
    * List assets
    */
-  async listAssets(options?: {
-    limit?: number;
-    page?: number;
-  }): Promise<MuxAsset[]> {
+  async listAssets(options?: { limit?: number; page?: number }): Promise<MuxAsset[]> {
     const params = new URLSearchParams();
     if (options?.limit) params.set('limit', String(options.limit));
     if (options?.page) params.set('page', String(options.page));

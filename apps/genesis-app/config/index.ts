@@ -3,11 +3,4 @@
  * @module config
  */
 
-export {
-  env,
-  isDevelopment,
-  isProduction,
-  isTest,
-  validateEnv,
-  getFeatureFlag,
-} from './env';
+export { env, isDevelopment, isProduction, isTest, validateEnv, getFeatureFlag } from './env';

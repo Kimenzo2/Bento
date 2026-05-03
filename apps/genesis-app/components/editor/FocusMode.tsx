@@ -34,8 +34,7 @@ const FocusModeWritingPanel: React.FC<FocusModeWritingPanelProps> = ({
 
   // Respect prefers-reduced-motion
   const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (!isVisible) return null;
 
@@ -72,9 +71,7 @@ const FocusModeWritingPanel: React.FC<FocusModeWritingPanelProps> = ({
             lineHeight: 1.75,
             maxHeight: 160,
             minHeight: 80,
-            boxShadow: isFocused
-              ? 'inset 2px 0 0 var(--color-primary-start)'
-              : 'none',
+            boxShadow: isFocused ? 'inset 2px 0 0 var(--color-primary-start)' : 'none',
           }}
           spellCheck
         />

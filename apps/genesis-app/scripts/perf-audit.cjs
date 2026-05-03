@@ -40,18 +40,35 @@ const { chromium } = require('playwright');
 
     // Resource breakdown
     const resources = performance.getEntriesByType('resource');
-    let totalJS = 0, totalCSS = 0, totalImg = 0, totalFont = 0, totalOther = 0;
-    let jsCount = 0, cssCount = 0, imgCount = 0, fontCount = 0;
+    let totalJS = 0,
+      totalCSS = 0,
+      totalImg = 0,
+      totalFont = 0,
+      totalOther = 0;
+    let jsCount = 0,
+      cssCount = 0,
+      imgCount = 0,
+      fontCount = 0;
     const slowResources = [];
 
     for (const r of resources) {
       const size = r.transferSize || 0;
       const duration = Math.round(r.duration);
-      if (r.initiatorType === 'script') { totalJS += size; jsCount++; }
-      else if (r.initiatorType === 'css' || r.name.includes('.css')) { totalCSS += size; cssCount++; }
-      else if (r.initiatorType === 'img' || r.name.match(/\.(png|jpg|jpeg|webp|svg|gif|ico)/)) { totalImg += size; imgCount++; }
-      else if (r.name.match(/\.(woff2|ttf|otf)/)) { totalFont += size; fontCount++; }
-      else { totalOther += size; }
+      if (r.initiatorType === 'script') {
+        totalJS += size;
+        jsCount++;
+      } else if (r.initiatorType === 'css' || r.name.includes('.css')) {
+        totalCSS += size;
+        cssCount++;
+      } else if (r.initiatorType === 'img' || r.name.match(/\.(png|jpg|jpeg|webp|svg|gif|ico)/)) {
+        totalImg += size;
+        imgCount++;
+      } else if (r.name.match(/\.(woff2|ttf|otf)/)) {
+        totalFont += size;
+        fontCount++;
+      } else {
+        totalOther += size;
+      }
 
       if (duration > 500) {
         slowResources.push({
@@ -80,7 +97,7 @@ const { chromium } = require('playwright');
     results.lazyImages = document.querySelectorAll('img[loading="lazy"]').length;
     results.eagerImages = document.querySelectorAll('img[loading="eager"]').length;
     results.imagesWithoutDimensions = 0;
-    document.querySelectorAll('img').forEach(function(img) {
+    document.querySelectorAll('img').forEach(function (img) {
       if (!img.getAttribute('width') || !img.getAttribute('height')) {
         results.imagesWithoutDimensions++;
       }
@@ -111,10 +128,18 @@ const { chromium } = require('playwright');
 
   console.log('RESOURCE BREAKDOWN');
   console.log('───────────────────────────────────');
-  console.log(`  JavaScript:  ${metrics.resources.js.count} files, ${metrics.resources.js.sizeKB}KB`);
-  console.log(`  CSS:         ${metrics.resources.css.count} files, ${metrics.resources.css.sizeKB}KB`);
-  console.log(`  Images:      ${metrics.resources.images.count} files, ${metrics.resources.images.sizeKB}KB`);
-  console.log(`  Fonts:       ${metrics.resources.fonts.count} files, ${metrics.resources.fonts.sizeKB}KB`);
+  console.log(
+    `  JavaScript:  ${metrics.resources.js.count} files, ${metrics.resources.js.sizeKB}KB`
+  );
+  console.log(
+    `  CSS:         ${metrics.resources.css.count} files, ${metrics.resources.css.sizeKB}KB`
+  );
+  console.log(
+    `  Images:      ${metrics.resources.images.count} files, ${metrics.resources.images.sizeKB}KB`
+  );
+  console.log(
+    `  Fonts:       ${metrics.resources.fonts.count} files, ${metrics.resources.fonts.sizeKB}KB`
+  );
   console.log(`  Other:       ${metrics.resources.other.sizeKB}KB`);
   console.log(`  ─────────────────────────────`);
   console.log(`  TOTAL:       ${metrics.totalRequests} requests, ${metrics.resources.totalKB}KB`);
@@ -141,16 +166,27 @@ const { chromium } = require('playwright');
   // Grading
   console.log('GRADE CARD (vs Google "Good" thresholds)');
   console.log('───────────────────────────────────');
-  const grade = (val, good, ok) => val <= good ? 'GOOD' : val <= ok ? 'NEEDS WORK' : 'POOR';
+  const grade = (val, good, ok) => (val <= good ? 'GOOD' : val <= ok ? 'NEEDS WORK' : 'POOR');
   // Note: these are dev-server numbers; prod will be significantly better
-  console.log(`  FCP:  ${metrics.fcp}ms — ${grade(metrics.fcp, 1800, 3000)} (good < 1.8s, ok < 3s)`);
-  console.log(`  LCP:  ${metrics.lcp}ms — ${grade(metrics.lcp, 2500, 4000)} (good < 2.5s, ok < 4s)`);
-  console.log(`  TTFB: ${metrics.ttfb}ms — ${grade(metrics.ttfb, 800, 1800)} (good < 800ms, ok < 1.8s)`);
-  console.log(`  CLS risk (imgs w/o dims): ${metrics.imagesWithoutDimensions} — ${metrics.imagesWithoutDimensions === 0 ? 'GOOD' : 'POOR'}`);
+  console.log(
+    `  FCP:  ${metrics.fcp}ms — ${grade(metrics.fcp, 1800, 3000)} (good < 1.8s, ok < 3s)`
+  );
+  console.log(
+    `  LCP:  ${metrics.lcp}ms — ${grade(metrics.lcp, 2500, 4000)} (good < 2.5s, ok < 4s)`
+  );
+  console.log(
+    `  TTFB: ${metrics.ttfb}ms — ${grade(metrics.ttfb, 800, 1800)} (good < 800ms, ok < 1.8s)`
+  );
+  console.log(
+    `  CLS risk (imgs w/o dims): ${metrics.imagesWithoutDimensions} — ${metrics.imagesWithoutDimensions === 0 ? 'GOOD' : 'POOR'}`
+  );
   console.log('');
   console.log('NOTE: These are DEV SERVER numbers. Production (Vercel)');
   console.log('will be significantly faster due to minification, gzip,');
   console.log('CDN edge caching, and HTTP/2 multiplexing.');
 
   await browser.close();
-})().catch(e => { console.error(e.message); process.exit(1); });
+})().catch((e) => {
+  console.error(e.message);
+  process.exit(1);
+});

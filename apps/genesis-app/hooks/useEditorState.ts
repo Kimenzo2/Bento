@@ -19,13 +19,7 @@ import {
 import { mastra } from '../src/services/mastraClient';
 import { saveBook } from '../services/storageService';
 import { type ConsistencyIssue, storyBibleService } from '../services/storyBibleService';
-import {
-  type BookProject,
-  type Character,
-  type Page,
-  type StoryBible,
-  UserTier,
-} from '../types';
+import { type BookProject, type Character, type Page, type StoryBible, UserTier } from '../types';
 import { getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
 
 function redistributePagesAcrossChapters(
@@ -118,16 +112,15 @@ export function useEditorState({
   const [isSaving, setIsSaving] = useState(false);
 
   // ── Quality panels ──
-  const [storyBible, setStoryBible] = useState<StoryBible | null>(
-    project.storyBible || null
-  );
+  const [storyBible, setStoryBible] = useState<StoryBible | null>(project.storyBible || null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAudienceSafety, setShowAudienceSafety] = useState(false);
   const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
 
   // ── Green Room & Remix ──
   const [showGreenRoom, setShowGreenRoom] = useState(false);
-  const [selectedCharacterForInterview, setSelectedCharacterForInterview] = useState<Character | null>(null);
+  const [selectedCharacterForInterview, setSelectedCharacterForInterview] =
+    useState<Character | null>(null);
   const [showRemixStudio, setShowRemixStudio] = useState(false);
 
   // ── Feature panels ──
@@ -177,21 +170,23 @@ export function useEditorState({
   const saveStatus: SaveStatus = autoSaveState.error
     ? 'error'
     : autoSaveState.isSaving || isSaving
-    ? 'saving'
-    : autoSaveState.hasUnsavedChanges
-    ? 'unsaved'
-    : autoSaveState.lastSaved
-    ? 'saved'
-    : 'idle';
+      ? 'saving'
+      : autoSaveState.hasUnsavedChanges
+        ? 'unsaved'
+        : autoSaveState.lastSaved
+          ? 'saved'
+          : 'idle';
 
   // ── Text change detection ──
   const detectSignificantChange = useCallback((oldText: string, newText: string): boolean => {
     if (Math.abs(oldText.length - newText.length) > oldText.length * 0.3) return true;
     const visualWords = (text: string) => {
       const words =
-        text.toLowerCase().match(
-          /\b(red|blue|green|yellow|black|white|pink|purple|orange|big|small|tall|short|young|old|happy|sad|angry|forest|ocean|mountain|castle|house|dog|cat|bird|dragon|princess|knight|wizard|sun|moon|stars|rain|snow|night|day)\b/g
-        ) || [];
+        text
+          .toLowerCase()
+          .match(
+            /\b(red|blue|green|yellow|black|white|pink|purple|orange|big|small|tall|short|young|old|happy|sad|angry|forest|ocean|mountain|castle|house|dog|cat|bird|dragon|princess|knight|wizard|sun|moon|stars|rain|snow|night|day)\b/g
+          ) || [];
       return new Set(words);
     };
     const oldWords = visualWords(oldText);
@@ -209,30 +204,33 @@ export function useEditorState({
 
   // ── Actions ──
 
-  const handleTextChange = useCallback((text: string) => {
-    const wasSignificantChange = detectSignificantChange(imageChangeBaselineRef.current, text);
-    setProjectHistory((prevProject) => {
-      const newProject = structuredClone(prevProject);
-      newProject.chapters.forEach((ch) => {
-        const page = ch.pages.find((p) => p.pageNumber === activePage.pageNumber);
-        if (page) {
-          page.text = text;
-          if (wasSignificantChange && page.imageUrl) {
-            page.isImageOutdated = true;
+  const handleTextChange = useCallback(
+    (text: string) => {
+      const wasSignificantChange = detectSignificantChange(imageChangeBaselineRef.current, text);
+      setProjectHistory((prevProject) => {
+        const newProject = structuredClone(prevProject);
+        newProject.chapters.forEach((ch) => {
+          const page = ch.pages.find((p) => p.pageNumber === activePage.pageNumber);
+          if (page) {
+            page.text = text;
+            if (wasSignificantChange && page.imageUrl) {
+              page.isImageOutdated = true;
+            }
           }
-        }
+        });
+        return newProject;
       });
-      return newProject;
-    });
 
-    // Trigger suggestions with debounce
-    if (suggestionTimeoutRef.current) {
-      clearTimeout(suggestionTimeoutRef.current);
-    }
-    suggestionTimeoutRef.current = setTimeout(() => {
-      fetchWritingSuggestions(text);
-    }, 2000);
-  }, [activePage?.pageNumber, detectSignificantChange, setProjectHistory]);
+      // Trigger suggestions with debounce
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current);
+      }
+      suggestionTimeoutRef.current = setTimeout(() => {
+        fetchWritingSuggestions(text);
+      }, 2000);
+    },
+    [activePage?.pageNumber, detectSignificantChange, setProjectHistory]
+  );
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -263,7 +261,12 @@ export function useEditorState({
       const rawImage = await generateIllustration(activePage.imagePrompt, currentProject.style);
       if (rawImage) {
         const userId = userProfile?.id || 'anonymous';
-        const permanentUrl = await persistImage(rawImage, userId, currentProject.id, activePage.pageNumber);
+        const permanentUrl = await persistImage(
+          rawImage,
+          userId,
+          currentProject.id,
+          activePage.pageNumber
+        );
         const newProject = structuredClone(currentProject);
         newProject.aiImagesGenerated = (newProject.aiImagesGenerated || 0) + 1;
         newProject.chapters.forEach((ch) => {
@@ -283,35 +286,45 @@ export function useEditorState({
     }
   }, [activePage, currentProject, userTier, userProfile?.id, onShowUpgrade, setProjectHistory]);
 
-  const handleImproveText = useCallback(async (tone: string) => {
-    if (!activePage) return;
-    setIsImproving(true);
-    setShowImproveOptions(false);
-    try {
-      let improved: string;
+  const handleImproveText = useCallback(
+    async (tone: string) => {
+      if (!activePage) return;
+      setIsImproving(true);
+      setShowImproveOptions(false);
       try {
-        improved = await mastra.agents.storyEditor.improveText(
-          activePage.text, tone,
-          currentProject.targetAudience || 'children',
-          currentProject.id
-        );
+        let improved: string;
+        try {
+          improved = await mastra.agents.storyEditor.improveText(
+            activePage.text,
+            tone,
+            currentProject.targetAudience || 'children',
+            currentProject.id
+          );
+        } catch {
+          improved = await improveText(
+            activePage.text,
+            tone,
+            currentProject.targetAudience || 'children'
+          );
+        }
+        handleTextChange(improved);
       } catch {
-        improved = await improveText(activePage.text, tone, currentProject.targetAudience || 'children');
+        // Error handled by caller
+      } finally {
+        setIsImproving(false);
       }
-      handleTextChange(improved);
-    } catch {
-      // Error handled by caller
-    } finally {
-      setIsImproving(false);
-    }
-  }, [activePage, currentProject, handleTextChange]);
+    },
+    [activePage, currentProject, handleTextChange]
+  );
 
   const handleCheckConsistency = useCallback(async () => {
     setIsCheckingConsistency(true);
     try {
       if (storyBible) {
         const issues = await storyBibleService.checkConsistency(
-          activePage.text, storyBible, activePage.pageNumber
+          activePage.text,
+          storyBible,
+          activePage.pageNumber
         );
         setConsistencyIssues(issues);
         if (issues.length === 0) {
@@ -336,38 +349,47 @@ export function useEditorState({
     }
   }, [activePage, currentProject, storyBible]);
 
-  const fetchWritingSuggestions = useCallback(async (text: string) => {
-    if (text.length < 10) {
-      setSuggestions([]);
-      return;
-    }
-    setIsLoadingSuggestions(true);
-    try {
-      let newSuggestions: WritingSuggestion[];
-      const ctx = `Children's book for ${currentProject.targetAudience}`;
-      try {
-        newSuggestions = await mastra.agents.storyEditor.getSuggestions(text, ctx);
-      } catch {
-        newSuggestions = await getWritingSuggestions(text, ctx);
+  const fetchWritingSuggestions = useCallback(
+    async (text: string) => {
+      if (text.length < 10) {
+        setSuggestions([]);
+        return;
       }
-      setSuggestions(newSuggestions);
-    } catch {
-      // Silent
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  }, [currentProject.targetAudience]);
+      setIsLoadingSuggestions(true);
+      try {
+        let newSuggestions: WritingSuggestion[];
+        const ctx = `Children's book for ${currentProject.targetAudience}`;
+        try {
+          newSuggestions = await mastra.agents.storyEditor.getSuggestions(text, ctx);
+        } catch {
+          newSuggestions = await getWritingSuggestions(text, ctx);
+        }
+        setSuggestions(newSuggestions);
+      } catch {
+        // Silent
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    },
+    [currentProject.targetAudience]
+  );
 
-  const applySuggestion = useCallback((suggestion: WritingSuggestion) => {
-    const newText = activePage.text.replace(suggestion.original, suggestion.suggestion);
-    handleTextChange(newText);
-    setSuggestions((prev) => prev.filter((s) => s !== suggestion));
-  }, [activePage, handleTextChange]);
+  const applySuggestion = useCallback(
+    (suggestion: WritingSuggestion) => {
+      const newText = activePage.text.replace(suggestion.original, suggestion.suggestion);
+      handleTextChange(newText);
+      setSuggestions((prev) => prev.filter((s) => s !== suggestion));
+    },
+    [activePage, handleTextChange]
+  );
 
-  const jumpToPageNumber = useCallback((num: number) => {
-    const idx = allPages.findIndex((p) => p.pageNumber === num);
-    if (idx !== -1) setActivePageIndex(idx);
-  }, [allPages]);
+  const jumpToPageNumber = useCallback(
+    (num: number) => {
+      const idx = allPages.findIndex((p) => p.pageNumber === num);
+      if (idx !== -1) setActivePageIndex(idx);
+    },
+    [allPages]
+  );
 
   const handleAnalyzeAudienceSafety = useCallback(async () => {
     setIsAnalyzing(true);
@@ -413,44 +435,45 @@ export function useEditorState({
     setTimeout(() => setActivePageIndex(totalPages), 0);
   }, [totalPages, setProjectHistory, userTier, onShowUpgrade]);
 
-  const reorderPages = useCallback((oldIndex: number, newIndex: number) => {
-    if (oldIndex === newIndex) return;
-    setProjectHistory((prev) => {
-      const newProject = structuredClone(prev);
-      if (newProject.chapters.length === 0) {
-        return prev;
-      }
+  const reorderPages = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      if (oldIndex === newIndex) return;
+      setProjectHistory((prev) => {
+        const newProject = structuredClone(prev);
+        if (newProject.chapters.length === 0) {
+          return prev;
+        }
 
-      const flat = newProject.chapters.flatMap((c) => c.pages);
-      if (
-        oldIndex < 0 ||
-        newIndex < 0 ||
-        oldIndex >= flat.length ||
-        newIndex >= flat.length
-      ) {
-        return prev;
-      }
+        const flat = newProject.chapters.flatMap((c) => c.pages);
+        if (oldIndex < 0 || newIndex < 0 || oldIndex >= flat.length || newIndex >= flat.length) {
+          return prev;
+        }
 
-      const [moved] = flat.splice(oldIndex, 1);
-      if (!moved) {
-        return prev;
-      }
+        const [moved] = flat.splice(oldIndex, 1);
+        if (!moved) {
+          return prev;
+        }
 
-      flat.splice(newIndex, 0, moved);
-      newProject.chapters = redistributePagesAcrossChapters(newProject.chapters, flat);
-      renumberProjectPages(newProject);
-      return newProject;
-    });
-    setActivePageIndex(newIndex);
-  }, [setProjectHistory]);
+        flat.splice(newIndex, 0, moved);
+        newProject.chapters = redistributePagesAcrossChapters(newProject.chapters, flat);
+        renumberProjectPages(newProject);
+        return newProject;
+      });
+      setActivePageIndex(newIndex);
+    },
+    [setProjectHistory]
+  );
 
   const toggleFocusMode = useCallback(() => {
     setIsFocusMode((prev) => !prev);
   }, []);
 
-  const handleTitleChange = useCallback((title: string) => {
-    setProjectHistory((prev) => ({ ...prev, title }));
-  }, [setProjectHistory]);
+  const handleTitleChange = useCallback(
+    (title: string) => {
+      setProjectHistory((prev) => ({ ...prev, title }));
+    },
+    [setProjectHistory]
+  );
 
   // ── Cleanup ──
   useEffect(() => {
@@ -466,7 +489,9 @@ export function useEditorState({
     if (!storyBible || !activePage?.text) return;
     const timer = setTimeout(async () => {
       const issues = await storyBibleService.checkConsistency(
-        activePage.text, storyBible, activePage.pageNumber
+        activePage.text,
+        storyBible,
+        activePage.pageNumber
       );
       setConsistencyIssues(issues);
     }, 2000);
@@ -484,9 +509,13 @@ export function useEditorState({
     totalPages,
 
     // Navigation
-    editorView, setEditorView,
-    mobileView, setMobileView,
-    isFocusMode, toggleFocusMode, setIsFocusMode,
+    editorView,
+    setEditorView,
+    mobileView,
+    setMobileView,
+    isFocusMode,
+    toggleFocusMode,
+    setIsFocusMode,
     jumpToPageNumber,
 
     // Save
@@ -497,7 +526,10 @@ export function useEditorState({
     triggerAutoSave,
 
     // Undo / Redo
-    undo, redo, canUndo, canRedo,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
 
     // Text editing
     handleTextChange,
@@ -507,23 +539,35 @@ export function useEditorState({
     handleGenerateImage,
 
     // AI features
-    isImproving, showImproveOptions, setShowImproveOptions,
+    isImproving,
+    showImproveOptions,
+    setShowImproveOptions,
     handleImproveText,
-    isCheckingConsistency, showConsistencyPanel, setShowConsistencyPanel,
-    consistencyReport, handleCheckConsistency,
-    suggestions, isLoadingSuggestions,
-    applySuggestion, fetchWritingSuggestions,
+    isCheckingConsistency,
+    showConsistencyPanel,
+    setShowConsistencyPanel,
+    consistencyReport,
+    handleCheckConsistency,
+    suggestions,
+    isLoadingSuggestions,
+    applySuggestion,
+    fetchWritingSuggestions,
     consistencyIssues,
 
     // Quality panels
-    storyBible, isAnalyzing,
-    showAudienceSafety, setShowAudienceSafety,
+    storyBible,
+    isAnalyzing,
+    showAudienceSafety,
+    setShowAudienceSafety,
     handleAnalyzeAudienceSafety,
 
     // Green Room & Remix
-    showGreenRoom, setShowGreenRoom,
-    selectedCharacterForInterview, setSelectedCharacterForInterview,
-    showRemixStudio, setShowRemixStudio,
+    showGreenRoom,
+    setShowGreenRoom,
+    selectedCharacterForInterview,
+    setSelectedCharacterForInterview,
+    showRemixStudio,
+    setShowRemixStudio,
 
     // Page management
     addPage,

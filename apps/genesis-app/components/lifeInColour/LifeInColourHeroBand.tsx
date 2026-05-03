@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useTheme } from '../../hooks/useTheme';
 
 const FEATURE_ITEMS = [
@@ -17,10 +16,9 @@ const FEATURE_ITEMS = [
 ] as const;
 
 type HeroPalette = {
-  backgroundStart: string;
-  backgroundMid: string;
-  backgroundEnd: string;
-  backgroundTail: string;
+  backgroundGradient: string;
+  border: string;
+  shadow: string;
   gridColor: string;
   paperFill: string;
   paperSoftFill: string;
@@ -28,109 +26,44 @@ type HeroPalette = {
   accentFill: string;
   accentStroke: string;
   badgeColor: string;
-  border: string;
-  shadow: string;
 };
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function normalizeHex(hex: string) {
-  const normalized = hex.trim().replace(/^#/, '');
-  if (normalized.length === 3) {
-    return `#${normalized
-      .split('')
-      .map((char) => char + char)
-      .join('')}`.toLowerCase();
-  }
-  if (normalized.length === 6) {
-    return `#${normalized}`.toLowerCase();
-  }
-  return '#000000';
-}
-
-function hexToRgb(hex: string) {
-  const normalized = normalizeHex(hex).slice(1);
-  return [0, 2, 4].map((offset) => Number.parseInt(normalized.slice(offset, offset + 2), 16)) as [
-    number,
-    number,
-    number,
-  ];
-}
-
-function rgbToHex(red: number, green: number, blue: number) {
-  const toHex = (value: number) => clamp(Math.round(value), 0, 255).toString(16).padStart(2, '0');
-  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
-}
-
-function mixHex(from: string, to: string, weight: number) {
-  const ratio = clamp(weight, 0, 1);
-  const [fromRed, fromGreen, fromBlue] = hexToRgb(from);
-  const [toRed, toGreen, toBlue] = hexToRgb(to);
-
-  return rgbToHex(
-    fromRed + (toRed - fromRed) * ratio,
-    fromGreen + (toGreen - fromGreen) * ratio,
-    fromBlue + (toBlue - fromBlue) * ratio
-  );
-}
-
-function rgbaFromHex(hex: string, alpha: number) {
-  const [red, green, blue] = hexToRgb(hex);
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function buildHeroPalette(currentTheme: ReturnType<typeof useTheme>['currentTheme'], isDarkMode: boolean): HeroPalette {
-  const source = isDarkMode && currentTheme.darkColors ? currentTheme.darkColors : currentTheme.colors;
+function buildHeroPalette(
+  currentTheme: ReturnType<typeof useTheme>['currentTheme'],
+  isDarkMode: boolean
+): HeroPalette {
+  const source =
+    isDarkMode && currentTheme.darkColors ? currentTheme.darkColors : currentTheme.colors;
   const primaryStart = source.primary[0];
   const primaryEnd = source.primary[1];
   const accentStart = source.accent[0];
   const accentEnd = source.accent[1];
 
-  const backgroundStart = mixHex(primaryStart, '#000000', 0.08);
-  const backgroundMid = mixHex(primaryEnd, '#000000', 0.16);
-  const backgroundEnd = mixHex(accentStart, '#000000', 0.22);
-  const backgroundTail = mixHex(accentEnd, '#000000', 0.14);
-  const paperFill = mixHex(source.background, '#ffffff', 0.85);
-  const paperSoftFill = mixHex(source.background, '#ffffff', 0.7);
-  const paperStroke = rgbaFromHex(mixHex(primaryStart, '#000000', 0.1), 0.48);
-  const accentFill = mixHex(accentEnd, '#ffffff', 0.16);
-  const accentStroke = rgbaFromHex(mixHex(accentEnd, '#000000', 0.1), 0.56);
-  const badgeColor = rgbaFromHex(mixHex(primaryStart, '#000000', 0.84), 0.92);
-  const gridColor = rgbaFromHex(mixHex(primaryStart, '#ffffff', 0.76), 0.14);
-  const border = 'rgba(255,255,255,0.1)';
-  const shadow = `0 28px 70px -50px ${rgbaFromHex(backgroundStart, 0.64)}`;
-
   return {
-    backgroundStart,
-    backgroundMid,
-    backgroundEnd,
-    backgroundTail,
-    gridColor,
-    paperFill,
-    paperSoftFill,
-    paperStroke,
-    accentFill,
-    accentStroke,
-    badgeColor,
-    border,
-    shadow,
+    backgroundGradient: `linear-gradient(135deg, ${primaryStart} 0%, ${primaryEnd} 38%, ${accentStart} 72%, ${accentEnd} 100%)`,
+    border: 'rgba(255,255,255,0.14)',
+    shadow: isDarkMode
+      ? '0 24px 60px -42px rgba(0,0,0,0.72)'
+      : '0 24px 60px -42px rgba(26,20,18,0.38)',
+    gridColor: 'rgba(255,255,255,0.16)',
+    paperFill: 'rgba(255,255,255,0.28)',
+    paperSoftFill: 'rgba(255,255,255,0.18)',
+    paperStroke: 'rgba(255,255,255,0.38)',
+    accentFill: 'rgba(255,238,198,0.42)',
+    accentStroke: 'rgba(255,232,186,0.56)',
+    badgeColor: isDarkMode ? 'rgba(12,10,9,0.74)' : 'rgba(33,25,20,0.68)',
   };
 }
 
 export function LifeInColourHeroBand() {
   const { currentTheme, isDarkMode } = useTheme();
-  const palette = useMemo(
-    () => buildHeroPalette(currentTheme, isDarkMode),
-    [currentTheme, isDarkMode]
-  );
+  const palette = buildHeroPalette(currentTheme, isDarkMode);
 
   return (
     <section
       className="relative isolate overflow-hidden rounded-[30px] border px-4 py-6 md:px-5 md:py-7 lg:px-6 lg:py-8"
       style={{
-        background: `linear-gradient(135deg, ${palette.backgroundStart} 0%, ${palette.backgroundMid} 34%, ${palette.backgroundEnd} 68%, ${palette.backgroundTail} 100%)`,
+        background: palette.backgroundGradient,
         borderColor: palette.border,
         boxShadow: palette.shadow,
       }}
@@ -139,14 +72,18 @@ export function LifeInColourHeroBand() {
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.12]"
         style={{
-          backgroundImage:
-            `linear-gradient(${palette.gridColor} 1px, transparent 1px), linear-gradient(90deg, ${palette.gridColor} 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(${palette.gridColor} 1px, transparent 1px), linear-gradient(90deg, ${palette.gridColor} 1px, transparent 1px)`,
           backgroundSize: '92px 92px',
         }}
       />
 
       <div className="pointer-events-none absolute inset-0 opacity-[0.62]">
-        <svg aria-hidden="true" viewBox="0 0 1440 540" preserveAspectRatio="none" className="h-full w-full">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1440 540"
+          preserveAspectRatio="none"
+          className="h-full w-full"
+        >
           <defs>
             <linearGradient id="life-in-colour-hero-panel" x1="0%" x2="100%" y1="0%" y2="100%">
               <stop offset="0%" stopColor={palette.paperFill} />
@@ -156,8 +93,20 @@ export function LifeInColourHeroBand() {
               <stop offset="0%" stopColor={palette.accentFill} />
               <stop offset="100%" stopColor={palette.paperFill} />
             </linearGradient>
-            <filter id="life-in-colour-hero-soft-shadow" x="-12%" y="-12%" width="124%" height="124%">
-              <feDropShadow dx="0" dy="12" stdDeviation="12" floodColor={palette.backgroundStart} floodOpacity="0.16" />
+            <filter
+              id="life-in-colour-hero-soft-shadow"
+              x="-12%"
+              y="-12%"
+              width="124%"
+              height="124%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="12"
+                stdDeviation="12"
+                floodColor="rgba(0,0,0,0.36)"
+                floodOpacity="0.16"
+              />
             </filter>
           </defs>
 
@@ -229,21 +178,9 @@ export function LifeInColourHeroBand() {
           </g>
 
           <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <path
-              d="M266 86c22-18 54-28 94-30"
-              stroke="rgba(255,255,255,0.14)"
-              strokeWidth="10"
-            />
-            <path
-              d="M1140 78c52-8 102 0 150 22"
-              stroke="rgba(255,255,255,0.12)"
-              strokeWidth="12"
-            />
-            <path
-              d="M180 382c30 26 52 50 66 74"
-              stroke="rgba(255,244,214,0.08)"
-              strokeWidth="10"
-            />
+            <path d="M266 86c22-18 54-28 94-30" stroke="rgba(255,255,255,0.14)" strokeWidth="10" />
+            <path d="M1140 78c52-8 102 0 150 22" stroke="rgba(255,255,255,0.12)" strokeWidth="12" />
+            <path d="M180 382c30 26 52 50 66 74" stroke="rgba(255,244,214,0.08)" strokeWidth="10" />
             <path
               d="M1244 372c32 10 58 28 80 54"
               stroke="rgba(255,244,214,0.08)"
@@ -257,17 +194,17 @@ export function LifeInColourHeroBand() {
         </svg>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[220px] max-w-5xl flex-col items-center justify-center px-2 text-center md:min-h-[260px]">
+      <div className="relative z-10 mx-auto flex min-h-[220px] max-w-6xl flex-col items-center justify-center px-2 text-center md:min-h-[260px]">
         <div
-          className="inline-flex items-center rounded-full border border-black/20 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.75)]"
+          className="inline-flex items-center rounded-full border border-black/20 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.75)] md:text-xs"
           style={{ background: palette.badgeColor }}
         >
           Andrew-powered colouring
         </div>
-        <h1 className="mt-4 font-heading text-4xl font-bold tracking-[0] text-white md:text-6xl lg:text-7xl">
+        <h1 className="mt-4 font-heading text-3xl font-bold tracking-[0] text-white sm:text-4xl md:text-6xl lg:text-7xl">
           Life in Colour
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-white/90 md:text-lg md:leading-8">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/90 md:text-lg md:leading-8">
           Turn single photos or whole camera-roll sets into printable colouring pages.
         </p>
 

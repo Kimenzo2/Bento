@@ -29,7 +29,12 @@ import { useGoogleOneTap } from './hooks/useGoogleOneTap';
 import { type UserProfile, getUserProfile } from './services/profileService';
 import { invalidateBooksCache } from './services/storageService';
 import { supabase } from './services/supabaseClient';
-import { getEntitlements, isUnlimited, type TierName, userTierToTierName } from './config/entitlements';
+import {
+  getEntitlements,
+  isUnlimited,
+  type TierName,
+  userTierToTierName,
+} from './config/entitlements';
 import { getCurrentMonthUsage, incrementBookCount } from './services/usageService';
 import { FontProvider } from './src/contexts/FontContext';
 import { LifeInColourWorkspaceProvider } from './src/contexts/LifeInColourWorkspaceContext';
@@ -59,9 +64,7 @@ import { useLanguageContext } from './src/contexts/LanguageContext';
 // When a deployment changes chunk hashes, old HTML may reference chunks
 // that no longer exist. This wrapper retries once, then reloads the page
 // to fetch the new index.html with correct chunk references.
-function lazyWithRetry(
-  importFn: () => Promise<{ default: React.ComponentType<any> }>
-) {
+function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
   return lazy(() =>
     importFn().catch((error: Error) => {
       // Only auto-reload once per session to avoid infinite loops
@@ -95,19 +98,19 @@ const InfographicsPage = lazyWithRetry(() => import('./components/InfographicsPa
 
 // ── Path-based routing helpers ────────────────────────────────────────────────
 const MODE_TO_PATH: Partial<Record<AppMode, string>> = {
-  [AppMode.DASHBOARD]:     '/',
-  [AppMode.CREATION]:      '/create',
+  [AppMode.DASHBOARD]: '/',
+  [AppMode.CREATION]: '/create',
   [AppMode.LIFE_IN_COLOUR]: '/life-in-colour',
-  [AppMode.EDITOR]:        '/editor',
+  [AppMode.EDITOR]: '/editor',
   [AppMode.VISUAL_STUDIO]: '/visual-studio',
-  [AppMode.SETTINGS]:      '/settings',
-  [AppMode.PRICING]:       '/pricing',
-  [AppMode.GAMIFICATION]:  '/gamification',
-  [AppMode.SUCCESS]:       '/success',
-  [AppMode.VIEWER]:        '/viewer',
-  [AppMode.LEGAL]:         '/legal',
-  [AppMode.ACCOUNT]:       '/account',
-  [AppMode.INFOGRAPHICS]:  '/infographics',
+  [AppMode.SETTINGS]: '/settings',
+  [AppMode.PRICING]: '/pricing',
+  [AppMode.GAMIFICATION]: '/gamification',
+  [AppMode.SUCCESS]: '/success',
+  [AppMode.VIEWER]: '/viewer',
+  [AppMode.LEGAL]: '/legal',
+  [AppMode.ACCOUNT]: '/account',
+  [AppMode.INFOGRAPHICS]: '/infographics',
 };
 
 const PATH_TO_MODE = new Map<string, AppMode>(
@@ -177,10 +180,14 @@ const MainAppContent: React.FC = () => {
 
   // Toast helper — delegates to Sonner
   const addToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
-    const fn = type === 'success' ? toast.success
-             : type === 'error' ? toast.error
-             : type === 'warning' ? toast.warning
-             : toast.info;
+    const fn =
+      type === 'success'
+        ? toast.success
+        : type === 'error'
+          ? toast.error
+          : type === 'warning'
+            ? toast.warning
+            : toast.info;
     fn(message);
   };
 
@@ -285,7 +292,13 @@ const MainAppContent: React.FC = () => {
     // Check page limit
     if (!isUnlimited(ent.pages_per_book) && settings.pageCount > ent.pages_per_book) {
       setShowUpgradeModal(true);
-      addToast(t('errors:pageLimitExceeded', { count: ent.pages_per_book, defaultValue: `Your plan allows up to ${ent.pages_per_book} pages per book. Upgrade for more!` }), 'error');
+      addToast(
+        t('errors:pageLimitExceeded', {
+          count: ent.pages_per_book,
+          defaultValue: `Your plan allows up to ${ent.pages_per_book} pages per book. Upgrade for more!`,
+        }),
+        'error'
+      );
       return false;
     }
 
@@ -295,7 +308,13 @@ const MainAppContent: React.FC = () => {
         const usage = await getCurrentMonthUsage(user.id);
         if (usage >= ent.books_per_month) {
           setShowUpgradeModal(true);
-          addToast(t('errors:monthlyLimitExceeded', { count: ent.books_per_month, defaultValue: `You've used all ${ent.books_per_month} books this month. Upgrade for more!` }), 'error');
+          addToast(
+            t('errors:monthlyLimitExceeded', {
+              count: ent.books_per_month,
+              defaultValue: `You've used all ${ent.books_per_month} books this month. Upgrade for more!`,
+            }),
+            'error'
+          );
           return false;
         }
       } catch {
@@ -376,7 +395,9 @@ const MainAppContent: React.FC = () => {
           }
 
           setGenerationProgress(Math.max(0, Math.min(100, event.percent)));
-          setGenerationStatus(event.message || t('creation:generatingBook', 'Generating your book...'));
+          setGenerationStatus(
+            event.message || t('creation:generatingBook', 'Generating your book...')
+          );
         },
         (result) => {
           if (cancelledByUserRef.current) {
@@ -394,7 +415,12 @@ const MainAppContent: React.FC = () => {
             publishContext({ isGenerating: false, hasError: true, errorMessage: result.error });
             fireTrigger('generation_error');
 
-            addToast(result.message || result.error || t('errors:generationFailed', 'Book generation failed.'), 'error');
+            addToast(
+              result.message ||
+                result.error ||
+                t('errors:generationFailed', 'Book generation failed.'),
+              'error'
+            );
             resetGenerationState();
             return;
           }
@@ -403,7 +429,10 @@ const MainAppContent: React.FC = () => {
 
           if (result.saved === false) {
             addToast(
-              t('errors:saveFailed', 'Book generated, but automatic library save failed. You can still edit it now.'),
+              t(
+                'errors:saveFailed',
+                'Book generated, but automatic library save failed. You can still edit it now.'
+              ),
               'warning'
             );
           }
@@ -426,7 +455,10 @@ const MainAppContent: React.FC = () => {
 
           console.error('Generation failed', error);
 
-          if (error.message.includes('TIER_LIMIT_EXCEEDED') || error.message.includes('PAGE_LIMIT_EXCEEDED')) {
+          if (
+            error.message.includes('TIER_LIMIT_EXCEEDED') ||
+            error.message.includes('PAGE_LIMIT_EXCEEDED')
+          ) {
             setShowUpgradeModal(true);
           }
 
@@ -434,7 +466,13 @@ const MainAppContent: React.FC = () => {
           publishContext({ isGenerating: false, hasError: true, errorMessage: error.message });
           fireTrigger('generation_error');
 
-          addToast(t('errors:generationError', { message: error.message || 'Unknown error', defaultValue: `Failed to generate project: ${error.message || 'Unknown error'}` }), 'error');
+          addToast(
+            t('errors:generationError', {
+              message: error.message || 'Unknown error',
+              defaultValue: `Failed to generate project: ${error.message || 'Unknown error'}`,
+            }),
+            'error'
+          );
           resetGenerationState();
         }
       );
@@ -444,11 +482,18 @@ const MainAppContent: React.FC = () => {
       console.error('Generation failed', error);
 
       // Notify Gen AI companion of generation error
-      publishContext({ isGenerating: false, hasError: true, errorMessage: error instanceof Error ? error.message : 'Unknown error' });
+      publishContext({
+        isGenerating: false,
+        hasError: true,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
       fireTrigger('generation_error');
 
       addToast(
-        t('errors:generationError', { message: error instanceof Error ? error.message : 'Unknown error', defaultValue: `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}` }),
+        t('errors:generationError', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          defaultValue: `Failed to generate project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }),
         'error'
       );
       resetGenerationState();
@@ -471,7 +516,10 @@ const MainAppContent: React.FC = () => {
     const profile = await getUserProfile();
     setUserProfile(profile);
     setShowUpgradeModal(false);
-    addToast(t('pricing:tierWelcome', { tier: newTier, defaultValue: `Welcome to the ${newTier} tier!` }), 'success');
+    addToast(
+      t('pricing:tierWelcome', { tier: newTier, defaultValue: `Welcome to the ${newTier} tier!` }),
+      'success'
+    );
   };
 
   const renderContent = () => {
@@ -514,7 +562,9 @@ const MainAppContent: React.FC = () => {
             onUpdateProject={setCurrentProject}
             userTier={currentUserTier}
             onShowUpgrade={() => setShowUpgradeModal(true)}
-            onSave={(success: boolean, message: string) => addToast(message, success ? 'success' : 'error')}
+            onSave={(success: boolean, message: string) =>
+              addToast(message, success ? 'success' : 'error')
+            }
             onBack={() => navigateTo(AppMode.DASHBOARD)}
             onNavigateToCreate={() => navigateTo(AppMode.CREATION)}
           />
@@ -615,7 +665,10 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream-base text-charcoal-soft font-body selection:bg-coral-burst/30 selection:text-charcoal-soft">
       <Navigation currentMode={currentMode} setMode={navigateTo} gameState={gamificationState} />
-      <main className="pt-20 relative transition-all duration-300 overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <main
+        className="pt-20 relative transition-all duration-300 overflow-x-hidden"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <h1 className="sr-only">{t('common:appName', 'Genesis')}</h1>
         <Suspense fallback={<AppSkeleton />}>
           <div>{renderContent()}</div>

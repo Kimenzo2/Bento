@@ -134,17 +134,15 @@ const GenCompanionStrip: React.FC<GenCompanionStripProps> = ({
               alt="Gen, your AI creative assistant"
               className="w-[72px] h-[72px] rounded-full object-cover"
               style={{
-                boxShadow: '0 0 20px 4px color-mix(in srgb, var(--color-primary-start) 25%, transparent)',
+                boxShadow:
+                  '0 0 20px 4px color-mix(in srgb, var(--color-primary-start) 25%, transparent)',
               }}
               draggable={false}
             />
           </div>
 
           {/* Full message */}
-          <p
-            className="text-cocoa-light leading-relaxed pt-1"
-            style={{ ...geist, fontSize: 13 }}
-          >
+          <p className="text-cocoa-light leading-relaxed pt-1" style={{ ...geist, fontSize: 13 }}>
             {currentMessage}
           </p>
         </div>

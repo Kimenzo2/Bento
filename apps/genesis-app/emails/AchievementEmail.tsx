@@ -1,6 +1,13 @@
 import { Text, Button, Section } from '@react-email/components';
 import * as React from 'react';
-import GenesisLayout, { heading, body, btnPrimary, badge, divider, coralSection } from './GenesisLayout';
+import GenesisLayout, {
+  heading,
+  body,
+  btnPrimary,
+  badge,
+  divider,
+  coralSection,
+} from './GenesisLayout';
 
 interface AchievementEmailProps {
   userName: string;
@@ -23,9 +30,7 @@ export default function AchievementEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28, { align: 'center' })}>
-        Achievement unlocked.
-      </Text>
+      <Text style={heading(28, { align: 'center' })}>Achievement unlocked.</Text>
 
       {/* Coral section — achievement name + XP */}
       <Section style={coralSection}>
@@ -33,7 +38,15 @@ export default function AchievementEmail({
           {achievementName}
         </Text>
         {xpEarned && (
-          <Text style={body({ size: 14, color: '#FFFFFF', margin: '8px 0 0 0', align: 'center', weight: 600 })}>
+          <Text
+            style={body({
+              size: 14,
+              color: '#FFFFFF',
+              margin: '8px 0 0 0',
+              align: 'center',
+              weight: 600,
+            })}
+          >
             +{xpEarned} XP
           </Text>
         )}

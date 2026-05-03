@@ -1,6 +1,13 @@
 import { Text, Button, Section } from '@react-email/components';
 import * as React from 'react';
-import GenesisLayout, { heading, body, btnPrimary, badge, divider, darkSection } from './GenesisLayout';
+import GenesisLayout, {
+  heading,
+  body,
+  btnPrimary,
+  badge,
+  divider,
+  darkSection,
+} from './GenesisLayout';
 
 interface SubscriptionUpgradeEmailProps {
   userName: string;
@@ -23,13 +30,19 @@ export default function SubscriptionUpgradeEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Welcome to {planName}.
-      </Text>
+      <Text style={heading(28)}>Welcome to {planName}.</Text>
 
       {/* Dark section — plan + price */}
       <Section style={darkSection}>
-        <Text style={body({ size: 12, color: '#EAE0D5', margin: '0 0 4px 0', weight: 600, align: 'center' })}>
+        <Text
+          style={body({
+            size: 12,
+            color: '#EAE0D5',
+            margin: '0 0 4px 0',
+            weight: 600,
+            align: 'center',
+          })}
+        >
           ACTIVE PLAN
         </Text>
         <Text style={heading(24, { color: '#FFFFFF', align: 'center', margin: '0' })}>

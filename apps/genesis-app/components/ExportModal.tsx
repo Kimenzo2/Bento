@@ -18,7 +18,14 @@ import { getEntitlements, userTierToTierName, type TierName } from '../config/en
 import { getUserProfile } from '../services/profileService';
 import { UserTier } from '../types';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from './ui/dialog';
 import { Label } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
@@ -60,11 +67,13 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
   // Load user tier
   useEffect(() => {
     if (!user) return;
-    getUserProfile().then((profile) => {
-      if (profile) {
-        setTierName(userTierToTierName(profile.user_tier || UserTier.SPARK));
-      }
-    }).catch(() => {});
+    getUserProfile()
+      .then((profile) => {
+        if (profile) {
+          setTierName(userTierToTierName(profile.user_tier || UserTier.SPARK));
+        }
+      })
+      .catch(() => {});
   }, [user]);
 
   const entitlements = getEntitlements(tierName);
@@ -118,7 +127,12 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
   if (!isOpen || !book) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-lg p-0 overflow-hidden">
         {/* Header */}
         <DialogHeader className="p-6 border-b-2 border-peach-soft/30">
@@ -137,9 +151,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
         <div className="p-6 space-y-6">
           {/* Format Selection */}
           <div>
-            <Label className="mb-3">
-              Export Format
-            </Label>
+            <Label className="mb-3">Export Format</Label>
             <div className="grid grid-cols-3 gap-3">
               {[
                 { id: 'pdf', label: 'PDF', icon: FileText, desc: 'Print & share' },
@@ -190,9 +202,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
 
           {/* Font Size */}
           <div>
-            <Label className="mb-2">
-              Font Size
-            </Label>
+            <Label className="mb-2">Font Size</Label>
             <div className="flex gap-2">
               {(['small', 'medium', 'large'] as const).map((size) => (
                 <Button
@@ -217,10 +227,11 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
 
           {/* Font Family */}
           <div>
-            <Label className="mb-2">
-              Font Family
-            </Label>
-            <Select value={options.fontFamily} onValueChange={(v) => setOptions((prev) => ({ ...prev, fontFamily: v }))}>
+            <Label className="mb-2">Font Family</Label>
+            <Select
+              value={options.fontFamily}
+              onValueChange={(v) => setOptions((prev) => ({ ...prev, fontFamily: v }))}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
@@ -279,16 +290,10 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
           </Button>
           {options.format === 'video' ? (
             <div className="min-w-55">
-              <ExportVideoButton
-                book={book}
-                tier={tierName as UserTier}
-              />
+              <ExportVideoButton book={book} tier={tierName as UserTier} />
             </div>
           ) : (
-            <Button
-              onClick={handleExport}
-              disabled={isExporting}
-            >
+            <Button onClick={handleExport} disabled={isExporting}>
               {isExporting ? (
                 <>
                   <Loader className="w-4 h-4 animate-spin" />
@@ -309,7 +314,11 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, book }) => {
 };
 
 // Helper functions for generating exports
-async function generatePDF(book: SavedBook, options: ExportOptions, includeWatermark: boolean): Promise<Blob> {
+async function generatePDF(
+  book: SavedBook,
+  options: ExportOptions,
+  includeWatermark: boolean
+): Promise<Blob> {
   const fontSizeMap = { small: 10, medium: 12, large: 14 };
   const marginMap = { narrow: 10, normal: 20, wide: 30 };
   const sizeMap: Record<ExportOptions['pageSize'], 'A4' | 'A5' | 'Letter' | '6x9'> = {

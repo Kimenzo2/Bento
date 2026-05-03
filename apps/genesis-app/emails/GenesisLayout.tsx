@@ -64,9 +64,13 @@ export const heading = (
 });
 
 /** Body text — clean sans-serif */
-export const body = (
-  opts?: { size?: number; color?: string; margin?: string; weight?: number; align?: string }
-): React.CSSProperties => ({
+export const body = (opts?: {
+  size?: number;
+  color?: string;
+  margin?: string;
+  weight?: number;
+  align?: string;
+}): React.CSSProperties => ({
   fontFamily: "'Geist', 'Manrope', -apple-system, 'Segoe UI', Arial, sans-serif",
   fontSize: `${opts?.size || 15}px`,
   fontWeight: opts?.weight || 400,
@@ -197,13 +201,15 @@ export default function GenesisLayout({
           />
         </Head>
         <Preview>{preview}</Preview>
-        <Body style={{
-          backgroundColor: '#FFF8E7',
-          fontFamily: "'Geist', 'Manrope', -apple-system, 'Segoe UI', Arial, sans-serif",
-          margin: 0,
-          padding: 0,
-          WebkitFontSmoothing: 'antialiased',
-        }}>
+        <Body
+          style={{
+            backgroundColor: '#FFF8E7',
+            fontFamily: "'Geist', 'Manrope', -apple-system, 'Segoe UI', Arial, sans-serif",
+            margin: 0,
+            padding: 0,
+            WebkitFontSmoothing: 'antialiased',
+          }}
+        >
           <Container style={{ maxWidth: '520px', margin: '0 auto', padding: '48px 24px' }}>
             {/* ─── Header ─── */}
             <Section style={{ textAlign: 'center', paddingBottom: '40px' }}>
@@ -217,12 +223,14 @@ export default function GenesisLayout({
             </Section>
 
             {/* ─── Content Card ─── */}
-            <Section style={{
-              backgroundColor: '#FFFFFF',
-              padding: '40px 36px',
-              borderRadius: '20px',
-              border: '1px solid #F0E6DC',
-            }}>
+            <Section
+              style={{
+                backgroundColor: '#FFFFFF',
+                padding: '40px 36px',
+                borderRadius: '20px',
+                border: '1px solid #F0E6DC',
+              }}
+            >
               {children}
             </Section>
 
@@ -230,13 +238,21 @@ export default function GenesisLayout({
             <Section style={{ paddingTop: '36px', textAlign: 'center' }}>
               <Text style={body({ size: 12, color: '#A9A09A', margin: '0', align: 'center' })}>
                 &copy; {year} Genesis &middot;{' '}
-                <Link href="https://iamazeyou.me" style={{ color: '#A9A09A', textDecoration: 'none' }}>
+                <Link
+                  href="https://iamazeyou.me"
+                  style={{ color: '#A9A09A', textDecoration: 'none' }}
+                >
                   iamazeyou.me
                 </Link>
               </Text>
               {showUnsubscribe && (
-                <Text style={body({ size: 12, color: '#A9A09A', margin: '8px 0 0 0', align: 'center' })}>
-                  <Link href="https://iamazeyou.me/settings" style={{ color: '#A9A09A', textDecoration: 'underline' }}>
+                <Text
+                  style={body({ size: 12, color: '#A9A09A', margin: '8px 0 0 0', align: 'center' })}
+                >
+                  <Link
+                    href="https://iamazeyou.me/settings"
+                    style={{ color: '#A9A09A', textDecoration: 'underline' }}
+                  >
                     Email preferences
                   </Link>
                 </Text>

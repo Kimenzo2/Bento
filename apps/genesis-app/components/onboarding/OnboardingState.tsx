@@ -8,7 +8,16 @@
  * 4. 🔙 Browser back/forward synced with onboarding steps
  * 5. 💾 State persisted to localStorage for OAuth redirect survival
  */
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 export type OnboardingStep =
   | 'quiz'
@@ -49,8 +58,14 @@ const OnboardingContext = createContext<OnboardingState | undefined>(undefined);
 const STORAGE_KEY = 'genesis_onboarding_state';
 
 const VALID_STEPS: OnboardingStep[] = [
-  'quiz', 'magic', 'proreveal', 'pricing',
-  'tour', 'identity', 'cliffhanger', 'welcome',
+  'quiz',
+  'magic',
+  'proreveal',
+  'pricing',
+  'tour',
+  'identity',
+  'cliffhanger',
+  'welcome',
 ];
 
 interface PersistedState {
@@ -88,7 +103,11 @@ function loadState(): PersistedState | null {
 }
 
 export function clearOnboardingState(): void {
-  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 // --- URL step helpers ---
@@ -118,8 +137,14 @@ function setStepInURL(step: OnboardingStep, replace = false): void {
 
 // Step ordering for determining forward/back direction
 const _STEP_ORDER: Record<OnboardingStep, number> = {
-  quiz: 0, magic: 1, proreveal: 2, pricing: 3,
-  tour: 4, identity: 5, cliffhanger: 6, welcome: 7,
+  quiz: 0,
+  magic: 1,
+  proreveal: 2,
+  pricing: 3,
+  tour: 4,
+  identity: 5,
+  cliffhanger: 6,
+  welcome: 7,
 };
 
 export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

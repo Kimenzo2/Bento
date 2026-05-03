@@ -35,12 +35,7 @@ export function ExportVideoButton({ book, tier }: ExportVideoButtonProps) {
 
   return (
     <div className="w-full space-y-3">
-      <Button
-        onClick={handleExport}
-        disabled={isExporting}
-        className="w-full"
-        variant="default"
-      >
+      <Button onClick={handleExport} disabled={isExporting} className="w-full" variant="default">
         {isExporting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

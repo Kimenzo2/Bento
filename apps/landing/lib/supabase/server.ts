@@ -54,7 +54,10 @@ export async function getAuthenticatedUser() {
 
   // getUser() validates the JWT with Supabase servers
   // This is the ONLY secure way to verify identity server-side
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (error || !user) {
     return null;

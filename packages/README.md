@@ -17,6 +17,7 @@ The production code lives in the separate `gen-engine` repository.
 ## Safe to Delete
 
 These directories can be safely deleted:
+
 - `packages/brain/`
 - `packages/bridge/`
 - `packages/renderer/`

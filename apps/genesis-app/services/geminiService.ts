@@ -142,7 +142,9 @@ function getPromptCache(key: string): string | undefined {
       return undefined;
     }
     return entry.t;
-  } catch { return undefined; }
+  } catch {
+    return undefined;
+  }
 }
 
 function setPromptCache(key: string, text: string): void {
@@ -155,14 +157,14 @@ function setPromptCache(key: string, text: string): void {
       if (k?.startsWith(PROMPT_CACHE_PREFIX)) stored.push(k);
     }
     if (stored.length >= PROMPT_CACHE_MAX_ENTRIES) {
-      stored.slice(0, stored.length - PROMPT_CACHE_MAX_ENTRIES + 1)
+      stored
+        .slice(0, stored.length - PROMPT_CACHE_MAX_ENTRIES + 1)
         .forEach((k) => localStorage.removeItem(k));
     }
-    localStorage.setItem(
-      PROMPT_CACHE_PREFIX + key,
-      JSON.stringify({ t: text, ts: Date.now() })
-    );
-  } catch { /* storage full — silently skip */ }
+    localStorage.setItem(PROMPT_CACHE_PREFIX + key, JSON.stringify({ t: text, ts: Date.now() }));
+  } catch {
+    /* storage full — silently skip */
+  }
 }
 
 // Helper: call AI text generation via the server-side gateway
@@ -204,10 +206,7 @@ async function callAiGatewayAPI(
 }
 
 // Helper: call Bytez image generation via the server-side proxy
-async function callBytezImageProxy(
-  prompt: string,
-  modelId: string
-): Promise<string | null> {
+async function callBytezImageProxy(prompt: string, modelId: string): Promise<string | null> {
   console.log(`🎨 Calling Bytez image proxy (${modelId})...`);
 
   const res = await authenticatedFetch('/api/ai-bytez', {
@@ -1219,7 +1218,10 @@ ${JSON.stringify(inputPayload, null, 2)} `;
       const jsonString = extractJson(text);
       rawData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.warn('JSON Parse failed, attempting repair... - aiGatewayService.ts:1158', parseError);
+      console.warn(
+        'JSON Parse failed, attempting repair... - aiGatewayService.ts:1158',
+        parseError
+      );
       const repairedJson = repairJson(text);
       if (repairedJson) {
         rawData = JSON.parse(repairedJson);
@@ -1414,7 +1416,10 @@ export const generateIllustration = async (
           console.log('✅ Bytez image generation successful - aiGatewayService.ts:1316');
           return output;
         } catch (error) {
-          console.error('❌ All Bytez keys exhausted for image generation - aiGatewayService.ts:1319', error);
+          console.error(
+            '❌ All Bytez keys exhausted for image generation - aiGatewayService.ts:1319',
+            error
+          );
           return null;
         }
       });
@@ -1522,7 +1527,10 @@ ${styleAConfig?.avoidances || 'No muddy colors, no inconsistent lighting, no ana
     console.log('✅ Bytez image generation successful - aiGatewayService.ts:1378');
     return output;
   } catch (error) {
-    console.error('❌ All Bytez keys exhausted for image generation - aiGatewayService.ts:1381', error);
+    console.error(
+      '❌ All Bytez keys exhausted for image generation - aiGatewayService.ts:1381',
+      error
+    );
     return null;
   }
 };

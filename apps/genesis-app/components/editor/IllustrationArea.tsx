@@ -41,16 +41,11 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
   const hasValidImage = !!resolvedUrl && !imageError;
 
   const realm =
-    currentTheme.id === 'nebula'
-      ? 'cosmos'
-      : currentTheme.id === 'forest'
-        ? 'cell'
-        : 'kingdom';
+    currentTheme.id === 'nebula' ? 'cosmos' : currentTheme.id === 'forest' ? 'cell' : 'kingdom';
 
   // Respect prefers-reduced-motion
   const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Reset error state when URL changes
   if (imageUrl && imageError) {
@@ -78,7 +73,8 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--color-primary-start) 8%, transparent) 50%, transparent 100%)',
+              background:
+                'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--color-primary-start) 8%, transparent) 50%, transparent 100%)',
               width: '200%',
               animation: prefersReducedMotion ? 'none' : 'il-shimmer 1.5s ease-in-out infinite',
             }}
@@ -91,7 +87,8 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
           alt="Gen is illustrating"
           className="w-[120px] h-[120px] rounded-full object-cover relative z-10 gen-float"
           style={{
-            boxShadow: '0 0 40px 8px color-mix(in srgb, var(--color-primary-start) 35%, transparent)',
+            boxShadow:
+              '0 0 40px 8px color-mix(in srgb, var(--color-primary-start) 35%, transparent)',
           }}
           draggable={false}
         />
@@ -103,7 +100,10 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
         <div className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden rounded-b-xl">
           <div
             className="h-full bg-coral-burst"
-            style={{ animation: prefersReducedMotion ? 'none' : 'il-progress 1.5s ease-in-out infinite', width: '40%' }}
+            style={{
+              animation: prefersReducedMotion ? 'none' : 'il-progress 1.5s ease-in-out infinite',
+              width: '40%',
+            }}
           />
         </div>
 
@@ -134,10 +134,16 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
           <div className="absolute inset-0 flex items-center justify-center rounded-xl">
             <div
               className="rounded-xl px-6 py-4 text-center border border-peach-soft"
-              style={{ backgroundColor: 'color-mix(in srgb, var(--color-surface) 92%, transparent)' }}
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+              }}
             >
-              <p className="text-sm font-medium text-coral-burst mb-1" style={geist}>Text has changed</p>
-              <p className="text-xs text-cocoa-light mb-3" style={geist}>Your illustration may not match the current story</p>
+              <p className="text-sm font-medium text-coral-burst mb-1" style={geist}>
+                Text has changed
+              </p>
+              <p className="text-xs text-cocoa-light mb-3" style={geist}>
+                Your illustration may not match the current story
+              </p>
               <button
                 type="button"
                 onClick={onGenerate}
@@ -158,7 +164,8 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
     <div
       className="relative w-full overflow-hidden flex flex-col items-center justify-center rounded-xl"
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--color-primary-start) 5%, var(--color-background))',
+        backgroundColor:
+          'color-mix(in srgb, var(--color-primary-start) 5%, var(--color-background))',
         aspectRatio: '4 / 3',
       }}
     >
@@ -171,7 +178,10 @@ const IllustrationArea: React.FC<IllustrationAreaProps> = ({
         }}
         draggable={false}
       />
-      <p className="text-cocoa-light mt-4 text-center max-w-xs px-4" style={{ ...geist, fontSize: 14, lineHeight: 1.5 }}>
+      <p
+        className="text-cocoa-light mt-4 text-center max-w-xs px-4"
+        style={{ ...geist, fontSize: 14, lineHeight: 1.5 }}
+      >
         {hasText
           ? "Your words are ready. Let's bring them to life."
           : 'Write your story first, then watch it become art.'}

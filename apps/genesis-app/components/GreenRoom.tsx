@@ -12,7 +12,18 @@ import { IcoSend, IcoStar, IcoZap, IcoWand } from './IconscoutIcons';
  */
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronUp, Clock, Eye, EyeOff, History, Lightbulb, Plus, Tag, User, X } from 'lucide-react';
+import {
+  ChevronUp,
+  Clock,
+  Eye,
+  EyeOff,
+  History,
+  Lightbulb,
+  Plus,
+  Tag,
+  User,
+  X,
+} from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { greenRoomService } from '../services/greenRoomService';

@@ -1,13 +1,13 @@
 {
   "name": "@genesis/mastra",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch server.ts",
     "start": "node scripts/patch-durable-shim.mjs && npx mastra start --dir ../.mastra/output",
     "build": "MASTRA_CONCURRENCY=1 bun x mastra build --dir mastra --root .. && node scripts/patch-durable-shim.mjs",
-    "type-check": "tsc --noEmit -p tsconfig.json",
+    "type-check": "tsgo --noEmit -p tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
     "server:deploy": "bun run build && node scripts/deploy.mjs server",
     "studio:deploy": "bun run build && node scripts/deploy.mjs studio"
@@ -25,6 +25,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@typescript/native-preview": "beta",
     "@types/node": "^22.10.2",
     "tsx": "^4.20.6",
     "typescript": "^6.0.2",

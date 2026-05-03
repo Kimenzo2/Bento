@@ -51,9 +51,7 @@ const WritingPanel: React.FC<WritingPanelProps> = ({ text, onChange, autoFocus =
       <div
         className="flex-1 min-h-[140px] transition-shadow duration-200"
         style={{
-          boxShadow: isFocused
-            ? 'inset 2px 0 0 var(--color-primary-start)'
-            : 'none',
+          boxShadow: isFocused ? 'inset 2px 0 0 var(--color-primary-start)' : 'none',
         }}
       >
         <textarea
@@ -82,8 +80,8 @@ const WritingPanel: React.FC<WritingPanelProps> = ({ text, onChange, autoFocus =
             isOverLimit
               ? 'text-coral-burst font-medium'
               : isNearLimit
-              ? 'text-coral-burst'
-              : 'text-cocoa-light/50'
+                ? 'text-coral-burst'
+                : 'text-cocoa-light/50'
           }`}
           style={geist}
         >

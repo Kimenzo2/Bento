@@ -59,12 +59,16 @@ const BlogIndex: React.FC = () => {
         keywords: p.tags.join(', '),
       })),
     });
-    return () => { document.getElementById(id)?.remove(); };
+    return () => {
+      document.getElementById(id)?.remove();
+    };
   }, [posts]);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}>
-
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}
+    >
       {/* ── Nav ── */}
       <header
         className="sticky top-0 z-40 w-full border-b backdrop-blur-md"
@@ -82,7 +86,11 @@ const BlogIndex: React.FC = () => {
               <span className="hidden sm:inline">Genesis</span>
             </Link>
 
-            <div className="w-px h-4 hidden sm:block" style={{ backgroundColor: S.border }} aria-hidden="true" />
+            <div
+              className="w-px h-4 hidden sm:block"
+              style={{ backgroundColor: S.border }}
+              aria-hidden="true"
+            />
 
             <Link
               to="/blog"
@@ -97,7 +105,12 @@ const BlogIndex: React.FC = () => {
           <a
             href="/welcome"
             className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full text-sm font-medium transition-all hover:shadow-lg hover:-translate-y-0.5"
-            style={{ backgroundColor: S.accent, color: '#fff', fontFamily: S.fontSans, boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)' }}
+            style={{
+              backgroundColor: S.accent,
+              color: '#fff',
+              fontFamily: S.fontSans,
+              boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)',
+            }}
           >
             Try Free
           </a>
@@ -105,10 +118,7 @@ const BlogIndex: React.FC = () => {
       </header>
 
       {/* ── Hero ── */}
-      <section
-        className="border-b"
-        style={{ borderColor: S.border, backgroundColor: S.surface }}
-      >
+      <section className="border-b" style={{ borderColor: S.border, backgroundColor: S.surface }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
           <p
             className="text-xs font-semibold uppercase tracking-widest mb-4"
@@ -141,7 +151,9 @@ const BlogIndex: React.FC = () => {
       {/* ── Posts ── */}
       <main className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
         {posts.length === 0 ? (
-          <p className="text-center py-24" style={{ color: S.textMuted }}>No posts yet — check back soon.</p>
+          <p className="text-center py-24" style={{ color: S.textMuted }}>
+            No posts yet — check back soon.
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {posts.map((post) => (
@@ -154,13 +166,24 @@ const BlogIndex: React.FC = () => {
       {/* ── Footer ── */}
       <footer
         className="border-t py-12 text-center text-sm"
-        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans, backgroundColor: S.surface }}
+        style={{
+          borderColor: S.border,
+          color: S.textMuted,
+          fontFamily: S.fontSans,
+          backgroundColor: S.surface,
+        }}
       >
         <div className="max-w-5xl mx-auto px-5">
           <p>
             © 2026{' '}
-            <a href={BASE_URL} className="underline underline-offset-4 transition-colors hover:text-black" style={{ color: S.accent }}>Genesis</a>
-            {' '}— AI Visual Storytelling Platform
+            <a
+              href={BASE_URL}
+              className="underline underline-offset-4 transition-colors hover:text-black"
+              style={{ color: S.accent }}
+            >
+              Genesis
+            </a>{' '}
+            — AI Visual Storytelling Platform
           </p>
         </div>
       </footer>
@@ -169,4 +192,3 @@ const BlogIndex: React.FC = () => {
 };
 
 export default BlogIndex;
-

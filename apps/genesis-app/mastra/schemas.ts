@@ -240,9 +240,7 @@ export const PageSchema = z.object({
   learningContent: z.any().optional(),
   learningMoment: z.any().optional(),
   vocabularyWords: z.array(z.object({ word: z.string(), definition: z.string() })).optional(),
-  choices: z
-    .array(z.object({ text: z.string(), targetPageNumber: z.number() }))
-    .optional(),
+  choices: z.array(z.object({ text: z.string(), targetPageNumber: z.number() })).optional(),
 });
 
 export const ChapterSchema = z.object({

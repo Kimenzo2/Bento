@@ -1,77 +1,77 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
   BackgroundVariant,
   useReactFlow,
   type NodeMouseHandler,
-} from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
-import type { BookProject } from '../../types'
-import type { SceneNodeData } from '../../lib/canvas/canvasTypes'
-import { SceneNode } from './SceneNode'
-import { SceneEdge } from './SceneEdge'
-import { CanvasToolbar } from './CanvasToolbar'
-import { CanvasMinimap } from './CanvasMinimap'
-import { SceneNodeDetail } from './SceneNodeDetail'
-import { CanvasEmptyState } from './CanvasEmptyState'
-import { useStoryCanvas } from '../../hooks/useStoryCanvas'
-import { ArrowLeft } from 'lucide-react'
+import type { BookProject } from '../../types';
+import type { SceneNodeData } from '../../lib/canvas/canvasTypes';
+import { SceneNode } from './SceneNode';
+import { SceneEdge } from './SceneEdge';
+import { CanvasToolbar } from './CanvasToolbar';
+import { CanvasMinimap } from './CanvasMinimap';
+import { SceneNodeDetail } from './SceneNodeDetail';
+import { CanvasEmptyState } from './CanvasEmptyState';
+import { useStoryCanvas } from '../../hooks/useStoryCanvas';
+import { ArrowLeft } from 'lucide-react';
 
-const GEN_IMAGE_PATH = '/images/onboarding/Style_directive_highend_202512150033.jpeg'
+const GEN_IMAGE_PATH = '/images/onboarding/Style_directive_highend_202512150033.jpeg';
 
-const nodeTypes = { sceneNode: SceneNode }
-const edgeTypes = { sceneEdge: SceneEdge }
+const nodeTypes = { sceneNode: SceneNode };
+const edgeTypes = { sceneEdge: SceneEdge };
 
 interface StoryCanvasProps {
-  project: BookProject
-  onSwitchToPages: (pageNumber?: number) => void
-  onAddScene: () => void
+  project: BookProject;
+  onSwitchToPages: (pageNumber?: number) => void;
+  onAddScene: () => void;
 }
 
 export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanvasProps) {
   const { nodes, edges, totalPages, allPages } = useStoryCanvas({
     project,
     onEditPage: onSwitchToPages,
-  })
+  });
 
-  const [selectedNodeData, setSelectedNodeData] = useState<SceneNodeData | null>(null)
-  const [minimapVisible, setMinimapVisible] = useState(true)
-  const [genTooltipVisible, setGenTooltipVisible] = useState(false)
-  const reactFlowInstance = useReactFlow()
+  const [selectedNodeData, setSelectedNodeData] = useState<SceneNodeData | null>(null);
+  const [minimapVisible, setMinimapVisible] = useState(true);
+  const [genTooltipVisible, setGenTooltipVisible] = useState(false);
+  const reactFlowInstance = useReactFlow();
 
   const handleNodeClick: NodeMouseHandler = useCallback((_, node) => {
-    setSelectedNodeData(node.data as SceneNodeData)
-  }, [])
+    setSelectedNodeData(node.data as SceneNodeData);
+  }, []);
 
   const handlePaneClick = useCallback(() => {
-    setSelectedNodeData(null)
-  }, [])
+    setSelectedNodeData(null);
+  }, []);
 
   const handleZoomIn = useCallback(() => {
-    reactFlowInstance.zoomIn({ duration: 300 })
-  }, [reactFlowInstance])
+    reactFlowInstance.zoomIn({ duration: 300 });
+  }, [reactFlowInstance]);
 
   const handleZoomOut = useCallback(() => {
-    reactFlowInstance.zoomOut({ duration: 300 })
-  }, [reactFlowInstance])
+    reactFlowInstance.zoomOut({ duration: 300 });
+  }, [reactFlowInstance]);
 
   const handleFitView = useCallback(() => {
-    reactFlowInstance.fitView({ padding: 0.15, duration: 600 })
-  }, [reactFlowInstance])
+    reactFlowInstance.fitView({ padding: 0.15, duration: 600 });
+  }, [reactFlowInstance]);
 
   const handleToggleMinimap = useCallback(() => {
-    setMinimapVisible((v) => !v)
-  }, [])
+    setMinimapVisible((v) => !v);
+  }, []);
 
   const handleAddScene = useCallback(() => {
-    onAddScene()
-  }, [onAddScene])
+    onAddScene();
+  }, [onAddScene]);
 
   const handleDetailNavigate = useCallback(
     (pageNumber: number) => {
-      const page = allPages.find((p) => p.pageNumber === pageNumber)
+      const page = allPages.find((p) => p.pageNumber === pageNumber);
       if (page) {
         setSelectedNodeData({
           pageId: page.id,
@@ -81,29 +81,24 @@ export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanva
           imagePrompt: page.imagePrompt ?? null,
           isImageOutdated: page.isImageOutdated ?? false,
           onEdit: onSwitchToPages,
-        })
+        });
 
-        const node = reactFlowInstance.getNode(`page-${page.pageNumber}`)
+        const node = reactFlowInstance.getNode(`page-${page.pageNumber}`);
         if (node) {
-          const position = node.position
-          const width = node.measured?.width ?? node.width ?? 0
-          const height = node.measured?.height ?? node.height ?? 0
+          const position = node.position;
+          const width = node.measured?.width ?? node.width ?? 0;
+          const height = node.measured?.height ?? node.height ?? 0;
 
-          reactFlowInstance.setCenter(
-            position.x + width / 2,
-            position.y + height / 2,
-            { duration: 300 }
-          )
+          reactFlowInstance.setCenter(position.x + width / 2, position.y + height / 2, {
+            duration: 300,
+          });
         }
       }
     },
     [allPages, onSwitchToPages, reactFlowInstance]
-  )
+  );
 
-  const fitViewOptions = useMemo(
-    () => ({ padding: 0.15, duration: 600 }),
-    []
-  )
+  const fitViewOptions = useMemo(() => ({ padding: 0.15, duration: 600 }), []);
 
   return (
     <div className="relative w-full h-full" style={{ background: 'var(--color-background)' }}>
@@ -250,10 +245,10 @@ export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanva
         }}
         className="focus-visible:ring-2 focus-visible:ring-coral-burst/40"
         onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--color-primary-start)'
+          e.currentTarget.style.color = 'var(--color-primary-start)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--color-text-light)'
+          e.currentTarget.style.color = 'var(--color-text-light)';
         }}
         aria-label="Back to Pages view"
       >
@@ -272,9 +267,7 @@ export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanva
       />
 
       {/* Empty state */}
-      {nodes.length === 0 && (
-        <CanvasEmptyState onStartWriting={() => onSwitchToPages(1)} />
-      )}
+      {nodes.length === 0 && <CanvasEmptyState onStartWriting={() => onSwitchToPages(1)} />}
 
       {/* Detail panel */}
       {selectedNodeData && (
@@ -284,8 +277,8 @@ export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanva
           allPages={allPages}
           onClose={() => setSelectedNodeData(null)}
           onEdit={(pageNum) => {
-            setSelectedNodeData(null)
-            onSwitchToPages(pageNum)
+            setSelectedNodeData(null);
+            onSwitchToPages(pageNum);
           }}
           onNavigate={handleDetailNavigate}
         />
@@ -329,7 +322,8 @@ export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanva
             height: 64,
             borderRadius: '50%',
             overflow: 'hidden',
-            boxShadow: '0 0 20px 4px rgba(var(--color-shadow), 0.25), 0 0 40px 8px rgba(var(--color-shadow), 0.1)',
+            boxShadow:
+              '0 0 20px 4px rgba(var(--color-shadow), 0.25), 0 0 40px 8px rgba(var(--color-shadow), 0.1)',
             cursor: 'default',
           }}
         >
@@ -342,7 +336,7 @@ export function StoryCanvas({ project, onSwitchToPages, onAddScene }: StoryCanva
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default StoryCanvas
+export default StoryCanvas;

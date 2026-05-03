@@ -23,24 +23,30 @@ export default function SubscriptionRenewedEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Your {planName} plan renewed.
-      </Text>
+      <Text style={heading(28)}>Your {planName} plan renewed.</Text>
 
       {/* Callout with renewal details */}
       <Section style={callout}>
         <Row>
           <Column>
             <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Plan</Text>
-            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>{planName}</Text>
+            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>
+              {planName}
+            </Text>
           </Column>
           <Column>
             <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Amount</Text>
-            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>{amount}</Text>
+            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>
+              {amount}
+            </Text>
           </Column>
           <Column>
-            <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Next renewal</Text>
-            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>{nextRenewalDate}</Text>
+            <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>
+              Next renewal
+            </Text>
+            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>
+              {nextRenewalDate}
+            </Text>
           </Column>
         </Row>
       </Section>

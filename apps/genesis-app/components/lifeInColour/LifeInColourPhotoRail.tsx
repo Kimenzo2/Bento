@@ -31,11 +31,13 @@ export function LifeInColourPhotoRail({
   const displayConfig = LIFE_IN_COLOUR_DISPLAY_SIZE_CONFIG[layoutSize];
 
   return (
-    <section className="space-y-3">
+    <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-[0.24em] text-cocoa-light">Photos</div>
-          <div className="mt-1 text-sm font-semibold text-charcoal-soft">{photos.length} uploaded</div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-cocoa-light">Photos</div>
+          <div className="mt-1 text-sm font-semibold text-charcoal-soft">
+            {photos.length} uploaded
+          </div>
         </div>
 
         <Button variant="outline" size="sm" onClick={onAddPhoto} className="shrink-0">
@@ -48,10 +50,12 @@ export function LifeInColourPhotoRail({
         {photos.map((photo) => {
           return (
             <div key={photo.id} className="relative overflow-hidden rounded-[18px]">
-              <div className={`relative overflow-hidden rounded-[18px] ${displayConfig.galleryTileHeight} bg-transparent`}>
+              <div
+                className={`relative overflow-hidden rounded-[18px] ${displayConfig.galleryTileHeight} bg-transparent`}
+              >
                 <img
                   src={photo.previewUrl}
-                  alt="Uploaded image preview"
+                  alt={photo.name ? `Uploaded preview for ${photo.name}` : 'Uploaded preview'}
                   draggable={false}
                   className="pointer-events-none h-full w-full select-none object-cover"
                 />

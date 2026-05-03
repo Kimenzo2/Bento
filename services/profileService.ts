@@ -41,7 +41,7 @@ const defaultGamificationData: GamificationState = {
   nextLevelXP: 100,
   booksCreatedCount: 0,
   currentStreak: 0,
-  badges: [],          // Populated from achievement_definitions table
+  badges: [], // Populated from achievement_definitions table
   dailyChallenges: [], // Populated from daily_challenge_pool via assign_daily_challenges()
 };
 
@@ -59,7 +59,8 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
       return null;
     }
 
-    if (import.meta.env.DEV) console.log('[ProfileService] Ensuring profile exists for:', user.email);
+    if (import.meta.env.DEV)
+      console.log('[ProfileService] Ensuring profile exists for:', user.email);
 
     // First, try to get existing profile
     const { data: existingProfile, error: fetchError } = await supabase
@@ -69,7 +70,8 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
       .maybeSingle();
 
     if (existingProfile) {
-      if (import.meta.env.DEV) console.log('[ProfileService] Profile exists:', existingProfile.email);
+      if (import.meta.env.DEV)
+        console.log('[ProfileService] Profile exists:', existingProfile.email);
 
       // Patch missing fields from auth metadata (trigger may have missed avatar_url/full_name)
       const updates: Record<string, any> = {};
@@ -83,7 +85,8 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
 
       if (Object.keys(updates).length > 0) {
         updates.updated_at = new Date().toISOString();
-        if (import.meta.env.DEV) console.log('[ProfileService] Patching missing profile fields:', Object.keys(updates));
+        if (import.meta.env.DEV)
+          console.log('[ProfileService] Patching missing profile fields:', Object.keys(updates));
         await supabase.from('profiles').update(updates).eq('id', user.id);
         // Re-fetch after patch
         const { data: patchedProfile } = await supabase
@@ -104,7 +107,7 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
     if (import.meta.env.DEV) console.log('[ProfileService] Creating new profile for:', user.email);
 
     const derivedName =
-        user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
+      user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
 
     const newProfile = {
       id: user.id,
@@ -127,7 +130,8 @@ export const ensureUserProfile = async (): Promise<UserProfile | null> => {
 
       // If it's a duplicate key error, the trigger already created it
       if (insertError.code === '23505') {
-        if (import.meta.env.DEV) console.log('[ProfileService] Profile was created by trigger, fetching...');
+        if (import.meta.env.DEV)
+          console.log('[ProfileService] Profile was created by trigger, fetching...');
         const { data: triggerProfile } = await supabase
           .from('profiles')
           .select('*')
@@ -219,21 +223,19 @@ export const invalidateProfileCache = (userId: string): void => {
  * Update user profile fields (display name, bio, avatar, etc.)
  * This is the ONLY function that should be used to persist user-edited profile data.
  */
-export const updateUserProfile = async (
-  updates: {
-    full_name?: string;
-    display_name?: string;
-    avatar_url?: string | null;
-    bio?: string;
-    email?: string;
-    default_style?: string;
-    creativity_temperature?: number;
-    email_notifications?: boolean;
-    marketing_emails?: boolean;
-    is_public?: boolean;
-    data_sharing_enabled?: boolean;
-  }
-): Promise<UserProfile | null> => {
+export const updateUserProfile = async (updates: {
+  full_name?: string;
+  display_name?: string;
+  avatar_url?: string | null;
+  bio?: string;
+  email?: string;
+  default_style?: string;
+  creativity_temperature?: number;
+  email_notifications?: boolean;
+  marketing_emails?: boolean;
+  is_public?: boolean;
+  data_sharing_enabled?: boolean;
+}): Promise<UserProfile | null> => {
   try {
     const {
       data: { user },
@@ -340,7 +342,10 @@ export const updateGamificationData = async (
  * Level titles and XP thresholds come from the DB (level_definitions table).
  * @deprecated Use mastra.agents.gamification.trackAction() for new code.
  */
-export const addXP = async (_xpToAdd: number, action = 'suggestion_accepted'): Promise<GamificationState | null> => {
+export const addXP = async (
+  _xpToAdd: number,
+  action = 'suggestion_accepted'
+): Promise<GamificationState | null> => {
   try {
     const { mastra } = await import('../src/services/mastraClient');
     await mastra.agents.gamification.trackAction(action);
@@ -406,12 +411,18 @@ export const completeChallenge = async (challengeId: string): Promise<boolean> =
     }
 
     // Mark challenge complete in DB and award XP via backend
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return false;
 
     await supabase
       .from('user_daily_challenges')
-      .update({ completed: true, completed_at: new Date().toISOString(), xp_awarded: challenge.xpReward })
+      .update({
+        completed: true,
+        completed_at: new Date().toISOString(),
+        xp_awarded: challenge.xpReward,
+      })
       .eq('user_id', user.id)
       .eq('challenge_id', challengeId)
       .eq('challenge_date', new Date().toISOString().slice(0, 10));

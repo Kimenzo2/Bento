@@ -41,7 +41,9 @@ test.describe('Phase 2 - GPU Pipeline (No Editor)', () => {
     expect(fatalGpuErrors).toHaveLength(0);
   });
 
-  test('initial non-editor navigation does not eagerly load IllustrationGPU chunk', async ({ page }) => {
+  test('initial non-editor navigation does not eagerly load IllustrationGPU chunk', async ({
+    page,
+  }) => {
     const loadedUrls: string[] = [];
     page.on('requestfinished', (request) => {
       loadedUrls.push(request.url());

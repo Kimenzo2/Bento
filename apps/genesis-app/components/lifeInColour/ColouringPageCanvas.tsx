@@ -114,7 +114,10 @@ function applyStrokeContext(context: CanvasRenderingContext2D, stroke: Stroke) {
   context.lineCap = 'round';
 }
 
-function getCanvasPoint(event: ReactPointerEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement): Point {
+function getCanvasPoint(
+  event: ReactPointerEvent<HTMLCanvasElement>,
+  canvas: HTMLCanvasElement
+): Point {
   const rect = canvas.getBoundingClientRect();
   const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
   const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
@@ -125,11 +128,7 @@ function getCanvasPoint(event: ReactPointerEvent<HTMLCanvasElement>, canvas: HTM
   };
 }
 
-function drawDot(
-  context: CanvasRenderingContext2D,
-  point: Point,
-  stroke: Stroke
-) {
+function drawDot(context: CanvasRenderingContext2D, point: Point, stroke: Stroke) {
   context.save();
   applyStrokeContext(context, stroke);
   context.beginPath();
@@ -138,12 +137,7 @@ function drawDot(
   context.restore();
 }
 
-function drawSegment(
-  context: CanvasRenderingContext2D,
-  from: Point,
-  to: Point,
-  stroke: Stroke
-) {
+function drawSegment(context: CanvasRenderingContext2D, from: Point, to: Point, stroke: Stroke) {
   context.save();
   applyStrokeContext(context, stroke);
   context.beginPath();
@@ -233,7 +227,9 @@ export function ColouringPageCanvas({
 
     activeStrokeRef.current = null;
     activePointerIdRef.current = null;
-    strokeHistoryRef.current = [...strokeHistoryRef.current, currentStroke].slice(-MAX_HISTORY_STROKES);
+    strokeHistoryRef.current = [...strokeHistoryRef.current, currentStroke].slice(
+      -MAX_HISTORY_STROKES
+    );
     setStrokeCount(strokeHistoryRef.current.length);
   }, []);
 
@@ -265,7 +261,11 @@ export function ColouringPageCanvas({
     baseContext.clearRect(0, 0, canvasWidth, canvasHeight);
 
     if (canvas.kind === 'outline') {
-      baseContext.putImageData(createOutlineImageData(canvas.outlinePixels, canvasWidth, canvasHeight), 0, 0);
+      baseContext.putImageData(
+        createOutlineImageData(canvas.outlinePixels, canvasWidth, canvasHeight),
+        0,
+        0
+      );
       setBaseLayerReady(true);
       return;
     }
@@ -294,53 +294,10 @@ export function ColouringPageCanvas({
     };
   }, [canvas, canvasHeight, canvasWidth, clearPaintLayer]);
 
-  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const canvas = paintCanvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-      return;
-    }
-
-    if (activeStrokeRef.current) {
-      commitActiveStroke();
-    }
-
-    canvas.setPointerCapture(event.pointerId);
-
-    const point = getCanvasPoint(event, canvas);
-    const stroke: Stroke = {
-      mode: toolMode,
-      color: selectedColor,
-      brushSize,
-      points: [point],
-    };
-
-    activeStrokeRef.current = stroke;
-    activePointerIdRef.current = event.pointerId;
-    drawDot(context, point, stroke);
-  }, [brushSize, commitActiveStroke, selectedColor, toolMode]);
-
-  const finishStroke = useCallback((event?: ReactPointerEvent<HTMLCanvasElement>) => {
-    const canvas = paintCanvasRef.current;
-    if (canvas && event && activePointerIdRef.current === event.pointerId) {
-      try {
-        canvas.releasePointerCapture(event.pointerId);
-      } catch {
-        // Ignore pointer release errors from cancelled capture.
-      }
-    }
-
-    commitActiveStroke();
-  }, [commitActiveStroke]);
-
-  const handlePointerMove = useCallback(
+  const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
       const canvas = paintCanvasRef.current;
-      if (!canvas || !activeStrokeRef.current || activePointerIdRef.current !== event.pointerId) {
+      if (!canvas) {
         return;
       }
 
@@ -349,19 +306,65 @@ export function ColouringPageCanvas({
         return;
       }
 
-      const currentStroke = activeStrokeRef.current;
-      if (!currentStroke) {
-        return;
+      if (activeStrokeRef.current) {
+        commitActiveStroke();
       }
 
-      const nextPoint = getCanvasPoint(event, canvas);
-      const lastPoint = currentStroke.points[currentStroke.points.length - 1] ?? nextPoint;
+      canvas.setPointerCapture(event.pointerId);
 
-      currentStroke.points.push(nextPoint);
-      drawSegment(context, lastPoint, nextPoint, currentStroke);
+      const point = getCanvasPoint(event, canvas);
+      const stroke: Stroke = {
+        mode: toolMode,
+        color: selectedColor,
+        brushSize,
+        points: [point],
+      };
+
+      activeStrokeRef.current = stroke;
+      activePointerIdRef.current = event.pointerId;
+      drawDot(context, point, stroke);
     },
-    []
+    [brushSize, commitActiveStroke, selectedColor, toolMode]
   );
+
+  const finishStroke = useCallback(
+    (event?: ReactPointerEvent<HTMLCanvasElement>) => {
+      const canvas = paintCanvasRef.current;
+      if (canvas && event && activePointerIdRef.current === event.pointerId) {
+        try {
+          canvas.releasePointerCapture(event.pointerId);
+        } catch {
+          // Ignore pointer release errors from cancelled capture.
+        }
+      }
+
+      commitActiveStroke();
+    },
+    [commitActiveStroke]
+  );
+
+  const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const canvas = paintCanvasRef.current;
+    if (!canvas || !activeStrokeRef.current || activePointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return;
+    }
+
+    const currentStroke = activeStrokeRef.current;
+    if (!currentStroke) {
+      return;
+    }
+
+    const nextPoint = getCanvasPoint(event, canvas);
+    const lastPoint = currentStroke.points[currentStroke.points.length - 1] ?? nextPoint;
+
+    currentStroke.points.push(nextPoint);
+    drawSegment(context, lastPoint, nextPoint, currentStroke);
+  }, []);
 
   const handlePointerUp = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -436,7 +439,9 @@ export function ColouringPageCanvas({
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
       toast.success('Colouring page downloaded.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not download the colouring page.');
+      toast.error(
+        error instanceof Error ? error.message : 'Could not download the colouring page.'
+      );
     }
   }, [createExportCanvas, sourceName]);
 
@@ -467,7 +472,9 @@ export function ColouringPageCanvas({
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
-              <span className="text-xs font-heading uppercase tracking-[0.18em] text-cocoa-light">Colors</span>
+              <span className="text-xs font-heading uppercase tracking-[0.18em] text-cocoa-light">
+                Colors
+              </span>
               <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-peach-soft bg-cream-base px-2 py-2">
                 {BRUSH_COLORS.map((color) => {
                   const active = selectedColor === color;
@@ -478,7 +485,9 @@ export function ColouringPageCanvas({
                       type="button"
                       onClick={() => setSelectedColor(color)}
                       className={`h-7 w-7 rounded-full border transition-all ${
-                        active ? 'scale-110 border-charcoal-soft shadow-sm' : 'border-transparent hover:scale-105'
+                        active
+                          ? 'scale-110 border-charcoal-soft shadow-sm'
+                          : 'border-transparent hover:scale-105'
                       }`}
                       style={{ backgroundColor: color }}
                       aria-label={`Select brush color ${color}`}
@@ -490,7 +499,9 @@ export function ColouringPageCanvas({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-heading uppercase tracking-[0.18em] text-cocoa-light">Brush size</span>
+              <span className="text-xs font-heading uppercase tracking-[0.18em] text-cocoa-light">
+                Brush size
+              </span>
               <div className="flex items-center gap-1 rounded-full border border-peach-soft bg-cream-base p-1">
                 {BRUSH_SIZE_PRESETS.map((preset) => {
                   const active = brushSizePreset === preset;
@@ -551,7 +562,12 @@ export function ColouringPageCanvas({
                 <Undo2 className="h-4 w-4" />
                 Undo
               </Button>
-              <Button variant="outline" size="sm" onClick={handleClearPage} disabled={strokeCount === 0}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearPage}
+                disabled={strokeCount === 0}
+              >
                 <Trash2 className="h-4 w-4" />
                 Clear
               </Button>
@@ -588,7 +604,10 @@ export function ColouringPageCanvas({
       >
         <div
           className="relative w-full"
-          style={{ aspectRatio: `${canvasWidth} / ${canvasHeight}`, maxHeight: `${displayConfig.maxStageHeight}px` }}
+          style={{
+            aspectRatio: `${canvasWidth} / ${canvasHeight}`,
+            maxHeight: `${displayConfig.maxStageHeight}px`,
+          }}
         >
           <div className="absolute inset-0 bg-white" />
           <canvas

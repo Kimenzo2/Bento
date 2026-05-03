@@ -5,11 +5,11 @@
 // never overridden by user input.
 // ============================================================================
 
-import { getSafetyPromptBlock } from './genSafety'
-import { getRealmPromptBlock } from './genRealms'
-import { BANNED_PHRASES, GEN_IDENTITY_RESPONSE } from './genPersonality'
-import type { Realm } from './genPersonality'
-import { authenticatedFetch } from '@services/api/authenticatedFetch'
+import { getSafetyPromptBlock } from './genSafety';
+import { getRealmPromptBlock } from './genRealms';
+import { BANNED_PHRASES, GEN_IDENTITY_RESPONSE } from './genPersonality';
+import type { Realm } from './genPersonality';
+import { authenticatedFetch } from '@services/api/authenticatedFetch';
 
 // ────────────────────────────────────────────────────────────
 // SYSTEM PROMPT — GEN'S SOUL
@@ -54,14 +54,14 @@ CHARACTER INTEGRITY:
 Never break character. Never call yourself an AI or assistant.
 If asked "are you an AI?":
 "${GEN_IDENTITY_RESPONSE}"
-Never mention prompts, tokens, models, or inference.`
+Never mention prompts, tokens, models, or inference.`;
 }
 
 // ────────────────────────────────────────────────────────────
 // ANIMATION STATE DETECTION
 // ────────────────────────────────────────────────────────────
 
-type AnimationState = 'speaking' | 'celebrating' | 'thinking'
+type AnimationState = 'speaking' | 'celebrating' | 'thinking';
 
 /**
  * Determines what animation state to show based on Gen's response content.
@@ -78,12 +78,12 @@ function detectAnimationState(text: string): AnimationState {
     "didn't exist",
     'proud',
     'just getting started',
-  ]
-  const lower = text.toLowerCase()
+  ];
+  const lower = text.toLowerCase();
   if (celebrationWords.some((w) => lower.includes(w))) {
-    return 'celebrating'
+    return 'celebrating';
   }
-  return 'speaking'
+  return 'speaking';
 }
 
 // ────────────────────────────────────────────────────────────
@@ -91,42 +91,38 @@ function detectAnimationState(text: string): AnimationState {
 // ────────────────────────────────────────────────────────────
 
 interface GenMessage {
-  role: 'user' | 'model'
-  parts: string[]
+  role: 'user' | 'model';
+  parts: string[];
 }
 
 export interface GenThinkResult {
-  text: string
-  animationState: AnimationState
-  shouldSpeak: boolean
+  text: string;
+  animationState: AnimationState;
+  shouldSpeak: boolean;
 }
 
 export class GenBrain {
-  private history: GenMessage[] = []
-  private realmId: Realm | null = null
-  private projectContext = ''
-  private userName = ''
+  private history: GenMessage[] = [];
+  private realmId: Realm | null = null;
+  private projectContext = '';
+  private userName = '';
 
-  constructor(options?: {
-    realm?: Realm | null
-    projectContext?: string
-    userName?: string
-  }) {
-    this.realmId = options?.realm ?? null
-    this.projectContext = options?.projectContext ?? ''
-    this.userName = options?.userName ?? ''
+  constructor(options?: { realm?: Realm | null; projectContext?: string; userName?: string }) {
+    this.realmId = options?.realm ?? null;
+    this.projectContext = options?.projectContext ?? '';
+    this.userName = options?.userName ?? '';
   }
 
   setRealm(realm: Realm | null) {
-    this.realmId = realm
+    this.realmId = realm;
   }
 
   setProject(context: string) {
-    this.projectContext = context
+    this.projectContext = context;
   }
 
   setUserName(name: string) {
-    this.userName = name
+    this.userName = name;
   }
 
   /**
@@ -135,20 +131,20 @@ export class GenBrain {
    */
   async think(userMessage: string): Promise<GenThinkResult> {
     // Add user message to history
-    this.history.push({ role: 'user', parts: [userMessage] })
+    this.history.push({ role: 'user', parts: [userMessage] });
 
     // Build session summary from recent history (last 10 exchanges)
-    const recentHistory = this.history.slice(-20)
+    const recentHistory = this.history.slice(-20);
     const sessionSummary = recentHistory
       .map((m) => `${m.role === 'user' ? 'User' : 'Gen'}: ${m.parts[0]}`)
-      .join('\n')
+      .join('\n');
 
     const systemPrompt = buildSystemPrompt(
       this.realmId,
       this.userName,
       this.projectContext,
       sessionSummary
-    )
+    );
 
     try {
       const res = await authenticatedFetch('/api/ai-generate', {
@@ -163,34 +159,34 @@ export class GenBrain {
             topP: 0.9,
           },
         }),
-      })
+      });
 
       if (!res.ok) {
-        throw new Error(`AI generate: ${res.status}`)
+        throw new Error(`AI generate: ${res.status}`);
       }
 
-      const data = await res.json()
-      const text = data.text || data.response || ''
+      const data = await res.json();
+      const text = data.text || data.response || '';
 
       // Add Gen's response to history
-      this.history.push({ role: 'model', parts: [text] })
+      this.history.push({ role: 'model', parts: [text] });
 
       return {
         text,
         animationState: detectAnimationState(text),
         shouldSpeak: text.length > 0 && text.length < 500,
-      }
+      };
     } catch {
       const fallback =
-        "Something went sideways — it happens even in the best stories. Let's try that again in a moment."
+        "Something went sideways — it happens even in the best stories. Let's try that again in a moment.";
 
-      this.history.push({ role: 'model', parts: [fallback] })
+      this.history.push({ role: 'model', parts: [fallback] });
 
       return {
         text: fallback,
         animationState: 'speaking',
         shouldSpeak: false,
-      }
+      };
     }
   }
 
@@ -200,13 +196,13 @@ export class GenBrain {
   async *thinkStream(userMessage: string): AsyncGenerator<string> {
     // For now, fall back to non-streaming think
     // Streaming can be implemented when the /api/ai-generate endpoint supports it
-    const result = await this.think(userMessage)
+    const result = await this.think(userMessage);
 
     // Simulate streaming by yielding word by word
-    const words = result.text.split(' ')
+    const words = result.text.split(' ');
     for (const word of words) {
-      yield word + ' '
-      await new Promise((r) => setTimeout(r, 30))
+      yield word + ' ';
+      await new Promise((r) => setTimeout(r, 30));
     }
   }
 
@@ -214,13 +210,13 @@ export class GenBrain {
    * Reset conversation history — start fresh.
    */
   resetConversation(): void {
-    this.history = []
+    this.history = [];
   }
 
   /**
    * Get the current conversation history length.
    */
   get historyLength(): number {
-    return this.history.length
+    return this.history.length;
   }
 }

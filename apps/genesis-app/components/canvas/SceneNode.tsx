@@ -1,51 +1,45 @@
-import { memo, useCallback, useEffect, useState } from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
-import type { SceneNodeData } from '../../lib/canvas/canvasTypes'
-import { Edit3, GripVertical, ImageIcon } from 'lucide-react'
+import { memo, useCallback, useEffect, useState } from 'react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
+import type { SceneNodeData } from '../../lib/canvas/canvasTypes';
+import { Edit3, GripVertical, ImageIcon } from 'lucide-react';
 
 const F = {
   sans: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
-}
+};
 
 function SceneNodeInner({ data, selected }: NodeProps) {
-  const {
-    pageNumber,
-    text,
-    imageUrl,
-    imagePrompt,
-    isImageOutdated,
-    onEdit,
-  } = data as SceneNodeData
+  const { pageNumber, text, imageUrl, imagePrompt, isImageOutdated, onEdit } =
+    data as SceneNodeData;
 
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [imageError, setImageError] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
-      setMounted(true)
-      return
+      setMounted(true);
+      return;
     }
-    const delay = (pageNumber - 1) * 60
-    const timer = setTimeout(() => setMounted(true), delay)
-    return () => clearTimeout(timer)
-  }, [pageNumber])
+    const delay = (pageNumber - 1) * 60;
+    const timer = setTimeout(() => setMounted(true), delay);
+    return () => clearTimeout(timer);
+  }, [pageNumber]);
 
   const handleEdit = useCallback(
     (e: React.MouseEvent) => {
-      e.stopPropagation()
-      ;(onEdit as (n: number) => void)(pageNumber as number)
+      e.stopPropagation();
+      (onEdit as (n: number) => void)(pageNumber as number);
     },
     [onEdit, pageNumber]
-  )
+  );
 
   const truncatedText =
     typeof text === 'string' && (text as string).length > 80
       ? `${(text as string).slice(0, 80)}…`
-      : (text as string) || ''
+      : (text as string) || '';
 
-  const hasImage = Boolean(imageUrl) && !imageError
+  const hasImage = Boolean(imageUrl) && !imageError;
 
   return (
     <div
@@ -55,14 +49,13 @@ function SceneNodeInner({ data, selected }: NodeProps) {
         height: 300,
         borderRadius: 12,
         overflow: 'hidden',
-        border: selected
-          ? '2px solid var(--color-primary-start)'
-          : '1px solid var(--color-border)',
+        border: selected ? '2px solid var(--color-primary-start)' : '1px solid var(--color-border)',
         background: 'var(--color-surface)',
         boxShadow: selected
           ? '0 0 0 1px var(--color-primary-start), 0 0 20px 4px rgba(var(--color-shadow), 0.3)'
           : '0 2px 8px rgba(var(--color-shadow), 0.08)',
-        transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms ease, box-shadow 200ms ease, opacity 350ms ease-out',
+        transition:
+          'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), border-color 200ms ease, box-shadow 200ms ease, opacity 350ms ease-out',
         transform: mounted ? 'scale(1)' : 'scale(0.92)',
         opacity: mounted ? 1 : 0,
         cursor: 'pointer',
@@ -71,16 +64,16 @@ function SceneNodeInner({ data, selected }: NodeProps) {
       }}
       onMouseEnter={(e) => {
         if (!selected) {
-          const el = e.currentTarget
-          el.style.transform = 'translateY(-4px) scale(1)'
-          el.style.borderColor = 'var(--color-primary-start)'
+          const el = e.currentTarget;
+          el.style.transform = 'translateY(-4px) scale(1)';
+          el.style.borderColor = 'var(--color-primary-start)';
         }
       }}
       onMouseLeave={(e) => {
-        const el = e.currentTarget
-        el.style.transform = 'scale(1)'
+        const el = e.currentTarget;
+        el.style.transform = 'scale(1)';
         if (!selected) {
-          el.style.borderColor = 'var(--color-border)'
+          el.style.borderColor = 'var(--color-border)';
         }
       }}
     >
@@ -247,14 +240,25 @@ function SceneNodeInner({ data, selected }: NodeProps) {
             borderRadius: 4,
             transition: 'color 150ms ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-primary-start)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-light)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--color-primary-start)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--color-text-light)';
+          }}
           aria-label={`Edit page ${pageNumber}`}
         >
           <Edit3 style={{ width: 12, height: 12 }} />
           Edit
         </button>
-        <span style={{ display: 'flex', alignItems: 'center', color: 'var(--color-text-light)', opacity: 0.5 }}>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            color: 'var(--color-text-light)',
+            opacity: 0.5,
+          }}
+        >
           <GripVertical style={{ width: 14, height: 14 }} />
         </span>
       </div>
@@ -267,8 +271,8 @@ function SceneNodeInner({ data, selected }: NodeProps) {
         style={{ bottom: -5, left: '50%', transform: 'translateX(-50%)' }}
       />
     </div>
-  )
+  );
 }
 
-export const SceneNode = memo(SceneNodeInner)
-export default SceneNode
+export const SceneNode = memo(SceneNodeInner);
+export default SceneNode;

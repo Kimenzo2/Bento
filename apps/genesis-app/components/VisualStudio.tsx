@@ -1,5 +1,14 @@
 import { IcoPalette, IcoWand } from './IconscoutIcons';
-import { ArrowLeft, Download, Edit2, Maximize2, Plus, RefreshCw, Share2, Sliders } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  Edit2,
+  Maximize2,
+  Plus,
+  RefreshCw,
+  Share2,
+  Sliders,
+} from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +41,8 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
 }) => {
   usePageSEO({
     title: 'Visual Studio — Genesis AI Visual Storytelling',
-    description: 'Advanced AI visual workspace. Refine illustrations, build scenes, and craft stunning visual narratives with Genesis Visual Studio.',
+    description:
+      'Advanced AI visual workspace. Refine illustrations, build scenes, and craft stunning visual narratives with Genesis Visual Studio.',
     canonical: '/visual-studio',
   });
 
@@ -207,9 +217,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
   return (
     <div className="w-full mx-auto animate-fadeIn max-w-450 p-3 md:p-6 pb-20 md:pb-24">
       {/* Header */}
-      <div
-        className="relative text-center mb-4 md:mb-6 shrink-0 px-10 sm:px-12 md:px-20"
-      >
+      <div className="relative text-center mb-4 md:mb-6 shrink-0 px-10 sm:px-12 md:px-20">
         {onBack && (
           <Button
             variant="ghost"
@@ -226,7 +234,10 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
         <div className="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10" />
 
         <p className="text-cocoa-light font-body text-xs sm:text-sm mt-2 md:mt-3 px-2 line-clamp-2">
-          {t('visualStudio.modeIndividualDescription', 'Fine-tune characters, compose scenes, and experiment with style alchemy.')}
+          {t(
+            'visualStudio.modeIndividualDescription',
+            'Fine-tune characters, compose scenes, and experiment with style alchemy.'
+          )}
         </p>
       </div>
 
@@ -242,7 +253,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                   variant="ghost"
                   onClick={() => {
                     setActiveTab(tab as 'character' | 'scene' | 'style');
-                    setSettings(prev => ({ ...prev, generatedImage: null }));
+                    setSettings((prev) => ({ ...prev, generatedImage: null }));
                   }}
                   className={`flex-1 py-2 md:py-2.5 font-heading capitalize
                               ${activeTab === tab ? 'bg-surface text-coral-burst border border-peach-soft' : 'text-cocoa-light hover:text-charcoal-soft border border-transparent'}`}
@@ -256,9 +267,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               <div className="space-y-4 md:space-y-6 animate-fadeIn">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs text-cocoa-light uppercase">
-                      Select Character
-                    </Label>
+                    <Label className="text-xs text-cocoa-light uppercase">Select Character</Label>
                     <Button
                       variant="default"
                       size="sm"
@@ -276,15 +285,21 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                         key={char.id}
                         className={`p-2 rounded-xl border cursor-pointer transition-all relative group
                           ${settings.selectedCharacterId === char.id ? 'border-coral-burst bg-coral-burst/5' : 'border-peach-soft hover:border-coral-burst/30'}`}
-                        onClick={() => setSettings(prev => ({ ...prev, selectedCharacterId: char.id }))}
+                        onClick={() =>
+                          setSettings((prev) => ({ ...prev, selectedCharacterId: char.id }))
+                        }
                       >
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-linear-to-br from-coral-burst to-gold-sunshine flex items-center justify-center text-white text-xs font-bold">
                             {char.name.slice(0, 1)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-charcoal-soft truncate">{char.name}</p>
-                            <p className="text-xs text-cocoa-light truncate">{char.role || 'Character'}</p>
+                            <p className="text-sm font-medium text-charcoal-soft truncate">
+                              {char.name}
+                            </p>
+                            <p className="text-xs text-cocoa-light truncate">
+                              {char.role || 'Character'}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -293,34 +308,62 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs text-cocoa-light uppercase">
-                    Expression & Pose
-                  </Label>
+                  <Label className="text-xs text-cocoa-light uppercase">Expression & Pose</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    <Select value={settings.expression} onValueChange={(v) => setSettings(prev => ({ ...prev, expression: v }))}>
+                    <Select
+                      value={settings.expression}
+                      onValueChange={(v) => setSettings((prev) => ({ ...prev, expression: v }))}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder={t('visualStudio.expression', 'Expression')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="neutral">{t('visualStudio.expressionNeutral', 'Neutral')}</SelectItem>
-                        <SelectItem value="happy">{t('visualStudio.expressionHappy', 'Happy')}</SelectItem>
-                        <SelectItem value="sad">{t('visualStudio.expressionSad', 'Sad')}</SelectItem>
-                        <SelectItem value="angry">{t('visualStudio.expressionAngry', 'Angry')}</SelectItem>
-                        <SelectItem value="surprised">{t('visualStudio.expressionSurprised', 'Surprised')}</SelectItem>
-                        <SelectItem value="determined">{t('visualStudio.expressionDetermined', 'Determined')}</SelectItem>
+                        <SelectItem value="neutral">
+                          {t('visualStudio.expressionNeutral', 'Neutral')}
+                        </SelectItem>
+                        <SelectItem value="happy">
+                          {t('visualStudio.expressionHappy', 'Happy')}
+                        </SelectItem>
+                        <SelectItem value="sad">
+                          {t('visualStudio.expressionSad', 'Sad')}
+                        </SelectItem>
+                        <SelectItem value="angry">
+                          {t('visualStudio.expressionAngry', 'Angry')}
+                        </SelectItem>
+                        <SelectItem value="surprised">
+                          {t('visualStudio.expressionSurprised', 'Surprised')}
+                        </SelectItem>
+                        <SelectItem value="determined">
+                          {t('visualStudio.expressionDetermined', 'Determined')}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    <Select value={settings.pose} onValueChange={(v) => setSettings(prev => ({ ...prev, pose: v }))}>
+                    <Select
+                      value={settings.pose}
+                      onValueChange={(v) => setSettings((prev) => ({ ...prev, pose: v }))}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder={t('visualStudio.pose', 'Pose')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="standing">{t('visualStudio.poseStanding', 'Standing')}</SelectItem>
-                        <SelectItem value="sitting">{t('visualStudio.poseSitting', 'Sitting')}</SelectItem>
-                        <SelectItem value="walking">{t('visualStudio.poseWalking', 'Walking')}</SelectItem>
-                        <SelectItem value="running">{t('visualStudio.poseRunning', 'Running')}</SelectItem>
-                        <SelectItem value="fighting">{t('visualStudio.poseFighting', 'Fighting')}</SelectItem>
-                        <SelectItem value="flying">{t('visualStudio.poseFlying', 'Flying')}</SelectItem>
+                        <SelectItem value="standing">
+                          {t('visualStudio.poseStanding', 'Standing')}
+                        </SelectItem>
+                        <SelectItem value="sitting">
+                          {t('visualStudio.poseSitting', 'Sitting')}
+                        </SelectItem>
+                        <SelectItem value="walking">
+                          {t('visualStudio.poseWalking', 'Walking')}
+                        </SelectItem>
+                        <SelectItem value="running">
+                          {t('visualStudio.poseRunning', 'Running')}
+                        </SelectItem>
+                        <SelectItem value="fighting">
+                          {t('visualStudio.poseFighting', 'Fighting')}
+                        </SelectItem>
+                        <SelectItem value="flying">
+                          {t('visualStudio.poseFlying', 'Flying')}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -328,234 +371,282 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
               </div>
             )}
 
-              {/* Tab Content: Scene */}
-              {activeTab === 'scene' && (
-                <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-cocoa-light uppercase">
-                      Lighting & Angle
-                    </Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Select value={settings.lighting} onValueChange={(v) => setSettings(prev => ({ ...prev, lighting: v }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t('visualStudio.lighting', 'Lighting')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="natural">{t('visualStudio.lightNatural', 'Natural Light')}</SelectItem>
-                          <SelectItem value="golden-hour">{t('visualStudio.lightGoldenHour', 'Golden Hour')}</SelectItem>
-                          <SelectItem value="night">{t('visualStudio.lightNightDark', 'Night / Dark')}</SelectItem>
-                          <SelectItem value="studio">{t('visualStudio.lightStudio', 'Studio Lighting')}</SelectItem>
-                          <SelectItem value="neon">{t('visualStudio.lightNeon', 'Neon / Cyberpunk')}</SelectItem>
-                          <SelectItem value="dramatic">{t('visualStudio.lightDramatic', 'Dramatic Shadows')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={settings.cameraAngle} onValueChange={(v) => setSettings(prev => ({ ...prev, cameraAngle: v }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t('visualStudio.cameraAngle', 'Camera angle')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="eye-level">{t('visualStudio.cameraEyeLevel', 'Eye Level')}</SelectItem>
-                          <SelectItem value="low-angle">{t('visualStudio.cameraLow', 'Low Angle')}</SelectItem>
-                          <SelectItem value="high-angle">{t('visualStudio.cameraHigh', 'High Angle')}</SelectItem>
-                          <SelectItem value="wide-shot">{t('visualStudio.cameraWide', 'Wide Shot')}</SelectItem>
-                          <SelectItem value="close-up">{t('visualStudio.cameraClose', 'Close Up')}</SelectItem>
-                          <SelectItem value="aerial">{t('visualStudio.cameraAerial', 'Aerial View')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs text-cocoa-light uppercase">
-                      Scene Description
-                    </Label>
-                    <Textarea
-                      value={settings.prompt}
-                      onChange={(e) => setSettings(prev => ({ ...prev, prompt: e.target.value }))}
-                      className="h-24 md:h-32 bg-cream-base p-2.5 md:p-3 md:text-base"
-                      placeholder={t('visualStudio.describeScene', 'Describe the setting, props, and atmosphere...')}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Tab Content: Style Alchemy */}
-              {activeTab === 'style' && (
-                <div className="space-y-4 md:space-y-6 animate-fadeIn">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-cocoa-light uppercase flex items-center gap-2">
-                      <IcoPalette className="w-4 h-4" /> Style Alchemy
-                    </Label>
-                    <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
-                      <div>
-                        <div className="text-xs text-cocoa-light mb-1">
-                          Primary Style ({settings.mixRatio}%)
-                        </div>
-                        <Select value={settings.styleA} onValueChange={(v) => setSettings(prev => ({ ...prev, styleA: v as ArtStyle }))}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={t('visualStudio.primaryStyle', 'Primary style')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {styles.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <Sliders className="text-coral-burst w-4 h-4" />
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={settings.mixRatio}
-                          onChange={(e) =>
-                            setSettings(prev => ({ ...prev, mixRatio: Number.parseInt(e.target.value) }))
-                          }
-                          title={t('visualStudio.mixRatioTitle', 'Mix ratio: {{ratio}}%', { ratio: settings.mixRatio })}
-                          aria-label={t('visualStudio.styleMixRatio', 'Style mix ratio')}
-                          className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="text-xs text-cocoa-light mb-1">
-                          Secondary Style ({100 - settings.mixRatio}%)
-                        </div>
-                        <Select value={settings.styleB} onValueChange={(v) => setSettings(prev => ({ ...prev, styleB: v as ArtStyle }))}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={t('visualStudio.secondaryStyle', 'Secondary style')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {styles.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-cocoa-light uppercase">
-                      Test Prompt
-                    </Label>
-                    <Textarea
-                      value={settings.prompt}
-                      onChange={(e) => setSettings(prev => ({ ...prev, prompt: e.target.value }))}
-                      className="h-20 md:h-24 bg-cream-base p-2.5 md:p-3 md:text-base"
-                      placeholder={t('visualStudio.testPromptPlaceholder', 'A landscape with a castle...')}
-                    />
+            {/* Tab Content: Scene */}
+            {activeTab === 'scene' && (
+              <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <Label className="text-xs text-cocoa-light uppercase">Lighting & Angle</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Select
+                      value={settings.lighting}
+                      onValueChange={(v) => setSettings((prev) => ({ ...prev, lighting: v }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('visualStudio.lighting', 'Lighting')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="natural">
+                          {t('visualStudio.lightNatural', 'Natural Light')}
+                        </SelectItem>
+                        <SelectItem value="golden-hour">
+                          {t('visualStudio.lightGoldenHour', 'Golden Hour')}
+                        </SelectItem>
+                        <SelectItem value="night">
+                          {t('visualStudio.lightNightDark', 'Night / Dark')}
+                        </SelectItem>
+                        <SelectItem value="studio">
+                          {t('visualStudio.lightStudio', 'Studio Lighting')}
+                        </SelectItem>
+                        <SelectItem value="neon">
+                          {t('visualStudio.lightNeon', 'Neon / Cyberpunk')}
+                        </SelectItem>
+                        <SelectItem value="dramatic">
+                          {t('visualStudio.lightDramatic', 'Dramatic Shadows')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={settings.cameraAngle}
+                      onValueChange={(v) => setSettings((prev) => ({ ...prev, cameraAngle: v }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('visualStudio.cameraAngle', 'Camera angle')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="eye-level">
+                          {t('visualStudio.cameraEyeLevel', 'Eye Level')}
+                        </SelectItem>
+                        <SelectItem value="low-angle">
+                          {t('visualStudio.cameraLow', 'Low Angle')}
+                        </SelectItem>
+                        <SelectItem value="high-angle">
+                          {t('visualStudio.cameraHigh', 'High Angle')}
+                        </SelectItem>
+                        <SelectItem value="wide-shot">
+                          {t('visualStudio.cameraWide', 'Wide Shot')}
+                        </SelectItem>
+                        <SelectItem value="close-up">
+                          {t('visualStudio.cameraClose', 'Close Up')}
+                        </SelectItem>
+                        <SelectItem value="aerial">
+                          {t('visualStudio.cameraAerial', 'Aerial View')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              )}
 
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="w-full mt-4"
-              >
-                {isGenerating ? (
-                  <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                ) : (
-                  <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
-                )}
-                {activeTab === 'character'
-                  ? t('visualStudio.generate', 'Generate')
-                  : activeTab === 'scene'
-                    ? t('visualStudio.render', 'Render')
-                    : t('visualStudio.mix', 'Mix')}
-              </Button>
-            </div>
-
-            {/* Preview Panel - Right Side (60%) */}
-            <div className="w-full lg:w-3/5 h-100 lg:h-170 bg-surface rounded-3xl border border-peach-soft overflow-hidden relative group">
-              {settings.generatedImage ? (
-                <>
-                  <img
-                    src={settings.generatedImage}
-                    alt={t('visualStudio.generatedResult', 'Generated result')}
-                    className="w-full h-full object-contain bg-surface/50"
+                <div className="space-y-2">
+                  <Label className="text-xs text-cocoa-light uppercase">Scene Description</Label>
+                  <Textarea
+                    value={settings.prompt}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, prompt: e.target.value }))}
+                    className="h-24 md:h-32 bg-cream-base p-2.5 md:p-3 md:text-base"
+                    placeholder={t(
+                      'visualStudio.describeScene',
+                      'Describe the setting, props, and atmosphere...'
+                    )}
                   />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowShareModal(true)}
-                        className="p-2 bg-surface/20  text-white hover:bg-surface/40"
-                        title="Share"
+                </div>
+              </div>
+            )}
+
+            {/* Tab Content: Style Alchemy */}
+            {activeTab === 'style' && (
+              <div className="space-y-4 md:space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <Label className="text-xs text-cocoa-light uppercase flex items-center gap-2">
+                    <IcoPalette className="w-4 h-4" /> Style Alchemy
+                  </Label>
+                  <div className="bg-cream-base border border-peach-soft rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
+                    <div>
+                      <div className="text-xs text-cocoa-light mb-1">
+                        Primary Style ({settings.mixRatio}%)
+                      </div>
+                      <Select
+                        value={settings.styleA}
+                        onValueChange={(v) =>
+                          setSettings((prev) => ({ ...prev, styleA: v as ArtStyle }))
+                        }
                       >
-                        <Share2 className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = settings.generatedImage!;
-                          link.download = `genesis-${Date.now()}.png`;
-                          link.click();
-                        }}
-                        className="p-2 bg-surface/20  text-white hover:bg-surface/40"
-                        title="Download"
-                      >
-                        <Download className="w-5 h-5" />
-                      </Button>
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={t('visualStudio.primaryStyle', 'Primary style')}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {styles.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    <div className="flex items-center gap-3">
+                      <Sliders className="text-coral-burst w-4 h-4" />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={settings.mixRatio}
+                        onChange={(e) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            mixRatio: Number.parseInt(e.target.value),
+                          }))
+                        }
+                        title={t('visualStudio.mixRatioTitle', 'Mix ratio: {{ratio}}%', {
+                          ratio: settings.mixRatio,
+                        })}
+                        aria-label={t('visualStudio.styleMixRatio', 'Style mix ratio')}
+                        className="w-full accent-coral-burst h-1.5 bg-peach-soft rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-cocoa-light mb-1">
+                        Secondary Style ({100 - settings.mixRatio}%)
+                      </div>
+                      <Select
+                        value={settings.styleB}
+                        onValueChange={(v) =>
+                          setSettings((prev) => ({ ...prev, styleB: v as ArtStyle }))
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue
+                            placeholder={t('visualStudio.secondaryStyle', 'Secondary style')}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {styles.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-cocoa-light uppercase">Test Prompt</Label>
+                  <Textarea
+                    value={settings.prompt}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, prompt: e.target.value }))}
+                    className="h-20 md:h-24 bg-cream-base p-2.5 md:p-3 md:text-base"
+                    placeholder={t(
+                      'visualStudio.testPromptPlaceholder',
+                      'A landscape with a castle...'
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="w-full mt-4"
+            >
+              {isGenerating ? (
+                <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+              ) : (
+                <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
+              )}
+              {activeTab === 'character'
+                ? t('visualStudio.generate', 'Generate')
+                : activeTab === 'scene'
+                  ? t('visualStudio.render', 'Render')
+                  : t('visualStudio.mix', 'Mix')}
+            </Button>
+          </div>
+
+          {/* Preview Panel - Right Side (60%) */}
+          <div className="w-full lg:w-3/5 h-100 lg:h-170 bg-surface rounded-3xl border border-peach-soft overflow-hidden relative group">
+            {settings.generatedImage ? (
+              <>
+                <img
+                  src={settings.generatedImage}
+                  alt={t('visualStudio.generatedResult', 'Generated result')}
+                  className="w-full h-full object-contain bg-surface/50"
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end">
+                  <div className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setExpandedVisual('current')}
+                      onClick={() => setShowShareModal(true)}
                       className="p-2 bg-surface/20  text-white hover:bg-surface/40"
-                      title="Expand"
+                      title="Share"
                     >
-                      <Maximize2 className="w-5 h-5" />
+                      <Share2 className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = settings.generatedImage!;
+                        link.download = `genesis-${Date.now()}.png`;
+                        link.click();
+                      }}
+                      className="p-2 bg-surface/20  text-white hover:bg-surface/40"
+                      title="Download"
+                    >
+                      <Download className="w-5 h-5" />
                     </Button>
                   </div>
-                </>
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-cream-soft/50 text-cocoa-light p-8 text-center">
-                  {isGenerating ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative w-20 h-20">
-                        <div className="absolute inset-0 border-4 border-coral-burst/20 rounded-full"></div>
-                        <div className="absolute inset-0 border-4 border-coral-burst rounded-full border-t-transparent animate-spin"></div>
-                        <IcoWand className="absolute inset-0 m-auto w-8 h-8 text-coral-burst animate-pulse" />
-                      </div>
-                      <p className="font-heading font-bold text-xl text-charcoal-soft animate-pulse">
-                        Dreaming...
-                      </p>
-                      <p className="text-sm max-w-xs">
-                        Our AI is painting your imagination. This usually takes 10-15 seconds.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-4 opacity-60">
-                      <div className="w-20 h-20 rounded-full bg-surface border border-peach-soft/50 flex items-center justify-center mb-2">
-                        <IcoWand className="w-10 h-10 text-coral-burst/50" />
-                      </div>
-                      <div>
-                        <p className="text-charcoal-soft font-heading font-bold text-lg">
-                          Ready to Create
-                        </p>
-                        <p className="text-cocoa-light text-sm mt-1">
-                          Configure your settings above and click Generate
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setExpandedVisual('current')}
+                    className="p-2 bg-surface/20  text-white hover:bg-surface/40"
+                    title="Expand"
+                  >
+                    <Maximize2 className="w-5 h-5" />
+                  </Button>
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-cream-soft/50 text-cocoa-light p-8 text-center">
+                {isGenerating ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative w-20 h-20">
+                      <div className="absolute inset-0 border-4 border-coral-burst/20 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-coral-burst rounded-full border-t-transparent animate-spin"></div>
+                      <IcoWand className="absolute inset-0 m-auto w-8 h-8 text-coral-burst animate-pulse" />
+                    </div>
+                    <p className="font-heading font-bold text-xl text-charcoal-soft animate-pulse">
+                      Dreaming...
+                    </p>
+                    <p className="text-sm max-w-xs">
+                      Our AI is painting your imagination. This usually takes 10-15 seconds.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 opacity-60">
+                    <div className="w-20 h-20 rounded-full bg-surface border border-peach-soft/50 flex items-center justify-center mb-2">
+                      <IcoWand className="w-10 h-10 text-coral-burst/50" />
+                    </div>
+                    <div>
+                      <p className="text-charcoal-soft font-heading font-bold text-lg">
+                        Ready to Create
+                      </p>
+                      <p className="text-cocoa-light text-sm mt-1">
+                        Configure your settings above and click Generate
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
+        </div>
       </div>
 
       {/* Character Depth Panel */}
@@ -571,10 +662,7 @@ const VisualStudio: React.FC<VisualStudioProps> = ({
       )}
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav
-        activeTab={mobileActiveTab}
-        onTabChange={handleMobileTabChange}
-      />
+      <MobileBottomNav activeTab={mobileActiveTab} onTabChange={handleMobileTabChange} />
     </div>
   );
 };

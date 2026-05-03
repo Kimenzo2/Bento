@@ -12,7 +12,12 @@ export const ANDREW_PROMPT_VERSION = 'andrew-v2';
 export const ANDREW_SERVICE_NAME = 'andrew-life-in-colour';
 export const ANDREW_RUNTIME_STORAGE_ID = 'andrew-runtime-storage';
 export const ANDREW_OBSERVABILITY_STORAGE_ID = 'andrew-observability-storage';
-export const ANDREW_REQUEST_CONTEXT_KEYS = ['userId', 'generationId', 'outlineMode', 'promptVersion'] as const;
+export const ANDREW_REQUEST_CONTEXT_KEYS = [
+  'userId',
+  'generationId',
+  'outlineMode',
+  'promptVersion',
+] as const;
 
 export const AndrewRuntimeRequestContextSchema = z.object({
   userId: z.string().uuid(),
@@ -44,7 +49,9 @@ function normalizeEnvironment(environment?: string): AndrewRuntimeEnvironment {
   return environment === 'production' ? 'production' : 'development';
 }
 
-export function buildAndrewRuntimeProfile(options: { environment?: string } = {}): AndrewRuntimeProfile {
+export function buildAndrewRuntimeProfile(
+  options: { environment?: string } = {}
+): AndrewRuntimeProfile {
   const environment = normalizeEnvironment(options.environment);
 
   return {
@@ -56,7 +63,9 @@ export function buildAndrewRuntimeProfile(options: { environment?: string } = {}
   };
 }
 
-export function createAndrewRequestContext(input: AndrewRuntimeRequestContext): RequestContext<AndrewRuntimeRequestContext> {
+export function createAndrewRequestContext(
+  input: AndrewRuntimeRequestContext
+): RequestContext<AndrewRuntimeRequestContext> {
   return new RequestContext<AndrewRuntimeRequestContext>([
     ['userId', input.userId],
     ['generationId', input.generationId],
@@ -65,9 +74,7 @@ export function createAndrewRequestContext(input: AndrewRuntimeRequestContext): 
   ]);
 }
 
-export function summarizeAndrewRequestContext(
-  requestContext?: RequestContext<any>
-): {
+export function summarizeAndrewRequestContext(requestContext?: RequestContext<any>): {
   userId?: string;
   generationId?: string;
   outlineMode?: string;
@@ -91,10 +98,12 @@ export function createAndrewLogger(): PinoLogger {
 
 export function createAndrewStorage(options: AndrewRuntimeOptions = {}): MastraCompositeStore {
   const profile = buildAndrewRuntimeProfile(options);
-  const libsqlUrl = options.libsqlUrl ?? process.env.MASTRA_LIBSQL_URL ?? 'file:./.mastra/andrew.db';
+  const libsqlUrl =
+    options.libsqlUrl ?? process.env.MASTRA_LIBSQL_URL ?? 'file:./.mastra/andrew.db';
 
   const clickhouseUrl = options.clickhouseUrl ?? process.env.CLICKHOUSE_URL ?? '';
-  const clickhouseUsername = options.clickhouseUsername ?? process.env.CLICKHOUSE_USERNAME ?? 'default';
+  const clickhouseUsername =
+    options.clickhouseUsername ?? process.env.CLICKHOUSE_USERNAME ?? 'default';
   const clickhousePassword = options.clickhousePassword ?? process.env.CLICKHOUSE_PASSWORD ?? '';
 
   if (profile.observabilityBackend === 'clickhouse' && !clickhouseUrl) {

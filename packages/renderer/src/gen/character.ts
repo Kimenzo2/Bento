@@ -260,7 +260,8 @@ export class GenCharacter {
     this.eyeState.openness += (this.targetEyeState.openness - this.eyeState.openness) * lerpFactor;
     this.eyeState.lookX += (this.targetEyeState.lookX - this.eyeState.lookX) * lerpFactor;
     this.eyeState.lookY += (this.targetEyeState.lookY - this.eyeState.lookY) * lerpFactor;
-    this.eyeState.pupilSize += (this.targetEyeState.pupilSize - this.eyeState.pupilSize) * lerpFactor;
+    this.eyeState.pupilSize +=
+      (this.targetEyeState.pupilSize - this.eyeState.pupilSize) * lerpFactor;
 
     let targetOpenness = this.targetMouthState.openness;
     if (this.animationState === 'speaking') {
@@ -364,7 +365,10 @@ export class GenCharacter {
     this.drawParticles(ctx, w, h);
   }
 
-  private drawGlow(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number): void {
+  private drawGlow(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    size: number
+  ): void {
     const gradient = ctx.createRadialGradient(0, 0, size * 0.3, 0, 0, size * 1.2);
     const realm = REALM_COLORS[this.realm];
 
@@ -381,7 +385,10 @@ export class GenCharacter {
     ctx.fill();
   }
 
-  private drawBody(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number): void {
+  private drawBody(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    size: number
+  ): void {
     const realm = REALM_COLORS[this.realm];
     const wobble = Math.sin(this.bodyPhysics.wobblePhase) * this.bodyPhysics.wobble * size;
 
@@ -399,22 +406,46 @@ export class GenCharacter {
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.moveTo(0, -size * 0.7);
-    ctx.bezierCurveTo(size * 0.6 + wobble, -size * 0.6, size * 0.7, -size * 0.1, size * 0.5 + wobble * 0.5, size * 0.3);
+    ctx.bezierCurveTo(
+      size * 0.6 + wobble,
+      -size * 0.6,
+      size * 0.7,
+      -size * 0.1,
+      size * 0.5 + wobble * 0.5,
+      size * 0.3
+    );
     ctx.bezierCurveTo(size * 0.4, size * 0.5, size * 0.2 + wobble, size * 0.6, 0, size * 0.5);
-    ctx.bezierCurveTo(-size * 0.2 - wobble, size * 0.6, -size * 0.4, size * 0.5, -size * 0.5 - wobble * 0.5, size * 0.3);
+    ctx.bezierCurveTo(
+      -size * 0.2 - wobble,
+      size * 0.6,
+      -size * 0.4,
+      size * 0.5,
+      -size * 0.5 - wobble * 0.5,
+      size * 0.3
+    );
     ctx.bezierCurveTo(-size * 0.7, -size * 0.1, -size * 0.6 - wobble, -size * 0.6, 0, -size * 0.7);
     ctx.closePath();
     ctx.fill();
 
     // Highlight
-    const highlight = ctx.createRadialGradient(-size * 0.15, -size * 0.4, 0, -size * 0.1, -size * 0.3, size * 0.5);
+    const highlight = ctx.createRadialGradient(
+      -size * 0.15,
+      -size * 0.4,
+      0,
+      -size * 0.1,
+      -size * 0.3,
+      size * 0.5
+    );
     highlight.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
     highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = highlight;
     ctx.fill();
   }
 
-  private drawEyes(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number): void {
+  private drawEyes(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    size: number
+  ): void {
     const eyeY = -size * 0.15;
     const eyeSpacing = size * 0.22;
     const eyeRadius = size * 0.18 * this.eyeState.openness;
@@ -447,31 +478,67 @@ export class GenCharacter {
         eyeY + lookOffset.y,
         irisRadius
       );
-      irisGradient.addColorStop(0, `rgb(${GEN_COLORS.eyeIris[0] * 255}, ${GEN_COLORS.eyeIris[1] * 255}, ${GEN_COLORS.eyeIris[2] * 255})`);
-      irisGradient.addColorStop(0.7, `rgb(${GEN_COLORS.eyeIris[0] * 200}, ${GEN_COLORS.eyeIris[1] * 200}, ${GEN_COLORS.eyeIris[2] * 200})`);
-      irisGradient.addColorStop(1, `rgba(${GEN_COLORS.eyeIris[0] * 150}, ${GEN_COLORS.eyeIris[1] * 180}, ${GEN_COLORS.eyeIris[2] * 180}, 0.8)`);
+      irisGradient.addColorStop(
+        0,
+        `rgb(${GEN_COLORS.eyeIris[0] * 255}, ${GEN_COLORS.eyeIris[1] * 255}, ${GEN_COLORS.eyeIris[2] * 255})`
+      );
+      irisGradient.addColorStop(
+        0.7,
+        `rgb(${GEN_COLORS.eyeIris[0] * 200}, ${GEN_COLORS.eyeIris[1] * 200}, ${GEN_COLORS.eyeIris[2] * 200})`
+      );
+      irisGradient.addColorStop(
+        1,
+        `rgba(${GEN_COLORS.eyeIris[0] * 150}, ${GEN_COLORS.eyeIris[1] * 180}, ${GEN_COLORS.eyeIris[2] * 180}, 0.8)`
+      );
 
       ctx.fillStyle = irisGradient;
       ctx.beginPath();
-      ctx.ellipse(eyeX + lookOffset.x, eyeY + lookOffset.y, irisRadius, irisRadius * this.eyeState.openness, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        eyeX + lookOffset.x,
+        eyeY + lookOffset.y,
+        irisRadius,
+        irisRadius * this.eyeState.openness,
+        0,
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
 
       // Pupil
       const pupilRadius = irisRadius * 0.4;
       ctx.fillStyle = `rgb(${GEN_COLORS.eyePupil[0] * 255}, ${GEN_COLORS.eyePupil[1] * 255}, ${GEN_COLORS.eyePupil[2] * 255})`;
       ctx.beginPath();
-      ctx.ellipse(eyeX + lookOffset.x, eyeY + lookOffset.y, pupilRadius, pupilRadius * this.eyeState.openness, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        eyeX + lookOffset.x,
+        eyeY + lookOffset.y,
+        pupilRadius,
+        pupilRadius * this.eyeState.openness,
+        0,
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
 
       // Highlight
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.beginPath();
-      ctx.ellipse(eyeX + lookOffset.x - eyeRadius * 0.2, eyeY + lookOffset.y - eyeRadius * 0.2, eyeRadius * 0.15, eyeRadius * 0.12, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        eyeX + lookOffset.x - eyeRadius * 0.2,
+        eyeY + lookOffset.y - eyeRadius * 0.2,
+        eyeRadius * 0.15,
+        eyeRadius * 0.12,
+        0,
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
     }
   }
 
-  private drawMouth(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number): void {
+  private drawMouth(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    size: number
+  ): void {
     const mouthY = size * 0.15;
     const mouthWidth = size * 0.15 * this.mouthState.width;
     const mouthHeight = size * 0.08 * this.mouthState.openness;
@@ -489,8 +556,14 @@ export class GenCharacter {
 
     // Open mouth
     const mouthGradient = ctx.createRadialGradient(0, mouthY, 0, 0, mouthY, mouthHeight * 1.5);
-    mouthGradient.addColorStop(0, `rgb(${GEN_COLORS.mouthInner[0] * 200}, ${GEN_COLORS.mouthInner[1] * 150}, ${GEN_COLORS.mouthInner[2] * 200})`);
-    mouthGradient.addColorStop(1, `rgb(${GEN_COLORS.mouthInner[0] * 100}, ${GEN_COLORS.mouthInner[1] * 80}, ${GEN_COLORS.mouthInner[2] * 100})`);
+    mouthGradient.addColorStop(
+      0,
+      `rgb(${GEN_COLORS.mouthInner[0] * 200}, ${GEN_COLORS.mouthInner[1] * 150}, ${GEN_COLORS.mouthInner[2] * 200})`
+    );
+    mouthGradient.addColorStop(
+      1,
+      `rgb(${GEN_COLORS.mouthInner[0] * 100}, ${GEN_COLORS.mouthInner[1] * 80}, ${GEN_COLORS.mouthInner[2] * 100})`
+    );
 
     ctx.fillStyle = mouthGradient;
     ctx.beginPath();
@@ -504,7 +577,10 @@ export class GenCharacter {
     ctx.fill();
   }
 
-  private drawQuill(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, size: number): void {
+  private drawQuill(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    size: number
+  ): void {
     const quillX = size * 0.45;
     const quillY = -size * 0.1;
     const quillLength = size * 0.6;
@@ -541,8 +617,14 @@ export class GenCharacter {
 
     // Nib
     const nibGradient = ctx.createLinearGradient(0, 0, 0, size * 0.12);
-    nibGradient.addColorStop(0, `rgb(${GEN_COLORS.quillTip[0] * 255}, ${GEN_COLORS.quillTip[1] * 255}, ${GEN_COLORS.quillTip[2] * 255})`);
-    nibGradient.addColorStop(1, `rgb(${GEN_COLORS.quillTip[0] * 200}, ${GEN_COLORS.quillTip[1] * 150}, ${GEN_COLORS.quillTip[2] * 50})`);
+    nibGradient.addColorStop(
+      0,
+      `rgb(${GEN_COLORS.quillTip[0] * 255}, ${GEN_COLORS.quillTip[1] * 255}, ${GEN_COLORS.quillTip[2] * 255})`
+    );
+    nibGradient.addColorStop(
+      1,
+      `rgb(${GEN_COLORS.quillTip[0] * 200}, ${GEN_COLORS.quillTip[1] * 150}, ${GEN_COLORS.quillTip[2] * 50})`
+    );
 
     ctx.fillStyle = nibGradient;
     ctx.beginPath();
@@ -565,7 +647,11 @@ export class GenCharacter {
     ctx.restore();
   }
 
-  private drawParticles(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, w: number, h: number): void {
+  private drawParticles(
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    w: number,
+    h: number
+  ): void {
     for (const p of this.particles) {
       const alpha = p.life / p.maxLife;
       const x = p.x * w;
@@ -584,7 +670,10 @@ export class GenCharacter {
           const outerRadius = p.size;
 
           ctx.lineTo(x + Math.cos(angle) * outerRadius, y + Math.sin(angle) * outerRadius);
-          ctx.lineTo(x + Math.cos(angle + Math.PI / 4) * innerRadius, y + Math.sin(angle + Math.PI / 4) * innerRadius);
+          ctx.lineTo(
+            x + Math.cos(angle + Math.PI / 4) * innerRadius,
+            y + Math.sin(angle + Math.PI / 4) * innerRadius
+          );
         }
 
         ctx.closePath();
@@ -596,8 +685,14 @@ export class GenCharacter {
         ctx.fill();
       } else {
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, p.size);
-        gradient.addColorStop(0, `rgba(${p.color[0] * 255}, ${p.color[1] * 255}, ${p.color[2] * 255}, ${alpha})`);
-        gradient.addColorStop(1, `rgba(${p.color[0] * 255}, ${p.color[1] * 255}, ${p.color[2] * 255}, 0)`);
+        gradient.addColorStop(
+          0,
+          `rgba(${p.color[0] * 255}, ${p.color[1] * 255}, ${p.color[2] * 255}, ${alpha})`
+        );
+        gradient.addColorStop(
+          1,
+          `rgba(${p.color[0] * 255}, ${p.color[1] * 255}, ${p.color[2] * 255}, 0)`
+        );
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(x, y, p.size, 0, Math.PI * 2);

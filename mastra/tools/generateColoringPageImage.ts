@@ -1,6 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { AndrewRuntimeRequestContextSchema, summarizeAndrewRequestContext } from '../lib/andrewRuntime';
+import {
+  AndrewRuntimeRequestContextSchema,
+  summarizeAndrewRequestContext,
+} from '../lib/andrewRuntime';
 import { generateImageFromReference } from '../lib/openai';
 
 export async function generateColoringPageImage(input: {

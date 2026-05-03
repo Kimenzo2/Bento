@@ -76,7 +76,9 @@ function getLocalUsageObj(): LocalMonthlyUsage {
       const parsed = JSON.parse(raw) as LocalMonthlyUsage;
       if (parsed.month === currentMonth()) return parsed;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { month: currentMonth(), count: 0 };
 }
 
@@ -85,10 +87,7 @@ function getLocalUsage(): number {
 }
 
 function setLocalUsage(count: number): void {
-  localStorage.setItem(
-    LOCAL_USAGE_KEY,
-    JSON.stringify({ month: currentMonth(), count })
-  );
+  localStorage.setItem(LOCAL_USAGE_KEY, JSON.stringify({ month: currentMonth(), count }));
 }
 
 function incrementLocalUsage(): void {

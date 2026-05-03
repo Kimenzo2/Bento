@@ -9,9 +9,15 @@ import {
 
 describe('Andrew runtime observability', () => {
   it('uses DuckDB in development and ClickHouse in production', () => {
-    expect(buildAndrewRuntimeProfile({ environment: 'development' }).observabilityBackend).toBe('duckdb');
-    expect(buildAndrewRuntimeProfile({ environment: 'production' }).observabilityBackend).toBe('clickhouse');
-    expect(buildAndrewRuntimeProfile({ environment: 'production' }).serviceName).toBe('andrew-life-in-colour');
+    expect(buildAndrewRuntimeProfile({ environment: 'development' }).observabilityBackend).toBe(
+      'duckdb'
+    );
+    expect(buildAndrewRuntimeProfile({ environment: 'production' }).observabilityBackend).toBe(
+      'clickhouse'
+    );
+    expect(buildAndrewRuntimeProfile({ environment: 'production' }).serviceName).toBe(
+      'andrew-life-in-colour'
+    );
   });
 
   it('creates request context with the keys Mastra should trace', () => {

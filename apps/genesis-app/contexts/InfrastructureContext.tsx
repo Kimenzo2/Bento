@@ -266,11 +266,7 @@ export function InfrastructureProvider({
           <div className="text-destructive text-5xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold mb-2">Initialization Failed</h2>
           <p className="text-muted-foreground mb-4">{error.message}</p>
-          <Button
-            variant="default"
-            onClick={reinitialize}
-            className="hover:opacity-90"
-          >
+          <Button variant="default" onClick={reinitialize} className="hover:opacity-90">
             Retry
           </Button>
         </div>

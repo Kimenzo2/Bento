@@ -1,7 +1,7 @@
 /* Default fonts are linked from index.html to avoid duplicate Google Fonts fetches. */
-@import "@fontsource-variable/noto-sans-arabic";
+@import '@fontsource-variable/noto-sans-arabic';
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* 
  * Modern Tailwind v4 CSS-first configuration
@@ -11,8 +11,8 @@
   /* Fonts - Bind to CSS variables for dynamic switching.
      Defaults must match the "Playful Classic" pairing from fontPairings.ts.
      FontContext overrides these via document.documentElement.style.setProperty(). */
-  --font-heading: "Fredoka", system-ui, sans-serif;
-  --font-body: "Manrope", system-ui, sans-serif;
+  --font-heading: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
 
   /* Colors */
   --color-cream-base: var(--color-background, #fff8e7);
@@ -100,8 +100,12 @@
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .animate-shimmer {
@@ -115,10 +119,14 @@
 /* Theme-aware capsule button utilities.
    Colors are derived from active theme variables, so they adapt across all themes and modes. */
 
-
 @keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -129,70 +137,144 @@
 
 /* Gen's float — a spirit drifts, she does not sit still */
 @keyframes gen-float {
-  0%   { transform: translateY(0); }
-  50%  { transform: translateY(-10px); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
-.gen-float { animation: gen-float 4s ease-in-out infinite; }
+.gen-float {
+  animation: gen-float 4s ease-in-out infinite;
+}
 
 /* Gen's glow breathes — opacity pulsing, no blur involved */
 @keyframes gen-glow-breathe {
-  0%   { opacity: 0.7; }
-  50%  { opacity: 1.0; }
-  100% { opacity: 0.7; }
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
-.gen-glow { animation: gen-glow-breathe 3s ease-in-out infinite; }
+.gen-glow {
+  animation: gen-glow-breathe 3s ease-in-out infinite;
+}
 
 /* Gen celebrating — a joyful bounce */
 @keyframes gen-celebrate {
-  0%   { transform: translateY(0) scale(1); }
-  30%  { transform: translateY(-14px) scale(1.08); }
-  60%  { transform: translateY(-4px) scale(1.03); }
-  100% { transform: translateY(0) scale(1); }
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-14px) scale(1.08);
+  }
+  60% {
+    transform: translateY(-4px) scale(1.03);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Gen sparkle stars — four-pointed CSS sparkles burst around her */
 @keyframes gen-sparkle {
-  0%   { transform: scale(0) rotate(0deg); opacity: 0; }
-  50%  { transform: scale(1) rotate(90deg); opacity: 1; }
-  100% { transform: scale(0) rotate(180deg); opacity: 0; }
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1) rotate(90deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+  }
 }
 
 /* Gen thinking dots — sequencing . → .. → ... */
-@keyframes gen-dot-1 { 0%, 20% { opacity: 0; } 25%, 100% { opacity: 1; } }
-@keyframes gen-dot-2 { 0%, 40% { opacity: 0; } 45%, 100% { opacity: 1; } }
-@keyframes gen-dot-3 { 0%, 60% { opacity: 0; } 65%, 100% { opacity: 1; } }
+@keyframes gen-dot-1 {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  25%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes gen-dot-2 {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  45%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes gen-dot-3 {
+  0%,
+  60% {
+    opacity: 0;
+  }
+  65%,
+  100% {
+    opacity: 1;
+  }
+}
 
-.gen-thinking-dots span:nth-child(1) { animation: gen-dot-1 1.4s ease-in-out infinite; }
-.gen-thinking-dots span:nth-child(2) { animation: gen-dot-2 1.4s ease-in-out infinite; }
-.gen-thinking-dots span:nth-child(3) { animation: gen-dot-3 1.4s ease-in-out infinite; }
+.gen-thinking-dots span:nth-child(1) {
+  animation: gen-dot-1 1.4s ease-in-out infinite;
+}
+.gen-thinking-dots span:nth-child(2) {
+  animation: gen-dot-2 1.4s ease-in-out infinite;
+}
+.gen-thinking-dots span:nth-child(3) {
+  animation: gen-dot-3 1.4s ease-in-out infinite;
+}
 
 /* Gen sleeping z — float upward and fade */
 @keyframes gen-z-float {
-  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
-  20%  { opacity: 1; }
-  100% { transform: translateY(-40px) scale(1); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-40px) scale(1);
+    opacity: 0;
+  }
 }
 
 /* ── Gen state modifiers via data-state attribute ── */
 
 /* Thinking: slow float, dim glow */
-.gen-wrapper[data-state="thinking"] {
+.gen-wrapper[data-state='thinking'] {
   animation: gen-float 8s ease-in-out infinite;
 }
-.gen-wrapper[data-state="thinking"] .gen-glow {
+.gen-wrapper[data-state='thinking'] .gen-glow {
   opacity: 0.6;
 }
 
 /* Celebrating: bounce + bright glow */
-.gen-wrapper[data-state="celebrating"] {
+.gen-wrapper[data-state='celebrating'] {
   animation: gen-celebrate 0.6s ease-out;
 }
 
 /* Sleeping: very slow deep float */
-.gen-wrapper[data-state="sleeping"] {
+.gen-wrapper[data-state='sleeping'] {
   animation: gen-float 8s ease-in-out infinite;
 }
 
@@ -200,9 +282,9 @@
 @media (prefers-reduced-motion: reduce) {
   .gen-float,
   .gen-glow,
-  .gen-wrapper[data-state="thinking"],
-  .gen-wrapper[data-state="celebrating"],
-  .gen-wrapper[data-state="sleeping"] {
+  .gen-wrapper[data-state='thinking'],
+  .gen-wrapper[data-state='celebrating'],
+  .gen-wrapper[data-state='sleeping'] {
     animation: none !important;
   }
   .gen-sparkle-star,
@@ -213,48 +295,90 @@
 
 /* Shadcn/Radix Dialog & Component Animations */
 @keyframes animate-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes animate-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 @keyframes zoom-in {
-  from { transform: scale(0.95); }
-  to { transform: scale(1); }
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
 }
 @keyframes zoom-out {
-  from { transform: scale(1); }
-  to { transform: scale(0.95); }
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0.95);
+  }
 }
 @keyframes slide-in-from-top {
-  from { transform: translateY(-4px); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(-4px);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 @keyframes slide-in-from-bottom {
-  from { transform: translateY(4px); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 @keyframes slide-in-from-left {
-  from { transform: translateX(-4px); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-4px);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 @keyframes slide-in-from-right {
-  from { transform: translateX(4px); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(4px);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 .animate-in {
-  animation: animate-in 200ms ease-out, zoom-in 200ms ease-out;
+  animation:
+    animate-in 200ms ease-out,
+    zoom-in 200ms ease-out;
 }
 .fade-in-0 {
   animation: fade-in 200ms ease-out;
@@ -271,12 +395,24 @@
  * Zero JS runtime cost. Fires on hover only.
  * ──────────────────────────────────────────────────────────── */
 @keyframes nav-dance {
-  0%   { transform: rotate(0deg)   scale(1);    }
-  20%  { transform: rotate(-14deg) scale(1.22); }
-  45%  { transform: rotate(14deg)  scale(1.22); }
-  68%  { transform: rotate(-7deg)  scale(1.1);  }
-  84%  { transform: rotate(4deg)   scale(1.05); }
-  100% { transform: rotate(0deg)   scale(1);    }
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-14deg) scale(1.22);
+  }
+  45% {
+    transform: rotate(14deg) scale(1.22);
+  }
+  68% {
+    transform: rotate(-7deg) scale(1.1);
+  }
+  84% {
+    transform: rotate(4deg) scale(1.05);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
 }
 
 @utility animate-nav-dance {
@@ -291,8 +427,8 @@
 
 /* Hide scrollbar for efficient mobile horizontal lists */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
@@ -306,8 +442,8 @@
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
 
   /* Default Fonts (will be overridden by FontContext) */
-  --font-heading: "Fredoka", system-ui, sans-serif;
-  --font-body: "Manrope", system-ui, sans-serif;
+  --font-heading: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
 
   /* Static fallbacks for JS-driven theme tokens.
      The inline script in index.html and ThemeContext will override these at runtime.
@@ -329,13 +465,13 @@
    Once ThemeProvider mounts, it overrides these with the selected theme's dark palette. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-surface: #2A201D;
-    --color-background: #1A1412;
-    --color-border: #3D302B;
-    --color-text: #EAE0D5;
-    --color-text-light: #A89F91;
-    --color-primary-start: #E87D56;
-    --color-primary-end: #E5C02B;
+    --color-surface: #2a201d;
+    --color-background: #1a1412;
+    --color-border: #3d302b;
+    --color-text: #eae0d5;
+    --color-text-light: #a89f91;
+    --color-primary-start: #e87d56;
+    --color-primary-end: #e5c02b;
     color-scheme: dark;
   }
 }
@@ -365,34 +501,34 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-html[lang="ar"] body,
-html[lang="ar"] input,
-html[lang="ar"] textarea,
-html[lang="ar"] select,
-html[dir="rtl"] body,
-html[dir="rtl"] input,
-html[dir="rtl"] textarea,
-html[dir="rtl"] select {
-  font-family: "Noto Sans Arabic Variable", var(--font-body), system-ui, sans-serif;
+html[lang='ar'] body,
+html[lang='ar'] input,
+html[lang='ar'] textarea,
+html[lang='ar'] select,
+html[dir='rtl'] body,
+html[dir='rtl'] input,
+html[dir='rtl'] textarea,
+html[dir='rtl'] select {
+  font-family: 'Noto Sans Arabic Variable', var(--font-body), system-ui, sans-serif;
 }
 
 /* RTL layout overrides — mirror text alignment and direction */
-html[dir="rtl"] {
+html[dir='rtl'] {
   direction: rtl;
 }
-html[dir="rtl"] body {
+html[dir='rtl'] body {
   text-align: right;
 }
 
 /* Global cursor styles for interactive elements */
 button,
 a,
-[role="button"],
-[role="link"],
+[role='button'],
+[role='link'],
 .cursor-pointer,
-input[type="button"],
-input[type="submit"],
-input[type="reset"],
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
 select,
 label[for],
 summary {
@@ -401,7 +537,7 @@ summary {
 
 /* Ensure all clickable elements show pointer cursor */
 *[onclick],
-*[data-clickable="true"] {
+*[data-clickable='true'] {
   cursor: pointer !important;
 }
 
@@ -436,7 +572,7 @@ summary {
   /* Better touch targets */
   button,
   a,
-  [role="button"] {
+  [role='button'] {
     min-height: 44px;
     /* iOS minimum touch target */
     -webkit-tap-highlight-color: transparent;
@@ -444,7 +580,7 @@ summary {
 
   /* Prevent text selection on interactive elements */
   button,
-  [role="button"] {
+  [role='button'] {
     -webkit-user-select: none;
     user-select: none;
   }

@@ -4,15 +4,15 @@
 // Falls back to GenAvatar (Layer 1) → GenStatic (Layer 0).
 // ============================================================================
 
-import { useEffect, useState } from 'react'
-import { GenStatic, type GenSize, type GenState } from './GenStatic'
-import type { Realm } from '../../lib/gen/genPersonality'
+import { useEffect, useState } from 'react';
+import { GenStatic, type GenSize, type GenState } from './GenStatic';
+import type { Realm } from '../../lib/gen/genPersonality';
 
 // Extended state type matching GenAvatar
-type GenAvatarState = GenState | 'speaking' | 'listening'
+type GenAvatarState = GenState | 'speaking' | 'listening';
 
-const GEN_RIVE_PATH = '/gen/gen-character.riv'
-const STATE_MACHINE = 'Gen_Brain'
+const GEN_RIVE_PATH = '/gen/gen-character.riv';
+const STATE_MACHINE = 'Gen_Brain';
 
 /** Numeric realm IDs for Rive state machine inputs */
 const REALM_IDS: Record<string, number> = {
@@ -20,14 +20,14 @@ const REALM_IDS: Record<string, number> = {
   cosmos: 1,
   kingdom: 2,
   cell: 3,
-}
+};
 
 export interface GenRiveProps {
-  size?: GenSize
-  realm?: Realm | null
-  state?: GenAvatarState
-  emotionLevel?: number
-  className?: string
+  size?: GenSize;
+  realm?: Realm | null;
+  state?: GenAvatarState;
+  emotionLevel?: number;
+  className?: string;
 }
 
 /**
@@ -35,10 +35,10 @@ export interface GenRiveProps {
  */
 async function riveFileExists(): Promise<boolean> {
   try {
-    const res = await fetch(GEN_RIVE_PATH, { method: 'HEAD' })
-    return res.ok
+    const res = await fetch(GEN_RIVE_PATH, { method: 'HEAD' });
+    return res.ok;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -57,17 +57,16 @@ export function GenRive({
   emotionLevel = 50,
   className,
 }: GenRiveProps) {
-  const [riveAvailable, setRiveAvailable] = useState<boolean | null>(null)
+  const [riveAvailable, setRiveAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
-    riveFileExists().then(setRiveAvailable)
-  }, [])
+    riveFileExists().then(setRiveAvailable);
+  }, []);
 
   // Not available — fall back to Layer 0 (static Gen)
   if (riveAvailable === null || riveAvailable === false) {
-    const fallbackState: GenState =
-      state === 'speaking' || state === 'listening' ? 'idle' : state
-    return <GenStatic size={size} realm={realm} state={fallbackState} className={className} />
+    const fallbackState: GenState = state === 'speaking' || state === 'listening' ? 'idle' : state;
+    return <GenStatic size={size} realm={realm} state={fallbackState} className={className} />;
   }
 
   return (
@@ -78,7 +77,7 @@ export function GenRive({
       emotionLevel={emotionLevel}
       className={className}
     />
-  )
+  );
 }
 
 /**
@@ -91,24 +90,23 @@ function RiveRenderer({
   emotionLevel = 50,
   className,
 }: GenRiveProps) {
-  const [riveModule, setRiveModule] = useState<any>(null)
+  const [riveModule, setRiveModule] = useState<any>(null);
 
   useEffect(() => {
     import(/* @vite-ignore */ '@rive-app/react-canvas')
       .then(setRiveModule)
-      .catch(() => setRiveModule(null))
-  }, [])
+      .catch(() => setRiveModule(null));
+  }, []);
 
   // Fallback if @rive-app/react-canvas failed to load
   if (!riveModule) {
-    const fallbackState: GenState =
-      state === 'speaking' || state === 'listening' ? 'idle' : state
-    return <GenStatic size={size} realm={realm} state={fallbackState} className={className} />
+    const fallbackState: GenState = state === 'speaking' || state === 'listening' ? 'idle' : state;
+    return <GenStatic size={size} realm={realm} state={fallbackState} className={className} />;
   }
 
-  const { useRive, useStateMachineInput } = riveModule
-  const sizeMap: Record<GenSize, number> = { sm: 64, md: 120, lg: 200, xl: 320 }
-  const px = sizeMap[size]
+  const { useRive, useStateMachineInput } = riveModule;
+  const sizeMap: Record<GenSize, number> = { sm: 64, md: 120, lg: 200, xl: 320 };
+  const px = sizeMap[size];
 
   return (
     <RiveCanvas
@@ -120,7 +118,7 @@ function RiveRenderer({
       emotionLevel={emotionLevel}
       className={className}
     />
-  )
+  );
 }
 
 /**
@@ -135,55 +133,55 @@ function RiveCanvas({
   emotionLevel = 50,
   className,
 }: {
-  useRive: any
-  useStateMachineInput: any
-  size: number
-  realm: Realm | null
-  state: GenAvatarState
-  emotionLevel: number
-  className?: string
+  useRive: any;
+  useStateMachineInput: any;
+  size: number;
+  realm: Realm | null;
+  state: GenAvatarState;
+  emotionLevel: number;
+  className?: string;
 }) {
   const { rive, RiveComponent } = useRive({
     src: GEN_RIVE_PATH,
     stateMachines: STATE_MACHINE,
     autoplay: true,
-  })
+  });
 
   // Boolean inputs
-  const isThinking = useStateMachineInput(rive, STATE_MACHINE, 'isThinking')
-  const isSpeaking = useStateMachineInput(rive, STATE_MACHINE, 'isSpeaking')
-  const isCelebrating = useStateMachineInput(rive, STATE_MACHINE, 'isCelebrating')
-  const isListening = useStateMachineInput(rive, STATE_MACHINE, 'isListening')
-  const isSleeping = useStateMachineInput(rive, STATE_MACHINE, 'isSleeping')
+  const isThinking = useStateMachineInput(rive, STATE_MACHINE, 'isThinking');
+  const isSpeaking = useStateMachineInput(rive, STATE_MACHINE, 'isSpeaking');
+  const isCelebrating = useStateMachineInput(rive, STATE_MACHINE, 'isCelebrating');
+  const isListening = useStateMachineInput(rive, STATE_MACHINE, 'isListening');
+  const isSleeping = useStateMachineInput(rive, STATE_MACHINE, 'isSleeping');
 
   // Number inputs
-  const realmIdInput = useStateMachineInput(rive, STATE_MACHINE, 'realmId')
-  const emotionInput = useStateMachineInput(rive, STATE_MACHINE, 'emotionLevel')
+  const realmIdInput = useStateMachineInput(rive, STATE_MACHINE, 'realmId');
+  const emotionInput = useStateMachineInput(rive, STATE_MACHINE, 'emotionLevel');
 
   // Sync state to Rive inputs
   useEffect(() => {
-    if (isThinking) isThinking.value = state === 'thinking'
-    if (isSpeaking) isSpeaking.value = state === 'speaking'
-    if (isCelebrating) isCelebrating.value = state === 'celebrating'
-    if (isListening) isListening.value = state === 'listening'
-    if (isSleeping) isSleeping.value = state === 'sleeping'
-  }, [state, isThinking, isSpeaking, isCelebrating, isListening, isSleeping])
+    if (isThinking) isThinking.value = state === 'thinking';
+    if (isSpeaking) isSpeaking.value = state === 'speaking';
+    if (isCelebrating) isCelebrating.value = state === 'celebrating';
+    if (isListening) isListening.value = state === 'listening';
+    if (isSleeping) isSleeping.value = state === 'sleeping';
+  }, [state, isThinking, isSpeaking, isCelebrating, isListening, isSleeping]);
 
   // Sync realm
   useEffect(() => {
-    if (realmIdInput) realmIdInput.value = REALM_IDS[realm ?? 'default']
-  }, [realm, realmIdInput])
+    if (realmIdInput) realmIdInput.value = REALM_IDS[realm ?? 'default'];
+  }, [realm, realmIdInput]);
 
   // Sync emotion level
   useEffect(() => {
-    if (emotionInput) emotionInput.value = emotionLevel
-  }, [emotionLevel, emotionInput])
+    if (emotionInput) emotionInput.value = emotionLevel;
+  }, [emotionLevel, emotionInput]);
 
   return (
     <div className={className} style={{ width: size, height: size }}>
       <RiveComponent style={{ width: size, height: size }} />
     </div>
-  )
+  );
 }
 
-export default GenRive
+export default GenRive;

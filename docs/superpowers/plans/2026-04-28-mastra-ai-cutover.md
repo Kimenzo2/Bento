@@ -13,6 +13,7 @@
 ### Task 1: Add a shared Mastra AI gateway
 
 **Files:**
+
 - Create: `apps/genesis-app/mastra/lib/aiGateway.ts`
 
 - [ ] **Step 1: Define request normalization and provider helpers**
@@ -33,7 +34,10 @@ export async function generateTextFromRequest(input: {
   maxTokens?: number;
 }): Promise<{ text: string; raw: unknown; model: string }>;
 export async function generateEmbeddingVector(text: string): Promise<number[]>;
-export async function generateBytezImage(input: { model: string; prompt: string }): Promise<string | null>;
+export async function generateBytezImage(input: {
+  model: string;
+  prompt: string;
+}): Promise<string | null>;
 ```
 
 - [ ] **Step 2: Run a type-check against the new module shape**
@@ -57,6 +61,7 @@ Expected: PASS
 ### Task 2: Repoint Mastra agents to OpenAI model router strings
 
 **Files:**
+
 - Modify: `apps/genesis-app/mastra/lib/geminiProvider.ts`
 - Modify: `apps/genesis-app/mastra/agents/*.ts`
 
@@ -82,6 +87,7 @@ Expected: PASS
 ### Task 3: Move the book generation and brand voice workflows off Gemini
 
 **Files:**
+
 - Modify: `apps/genesis-app/mastra/workflows/bookGenerationWorkflow.ts`
 - Modify: `apps/genesis-app/mastra/workflows/brandVoiceRAGWorkflow.ts`
 - Modify: `apps/genesis-app/mastra/test-pipeline.ts`
@@ -117,6 +123,7 @@ Expected: PASS
 ### Task 4: Expose AI routes from the Mastra server
 
 **Files:**
+
 - Modify: `apps/genesis-app/mastra/server.ts`
 - Modify: `api/ai-generate.ts`
 - Modify: `api/ai-bytez.ts`
@@ -145,6 +152,7 @@ Expected: the Hono server starts and serves the AI routes.
 ### Task 5: Redirect browser AI calls to Mastra
 
 **Files:**
+
 - Modify: `apps/genesis-app/services/api/authenticatedFetch.ts`
 - Modify: `apps/genesis-app/services/geminiService.ts`
 - Modify: `apps/genesis-app/services/grokService.ts`
@@ -173,6 +181,7 @@ Expected: PASS
 ### Task 6: Clean up stale Gemini health/docs references
 
 **Files:**
+
 - Modify: `api/health.ts`
 - Modify: `apps/genesis-app/.env.example`
 - Modify: `apps/genesis-app/config/env.ts`
@@ -200,6 +209,7 @@ Expected: only legacy comments or no matches.
 ### Task 7: Verify the cutover end to end
 
 **Files:**
+
 - No additional files
 
 - [ ] **Step 1: Run type-check**
@@ -216,4 +226,3 @@ Expected: no active runtime call sites.
 
 Run: `bun run dev:both`
 Expected: the frontend loads and AI requests resolve through Mastra-backed routes.
-

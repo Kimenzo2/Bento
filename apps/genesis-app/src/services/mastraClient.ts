@@ -184,7 +184,9 @@ interface RawLifeInColourGenerationListResponse {
 
 async function getAuthToken(): Promise<string | null> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     return session?.access_token ?? null;
   } catch {
     return null;
@@ -257,7 +259,7 @@ async function mastraFetch<T>(
         );
       }
 
-      return await response.json() as T;
+      return (await response.json()) as T;
     } catch (error) {
       if (error instanceof MastraError) throw error;
 
@@ -464,9 +466,7 @@ export const mastra = {
   // ───── Agent: Story Architect ─────
   agents: {
     storyArchitect: {
-      async generateBlueprint(
-        settings: GenerationSettings
-      ): Promise<ContentStructure> {
+      async generateBlueprint(settings: GenerationSettings): Promise<ContentStructure> {
         return mastraFetch('/api/agents/story-architect/generate', {
           method: 'POST',
           body: JSON.stringify({ settings }),
@@ -510,13 +510,10 @@ export const mastra = {
         targetAudience: string,
         bookId?: string
       ): Promise<string> {
-        const result = await mastraFetch<{ improved: string }>(
-          '/api/agents/story-editor/improve',
-          {
-            method: 'POST',
-            body: JSON.stringify({ text, tone, targetAudience, bookId }),
-          }
-        );
+        const result = await mastraFetch<{ improved: string }>('/api/agents/story-editor/improve', {
+          method: 'POST',
+          body: JSON.stringify({ text, tone, targetAudience, bookId }),
+        });
         return result.improved;
       },
 
@@ -524,9 +521,7 @@ export const mastra = {
        * Check character consistency — replaces grokService.checkCharacterConsistency()
        * Returns the same shape as the legacy service.
        */
-      async checkConsistency(
-        project: BookProject
-      ): Promise<ConsistencyReport> {
+      async checkConsistency(project: BookProject): Promise<ConsistencyReport> {
         const result = await mastraFetch<{ report: ConsistencyReport }>(
           '/api/agents/story-editor/consistency',
           {
@@ -541,10 +536,7 @@ export const mastra = {
        * Get writing suggestions — replaces grokService.getWritingSuggestions()
        * Returns the same shape as the legacy service.
        */
-      async getSuggestions(
-        text: string,
-        context: string
-      ): Promise<WritingSuggestion[]> {
+      async getSuggestions(text: string, context: string): Promise<WritingSuggestion[]> {
         const result = await mastraFetch<{ suggestions: WritingSuggestion[] }>(
           '/api/agents/story-editor/suggestions',
           {
@@ -654,7 +646,9 @@ export const mastra = {
     /**
      * Cancel a running book generation workflow.
      */
-    async cancelBookGeneration(workflowId: string): Promise<{ cancelled: boolean; workflowId?: string }> {
+    async cancelBookGeneration(
+      workflowId: string
+    ): Promise<{ cancelled: boolean; workflowId?: string }> {
       return mastraFetch('/api/workflows/book-generation/cancel', {
         method: 'POST',
         body: JSON.stringify({ workflowId }),
@@ -676,18 +670,14 @@ export const mastra = {
   },
 
   lifeInColour: {
-    async startGeneration(
-      request: LifeInColourStartRequest
-    ): Promise<LifeInColourStartResponse> {
+    async startGeneration(request: LifeInColourStartRequest): Promise<LifeInColourStartResponse> {
       return mastraFetch('/api/life-in-colour/generate', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    async getGeneration(
-      generationId: string
-    ): Promise<LifeInColourGenerationResponse> {
+    async getGeneration(generationId: string): Promise<LifeInColourGenerationResponse> {
       const response = await mastraFetch<RawLifeInColourGenerationResponse>(
         `/api/life-in-colour/generations/${generationId}`
       );

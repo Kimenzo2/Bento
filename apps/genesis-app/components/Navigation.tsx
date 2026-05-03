@@ -1,5 +1,17 @@
 import { IcoZap } from './IconscoutIcons';
-import { BarChart3, BookOpen, ImageIcon, LayoutDashboard, Menu, Moon, PenTool, Sun, Trophy, User, X } from 'lucide-react';
+import {
+  BarChart3,
+  BookOpen,
+  ImageIcon,
+  LayoutDashboard,
+  Menu,
+  Moon,
+  PenTool,
+  Sun,
+  Trophy,
+  User,
+  X,
+} from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -130,7 +142,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             size="icon"
             onClick={toggleDarkMode}
             className="rounded-full w-10 h-10 bg-surface/50 border-peach-soft hover:bg-surface"
-            title={isDarkMode ? t('lightMode', 'Switch to Light Mode') : t('darkMode', 'Switch to Dark Mode')}
+            title={
+              isDarkMode
+                ? t('lightMode', 'Switch to Light Mode')
+                : t('darkMode', 'Switch to Dark Mode')
+            }
           >
             {isDarkMode ? (
               <Sun className="w-5 h-5 text-gold-sunshine" />
@@ -160,8 +176,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               {tierBadge.label.charAt(0)}
             </Badge>
             <div className="flex flex-col items-start">
-              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">{t('plan', 'Plan')}</span>
-              <span className="text-xs font-bold text-charcoal-soft leading-none">{tierBadge.label}</span>
+              <span className="text-[10px] font-bold text-cocoa-light uppercase leading-none">
+                {t('plan', 'Plan')}
+              </span>
+              <span className="text-xs font-bold text-charcoal-soft leading-none">
+                {tierBadge.label}
+              </span>
             </div>
           </Button>
 
@@ -200,7 +220,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             size="icon"
             onClick={() => setIsMobileMenuOpen((open) => !open)}
             className="lg:hidden min-h-11 text-charcoal-soft hover:text-coral-burst"
-            aria-label={isMobileMenuOpen ? t('closeMenu', 'Close menu') : t('openMenu', 'Open menu')}
+            aria-label={
+              isMobileMenuOpen ? t('closeMenu', 'Close menu') : t('openMenu', 'Open menu')
+            }
           >
             {isMobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
           </Button>
@@ -232,8 +254,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               {gameState?.level ?? 1}
             </div>
             <div className="text-left">
-              <div className="font-bold text-charcoal-soft">{gameState?.levelTitle ?? t('aspiringAuthor', 'Aspiring Author')}</div>
-              <div className="text-xs text-cocoa-light">{gameState?.currentXP ?? 0} / {gameState?.nextLevelXP ?? 100} XP</div>
+              <div className="font-bold text-charcoal-soft">
+                {gameState?.levelTitle ?? t('aspiringAuthor', 'Aspiring Author')}
+              </div>
+              <div className="text-xs text-cocoa-light">
+                {gameState?.currentXP ?? 0} / {gameState?.nextLevelXP ?? 100} XP
+              </div>
             </div>
           </div>
           <Trophy className="w-6 h-6 text-gold-sunshine" />
@@ -254,7 +280,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
               className={`w-6 h-6 group-hover:animate-nav-dance ${currentMode === item.mode ? 'text-coral-burst' : 'text-cocoa-light'}`}
             />
             <span>{item.label}</span>
-            {currentMode === item.mode && <div className="ml-auto w-2 h-2 rounded-full bg-gold-sunshine"></div>}
+            {currentMode === item.mode && (
+              <div className="ml-auto w-2 h-2 rounded-full bg-gold-sunshine"></div>
+            )}
           </Button>
         ))}
       </div>

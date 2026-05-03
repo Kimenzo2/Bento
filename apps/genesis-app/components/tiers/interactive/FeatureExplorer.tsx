@@ -113,7 +113,9 @@ export const FeatureExplorer: React.FC<FeatureExplorerProps> = ({ tier }) => {
               >
                 <Icon className="w-4 h-4" />
               </div>
-              <span className={`font-medium ${isActive ? 'text-charcoal-soft' : 'text-cocoa-light'}`}>
+              <span
+                className={`font-medium ${isActive ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
+              >
                 {feature.label}
               </span>
             </Button>

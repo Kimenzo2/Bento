@@ -1,15 +1,15 @@
-import { memo } from 'react'
-import { Pen } from 'lucide-react'
+import { memo } from 'react';
+import { Pen } from 'lucide-react';
 
 const F = {
   serif: '"Instrument Serif", Georgia, serif',
   sans: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
-}
+};
 
-const GEN_IMAGE_PATH = '/images/onboarding/Style_directive_highend_202512150033.jpeg'
+const GEN_IMAGE_PATH = '/images/onboarding/Style_directive_highend_202512150033.jpeg';
 
 interface CanvasEmptyStateProps {
-  onStartWriting: () => void
+  onStartWriting: () => void;
 }
 
 function CanvasEmptyStateInner({ onStartWriting }: CanvasEmptyStateProps) {
@@ -84,8 +84,8 @@ function CanvasEmptyStateInner({ onStartWriting }: CanvasEmptyStateProps) {
             margin: '0 0 24px 0',
           }}
         >
-          Go to Pages view to start writing and generating your story.
-          Once you have scenes, they&rsquo;ll appear here as illustrated cards.
+          Go to Pages view to start writing and generating your story. Once you have scenes,
+          they&rsquo;ll appear here as illustrated cards.
         </p>
 
         {/* CTA */}
@@ -108,10 +108,10 @@ function CanvasEmptyStateInner({ onStartWriting }: CanvasEmptyStateProps) {
             transition: 'opacity 150ms ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '0.9'
+            e.currentTarget.style.opacity = '0.9';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '1'
+            e.currentTarget.style.opacity = '1';
           }}
           aria-label="Start writing your story"
         >
@@ -120,8 +120,8 @@ function CanvasEmptyStateInner({ onStartWriting }: CanvasEmptyStateProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }
 
-export const CanvasEmptyState = memo(CanvasEmptyStateInner)
-export default CanvasEmptyState
+export const CanvasEmptyState = memo(CanvasEmptyStateInner);
+export default CanvasEmptyState;

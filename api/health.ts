@@ -417,5 +417,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       sendHealthResponse(req, res, 404, { error: 'Not found' });
   }
 }
-
-

@@ -35,4 +35,3 @@ export default createAuthenticatedHandler(
   },
   { rateLimit: { requests: 20, window: '1m' } }
 );
-

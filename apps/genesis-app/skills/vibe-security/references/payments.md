@@ -7,14 +7,16 @@ The #1 payment vulnerability in vibe-coded apps: the price comes from the client
 ```typescript
 // BAD: price comes from the request body
 const session = await stripe.checkout.sessions.create({
-  line_items: [{
-    price_data: {
-      currency: 'usd',
-      unit_amount: req.body.price, // attacker controls this
-      product_data: { name: req.body.name },
+  line_items: [
+    {
+      price_data: {
+        currency: 'usd',
+        unit_amount: req.body.price, // attacker controls this
+        product_data: { name: req.body.name },
+      },
+      quantity: 1,
     },
-    quantity: 1,
-  }],
+  ],
 });
 
 // GOOD: look up the price server-side
@@ -52,6 +54,7 @@ export async function POST(request: Request) {
 ## Subscription Status Validation
 
 Check subscription status **server-side on every protected request** using your database (kept in sync via webhooks). Do not rely on:
+
 - A cached session value from login time
 - A client-side flag
 - A JWT claim that was set at token creation and never refreshed

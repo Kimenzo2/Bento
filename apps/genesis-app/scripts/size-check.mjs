@@ -20,37 +20,37 @@ const distDir = join(__dirname, '..', 'dist', 'assets');
 // Chunks are lazy-loaded unless marked [initial]
 const BUDGETS = {
   // ─── Initial Load (critical for FCP/LCP) ───
-  'index': 350,            // [initial] Main app shell
-  'rolldown-runtime': 5,   // [initial] Bundler runtime
+  index: 350, // [initial] Main app shell
+  'rolldown-runtime': 5, // [initial] Bundler runtime
 
   // ─── Vendor (external dependencies) ───
-  'vendor-supabase': 200,  // Auth/DB - loaded early
-  'vendor-radix': 150,     // UI primitives
-  'vendor-motion': 150,    // Animation
-  'vendor-icons': 50,      // Lucide icons
-  'vendor-i18n': 100,      // Internationalization
-  'vendor-markdown': 200,  // Blog/Learn pages only
-  'vendor-flow': 200,      // StoryCanvas only
-  'vendor-sentry': 500,    // Error tracking (async init)
+  'vendor-supabase': 200, // Auth/DB - loaded early
+  'vendor-radix': 150, // UI primitives
+  'vendor-motion': 150, // Animation
+  'vendor-icons': 50, // Lucide icons
+  'vendor-i18n': 100, // Internationalization
+  'vendor-markdown': 200, // Blog/Learn pages only
+  'vendor-flow': 200, // StoryCanvas only
+  'vendor-sentry': 500, // Error tracking (async init)
 
   // ─── Lazy-Loaded Feature Chunks ───
-  'vendor-export': 700,    // PDF/image export (user action)
-  'vendor-email': 1800,    // Email rendering (user action)
-  'services-ai': 250,      // AI services (generation only)
-  'server.browser': 200,   // React email SSR (with vendor-email)
+  'vendor-export': 700, // PDF/image export (user action)
+  'vendor-email': 1800, // Email rendering (user action)
+  'services-ai': 250, // AI services (generation only)
+  'server.browser': 200, // React email SSR (with vendor-email)
 
   // ─── Page Components ───
-  'MainApp': 100,
-  'LandingPage': 100,
-  'OnboardingApp': 50,
-  'SmartEditor': 250,
-  'CreationCanvas': 100,
-  'StorybookViewer': 100,
-  'SettingsPanel': 100,
+  MainApp: 100,
+  LandingPage: 100,
+  OnboardingApp: 50,
+  SmartEditor: 250,
+  CreationCanvas: 100,
+  StorybookViewer: 100,
+  SettingsPanel: 100,
 };
 
 // Get all JS files
-const files = readdirSync(distDir).filter(f => f.endsWith('.js'));
+const files = readdirSync(distDir).filter((f) => f.endsWith('.js'));
 
 let failed = false;
 const results = [];
@@ -60,7 +60,7 @@ for (const file of files) {
   const sizeKB = sizeBytes / 1024;
 
   // Find matching budget
-  const chunkName = Object.keys(BUDGETS).find(name => file.includes(name));
+  const chunkName = Object.keys(BUDGETS).find((name) => file.includes(name));
 
   if (chunkName) {
     const budget = BUDGETS[chunkName];
@@ -112,7 +112,7 @@ console.log('─'.repeat(70));
 
 // Summary
 const totalSize = results.reduce((sum, r) => sum + parseFloat(r.size), 0);
-const overBudget = results.filter(r => r.exceeded);
+const overBudget = results.filter((r) => r.exceeded);
 
 console.log(`\nTotal tracked: ${totalSize.toFixed(1)} KB`);
 console.log(`Chunks over budget: ${overBudget.length}`);

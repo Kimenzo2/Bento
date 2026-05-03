@@ -9,7 +9,10 @@ import {
   insertLifeInColourGeneration,
   listLifeInColourGenerations,
 } from './lib/supabase';
-import { failLifeInColourGeneration, runLifeInColourGeneration } from './services/lifeInColourGeneration';
+import {
+  failLifeInColourGeneration,
+  runLifeInColourGeneration,
+} from './services/lifeInColourGeneration';
 
 interface AuthenticatedContext {
   userId: string;
@@ -115,11 +118,14 @@ app.post('/api/life-in-colour/generate', async (c) => {
     }
   })();
 
-  return c.json({
-    generationId: record.id,
-    status: 'queued',
-    fallbackEligible: true,
-  }, 202);
+  return c.json(
+    {
+      generationId: record.id,
+      status: 'queued',
+      fallbackEligible: true,
+    },
+    202
+  );
 });
 
 app.get('/api/life-in-colour/generations/:generationId', async (c) => {

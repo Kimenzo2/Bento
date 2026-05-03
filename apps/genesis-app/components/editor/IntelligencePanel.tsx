@@ -13,15 +13,7 @@
 
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import {
-  BarChart2,
-  FileText,
-  Info,
-  Loader2,
-  Pencil,
-  Sparkles,
-  Wand2,
-} from 'lucide-react';
+import { BarChart2, FileText, Info, Loader2, Pencil, Sparkles, Wand2 } from 'lucide-react';
 import {
   GEN_CELEBRATIONS,
   GEN_THINKING_LINES,
@@ -58,15 +50,73 @@ const STYLE_OPTIONS: { value: ArtStyle; label: string; short: string }[] = [
 // ═══════════════════════════════════════════════════════════
 
 const SENSORY_WORDS = new Set([
-  'bright', 'dark', 'golden', 'silver', 'glowing', 'shimmering', 'sparkling',
-  'red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'white', 'black',
-  'tiny', 'huge', 'massive', 'small', 'tall', 'wide', 'narrow', 'thick', 'thin',
-  'soft', 'hard', 'smooth', 'rough', 'warm', 'cold', 'hot', 'cool',
-  'loud', 'quiet', 'silent', 'whisper', 'roar', 'crash', 'singing',
-  'sweet', 'bitter', 'sour', 'fragrant', 'musty', 'fresh',
-  'beautiful', 'ancient', 'twisted', 'curved', 'straight', 'round', 'sharp',
-  'forest', 'ocean', 'mountain', 'castle', 'garden', 'sky', 'river', 'cave',
-  'dancing', 'floating', 'flying', 'running', 'crawling', 'swirling',
+  'bright',
+  'dark',
+  'golden',
+  'silver',
+  'glowing',
+  'shimmering',
+  'sparkling',
+  'red',
+  'blue',
+  'green',
+  'yellow',
+  'purple',
+  'orange',
+  'pink',
+  'white',
+  'black',
+  'tiny',
+  'huge',
+  'massive',
+  'small',
+  'tall',
+  'wide',
+  'narrow',
+  'thick',
+  'thin',
+  'soft',
+  'hard',
+  'smooth',
+  'rough',
+  'warm',
+  'cold',
+  'hot',
+  'cool',
+  'loud',
+  'quiet',
+  'silent',
+  'whisper',
+  'roar',
+  'crash',
+  'singing',
+  'sweet',
+  'bitter',
+  'sour',
+  'fragrant',
+  'musty',
+  'fresh',
+  'beautiful',
+  'ancient',
+  'twisted',
+  'curved',
+  'straight',
+  'round',
+  'sharp',
+  'forest',
+  'ocean',
+  'mountain',
+  'castle',
+  'garden',
+  'sky',
+  'river',
+  'cave',
+  'dancing',
+  'floating',
+  'flying',
+  'running',
+  'crawling',
+  'swirling',
 ]);
 
 function countSyllables(word: string): number {
@@ -91,7 +141,10 @@ function calculateReadability(text: string): { label: string; level: 'good' | 'w
 
 function calculateVisualRichness(text: string): { label: string; level: 'good' | 'warn' | 'bad' } {
   if (!text || text.length < 10) return { label: 'Too short', level: 'warn' };
-  const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
   const count = words.filter((w) => SENSORY_WORDS.has(w)).length;
   const ratio = count / words.length;
   if (ratio >= 0.15) return { label: 'Rich', level: 'good' };
@@ -100,7 +153,9 @@ function calculateVisualRichness(text: string): { label: string; level: 'good' |
 }
 
 function calculatePageLength(
-  charCount: number, pageNumber: number, totalPages: number
+  charCount: number,
+  pageNumber: number,
+  totalPages: number
 ): { label: string; level: 'good' | 'warn' | 'bad' } {
   const isFirstOrLast = pageNumber === 1 || pageNumber === totalPages;
   const min = isFirstOrLast ? 100 : 150;
@@ -111,7 +166,10 @@ function calculatePageLength(
 }
 
 // ── Metric status pill ──
-const StatusPill: React.FC<{ label: string; level: 'good' | 'warn' | 'bad' }> = ({ label, level }) => {
+const StatusPill: React.FC<{ label: string; level: 'good' | 'warn' | 'bad' }> = ({
+  label,
+  level,
+}) => {
   const colorMap = {
     good: {
       bg: 'color-mix(in srgb, green 12%, var(--color-surface))',
@@ -144,7 +202,9 @@ const StatusPill: React.FC<{ label: string; level: 'good' | 'warn' | 'bad' }> = 
 
 // ── Metric row ──
 const MetricRow: React.FC<{ label: string; value: string; level: 'good' | 'warn' | 'bad' }> = ({
-  label, value, level,
+  label,
+  value,
+  level,
 }) => (
   <div className="flex items-center justify-between" style={{ height: 32 }}>
     <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>
@@ -158,20 +218,24 @@ const MetricRow: React.FC<{ label: string; value: string; level: 'good' | 'warn'
 // GEN'S CONTEXTUAL MESSAGE LOGIC
 // ═══════════════════════════════════════════════════════════
 
-function getGenMessage(
-  isGenerating: boolean, hasImage: boolean, textLength: number
-): string {
+function getGenMessage(isGenerating: boolean, hasImage: boolean, textLength: number): string {
   if (isGenerating) return pickRandom(GEN_THINKING_LINES);
   if (hasImage && textLength > 30) return pickRandom(GEN_CELEBRATIONS);
-  if (hasImage && textLength < 30) return "The illustration is ready. What story does this picture tell?";
-  if (textLength > 100) return "Your words are building something. Ready to see what they look like?";
-  if (textLength > 30) return "There's a world forming here. Keep going — I can already see shapes.";
+  if (hasImage && textLength < 30)
+    return 'The illustration is ready. What story does this picture tell?';
+  if (textLength > 100)
+    return 'Your words are building something. Ready to see what they look like?';
+  if (textLength > 30)
+    return "There's a world forming here. Keep going — I can already see shapes.";
   if (textLength > 0) return GEN_GREETINGS.stuck;
   return "Every great story starts with a single sentence. What's yours?";
 }
 
 function getGenAction(
-  isGenerating: boolean, hasImage: boolean, hasText: boolean, isOutdated?: boolean
+  isGenerating: boolean,
+  hasImage: boolean,
+  hasText: boolean,
+  isOutdated?: boolean
 ): { label: string; action: 'generate' | 'improve' } | null {
   if (isGenerating) return null;
   if (isOutdated && hasImage) return { label: 'Regenerate Illustration', action: 'generate' };
@@ -238,7 +302,10 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
 
   // ── Gen action suggestion ──
   const genAction = getGenAction(
-    editor.isGeneratingImage, hasImage, hasText, activePage.isImageOutdated
+    editor.isGeneratingImage,
+    hasImage,
+    hasText,
+    activePage.isImageOutdated
   );
 
   // ── Style change ──
@@ -381,9 +448,13 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
           style={{ ...geist, fontSize: 13, fontWeight: 500 }}
         >
           {editor.isImproving ? (
-            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Improving...</>
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Improving...
+            </>
           ) : (
-            <><Wand2 className="w-3.5 h-3.5" /> Improve This Page</>
+            <>
+              <Wand2 className="w-3.5 h-3.5" /> Improve This Page
+            </>
           )}
         </button>
       </SidebarSection>
@@ -413,9 +484,13 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
           }}
         >
           {editor.isGeneratingImage ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+            </>
           ) : (
-            <><Sparkles className="w-4 h-4" /> Generate Illustration</>
+            <>
+              <Sparkles className="w-4 h-4" /> Generate Illustration
+            </>
           )}
         </button>
 
@@ -427,7 +502,10 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
           >
             Style
           </span>
-          <div className="flex flex-wrap gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          <div
+            className="flex flex-wrap gap-1.5 overflow-x-auto"
+            style={{ scrollbarWidth: 'none' }}
+          >
             {STYLE_OPTIONS.map((opt) => {
               const isActive = (editor.currentProject.style || ArtStyle.WATERCOLOR) === opt.value;
               return (
@@ -437,9 +515,10 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
                   onClick={() => handleStyleChange(opt.value)}
                   title={opt.label}
                   className={`px-2 rounded-full font-medium transition-all cursor-pointer active:scale-[0.96]
-                    ${isActive
-                      ? 'bg-coral-burst text-white'
-                      : 'text-cocoa-light hover:text-charcoal-soft'
+                    ${
+                      isActive
+                        ? 'bg-coral-burst text-white'
+                        : 'text-cocoa-light hover:text-charcoal-soft'
                     }`}
                   style={{
                     ...geist,
@@ -450,9 +529,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
                     backgroundColor: isActive
                       ? undefined
                       : 'color-mix(in srgb, var(--color-background) 88%, var(--color-surface))',
-                    border: isActive
-                      ? 'none'
-                      : '1px solid var(--color-border)',
+                    border: isActive ? 'none' : '1px solid var(--color-border)',
                   }}
                 >
                   {opt.short}
@@ -491,7 +568,10 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
               </button>
               <button
                 type="button"
-                onClick={() => { setIsEditingDesc(false); setEditDescText(activePage.imagePrompt || ''); }}
+                onClick={() => {
+                  setIsEditingDesc(false);
+                  setEditDescText(activePage.imagePrompt || '');
+                }}
                 className="text-[11px] font-medium text-cocoa-light hover:underline cursor-pointer"
                 style={geist}
               >
@@ -507,7 +587,8 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
                 ...geist,
                 fontSize: 13,
                 lineHeight: 1.6,
-                borderLeft: '2px solid color-mix(in srgb, var(--color-primary-start) 40%, transparent)',
+                borderLeft:
+                  '2px solid color-mix(in srgb, var(--color-primary-start) 40%, transparent)',
                 paddingLeft: 8,
               }}
             >
@@ -516,7 +597,10 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
             {activePage.imagePrompt && (
               <button
                 type="button"
-                onClick={() => { setEditDescText(activePage.imagePrompt || ''); setIsEditingDesc(true); }}
+                onClick={() => {
+                  setEditDescText(activePage.imagePrompt || '');
+                  setIsEditingDesc(true);
+                }}
                 className="flex items-center gap-1 mt-2 text-[11px] font-medium text-coral-burst hover:underline cursor-pointer"
                 style={geist}
               >
@@ -536,19 +620,25 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ editor, fluid = f
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between py-1">
-            <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>Page</span>
+            <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>
+              Page
+            </span>
             <span className="text-charcoal-soft" style={{ ...geist, fontSize: 13 }}>
               {activePage.pageNumber} of {editor.totalPages}
             </span>
           </div>
           <div className="flex items-center justify-between py-1">
-            <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>Words</span>
+            <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>
+              Words
+            </span>
             <span className="text-charcoal-soft" style={{ ...geist, fontSize: 13 }}>
               {wordCount}
             </span>
           </div>
           <div className="flex items-center justify-between py-1">
-            <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>Last saved</span>
+            <span className="text-cocoa-light" style={{ ...geist, fontSize: 13 }}>
+              Last saved
+            </span>
             <span className="text-charcoal-soft" style={{ ...geist, fontSize: 13 }}>
               {lastSavedText}
             </span>

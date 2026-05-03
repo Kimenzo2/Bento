@@ -35,36 +35,36 @@ const LegalNav: React.FC = () => {
 
   return (
     <nav
-    className="sticky top-0 z-40 border-b border-peach-soft bg-cream-base"
-    style={{ height: 56 }}
-  >
-    <div className="mx-auto flex h-full max-w-[680px] items-center justify-between px-5 sm:px-10 lg:px-0">
-      <Link
-        to="/welcome"
-        className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-lg"
-      >
-        <img
-          src="/genesis-icon.jpg"
-          alt="Genesis"
-          width={28}
-          height={28}
-          className="rounded-md"
-        />
+      className="sticky top-0 z-40 border-b border-peach-soft bg-cream-base"
+      style={{ height: 56 }}
+    >
+      <div className="mx-auto flex h-full max-w-[680px] items-center justify-between px-5 sm:px-10 lg:px-0">
+        <Link
+          to="/welcome"
+          className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-lg"
+        >
+          <img
+            src="/genesis-icon.jpg"
+            alt="Genesis"
+            width={28}
+            height={28}
+            className="rounded-md"
+          />
+          <span
+            className="text-charcoal-soft"
+            style={{ fontFamily: F.sans, fontSize: 14, fontWeight: 500 }}
+          >
+            Genesis
+          </span>
+        </Link>
         <span
-          className="text-charcoal-soft"
+          className="text-cocoa-light"
           style={{ fontFamily: F.sans, fontSize: 14, fontWeight: 500 }}
         >
-          Genesis
+          {t('header.legal', 'Legal')}
         </span>
-      </Link>
-      <span
-        className="text-cocoa-light"
-        style={{ fontFamily: F.sans, fontSize: 14, fontWeight: 500 }}
-      >
-        {t('header.legal', 'Legal')}
-      </span>
-    </div>
-  </nav>
+      </div>
+    </nav>
   );
 };
 
@@ -123,26 +123,26 @@ const LegalTOC: React.FC<{ sections: LegalSection[] }> = ({ sections }) => {
 
   return (
     <nav className="mb-10" aria-label={t('toc.ariaLabel', 'Table of contents')}>
-    <ol className="list-none p-0 m-0">
-      {sections.map((s) => (
-        <li key={s.id}>
-          <a
-            href={`#${s.id}`}
-            className="text-coral-burst hover:underline transition-colors"
-            style={{
-              fontFamily: F.sans,
-              fontSize: 14,
-              fontWeight: 400,
-              lineHeight: 1.8,
-              display: 'block',
-            }}
-          >
-            {s.number}. {s.title}
-          </a>
-        </li>
-      ))}
-    </ol>
-  </nav>
+      <ol className="list-none p-0 m-0">
+        {sections.map((s) => (
+          <li key={s.id}>
+            <a
+              href={`#${s.id}`}
+              className="text-coral-burst hover:underline transition-colors"
+              style={{
+                fontFamily: F.sans,
+                fontSize: 14,
+                fontWeight: 400,
+                lineHeight: 1.8,
+                display: 'block',
+              }}
+            >
+              {s.number}. {s.title}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 };
 
@@ -150,11 +150,7 @@ const LegalTOC: React.FC<{ sections: LegalSection[] }> = ({ sections }) => {
 // Section Renderer
 // ---------------------------------------------------------------------------
 const LegalSectionBlock: React.FC<{ section: LegalSection }> = ({ section }) => (
-  <section
-    id={section.id}
-    className="legal-section"
-    style={{ scrollMarginTop: 72 }}
-  >
+  <section id={section.id} className="legal-section" style={{ scrollMarginTop: 72 }}>
     <h2
       className="text-charcoal-soft"
       style={{
@@ -179,31 +175,31 @@ const LegalContactBlock: React.FC = () => {
   const { t } = useTranslation('legal');
 
   return (
-    <div
-    className="bg-surface border border-peach-soft rounded-lg mt-16"
-    style={{ padding: 32 }}
-  >
-    <h3
-      className="text-charcoal-soft mb-2"
-      style={{ fontFamily: F.serif, fontSize: 20, fontWeight: 400, lineHeight: 1.3 }}
-    >
-      {t('contact.questions', 'Questions?')}
-    </h3>
-    <p
-      className="text-cocoa-light"
-      style={{ fontFamily: F.sans, fontSize: 15, fontWeight: 400, lineHeight: 1.75 }}
-    >
-      {t('contact.description', 'If you have questions about this document or your data, reach out to us at')}{' '}
-      <a
-        href="mailto:legal@iamazeyou.me"
-        className="text-coral-burst hover:underline"
-        style={{ fontWeight: 500 }}
+    <div className="bg-surface border border-peach-soft rounded-lg mt-16" style={{ padding: 32 }}>
+      <h3
+        className="text-charcoal-soft mb-2"
+        style={{ fontFamily: F.serif, fontSize: 20, fontWeight: 400, lineHeight: 1.3 }}
       >
-        legal@iamazeyou.me
-      </a>
-      . {t('contact.responseTime', 'We aim to respond within 5 business days.')}
-    </p>
-  </div>
+        {t('contact.questions', 'Questions?')}
+      </h3>
+      <p
+        className="text-cocoa-light"
+        style={{ fontFamily: F.sans, fontSize: 15, fontWeight: 400, lineHeight: 1.75 }}
+      >
+        {t(
+          'contact.description',
+          'If you have questions about this document or your data, reach out to us at'
+        )}{' '}
+        <a
+          href="mailto:legal@iamazeyou.me"
+          className="text-coral-burst hover:underline"
+          style={{ fontWeight: 500 }}
+        >
+          legal@iamazeyou.me
+        </a>
+        . {t('contact.responseTime', 'We aim to respond within 5 business days.')}
+      </p>
+    </div>
   );
 };
 
@@ -227,24 +223,36 @@ const LegalFooter: React.FC = () => {
       </p>
       <p className="text-cocoa-light mt-1 flex flex-wrap gap-1">
         {isPrivacy ? (
-          <span className="text-charcoal-soft font-medium">{t('docs.privacy', 'Privacy Policy')}</span>
+          <span className="text-charcoal-soft font-medium">
+            {t('docs.privacy', 'Privacy Policy')}
+          </span>
         ) : (
-          <Link to="/legal/privacy" className="text-coral-burst hover:underline">{t('docs.privacy', 'Privacy Policy')}</Link>
+          <Link to="/legal/privacy" className="text-coral-burst hover:underline">
+            {t('docs.privacy', 'Privacy Policy')}
+          </Link>
         )}
         <span className="text-cocoa-light">&middot;</span>
         {isTerms ? (
           <span className="text-charcoal-soft font-medium">{t('docs.terms', 'Terms of Use')}</span>
         ) : (
-          <Link to="/legal/terms" className="text-coral-burst hover:underline">{t('docs.terms', 'Terms of Use')}</Link>
+          <Link to="/legal/terms" className="text-coral-burst hover:underline">
+            {t('docs.terms', 'Terms of Use')}
+          </Link>
         )}
         <span className="text-cocoa-light">&middot;</span>
         {isCookies ? (
-          <span className="text-charcoal-soft font-medium">{t('docs.cookies', 'Cookie Policy')}</span>
+          <span className="text-charcoal-soft font-medium">
+            {t('docs.cookies', 'Cookie Policy')}
+          </span>
         ) : (
-          <Link to="/legal/cookies" className="text-coral-burst hover:underline">{t('docs.cookies', 'Cookie Policy')}</Link>
+          <Link to="/legal/cookies" className="text-coral-burst hover:underline">
+            {t('docs.cookies', 'Cookie Policy')}
+          </Link>
         )}
         <span className="text-cocoa-light">&middot;</span>
-        <a href="mailto:legal@iamazeyou.me" className="text-coral-burst hover:underline">{t('footer.contact', 'Contact')}</a>
+        <a href="mailto:legal@iamazeyou.me" className="text-coral-burst hover:underline">
+          {t('footer.contact', 'Contact')}
+        </a>
       </p>
     </footer>
   );
@@ -333,28 +341,28 @@ const LegalLayout: React.FC<LegalLayoutProps> = ({
     <div className="min-h-screen bg-cream-base" style={{ fontFamily: F.sans }}>
       <LegalNav />
       <div
-      className="mx-auto w-full"
-      style={{
-        maxWidth: 680,
-        paddingLeft: 20,
-        paddingRight: 20,
-        paddingTop: 80,
-        paddingBottom: 120,
-      }}
-    >
-      <LegalHeader
-        title={title}
-        description={description}
-        effectiveDate={`${t('header.lastUpdated', 'Last updated')} ${effectiveDate}`}
-      />
-      <hr className="border-peach-soft mb-10" />
-      <LegalTOC sections={sections} />
-      <hr className="border-peach-soft mb-0" />
-      {sections.map((s) => (
-        <LegalSectionBlock key={s.id} section={s} />
-      ))}
-      <LegalContactBlock />
-      <LegalFooter />
+        className="mx-auto w-full"
+        style={{
+          maxWidth: 680,
+          paddingLeft: 20,
+          paddingRight: 20,
+          paddingTop: 80,
+          paddingBottom: 120,
+        }}
+      >
+        <LegalHeader
+          title={title}
+          description={description}
+          effectiveDate={`${t('header.lastUpdated', 'Last updated')} ${effectiveDate}`}
+        />
+        <hr className="border-peach-soft mb-10" />
+        <LegalTOC sections={sections} />
+        <hr className="border-peach-soft mb-0" />
+        {sections.map((s) => (
+          <LegalSectionBlock key={s.id} section={s} />
+        ))}
+        <LegalContactBlock />
+        <LegalFooter />
       </div>
     </div>
   );

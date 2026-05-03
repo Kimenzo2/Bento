@@ -18,11 +18,7 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@components/ui/collapsible';
 
 const geist: React.CSSProperties = {
   fontFamily: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
@@ -72,10 +68,7 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       {/* Divider — always visible between sections */}
-      <div
-        className="h-px w-full"
-        style={{ backgroundColor: 'var(--color-border)' }}
-      />
+      <div className="h-px w-full" style={{ backgroundColor: 'var(--color-border)' }} />
 
       {/* Header row — always visible, 36px */}
       <CollapsibleTrigger asChild>
@@ -125,9 +118,7 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({
           </span>
 
           {/* Optional badge */}
-          {badge && (
-            <span className="shrink-0">{badge}</span>
-          )}
+          {badge && <span className="shrink-0">{badge}</span>}
 
           {/* Flexible spacer */}
           <span className="flex-1" />
@@ -139,9 +130,7 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({
               width: 14,
               height: 14,
               transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: hasMounted
-                ? 'transform 200ms ease-out'
-                : 'none',
+              transition: hasMounted ? 'transform 200ms ease-out' : 'none',
             }}
           />
         </button>
@@ -165,9 +154,7 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({
         }}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="px-3 pt-3 pb-3">
-            {children}
-          </div>
+          <div className="px-3 pt-3 pb-3">{children}</div>
         </div>
       </CollapsibleContent>
     </Collapsible>

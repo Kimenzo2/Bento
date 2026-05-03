@@ -123,12 +123,10 @@ describe('VideoExporter', () => {
     vi.stubGlobal('Worker', undefined as any);
 
     const exporter = new VideoExporter();
-    const fallbackSpy = vi
-      .spyOn(exporter as any, 'exportWithMediaRecorder')
-      .mockResolvedValue({
-        blob: new Blob(['x'], { type: 'video/webm' }),
-        filename: 'fallback.webm',
-      });
+    const fallbackSpy = vi.spyOn(exporter as any, 'exportWithMediaRecorder').mockResolvedValue({
+      blob: new Blob(['x'], { type: 'video/webm' }),
+      filename: 'fallback.webm',
+    });
 
     const result = await exporter.export(createBook(), 'SPARK');
 

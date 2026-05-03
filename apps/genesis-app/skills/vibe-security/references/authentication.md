@@ -22,6 +22,7 @@ const payload = jwt.verify(token, secret, {
 Next.js middleware runs at the edge and is convenient for auth checks, but it is **not a reliable sole auth layer**. CVE-2025-29927 demonstrated that middleware could be completely bypassed via a spoofed `x-middleware-subrequest` header.
 
 Always verify auth again in:
+
 - Server Actions
 - Route Handlers (`app/api/`)
 - Data access functions / database queries
@@ -40,7 +41,7 @@ export async function deleteItem(id: string) {
 }
 
 // GOOD: validates input, authenticates, and authorizes
-'use server';
+('use server');
 export async function deleteItem(input: unknown) {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { error: 'Invalid input' };
@@ -50,12 +51,13 @@ export async function deleteItem(input: unknown) {
 
   // Authorize: verify ownership, not just login
   await db.items.deleteMany({
-    where: { id: parsed.data.id, userId: session.user.id }
+    where: { id: parsed.data.id, userId: session.user.id },
   });
 }
 ```
 
 Every Server Action needs three things at the top:
+
 1. **Input validation** (Zod or similar runtime schema)
 2. **Authentication** (verify the user is logged in)
 3. **Authorization** (verify the user owns the resource)

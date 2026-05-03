@@ -41,11 +41,13 @@ export async function uploadLifeInColourSource(file: File): Promise<UploadedLife
   const sourcePath = `${userId}/${crypto.randomUUID()}-${sourceFileName}`;
   const sourceMimeType = file.type || 'image/jpeg';
 
-  const { error } = await supabase.storage.from(LIFE_IN_COLOUR_SOURCE_BUCKET).upload(sourcePath, file, {
-    cacheControl: '3600',
-    contentType: sourceMimeType,
-    upsert: false,
-  });
+  const { error } = await supabase.storage
+    .from(LIFE_IN_COLOUR_SOURCE_BUCKET)
+    .upload(sourcePath, file, {
+      cacheControl: '3600',
+      contentType: sourceMimeType,
+      upsert: false,
+    });
 
   if (error) {
     throw new Error(error.message);

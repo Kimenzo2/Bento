@@ -1,13 +1,5 @@
 {
-  "globs": [
-    "**/*.md",
-    "!node_modules",
-    "!dist",
-    "!dev-dist",
-    "!.git",
-    "!coverage",
-    "!.vercel"
-  ],
+  "globs": ["**/*.md", "!node_modules", "!dist", "!dev-dist", "!.git", "!coverage", "!.vercel"],
   "config": {
     "MD001": false,
     "MD013": false,
@@ -17,6 +9,6 @@
     "MD036": false,
     "MD041": false,
     "MD051": false,
-    "MD060": false
-  }
+    "MD060": false,
+  },
 }

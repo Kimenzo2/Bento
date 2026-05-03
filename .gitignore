@@ -98,6 +98,10 @@ refactor.cjs
 .turbo/
 apps/landing/.next/
 
+# Exclude large workspace/cache directories
+darn-workspace/
+LLM_REPO_CLEANUP/
+
 # OS Files
 Thumbs.db
 .DS_Store

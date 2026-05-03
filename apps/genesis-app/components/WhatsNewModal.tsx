@@ -160,7 +160,11 @@ interface WhatsNewModalProps {
   forceShow?: boolean;
 }
 
-const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceShow: _forceShow = false }) => {
+const WhatsNewModal: React.FC<WhatsNewModalProps> = ({
+  isOpen,
+  onClose,
+  forceShow: _forceShow = false,
+}) => {
   const [activeVersion, setActiveVersion] = useState(0);
 
   useEffect(() => {
@@ -175,7 +179,12 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
   const currentEntry = CHANGELOG[activeVersion];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[85vh]">
         {/* Header */}
         <div className="relative bg-linear-to-r from-coral-burst to-orange-500 p-6 text-white">
@@ -244,22 +253,23 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose, forceSho
                   <div className="mt-0.5">{getTypeIcon(change.type)}</div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-charcoal-soft">
-                        {change.title}
-                      </span>
-                      <Badge variant={
-                        change.type === 'feature' ? 'primary' :
-                        change.type === 'improvement' ? 'warning' :
-                        change.type === 'fix' ? 'success' :
-                        'destructive'
-                      }>
+                      <span className="font-medium text-charcoal-soft">{change.title}</span>
+                      <Badge
+                        variant={
+                          change.type === 'feature'
+                            ? 'primary'
+                            : change.type === 'improvement'
+                              ? 'warning'
+                              : change.type === 'fix'
+                                ? 'success'
+                                : 'destructive'
+                        }
+                      >
                         {change.type}
                       </Badge>
                     </div>
                     {change.description && (
-                      <p className="text-sm text-cocoa-light mt-1">
-                        {change.description}
-                      </p>
+                      <p className="text-sm text-cocoa-light mt-1">{change.description}</p>
                     )}
                   </div>
                 </motion.div>

@@ -87,9 +87,9 @@ const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
 const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
-const PublicLegalPage: React.FC<{ initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use' }> = ({
-  initialDoc,
-}) => (
+const PublicLegalPage: React.FC<{
+  initialDoc: 'privacy' | 'terms' | 'cookies' | 'acceptable-use';
+}> = ({ initialDoc }) => (
   <ThemeProvider>
     <LegalViewer initialDoc={initialDoc} />
   </ThemeProvider>
@@ -185,8 +185,14 @@ const MainAppGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     let isMounted = true;
 
     if (loading) return; // wait for auth
-    if (!user) { setChecking(false); return; }
-    if (hasCompletedOnboarding) { setChecking(false); return; } // flag present, no need to check DB
+    if (!user) {
+      setChecking(false);
+      return;
+    }
+    if (hasCompletedOnboarding) {
+      setChecking(false);
+      return;
+    } // flag present, no need to check DB
 
     // User is authenticated but localStorage flag is missing (e.g. signed out & back in).
     // Check if their profile already exists in Supabase → returning user.
@@ -253,14 +259,66 @@ export const AppRouter: React.FC = () => {
         </Route>
 
         {/* Public legal pages for SEO and direct access */}
-        <Route path="/legal" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
-        <Route path="/legal/privacy" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
-        <Route path="/legal/terms" element={<ThemeProvider><TermsPage /></ThemeProvider>} />
-        <Route path="/legal/cookies" element={<ThemeProvider><CookiePolicyPage /></ThemeProvider>} />
-        <Route path="/legal/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
-        <Route path="/privacy" element={<ThemeProvider><PrivacyPage /></ThemeProvider>} />
-        <Route path="/terms" element={<ThemeProvider><TermsPage /></ThemeProvider>} />
-        <Route path="/cookies" element={<ThemeProvider><CookiePolicyPage /></ThemeProvider>} />
+        <Route
+          path="/legal"
+          element={
+            <ThemeProvider>
+              <PrivacyPage />
+            </ThemeProvider>
+          }
+        />
+        <Route
+          path="/legal/privacy"
+          element={
+            <ThemeProvider>
+              <PrivacyPage />
+            </ThemeProvider>
+          }
+        />
+        <Route
+          path="/legal/terms"
+          element={
+            <ThemeProvider>
+              <TermsPage />
+            </ThemeProvider>
+          }
+        />
+        <Route
+          path="/legal/cookies"
+          element={
+            <ThemeProvider>
+              <CookiePolicyPage />
+            </ThemeProvider>
+          }
+        />
+        <Route
+          path="/legal/acceptable-use"
+          element={<PublicLegalPage initialDoc="acceptable-use" />}
+        />
+        <Route
+          path="/privacy"
+          element={
+            <ThemeProvider>
+              <PrivacyPage />
+            </ThemeProvider>
+          }
+        />
+        <Route
+          path="/terms"
+          element={
+            <ThemeProvider>
+              <TermsPage />
+            </ThemeProvider>
+          }
+        />
+        <Route
+          path="/cookies"
+          element={
+            <ThemeProvider>
+              <CookiePolicyPage />
+            </ThemeProvider>
+          }
+        />
         <Route path="/acceptable-use" element={<PublicLegalPage initialDoc="acceptable-use" />} />
 
         {/* Blog — public, SEO-indexed, inherits user theme from localStorage */}

@@ -53,7 +53,9 @@ describe('colouringPagePipeline', () => {
   });
 
   it('applies a gaussian blur to grayscale pixels', () => {
-    const imageData = makeImageDataLike(3, 3, (x, y) => (x === 1 && y === 1 ? [255, 255, 255, 255] : [0, 0, 0, 255]));
+    const imageData = makeImageDataLike(3, 3, (x, y) =>
+      x === 1 && y === 1 ? [255, 255, 255, 255] : [0, 0, 0, 255]
+    );
     const grayscale = extractGrayscaleBuffer(imageData);
     const blurred = applyGaussianBlur(grayscale, 3, 3, 1);
 
@@ -73,7 +75,9 @@ describe('colouringPagePipeline', () => {
   });
 
   it('turns a hard black and white edge into a clean xdog outline', () => {
-    const imageData = makeImageDataLike(7, 7, (x) => (x < 3 ? [0, 0, 0, 255] : [255, 255, 255, 255]));
+    const imageData = makeImageDataLike(7, 7, (x) =>
+      x < 3 ? [0, 0, 0, 255] : [255, 255, 255, 255]
+    );
     const grayscale = extractGrayscaleBuffer(imageData);
     const lineStrengths = buildXDogResponseMap(grayscale, 7, 7);
     const outline = buildOutlineRgbaBuffer(lineStrengths, 7, 7);
@@ -92,33 +96,38 @@ describe('colouringPagePipeline', () => {
     });
 
     const result = buildColouringPageOutline(imageData, DEFAULT_XDOG_EPSILON);
-    const interiorFeatureAlpha = result.outlinePixels[((4 * 9) + 3) * 4 + 3] ?? 0;
+    const interiorFeatureAlpha = result.outlinePixels[(4 * 9 + 3) * 4 + 3] ?? 0;
 
     expect(interiorFeatureAlpha).toBeGreaterThan(0);
   });
 
   it('maps xdog strength to warm outline pixels with proportional opacity', () => {
-    const outline = buildOutlineRgbaBuffer(
-      Float32Array.from([
-        0,
-        0.25,
-        0.5,
-        1,
-      ]),
-      2,
-      2,
-      0
-    );
+    const outline = buildOutlineRgbaBuffer(Float32Array.from([0, 0.25, 0.5, 1]), 2, 2, 0);
 
     expect(outline.slice(0, 4)).toEqual(Uint8ClampedArray.from([0, 0, 0, 0]));
     expect(outline.slice(4, 8)).toEqual(
-      Uint8ClampedArray.from([DEFAULT_OUTLINE_RGB.red, DEFAULT_OUTLINE_RGB.green, DEFAULT_OUTLINE_RGB.blue, 73])
+      Uint8ClampedArray.from([
+        DEFAULT_OUTLINE_RGB.red,
+        DEFAULT_OUTLINE_RGB.green,
+        DEFAULT_OUTLINE_RGB.blue,
+        73,
+      ])
     );
     expect(outline.slice(8, 12)).toEqual(
-      Uint8ClampedArray.from([DEFAULT_OUTLINE_RGB.red, DEFAULT_OUTLINE_RGB.green, DEFAULT_OUTLINE_RGB.blue, 147])
+      Uint8ClampedArray.from([
+        DEFAULT_OUTLINE_RGB.red,
+        DEFAULT_OUTLINE_RGB.green,
+        DEFAULT_OUTLINE_RGB.blue,
+        147,
+      ])
     );
     expect(outline.slice(12, 16)).toEqual(
-      Uint8ClampedArray.from([DEFAULT_OUTLINE_RGB.red, DEFAULT_OUTLINE_RGB.green, DEFAULT_OUTLINE_RGB.blue, 255])
+      Uint8ClampedArray.from([
+        DEFAULT_OUTLINE_RGB.red,
+        DEFAULT_OUTLINE_RGB.green,
+        DEFAULT_OUTLINE_RGB.blue,
+        255,
+      ])
     );
   });
 
@@ -140,12 +149,16 @@ describe('colouringPagePipeline', () => {
   });
 
   it('builds a complete xdog outline result', () => {
-    const imageData = makeImageDataLike(7, 7, (x) => (x < 3 ? [15, 15, 15, 255] : [245, 245, 245, 255]));
+    const imageData = makeImageDataLike(7, 7, (x) =>
+      x < 3 ? [15, 15, 15, 255] : [245, 245, 245, 255]
+    );
     const result = buildColouringPageOutline(imageData, DEFAULT_XDOG_EPSILON);
 
     expect(result.width).toBe(7);
     expect(result.height).toBe(7);
     expect(Math.max(...Array.from(result.edgeStrengths))).toBeGreaterThan(0);
-    expect(Array.from(result.outlinePixels).some((value, index) => index % 4 === 3 && value > 0)).toBe(true);
+    expect(
+      Array.from(result.outlinePixels).some((value, index) => index % 4 === 3 && value > 0)
+    ).toBe(true);
   });
 });

@@ -39,7 +39,10 @@ export interface PdfBuildOptions {
   title?: string;
 }
 
-export function normalisePaperSize(pageSize: PdfBuildOptions['pageSize'], orientation: 'portrait' | 'landscape'): {
+export function normalisePaperSize(
+  pageSize: PdfBuildOptions['pageSize'],
+  orientation: 'portrait' | 'landscape'
+): {
   size: 'LETTER' | 'A4' | [number, number];
   layout: 'portrait' | 'landscape';
 } {
@@ -275,12 +278,8 @@ export async function buildPdfBuffer(
       margin,
     });
 
-    const pageWidth = typeof paper.size === 'string'
-      ? pdf.page.width
-      : page.pageWidth;
-    const pageHeight = typeof paper.size === 'string'
-      ? pdf.page.height
-      : page.pageHeight;
+    const pageWidth = typeof paper.size === 'string' ? pdf.page.width : page.pageWidth;
+    const pageHeight = typeof paper.size === 'string' ? pdf.page.height : page.pageHeight;
 
     const contentWidth = pageWidth - margin * 2;
     const contentHeight = pageHeight - margin * 2;

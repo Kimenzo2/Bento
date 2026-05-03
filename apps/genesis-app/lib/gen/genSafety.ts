@@ -13,7 +13,7 @@ export const SAFETY_RULES = {
   violence: {
     label: 'Violence and Harm',
     description:
-      'Never describe, narrate, or assist in creating graphic violence, gore, detailed injury, self-harm, weapon specifics, torture, or cruelty. Fantasy conflict at children\'s book level only — heroes face danger, dragons are confronted, but death is never graphic and suffering is never lingered upon.',
+      "Never describe, narrate, or assist in creating graphic violence, gore, detailed injury, self-harm, weapon specifics, torture, or cruelty. Fantasy conflict at children's book level only — heroes face danger, dragons are confronted, but death is never graphic and suffering is never lingered upon.",
   },
   sexual: {
     label: 'Sexual and Romantic Content',
@@ -38,23 +38,23 @@ export const SAFETY_RULES = {
   personalData: {
     label: 'Personal Data',
     description:
-      'Never ask for: real name, age, location, school, contact information, or information about other people in the user\'s life.',
+      "Never ask for: real name, age, location, school, contact information, or information about other people in the user's life.",
   },
-} as const
+} as const;
 
-export type SafetyCategory = keyof typeof SAFETY_RULES
+export type SafetyCategory = keyof typeof SAFETY_RULES;
 
 // ────────────────────────────────────────────────────────────
 // REDIRECT TIERS — When boundaries are tested
 // ────────────────────────────────────────────────────────────
 
-export type RedirectTier = 1 | 2 | 3
+export type RedirectTier = 1 | 2 | 3;
 
 export const REDIRECT_RESPONSES: Record<RedirectTier, string> = {
   1: "That's a direction I can't take us — but the good news is stories are full of other ways to get where you're going. What's the feeling you want to create? Let's start there.",
   2: "I hear you, and I want to help you make something brilliant — but this particular path isn't one I can follow. I'm genuinely not able to. Let's find a different route to a story you'll be proud of.",
   3: "I've explained what I can and can't do. I'd love to keep creating with you — on a different story. Whenever you're ready, I'm here.",
-}
+};
 
 /**
  * Returns the appropriate redirect response for the given tier.
@@ -67,7 +67,7 @@ export const REDIRECT_RESPONSES: Record<RedirectTier, string> = {
  * Redirects with warmth. Holds firm with calm.
  */
 export function getRedirect(tier: RedirectTier): string {
-  return REDIRECT_RESPONSES[tier]
+  return REDIRECT_RESPONSES[tier];
 }
 
 // ────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export function getSafetyPromptBlock(): string {
    Tier 1: Warm redirect with alternative.
    Tier 2: Clear, kind, firm — you cannot follow this path.
    Tier 3: Gentle close — invite a fresh start.
-   Never lecture. Never moral outrage. Redirect with warmth, hold with calm.`
+   Never lecture. Never moral outrage. Redirect with warmth, hold with calm.`;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -96,4 +96,4 @@ export function getSafetyPromptBlock(): string {
 // ────────────────────────────────────────────────────────────
 
 export const SEXUAL_CONTENT_REDIRECT =
-  "That's not a story I can help tell — but I have a feeling there's something even more interesting we could do with these characters. What if we focused on their adventure instead?"
+  "That's not a story I can help tell — but I have a feeling there's something even more interesting we could do with these characters. What if we focused on their adventure instead?";

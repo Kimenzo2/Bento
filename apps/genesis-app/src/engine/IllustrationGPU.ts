@@ -10,7 +10,9 @@
 import type { Realm } from '../../lib/gen/genPersonality';
 
 type GPUNavigatorLike = {
-  requestAdapter: (options?: { powerPreference?: 'high-performance' | 'low-power' }) => Promise<GPUAdapterLike | null>;
+  requestAdapter: (options?: {
+    powerPreference?: 'high-performance' | 'low-power';
+  }) => Promise<GPUAdapterLike | null>;
   getPreferredCanvasFormat: () => string;
 };
 
@@ -75,7 +77,8 @@ type GPUTextureLike = {
   destroy: () => void;
 };
 
-const GPU_TEXTURE_USAGE = (globalThis as { GPUTextureUsage?: Record<string, number> }).GPUTextureUsage ?? {
+const GPU_TEXTURE_USAGE = (globalThis as { GPUTextureUsage?: Record<string, number> })
+  .GPUTextureUsage ?? {
   COPY_SRC: 0x01,
   COPY_DST: 0x02,
   TEXTURE_BINDING: 0x04,
@@ -83,7 +86,8 @@ const GPU_TEXTURE_USAGE = (globalThis as { GPUTextureUsage?: Record<string, numb
   RENDER_ATTACHMENT: 0x10,
 };
 
-const GPU_BUFFER_USAGE = (globalThis as { GPUBufferUsage?: Record<string, number> }).GPUBufferUsage ?? {
+const GPU_BUFFER_USAGE = (globalThis as { GPUBufferUsage?: Record<string, number> })
+  .GPUBufferUsage ?? {
   COPY_DST: 0x08,
   UNIFORM: 0x40,
 };
@@ -151,7 +155,11 @@ export class IllustrationGPU {
     }
   }
 
-  async process(source: string, targetWidth: number, targetHeight: number): Promise<ProcessedIllustration> {
+  async process(
+    source: string,
+    targetWidth: number,
+    targetHeight: number
+  ): Promise<ProcessedIllustration> {
     if (this.isWebGPU && this.device && this.renderPipeline) {
       return this.processWebGPU(source, targetWidth, targetHeight);
     }
@@ -170,7 +178,11 @@ export class IllustrationGPU {
     this.effectsPipeline = null;
   }
 
-  private async processWebGPU(source: string, width: number, height: number): Promise<ProcessedIllustration> {
+  private async processWebGPU(
+    source: string,
+    width: number,
+    height: number
+  ): Promise<ProcessedIllustration> {
     if (!this.device || !this.renderPipeline) {
       return this.processCanvas2D(source, width, height);
     }
@@ -249,7 +261,11 @@ export class IllustrationGPU {
     };
   }
 
-  private runEffectsPass(inputTexture: GPUTextureLike, width: number, height: number): GPUTextureLike {
+  private runEffectsPass(
+    inputTexture: GPUTextureLike,
+    width: number,
+    height: number
+  ): GPUTextureLike {
     if (!this.device || !this.effectsPipeline) {
       return inputTexture;
     }
@@ -305,7 +321,10 @@ export class IllustrationGPU {
     return outputTexture;
   }
 
-  private async renderToCanvas(texture: GPUTextureLike, context: GPUCanvasContextLike): Promise<void> {
+  private async renderToCanvas(
+    texture: GPUTextureLike,
+    context: GPUCanvasContextLike
+  ): Promise<void> {
     if (!this.device || !this.renderPipeline) return;
 
     const sampler = this.device.createSampler({
@@ -381,7 +400,11 @@ export class IllustrationGPU {
     });
   }
 
-  private async processCanvas2D(source: string, width: number, height: number): Promise<ProcessedIllustration> {
+  private async processCanvas2D(
+    source: string,
+    width: number,
+    height: number
+  ): Promise<ProcessedIllustration> {
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.floor(width * this.pixelRatio));
     canvas.height = Math.max(1, Math.floor(height * this.pixelRatio));

@@ -220,9 +220,7 @@ export class AnimationController {
 
   private queueInstruction(instruction: AnimationInstruction): void {
     // Insert based on priority (higher priority = earlier in queue)
-    const insertIndex = this.instructionQueue.findIndex(
-      (i) => i.priority < instruction.priority
-    );
+    const insertIndex = this.instructionQueue.findIndex((i) => i.priority < instruction.priority);
 
     if (insertIndex === -1) {
       this.instructionQueue.push(instruction);

@@ -64,7 +64,9 @@ const VisualDescriptionPanel: React.FC<VisualDescriptionPanelProps> = ({
           {/* Accent left border */}
           <div
             className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary-start) 40%, transparent)' }}
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--color-primary-start) 40%, transparent)',
+            }}
           />
 
           {isEditing ? (
@@ -89,7 +91,10 @@ const VisualDescriptionPanel: React.FC<VisualDescriptionPanelProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsEditing(false); setEditText(description); }}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditText(description);
+                  }}
                   className="text-[11px] font-medium text-cocoa-light hover:underline cursor-pointer"
                   style={geist}
                 >
@@ -101,9 +106,13 @@ const VisualDescriptionPanel: React.FC<VisualDescriptionPanelProps> = ({
             <div className="pl-4 pb-2">
               <p
                 className="text-sm italic text-cocoa-light leading-relaxed"
-                style={{ fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif', fontSize: 13 }}
+                style={{
+                  fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+                  fontSize: 13,
+                }}
               >
-                {description || 'No visual description yet. Write story text and one will be generated.'}
+                {description ||
+                  'No visual description yet. Write story text and one will be generated.'}
               </p>
 
               {/* Edit button */}

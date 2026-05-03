@@ -1,8 +1,9 @@
 ## Chat Customization Diagnostics
-*WARNING: This file may contain sensitive information.*
+
+_WARNING: This file may contain sensitive information._
 
 **Custom Agents**<br>
-*1 file loaded*
+_1 file loaded_
 
 .github/agents<br>
 .claude/agents<br>
@@ -18,7 +19,7 @@ Extension: GitHub.copilot-chat<br>
 User Data<br>
 
 **Prompt Files**<br>
-*4 files loaded*
+_4 files loaded_
 
 .github/prompts<br>
 User Data<br>
@@ -29,7 +30,7 @@ Extension: GitHub.copilot-chat<br>
 └─ [`init.prompt.md`](../../.vscode/extensions/github.copilot-chat-0.37.9/assets/prompts/init.prompt.md)<br>
 
 **Skills**<br>
-*4 skills loaded, 6 skipped*
+_4 skills loaded, 6 skipped_
 
 .github/skills<br>
 .agents/skills<br>
@@ -39,15 +40,15 @@ Extension: GitHub.copilot-chat<br>
 ├─ [`find-skills`](../../.copilot/skills/find-skills/SKILL.md)<br>
 └─ [`email-best-practices`](../../.copilot/skills/email-best-practices/SKILL.md)<br>
 ~/.agents/skills<br>
-├─ ⚠️ [`email-best-practices`](../../.agents/skills/email-best-practices/SKILL.md) - *Overwritten by higher priority file*<br>
-├─ ⚠️ [`find-skills`](../../.agents/skills/find-skills/SKILL.md) - *Overwritten by higher priority file*<br>
+├─ ⚠️ [`email-best-practices`](../../.agents/skills/email-best-practices/SKILL.md) - _Overwritten by higher priority file_<br>
+├─ ⚠️ [`find-skills`](../../.agents/skills/find-skills/SKILL.md) - _Overwritten by higher priority file_<br>
 └─ [`supabase-postgres-best-practices`](../../.agents/skills/supabase-postgres-best-practices/SKILL.md)<br>
 ~/.claude/skills<br>
-├─ ⚠️ [`react-doctor`](../../.claude/skills/react-doctor/SKILL.md) - *Overwritten by higher priority file*<br>
-├─ ⚠️ [`email-best-practices`](../../.claude/skills/email-best-practices/SKILL.md) - *Overwritten by higher priority file*<br>
-├─ ⚠️ [`supabase-postgres-best-practices`](../../.claude/skills/supabase-postgres-best-practices/SKILL.md) - *Overwritten by higher priority file*<br>
-└─ ⚠️ [`find-skills`](../../.claude/skills/find-skills/SKILL.md) - *Overwritten by higher priority file*<br>
+├─ ⚠️ [`react-doctor`](../../.claude/skills/react-doctor/SKILL.md) - _Overwritten by higher priority file_<br>
+├─ ⚠️ [`email-best-practices`](../../.claude/skills/email-best-practices/SKILL.md) - _Overwritten by higher priority file_<br>
+├─ ⚠️ [`supabase-postgres-best-practices`](../../.claude/skills/supabase-postgres-best-practices/SKILL.md) - _Overwritten by higher priority file_<br>
+└─ ⚠️ [`find-skills`](../../.claude/skills/find-skills/SKILL.md) - _Overwritten by higher priority file_<br>
 
 **Hooks**<br>
 
-*No files loaded*
+_No files loaded_

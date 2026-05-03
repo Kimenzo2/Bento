@@ -31,13 +31,16 @@ interface GenCompanionProps {
 function getContextualMessage(
   isGenerating: boolean,
   hasImage: boolean,
-  textLength: number,
+  textLength: number
 ): string {
   if (isGenerating) return pickRandom(GEN_THINKING_LINES);
   if (hasImage && textLength > 30) return pickRandom(GEN_CELEBRATIONS);
-  if (hasImage && textLength < 30) return "The illustration is ready. What story does this picture tell?";
-  if (textLength > 100) return "Your words are building something. Ready to see what they look like?";
-  if (textLength > 30) return "There's a world forming here. Keep going — I can already see shapes.";
+  if (hasImage && textLength < 30)
+    return 'The illustration is ready. What story does this picture tell?';
+  if (textLength > 100)
+    return 'Your words are building something. Ready to see what they look like?';
+  if (textLength > 30)
+    return "There's a world forming here. Keep going — I can already see shapes.";
   if (textLength > 0) return GEN_GREETINGS.stuck;
   return "Every great story starts with a single sentence. What's yours?";
 }
@@ -76,7 +79,10 @@ const GenCompanion: React.FC<GenCompanionProps> = ({
     <div className="px-4 py-5">
       {/* Gen avatar */}
       <div className="flex flex-col items-center mb-3">
-        <div className={`gen-wrapper ${genState === 'thinking' ? '' : 'gen-float'}`} data-state={genState}>
+        <div
+          className={`gen-wrapper ${genState === 'thinking' ? '' : 'gen-float'}`}
+          data-state={genState}
+        >
           <img
             src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
             alt="Gen, your AI creative assistant"

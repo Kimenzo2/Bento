@@ -18,7 +18,7 @@ interface Sparkle {
   size: number;
   color: string;
   life: number; // 0-1, decreases each frame
-  vy: number;   // vertical velocity (gravity)
+  vy: number; // vertical velocity (gravity)
 }
 
 const COLORS = ['#FF9B71', '#FFD700', '#60A5FA', '#F472B6'];
@@ -76,7 +76,9 @@ const SparkleCursor: React.FC = () => {
 
   useEffect(() => {
     // Skip on touch-only devices or reduced motion preference
-    const isTouch = window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;
+    const isTouch =
+      window.matchMedia('(pointer: coarse)').matches &&
+      !window.matchMedia('(pointer: fine)').matches;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (isTouch || reducedMotion) return;
 

@@ -37,7 +37,11 @@ function resolveToken(ctx: ApiContext, body: JsonRecord): string | undefined {
 }
 
 function inviteIsExpired(invite: ColouringInviteRow): boolean {
-  return invite.revoked_at !== null || new Date(invite.expires_at).getTime() <= Date.now() || invite.use_count >= invite.max_uses;
+  return (
+    invite.revoked_at !== null ||
+    new Date(invite.expires_at).getTime() <= Date.now() ||
+    invite.use_count >= invite.max_uses
+  );
 }
 
 async function handleResolve(ctx: ApiContext, body: JsonRecord): Promise<unknown> {

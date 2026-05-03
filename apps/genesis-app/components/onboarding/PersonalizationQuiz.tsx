@@ -13,7 +13,13 @@ const FloatingBlob = ({
   x,
   y,
   delay,
-}: { color: string; size: string; x: string; y: string; delay: number }) => (
+}: {
+  color: string;
+  size: string;
+  x: string;
+  y: string;
+  delay: number;
+}) => (
   <motion.div
     initial={{ scale: 0.8, opacity: 0 }}
     animate={{
@@ -168,9 +174,7 @@ export const PersonalizationQuiz: React.FC = () => {
       <FloatingBlob color="bg-pink-600/15" size="350px" x="50%" y="60%" delay={4} />
 
       {/* Subtle grid */}
-      <div
-        className="absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle,rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:40px_40px]"
-      />
+      <div className="absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle,rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:40px_40px]" />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-3xl">
@@ -366,11 +370,7 @@ export const PersonalizationQuiz: React.FC = () => {
               exit={{ opacity: 0, y: 20 }}
               className="mt-6 md:mt-10 flex justify-center pb-4"
             >
-              <Button
-                variant="primary"
-                size="xl"
-                onClick={handleContinue}
-              >
+              <Button variant="primary" size="xl" onClick={handleContinue}>
                 Begin the Magic
                 <ArrowRight className="w-5 h-5" />
               </Button>

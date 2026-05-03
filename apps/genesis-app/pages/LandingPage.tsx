@@ -63,7 +63,8 @@ import { useNavigate } from 'react-router';
 const APPLE_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 // DNA Section 5: active:scale-[0.98] press, focus ring (ring-4 coral-burst/40)
-const BTN_PRESS = 'active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral-burst/40';
+const BTN_PRESS =
+  'active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral-burst/40';
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -195,7 +196,17 @@ const Blob: React.FC<{
   opacity?: number;
   animate?: boolean;
   delay?: string;
-}> = ({ variant, size, top, left, right, bottom, opacity = 0.12, animate = false, delay = '0s' }) => (
+}> = ({
+  variant,
+  size,
+  top,
+  left,
+  right,
+  bottom,
+  opacity = 0.12,
+  animate = false,
+  delay = '0s',
+}) => (
   <div
     className={`absolute rounded-full pointer-events-none ${animate ? 'animate-float motion-reduce:animate-none' : ''}`}
     style={{
@@ -224,7 +235,10 @@ const Blob: React.FC<{
 const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
-  const faqId = useMemo(() => `faq-${question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`, [question]);
+  const faqId = useMemo(
+    () => `faq-${question.replace(/\s+/g, '-').toLowerCase().slice(0, 30)}`,
+    [question]
+  );
   return (
     <div className="border border-peach-soft rounded-2xl">
       <button
@@ -254,9 +268,7 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
             transition={reducedMotion ? { duration: 0 } : { duration: 0.25, ease: APPLE_EASE }}
             className="overflow-hidden"
           >
-            <p className="px-5 pb-5 text-sm leading-relaxed text-cocoa-light font-body">
-              {answer}
-            </p>
+            <p className="px-5 pb-5 text-sm leading-relaxed text-cocoa-light font-body">{answer}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -285,8 +297,8 @@ const LandingPage: React.FC = memo(() => {
     const dark = currentTheme.darkCssVariables || {};
     return {
       bg: isDarkMode
-        ? (dark['--color-surface'] || '#2A201D')
-        : (dark['--color-background'] || '#1A1412'),
+        ? dark['--color-surface'] || '#2A201D'
+        : dark['--color-background'] || '#1A1412',
       surface: dark['--color-surface'] || '#2A201D',
       text: dark['--color-text'] || '#EAE0D5',
       textMuted: dark['--color-text-light'] || '#A89F91',
@@ -332,14 +344,17 @@ const LandingPage: React.FC = memo(() => {
       aria-label={t('landing.ariaPrimaryNavigation', 'Primary navigation')}
       className="fixed top-0 left-0 right-0 z-50 bg-cream-base transition-[border-color] duration-300"
       style={{
-        borderBottom: scrolled
-          ? '2px solid var(--color-border)'
-          : '2px solid transparent',
+        borderBottom: scrolled ? '2px solid var(--color-border)' : '2px solid transparent',
       }}
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-5 md:px-12 h-16">
         {/* Logo */}
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-xl" aria-label={t('landing.ariaScrollToTop', 'Scroll to top')}>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="flex items-center gap-3 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-xl"
+          aria-label={t('landing.ariaScrollToTop', 'Scroll to top')}
+        >
           <div className="w-10 h-10 overflow-hidden rounded-xl border border-peach-soft">
             <img
               src="/genesis-icon.jpg"
@@ -381,7 +396,8 @@ const LandingPage: React.FC = memo(() => {
             type="button"
             className={`px-5 py-2.5 text-sm font-medium font-body text-white rounded-full transition-opacity duration-200 hover:opacity-90 ${BTN_PRESS}`}
             style={{
-              background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+              background:
+                'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
             }}
             onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
           >
@@ -394,7 +410,11 @@ const LandingPage: React.FC = memo(() => {
           type="button"
           className="md:hidden p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded-lg"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={mobileMenuOpen ? t('navigation:closeMenu', 'Close menu') : t('navigation:openMenu', 'Open menu')}
+          aria-label={
+            mobileMenuOpen
+              ? t('navigation:closeMenu', 'Close menu')
+              : t('navigation:openMenu', 'Open menu')
+          }
           aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
@@ -429,7 +449,10 @@ const LandingPage: React.FC = memo(() => {
               <div className="mt-3 flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/auth');
+                  }}
                   className="text-center px-4 py-3 text-sm font-semibold text-charcoal-soft border border-peach-soft rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50"
                 >
                   {t('navigation:login', 'Sign In')}
@@ -438,7 +461,8 @@ const LandingPage: React.FC = memo(() => {
                   type="button"
                   className={`text-center px-4 py-3 text-sm font-medium font-body text-white rounded-full ${BTN_PRESS}`}
                   style={{
-                    background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+                    background:
+                      'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                   }}
                   onClick={() => {
                     setMobileMenuOpen(false);
@@ -462,14 +486,31 @@ const LandingPage: React.FC = memo(() => {
   const Hero = (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-16 bg-cream-base">
       {/* Background blobs — theme-coloured, NO blur, animated float */}
-      <Blob variant="primary" size="400px" top="-100px" right="-100px" opacity={0.08} animate delay="0s" />
-      <Blob variant="secondary" size="350px" bottom="-80px" left="-80px" opacity={0.1} animate delay="2s" />
+      <Blob
+        variant="primary"
+        size="400px"
+        top="-100px"
+        right="-100px"
+        opacity={0.08}
+        animate
+        delay="0s"
+      />
+      <Blob
+        variant="secondary"
+        size="350px"
+        bottom="-80px"
+        left="-80px"
+        opacity={0.1}
+        animate
+        delay="2s"
+      />
 
       {/* Dot grid — DNA Section 3: 0.03 opacity */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(circle, var(--color-text-light) 0.5px, transparent 0.5px)',
+          backgroundImage:
+            'radial-gradient(circle, var(--color-text-light) 0.5px, transparent 0.5px)',
           backgroundSize: '32px 32px',
           opacity: 0.03,
         }}
@@ -479,7 +520,8 @@ const LandingPage: React.FC = memo(() => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(700px ellipse at 30% 50%, rgba(var(--color-shadow), 0.04), transparent 70%)',
+          background:
+            'radial-gradient(700px ellipse at 30% 50%, rgba(var(--color-shadow), 0.04), transparent 70%)',
         }}
       />
 
@@ -515,7 +557,8 @@ const LandingPage: React.FC = memo(() => {
               <br />
               <span
                 style={{
-                  background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+                  background:
+                    'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -532,17 +575,23 @@ const LandingPage: React.FC = memo(() => {
             >
               {t('landing.subheadline', 'Every scene painted. Every character remembered.')}
               <br className="hidden md:block" />
-              <span className="text-charcoal-soft">{t('landing.subheadline2', 'Your story, finished.')}</span>
+              <span className="text-charcoal-soft">
+                {t('landing.subheadline2', 'Your story, finished.')}
+              </span>
             </motion.p>
 
             {/* CTAs */}
-            <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
+            <motion.div
+              variants={fadeUp}
+              className="flex flex-wrap items-center justify-center lg:justify-start gap-3"
+            >
               <button
                 type="button"
                 onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
                 className={`px-6 py-3 text-sm font-medium font-body text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
                 style={{
-                  background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+                  background:
+                    'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                 }}
               >
                 {t('landing.chooseRealm', 'Choose Your Realm')}
@@ -563,8 +612,15 @@ const LandingPage: React.FC = memo(() => {
             </motion.div>
 
             {/* Social proof pills */}
-            <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-6">
-              {[t('landing.pillFree', 'Start free with Spark'), t('landing.pillCommercial', 'Commercial use on paid tiers'), t('landing.pillExport', 'Export to PDF and ebook')].map((pill) => (
+            <motion.div
+              variants={fadeUp}
+              className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-6"
+            >
+              {[
+                t('landing.pillFree', 'Start free with Spark'),
+                t('landing.pillCommercial', 'Commercial use on paid tiers'),
+                t('landing.pillExport', 'Export to PDF and ebook'),
+              ].map((pill) => (
                 <span
                   key={pill}
                   className="px-3 py-1.5 text-xs font-body text-cocoa-light border border-peach-soft rounded-full"
@@ -579,7 +635,9 @@ const LandingPage: React.FC = memo(() => {
           <motion.div
             initial={reducedMotion ? {} : { opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={reducedMotion ? { duration: 0 } : { type: 'spring', bounce: 0.25, duration: 0.8 }}
+            transition={
+              reducedMotion ? { duration: 0 } : { type: 'spring', bounce: 0.25, duration: 0.8 }
+            }
             className="flex justify-center lg:justify-end"
           >
             <GlowCard className="max-w-sm w-full hover:-translate-y-1">
@@ -638,9 +696,33 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const realms = [
-    { title: 'The Cosmos', desc: 'Explore galaxies, supernovas & celestial wonders', image: '/images/onboarding/Cosmos.png', icon: IcoRocket, w: 369, h: 316, realm: 'cosmos' },
-    { title: 'The Kingdom', desc: 'Knights, dragons & enchanted realms await', image: '/images/onboarding/On 4.jpeg', icon: IcoCrown, w: 264, h: 310, realm: 'kingdom' },
-    { title: 'The Cell', desc: 'Dive into the microscopic universe of life', image: '/images/onboarding/On 5.png', icon: Microscope, w: 309, h: 309, realm: 'cell' },
+    {
+      title: 'The Cosmos',
+      desc: 'Explore galaxies, supernovas & celestial wonders',
+      image: '/images/onboarding/Cosmos.png',
+      icon: IcoRocket,
+      w: 369,
+      h: 316,
+      realm: 'cosmos',
+    },
+    {
+      title: 'The Kingdom',
+      desc: 'Knights, dragons & enchanted realms await',
+      image: '/images/onboarding/On 4.jpeg',
+      icon: IcoCrown,
+      w: 264,
+      h: 310,
+      realm: 'kingdom',
+    },
+    {
+      title: 'The Cell',
+      desc: 'Dive into the microscopic universe of life',
+      image: '/images/onboarding/On 5.png',
+      icon: Microscope,
+      w: 309,
+      h: 309,
+      realm: 'cell',
+    },
   ];
 
   const RealmsSection = (
@@ -649,17 +731,26 @@ const LandingPage: React.FC = memo(() => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(circle, var(--color-text-light) 0.5px, transparent 0.5px)',
+          backgroundImage:
+            'radial-gradient(circle, var(--color-text-light) 0.5px, transparent 0.5px)',
           backgroundSize: '32px 32px',
           opacity: 0.03,
         }}
       />
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="realms-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="realms-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft"
+        >
           Choose the realm that matches your project
         </motion.h2>
-        <motion.p {...fadeUp} className="text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-body text-cocoa-light">
-          Each realm gives Genesis the right creative context, so your first outputs are more coherent, more on-brand, and easier to refine.
+        <motion.p
+          {...fadeUp}
+          className="text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-body text-cocoa-light"
+        >
+          Each realm gives Genesis the right creative context, so your first outputs are more
+          coherent, more on-brand, and easier to refine.
         </motion.p>
       </div>
 
@@ -673,11 +764,18 @@ const LandingPage: React.FC = memo(() => {
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.4, ease: APPLE_EASE, delay: i * 0.08 }}
             whileHover={reducedMotion ? {} : { y: -4, scale: 1.02, transition: { duration: 0.15 } }}
-            onClick={() => navigate(`/auth?returnTo=${encodeURIComponent(`/welcome/onboarding?realm=${realm.realm}`)}`)}
+            onClick={() =>
+              navigate(
+                `/auth?returnTo=${encodeURIComponent(`/welcome/onboarding?realm=${realm.realm}`)}`
+              )
+            }
             aria-label={`Choose ${realm.title} realm`}
             className="text-left"
           >
-            <GlowCard className="h-full cursor-pointer" defaultGlowPosition={['0% 100%', '50% 100%', '100% 100%'][i]}>
+            <GlowCard
+              className="h-full cursor-pointer"
+              defaultGlowPosition={['0% 100%', '50% 100%', '100% 100%'][i]}
+            >
               <div className="p-6 md:p-8 text-center">
                 <img
                   src={realm.image}
@@ -688,7 +786,9 @@ const LandingPage: React.FC = memo(() => {
                   loading="lazy"
                   decoding="async"
                 />
-                <h3 className="text-xl md:text-2xl font-normal mb-2 font-heading text-charcoal-soft">{realm.title}</h3>
+                <h3 className="text-xl md:text-2xl font-normal mb-2 font-heading text-charcoal-soft">
+                  {realm.title}
+                </h3>
                 <p className="text-sm leading-relaxed font-body text-cocoa-light">{realm.desc}</p>
               </div>
             </GlowCard>
@@ -707,16 +807,36 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const howItWorks = [
-    { step: '01', title: 'Choose a Realm', desc: 'Pick Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context.' },
-    { step: '02', title: 'Describe Your Vision', desc: 'Gen guides you with questions and narrative suggestions instead of passive prompts.' },
-    { step: '03', title: 'Create and Refine', desc: 'Generate illustrated scenes with consistent characters across every page.' },
-    { step: '04', title: 'Export and Publish', desc: 'Ship polished PDFs, ebooks, and commercial-ready assets in one workflow.' },
+    {
+      step: '01',
+      title: 'Choose a Realm',
+      desc: 'Pick Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context.',
+    },
+    {
+      step: '02',
+      title: 'Describe Your Vision',
+      desc: 'Gen guides you with questions and narrative suggestions instead of passive prompts.',
+    },
+    {
+      step: '03',
+      title: 'Create and Refine',
+      desc: 'Generate illustrated scenes with consistent characters across every page.',
+    },
+    {
+      step: '04',
+      title: 'Export and Publish',
+      desc: 'Ship polished PDFs, ebooks, and commercial-ready assets in one workflow.',
+    },
   ];
 
   const HowItWorksSection = (
     <Section id="how-it-works" className="py-20 md:py-28" aria-labelledby="how-heading">
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="how-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="how-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft"
+        >
           {t('landing.howItWorks', 'How Genesis works')}
         </motion.h2>
       </div>
@@ -734,7 +854,8 @@ const LandingPage: React.FC = memo(() => {
               <span
                 className="text-4xl font-normal mb-4 block font-heading"
                 style={{
-                  background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+                  background:
+                    'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -743,7 +864,9 @@ const LandingPage: React.FC = memo(() => {
                 {item.step}
               </span>
               <div className="w-10 h-0.5 mb-4 bg-peach-soft" />
-              <h3 className="text-lg font-normal mb-2 font-heading text-charcoal-soft">{item.title}</h3>
+              <h3 className="text-lg font-normal mb-2 font-heading text-charcoal-soft">
+                {item.title}
+              </h3>
               <p className="text-sm leading-relaxed font-body text-cocoa-light">{item.desc}</p>
             </div>
           </motion.div>
@@ -759,10 +882,34 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const visualShowcaseItems = [
-    { src: '/images/promo/design-your-hero-once.webp', alt: 'Design your hero once — consistent character across every scene', caption: 'Design your hero once', rotate: '-2.5deg', yOffset: '0px' },
-    { src: '/images/promo/true-character-persistence.webp', alt: 'True character persistence — same hero across worlds', caption: 'True character persistence', rotate: '1.8deg', yOffset: '28px' },
-    { src: '/images/promo/illustrate-every-adventure.webp', alt: 'Illustrate every adventure with AI-powered visuals', caption: 'Illustrate every adventure', rotate: '2deg', yOffset: '-12px' },
-    { src: '/images/promo/build-your-visual-legacy.webp', alt: 'Build your visual legacy — publish and share your stories', caption: 'Build your visual legacy', rotate: '-1.5deg', yOffset: '16px' },
+    {
+      src: '/images/promo/design-your-hero-once.webp',
+      alt: 'Design your hero once — consistent character across every scene',
+      caption: 'Design your hero once',
+      rotate: '-2.5deg',
+      yOffset: '0px',
+    },
+    {
+      src: '/images/promo/true-character-persistence.webp',
+      alt: 'True character persistence — same hero across worlds',
+      caption: 'True character persistence',
+      rotate: '1.8deg',
+      yOffset: '28px',
+    },
+    {
+      src: '/images/promo/illustrate-every-adventure.webp',
+      alt: 'Illustrate every adventure with AI-powered visuals',
+      caption: 'Illustrate every adventure',
+      rotate: '2deg',
+      yOffset: '-12px',
+    },
+    {
+      src: '/images/promo/build-your-visual-legacy.webp',
+      alt: 'Build your visual legacy — publish and share your stories',
+      caption: 'Build your visual legacy',
+      rotate: '-1.5deg',
+      yOffset: '16px',
+    },
   ];
 
   const VisualShowcase = (
@@ -808,10 +955,27 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const features = [
-    { icon: BookOpen, title: 'Illustrated Storybooks', desc: 'Create children\'s books, visual explainers, fantasy adventures, and narrative ebooks with scenes, text, and consistent characters.', large: true },
-    { icon: Palette, title: 'Character Design', desc: 'Generate heroes, villains, mascots, and concept sheets with stronger visual consistency than one-off prompt tools.' },
-    { icon: GraduationCap, title: 'Lesson and Curriculum Visuals', desc: 'Turn science topics, classroom modules, and training content into visual materials that are easier to teach and easier to retain.' },
-    { icon: Upload, title: 'Export and Publishing', desc: 'Ship polished PDFs, ebooks, and commercial-ready assets without moving through a fragmented multi-tool workflow.' },
+    {
+      icon: BookOpen,
+      title: 'Illustrated Storybooks',
+      desc: "Create children's books, visual explainers, fantasy adventures, and narrative ebooks with scenes, text, and consistent characters.",
+      large: true,
+    },
+    {
+      icon: Palette,
+      title: 'Character Design',
+      desc: 'Generate heroes, villains, mascots, and concept sheets with stronger visual consistency than one-off prompt tools.',
+    },
+    {
+      icon: GraduationCap,
+      title: 'Lesson and Curriculum Visuals',
+      desc: 'Turn science topics, classroom modules, and training content into visual materials that are easier to teach and easier to retain.',
+    },
+    {
+      icon: Upload,
+      title: 'Export and Publishing',
+      desc: 'Ship polished PDFs, ebooks, and commercial-ready assets without moving through a fragmented multi-tool workflow.',
+    },
   ];
 
   const FeaturesSection = (
@@ -820,15 +984,24 @@ const LandingPage: React.FC = memo(() => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(600px ellipse at 70% 30%, rgba(var(--color-shadow), 0.03), transparent 70%)',
+          background:
+            'radial-gradient(600px ellipse at 70% 30%, rgba(var(--color-shadow), 0.03), transparent 70%)',
         }}
       />
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="features-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="features-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft"
+        >
           {t('landing.whatYouCanCreate', 'What you can create with Genesis')}
         </motion.h2>
-        <motion.p {...fadeUp} className="text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-body text-cocoa-light">
-          Genesis is not a generic image box. It is a guided AI workspace for story creation, visual education, character design, and export-ready publishing.
+        <motion.p
+          {...fadeUp}
+          className="text-base md:text-lg leading-relaxed max-w-3xl mx-auto font-body text-cocoa-light"
+        >
+          Genesis is not a generic image box. It is a guided AI workspace for story creation, visual
+          education, character design, and export-ready publishing.
         </motion.p>
       </div>
 
@@ -848,13 +1021,16 @@ const LandingPage: React.FC = memo(() => {
                 <div
                   className="w-14 h-14 flex items-center justify-center text-white mb-5 md:mb-0 shrink-0 rounded-2xl"
                   style={{
-                    background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
+                    background:
+                      'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
                   }}
                 >
                   <feat.icon className="w-7 h-7" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-normal mb-2 font-heading text-charcoal-soft">{feat.title}</h3>
+                  <h3 className="text-xl font-normal mb-2 font-heading text-charcoal-soft">
+                    {feat.title}
+                  </h3>
                   <p className="text-sm leading-relaxed font-body text-cocoa-light">{feat.desc}</p>
                 </div>
               </div>
@@ -871,8 +1047,24 @@ const LandingPage: React.FC = memo(() => {
 
   const MascotSection = (
     <Section className="py-20 md:py-28 relative overflow-hidden" aria-labelledby="mascot-heading">
-      <Blob variant="primary" size="300px" top="10%" right="-60px" opacity={0.08} animate delay="1s" />
-      <Blob variant="secondary" size="250px" bottom="5%" left="-40px" opacity={0.06} animate delay="4s" />
+      <Blob
+        variant="primary"
+        size="300px"
+        top="10%"
+        right="-60px"
+        opacity={0.08}
+        animate
+        delay="1s"
+      />
+      <Blob
+        variant="secondary"
+        size="250px"
+        bottom="5%"
+        left="-40px"
+        opacity={0.06}
+        animate
+        delay="4s"
+      />
 
       <div className="grid gap-10 md:grid-cols-2 items-center">
         <motion.div
@@ -902,14 +1094,26 @@ const LandingPage: React.FC = memo(() => {
           viewport={{ once: true, margin: '-60px' }}
           transition={{ duration: 0.5, ease: APPLE_EASE, delay: 0.1 }}
         >
-          <h2 id="mascot-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-5 font-heading text-charcoal-soft">
+          <h2
+            id="mascot-heading"
+            className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-5 font-heading text-charcoal-soft"
+          >
             {t('landing.meetGenGuide', 'Meet Gen, your AI creative guide')}
           </h2>
           <div className="space-y-4">
             {[
-              { icon: Sparkles, text: 'An AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.' },
-              { icon: Users, text: 'Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.' },
-              { icon: BookOpen, text: 'From concept to export, Gen guides the entire creative journey — not just single images.' },
+              {
+                icon: Sparkles,
+                text: 'An AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.',
+              },
+              {
+                icon: Users,
+                text: 'Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.',
+              },
+              {
+                icon: BookOpen,
+                text: 'From concept to export, Gen guides the entire creative journey — not just single images.',
+              },
             ].map(({ icon: IC, text }) => (
               <div key={text} className="flex gap-4 items-start">
                 <div
@@ -934,17 +1138,37 @@ const LandingPage: React.FC = memo(() => {
   const DifferentiatorsSection = (
     <Section className="py-20 md:py-28" aria-labelledby="diff-heading">
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="diff-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="diff-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft"
+        >
           {t('landing.whyStandsOut', 'Why Genesis stands out')}
         </motion.h2>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {[
-          { title: 'Realm-guided creation', desc: 'Choose Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context, unlike generic tools that start from a blank prompt.', icon: IcoRocket },
-          { title: 'Educator-ready outputs', desc: 'Built-in curriculum tools and illustrated lesson plans so teachers ship classroom materials in minutes, not hours.', icon: GraduationCap },
-          { title: 'Consistent characters', desc: 'Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.', icon: Palette },
-          { title: 'Guided by Gen', desc: 'An AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.', icon: IcoWand },
+          {
+            title: 'Realm-guided creation',
+            desc: 'Choose Cosmos, Kingdom, or Cell to pre-load the AI with rich thematic context, unlike generic tools that start from a blank prompt.',
+            icon: IcoRocket,
+          },
+          {
+            title: 'Educator-ready outputs',
+            desc: 'Built-in curriculum tools and illustrated lesson plans so teachers ship classroom materials in minutes, not hours.',
+            icon: GraduationCap,
+          },
+          {
+            title: 'Consistent characters',
+            desc: 'Gen remembers appearance, outfit, and style across every scene, solving the biggest weakness of one-shot image generators.',
+            icon: Palette,
+          },
+          {
+            title: 'Guided by Gen',
+            desc: 'An AI companion that asks questions and suggests narrative directions instead of passively waiting for prompts.',
+            icon: IcoWand,
+          },
         ].map((item, i) => (
           <motion.div
             key={item.title}
@@ -958,13 +1182,16 @@ const LandingPage: React.FC = memo(() => {
                 <div
                   className="w-12 h-12 shrink-0 flex items-center justify-center text-white rounded-xl"
                   style={{
-                    background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
+                    background:
+                      'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
                   }}
                 >
                   <item.icon className="w-6 h-6" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-normal mb-1 font-heading text-charcoal-soft">{item.title}</h3>
+                  <h3 className="text-lg font-normal mb-1 font-heading text-charcoal-soft">
+                    {item.title}
+                  </h3>
                   <p className="text-sm leading-relaxed font-body text-cocoa-light">{item.desc}</p>
                 </div>
               </div>
@@ -980,15 +1207,31 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const testimonials = [
-    { quote: 'Genesis helped us move from loose ideas to presentable concept sheets in the same afternoon.', author: 'Indie game studio' },
-    { quote: 'The Cell realm made our biology diagrams clearer and much faster to produce than our old slide workflow.', author: 'Secondary science teacher' },
-    { quote: 'We used Genesis to shape a full illustrated book pitch before hiring a production illustrator.', author: 'Children\'s author' },
+    {
+      quote:
+        'Genesis helped us move from loose ideas to presentable concept sheets in the same afternoon.',
+      author: 'Indie game studio',
+    },
+    {
+      quote:
+        'The Cell realm made our biology diagrams clearer and much faster to produce than our old slide workflow.',
+      author: 'Secondary science teacher',
+    },
+    {
+      quote:
+        'We used Genesis to shape a full illustrated book pitch before hiring a production illustrator.',
+      author: "Children's author",
+    },
   ];
 
   const TestimonialsSection = (
     <Section className="py-20 md:py-28" aria-labelledby="testimonials-heading">
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="testimonials-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="testimonials-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] font-heading text-charcoal-soft"
+        >
           What creators use Genesis for
         </motion.h2>
       </div>
@@ -1050,8 +1293,24 @@ const LandingPage: React.FC = memo(() => {
 
   const AboutUsSection = (
     <Section className="py-20 md:py-28 relative overflow-hidden" aria-labelledby="about-heading">
-      <Blob variant="primary" size="280px" top="5%" left="-60px" opacity={0.06} animate delay="2s" />
-      <Blob variant="secondary" size="220px" bottom="10%" right="-50px" opacity={0.05} animate delay="5s" />
+      <Blob
+        variant="primary"
+        size="280px"
+        top="5%"
+        left="-60px"
+        opacity={0.06}
+        animate
+        delay="2s"
+      />
+      <Blob
+        variant="secondary"
+        size="220px"
+        bottom="10%"
+        right="-50px"
+        opacity={0.05}
+        animate
+        delay="5s"
+      />
 
       <div className="text-center mb-10">
         <motion.h2
@@ -1076,7 +1335,8 @@ const LandingPage: React.FC = memo(() => {
             }}
             className={`inline-flex items-center gap-2 pl-5 pr-2 py-2 rounded-full font-body text-sm font-medium text-white transition-colors ${BTN_PRESS}`}
             style={{
-              background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
+              background:
+                'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
             }}
           >
             More about us
@@ -1120,8 +1380,12 @@ const LandingPage: React.FC = memo(() => {
           >
             <GlowCard className="h-full">
               <div className="p-6 flex justify-between items-center">
-                <span className="text-3xl font-bold font-heading text-charcoal-soft">{aboutCards[0].value}</span>
-                <span className="text-xs font-body text-cocoa-light uppercase tracking-widest">{aboutCards[0].label}</span>
+                <span className="text-3xl font-bold font-heading text-charcoal-soft">
+                  {aboutCards[0].value}
+                </span>
+                <span className="text-xs font-body text-cocoa-light uppercase tracking-widest">
+                  {aboutCards[0].label}
+                </span>
               </div>
             </GlowCard>
           </motion.div>
@@ -1135,10 +1399,15 @@ const LandingPage: React.FC = memo(() => {
             <GlowCard className="h-full">
               <div className="p-6">
                 <h3 className="text-lg font-semibold font-heading text-charcoal-soft mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary-start)' }} />
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: 'var(--color-primary-start)' }}
+                  />
                   {aboutCards[1].title}
                 </h3>
-                <p className="text-sm leading-relaxed font-body text-cocoa-light">{aboutCards[1].text}</p>
+                <p className="text-sm leading-relaxed font-body text-cocoa-light">
+                  {aboutCards[1].text}
+                </p>
               </div>
             </GlowCard>
           </motion.div>
@@ -1156,10 +1425,15 @@ const LandingPage: React.FC = memo(() => {
             <GlowCard className="h-full">
               <div className="p-6">
                 <h3 className="text-lg font-semibold font-heading text-charcoal-soft mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary-end)' }} />
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: 'var(--color-primary-end)' }}
+                  />
                   {aboutCards[2].title}
                 </h3>
-                <p className="text-sm leading-relaxed font-body text-cocoa-light">{aboutCards[2].text}</p>
+                <p className="text-sm leading-relaxed font-body text-cocoa-light">
+                  {aboutCards[2].text}
+                </p>
               </div>
             </GlowCard>
           </motion.div>
@@ -1171,8 +1445,12 @@ const LandingPage: React.FC = memo(() => {
           >
             <GlowCard className="h-full">
               <div className="p-6 flex justify-between items-center">
-                <span className="text-3xl font-bold font-heading text-charcoal-soft">{aboutCards[3].value}</span>
-                <span className="text-xs font-body text-cocoa-light uppercase tracking-widest">{aboutCards[3].label}</span>
+                <span className="text-3xl font-bold font-heading text-charcoal-soft">
+                  {aboutCards[3].value}
+                </span>
+                <span className="text-xs font-body text-cocoa-light uppercase tracking-widest">
+                  {aboutCards[3].label}
+                </span>
               </div>
             </GlowCard>
           </motion.div>
@@ -1188,7 +1466,10 @@ const LandingPage: React.FC = memo(() => {
         >
           <img
             src="/images/promo/environments-that-stay-put.webp"
-            alt={t('landing.altEnvironmentLibrary', 'Consistent environment library across day and night scenes')}
+            alt={t(
+              'landing.altEnvironmentLibrary',
+              'Consistent environment library across day and night scenes'
+            )}
             width={400}
             height={400}
             className="w-full h-full object-cover"
@@ -1205,16 +1486,89 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const tiers = [
-    { name: 'Spark', price: '$0', period: 'Free forever', desc: 'The Hook That Gets You Addicted', icon: Zap, popular: false, cta: 'Start Creating Free', features: ['3 ebooks per month', 'Max 4 pages per book', '5 illustration styles', 'Standard templates', 'Community support'], limitations: ['Watermarked exports', 'Basic AI writing', 'No commercial license'] },
-    { name: 'Creator', price: '$19.99', period: '/month', desc: 'The Sweet Spot', icon: Star, popular: false, cta: 'Upgrade Now', features: ['30 ebooks per month', 'Up to 12 pages/book', 'NO watermarks', '20+ illustration styles', 'Commercial license', 'Priority rendering'], limitations: [] },
-    { name: 'Studio', price: '$59.99', period: '/month', desc: 'The Professional Choice', icon: Briefcase, popular: true, cta: 'Upgrade Now', features: ['Everything in Creator', '5 team seats', '500 pages/book', 'ALL 50+ styles', 'White-label exports', 'Brand Hub & Style Guides', 'Video book exports'], limitations: [] },
-    { name: 'Empire', price: '$199.99', period: '/month', desc: 'Best Value for Scale', icon: IcoCrown, popular: false, cta: 'Upgrade Now', features: ['Everything in Studio', 'Unlimited team members', 'Unlimited pages', 'Custom AI Model Training', 'Dedicated Account Manager', 'API Access', 'VIP 24/7 Support'], limitations: [] },
+    {
+      name: 'Spark',
+      price: '$0',
+      period: 'Free forever',
+      desc: 'The Hook That Gets You Addicted',
+      icon: Zap,
+      popular: false,
+      cta: 'Start Creating Free',
+      features: [
+        '3 ebooks per month',
+        'Max 4 pages per book',
+        '5 illustration styles',
+        'Standard templates',
+        'Community support',
+      ],
+      limitations: ['Watermarked exports', 'Basic AI writing', 'No commercial license'],
+    },
+    {
+      name: 'Creator',
+      price: '$19.99',
+      period: '/month',
+      desc: 'The Sweet Spot',
+      icon: Star,
+      popular: false,
+      cta: 'Upgrade Now',
+      features: [
+        '30 ebooks per month',
+        'Up to 12 pages/book',
+        'NO watermarks',
+        '20+ illustration styles',
+        'Commercial license',
+        'Priority rendering',
+      ],
+      limitations: [],
+    },
+    {
+      name: 'Studio',
+      price: '$59.99',
+      period: '/month',
+      desc: 'The Professional Choice',
+      icon: Briefcase,
+      popular: true,
+      cta: 'Upgrade Now',
+      features: [
+        'Everything in Creator',
+        '5 team seats',
+        '500 pages/book',
+        'ALL 50+ styles',
+        'White-label exports',
+        'Brand Hub & Style Guides',
+        'Video book exports',
+      ],
+      limitations: [],
+    },
+    {
+      name: 'Empire',
+      price: '$199.99',
+      period: '/month',
+      desc: 'Best Value for Scale',
+      icon: IcoCrown,
+      popular: false,
+      cta: 'Upgrade Now',
+      features: [
+        'Everything in Studio',
+        'Unlimited team members',
+        'Unlimited pages',
+        'Custom AI Model Training',
+        'Dedicated Account Manager',
+        'API Access',
+        'VIP 24/7 Support',
+      ],
+      limitations: [],
+    },
   ];
 
   const PricingSection = (
     <Section id="pricing" className="py-20 md:py-28" aria-labelledby="pricing-heading">
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="pricing-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="pricing-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft"
+        >
           {t('landing.chooseJourney', 'Choose your creative journey')}
         </motion.h2>
         <motion.p {...fadeUp} className="text-base md:text-lg font-body text-cocoa-light">
@@ -1241,7 +1595,8 @@ const LandingPage: React.FC = memo(() => {
                 <span
                   className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 text-xs font-medium font-body text-white rounded-full"
                   style={{
-                    background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+                    background:
+                      'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
                   }}
                 >
                   Most Popular
@@ -1251,10 +1606,14 @@ const LandingPage: React.FC = memo(() => {
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-2">
                   <tier.icon className="w-5 h-5 text-coral-burst" aria-hidden="true" />
-                  <span className="text-sm font-medium font-body text-charcoal-soft uppercase tracking-wider">{tier.name}</span>
+                  <span className="text-sm font-medium font-body text-charcoal-soft uppercase tracking-wider">
+                    {tier.name}
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-normal font-heading text-charcoal-soft">{tier.price}</span>
+                  <span className="text-3xl font-normal font-heading text-charcoal-soft">
+                    {tier.price}
+                  </span>
                   <span className="text-sm font-body text-cocoa-light">{tier.period}</span>
                 </div>
                 <p className="text-xs mt-1 font-body text-cocoa-light">{tier.desc}</p>
@@ -1263,7 +1622,10 @@ const LandingPage: React.FC = memo(() => {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-coral-burst" aria-hidden="true" />
+                    <Check
+                      className="w-4 h-4 mt-0.5 shrink-0 text-coral-burst"
+                      aria-hidden="true"
+                    />
                     <span className="sr-only">{t('landing.included', 'Included: ')}</span>
                     <span className="text-sm font-body text-charcoal-soft">{f}</span>
                   </li>
@@ -1285,7 +1647,10 @@ const LandingPage: React.FC = memo(() => {
                 }`}
                 style={
                   tier.popular
-                    ? { background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))' }
+                    ? {
+                        background:
+                          'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+                      }
                     : undefined
                 }
               >
@@ -1325,16 +1690,36 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const useCases = [
-    { icon: PenTool, title: 'Indie authors', desc: 'Draft illustrated children\'s books and fantasy shorts with consistent scenes, then export directly for publishing.' },
-    { icon: GraduationCap, title: 'Teachers and tutors', desc: 'Build biology explainers, astronomy handouts, and classroom-ready visual lessons in a single workflow.' },
-    { icon: Gamepad2, title: 'Game teams', desc: 'Prototype fantasy and sci-fi characters, factions, environments, and narrative assets before full production.' },
-    { icon: FlaskConical, title: 'Science communicators', desc: 'Translate dense research into visual explainers that audiences can understand and share.' },
+    {
+      icon: PenTool,
+      title: 'Indie authors',
+      desc: "Draft illustrated children's books and fantasy shorts with consistent scenes, then export directly for publishing.",
+    },
+    {
+      icon: GraduationCap,
+      title: 'Teachers and tutors',
+      desc: 'Build biology explainers, astronomy handouts, and classroom-ready visual lessons in a single workflow.',
+    },
+    {
+      icon: Gamepad2,
+      title: 'Game teams',
+      desc: 'Prototype fantasy and sci-fi characters, factions, environments, and narrative assets before full production.',
+    },
+    {
+      icon: FlaskConical,
+      title: 'Science communicators',
+      desc: 'Translate dense research into visual explainers that audiences can understand and share.',
+    },
   ];
 
   const UseCasesSection = (
     <Section id="use-cases" className="py-20 md:py-28" aria-labelledby="usecases-heading">
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="usecases-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="usecases-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] font-heading text-charcoal-soft"
+        >
           Use cases and examples
         </motion.h2>
       </div>
@@ -1353,11 +1738,16 @@ const LandingPage: React.FC = memo(() => {
               <div className="p-6 md:p-8">
                 <div
                   className="w-12 h-12 flex items-center justify-center text-white mb-5 rounded-2xl"
-                  style={{ background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))' }}
+                  style={{
+                    background:
+                      'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
+                  }}
                 >
                   <uc.icon className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-lg font-normal mb-2 font-heading text-charcoal-soft">{uc.title}</h3>
+                <h3 className="text-lg font-normal mb-2 font-heading text-charcoal-soft">
+                  {uc.title}
+                </h3>
                 <p className="text-sm leading-relaxed font-body text-cocoa-light">{uc.desc}</p>
               </div>
             </GlowCard>
@@ -1397,11 +1787,16 @@ const LandingPage: React.FC = memo(() => {
               <GraduationCap className="w-3.5 h-3.5" aria-hidden="true" />
               For Educators
             </span>
-            <h2 id="education-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-5 font-heading landing-dark-text">
+            <h2
+              id="education-heading"
+              className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-5 font-heading landing-dark-text"
+            >
               Built for the classroom
             </h2>
             <p className="text-base leading-relaxed mb-6 font-body landing-dark-muted">
-              Turn science topics, classroom modules, and training content into visual materials that are easier to teach and easier to retain. Genesis gives educators curriculum-ready tools, not a blank canvas.
+              Turn science topics, classroom modules, and training content into visual materials
+              that are easier to teach and easier to retain. Genesis gives educators
+              curriculum-ready tools, not a blank canvas.
             </p>
             <div className="space-y-3">
               {[
@@ -1450,16 +1845,32 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   const faqs = [
-    { q: 'Do I need prompt engineering skills?', a: 'No. Genesis is designed to guide the brief with realms and structured choices so you can create without writing elaborate prompts.' },
-    { q: 'Can I start free?', a: 'Yes. Spark lets you explore the workflow before upgrading to Creator, Studio, or Empire for higher limits and commercial features.' },
-    { q: 'What does Genesis do better than a generic AI image tool?', a: 'Genesis adds context, consistency, and export workflows. It is built for complete story and learning outputs, not disconnected single images.' },
-    { q: 'Where can I get help or ask sales questions?', a: 'Email support@iamazeyou.me for product help, billing questions, classroom rollout guidance, or enterprise conversations.' },
+    {
+      q: 'Do I need prompt engineering skills?',
+      a: 'No. Genesis is designed to guide the brief with realms and structured choices so you can create without writing elaborate prompts.',
+    },
+    {
+      q: 'Can I start free?',
+      a: 'Yes. Spark lets you explore the workflow before upgrading to Creator, Studio, or Empire for higher limits and commercial features.',
+    },
+    {
+      q: 'What does Genesis do better than a generic AI image tool?',
+      a: 'Genesis adds context, consistency, and export workflows. It is built for complete story and learning outputs, not disconnected single images.',
+    },
+    {
+      q: 'Where can I get help or ask sales questions?',
+      a: 'Email support@iamazeyou.me for product help, billing questions, classroom rollout guidance, or enterprise conversations.',
+    },
   ];
 
   const FAQSection = (
     <Section id="faq" className="py-20 md:py-28" aria-labelledby="faq-heading">
       <div className="text-center mb-12">
-        <motion.h2 {...fadeUp} id="faq-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] font-heading text-charcoal-soft">
+        <motion.h2
+          {...fadeUp}
+          id="faq-heading"
+          className="text-3xl md:text-4xl font-normal tracking-[-0.01em] font-heading text-charcoal-soft"
+        >
           Frequently asked questions
         </motion.h2>
       </div>
@@ -1488,17 +1899,26 @@ const LandingPage: React.FC = memo(() => {
     <Section id="support" className="py-20 md:py-28" aria-labelledby="support-heading">
       <div className="grid gap-8 md:grid-cols-[1.2fr_0.8fr] items-start">
         <div>
-          <motion.h2 {...fadeUp} id="support-heading" className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft">
+          <motion.h2
+            {...fadeUp}
+            id="support-heading"
+            className="text-3xl md:text-4xl font-normal tracking-[-0.01em] mb-4 font-heading text-charcoal-soft"
+          >
             Support, pricing, and next steps
           </motion.h2>
           <p className="text-base leading-relaxed mb-6 font-body text-cocoa-light">
-            Need onboarding help, plan guidance, or a custom workflow conversation? Reach the Genesis team directly. If you are ready, start with Spark or review paid plans before continuing.
+            Need onboarding help, plan guidance, or a custom workflow conversation? Reach the
+            Genesis team directly. If you are ready, start with Spark or review paid plans before
+            continuing.
           </p>
           <div className="flex flex-wrap gap-3">
             <a
               href="mailto:support@iamazeyou.me"
               className={`px-6 py-3 text-sm font-medium font-body text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
-              style={{ background: 'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))' }}
+              style={{
+                background:
+                  'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
+              }}
             >
               support@iamazeyou.me
             </a>
@@ -1514,9 +1934,16 @@ const LandingPage: React.FC = memo(() => {
 
         <GlowCard>
           <div className="p-6">
-            <h3 className="text-lg font-normal mb-4 font-heading text-charcoal-soft">{t('landing.includedTrustSignals', 'Included trust signals')}</h3>
+            <h3 className="text-lg font-normal mb-4 font-heading text-charcoal-soft">
+              {t('landing.includedTrustSignals', 'Included trust signals')}
+            </h3>
             <ul className="space-y-3">
-              {['Secure checkout and account flows', 'Clear free and paid plan separation', 'Commercial rights on paid tiers', 'Human support available by email'].map((item) => (
+              {[
+                'Secure checkout and account flows',
+                'Clear free and paid plan separation',
+                'Commercial rights on paid tiers',
+                'Human support available by email',
+              ].map((item) => (
                 <li key={item} className="flex items-center gap-3">
                   <Check className="w-4 h-4 shrink-0 text-coral-burst" aria-hidden="true" />
                   <span className="text-sm font-body text-cocoa-light">{item}</span>
@@ -1536,7 +1963,9 @@ const LandingPage: React.FC = memo(() => {
   const FinalCTA = (
     <section
       className="relative py-20 md:py-28 px-5 md:px-12 overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))' }}
+      style={{
+        background: 'linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end))',
+      }}
       aria-labelledby="final-cta-heading"
     >
       <Blob variant="white" size="400px" top="-100px" right="-100px" opacity={0.08} />
@@ -1591,9 +2020,17 @@ const LandingPage: React.FC = memo(() => {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 overflow-hidden rounded-xl landing-dark-card-border">
-                <img src="/genesis-icon.jpg" alt={t('landing.altGenesisLogo', 'Genesis')} width={378} height={369} className="w-full h-full object-cover" />
+                <img
+                  src="/genesis-icon.jpg"
+                  alt={t('landing.altGenesisLogo', 'Genesis')}
+                  width={378}
+                  height={369}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <span className="font-heading font-normal text-xl tracking-normal landing-dark-text">Genesis</span>
+              <span className="font-heading font-normal text-xl tracking-normal landing-dark-text">
+                Genesis
+              </span>
             </div>
             <p className="text-sm leading-relaxed font-body landing-dark-muted">
               AI visual storytelling for writers, educators, and creators.
@@ -1615,13 +2052,25 @@ const LandingPage: React.FC = memo(() => {
 
           {/* Product */}
           <div>
-            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">{t('landing.footerProduct', 'Product')}</h4>
+            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">
+              {t('landing.footerProduct', 'Product')}
+            </h4>
             <ul className="space-y-2">
               {['Choose a realm', 'What you can create', 'Pricing', 'Use cases'].map((link) => (
                 <li key={link}>
                   <button
                     type="button"
-                    onClick={() => scrollTo(link === 'Pricing' ? 'pricing' : link === 'Choose a realm' ? 'realms' : link === 'What you can create' ? 'features' : 'use-cases')}
+                    onClick={() =>
+                      scrollTo(
+                        link === 'Pricing'
+                          ? 'pricing'
+                          : link === 'Choose a realm'
+                            ? 'realms'
+                            : link === 'What you can create'
+                              ? 'features'
+                              : 'use-cases'
+                      )
+                    }
                     className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5"
                   >
                     {link}
@@ -1633,7 +2082,9 @@ const LandingPage: React.FC = memo(() => {
 
           {/* Resources */}
           <div>
-            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">{t('landing.footerResources', 'Resources')}</h4>
+            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">
+              {t('landing.footerResources', 'Resources')}
+            </h4>
             <ul className="space-y-2">
               {[
                 { label: 'Blog', href: '/blog' },
@@ -1665,17 +2116,28 @@ const LandingPage: React.FC = memo(() => {
 
           {/* Support */}
           <div>
-            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">{t('landing.footerSupport', 'Support')}</h4>
+            <h4 className="text-sm font-medium font-heading uppercase tracking-wider mb-4 landing-dark-text">
+              {t('landing.footerSupport', 'Support')}
+            </h4>
             <ul className="space-y-2">
               {[
-                { label: 'support@iamazeyou.me', href: 'mailto:support@iamazeyou.me', external: true },
+                {
+                  label: 'support@iamazeyou.me',
+                  href: 'mailto:support@iamazeyou.me',
+                  external: true,
+                },
                 { label: 'Privacy Policy', href: '/legal/privacy', external: false },
                 { label: 'Terms of Service', href: '/legal/terms', external: false },
                 { label: 'Cookie Policy', href: '/legal/cookies', external: false },
               ].map(({ label, href, external }) => (
                 <li key={label}>
                   {external ? (
-                    <a href={href} className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5">{label}</a>
+                    <a
+                      href={href}
+                      className="text-sm font-body landing-dark-muted transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/50 rounded py-1.5"
+                    >
+                      {label}
+                    </a>
                   ) : (
                     <a
                       href={href}
@@ -1691,14 +2153,20 @@ const LandingPage: React.FC = memo(() => {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-6 landing-dark-card-border" style={{ borderTop: `1px solid ${darkVars.border}` }}>
+        <div
+          className="pt-6 landing-dark-card-border"
+          style={{ borderTop: `1px solid ${darkVars.border}` }}
+        >
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs font-body landing-dark-muted">
               &copy; {new Date().getFullYear()} Genesis. All rights reserved.
             </p>
             <div className="flex items-center gap-3">
               {['Secure Payment', 'Cancel anytime', '7-day money back'].map((signal) => (
-                <span key={signal} className="flex items-center gap-1.5 text-xs font-body landing-dark-muted">
+                <span
+                  key={signal}
+                  className="flex items-center gap-1.5 text-xs font-body landing-dark-muted"
+                >
                   <Shield className="w-3 h-3 text-coral-burst" aria-hidden="true" />
                   {signal}
                 </span>
@@ -1715,7 +2183,10 @@ const LandingPage: React.FC = memo(() => {
   // =========================================================================
 
   return (
-    <div className="bg-cream-base font-body" style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}>
+    <div
+      className="bg-cream-base font-body"
+      style={{ ['--font-heading' as string]: '"Instrument Serif", Georgia, serif' }}
+    >
       {/* Skip to main content — WCAG 2.4.1 */}
       <a
         href="#main-content"

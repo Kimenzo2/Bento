@@ -72,7 +72,10 @@ const server = http.createServer(async (req, res) => {
   req.url = rewrittenUrl;
 
   // Wrap response to match VercelResponse interface
-  res.status = (code) => { res.statusCode = code; return res; };
+  res.status = (code) => {
+    res.statusCode = code;
+    return res;
+  };
   res.json = (data) => {
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(data));

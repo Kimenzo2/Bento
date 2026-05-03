@@ -73,7 +73,9 @@ export const ANDREW_REGRESSION_DATASET: AndrewRegressionDatasetItem[] = [
           familySafe: true,
           outlineModeCompatible: false,
         },
-        refinements: ['Reduce the interior micro-texture and simplify the background shape language.'],
+        refinements: [
+          'Reduce the interior micro-texture and simplify the background shape language.',
+        ],
         retryRecommended: true,
       },
     },

@@ -8,21 +8,21 @@
 // States: Driven by data-state attribute — pure CSS, no JS animation loops.
 // ============================================================================
 
-import { useEffect, useRef, useState } from 'react'
-import type { Realm } from '../../lib/gen/genPersonality'
+import { useEffect, useRef, useState } from 'react';
+import type { Realm } from '../../lib/gen/genPersonality';
 
 // ────────────────────────────────────────────────────────────
 // TYPES
 // ────────────────────────────────────────────────────────────
 
-export type GenSize = 'sm' | 'md' | 'lg' | 'xl'
-export type GenState = 'idle' | 'thinking' | 'celebrating' | 'sleeping'
+export type GenSize = 'sm' | 'md' | 'lg' | 'xl';
+export type GenState = 'idle' | 'thinking' | 'celebrating' | 'sleeping';
 
 export interface GenStaticProps {
-  size?: GenSize
-  realm?: Realm | null
-  state?: GenState
-  className?: string
+  size?: GenSize;
+  realm?: Realm | null;
+  state?: GenState;
+  className?: string;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ export interface GenStaticProps {
 // ────────────────────────────────────────────────────────────
 
 /** Gen's real image — the luminescent ghost with golden feather quill */
-const GEN_IMAGE_PATH = '/images/onboarding/Style_directive_highend_202512150033.jpeg'
+const GEN_IMAGE_PATH = '/images/onboarding/Style_directive_highend_202512150033.jpeg';
 
 /** Pixel sizes for each named size */
 const SIZE_MAP: Record<GenSize, number> = {
@@ -38,37 +38,38 @@ const SIZE_MAP: Record<GenSize, number> = {
   md: 120,
   lg: 200,
   xl: 320,
-}
+};
 
 /** Realm-specific glow colours — box-shadow, not blur */
 const GLOW_COLORS: Record<string, string> = {
-  default:
-    '0 0 40px 8px rgba(180, 140, 255, 0.35), 0 0 80px 16px rgba(110, 140, 255, 0.15)',
-  cosmos:
-    '0 0 40px 8px rgba(79, 195, 247, 0.35), 0 0 80px 16px rgba(13, 71, 161, 0.15)',
-  kingdom:
-    '0 0 40px 8px rgba(255, 213, 79, 0.35), 0 0 80px 16px rgba(255, 143, 0, 0.15)',
-  cell:
-    '0 0 40px 8px rgba(105, 240, 174, 0.35), 0 0 80px 16px rgba(0, 191, 165, 0.15)',
-}
+  default: '0 0 40px 8px rgba(180, 140, 255, 0.35), 0 0 80px 16px rgba(110, 140, 255, 0.15)',
+  cosmos: '0 0 40px 8px rgba(79, 195, 247, 0.35), 0 0 80px 16px rgba(13, 71, 161, 0.15)',
+  kingdom: '0 0 40px 8px rgba(255, 213, 79, 0.35), 0 0 80px 16px rgba(255, 143, 0, 0.15)',
+  cell: '0 0 40px 8px rgba(105, 240, 174, 0.35), 0 0 80px 16px rgba(0, 191, 165, 0.15)',
+};
 
 /** Celebrating glow — brighter */
 const GLOW_CELEBRATING =
-  '0 0 50px 12px rgba(255, 213, 79, 0.5), 0 0 100px 24px rgba(180, 140, 255, 0.25)'
+  '0 0 50px 12px rgba(255, 213, 79, 0.5), 0 0 100px 24px rgba(180, 140, 255, 0.25)';
 
 /** Sleeping glow — warm amber, dim */
 const GLOW_SLEEPING =
-  '0 0 30px 6px rgba(255, 200, 100, 0.2), 0 0 60px 12px rgba(255, 200, 100, 0.08)'
+  '0 0 30px 6px rgba(255, 200, 100, 0.2), 0 0 60px 12px rgba(255, 200, 100, 0.08)';
 
 // ────────────────────────────────────────────────────────────
 // SPARKLE COMPONENT — Four-pointed CSS stars for celebrating
 // ────────────────────────────────────────────────────────────
 
-function Sparkle({ delay, top, left, size: sparkleSize }: {
-  delay: number
-  top: string
-  left: string
-  size: number
+function Sparkle({
+  delay,
+  top,
+  left,
+  size: sparkleSize,
+}: {
+  delay: number;
+  top: string;
+  left: string;
+  size: number;
 }) {
   return (
     <svg
@@ -91,7 +92,7 @@ function Sparkle({ delay, top, left, size: sparkleSize }: {
         fill="rgba(255, 213, 79, 0.9)"
       />
     </svg>
-  )
+  );
 }
 
 // ────────────────────────────────────────────────────────────
@@ -138,7 +139,7 @@ function ThinkingDots() {
         }}
       />
     </div>
-  )
+  );
 }
 
 // ────────────────────────────────────────────────────────────
@@ -167,7 +168,7 @@ function SleepingZs() {
         </span>
       ))}
     </div>
-  )
+  );
 }
 
 // ────────────────────────────────────────────────────────────
@@ -180,43 +181,43 @@ export function GenStatic({
   state = 'idle',
   className = '',
 }: GenStaticProps) {
-  const px = SIZE_MAP[size]
-  const [showSparkles, setShowSparkles] = useState(false)
-  const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const px = SIZE_MAP[size];
+  const [showSparkles, setShowSparkles] = useState(false);
+  const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // When state changes to 'celebrating', show sparkles for 2 seconds
   useEffect(() => {
     if (state === 'celebrating') {
-      setShowSparkles(true)
-      celebrateTimerRef.current = setTimeout(() => setShowSparkles(false), 2000)
+      setShowSparkles(true);
+      celebrateTimerRef.current = setTimeout(() => setShowSparkles(false), 2000);
     } else {
-      setShowSparkles(false)
+      setShowSparkles(false);
     }
     return () => {
-      if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current)
-    }
-  }, [state])
+      if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+    };
+  }, [state]);
 
   // Resolve glow style based on state and realm
-  let glowStyle: string
+  let glowStyle: string;
   if (state === 'celebrating') {
-    glowStyle = GLOW_CELEBRATING
+    glowStyle = GLOW_CELEBRATING;
   } else if (state === 'sleeping') {
-    glowStyle = GLOW_SLEEPING
+    glowStyle = GLOW_SLEEPING;
   } else {
-    glowStyle = GLOW_COLORS[realm ?? 'default']
+    glowStyle = GLOW_COLORS[realm ?? 'default'];
   }
 
   // Resolve glow opacity based on state
-  let glowOpacity: number
+  let glowOpacity: number;
   if (state === 'thinking') {
-    glowOpacity = 0.6
+    glowOpacity = 0.6;
   } else if (state === 'sleeping') {
-    glowOpacity = 0.3
+    glowOpacity = 0.3;
   } else if (state === 'celebrating') {
-    glowOpacity = 1.0
+    glowOpacity = 1.0;
   } else {
-    glowOpacity = 0.85
+    glowOpacity = 0.85;
   }
 
   return (
@@ -269,7 +270,7 @@ export function GenStatic({
         </>
       )}
     </div>
-  )
+  );
 }
 
-export default GenStatic
+export default GenStatic;

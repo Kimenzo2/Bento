@@ -12,15 +12,7 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft,
-  Check,
-  HelpCircle,
-  Layout,
-  Loader2,
-  Redo2,
-  Undo2,
-} from 'lucide-react';
+import { ArrowLeft, Check, HelpCircle, Layout, Loader2, Redo2, Undo2 } from 'lucide-react';
 import type { EditorState } from '@hooks/useEditorState';
 
 // ── Geist font inline style (used throughout the header) ──
@@ -80,7 +72,12 @@ const GhostBtn: React.FC<GhostBtnProps> = ({
 const SaveIndicator: React.FC<{ status: EditorState['saveStatus'] }> = ({ status }) => {
   if (status === 'saving') {
     return (
-      <span className="flex items-center gap-1 text-cocoa-light" style={{ ...geist, fontSize: 12 }} role="status" aria-live="polite">
+      <span
+        className="flex items-center gap-1 text-cocoa-light"
+        style={{ ...geist, fontSize: 12 }}
+        role="status"
+        aria-live="polite"
+      >
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
         <span className="hidden sm:inline">Saving...</span>
       </span>
@@ -88,7 +85,12 @@ const SaveIndicator: React.FC<{ status: EditorState['saveStatus'] }> = ({ status
   }
   if (status === 'saved') {
     return (
-      <span className="flex items-center gap-1 text-cocoa-light" style={{ ...geist, fontSize: 12 }} role="status" aria-live="polite">
+      <span
+        className="flex items-center gap-1 text-cocoa-light"
+        style={{ ...geist, fontSize: 12 }}
+        role="status"
+        aria-live="polite"
+      >
         <Check className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Saved</span>
       </span>
@@ -96,14 +98,25 @@ const SaveIndicator: React.FC<{ status: EditorState['saveStatus'] }> = ({ status
   }
   if (status === 'unsaved') {
     return (
-      <span className="flex items-center" title="Unsaved changes" role="status" aria-live="polite" aria-label="Unsaved changes">
+      <span
+        className="flex items-center"
+        title="Unsaved changes"
+        role="status"
+        aria-live="polite"
+        aria-label="Unsaved changes"
+      >
         <span className="w-2 h-2 rounded-full bg-coral-burst" />
       </span>
     );
   }
   if (status === 'error') {
     return (
-      <span className="flex items-center gap-1 text-coral-burst" style={{ ...geist, fontSize: 12 }} role="alert" aria-live="assertive">
+      <span
+        className="flex items-center gap-1 text-coral-burst"
+        style={{ ...geist, fontSize: 12 }}
+        role="alert"
+        aria-live="assertive"
+      >
         <span className="w-2 h-2 rounded-full bg-coral-burst" />
         <span className="hidden sm:inline">Error</span>
       </span>
@@ -135,7 +148,9 @@ const ShortcutsModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open
       aria-modal="true"
       aria-labelledby="shortcuts-title"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
     >
       <div className="absolute inset-0 bg-charcoal-soft/40" />
       <div
@@ -153,7 +168,9 @@ const ShortcutsModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open
         <div className="space-y-2">
           {shortcuts.map(([key, desc]) => (
             <div key={key} className="flex justify-between items-center py-1.5">
-              <span className="text-cocoa-light text-sm" style={geist}>{desc}</span>
+              <span className="text-cocoa-light text-sm" style={geist}>
+                {desc}
+              </span>
               <kbd
                 className="px-2 py-0.5 rounded-md border border-peach-soft text-xs text-charcoal-soft"
                 style={{ ...geist, backgroundColor: 'var(--color-background)' }}
@@ -263,32 +280,32 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, onBack }) => {
 
         {/* 2. Story title — 14px Geist, weight 600, truncated 200px, click to edit */}
         <h1 className="contents">
-        {isEditingTitle ? (
-          <input
-            ref={titleRef}
-            type="text"
-            defaultValue={editor.currentProject.title}
-            onBlur={commitTitle}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitTitle();
-              if (e.key === 'Escape') setIsEditingTitle(false);
-            }}
-            className="font-semibold text-charcoal-soft bg-transparent border-b border-coral-burst outline-none max-w-[200px] ml-2"
-            style={{ ...geist, fontSize: 14, fontWeight: 600 }}
-            placeholder="Untitled Story"
-            aria-label="Story title"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsEditingTitle(true)}
-            className="font-semibold text-charcoal-soft truncate max-w-[200px] hover:text-coral-burst transition-colors cursor-pointer ml-2"
-            style={{ ...geist, fontSize: 14, fontWeight: 600 }}
-            title="Click to rename"
-          >
-            {editor.currentProject.title || 'Untitled Story'}
-          </button>
-        )}
+          {isEditingTitle ? (
+            <input
+              ref={titleRef}
+              type="text"
+              defaultValue={editor.currentProject.title}
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitTitle();
+                if (e.key === 'Escape') setIsEditingTitle(false);
+              }}
+              className="font-semibold text-charcoal-soft bg-transparent border-b border-coral-burst outline-none max-w-[200px] ml-2"
+              style={{ ...geist, fontSize: 14, fontWeight: 600 }}
+              placeholder="Untitled Story"
+              aria-label="Story title"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditingTitle(true)}
+              className="font-semibold text-charcoal-soft truncate max-w-[200px] hover:text-coral-burst transition-colors cursor-pointer ml-2"
+              style={{ ...geist, fontSize: 14, fontWeight: 600 }}
+              title="Click to rename"
+            >
+              {editor.currentProject.title || 'Untitled Story'}
+            </button>
+          )}
         </h1>
 
         {/* 3. Autosave indicator */}
@@ -300,12 +317,22 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, onBack }) => {
         <Separator />
 
         {/* 5. Undo button — icon only */}
-        <GhostBtn onClick={editor.undo} disabled={!editor.canUndo} title="Undo (Cmd+Z)" aria-label="Undo">
+        <GhostBtn
+          onClick={editor.undo}
+          disabled={!editor.canUndo}
+          title="Undo (Cmd+Z)"
+          aria-label="Undo"
+        >
           <Undo2 className="w-3.5 h-3.5" />
         </GhostBtn>
 
         {/* 6. Redo button — icon only */}
-        <GhostBtn onClick={editor.redo} disabled={!editor.canRedo} title="Redo (Cmd+Shift+Z)" aria-label="Redo">
+        <GhostBtn
+          onClick={editor.redo}
+          disabled={!editor.canRedo}
+          title="Redo (Cmd+Shift+Z)"
+          aria-label="Redo"
+        >
           <Redo2 className="w-3.5 h-3.5" />
         </GhostBtn>
 
@@ -313,7 +340,11 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({ editor, onBack }) => {
         <Separator />
 
         {/* 8. Canvas / Pages toggle pill */}
-        <div className="hidden sm:flex items-center gap-0.5 rounded-lg border border-peach-soft p-0.5" role="group" aria-label="Editor view">
+        <div
+          className="hidden sm:flex items-center gap-0.5 rounded-lg border border-peach-soft p-0.5"
+          role="group"
+          aria-label="Editor view"
+        >
           <button
             type="button"
             onClick={() => editor.setEditorView('canvas')}

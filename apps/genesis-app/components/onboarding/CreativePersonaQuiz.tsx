@@ -92,9 +92,7 @@ export const CreativePersonaQuiz: React.FC = () => {
       />
 
       {/* Grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle,rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:50px_50px]"
-      />
+      <div className="absolute inset-0 opacity-[0.02] [background-image:radial-gradient(circle,rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:50px_50px]" />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-5xl flex-1 flex flex-col justify-center">

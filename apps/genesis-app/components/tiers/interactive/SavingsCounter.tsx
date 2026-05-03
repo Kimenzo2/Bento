@@ -18,26 +18,29 @@ export const SavingsCounter: React.FC<SavingsCounterProps> = ({ tier }) => {
   const [_isHovered, setIsHovered] = useState(false);
 
   // Configuration for different comparisons
-  const comparisons = useMemo(() => ({
-    hiring: {
-      label: 'vs Hiring a Designer',
-      icon: Users,
-      monthlyCost: 1500, // Avg cost for ~5-10 designs
-      description: 'based on freelance rates',
-    },
-    competitor: {
-      label: 'vs Competitor Tools',
-      icon: TrendingUp,
-      monthlyCost: 100, // Avg competitor stack
-      description: 'based on multi-tool subscriptions',
-    },
-    diy: {
-      label: 'vs DIY (Your Time)',
-      icon: Clock,
-      monthlyCost: 800, // 20 hours * $40/hr
-      description: 'valuing your time at $40/hr',
-    },
-  }), []);
+  const comparisons = useMemo(
+    () => ({
+      hiring: {
+        label: 'vs Hiring a Designer',
+        icon: Users,
+        monthlyCost: 1500, // Avg cost for ~5-10 designs
+        description: 'based on freelance rates',
+      },
+      competitor: {
+        label: 'vs Competitor Tools',
+        icon: TrendingUp,
+        monthlyCost: 100, // Avg competitor stack
+        description: 'based on multi-tool subscriptions',
+      },
+      diy: {
+        label: 'vs DIY (Your Time)',
+        icon: Clock,
+        monthlyCost: 800, // 20 hours * $40/hr
+        description: 'valuing your time at $40/hr',
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     // Calculate monthly savings

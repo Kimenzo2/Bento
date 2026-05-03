@@ -56,7 +56,9 @@ interface LifeInColourWorkspaceContextValue {
   savedHistory: ReturnType<typeof useLifeInColourHistory>;
 }
 
-const LifeInColourWorkspaceContext = createContext<LifeInColourWorkspaceContextValue | undefined>(undefined);
+const LifeInColourWorkspaceContext = createContext<LifeInColourWorkspaceContextValue | undefined>(
+  undefined
+);
 
 export function LifeInColourWorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [photos, setPhotos] = useState<LifeInColourPhotoItem[]>([]);
@@ -150,7 +152,11 @@ export function LifeInColourWorkspaceProvider({ children }: { children: React.Re
     ]
   );
 
-  return <LifeInColourWorkspaceContext.Provider value={value}>{children}</LifeInColourWorkspaceContext.Provider>;
+  return (
+    <LifeInColourWorkspaceContext.Provider value={value}>
+      {children}
+    </LifeInColourWorkspaceContext.Provider>
+  );
 }
 
 export function useLifeInColourWorkspace() {

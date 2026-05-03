@@ -4,20 +4,20 @@
 // Gen never speaks without prior user interaction (autoplay policy).
 // ============================================================================
 
-import type { GenAvatarState } from '../../components/gen/GenAvatar'
+import type { GenAvatarState } from '../../components/gen/GenAvatar';
 
 // ────────────────────────────────────────────────────────────
 // CONFIGURATION
 // ────────────────────────────────────────────────────────────
 
-const ELEVENLABS_API = 'https://api.elevenlabs.io/v1'
+const ELEVENLABS_API = 'https://api.elevenlabs.io/v1';
 
 const GEN_VOICE_SETTINGS = {
   stability: 0.6,
   similarity_boost: 0.8,
   style: 0.3,
   use_speaker_boost: true,
-} as const
+} as const;
 
 /** Phrase keys that can be pre-cached on app load */
 export const GEN_CACHED_PHRASE_KEYS = [
@@ -29,9 +29,9 @@ export const GEN_CACHED_PHRASE_KEYS = [
   'creation_complete',
   'error_recovery',
   'thinking_sound',
-] as const
+] as const;
 
-export type CachedPhraseKey = (typeof GEN_CACHED_PHRASE_KEYS)[number]
+export type CachedPhraseKey = (typeof GEN_CACHED_PHRASE_KEYS)[number];
 
 // ────────────────────────────────────────────────────────────
 // HELPERS
@@ -39,35 +39,32 @@ export type CachedPhraseKey = (typeof GEN_CACHED_PHRASE_KEYS)[number]
 
 function getApiKey(): string | null {
   return (
-    (typeof import.meta !== 'undefined' &&
-      (import.meta as any).env?.VITE_ELEVENLABS_API_KEY) ||
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ELEVENLABS_API_KEY) ||
     null
-  )
+  );
 }
 
 function getVoiceId(): string | null {
   return (
-    (typeof import.meta !== 'undefined' &&
-      (import.meta as any).env?.VITE_GEN_VOICE_ID) ||
-    null
-  )
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEN_VOICE_ID) || null
+  );
 }
 
 // ────────────────────────────────────────────────────────────
 // AUDIO CACHE
 // ────────────────────────────────────────────────────────────
 
-const audioCache = new Map<string, ArrayBuffer>()
+const audioCache = new Map<string, ArrayBuffer>();
 
 /**
  * Pre-cache a phrase for zero-latency playback on first interaction.
  */
 export async function preCachePhrase(text: string, cacheKey: string): Promise<void> {
-  if (audioCache.has(cacheKey)) return
+  if (audioCache.has(cacheKey)) return;
 
-  const apiKey = getApiKey()
-  const voiceId = getVoiceId()
-  if (!apiKey || !voiceId) return
+  const apiKey = getApiKey();
+  const voiceId = getVoiceId();
+  if (!apiKey || !voiceId) return;
 
   try {
     const res = await fetch(`${ELEVENLABS_API}/text-to-speech/${voiceId}`, {
@@ -81,10 +78,10 @@ export async function preCachePhrase(text: string, cacheKey: string): Promise<vo
         model_id: 'eleven_turbo_v2_5',
         voice_settings: GEN_VOICE_SETTINGS,
       }),
-    })
+    });
 
     if (res.ok) {
-      audioCache.set(cacheKey, await res.arrayBuffer())
+      audioCache.set(cacheKey, await res.arrayBuffer());
     }
   } catch {
     // Silent failure — Gen works without voice
@@ -110,60 +107,57 @@ export async function genSpeak(
   onEnd?: () => void,
   cacheKey?: string
 ): Promise<void> {
-  const apiKey = getApiKey()
-  const voiceId = getVoiceId()
+  const apiKey = getApiKey();
+  const voiceId = getVoiceId();
 
   if (!apiKey || !voiceId) {
     // No API key or voice ID configured — Gen is silent but present
-    onStart?.()
+    onStart?.();
     // Simulate speaking duration based on text length
-    await new Promise((r) => setTimeout(r, Math.min(text.length * 50, 3000)))
-    onEnd?.()
-    return
+    await new Promise((r) => setTimeout(r, Math.min(text.length * 50, 3000)));
+    onEnd?.();
+    return;
   }
 
   try {
     // Check cache first
     if (cacheKey && audioCache.has(cacheKey)) {
-      const buffer = audioCache.get(cacheKey)!
-      await playAudioBuffer(buffer, onStart, onEnd)
-      return
+      const buffer = audioCache.get(cacheKey)!;
+      await playAudioBuffer(buffer, onStart, onEnd);
+      return;
     }
 
     // Fetch from ElevenLabs
-    const res = await fetch(
-      `${ELEVENLABS_API}/text-to-speech/${voiceId}/stream`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_turbo_v2_5',
-          voice_settings: GEN_VOICE_SETTINGS,
-        }),
-      }
-    )
+    const res = await fetch(`${ELEVENLABS_API}/text-to-speech/${voiceId}/stream`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_turbo_v2_5',
+        voice_settings: GEN_VOICE_SETTINGS,
+      }),
+    });
 
     if (!res.ok) {
-      throw new Error(`ElevenLabs: ${res.status}`)
+      throw new Error(`ElevenLabs: ${res.status}`);
     }
 
-    const buffer = await res.arrayBuffer()
+    const buffer = await res.arrayBuffer();
 
     // Cache it
     if (cacheKey) {
-      audioCache.set(cacheKey, buffer)
+      audioCache.set(cacheKey, buffer);
     }
 
-    await playAudioBuffer(buffer, onStart, onEnd)
+    await playAudioBuffer(buffer, onStart, onEnd);
   } catch {
     // Graceful silence — Gen does not break
-    onStart?.()
-    await new Promise((r) => setTimeout(r, Math.min(text.length * 50, 3000)))
-    onEnd?.()
+    onStart?.();
+    await new Promise((r) => setTimeout(r, Math.min(text.length * 50, 3000)));
+    onEnd?.();
   }
 }
 
@@ -175,19 +169,19 @@ async function playAudioBuffer(
   onStart?: () => void,
   onEnd?: () => void
 ): Promise<void> {
-  const audioContext = new AudioContext()
-  const audioBuffer = await audioContext.decodeAudioData(buffer.slice(0))
-  const source = audioContext.createBufferSource()
-  source.buffer = audioBuffer
-  source.connect(audioContext.destination)
+  const audioContext = new AudioContext();
+  const audioBuffer = await audioContext.decodeAudioData(buffer.slice(0));
+  const source = audioContext.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(audioContext.destination);
 
   return new Promise<void>((resolve) => {
     source.onended = () => {
-      onEnd?.()
-      audioContext.close()
-      resolve()
-    }
-    onStart?.()
-    source.start()
-  })
+      onEnd?.();
+      audioContext.close();
+      resolve();
+    };
+    onStart?.();
+    source.start();
+  });
 }

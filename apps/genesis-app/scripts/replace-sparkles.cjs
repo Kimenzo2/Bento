@@ -4,7 +4,10 @@ const path = require('path');
 // Context-based replacement rules
 function pickReplacement(filePath, lineIndex, lines) {
   const rel = filePath.replace(/\\/g, '/').toLowerCase();
-  const ctx = lines.slice(Math.max(0, lineIndex - 4), lineIndex + 4).join(' ').toLowerCase();
+  const ctx = lines
+    .slice(Math.max(0, lineIndex - 4), lineIndex + 4)
+    .join(' ')
+    .toLowerCase();
 
   // File-level overrides
   if (rel.includes('whatsne')) return 'Zap';
@@ -18,7 +21,8 @@ function pickReplacement(filePath, lineIndex, lines) {
   // Line-context overrides
   if (ctx.includes('publish')) return 'Send';
   if (ctx.includes('fun fact')) return 'Lightbulb';
-  if (ctx.includes('tips to improve') || (ctx.includes('tips') && ctx.includes('improve'))) return 'Lightbulb';
+  if (ctx.includes('tips to improve') || (ctx.includes('tips') && ctx.includes('improve')))
+    return 'Lightbulb';
   if (ctx.includes('my library')) return 'Library';
   if (ctx.includes('challenge_new')) return 'Zap';
   if (ctx.includes('remix') && ctx.includes('notification')) return 'GitFork';
@@ -80,7 +84,8 @@ for (const file of files) {
     if (!alreadyImported) {
       newContent = newContent.replace(
         /import\s*\{([^}]+)\}\s*from\s*'lucide-react'/,
-        (m, inner) => 'import {' + inner.trimEnd().replace(/,\s*$/, '') + ', ' + icon + ' } from \'lucide-react\''
+        (m, inner) =>
+          'import {' + inner.trimEnd().replace(/,\s*$/, '') + ', ' + icon + " } from 'lucide-react'"
       );
     }
   }

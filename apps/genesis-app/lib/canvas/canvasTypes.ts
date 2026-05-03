@@ -27,28 +27,28 @@
  * Realm: NOT stored per book — UI-level concept only
  */
 
-import type { Node, Edge } from '@xyflow/react'
+import type { Node, Edge } from '@xyflow/react';
 
 export interface SceneNodeData extends Record<string, unknown> {
-  pageId: string
-  pageNumber: number
-  text: string
-  imageUrl: string | null
-  imagePrompt: string | null
-  isImageOutdated: boolean
-  onEdit: (pageNumber: number) => void
+  pageId: string;
+  pageNumber: number;
+  text: string;
+  imageUrl: string | null;
+  imagePrompt: string | null;
+  isImageOutdated: boolean;
+  onEdit: (pageNumber: number) => void;
 }
 
-export type SceneNode = Node<SceneNodeData, 'sceneNode'>
-export type SceneEdge = Edge
+export type SceneNode = Node<SceneNodeData, 'sceneNode'>;
+export type SceneEdge = Edge;
 
 export interface LayoutConfig {
-  nodeWidth: number
-  nodeHeight: number
-  horizontalGap: number
-  verticalOffset: number
-  startX: number
-  startY: number
+  nodeWidth: number;
+  nodeHeight: number;
+  horizontalGap: number;
+  verticalOffset: number;
+  startX: number;
+  startY: number;
 }
 
 export const DEFAULT_LAYOUT: LayoutConfig = {
@@ -58,4 +58,4 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
   verticalOffset: 40,
   startX: 80,
   startY: 80,
-}
+};

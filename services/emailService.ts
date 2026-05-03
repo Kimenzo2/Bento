@@ -118,7 +118,12 @@ export async function sendSubscriptionEmail(
   planName: string,
   features: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  const element = createElement(SubscriptionUpgradeEmail, { userName, planName, price: '', features });
+  const element = createElement(SubscriptionUpgradeEmail, {
+    userName,
+    planName,
+    price: '',
+    features,
+  });
   const html = await render(element);
   const text = await render(element, { plainText: true });
 
@@ -182,7 +187,14 @@ export async function sendPaymentSucceededEmail(
   date: string,
   receiptUrl?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const element = createElement(PaymentSucceededEmail, { userName, planName, amount, currency, date, receiptUrl });
+  const element = createElement(PaymentSucceededEmail, {
+    userName,
+    planName,
+    amount,
+    currency,
+    date,
+    receiptUrl,
+  });
   const html = await render(element);
   const text = await render(element, { plainText: true });
 
@@ -225,7 +237,12 @@ export async function sendSubscriptionRenewedEmail(
   amount: string,
   nextRenewalDate: string
 ): Promise<{ success: boolean; error?: string }> {
-  const element = createElement(SubscriptionRenewedEmail, { userName, planName, amount, nextRenewalDate });
+  const element = createElement(SubscriptionRenewedEmail, {
+    userName,
+    planName,
+    amount,
+    nextRenewalDate,
+  });
   const html = await render(element);
   const text = await render(element, { plainText: true });
 
@@ -275,7 +292,12 @@ export async function sendCollaborationInviteEmail(
   role: string,
   inviteUrl: string
 ): Promise<{ success: boolean; error?: string }> {
-  const element = createElement(CollaborationInviteEmail, { inviterName, bookTitle, role, inviteUrl });
+  const element = createElement(CollaborationInviteEmail, {
+    inviterName,
+    bookTitle,
+    role,
+    inviteUrl,
+  });
   const html = await render(element);
   const text = await render(element, { plainText: true });
 
@@ -345,7 +367,12 @@ export async function sendAchievementEmail(
   description: string,
   xpEarned?: number
 ): Promise<{ success: boolean; error?: string }> {
-  const element = createElement(AchievementEmail, { userName, achievementName, description, xpEarned });
+  const element = createElement(AchievementEmail, {
+    userName,
+    achievementName,
+    description,
+    xpEarned,
+  });
   const html = await render(element);
   const text = await render(element, { plainText: true });
 

@@ -166,11 +166,15 @@ const chunkBrandText = createStep({
 
     const totalTokens = chunks.reduce((sum, c) => sum + c.tokenCount, 0);
 
-    console.log(`[BrandVoiceRAG] Chunked "${input.brandName}" into ${chunks.length} chunks (${totalTokens} total tokens)`);
+    console.log(
+      `[BrandVoiceRAG] Chunked "${input.brandName}" into ${chunks.length} chunks (${totalTokens} total tokens)`
+    );
 
     return {
-      chunks, totalTokens,
-      userId: input.userId, brandName: input.brandName,
+      chunks,
+      totalTokens,
+      userId: input.userId,
+      brandName: input.brandName,
       existingChunkIds: input.existingChunkIds ?? [],
     };
   },
@@ -199,8 +203,10 @@ const generateEmbeddings = createStep({
 
     if (!data?.chunks?.length) {
       return {
-        embeddedChunks: [], userId: data?.userId ?? '',
-        brandName: data?.brandName ?? '', existingChunkIds: data?.existingChunkIds ?? [],
+        embeddedChunks: [],
+        userId: data?.userId ?? '',
+        brandName: data?.brandName ?? '',
+        existingChunkIds: data?.existingChunkIds ?? [],
       };
     }
 
@@ -228,11 +234,14 @@ const generateEmbeddings = createStep({
       }
     }
 
-    console.log(`[BrandVoiceRAG] Generated ${embeddedChunks.length} embeddings (dim: ${EMBEDDING_DIMENSION})`);
+    console.log(
+      `[BrandVoiceRAG] Generated ${embeddedChunks.length} embeddings (dim: ${EMBEDDING_DIMENSION})`
+    );
 
     return {
       embeddedChunks,
-      userId: data.userId, brandName: data.brandName,
+      userId: data.userId,
+      brandName: data.brandName,
       existingChunkIds: data.existingChunkIds ?? [],
     };
   },
@@ -259,7 +268,12 @@ const storeInPgVector = createStep({
     const data = inputData as any;
 
     if (!data?.embeddedChunks?.length) {
-      return { stored: 0, deleted: 0, userId: data?.userId ?? '', brandName: data?.brandName ?? '' };
+      return {
+        stored: 0,
+        deleted: 0,
+        userId: data?.userId ?? '',
+        brandName: data?.brandName ?? '',
+      };
     }
 
     const supabase = getSupabaseAdmin();
@@ -300,7 +314,12 @@ const storeInPgVector = createStep({
 
     console.log(`[BrandVoiceRAG] Stored ${storedCount} chunks, deleted ${deletedCount} old chunks`);
 
-    return { stored: storedCount, deleted: deletedCount, userId: data.userId, brandName: data.brandName };
+    return {
+      stored: storedCount,
+      deleted: deletedCount,
+      userId: data.userId,
+      brandName: data.brandName,
+    };
   },
 });
 

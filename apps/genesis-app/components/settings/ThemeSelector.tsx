@@ -63,17 +63,32 @@ const ThemeSelector: React.FC = () => {
               <div className="flex gap-2 mt-3">
                 <div
                   className="w-4 h-4 rounded-full"
-                  style={{ background: isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-accent-start'] : theme.colors.accent[0] }}
+                  style={{
+                    background:
+                      isDarkMode && theme.darkCssVariables
+                        ? theme.darkCssVariables['--color-accent-start']
+                        : theme.colors.accent[0],
+                  }}
                   title="Accent 1"
                 ></div>
                 <div
                   className="w-4 h-4 rounded-full"
-                  style={{ background: isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-accent-end'] : theme.colors.accent[1] }}
+                  style={{
+                    background:
+                      isDarkMode && theme.darkCssVariables
+                        ? theme.darkCssVariables['--color-accent-end']
+                        : theme.colors.accent[1],
+                  }}
                   title="Accent 2"
                 ></div>
                 <div
                   className="w-4 h-4 rounded-full border border-peach-soft"
-                  style={{ background: isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-background'] : theme.colors.background }}
+                  style={{
+                    background:
+                      isDarkMode && theme.darkCssVariables
+                        ? theme.darkCssVariables['--color-background']
+                        : theme.colors.background,
+                  }}
                   title="Background"
                 ></div>
               </div>

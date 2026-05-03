@@ -15,7 +15,8 @@ export interface BlogPost {
 export const blogPosts: BlogPost[] = [
   {
     slug: 'perplexity-vs-genesis-general-purpose-ai-friction',
-    title: 'Perplexity vs. Genesis: Where General-Purpose AI Creates Friction and How to Eliminate It',
+    title:
+      'Perplexity vs. Genesis: Where General-Purpose AI Creates Friction and How to Eliminate It',
     date: '2026-03-10',
     author: 'The Genesis Team',
     authorRole: 'Editorial',
@@ -23,7 +24,8 @@ export const blogPosts: BlogPost[] = [
       'General-purpose AI search tools optimize for answers, not creative production. This guide shows where Perplexity introduces friction for visual storytellers and how Genesis removes it by design.',
     tags: ['AI', 'Visual Storytelling', 'Product', 'UX'],
     readingTime: 12,
-    coverGradient: 'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
+    coverGradient:
+      'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
     content: `
 # Perplexity vs. Genesis: Where General-Purpose AI Creates Friction and How to Eliminate It
 
@@ -214,7 +216,8 @@ For visual storytelling, worldbuilding, and narrative generation, the match is n
       'Genesis and LTX Studio represent two different philosophies in AI visual storytelling. This guide explains where each platform excels and which creators they are best for.',
     tags: ['AI', 'Visual Storytelling', 'Comparison', 'Product'],
     readingTime: 10,
-    coverGradient: 'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
+    coverGradient:
+      'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
     content: `
 # Genesis vs LTX Studio: Which AI Visual Storytelling Platform Is Right for You?
 
@@ -379,7 +382,8 @@ Genesis is built for that. [Start exploring at iamazeyou.me](https://iamazeyou.m
       'Artbreeder excels at image blending and rapid portrait exploration, while Genesis is built for consistent characters inside stories. This guide clarifies which platform fits your workflow.',
     tags: ['AI', 'Characters', 'Visual Storytelling', 'Comparison'],
     readingTime: 11,
-    coverGradient: 'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
+    coverGradient:
+      'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
     content: `
 # Genesis vs. Artbreeder: Which AI Character Generator Is Right for Your Story?
 
@@ -582,15 +586,16 @@ Artbreeder is where you explore. Genesis is where you build.
   },
   {
     slug: 'we-built-genesis-ai-visual-storytelling-platform',
-    title: 'We Built Genesis: An AI Visual Storytelling Platform for a Market That\'s Moving Fast',
+    title: "We Built Genesis: An AI Visual Storytelling Platform for a Market That's Moving Fast",
     date: '2026-03-07',
     author: 'The Genesis Team',
     authorRole: 'Founders',
     excerpt:
-      'The AI visual storytelling market hit $2.5 billion in 2025. Here\'s what Genesis actually is, how it works, who the real market leaders are, and why we built it this way — no hype.',
+      "The AI visual storytelling market hit $2.5 billion in 2025. Here's what Genesis actually is, how it works, who the real market leaders are, and why we built it this way — no hype.",
     tags: ['AI', 'Visual Storytelling', 'Product', 'Market Analysis'],
     readingTime: 8,
-    coverGradient: 'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
+    coverGradient:
+      'linear-gradient(135deg, var(--color-primary-start, #FF9B71) 0%, var(--color-primary-end, #FFD93D) 100%)',
     content: `
 ## What Genesis Actually Is (And What It Isn't)
 
@@ -744,9 +749,7 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
 }
 
 export function getAllPosts(): BlogPost[] {
-  return [...blogPosts].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  return [...blogPosts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export function formatDate(iso: string): string {
@@ -783,10 +786,3 @@ export function slugifyHeading(text: string): string {
     .replace(/-+/g, '-')
     .trim();
 }
-
-
-
-
-
-
-

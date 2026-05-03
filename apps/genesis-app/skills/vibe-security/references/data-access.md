@@ -32,9 +32,7 @@ const user = await prisma.user.findFirst({ where: { email: parsed.email } });
 
 ```typescript
 // BAD: raw SQL with user input
-const results = await prisma.$queryRawUnsafe(
-  `SELECT * FROM users WHERE name = '${name}'`
-);
+const results = await prisma.$queryRawUnsafe(`SELECT * FROM users WHERE name = '${name}'`);
 
 // GOOD: use the safe raw query with parameters
 const results = await prisma.$queryRaw`

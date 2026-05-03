@@ -111,7 +111,9 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
           <div className="p-6 border-b border-peach-soft/20">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Crown className={`w-5 h-5 ${isSpark ? 'text-cocoa-light' : 'text-gold-sunshine'}`} />
+                <Crown
+                  className={`w-5 h-5 ${isSpark ? 'text-cocoa-light' : 'text-gold-sunshine'}`}
+                />
                 <h2 className="font-heading font-bold text-lg text-charcoal-soft">
                   {TIER_DISPLAY[tier].label} Plan
                 </h2>
@@ -153,13 +155,13 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                 label="Pages/book"
                 value={isUnlimited(ent.pages_per_book) ? 'Unlimited' : String(ent.pages_per_book)}
               />
-              <FeatureRow
-                label="Styles"
-                value={`${ent.illustration_styles}+`}
-              />
+              <FeatureRow label="Styles" value={`${ent.illustration_styles}+`} />
               <FeatureRow label="Watermark" value={ent.watermark ? 'Yes' : 'None'} />
               <FeatureRow label="Commercial" value={ent.commercial_license ? 'Yes' : 'No'} />
-              <FeatureRow label="Team seats" value={isUnlimited(ent.team_seats) ? 'Unlimited' : String(ent.team_seats)} />
+              <FeatureRow
+                label="Team seats"
+                value={isUnlimited(ent.team_seats) ? 'Unlimited' : String(ent.team_seats)}
+              />
               <FeatureRow label="Priority" value={ent.priority_rendering ? 'Yes' : 'No'} />
             </div>
           </div>
@@ -173,7 +175,8 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
               <h2 className="font-heading font-bold text-charcoal-soft">Billing</h2>
             </div>
             <p className="text-sm text-cocoa-light mb-4">
-              Manage your subscription, update payment method, or download invoices through the Dodo Payments portal.
+              Manage your subscription, update payment method, or download invoices through the Dodo
+              Payments portal.
             </p>
             <Button
               variant="outline"
@@ -208,7 +211,8 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                         {TIER_DISPLAY[t].label}
                       </h3>
                       <p className="text-sm text-cocoa-light mt-1">
-                        {isUnlimited(tEnt.books_per_month) ? 'Unlimited' : tEnt.books_per_month} books/mo
+                        {isUnlimited(tEnt.books_per_month) ? 'Unlimited' : tEnt.books_per_month}{' '}
+                        books/mo
                         {' · '}
                         {isUnlimited(tEnt.pages_per_book) ? 'Unlimited' : tEnt.pages_per_book} pages
                         {!tEnt.watermark ? ' · No watermark' : ''}

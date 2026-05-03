@@ -37,7 +37,12 @@
 
 import { Mastra } from '@mastra/core';
 import { PostgresStore } from '@mastra/pg';
-import { Observability, DefaultExporter, SensitiveDataFilter, SamplingStrategyType } from '@mastra/observability';
+import {
+  Observability,
+  DefaultExporter,
+  SensitiveDataFilter,
+  SamplingStrategyType,
+} from '@mastra/observability';
 
 // ─── Agent Imports ───────────────────────────────────────────────────────────
 import { storyArchitectAgent } from './agents/storyArchitectAgent';
@@ -90,7 +95,9 @@ if (pgConnectionString) {
     // Supabase requires SSL in production
     ssl: pgConnectionString.includes('supabase.co')
       ? { rejectUnauthorized: false }
-      : (isProduction ? true : false),
+      : isProduction
+        ? true
+        : false,
   });
   console.log('[Mastra] PostgresStore enabled — workflow state will persist.');
 } else {
@@ -169,11 +176,6 @@ export const mastra = new Mastra({
 
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
-export {
-  supabaseUrl,
-  supabaseServiceRoleKey,
-  pgConnectionString,
-  getEnv,
-};
+export { supabaseUrl, supabaseServiceRoleKey, pgConnectionString, getEnv };
 
 export default mastra;

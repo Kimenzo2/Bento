@@ -1,6 +1,13 @@
 import { Text, Button, Section } from '@react-email/components';
 import * as React from 'react';
-import GenesisLayout, { heading, body, btnPrimary, badge, divider, coralSection } from './GenesisLayout';
+import GenesisLayout, {
+  heading,
+  body,
+  btnPrimary,
+  badge,
+  divider,
+  coralSection,
+} from './GenesisLayout';
 
 interface PaymentFailedEmailProps {
   userName: string;
@@ -25,14 +32,12 @@ export default function PaymentFailedEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Your payment needs attention.
-      </Text>
+      <Text style={heading(28)}>Your payment needs attention.</Text>
 
       {/* Body */}
       <Text style={body()}>
-        Hi {userName}, we couldn&rsquo;t process your {amount} payment for the{' '}
-        {planName} plan. We&rsquo;ll retry on {retryDate}.
+        Hi {userName}, we couldn&rsquo;t process your {amount} payment for the {planName} plan.
+        We&rsquo;ll retry on {retryDate}.
       </Text>
 
       {/* Coral section */}

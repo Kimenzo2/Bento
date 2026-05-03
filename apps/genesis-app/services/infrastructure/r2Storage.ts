@@ -294,7 +294,8 @@ export class R2StorageClient {
     const response = await authenticatedFetch(`${this.apiBase}/asset/${encodeURIComponent(key)}`);
 
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403 || response.status === 404) return null;
+      if (response.status === 401 || response.status === 403 || response.status === 404)
+        return null;
       throw new Error('Failed to get asset');
     }
 
@@ -473,7 +474,3 @@ function detectCategory(path: string): AssetCategory {
 // ============================================================================
 
 export const r2Storage = new R2StorageClient();
-
-
-
-

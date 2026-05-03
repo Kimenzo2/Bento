@@ -33,7 +33,11 @@ const qaReports = new Map<
   {
     bookId: string;
     overallScore: number;
-    pageScores: { pageNumber: number; metrics: z.infer<typeof QualityMetricsSchema>; autoImproved: boolean }[];
+    pageScores: {
+      pageNumber: number;
+      metrics: z.infer<typeof QualityMetricsSchema>;
+      autoImproved: boolean;
+    }[];
     timestamp: number;
   }
 >();
@@ -42,7 +46,11 @@ function storeQAReport(
   bookId: string,
   report: {
     overallScore: number;
-    pageScores: { pageNumber: number; metrics: z.infer<typeof QualityMetricsSchema>; autoImproved: boolean }[];
+    pageScores: {
+      pageNumber: number;
+      metrics: z.infer<typeof QualityMetricsSchema>;
+      autoImproved: boolean;
+    }[];
   }
 ): void {
   qaReports.set(bookId, { bookId, ...report, timestamp: Date.now() });
@@ -77,7 +85,8 @@ const DEFAULT_QUALITY_THRESHOLD = 70;
  */
 const analyzePageQuality = createTool({
   id: 'analyzePageQuality',
-  description: 'Scores a single page of content on readability, grammar, coherence, age-appropriateness, and overall quality (0-100 each)',
+  description:
+    'Scores a single page of content on readability, grammar, coherence, age-appropriateness, and overall quality (0-100 each)',
   inputSchema: z.object({
     pageNumber: z.number(),
     text: z.string(),
@@ -107,7 +116,8 @@ const analyzePageQuality = createTool({
  */
 const improvePageContent = createTool({
   id: 'improvePageContent',
-  description: 'Rewrites page content to fix quality issues identified by the analyzePageQuality tool',
+  description:
+    'Rewrites page content to fix quality issues identified by the analyzePageQuality tool',
   inputSchema: z.object({
     pageNumber: z.number(),
     originalText: z.string(),
@@ -135,7 +145,8 @@ const improvePageContent = createTool({
  */
 const runFullBookQA = createTool({
   id: 'runFullBookQA',
-  description: 'Runs quality assurance on all pages of a book, scoring each and auto-improving pages below the threshold',
+  description:
+    'Runs quality assurance on all pages of a book, scoring each and auto-improving pages below the threshold',
   inputSchema: z.object({
     bookId: z.string(),
     pages: z.array(
@@ -170,33 +181,41 @@ const runFullBookQA = createTool({
     // This tool orchestrates the full QA pass. In the workflow, the agent
     // is called per-page for actual LLM-based analysis. This tool provides
     // the aggregation structure.
-    const pageResults = input.pages.map((page: { pageNumber: number; text: string; imagePrompt?: string }) => ({
-      pageNumber: page.pageNumber,
-      score: 85, // Placeholder — real scores come from LLM analysis
-      passed: true,
-      autoImproved: false,
-      issues: [] as string[],
-    }));
+    const pageResults = input.pages.map(
+      (page: { pageNumber: number; text: string; imagePrompt?: string }) => ({
+        pageNumber: page.pageNumber,
+        score: 85, // Placeholder — real scores come from LLM analysis
+        passed: true,
+        autoImproved: false,
+        issues: [] as string[],
+      })
+    );
 
-    const overallScore = pageResults.length > 0
-      ? Math.round(pageResults.reduce((sum: number, p: { score: number }) => sum + p.score, 0) / pageResults.length)
-      : 100;
+    const overallScore =
+      pageResults.length > 0
+        ? Math.round(
+            pageResults.reduce((sum: number, p: { score: number }) => sum + p.score, 0) /
+              pageResults.length
+          )
+        : 100;
 
     const report = {
       overallScore,
-      pageScores: pageResults.map((p: { pageNumber: number; score: number; issues: string[]; autoImproved: boolean }) => ({
-        pageNumber: p.pageNumber,
-        metrics: {
-          readability: p.score,
-          grammar: p.score,
-          coherence: p.score,
-          ageAppropriateness: p.score,
-          overall: p.score,
-          issues: p.issues,
-          suggestions: [],
-        },
-        autoImproved: p.autoImproved,
-      })),
+      pageScores: pageResults.map(
+        (p: { pageNumber: number; score: number; issues: string[]; autoImproved: boolean }) => ({
+          pageNumber: p.pageNumber,
+          metrics: {
+            readability: p.score,
+            grammar: p.score,
+            coherence: p.score,
+            ageAppropriateness: p.score,
+            overall: p.score,
+            issues: p.issues,
+            suggestions: [],
+          },
+          autoImproved: p.autoImproved,
+        })
+      ),
     };
 
     storeQAReport(input.bookId, report);
@@ -207,7 +226,8 @@ const runFullBookQA = createTool({
       totalPages: pageResults.length,
       passedPages: pageResults.filter((p: { passed: boolean }) => p.passed).length,
       failedPages: pageResults.filter((p: { passed: boolean }) => !p.passed).length,
-      autoImprovedPages: pageResults.filter((p: { autoImproved: boolean }) => p.autoImproved).length,
+      autoImprovedPages: pageResults.filter((p: { autoImproved: boolean }) => p.autoImproved)
+        .length,
       pageResults,
     };
   },

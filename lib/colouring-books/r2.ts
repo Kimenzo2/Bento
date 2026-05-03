@@ -1,9 +1,5 @@
 import { createHmac, createHash } from 'node:crypto';
-import {
-  COLOURING_R2_BUCKET,
-  COLOURING_R2_PUBLIC_URL,
-  getColouringEnv,
-} from './shared';
+import { COLOURING_R2_BUCKET, COLOURING_R2_PUBLIC_URL, getColouringEnv } from './shared';
 
 export interface R2SigningOptions {
   method: 'GET' | 'PUT' | 'HEAD' | 'DELETE';
@@ -162,7 +158,11 @@ export async function uploadBufferToR2(options: {
   };
 }
 
-export function createSignedR2GetUrl(key: string, expiresInSeconds = 900, bucketName?: string): string {
+export function createSignedR2GetUrl(
+  key: string,
+  expiresInSeconds = 900,
+  bucketName?: string
+): string {
   return createPresignedR2Url({
     method: 'GET',
     key,
@@ -171,7 +171,11 @@ export function createSignedR2GetUrl(key: string, expiresInSeconds = 900, bucket
   });
 }
 
-export function createSignedR2HeadUrl(key: string, expiresInSeconds = 900, bucketName?: string): string {
+export function createSignedR2HeadUrl(
+  key: string,
+  expiresInSeconds = 900,
+  bucketName?: string
+): string {
   return createPresignedR2Url({
     method: 'HEAD',
     key,
@@ -203,8 +207,10 @@ function encodePath(path: string): string {
 }
 
 function encodeRfc3986(value: string): string {
-  return encodeURIComponent(value)
-    .replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
 }
 
 function normalizeHeaderValue(value: string): string {
@@ -223,7 +229,12 @@ function hmacHex(key: Buffer | string, data: string): Buffer {
   return createHmac('sha256', key).update(data, 'utf8').digest();
 }
 
-function getSigningKey(secretAccessKey: string, dateStamp: string, region: string, service: string): Buffer {
+function getSigningKey(
+  secretAccessKey: string,
+  dateStamp: string,
+  region: string,
+  service: string
+): Buffer {
   const kDate = hmacHex(`AWS4${secretAccessKey}`, dateStamp);
   const kRegion = hmacHex(kDate, region);
   const kService = hmacHex(kRegion, service);

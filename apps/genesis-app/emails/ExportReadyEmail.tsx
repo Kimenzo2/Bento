@@ -23,9 +23,7 @@ export default function ExportReadyEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Your {format} is ready.
-      </Text>
+      <Text style={heading(28)}>Your {format} is ready.</Text>
 
       {/* Body */}
       <Text style={body()}>
@@ -37,7 +35,9 @@ export default function ExportReadyEmail({
         <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 6px 0', align: 'center' })}>
           {format} format
         </Text>
-        <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D', align: 'center' })}>
+        <Text
+          style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D', align: 'center' })}
+        >
           {bookTitle}
         </Text>
       </Section>

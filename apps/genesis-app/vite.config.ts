@@ -21,12 +21,12 @@ function nonBlockingAssets(): Plugin {
           /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
           (_match, href) =>
             `<link rel="preload" as="style" crossorigin href="${href}" onload="this.onload=null;this.rel='stylesheet'">` +
-            `\n<noscript><link rel="stylesheet" crossorigin href="${href}"></noscript>`,
+            `\n<noscript><link rel="stylesheet" crossorigin href="${href}"></noscript>`
         );
         // Script: add defer to module scripts (redundant per spec, satisfies audits)
         html = html.replace(
           /<script type="module" crossorigin src="(\/assets\/[^"]+\.js)">/g,
-          '<script type="module" defer crossorigin src="$1">',
+          '<script type="module" defer crossorigin src="$1">'
         );
         return html;
       },
@@ -39,7 +39,8 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
   const devApiPort = env.DEV_API_PORT || '3002';
   const devApiTarget = env.VITE_DEV_API_TARGET || `http://localhost:${devApiPort}`;
-  const isProtectedPreview = env.VERCEL === '1' && env.VERCEL_ENV && env.VERCEL_ENV !== 'production';
+  const isProtectedPreview =
+    env.VERCEL === '1' && env.VERCEL_ENV && env.VERCEL_ENV !== 'production';
   const enablePwa = isProduction && !isProtectedPreview;
 
   return {
@@ -60,7 +61,13 @@ export default defineConfig(({ mode }) => {
           devOptions: {
             enabled: false, // Disable SW in dev to avoid caching issues
           },
-          includeAssets: ['genesis-icon.jpg', 'genesis-icon-192.png', 'genesis-icon-512.png', 'genesis-icon-maskable-512.png', 'robots.txt'],
+          includeAssets: [
+            'genesis-icon.jpg',
+            'genesis-icon-192.png',
+            'genesis-icon-512.png',
+            'genesis-icon-maskable-512.png',
+            'robots.txt',
+          ],
           workbox: {
             // Allow larger precache entries (some chunks exceed the default 2 MiB limit)
             maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
@@ -265,30 +272,54 @@ export default defineConfig(({ mode }) => {
       force: false, // only re-bundle when deps actually change
       include: [
         // Core React
-        'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', 'react-router',
+        'react',
+        'react/jsx-runtime',
+        'react-dom',
+        'react-dom/client',
+        'react-router',
         // Supabase
         '@supabase/supabase-js',
         // i18n
-        'i18next', 'react-i18next', 'i18next-browser-languagedetector', 'i18next-http-backend',
+        'i18next',
+        'react-i18next',
+        'i18next-browser-languagedetector',
+        'i18next-http-backend',
         // UI / motion
-        'framer-motion', 'lucide-react',
+        'framer-motion',
+        'lucide-react',
         // Radix primitives (one import = no repeated crawling)
-        '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar',
-        '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu',
-        '@radix-ui/react-label', '@radix-ui/react-popover',
-        '@radix-ui/react-progress', '@radix-ui/react-scroll-area',
-        '@radix-ui/react-select', '@radix-ui/react-separator',
-        '@radix-ui/react-slider', '@radix-ui/react-slot',
-        '@radix-ui/react-switch', '@radix-ui/react-tabs',
+        '@radix-ui/react-alert-dialog',
+        '@radix-ui/react-avatar',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-dropdown-menu',
+        '@radix-ui/react-label',
+        '@radix-ui/react-popover',
+        '@radix-ui/react-progress',
+        '@radix-ui/react-scroll-area',
+        '@radix-ui/react-select',
+        '@radix-ui/react-separator',
+        '@radix-ui/react-slider',
+        '@radix-ui/react-slot',
+        '@radix-ui/react-switch',
+        '@radix-ui/react-tabs',
         '@radix-ui/react-tooltip',
         // Other runtime deps
-        'clsx', 'tailwind-merge', 'class-variance-authority',
-        'sonner', 'react-error-boundary',
+        'clsx',
+        'tailwind-merge',
+        'class-variance-authority',
+        'sonner',
+        'react-error-boundary',
       ],
       // Exclude server-only packages from client bundle
-      exclude: ['@mastra/core', '@mastra/pg', '@mastra/rag', '@mastra/memory',
-                '@hono/node-server',
-                '@react-email/components', 'react-email'],
+      exclude: [
+        '@mastra/core',
+        '@mastra/pg',
+        '@mastra/rag',
+        '@mastra/memory',
+        '@hono/node-server',
+        '@react-email/components',
+        'react-email',
+      ],
     },
     build: {
       commonjsOptions: {
@@ -332,7 +363,8 @@ export default defineConfig(({ mode }) => {
               // PDF export - lazy loaded on export action
               if (id.includes('jspdf')) return 'vendor-export';
               // Image capture - lazy loaded on export action
-              if (id.includes('html-to-image') || id.includes('html2canvas')) return 'vendor-export';
+              if (id.includes('html-to-image') || id.includes('html2canvas'))
+                return 'vendor-export';
               // React Email - lazy loaded on email send
               if (id.includes('@react-email') || id.includes('react-email')) return 'vendor-email';
               // Sentry - should be lazy loaded

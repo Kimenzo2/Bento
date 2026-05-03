@@ -83,7 +83,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   // ── Derived data ─────────────────────────────────────────────────────────
   const allPages = useMemo(
     () => project.chapters.flatMap((chapter) => chapter.pages),
-    [project.chapters],
+    [project.chapters]
   );
   const totalPages = allPages.length;
   const currentPage = allPages[currentPageIndex];
@@ -121,7 +121,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         screenReaderAnnounce.pageChange(page + 1, totalPages);
       }
     },
-    [totalPages],
+    [totalPages]
   );
 
   const nextPage = useCallback(() => {
@@ -189,7 +189,9 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
   useEffect(() => {
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
-    return () => { window.speechSynthesis.cancel(); };
+    return () => {
+      window.speechSynthesis.cancel();
+    };
   }, [currentPageIndex]);
 
   // ── Fullscreen ───────────────────────────────────────────────────────────
@@ -218,24 +220,27 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
     return result.filter((p) => p.length > 0);
   }, [currentPage.text]);
 
-  const showQuizFeedback = useCallback((isCorrect: boolean, celebration: string, explanation?: string) => {
-    if (isCorrect) {
-      toast.success(celebration, {
-        description: explanation,
-      });
-      return;
-    }
+  const showQuizFeedback = useCallback(
+    (isCorrect: boolean, celebration: string, explanation?: string) => {
+      if (isCorrect) {
+        toast.success(celebration, {
+          description: explanation,
+        });
+        return;
+      }
 
-    toast(celebration);
-  }, []);
+      toast(celebration);
+    },
+    []
+  );
 
   // ── Learning mode character ──────────────────────────────────────────────
   const teacherChar = useMemo(
     () =>
       project.characters.find(
-        (c) => c.teachingStyle || c.role === 'mentor' || c.role === 'teacher' || c.role === 'guide',
+        (c) => c.teachingStyle || c.role === 'mentor' || c.role === 'teacher' || c.role === 'guide'
       ) || project.characters.find((c) => c.role === 'mentor'),
-    [project.characters],
+    [project.characters]
   );
 
   // ── Build chapter index for TOC ──────────────────────────────────────────
@@ -292,9 +297,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               <h1 className="font-heading font-bold text-sm md:text-base text-charcoal-soft dark:text-[#EAE0D5] truncate">
                 {project.title}
               </h1>
-              <p className="text-xs text-cocoa-light truncate">
-                {chapterInfo.chapterTitle}
-              </p>
+              <p className="text-xs text-cocoa-light truncate">{chapterInfo.chapterTitle}</p>
             </div>
           </div>
 
@@ -312,11 +315,18 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={(e) => { e.stopPropagation(); toggleSpeech(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSpeech();
+              }}
               className={`${viewerIconButtonClass} ${isSpeaking ? 'text-coral-burst dark:text-coral-burst border-coral-burst/45' : ''}`}
               title={isSpeaking ? 'Stop Reading' : 'Read Aloud'}
             >
-              {isSpeaking ? <VolumeX className="w-[18px] h-[18px]" /> : <Volume2 className="w-[18px] h-[18px]" />}
+              {isSpeaking ? (
+                <VolumeX className="w-[18px] h-[18px]" />
+              ) : (
+                <Volume2 className="w-[18px] h-[18px]" />
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -328,8 +338,18 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               <BookOpen className="w-[18px] h-[18px]" />
             </Button>
             <div className="hidden md:flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className={viewerIconButtonClass} title="Fullscreen">
-                {isFullscreen ? <Minimize2 className="w-[18px] h-[18px]" /> : <Maximize2 className="w-[18px] h-[18px]" />}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className={viewerIconButtonClass}
+                title="Fullscreen"
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="w-[18px] h-[18px]" />
+                ) : (
+                  <Maximize2 className="w-[18px] h-[18px]" />
+                )}
               </Button>
             </div>
           </div>
@@ -430,38 +450,38 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
         aria-label={`Story content, page ${currentPageIndex + 1} of ${totalPages}`}
       >
         <AnimatePresence mode="wait">
-          <motion.article
-            key={currentPageIndex}
-            {...pageTransition}
-            className="min-h-full"
-          >
+          <motion.article key={currentPageIndex} {...pageTransition} className="min-h-full">
             {/* Page content — unified layout */}
             <div className="max-w-5xl mx-auto px-4 md:px-8 pt-16 md:pt-20 pb-32 md:pb-24">
               {/* ── Image ───────────────────────────────────────────────── */}
-              {currentPage.imageUrl && currentPage.layoutType !== 'text-only' && currentPage.layoutType !== 'learning-only' && (
-                <div className="mb-8 md:mb-10">
-                  <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-peach-soft/20 dark:bg-[#2A201D] aspect-[16/10] md:aspect-[2/1]">
-                    <img
-                      src={currentPage.imageUrl}
-                      alt={`Illustration for page ${currentPage.pageNumber}`}
-                      className="w-full h-full object-cover"
-                      loading="eager"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* ── No image placeholder ─────────────────────────────────── */}
-              {!currentPage.imageUrl && currentPage.layoutType !== 'text-only' && currentPage.layoutType !== 'learning-only' && (
-                <div className="mb-8 md:mb-10">
-                  <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-peach-soft/20 dark:bg-[#2A201D] aspect-[16/10] md:aspect-[2/1] flex items-center justify-center">
-                    <div className="text-center text-cocoa-light/40">
-                      <IcoBook className="w-10 h-10 mx-auto mb-2" />
-                      <span className="text-xs font-body">Illustration</span>
+              {currentPage.imageUrl &&
+                currentPage.layoutType !== 'text-only' &&
+                currentPage.layoutType !== 'learning-only' && (
+                  <div className="mb-8 md:mb-10">
+                    <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-peach-soft/20 dark:bg-[#2A201D] aspect-[16/10] md:aspect-[2/1]">
+                      <img
+                        src={currentPage.imageUrl}
+                        alt={`Illustration for page ${currentPage.pageNumber}`}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+
+              {/* ── No image placeholder ─────────────────────────────────── */}
+              {!currentPage.imageUrl &&
+                currentPage.layoutType !== 'text-only' &&
+                currentPage.layoutType !== 'learning-only' && (
+                  <div className="mb-8 md:mb-10">
+                    <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-peach-soft/20 dark:bg-[#2A201D] aspect-[16/10] md:aspect-[2/1] flex items-center justify-center">
+                      <div className="text-center text-cocoa-light/40">
+                        <IcoBook className="w-10 h-10 mx-auto mb-2" />
+                        <span className="text-xs font-body">Illustration</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               {/* ── Chapter badge ────────────────────────────────────────── */}
               <div className="mb-6">
@@ -471,18 +491,19 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
               </div>
 
               {/* ── Story text ───────────────────────────────────────────── */}
-              {currentPage.layoutType !== 'image-only' && currentPage.layoutType !== 'learning-only' && (
-                <div className="max-w-3xl">
-                  {paragraphs.map((paragraph, idx) => (
-                    <p
-                      key={idx}
-                      className="text-lg md:text-xl lg:text-[22px] leading-relaxed md:leading-[1.8] text-charcoal-soft dark:text-[#EAE0D5] font-body mb-6 last:mb-0"
-                    >
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              )}
+              {currentPage.layoutType !== 'image-only' &&
+                currentPage.layoutType !== 'learning-only' && (
+                  <div className="max-w-3xl">
+                    {paragraphs.map((paragraph, idx) => (
+                      <p
+                        key={idx}
+                        className="text-lg md:text-xl lg:text-[22px] leading-relaxed md:leading-[1.8] text-charcoal-soft dark:text-[#EAE0D5] font-body mb-6 last:mb-0"
+                      >
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                )}
 
               {/* ── Learning content ────────────────────────────────────── */}
               {currentPage.layoutType === 'learning-only' && currentPage.learningContent && (
@@ -495,7 +516,8 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                         alt={teacherChar.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${teacherChar.name}`;
+                          (e.target as HTMLImageElement).src =
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${teacherChar.name}`;
                         }}
                       />
                     ) : (
@@ -532,20 +554,25 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                             variant="outline"
                             onClick={() => {
                               if (option === currentPage.learningContent?.quiz?.correctAnswer) {
-                                const celebration = teacherChar?.teachingStyle?.encouragementStyle || "That's correct!";
+                                const celebration =
+                                  teacherChar?.teachingStyle?.encouragementStyle ||
+                                  "That's correct!";
                                 showQuizFeedback(
                                   true,
                                   celebration,
                                   currentPage.learningContent?.quiz?.explanation
                                 );
                               } else {
-                                const encouragement = teacherChar?.teachingStyle?.correctionStyle || 'Try again!';
+                                const encouragement =
+                                  teacherChar?.teachingStyle?.correctionStyle || 'Try again!';
                                 showQuizFeedback(false, encouragement);
                               }
                             }}
                             className="w-full text-left justify-start"
                           >
-                            <span className="text-cocoa-light mr-2">{String.fromCharCode(65 + idx)}.</span>
+                            <span className="text-cocoa-light mr-2">
+                              {String.fromCharCode(65 + idx)}.
+                            </span>
                             {option}
                           </Button>
                         ))}
@@ -567,7 +594,7 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                       variant="outline"
                       onClick={() => {
                         const targetIdx = allPages.findIndex(
-                          (p) => p.pageNumber === choice.targetPageNumber,
+                          (p) => p.pageNumber === choice.targetPageNumber
                         );
                         if (targetIdx >= 0) goToPage(targetIdx);
                       }}
@@ -635,7 +662,13 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                   <span className="hidden lg:inline ml-1.5">Learn</span>
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={onEdit} className={viewerIconButtonClass} title="Edit">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onEdit}
+                className={viewerIconButtonClass}
+                title="Edit"
+              >
                 <Edit3 className="w-4 h-4" />
               </Button>
               <Button
@@ -691,7 +724,8 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     alt={teacherChar.name}
                     className="w-10 h-10 rounded-full object-cover shrink-0 border border-peach-soft"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${teacherChar.name}`;
+                      (e.target as HTMLImageElement).src =
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${teacherChar.name}`;
                     }}
                   />
                 ) : (
@@ -704,7 +738,9 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
                     {teacherChar?.name || 'Learning Guide'}
                   </h4>
                   {currentPage.learningContent.topic && (
-                    <span className="text-xs text-cocoa-light">{currentPage.learningContent.topic}</span>
+                    <span className="text-xs text-cocoa-light">
+                      {currentPage.learningContent.topic}
+                    </span>
                   )}
                 </div>
                 {/* Toggle to voice tutor */}
@@ -791,7 +827,12 @@ const StorybookViewer: React.FC<StorybookViewerProps> = ({
 
       {/* ── Modals ────────────────────────────────────────────────────────── */}
       {showKDPExportModal && (
-        <KDPExportModal project={project} isOpen={true} onClose={() => setShowKDPExportModal(false)} userTier={tier as UserTier} />
+        <KDPExportModal
+          project={project}
+          isOpen={true}
+          onClose={() => setShowKDPExportModal(false)}
+          userTier={tier as UserTier}
+        />
       )}
 
       {showShareModal && (

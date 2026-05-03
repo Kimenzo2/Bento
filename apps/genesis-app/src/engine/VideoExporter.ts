@@ -178,11 +178,13 @@ export class VideoExporter {
   }
 
   private sanitizeFilename(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80) || 'storybook-export';
+    return (
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80) || 'storybook-export'
+    );
   }
 
   private isSafari(): boolean {

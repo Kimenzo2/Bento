@@ -10,6 +10,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "../../lib/**/*.ts"],

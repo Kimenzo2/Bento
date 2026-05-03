@@ -17,42 +17,46 @@ test.describe('Landing Page Performance', () => {
   // ---------------------------------------------------------------------------
 
   test('First Contentful Paint is under 3 seconds', async ({ page }) => {
-    const fcp = await page.evaluate(() =>
-      new Promise<number>((resolve) => {
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            if (entry.name === 'first-contentful-paint') {
-              resolve(entry.startTime);
+    const fcp = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              if (entry.name === 'first-contentful-paint') {
+                resolve(entry.startTime);
+              }
             }
-          }
-        });
-        observer.observe({ type: 'paint', buffered: true });
-        // Fallback if already painted
-        setTimeout(() => {
-          const entries = performance.getEntriesByName('first-contentful-paint');
-          if (entries.length > 0) resolve(entries[0].startTime);
-          else resolve(-1);
-        }, 5000);
-      })
+          });
+          observer.observe({ type: 'paint', buffered: true });
+          // Fallback if already painted
+          setTimeout(() => {
+            const entries = performance.getEntriesByName('first-contentful-paint');
+            if (entries.length > 0) resolve(entries[0].startTime);
+            else resolve(-1);
+          }, 5000);
+        })
     );
 
     expect(fcp).toBeGreaterThan(0);
     expect(fcp).toBeLessThan(3000); // FCP under 3s
   });
 
-  test('Largest Contentful Paint is under 4 seconds (prod) / 15 seconds (dev)', async ({ page }) => {
-    const lcp = await page.evaluate(() =>
-      new Promise<number>((resolve) => {
-        let lastLcp = -1;
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            lastLcp = entry.startTime;
-          }
-        });
-        observer.observe({ type: 'largest-contentful-paint', buffered: true });
-        // LCP finalizes when user interacts or after load; wait then report
-        setTimeout(() => resolve(lastLcp), 6000);
-      })
+  test('Largest Contentful Paint is under 4 seconds (prod) / 15 seconds (dev)', async ({
+    page,
+  }) => {
+    const lcp = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          let lastLcp = -1;
+          const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              lastLcp = entry.startTime;
+            }
+          });
+          observer.observe({ type: 'largest-contentful-paint', buffered: true });
+          // LCP finalizes when user interacts or after load; wait then report
+          setTimeout(() => resolve(lastLcp), 6000);
+        })
     );
 
     expect(lcp).toBeGreaterThan(0);
@@ -81,9 +85,9 @@ test.describe('Landing Page Performance', () => {
 
   test('Google Fonts uses non-blocking preload strategy', async ({ page }) => {
     // Verify the preload link exists for the critical fonts
-    const preloadFontLinks = await page.locator(
-      'link[rel="preload"][as="style"][href*="fonts.googleapis.com"]'
-    ).count();
+    const preloadFontLinks = await page
+      .locator('link[rel="preload"][as="style"][href*="fonts.googleapis.com"]')
+      .count();
     expect(preloadFontLinks).toBeGreaterThanOrEqual(1);
 
     // Verify noscript fallback exists
@@ -96,9 +100,7 @@ test.describe('Landing Page Performance', () => {
     const h1 = page.locator('h1').first();
     await expect(h1).toBeVisible();
 
-    const fontFamily = await h1.evaluate((el) =>
-      window.getComputedStyle(el).fontFamily
-    );
+    const fontFamily = await h1.evaluate((el) => window.getComputedStyle(el).fontFamily);
     expect(fontFamily.toLowerCase()).toContain('instrument serif');
   });
 
@@ -148,8 +150,8 @@ test.describe('Landing Page Performance', () => {
     await page.waitForSelector('h1');
 
     // Count images with loading="lazy" attribute in the rendered DOM
-    const lazyCount = await page.evaluate(() =>
-      document.querySelectorAll('img[loading="lazy"]').length
+    const lazyCount = await page.evaluate(
+      () => document.querySelectorAll('img[loading="lazy"]').length
     );
     expect(lazyCount).toBeGreaterThanOrEqual(4);
   });
@@ -158,8 +160,8 @@ test.describe('Landing Page Performance', () => {
     // Wait for React to render
     await page.waitForSelector('h1');
 
-    const eagerCount = await page.evaluate(() =>
-      document.querySelectorAll('img[loading="eager"]').length
+    const eagerCount = await page.evaluate(
+      () => document.querySelectorAll('img[loading="eager"]').length
     );
     expect(eagerCount).toBeGreaterThanOrEqual(1);
   });
@@ -232,7 +234,9 @@ test.describe('Landing Page Performance', () => {
     await expect(page.locator('h1')).toBeVisible();
 
     // At least one prominent CTA button
-    const ctaButtons = page.locator('button, a').filter({ hasText: /get started|choose your realm/i });
+    const ctaButtons = page
+      .locator('button, a')
+      .filter({ hasText: /get started|choose your realm/i });
     await expect(ctaButtons.first()).toBeVisible();
   });
 
@@ -284,7 +288,16 @@ test.describe('Landing Page Performance', () => {
     }, manifestHref);
 
     // Required sizes for Android + desktop
-    const requiredSizes = ['48x48', '72x72', '96x96', '128x128', '144x144', '192x192', '384x384', '512x512'];
+    const requiredSizes = [
+      '48x48',
+      '72x72',
+      '96x96',
+      '128x128',
+      '144x144',
+      '192x192',
+      '384x384',
+      '512x512',
+    ];
     const iconSizes = manifestResponse.icons.map((i: { sizes: string }) => i.sizes);
 
     for (const size of requiredSizes) {
@@ -317,10 +330,13 @@ test.describe('Landing Page Performance', () => {
 
     // Check each icon src returns 200
     for (const icon of manifestResponse.icons) {
-      const status = await page.evaluate(async (src: string) => {
-        const res = await fetch(src);
-        return res.status;
-      }, icon.src.startsWith('/') ? icon.src : `/${icon.src}`);
+      const status = await page.evaluate(
+        async (src: string) => {
+          const res = await fetch(src);
+          return res.status;
+        },
+        icon.src.startsWith('/') ? icon.src : `/${icon.src}`
+      );
       expect(status, `Icon ${icon.src} not accessible`).toBe(200);
     }
   });

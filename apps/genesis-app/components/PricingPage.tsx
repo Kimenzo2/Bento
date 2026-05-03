@@ -117,7 +117,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
 
   usePageSEO({
     title: 'Pricing — Genesis AI Visual Storytelling',
-    description: 'Genesis plans from free to enterprise. Create AI-powered visual stories, educational content, and illustrated books.',
+    description:
+      'Genesis plans from free to enterprise. Create AI-powered visual stories, educational content, and illustrated books.',
     canonical: '/pricing',
   });
 
@@ -133,14 +134,43 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
       applicationCategory: 'EducationalApplication',
       operatingSystem: 'Web Browser',
       offers: [
-        { '@type': 'Offer', name: 'Spark', price: '0', priceCurrency: 'USD', description: 'Free tier with basic features' },
-        { '@type': 'Offer', name: 'Creator', price: '19.99', priceCurrency: 'USD', description: 'Monthly plan for individual creators', url: 'https://iamazeyou.me/tier/creator' },
-        { '@type': 'Offer', name: 'Studio', price: '59.99', priceCurrency: 'USD', description: 'Monthly plan for professional studios', url: 'https://iamazeyou.me/tier/studio' },
-        { '@type': 'Offer', name: 'Empire', price: '199.99', priceCurrency: 'USD', description: 'Monthly plan for enterprise teams', url: 'https://iamazeyou.me/tier/empire' },
+        {
+          '@type': 'Offer',
+          name: 'Spark',
+          price: '0',
+          priceCurrency: 'USD',
+          description: 'Free tier with basic features',
+        },
+        {
+          '@type': 'Offer',
+          name: 'Creator',
+          price: '19.99',
+          priceCurrency: 'USD',
+          description: 'Monthly plan for individual creators',
+          url: 'https://iamazeyou.me/tier/creator',
+        },
+        {
+          '@type': 'Offer',
+          name: 'Studio',
+          price: '59.99',
+          priceCurrency: 'USD',
+          description: 'Monthly plan for professional studios',
+          url: 'https://iamazeyou.me/tier/studio',
+        },
+        {
+          '@type': 'Offer',
+          name: 'Empire',
+          price: '199.99',
+          priceCurrency: 'USD',
+          description: 'Monthly plan for enterprise teams',
+          url: 'https://iamazeyou.me/tier/empire',
+        },
       ],
     });
     document.head.appendChild(script);
-    return () => { document.getElementById('pricing-jsonld')?.remove(); };
+    return () => {
+      document.getElementById('pricing-jsonld')?.remove();
+    };
   }, []);
 
   const handleSubscribe = (tier: TierData) => {
@@ -181,7 +211,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
   };
 
   return (
-    <section aria-label="Pricing plans" className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn">
+    <section
+      aria-label="Pricing plans"
+      className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn"
+    >
       <div className="max-w-7xl mx-auto px-6 pt-12">
         {/* Header */}
         <div className="text-center mb-16">

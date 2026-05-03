@@ -1,7 +1,7 @@
 {
   "name": "@genesis/app",
-  "private": true,
   "version": "2.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --force",
@@ -13,13 +13,15 @@
     "build:analyze": "ANALYZE=true vite build",
     "build:check": "bun run build && bun run size-check",
     "size-check": "node scripts/size-check.mjs",
-    "lint": "biome check . --diagnostic-level=error",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
     "lint:eslint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsgo --noEmit --incremental false",
+    "type-check": "tsgo --noEmit",
     "type-check:fast": "tsgo --noEmit",
     "preview": "vite preview",
-    "format": "biome format --write .",
-    "check": "biome check --write .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check": "bun run format:check && bun run lint",
     "clean": "rimraf dist .tsbuildinfo tsconfig.tsbuildinfo node_modules/.vite node_modules/.cache",
     "clean:all": "rimraf dist .tsbuildinfo tsconfig.tsbuildinfo node_modules/.vite node_modules/.cache",
     "setup:fast": "powershell -ExecutionPolicy Bypass -File ../../fast-setup.ps1",
@@ -113,7 +115,6 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.9",
     "@commitlint/cli": "^20.4.4",
     "@commitlint/config-conventional": "^20.4.4",
     "@eslint/js": "^10.0.1",
@@ -158,8 +159,8 @@
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5"
   },
-  "packageManager": "bun@1.3.11",
   "engines": {
     "node": "24.x"
-  }
+  },
+  "packageManager": "bun@1.3.11"
 }

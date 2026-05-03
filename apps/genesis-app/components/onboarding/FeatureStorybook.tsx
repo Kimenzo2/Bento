@@ -170,9 +170,7 @@ export const FeatureStorybook: React.FC = () => {
       />
 
       {/* Grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.02] bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-size-[80px_80px]"
-      />
+      <div className="absolute inset-0 opacity-[0.02] bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-size-[80px_80px]" />
 
       {/* Floating orbs */}
       <motion.div
@@ -292,7 +290,9 @@ export const FeatureStorybook: React.FC = () => {
                 size="default"
                 onClick={goPrev}
                 disabled={isFirst}
-                className={isFirst ? 'text-white/20' : 'text-white/70 hover:text-white hover:bg-white/5'}
+                className={
+                  isFirst ? 'text-white/20' : 'text-white/70 hover:text-white hover:bg-white/5'
+                }
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
@@ -306,11 +306,7 @@ export const FeatureStorybook: React.FC = () => {
               </div>
 
               {/* Next / Complete */}
-              <Button
-                variant="primary"
-                size="default"
-                onClick={goNext}
-              >
+              <Button variant="primary" size="default" onClick={goNext}>
                 {isLast ? 'Complete Tour' : 'Next'}
                 <ArrowRight className="w-5 h-5" />
               </Button>

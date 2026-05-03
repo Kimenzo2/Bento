@@ -2,10 +2,7 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const scanRoots = [
-  path.join(root, 'pages'),
-  path.join(root, 'components'),
-];
+const scanRoots = [path.join(root, 'pages'), path.join(root, 'components')];
 
 const includeExt = new Set(['.tsx', '.ts']);
 const excludeParts = [

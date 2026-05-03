@@ -33,11 +33,7 @@ const UsageCounter: React.FC<UsageCounterProps> = ({ tier, monthlyUsage, compact
   const isWarning = percent >= 80;
   const isMaxed = percent >= 100;
 
-  const barColor = isMaxed
-    ? 'bg-red-500'
-    : isWarning
-      ? 'bg-amber-500'
-      : 'bg-coral-burst';
+  const barColor = isMaxed ? 'bg-red-500' : isWarning ? 'bg-amber-500' : 'bg-coral-burst';
 
   return (
     <div className={compact ? 'text-xs' : 'text-sm'}>
@@ -59,9 +55,7 @@ const UsageCounter: React.FC<UsageCounterProps> = ({ tier, monthlyUsage, compact
         />
       </div>
       {!compact && (
-        <p className="text-xs text-cocoa-light/70 mt-1">
-          {TIER_DISPLAY[tier].label} plan
-        </p>
+        <p className="text-xs text-cocoa-light/70 mt-1">{TIER_DISPLAY[tier].label} plan</p>
       )}
     </div>
   );

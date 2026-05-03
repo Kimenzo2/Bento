@@ -1,0 +1,27 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node ./index.mjs"
+  },
+  "author": "Mastra",
+  "license": "ISC",
+  "dependencies": {
+    "@mastra/core": "1.25.0",
+    "zod": "4.3.6",
+    "@mastra/duckdb": "latest",
+    "@mastra/clickhouse": "latest",
+    "@mastra/libsql": "latest",
+    "@mastra/loggers": "1.1.1",
+    "@mastra/observability": "1.5.0",
+    "@supabase/supabase-js": "2.80.0",
+    "hono": "4.12.14",
+    "typescript": "6.0.2"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": []
+  }
+}

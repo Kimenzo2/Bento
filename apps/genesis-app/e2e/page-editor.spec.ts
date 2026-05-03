@@ -77,7 +77,9 @@ test.describe('Editor Standalone Mode', () => {
     // Without a project, SmartEditor now renders the actual editor shell
     // Wait for full hydration
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('group', { name: /editor panels/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('group', { name: /editor panels/i })).toBeVisible({
+      timeout: 15000,
+    });
     await expect(page.getByLabel('Story editor')).toBeVisible({ timeout: 15000 });
   });
 
@@ -105,7 +107,9 @@ test.describe('Editor Accessibility', () => {
     // At least one heading should exist (h1-h6 range, Creative Hub has h1, h2, h3)
     const headings = page.locator('h1, h2, h3, h4, h5, h6');
     // Wait for at least one heading to appear with a generous timeout
-    await expect(headings.first()).toBeAttached({ timeout: 10000 }).catch(() => {});
+    await expect(headings.first())
+      .toBeAttached({ timeout: 10000 })
+      .catch(() => {});
 
     const count = await headings.count();
     // If headings are rendered, verify count; otherwise pass (some views may not have headings)
@@ -156,7 +160,9 @@ test.describe('Editor Accessibility', () => {
 
     // In some SPA setups, Tab may not focus interactive elements if there are none visible.
     // We verify focus moved somewhere meaningful if interactive elements exist.
-    const interactiveCount = await page.locator('button, a, input, textarea, select, [tabindex]').count();
+    const interactiveCount = await page
+      .locator('button, a, input, textarea, select, [tabindex]')
+      .count();
     if (interactiveCount > 0) {
       expect(hasFocusedElement).toBeTruthy();
     }

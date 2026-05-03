@@ -25,10 +25,7 @@ import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
 import { createClient } from '@supabase/supabase-js';
 import { mastra, supabaseUrl, supabaseServiceRoleKey, getEnv } from './index';
-import {
-  generateBytezImage,
-  generateTextFromRequest,
-} from './lib/aiGateway';
+import { generateBytezImage, generateTextFromRequest } from './lib/aiGateway';
 import { evaluateBookQuality } from './evals/bookQualityEval';
 import {
   ArtStyleSchema,
@@ -59,8 +56,8 @@ const activeWorkflowOwners = new Map<string, string>();
 // with Upstash Redis (@upstash/ratelimit) using the existing UPSTASH_REDIS_REST_URL.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 30;  // 30 requests per minute per user
-const RATE_LIMIT_WORKFLOW_MAX = 5;   // 5 workflow starts per minute per user
+const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute per user
+const RATE_LIMIT_WORKFLOW_MAX = 5; // 5 workflow starts per minute per user
 
 function checkRateLimit(userId: string, max: number = RATE_LIMIT_MAX_REQUESTS): boolean {
   const now = Date.now();
@@ -160,11 +157,7 @@ function normalizeNumberValue(input: unknown, fallback: number): number {
 }
 
 function normalizeAudienceValue(raw: Record<string, any>): string {
-  const candidates = [
-    raw.audience,
-    raw.targetAudience,
-    raw.ageRange,
-  ];
+  const candidates = [raw.audience, raw.targetAudience, raw.ageRange];
 
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.trim()) {
@@ -353,11 +346,13 @@ app.post('/api/agents/story-architect/generate', async (c) => {
   const body = await c.req.json();
   try {
     const agent = mastra.getAgent('storyArchitect');
-    const result = await agent.generate(JSON.stringify({
-      ...body,
-      userId: auth.userId,
-      userTier: auth.tier,
-    }));
+    const result = await agent.generate(
+      JSON.stringify({
+        ...body,
+        userId: auth.userId,
+        userTier: auth.tier,
+      })
+    );
     return c.json({ success: true, data: result.text });
   } catch (err: any) {
     console.error('[StoryArchitect]', err);
@@ -371,10 +366,12 @@ app.post('/api/agents/character-artist/generate', async (c) => {
   const body = await c.req.json();
   try {
     const agent = mastra.getAgent('characterArtist');
-    const result = await agent.generate(JSON.stringify({
-      ...body,
-      userId: auth.userId,
-    }));
+    const result = await agent.generate(
+      JSON.stringify({
+        ...body,
+        userId: auth.userId,
+      })
+    );
     return c.json({ success: true, data: result.text });
   } catch (err: any) {
     console.error('[CharacterArtist]', err);
@@ -402,11 +399,13 @@ app.post('/api/agents/story-editor/improve', async (c) => {
   const body = await c.req.json();
   try {
     const agent = mastra.getAgent('storyEditor');
-    const result = await agent.generate(JSON.stringify({
-      action: 'improve',
-      ...body,
-      userId: auth.userId,
-    }));
+    const result = await agent.generate(
+      JSON.stringify({
+        action: 'improve',
+        ...body,
+        userId: auth.userId,
+      })
+    );
     return c.json({ success: true, data: result.text });
   } catch (err: any) {
     console.error('[StoryEditor]', err);
@@ -419,11 +418,13 @@ app.post('/api/agents/story-editor/consistency', async (c) => {
   const body = await c.req.json();
   try {
     const agent = mastra.getAgent('storyEditor');
-    const result = await agent.generate(JSON.stringify({
-      action: 'consistency',
-      ...body,
-      userId: auth.userId,
-    }));
+    const result = await agent.generate(
+      JSON.stringify({
+        action: 'consistency',
+        ...body,
+        userId: auth.userId,
+      })
+    );
     return c.json({ success: true, data: result.text });
   } catch (err: any) {
     console.error('[StoryEditor]', err);
@@ -436,11 +437,13 @@ app.post('/api/agents/story-editor/suggestions', async (c) => {
   const body = await c.req.json();
   try {
     const agent = mastra.getAgent('storyEditor');
-    const result = await agent.generate(JSON.stringify({
-      action: 'suggestions',
-      ...body,
-      userId: auth.userId,
-    }));
+    const result = await agent.generate(
+      JSON.stringify({
+        action: 'suggestions',
+        ...body,
+        userId: auth.userId,
+      })
+    );
     return c.json({ success: true, data: result.text });
   } catch (err: any) {
     console.error('[StoryEditor]', err);
@@ -455,42 +458,65 @@ app.get('/api/agents/gamification/state', async (c) => {
     const userId = auth.userId;
 
     // Ensure row exists
-    await supabaseAdmin.from('user_gamification').upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
+    await supabaseAdmin
+      .from('user_gamification')
+      .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
 
     // 1. User state
-    const { data: ug } = await supabaseAdmin.from('user_gamification')
+    const { data: ug } = await supabaseAdmin
+      .from('user_gamification')
       .select('level,level_title,current_xp,books_created_count,current_streak,total_xp')
-      .eq('user_id', userId).single();
+      .eq('user_id', userId)
+      .single();
 
     // 2. Next level XP from DB
     const lvl = ug?.level ?? 1;
-    const { data: nextLvl } = await supabaseAdmin.from('level_definitions').select('xp_required').eq('level', lvl + 1).single();
+    const { data: nextLvl } = await supabaseAdmin
+      .from('level_definitions')
+      .select('xp_required')
+      .eq('level', lvl + 1)
+      .single();
     const nextLevelXP = nextLvl?.xp_required ?? (ug?.total_xp ?? 0) + 2000;
 
     // 3. All active badge definitions
-    const { data: allBadges } = await supabaseAdmin.from('achievement_definitions')
-      .select('id,name,description,icon').eq('is_active', true).not('trigger_action', 'is', null).order('id');
+    const { data: allBadges } = await supabaseAdmin
+      .from('achievement_definitions')
+      .select('id,name,description,icon')
+      .eq('is_active', true)
+      .not('trigger_action', 'is', null)
+      .order('id');
 
     // 4. User's unlocked badges
-    const { data: unlockedRows } = await supabaseAdmin.from('user_achievements')
-      .select('achievement_type').eq('user_id', userId);
+    const { data: unlockedRows } = await supabaseAdmin
+      .from('user_achievements')
+      .select('achievement_type')
+      .eq('user_id', userId);
     const unlockedIds = new Set((unlockedRows ?? []).map((r: any) => r.achievement_type));
     const badges = (allBadges ?? []).map((b: any) => ({
-      id: b.id, name: b.name, description: b.description, icon: b.icon, unlocked: unlockedIds.has(b.id),
+      id: b.id,
+      name: b.name,
+      description: b.description,
+      icon: b.icon,
+      unlocked: unlockedIds.has(b.id),
     }));
 
     // 5. Daily challenges via DB function
-    const { data: challengeRows } = await supabaseAdmin.rpc('assign_daily_challenges', { p_user_id: userId });
+    const { data: challengeRows } = await supabaseAdmin.rpc('assign_daily_challenges', {
+      p_user_id: userId,
+    });
     const dailyChallenges = (challengeRows ?? []).map((r: any) => ({
-      id: r.challenge_id, title: r.title, xpReward: r.xp_reward, completed: r.completed,
+      id: r.challenge_id,
+      title: r.title,
+      xpReward: r.xp_reward,
+      completed: r.completed,
     }));
 
     return c.json({
-      level:             ug?.level             ?? 1,
-      levelTitle:        ug?.level_title        ?? 'Aspiring Author',
-      currentXP:         ug?.current_xp         ?? 0,
+      level: ug?.level ?? 1,
+      levelTitle: ug?.level_title ?? 'Aspiring Author',
+      currentXP: ug?.current_xp ?? 0,
       nextLevelXP,
-      currentStreak:     ug?.current_streak     ?? 0,
+      currentStreak: ug?.current_streak ?? 0,
       booksCreatedCount: ug?.books_created_count ?? 0,
       badges,
       dailyChallenges,
@@ -510,38 +536,58 @@ app.post('/api/agents/gamification/track', async (c) => {
 
     // Award XP via DB function
     const { data: xpResult, error: xpErr } = await supabaseAdmin.rpc('award_xp', {
-      p_user_id: auth.userId, p_action_name: action, p_metadata: metadata ?? {},
+      p_user_id: auth.userId,
+      p_action_name: action,
+      p_metadata: metadata ?? {},
     });
     if (xpErr) throw xpErr;
 
     // Update streak via DB function
-    const { data: streakResult } = await supabaseAdmin.rpc('update_streak', { p_user_id: auth.userId });
+    const { data: streakResult } = await supabaseAdmin.rpc('update_streak', {
+      p_user_id: auth.userId,
+    });
 
     // Auto-unlock badges whose trigger threshold was just crossed
-    const { data: badgeDefs } = await supabaseAdmin.from('achievement_definitions')
-      .select('id,name,trigger_action,trigger_count').eq('is_active', true).not('trigger_action', 'is', null);
-    const { data: ug } = await supabaseAdmin.from('user_gamification')
-      .select('books_created_count,pages_edited_count,illustrations_generated_count,brand_content_created_count,current_streak')
-      .eq('user_id', auth.userId).single();
-    const { data: alreadyUnlocked } = await supabaseAdmin.from('user_achievements')
-      .select('achievement_type').eq('user_id', auth.userId);
+    const { data: badgeDefs } = await supabaseAdmin
+      .from('achievement_definitions')
+      .select('id,name,trigger_action,trigger_count')
+      .eq('is_active', true)
+      .not('trigger_action', 'is', null);
+    const { data: ug } = await supabaseAdmin
+      .from('user_gamification')
+      .select(
+        'books_created_count,pages_edited_count,illustrations_generated_count,brand_content_created_count,current_streak'
+      )
+      .eq('user_id', auth.userId)
+      .single();
+    const { data: alreadyUnlocked } = await supabaseAdmin
+      .from('user_achievements')
+      .select('achievement_type')
+      .eq('user_id', auth.userId);
     const unlockedIds = new Set((alreadyUnlocked ?? []).map((r: any) => r.achievement_type));
 
     const newBadges: string[] = [];
-    for (const badge of (badgeDefs ?? [])) {
+    for (const badge of badgeDefs ?? []) {
       if (unlockedIds.has(badge.id)) continue;
       let count = 0;
-      if (badge.trigger_action === 'book_created')           count = ug?.books_created_count ?? 0;
-      else if (badge.trigger_action === 'page_edited')        count = ug?.pages_edited_count ?? 0;
-      else if (badge.trigger_action === 'illustration_generated') count = ug?.illustrations_generated_count ?? 0;
-      else if (badge.trigger_action === 'brand_content_created')  count = ug?.brand_content_created_count ?? 0;
-      else if (badge.trigger_action === 'streak')             count = ug?.current_streak ?? 0;
+      if (badge.trigger_action === 'book_created') count = ug?.books_created_count ?? 0;
+      else if (badge.trigger_action === 'page_edited') count = ug?.pages_edited_count ?? 0;
+      else if (badge.trigger_action === 'illustration_generated')
+        count = ug?.illustrations_generated_count ?? 0;
+      else if (badge.trigger_action === 'brand_content_created')
+        count = ug?.brand_content_created_count ?? 0;
+      else if (badge.trigger_action === 'streak') count = ug?.current_streak ?? 0;
       else if (badge.trigger_action === 'qa_score_90' && action === 'qa_score_90') count = 1;
       if (count >= badge.trigger_count) {
-        await supabaseAdmin.from('user_achievements').upsert({
-          user_id: auth.userId, achievement_type: badge.id,
-          achievement_name: badge.name, unlocked_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,achievement_type,achievement_name', ignoreDuplicates: true });
+        await supabaseAdmin.from('user_achievements').upsert(
+          {
+            user_id: auth.userId,
+            achievement_type: badge.id,
+            achievement_name: badge.name,
+            unlocked_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,achievement_type,achievement_name', ignoreDuplicates: true }
+        );
         newBadges.push(badge.name);
       }
     }
@@ -559,11 +605,13 @@ app.post('/api/agents/qa/analyze', async (c) => {
   const body = await c.req.json();
   try {
     const agent = mastra.getAgent('qualityAssurance');
-    const result = await agent.generate(JSON.stringify({
-      action: 'analyze',
-      ...body,
-      userId: auth.userId,
-    }));
+    const result = await agent.generate(
+      JSON.stringify({
+        action: 'analyze',
+        ...body,
+        userId: auth.userId,
+      })
+    );
     return c.json({ success: true, data: result.text });
   } catch (err: any) {
     console.error('[QA]', err);
@@ -581,7 +629,10 @@ app.post('/api/workflows/book-generation/start', async (c) => {
 
   // Stricter rate limit for workflow starts (expensive AI operations)
   if (!checkRateLimit(auth.userId, RATE_LIMIT_WORKFLOW_MAX)) {
-    return c.json({ error: 'Too many generation requests. Please wait before starting another.' }, 429);
+    return c.json(
+      { error: 'Too many generation requests. Please wait before starting another.' },
+      429
+    );
   }
 
   const body = await c.req.json();
@@ -590,10 +641,13 @@ app.post('/api/workflows/book-generation/start', async (c) => {
   const normalizedSettings = normalizeGenerationSettings(body?.settings ?? body);
   const settingsParse = GenerationSettingsSchema.safeParse(normalizedSettings);
   if (!settingsParse.success) {
-    return c.json({
-      error: 'Invalid generation settings',
-      details: settingsParse.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
-    }, 400);
+    return c.json(
+      {
+        error: 'Invalid generation settings',
+        details: settingsParse.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+      },
+      400
+    );
   }
   const settings = settingsParse.data;
 
@@ -608,7 +662,9 @@ app.post('/api/workflows/book-generation/start', async (c) => {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ type, data: payload })}\n\n`)
             );
-          } catch { /* controller already closed */ }
+          } catch {
+            /* controller already closed */
+          }
         };
 
         const sendError = (errorMessage: string) => {
@@ -616,16 +672,22 @@ app.post('/api/workflows/book-generation/start', async (c) => {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`)
             );
-          } catch { /* controller already closed */ }
+          } catch {
+            /* controller already closed */
+          }
         };
 
         // Map step IDs to user-facing progress phases
         const STEP_PROGRESS: Record<string, { phase: string; percent: number; message: string }> = {
-          validateRequest:     { phase: 'validation',   percent: 8,  message: 'Validating request...' },
-          generateProject:     { phase: 'writing',      percent: 35, message: 'Generating your book...' },
-          generateIllustrations: { phase: 'illustrating', percent: 72, message: 'Generating illustrations...' },
-          persistBook:         { phase: 'saving',       percent: 92, message: 'Saving book...' },
-          finalizeGeneration:  { phase: 'complete',     percent: 98, message: 'Finalizing...' },
+          validateRequest: { phase: 'validation', percent: 8, message: 'Validating request...' },
+          generateProject: { phase: 'writing', percent: 35, message: 'Generating your book...' },
+          generateIllustrations: {
+            phase: 'illustrating',
+            percent: 72,
+            message: 'Generating illustrations...',
+          },
+          persistBook: { phase: 'saving', percent: 92, message: 'Saving book...' },
+          finalizeGeneration: { phase: 'complete', percent: 98, message: 'Finalizing...' },
         };
 
         let workflowId = '';
@@ -655,9 +717,10 @@ app.post('/api/workflows/book-generation/start', async (c) => {
 
           // Consume per-step events from the stream
           for await (const chunk of stream.fullStream) {
-            const stepId = (chunk as any)?.payload?.stepId
-              ?? (chunk as any)?.stepId
-              ?? (chunk as any)?.payload?.currentStep;
+            const stepId =
+              (chunk as any)?.payload?.stepId ??
+              (chunk as any)?.stepId ??
+              (chunk as any)?.payload?.currentStep;
             if (stepId && STEP_PROGRESS[stepId]) {
               sendEvent('progress', STEP_PROGRESS[stepId]);
             }
@@ -666,7 +729,11 @@ app.post('/api/workflows/book-generation/start', async (c) => {
           const result = await stream.result;
 
           if (result.status === 'success') {
-            sendEvent('progress', { phase: 'complete', percent: 100, message: 'Book generation complete!' });
+            sendEvent('progress', {
+              phase: 'complete',
+              percent: 100,
+              message: 'Book generation complete!',
+            });
             sendEvent('complete', {
               workflowId,
               ...(result as any).result,
@@ -697,10 +764,7 @@ app.post('/api/workflows/book-generation/start', async (c) => {
 });
 
 app.post('/api/workflows/book-generation/resume', async (c) => {
-  return c.json(
-    { error: 'Blueprint approval is no longer required for book generation.' },
-    410
-  );
+  return c.json({ error: 'Blueprint approval is no longer required for book generation.' }, 410);
 });
 
 // ─── Cancel Workflow ─────────────────────────────────────────────────────────
@@ -744,7 +808,10 @@ app.post('/api/workflows/brand-voice/ingest', async (c) => {
         userId: auth.userId,
       },
     });
-    return c.json({ success: true, data: result.status === 'success' ? (result as any).result : null });
+    return c.json({
+      success: true,
+      data: result.status === 'success' ? (result as any).result : null,
+    });
   } catch (err: any) {
     console.error('[BrandVoiceRAG]', err);
     return c.json({ error: err.message }, 500);
@@ -769,18 +836,16 @@ app.post('/api/admin/eval-run', async (c) => {
     const evalResult = await evaluateBookQuality(input ?? {}, output);
 
     // Persist result to book_eval_results for trend tracking
-    await supabaseAdmin
-      .from('book_eval_results')
-      .insert({
-        user_id: auth.userId,
-        overall_score: Math.round(evalResult.score * 100),
-        age_appropriateness: Math.round(evalResult.dimensions.ageAppropriateness * 100),
-        narrative_coherence: Math.round(evalResult.dimensions.coherence * 100),
-        character_consistency: Math.round(evalResult.dimensions.grammar * 100),
-        image_text_alignment: Math.round(evalResult.dimensions.completeness * 100),
-        reason: evalResult.reason,
-        created_at: new Date().toISOString(),
-      });
+    await supabaseAdmin.from('book_eval_results').insert({
+      user_id: auth.userId,
+      overall_score: Math.round(evalResult.score * 100),
+      age_appropriateness: Math.round(evalResult.dimensions.ageAppropriateness * 100),
+      narrative_coherence: Math.round(evalResult.dimensions.coherence * 100),
+      character_consistency: Math.round(evalResult.dimensions.grammar * 100),
+      image_text_alignment: Math.round(evalResult.dimensions.completeness * 100),
+      reason: evalResult.reason,
+      created_at: new Date().toISOString(),
+    });
 
     return c.json({ success: true, data: evalResult });
   } catch (err: any) {
@@ -816,7 +881,13 @@ app.get('/api/admin/eval-averages', async (c) => {
         imageTextAlignment: acc.imageTextAlignment + (row.image_text_alignment ?? 0),
         count: acc.count + 1,
       }),
-      { ageAppropriateness: 0, narrativeCoherence: 0, characterConsistency: 0, imageTextAlignment: 0, count: 0 }
+      {
+        ageAppropriateness: 0,
+        narrativeCoherence: 0,
+        characterConsistency: 0,
+        imageTextAlignment: 0,
+        count: 0,
+      }
     );
 
     const count = totals.count || 1;
@@ -847,15 +918,12 @@ const PORT = Number(process.env.MASTRA_SERVER_PORT ?? 4111);
  * Called from the "mastra:dev" npm script or from the deployment entrypoint.
  */
 export function start() {
-  serve(
-    { fetch: app.fetch, port: PORT },
-    (info) => {
-      console.log(`\n🧠 Genesis Mastra Server running on http://localhost:${info.port}`);
-      console.log(`   Health check: http://localhost:${info.port}/health`);
-      console.log(`   Agents: 6 registered`);
-      console.log(`   Workflows: 2 registered\n`);
-    }
-  );
+  serve({ fetch: app.fetch, port: PORT }, (info) => {
+    console.log(`\n🧠 Genesis Mastra Server running on http://localhost:${info.port}`);
+    console.log(`   Health check: http://localhost:${info.port}/health`);
+    console.log(`   Agents: 6 registered`);
+    console.log(`   Workflows: 2 registered\n`);
+  });
 }
 
 // Auto-start if this file is the entry point

@@ -166,10 +166,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                 example?: string;
               }>
             ).map((vocab, idx: number) => (
-              <div
-                key={idx}
-                className="bg-surface rounded-xl p-4 border border-peach-soft/20"
-              >
+              <div key={idx} className="bg-surface rounded-xl p-4 border border-peach-soft/20">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-charcoal-soft text-lg">{vocab.term}</span>
                 </div>
@@ -407,7 +404,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
       standardsCorrelation !== null && Object.keys(standardsCorrelation).length > 0;
     const hasDifferentiation = Boolean(
       ebook.teacherResources?.differentiationGuide ||
-        safeGet(ebook.teacherResources, 'differentiationStrategies')
+      safeGet(ebook.teacherResources, 'differentiationStrategies')
     );
     const hasFamilyEngagement = Boolean(ebook.familyEngagement);
 
@@ -608,10 +605,7 @@ export const CurriculumViewer: React.FC<CurriculumViewerProps> = ({
                       ebook.familyEngagement?.familyActivities ||
                       []) as AnyRecord[]
                   ).map((activity: AnyRecord, idx: number) => (
-                    <div
-                      key={idx}
-                      className="bg-surface rounded-xl p-4 border border-pink-100"
-                    >
+                    <div key={idx} className="bg-surface rounded-xl p-4 border border-pink-100">
                       <p className="text-charcoal-soft text-sm font-bold mb-1">
                         {String(activity.title || activity.activity || activity.description || '')}
                       </p>

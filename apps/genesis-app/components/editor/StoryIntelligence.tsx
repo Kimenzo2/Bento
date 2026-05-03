@@ -58,17 +58,78 @@ function countSyllables(word: string): number {
 function calculateVisualRichness(text: string): { label: string; level: 'good' | 'warn' | 'bad' } {
   if (!text || text.length < 10) return { label: 'Too short', level: 'warn' };
 
-  const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 0);
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
   const sensoryWords = new Set([
-    'bright', 'dark', 'golden', 'silver', 'glowing', 'shimmering', 'sparkling',
-    'red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'white', 'black',
-    'tiny', 'huge', 'massive', 'small', 'tall', 'wide', 'narrow', 'thick', 'thin',
-    'soft', 'hard', 'smooth', 'rough', 'warm', 'cold', 'hot', 'cool',
-    'loud', 'quiet', 'silent', 'whisper', 'roar', 'crash', 'singing',
-    'sweet', 'bitter', 'sour', 'fragrant', 'musty', 'fresh',
-    'beautiful', 'ancient', 'twisted', 'curved', 'straight', 'round', 'sharp',
-    'forest', 'ocean', 'mountain', 'castle', 'garden', 'sky', 'river', 'cave',
-    'dancing', 'floating', 'flying', 'running', 'crawling', 'swirling',
+    'bright',
+    'dark',
+    'golden',
+    'silver',
+    'glowing',
+    'shimmering',
+    'sparkling',
+    'red',
+    'blue',
+    'green',
+    'yellow',
+    'purple',
+    'orange',
+    'pink',
+    'white',
+    'black',
+    'tiny',
+    'huge',
+    'massive',
+    'small',
+    'tall',
+    'wide',
+    'narrow',
+    'thick',
+    'thin',
+    'soft',
+    'hard',
+    'smooth',
+    'rough',
+    'warm',
+    'cold',
+    'hot',
+    'cool',
+    'loud',
+    'quiet',
+    'silent',
+    'whisper',
+    'roar',
+    'crash',
+    'singing',
+    'sweet',
+    'bitter',
+    'sour',
+    'fragrant',
+    'musty',
+    'fresh',
+    'beautiful',
+    'ancient',
+    'twisted',
+    'curved',
+    'straight',
+    'round',
+    'sharp',
+    'forest',
+    'ocean',
+    'mountain',
+    'castle',
+    'garden',
+    'sky',
+    'river',
+    'cave',
+    'dancing',
+    'floating',
+    'flying',
+    'running',
+    'crawling',
+    'swirling',
   ]);
 
   const sensoryCount = words.filter((w) => sensoryWords.has(w)).length;
@@ -90,11 +151,14 @@ function calculatePageLength(
   let min: number, max: number;
 
   if (position <= 0.25) {
-    min = 80; max = 250;
+    min = 80;
+    max = 250;
   } else if (position >= 0.75) {
-    min = 80; max = 300;
+    min = 80;
+    max = 300;
   } else {
-    min = 150; max = 400;
+    min = 150;
+    max = 400;
   }
 
   if (charCount < min) return { label: 'Short', level: 'warn' };
@@ -109,11 +173,7 @@ const MetricRow: React.FC<{
   level: 'good' | 'warn' | 'bad';
 }> = ({ label, value, level }) => {
   const dotColour =
-    level === 'good'
-      ? 'bg-emerald-500'
-      : level === 'warn'
-      ? 'bg-gold-sunshine'
-      : 'bg-coral-burst';
+    level === 'good' ? 'bg-emerald-500' : level === 'warn' ? 'bg-gold-sunshine' : 'bg-coral-burst';
 
   return (
     <div className="flex items-center justify-between py-2">

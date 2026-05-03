@@ -33,17 +33,7 @@ async function main() {
   await new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(
       'bunx',
-      [
-        'mastra',
-        target,
-        'deploy',
-        '--skip-build',
-        '--yes',
-        '--org',
-        orgId,
-        '--project',
-        projectId,
-      ],
+      ['mastra', target, 'deploy', '--skip-build', '--yes', '--org', orgId, '--project', projectId],
       {
         cwd: rootDir,
         env: process.env,

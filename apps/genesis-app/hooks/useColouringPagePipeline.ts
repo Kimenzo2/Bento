@@ -91,8 +91,10 @@ async function decodeSourceFile(file: File) {
       try {
         return await decodeWithImageElement();
       } catch (fallbackError) {
-        const bitmapMessage = bitmapError instanceof Error ? bitmapError.message : 'Bitmap decoding failed.';
-        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : 'Image element decoding failed.';
+        const bitmapMessage =
+          bitmapError instanceof Error ? bitmapError.message : 'Bitmap decoding failed.';
+        const fallbackMessage =
+          fallbackError instanceof Error ? fallbackError.message : 'Image element decoding failed.';
 
         throw new Error(
           `Unable to decode the selected image. ${bitmapMessage} ${fallbackMessage} Try exporting the file as JPG or PNG.`
@@ -157,7 +159,11 @@ export function useColouringPagePipeline(
 
         await waitForFrame();
 
-        const dimensions = fitContainDimensions(decodedSource.width, decodedSource.height, maxDimension);
+        const dimensions = fitContainDimensions(
+          decodedSource.width,
+          decodedSource.height,
+          maxDimension
+        );
         const canvas = document.createElement('canvas');
         canvas.width = dimensions.width;
         canvas.height = dimensions.height;
@@ -172,7 +178,12 @@ export function useColouringPagePipeline(
           context.clearRect(0, 0, dimensions.width, dimensions.height);
           context.drawImage(decodedSource.source, 0, 0, dimensions.width, dimensions.height);
 
-          const imageData = context.getImageData(0, 0, dimensions.width, dimensions.height) as ImageDataLike;
+          const imageData = context.getImageData(
+            0,
+            0,
+            dimensions.width,
+            dimensions.height
+          ) as ImageDataLike;
           const outline = buildColouringPageOutline(imageData);
 
           if (cancelled) {

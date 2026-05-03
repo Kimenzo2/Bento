@@ -26,12 +26,10 @@ export async function persistAvatarImage(avatarData: string, userId: string): Pr
     const blob = dataURLToBlob(avatarData);
     const path = `${userId}/avatar`;
 
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(path, blob, {
-        upsert: true,
-        contentType: blob.type,
-      });
+    const { error } = await supabase.storage.from('avatars').upload(path, blob, {
+      upsert: true,
+      contentType: blob.type,
+    });
 
     if (error) {
       console.error('[AvatarStorage] Failed to persist avatar:', error.message);

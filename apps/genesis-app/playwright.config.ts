@@ -10,10 +10,9 @@ import { defineConfig, devices } from '@playwright/test';
  */
 
 export default defineConfig({
-  
   // Allow external production URL runs (no local web server bootstrap).
   // If PLAYWRIGHT_BASE_URL is unset, default local dev server behavior remains.
-  
+
   // Look for test files in the e2e directory
   testDir: './e2e',
 

@@ -1,7 +1,7 @@
-import { Image as ImageIcon, Clock3, Sparkles } from 'lucide-react';
+import { Clock3, Image as ImageIcon, Sparkles } from 'lucide-react';
+import type { LifeInColourGenerationRecord } from '../../types';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import type { LifeInColourGenerationRecord } from '../../types';
 
 interface SavedGenerationPanelProps {
   generations: LifeInColourGenerationRecord[];
@@ -37,11 +37,15 @@ export function SavedGenerationPanel({
   }
 
   return (
-    <div className="rounded-[28px] border border-peach-soft bg-surface/75 p-5">
+    <div className="rounded-[28px] border border-peach-soft bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Previous colouring pages</div>
-          <div className="mt-1 text-sm font-semibold text-charcoal-soft">Open a saved colouring page</div>
+          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+            Previous colouring pages
+          </div>
+          <div className="mt-1 text-sm font-semibold text-charcoal-soft">
+            Open a saved colouring page
+          </div>
         </div>
         <Badge variant="secondary">{generations.length}</Badge>
       </div>

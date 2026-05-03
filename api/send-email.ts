@@ -11,7 +11,9 @@ const emailRateLimit = new Map<string, { count: number; resetAt: number }>();
 const MAX_EMAILS_PER_HOUR = 10;
 
 function sanitizeHeaderValue(value: unknown): string {
-  return String(value ?? '').replace(/[\r\n]/g, ' ').trim();
+  return String(value ?? '')
+    .replace(/[\r\n]/g, ' ')
+    .trim();
 }
 
 function isValidEmail(value: string): boolean {

@@ -38,9 +38,15 @@ class MockWorker {
 vi.stubGlobal('Worker', MockWorker);
 
 // Mock URL
-vi.stubGlobal('URL', class {
-  constructor(public href: string, public base?: string) {}
-});
+vi.stubGlobal(
+  'URL',
+  class {
+    constructor(
+      public href: string,
+      public base?: string
+    ) {}
+  }
+);
 
 // Mock OffscreenCanvas
 vi.stubGlobal('OffscreenCanvas', class {});

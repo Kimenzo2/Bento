@@ -12,7 +12,12 @@ interface UpgradeModalProps {
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, onUpgrade }) => {
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* Header */}
         <div className="bg-charcoal-soft pt-12 pb-16 px-8 text-center relative overflow-hidden">

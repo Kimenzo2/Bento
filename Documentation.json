@@ -382,10 +382,7 @@
       "note": "Setting trailingSlash to true breaks webhook delivery"
     }
   },
-  "frozenFiles": [
-    "api/dodo.ts",
-    "vercel.json (trailingSlash setting)"
-  ],
+  "frozenFiles": ["api/dodo.ts", "vercel.json (trailingSlash setting)"],
   "contacts": {
     "support": "support@iamazeyou.me",
     "website": "https://iamazeyou.me"

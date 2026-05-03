@@ -30,9 +30,7 @@ export default function WeeklyDigestEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Your week in review.
-      </Text>
+      <Text style={heading(28)}>Your week in review.</Text>
 
       {/* Sub-heading */}
       <Text style={body({ size: 14, color: '#8B7E74', margin: '0 0 20px 0' })}>
@@ -43,10 +41,10 @@ export default function WeeklyDigestEmail({
       <Section style={{ margin: '24px 0' }}>
         <Row>
           <Column style={{ ...callout, textAlign: 'center', padding: '20px 12px' }}>
-            <Text style={heading(28, { align: 'center', margin: '0' })}>
-              {booksCreated}
-            </Text>
-            <Text style={body({ size: 12, color: '#8B7E74', margin: '6px 0 0 0', align: 'center' })}>
+            <Text style={heading(28, { align: 'center', margin: '0' })}>{booksCreated}</Text>
+            <Text
+              style={body({ size: 12, color: '#8B7E74', margin: '6px 0 0 0', align: 'center' })}
+            >
               Books created
             </Text>
           </Column>
@@ -55,16 +53,18 @@ export default function WeeklyDigestEmail({
             <Text style={heading(28, { align: 'center', margin: '0' })}>
               {wordsWritten.toLocaleString()}
             </Text>
-            <Text style={body({ size: 12, color: '#8B7E74', margin: '6px 0 0 0', align: 'center' })}>
+            <Text
+              style={body({ size: 12, color: '#8B7E74', margin: '6px 0 0 0', align: 'center' })}
+            >
               Words written
             </Text>
           </Column>
           <Column style={{ width: '12px' }} />
           <Column style={{ ...callout, textAlign: 'center', padding: '20px 12px' }}>
-            <Text style={heading(28, { align: 'center', margin: '0' })}>
-              {streakDays}
-            </Text>
-            <Text style={body({ size: 12, color: '#8B7E74', margin: '6px 0 0 0', align: 'center' })}>
+            <Text style={heading(28, { align: 'center', margin: '0' })}>{streakDays}</Text>
+            <Text
+              style={body({ size: 12, color: '#8B7E74', margin: '6px 0 0 0', align: 'center' })}
+            >
               Day streak
             </Text>
           </Column>

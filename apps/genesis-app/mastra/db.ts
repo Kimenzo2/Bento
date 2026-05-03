@@ -14,7 +14,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 if (!supabaseUrl || !supabaseServiceKey) {
   console.warn(
     '[mastra/db] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set. ' +
-    'DB operations in agent tools will fail.',
+      'DB operations in agent tools will fail.'
   );
 }
 

@@ -55,7 +55,10 @@ async function runExport(config: ExportJobConfig): Promise<void> {
 
     const supported = await checkCodecSupport(config);
     if (!supported) {
-      self.postMessage({ type: 'error', message: 'WEBCODECS_UNSUPPORTED' } satisfies WorkerResponse);
+      self.postMessage({
+        type: 'error',
+        message: 'WEBCODECS_UNSUPPORTED',
+      } satisfies WorkerResponse);
       return;
     }
 
@@ -89,7 +92,8 @@ async function runExport(config: ExportJobConfig): Promise<void> {
     const framesPerPage = Math.max(1, Math.round(config.fps * config.durationPerPage));
     const framesPerTransition = Math.max(1, Math.round(config.fps * config.transitionDuration));
     const totalFrameCount =
-      framesPerPage * config.pages.length + framesPerTransition * Math.max(0, config.pages.length - 1);
+      framesPerPage * config.pages.length +
+      framesPerTransition * Math.max(0, config.pages.length - 1);
 
     let frameIndex = 0;
 
@@ -118,7 +122,9 @@ async function runExport(config: ExportJobConfig): Promise<void> {
           duration: Math.round(1_000_000 / config.fps),
         });
 
-        encoder.encode(frame, { keyFrame: frameIndex === 0 || frameIndex % (config.fps * 2) === 0 });
+        encoder.encode(frame, {
+          keyFrame: frameIndex === 0 || frameIndex % (config.fps * 2) === 0,
+        });
         frame.close();
 
         frameIndex++;

@@ -46,7 +46,11 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }
     >
       <div className={iconColors[type]}>{icons[type]}</div>
       <p className="font-medium text-sm flex-1">{message}</p>
-      <button onClick={onClose} className="hover:opacity-70 transition-opacity" aria-label="Dismiss notification">
+      <button
+        onClick={onClose}
+        className="hover:opacity-70 transition-opacity"
+        aria-label="Dismiss notification"
+      >
         <X className="w-4 h-4" />
       </button>
     </div>

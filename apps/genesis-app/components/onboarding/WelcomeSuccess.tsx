@@ -10,22 +10,22 @@ import { useOnboarding, clearOnboardingState } from './OnboardingState';
 const Confetti = ({ delay, x }: { delay: number; x: number }) => {
   const colors = ['#a855f7', '#ec4899', '#f59e0b', '#3b82f6', '#10b981'];
   const color = colors[Math.floor(Math.random() * colors.length)];
-  
+
   return (
     <motion.div
       initial={{ y: -20, x, opacity: 1, rotate: 0 }}
-      animate={{ 
-        y: '100vh', 
+      animate={{
+        y: '100vh',
         opacity: [1, 1, 0],
         rotate: 360 * (Math.random() > 0.5 ? 1 : -1),
       }}
-      transition={{ 
+      transition={{
         duration: 3 + Math.random() * 2,
         delay,
-        ease: "linear"
+        ease: 'linear',
       }}
       className="absolute w-3 h-3 rounded-sm"
-      style={{ 
+      style={{
         backgroundColor: color,
         left: x,
         top: -20,
@@ -35,20 +35,28 @@ const Confetti = ({ delay, x }: { delay: number; x: number }) => {
 };
 
 // Floating achievement badge
-const AchievementBadge = ({ icon: Icon, label, value, delay, gradient }: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: string; 
+const AchievementBadge = ({
+  icon: Icon,
+  label,
+  value,
+  delay,
+  gradient,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
   delay: number;
   gradient: string;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20, scale: 0.8 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ delay, type: "spring", bounce: 0.4 }}
+    transition={{ delay, type: 'spring', bounce: 0.4 }}
     className="flex items-center gap-4 p-4 bg-surface/5  rounded-2xl border border-white/10"
   >
-    <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center`}>
+    <div
+      className={`w-12 h-12 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center`}
+    >
       <Icon className="w-6 h-6 text-white" />
     </div>
     <div>
@@ -77,23 +85,27 @@ export const WelcomeSuccess: React.FC = () => {
   // Personalized welcome based on quiz answers
   const getPersonalizedMessage = () => {
     if (quizAnswers.intent === 'kids') {
-      return "Ready to create magical stories for young minds?";
+      return 'Ready to create magical stories for young minds?';
     }
     if (quizAnswers.intent === 'scifi') {
-      return "Ready to explore galaxies and craft epic adventures?";
+      return 'Ready to explore galaxies and craft epic adventures?';
     }
     if (quizAnswers.intent === 'brand') {
-      return "Ready to create compelling visual narratives?";
+      return 'Ready to create compelling visual narratives?';
     }
-    return "Ready to bring your imagination to life?";
+    return 'Ready to bring your imagination to life?';
   };
 
   const getRoleTitle = () => {
     switch (role) {
-      case 'mentor': return 'The Wise Mentor';
-      case 'explorer': return 'The Bold Explorer';
-      case 'guardian': return 'The Creative Guardian';
-      default: return 'Creative Visionary';
+      case 'mentor':
+        return 'The Wise Mentor';
+      case 'explorer':
+        return 'The Bold Explorer';
+      case 'guardian':
+        return 'The Creative Guardian';
+      default:
+        return 'Creative Visionary';
     }
   };
 
@@ -102,7 +114,7 @@ export const WelcomeSuccess: React.FC = () => {
       {/* Background */}
       <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-[#0d0d1a] to-slate-900" />
       <div className="absolute inset-0 bg-linear-to-br from-purple-950/20 via-transparent to-purple-950/20" />
-      
+
       {/* Radial gradient */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-radial from-purple-600/10 to-transparent rounded-full" />
 
@@ -139,18 +151,18 @@ export const WelcomeSuccess: React.FC = () => {
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", duration: 1, bounce: 0.5 }}
+          transition={{ type: 'spring', duration: 1, bounce: 0.5 }}
           className="relative inline-block mb-8"
         >
           {/* Rotating ring */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
             className="absolute inset-0 rounded-full bg-linear-to-r from-purple-500 via-pink-500 to-amber-500 p-1"
           >
             <div className="w-full h-full rounded-full bg-[#0d0d1a]" />
           </motion.div>
-          
+
           {/* Inner circle */}
           <div className="relative w-28 h-28 rounded-full bg-linear-to-br from-purple-600/30 to-pink-600/30  border border-white/10 flex items-center justify-center">
             <motion.div
@@ -160,7 +172,7 @@ export const WelcomeSuccess: React.FC = () => {
               <IcoCrown className="w-14 h-14 text-amber-400" />
             </motion.div>
           </div>
-          
+
           {/* Celebration */}
           <motion.div
             animate={{ scale: [1, 1.3, 1], rotate: [0, 15, 0] }}
@@ -244,11 +256,7 @@ export const WelcomeSuccess: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
         >
-          <Button
-            variant="primary"
-            size="xl"
-            onClick={handleEnterStudio}
-          >
+          <Button variant="primary" size="xl" onClick={handleEnterStudio}>
             Enter the Studio
             <ArrowRight className="w-6 h-6" />
           </Button>

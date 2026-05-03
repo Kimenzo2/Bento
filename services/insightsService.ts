@@ -518,7 +518,7 @@ class InsightsService {
 
     if (error || !data) return [];
 
-    return (data as Array<{ subject: string; count: number }>);
+    return data as Array<{ subject: string; count: number }>;
   }
 
   /**

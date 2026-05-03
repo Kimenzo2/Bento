@@ -18,14 +18,14 @@
   - Fix: Restrict to explicit app origins (prod + dev allowlist) and require `Vary: Origin`.
 
 - Global wildcard CORS default in core middleware.
-  - Evidence: [api/_middleware.ts](api/_middleware.ts#L236) defaults `origin` to `*`.
+  - Evidence: [api/\_middleware.ts](api/_middleware.ts#L236) defaults `origin` to `*`.
   - Risk: Over-broad exposure for newly added endpoints when handlers forget to override CORS policy.
   - Fix: Default-deny (no CORS) and allow opt-in per route with explicit origin list.
 
 ## Priority 2 (High)
 
 - Untrusted query parameter can influence non-auth route identity keying.
-  - Evidence: [api/_middleware.ts](api/_middleware.ts#L186) returns `req.query.user_id` in `extractUserIdUnsafe`.
+  - Evidence: [api/\_middleware.ts](api/_middleware.ts#L186) returns `req.query.user_id` in `extractUserIdUnsafe`.
   - Risk: Rate-limit/accountability spoofing on unauthenticated routes, noisy audit attribution.
   - Fix: Remove `req.query.user_id` fallback; use verified token sub or IP/device fingerprint only.
 

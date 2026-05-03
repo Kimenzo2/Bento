@@ -1,12 +1,12 @@
-import { memo } from 'react'
-import { MiniMap } from '@xyflow/react'
+import { memo } from 'react';
+import { MiniMap } from '@xyflow/react';
 
 interface CanvasMinimapProps {
-  visible: boolean
+  visible: boolean;
 }
 
 function CanvasMinimapInner({ visible }: CanvasMinimapProps) {
-  if (!visible) return null
+  if (!visible) return null;
 
   return (
     <MiniMap
@@ -25,8 +25,8 @@ function CanvasMinimapInner({ visible }: CanvasMinimapProps) {
       pannable
       zoomable
     />
-  )
+  );
 }
 
-export const CanvasMinimap = memo(CanvasMinimapInner)
-export default CanvasMinimap
+export const CanvasMinimap = memo(CanvasMinimapInner);
+export default CanvasMinimap;

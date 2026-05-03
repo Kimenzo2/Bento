@@ -61,7 +61,9 @@ export const OnboardingPreloader: React.FC = () => {
     const timer = setTimeout(() => {
       // Use requestIdleCallback if available, otherwise just run
       if ('requestIdleCallback' in window) {
-        (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(() => {
+        (
+          window as unknown as { requestIdleCallback: (cb: () => void) => void }
+        ).requestIdleCallback(() => {
           preloadImages();
           preloadVideos();
         });

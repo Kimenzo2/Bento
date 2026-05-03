@@ -19,14 +19,12 @@ export default function PasswordResetEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Reset your password.
-      </Text>
+      <Text style={heading(28)}>Reset your password.</Text>
 
       {/* Body */}
       <Text style={body()}>
-        We received a request to reset your Genesis account password. Click
-        the button below to choose a new one.
+        We received a request to reset your Genesis account password. Click the button below to
+        choose a new one.
       </Text>
 
       {/* CTA */}
@@ -38,19 +36,25 @@ export default function PasswordResetEmail({
 
       {/* Expiry note */}
       <Text style={body({ size: 14, margin: '0 0 20px 0' })}>
-        This link expires in {expiryHours} hour{expiryHours > 1 ? 's' : ''} and can
-        only be used once.
+        This link expires in {expiryHours} hour{expiryHours > 1 ? 's' : ''} and can only be used
+        once.
       </Text>
 
       {/* Callout */}
       <Section style={callout}>
         <Text style={body({ size: 14, margin: '0' })}>
-          <span style={body({ size: 14, weight: 600, margin: '0' })}>Didn&rsquo;t request this?</span>{' '}
-          You can safely ignore this email. Your password will remain unchanged.
-          If you&rsquo;re concerned, please{' '}
-          <Link href="mailto:hello@iamazeyou.me" style={{ color: '#FF9B71', textDecoration: 'underline' }}>
+          <span style={body({ size: 14, weight: 600, margin: '0' })}>
+            Didn&rsquo;t request this?
+          </span>{' '}
+          You can safely ignore this email. Your password will remain unchanged. If you&rsquo;re
+          concerned, please{' '}
+          <Link
+            href="mailto:hello@iamazeyou.me"
+            style={{ color: '#FF9B71', textDecoration: 'underline' }}
+          >
             contact support
-          </Link>.
+          </Link>
+          .
         </Text>
       </Section>
 

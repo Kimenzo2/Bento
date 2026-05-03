@@ -1,5 +1,22 @@
-import { IcoAward, IcoBook, IcoCrown, IcoLibrary, IcoPalette, IcoStar, IcoZap } from './IconscoutIcons';
-import { Briefcase, Building2, Flame, Lock, Pencil, Target, TrendingUp, Trophy } from 'lucide-react';
+import {
+  IcoAward,
+  IcoBook,
+  IcoCrown,
+  IcoLibrary,
+  IcoPalette,
+  IcoStar,
+  IcoZap,
+} from './IconscoutIcons';
+import {
+  Briefcase,
+  Building2,
+  Flame,
+  Lock,
+  Pencil,
+  Target,
+  TrendingUp,
+  Trophy,
+} from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
@@ -28,16 +45,16 @@ interface GamificationHubProps {
 
 // ── Lucide badge icon map (covers all icons in achievement_definitions) ────────
 const BADGE_ICON_MAP: Record<string, React.ReactNode> = {
-  BookOpen:  <IcoBook  className="w-8 h-8 text-coral-burst" />,
-  Library:   <IcoLibrary  className="w-8 h-8 text-blue-500" />,
+  BookOpen: <IcoBook className="w-8 h-8 text-coral-burst" />,
+  Library: <IcoLibrary className="w-8 h-8 text-blue-500" />,
   Building2: <Building2 className="w-8 h-8 text-purple-500" />,
-  Pencil:    <Pencil   className="w-8 h-8 text-teal-500" />,
-  Palette:   <IcoPalette  className="w-8 h-8 text-pink-500" />,
-  Flame:     <Flame    className="w-8 h-8 text-orange-500" />,
-  Zap:       <IcoZap      className="w-8 h-8 text-yellow-500" />,
-  Crown:     <IcoCrown    className="w-8 h-8 text-gold-sunshine" />,
+  Pencil: <Pencil className="w-8 h-8 text-teal-500" />,
+  Palette: <IcoPalette className="w-8 h-8 text-pink-500" />,
+  Flame: <Flame className="w-8 h-8 text-orange-500" />,
+  Zap: <IcoZap className="w-8 h-8 text-yellow-500" />,
+  Crown: <IcoCrown className="w-8 h-8 text-gold-sunshine" />,
   Briefcase: <Briefcase className="w-8 h-8 text-slate-500" />,
-  Award:     <IcoAward    className="w-8 h-8 text-emerald-500" />,
+  Award: <IcoAward className="w-8 h-8 text-emerald-500" />,
 };
 
 const BadgeIcon: React.FC<{ icon: string }> = ({ icon }) =>
@@ -61,12 +78,12 @@ function getChallengeTarget(challengeId: string) {
 
 // ── Time-to-midnight helper (updates every minute) ────────────────────────────
 function timeUntilMidnight(): string {
-  const now      = new Date();
+  const now = new Date();
   const midnight = new Date(now);
   midnight.setHours(24, 0, 0, 0);
   const diff = midnight.getTime() - now.getTime();
-  const h    = Math.floor(diff / 3_600_000);
-  const m    = Math.floor((diff % 3_600_000) / 60_000);
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
   return `${h}h ${m}m`;
 }
 
@@ -77,15 +94,16 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
 }) => {
   usePageSEO({
     title: 'Achievements — Genesis AI Visual Storytelling',
-    description: 'Track your creative journey. View achievements, leaderboards, streaks, and level progress on Genesis.',
+    description:
+      'Track your creative journey. View achievements, leaderboards, streaks, and level progress on Genesis.',
     canonical: '/gamification',
   });
 
-  const [gameState, setGameState]               = useState<GamificationState>(initialGameState);
-  const [mastraLoaded, setMastraLoaded]         = useState(false);
-  const [leaderboard, setLeaderboard]           = useState<LeaderboardEntry[]>([]);
+  const [gameState, setGameState] = useState<GamificationState>(initialGameState);
+  const [mastraLoaded, setMastraLoaded] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
-  const [resetTimer, setResetTimer]             = useState(timeUntilMidnight());
+  const [resetTimer, setResetTimer] = useState(timeUntilMidnight());
 
   // ── Tick the reset timer every minute ──────────────────────────────────────
   useEffect(() => {
@@ -101,14 +119,14 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
       .then((data: GamificationData) => {
         if (!cancelled) {
           setGameState({
-            level:             data.level,
-            currentXP:         data.currentXP,
-            nextLevelXP:       data.nextLevelXP,
-            levelTitle:        data.levelTitle,
-            currentStreak:     data.currentStreak,
+            level: data.level,
+            currentXP: data.currentXP,
+            nextLevelXP: data.nextLevelXP,
+            levelTitle: data.levelTitle,
+            currentStreak: data.currentStreak,
             booksCreatedCount: data.booksCreatedCount,
-            badges:            data.badges,
-            dailyChallenges:   data.dailyChallenges,
+            badges: data.badges,
+            dailyChallenges: data.dailyChallenges,
           });
           setMastraLoaded(true);
         }
@@ -116,7 +134,9 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
       .catch((err) => {
         console.warn('[GamificationHub] Mastra unavailable, using prop data:', err);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ── Stay synced with prop while Mastra hasn't responded ────────────────────
@@ -131,7 +151,9 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
       try {
         const { data, error } = await supabase
           .from('leaderboard_top100_mat')
-          .select('user_id, display_name, avatar_url, level, level_title, current_xp, total_xp, books_created_count, rank')
+          .select(
+            'user_id, display_name, avatar_url, level, level_title, current_xp, total_xp, books_created_count, rank'
+          )
           .order('rank', { ascending: true })
           .limit(5);
 
@@ -144,7 +166,9 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
         if (!cancelled) setLeaderboardLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const progressPercent = useMemo(
@@ -152,7 +176,7 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
       gameState.nextLevelXP > 0
         ? Math.min((gameState.currentXP / gameState.nextLevelXP) * 100, 100)
         : 0,
-    [gameState.currentXP, gameState.nextLevelXP],
+    [gameState.currentXP, gameState.nextLevelXP]
   );
 
   return (
@@ -248,42 +272,44 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
                         : 'bg-cream-soft border-peach-soft hover:border-coral-burst/50'
                     }`}
                   >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-6 h-6 rounded-full border flex items-center justify-center ${
-                        challenge.completed
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-cocoa-light'
-                      }`}
-                    >
-                      {challenge.completed && <CheckIcon />}
-                    </div>
-                    <div>
-                      <h3
-                        className={`font-bold text-sm ${
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-6 h-6 rounded-full border flex items-center justify-center ${
                           challenge.completed
-                            ? 'text-charcoal-soft line-through opacity-50'
-                            : 'text-charcoal-soft'
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : 'border-cocoa-light'
                         }`}
                       >
-                        {challenge.title}
-                      </h3>
-                      <p className="text-xs text-cocoa-light flex items-center gap-1">
-                        Reward:{' '}
-                        <span className="text-gold-sunshine font-bold">+{challenge.xpReward} XP</span>
-                      </p>
+                        {challenge.completed && <CheckIcon />}
+                      </div>
+                      <div>
+                        <h3
+                          className={`font-bold text-sm ${
+                            challenge.completed
+                              ? 'text-charcoal-soft line-through opacity-50'
+                              : 'text-charcoal-soft'
+                          }`}
+                        >
+                          {challenge.title}
+                        </h3>
+                        <p className="text-xs text-cocoa-light flex items-center gap-1">
+                          Reward:{' '}
+                          <span className="text-gold-sunshine font-bold">
+                            +{challenge.xpReward} XP
+                          </span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {!challenge.completed && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMode(challengeTarget.mode)}
-                      className="px-4 py-2 bg-surface text-coral-burst border border-peach-soft/50 hover:bg-coral-burst hover:text-white"
-                    >
-                      {challengeTarget.label}
-                    </Button>
-                  )}
+                    {!challenge.completed && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMode(challengeTarget.mode)}
+                        className="px-4 py-2 bg-surface text-coral-burst border border-peach-soft/50 hover:bg-coral-burst hover:text-white"
+                      >
+                        {challengeTarget.label}
+                      </Button>
+                    )}
                   </div>
                 );
               })}
@@ -321,7 +347,9 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
                 <div key={entry.user_id} className="flex items-center gap-3 p-2">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                      entry.rank === 1 ? 'bg-gold-sunshine text-white' : 'bg-cream-base text-cocoa-light'
+                      entry.rank === 1
+                        ? 'bg-gold-sunshine text-white'
+                        : 'bg-cream-base text-cocoa-light'
                     }`}
                   >
                     {entry.rank}
@@ -329,7 +357,11 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
                   {/* Avatar */}
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                     {entry.avatar_url ? (
-                      <img src={entry.avatar_url} alt={entry.display_name} className="w-full h-full object-cover" />
+                      <img
+                        src={entry.avatar_url}
+                        alt={entry.display_name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="w-full h-full bg-coral-burst/20 flex items-center justify-center text-coral-burst text-xs font-bold">
                         {entry.display_name.charAt(0).toUpperCase()}
@@ -337,8 +369,12 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-charcoal-soft truncate">{entry.display_name}</div>
-                    <div className="text-xs text-cocoa-light">{entry.total_xp.toLocaleString()} XP</div>
+                    <div className="text-sm font-bold text-charcoal-soft truncate">
+                      {entry.display_name}
+                    </div>
+                    <div className="text-xs text-cocoa-light">
+                      {entry.total_xp.toLocaleString()} XP
+                    </div>
                   </div>
                   {entry.rank === 1 && <CrownIcon />}
                 </div>
@@ -357,7 +393,9 @@ const GamificationHub: React.FC<GamificationHubProps> = ({
         {gameState.badges.length === 0 ? (
           <div className="text-center py-10">
             <IcoAward className="w-10 h-10 text-cocoa-light/40 mx-auto mb-3" />
-            <p className="text-sm text-cocoa-light">Start creating to unlock your first achievement!</p>
+            <p className="text-sm text-cocoa-light">
+              Start creating to unlock your first achievement!
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">

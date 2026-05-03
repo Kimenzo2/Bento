@@ -16,7 +16,8 @@ let adminClient: SupabaseClient | null | undefined;
 
 function buildAdminClient(): SupabaseClient {
   const supabaseUrl = getColouringEnv('SUPABASE_URL') || getColouringEnv('VITE_SUPABASE_URL');
-  const supabaseServiceKey = getColouringEnv('SUPABASE_SERVICE_ROLE_KEY') || getColouringEnv('SUPABASE_SECRET_KEY');
+  const supabaseServiceKey =
+    getColouringEnv('SUPABASE_SERVICE_ROLE_KEY') || getColouringEnv('SUPABASE_SECRET_KEY');
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -68,9 +69,7 @@ export async function getBookAccess(
   const membership = memberResult.data ?? null;
   const isOwner = book?.owner_id === userId;
   const isMember = Boolean(
-    membership?.status === 'active' ||
-      membership?.status === 'pending' ||
-      isOwner
+    membership?.status === 'active' || membership?.status === 'pending' || isOwner
   );
   const canEdit = Boolean(isOwner || membership?.role === 'editor');
 
@@ -90,11 +89,37 @@ export async function getBookManifestSnapshot(
 }> {
   const [book, sources, pages, exportsData, members, jobs] = await Promise.all([
     db.from('colouring_books').select('*').eq('id', bookId).maybeSingle<ColouringBookRow>(),
-    db.from('colouring_sources').select('*').eq('book_id', bookId).order('sort_order', { ascending: true }).returns<ColouringSourceRow[]>(),
-    db.from('colouring_pages').select('*').eq('book_id', bookId).order('page_number', { ascending: true }).returns<ColouringPageRow[]>(),
-    db.from('colouring_exports').select('*').eq('book_id', bookId).order('created_at', { ascending: false }).returns<ColouringExportRow[]>(),
-    db.from('colouring_book_members').select('*').eq('book_id', bookId).order('created_at', { ascending: true }).returns<ColouringBookMemberRow[]>(),
-    db.from('colouring_jobs').select('*').eq('book_id', bookId).order('queued_at', { ascending: false }).limit(12).returns<ColouringJobRow[]>(),
+    db
+      .from('colouring_sources')
+      .select('*')
+      .eq('book_id', bookId)
+      .order('sort_order', { ascending: true })
+      .returns<ColouringSourceRow[]>(),
+    db
+      .from('colouring_pages')
+      .select('*')
+      .eq('book_id', bookId)
+      .order('page_number', { ascending: true })
+      .returns<ColouringPageRow[]>(),
+    db
+      .from('colouring_exports')
+      .select('*')
+      .eq('book_id', bookId)
+      .order('created_at', { ascending: false })
+      .returns<ColouringExportRow[]>(),
+    db
+      .from('colouring_book_members')
+      .select('*')
+      .eq('book_id', bookId)
+      .order('created_at', { ascending: true })
+      .returns<ColouringBookMemberRow[]>(),
+    db
+      .from('colouring_jobs')
+      .select('*')
+      .eq('book_id', bookId)
+      .order('queued_at', { ascending: false })
+      .limit(12)
+      .returns<ColouringJobRow[]>(),
   ]);
 
   if (book.error) throw new Error(book.error.message);
@@ -183,9 +208,11 @@ export async function createOriginalUploadUrl(
   db: SupabaseClient,
   path: string
 ): Promise<{ signedUrl: string; token: string; path: string }> {
-  const { data, error } = await db.storage.from(COLOURING_ORIGINALS_BUCKET).createSignedUploadUrl(path, {
-    upsert: false,
-  });
+  const { data, error } = await db.storage
+    .from(COLOURING_ORIGINALS_BUCKET)
+    .createSignedUploadUrl(path, {
+      upsert: false,
+    });
 
   if (error || !data) {
     throw new Error(error?.message || 'Failed to create signed upload URL');

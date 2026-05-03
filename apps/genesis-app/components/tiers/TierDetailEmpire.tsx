@@ -7,7 +7,20 @@
  * Focus: Unlimited scale, custom AI, API access, white-glove service
  */
 
-import { Brain, Check, Clock, Code, Fingerprint, Headphones, Infinity, Lock, Rocket, Server, Shield, Users } from 'lucide-react';
+import {
+  Brain,
+  Check,
+  Clock,
+  Code,
+  Fingerprint,
+  Headphones,
+  Infinity,
+  Lock,
+  Rocket,
+  Server,
+  Shield,
+  Users,
+} from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router';
 
@@ -403,7 +416,8 @@ const TierDetailEmpire: React.FC = () => {
   };
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:enterprise@iamazeyou.me?subject=Empire Tier - Enterprise Inquiry';
+    window.location.href =
+      'mailto:enterprise@iamazeyou.me?subject=Empire Tier - Enterprise Inquiry';
   };
 
   const handleBack = () => {
@@ -661,11 +675,7 @@ const TierDetailEmpire: React.FC = () => {
           <p className="text-charcoal-soft/70">
             Enterprise pricing available for multi-year commitments, volume, and custom
             requirements.
-            <Button
-              variant="link"
-              onClick={handleContactSales}
-              className="ml-2"
-            >
+            <Button variant="link" onClick={handleContactSales} className="ml-2">
               Let's discuss your needs →
             </Button>
           </p>

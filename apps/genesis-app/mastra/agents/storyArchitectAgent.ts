@@ -23,11 +23,7 @@ import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
 import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
-import {
-  GenerationSettingsSchema,
-  ContentStructureSchema,
-  UserTierSchema,
-} from '../schemas';
+import { GenerationSettingsSchema, ContentStructureSchema, UserTierSchema } from '../schemas';
 
 // ─── Tools ───────────────────────────────────────────────────────────────────
 
@@ -51,11 +47,69 @@ const validateBookRequest = createTool({
     const { settings, userTier, ebooksThisMonth } = input;
 
     // Tier limits (mirrored from services/tierLimits.ts)
-    const TIER_LIMITS: Record<string, { ebooksPerMonth: number; maxPages: number; styles: string[] }> = {
-      SPARK: { ebooksPerMonth: 3, maxPages: 4, styles: ['Watercolor', '3D Render (Pixar Style)', 'Japanese Manga', 'Vintage Illustration', 'Paper Cutout Art'] },
-      CREATOR: { ebooksPerMonth: 30, maxPages: 12, styles: ['Watercolor', '3D Render (Pixar Style)', 'Japanese Manga', 'Corporate Minimalist', 'Cyberpunk Neon', 'Vintage Illustration', 'Paper Cutout Art', 'Flat Design', 'Modern Infographic', 'Technical Blueprint'] },
-      STUDIO: { ebooksPerMonth: Infinity, maxPages: 500, styles: ['Watercolor', '3D Render (Pixar Style)', 'Japanese Manga', 'Corporate Minimalist', 'Cyberpunk Neon', 'Vintage Illustration', 'Paper Cutout Art', 'Flat Design', 'Modern Infographic', 'Technical Blueprint'] },
-      EMPIRE: { ebooksPerMonth: Infinity, maxPages: 999, styles: ['Watercolor', '3D Render (Pixar Style)', 'Japanese Manga', 'Corporate Minimalist', 'Cyberpunk Neon', 'Vintage Illustration', 'Paper Cutout Art', 'Flat Design', 'Modern Infographic', 'Technical Blueprint'] },
+    const TIER_LIMITS: Record<
+      string,
+      { ebooksPerMonth: number; maxPages: number; styles: string[] }
+    > = {
+      SPARK: {
+        ebooksPerMonth: 3,
+        maxPages: 4,
+        styles: [
+          'Watercolor',
+          '3D Render (Pixar Style)',
+          'Japanese Manga',
+          'Vintage Illustration',
+          'Paper Cutout Art',
+        ],
+      },
+      CREATOR: {
+        ebooksPerMonth: 30,
+        maxPages: 12,
+        styles: [
+          'Watercolor',
+          '3D Render (Pixar Style)',
+          'Japanese Manga',
+          'Corporate Minimalist',
+          'Cyberpunk Neon',
+          'Vintage Illustration',
+          'Paper Cutout Art',
+          'Flat Design',
+          'Modern Infographic',
+          'Technical Blueprint',
+        ],
+      },
+      STUDIO: {
+        ebooksPerMonth: Infinity,
+        maxPages: 500,
+        styles: [
+          'Watercolor',
+          '3D Render (Pixar Style)',
+          'Japanese Manga',
+          'Corporate Minimalist',
+          'Cyberpunk Neon',
+          'Vintage Illustration',
+          'Paper Cutout Art',
+          'Flat Design',
+          'Modern Infographic',
+          'Technical Blueprint',
+        ],
+      },
+      EMPIRE: {
+        ebooksPerMonth: Infinity,
+        maxPages: 999,
+        styles: [
+          'Watercolor',
+          '3D Render (Pixar Style)',
+          'Japanese Manga',
+          'Corporate Minimalist',
+          'Cyberpunk Neon',
+          'Vintage Illustration',
+          'Paper Cutout Art',
+          'Flat Design',
+          'Modern Infographic',
+          'Technical Blueprint',
+        ],
+      },
     };
 
     const limits = TIER_LIMITS[userTier] ?? TIER_LIMITS.SPARK;
@@ -65,7 +119,10 @@ const validateBookRequest = createTool({
     }
 
     if (!limits.styles.includes(settings.style)) {
-      return { valid: false, error: `Art style "${settings.style}" is not available on ${userTier} tier` };
+      return {
+        valid: false,
+        error: `Art style "${settings.style}" is not available on ${userTier} tier`,
+      };
     }
 
     const adjustedPageCount = Math.min(settings.pageCount, limits.maxPages);
@@ -180,7 +237,8 @@ const checkBrandProfile = createTool({
  */
 const writePageTool = createTool({
   id: 'writePage',
-  description: 'Generates the full text and image prompt for a single book page given the page outline and style context',
+  description:
+    'Generates the full text and image prompt for a single book page given the page outline and style context',
   inputSchema: z.object({
     pageOutline: z.object({
       pageNumber: z.number(),

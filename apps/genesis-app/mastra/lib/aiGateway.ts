@@ -87,7 +87,10 @@ function extractSystemInstruction(
     return systemInstruction.trim() || undefined;
   }
 
-  const text = systemInstruction.parts?.map((part) => part.text ?? '').join('').trim();
+  const text = systemInstruction.parts
+    ?.map((part) => part.text ?? '')
+    .join('')
+    .trim();
   return text || undefined;
 }
 
@@ -171,7 +174,11 @@ export function resolveOpenAIModelId(model?: string, fallback = DEFAULT_TEXT_MOD
     return trimmed;
   }
 
-  if (trimmed.includes('gemini-2.5-pro') || trimmed.includes('gemini-1.5-pro') || trimmed.includes('gemini-pro')) {
+  if (
+    trimmed.includes('gemini-2.5-pro') ||
+    trimmed.includes('gemini-1.5-pro') ||
+    trimmed.includes('gemini-pro')
+  ) {
     return 'gpt-4o';
   }
 
@@ -209,9 +216,7 @@ export function normalizeTextModel(model = DEFAULT_TEXT_MODEL): string {
   return `openai/${resolveOpenAIModelId(trimmed)}`;
 }
 
-function resolveGenerationConfig(
-  request: LegacyTextGenerationRequest
-): {
+function resolveGenerationConfig(request: LegacyTextGenerationRequest): {
   temperature?: number;
   top_p?: number;
   max_completion_tokens?: number;
@@ -237,7 +242,12 @@ function resolveGenerationConfig(
     resolved.temperature = config.temperature;
   }
 
-  const topP = typeof config.topP === 'number' ? config.topP : typeof config.top_p === 'number' ? config.top_p : undefined;
+  const topP =
+    typeof config.topP === 'number'
+      ? config.topP
+      : typeof config.top_p === 'number'
+        ? config.top_p
+        : undefined;
   if (typeof topP === 'number') {
     resolved.top_p = topP;
   }
@@ -253,7 +263,9 @@ function resolveGenerationConfig(
   }
 
   if (Array.isArray(config.stopSequences) && config.stopSequences.length > 0) {
-    resolved.stop = config.stopSequences.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    resolved.stop = config.stopSequences.filter(
+      (item): item is string => typeof item === 'string' && item.length > 0
+    );
   }
 
   if (responseMimeType === 'application/json') {
@@ -271,18 +283,19 @@ function resolveGenerationConfig(
   return resolved;
 }
 
-function resolveTextMessages(request: LegacyTextGenerationRequest): Array<{ role: LegacyMessageRole; content: string }> {
+function resolveTextMessages(
+  request: LegacyTextGenerationRequest
+): Array<{ role: LegacyMessageRole; content: string }> {
   const systemInstruction = extractSystemInstruction(request.systemInstruction);
 
   if (Array.isArray(request.messages) && request.messages.length > 0) {
     const messages = request.messages
       .map((message) => ({
-        role:
-          (message.role === 'assistant'
-            ? 'assistant'
-            : message.role === 'system'
-              ? 'system'
-              : 'user') as LegacyMessageRole,
+        role: (message.role === 'assistant'
+          ? 'assistant'
+          : message.role === 'system'
+            ? 'system'
+            : 'user') as LegacyMessageRole,
         content: coerceContent(message.content),
       }))
       .filter((message) => message.content.trim().length > 0);
@@ -342,9 +355,7 @@ async function callOpenAIChatCompletion(
       typeof rawText === 'string'
         ? rawText
         : Array.isArray(rawText)
-          ? rawText
-              .map((part: { text?: string }) => part.text ?? '')
-              .join('')
+          ? rawText.map((part: { text?: string }) => part.text ?? '').join('')
           : '';
 
     if (!text.trim()) {
@@ -476,7 +487,8 @@ export async function generateBytezImage(input: {
   }
 
   const payload = await response.json();
-  const raw = payload?.imageUrl ?? (Array.isArray(payload?.output) ? payload.output[0] : payload?.output);
+  const raw =
+    payload?.imageUrl ?? (Array.isArray(payload?.output) ? payload.output[0] : payload?.output);
   return typeof raw === 'string' && raw.length > 0 ? raw : null;
 }
 

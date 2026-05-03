@@ -4,7 +4,19 @@ const { Client } = pg;
 const password = '406Jayze$$nzo';
 
 // Try with explicit params to avoid any URL encoding issues
-const regions = ['eu-west-1', 'us-east-1', 'ap-southeast-1', 'eu-central-1', 'us-west-1', 'ap-south-1', 'eu-west-2', 'eu-north-1', 'ap-northeast-1', 'ca-central-1', 'sa-east-1'];
+const regions = [
+  'eu-west-1',
+  'us-east-1',
+  'ap-southeast-1',
+  'eu-central-1',
+  'us-west-1',
+  'ap-south-1',
+  'eu-west-2',
+  'eu-north-1',
+  'ap-northeast-1',
+  'ca-central-1',
+  'sa-east-1',
+];
 
 console.log(`Password: "${password}" (length: ${password.length})`);
 console.log(`URL-encoded: "${encodeURIComponent(password)}"`);
@@ -30,7 +42,9 @@ for (const region of regions) {
   } catch (e: any) {
     const msg = e.message.slice(0, 60);
     if (!msg.includes('Tenant')) console.log(`tx-6543 ${region}: ${msg}`);
-    try { await client.end(); } catch {}
+    try {
+      await client.end();
+    } catch {}
   }
 }
 
@@ -54,7 +68,9 @@ for (const region of regions) {
   } catch (e: any) {
     const msg = e.message.slice(0, 60);
     if (!msg.includes('Tenant')) console.log(`session-5432 ${region}: ${msg}`);
-    try { await client.end(); } catch {}
+    try {
+      await client.end();
+    } catch {}
   }
 }
 
@@ -74,7 +90,9 @@ try {
   await client.end();
 } catch (e: any) {
   console.log(`direct: ${e.message.slice(0, 100)}`);
-  try { await client.end(); } catch {}
+  try {
+    await client.end();
+  } catch {}
 }
 
 console.log('\nAll failed.');

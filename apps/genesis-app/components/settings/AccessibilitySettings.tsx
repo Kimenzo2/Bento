@@ -16,7 +16,6 @@ interface AccessibilitySettingsProps {
 }
 
 const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings, onUpdate }) => {
-
   return (
     <div className="animate-fadeIn space-y-6">
       <div>
@@ -72,9 +71,7 @@ const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({ settings,
 
         <div className="space-y-4">
           <div>
-            <Label className="text-xs uppercase mb-2">
-              Font Size
-            </Label>
+            <Label className="text-xs uppercase mb-2">Font Size</Label>
             <div className="flex gap-2">
               {['small', 'medium', 'large'].map((size) => (
                 <button

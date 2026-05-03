@@ -26,7 +26,9 @@ function getDB(): SupabaseClient {
 }
 
 async function ensureGamificationRow(db: SupabaseClient, userId: string): Promise<void> {
-  await db.from('user_gamification').upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
+  await db
+    .from('user_gamification')
+    .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
 }
 
 // ─── Tools ────────────────────────────────────────────────────────────────────
@@ -36,22 +38,40 @@ const awardXP = createTool({
   id: 'awardXP',
   description: 'Awards XP for a user action. XP values read from xp_action_values DB table.',
   inputSchema: z.object({
-    userId:   z.string(),
-    action:   z.string().describe('book_created | page_edited | illustration_generated | brand_content_created | qa_score_90 | daily_login | suggestion_accepted | daily_challenge_completed'),
+    userId: z.string(),
+    action: z
+      .string()
+      .describe(
+        'book_created | page_edited | illustration_generated | brand_content_created | qa_score_90 | daily_login | suggestion_accepted | daily_challenge_completed'
+      ),
     metadata: z.record(z.string(), z.unknown()).optional(),
   }),
   outputSchema: z.object({
-    xpAwarded: z.number(), totalXP: z.number(), currentXP: z.number(),
-    leveledUp: z.boolean(), newLevel: z.number(), newTitle: z.string(), nextLevelXP: z.number(),
+    xpAwarded: z.number(),
+    totalXP: z.number(),
+    currentXP: z.number(),
+    leveledUp: z.boolean(),
+    newLevel: z.number(),
+    newTitle: z.string(),
+    nextLevelXP: z.number(),
   }),
   execute: async (input) => {
     const db = getDB();
     const { data, error } = await db.rpc('award_xp', {
-      p_user_id: input.userId, p_action_name: input.action, p_metadata: input.metadata ?? {},
+      p_user_id: input.userId,
+      p_action_name: input.action,
+      p_metadata: input.metadata ?? {},
     });
     if (error) throw new Error(`award_xp failed: ${error.message}`);
-    return { xpAwarded: data.xp_awarded, totalXP: data.total_xp, currentXP: data.current_xp,
-      leveledUp: data.leveled_up, newLevel: data.new_level, newTitle: data.new_title, nextLevelXP: data.next_level_xp };
+    return {
+      xpAwarded: data.xp_awarded,
+      totalXP: data.total_xp,
+      currentXP: data.current_xp,
+      leveledUp: data.leveled_up,
+      newLevel: data.new_level,
+      newTitle: data.new_title,
+      nextLevelXP: data.next_level_xp,
+    };
   },
 });
 
@@ -59,14 +79,22 @@ const awardXP = createTool({
 const checkStreak = createTool({
   id: 'checkStreak',
   description: 'Updates the user daily creation streak in the DB.',
-  inputSchema:  z.object({ userId: z.string() }),
-  outputSchema: z.object({ currentStreak: z.number(), streakIncreased: z.boolean(), streakBroken: z.boolean() }),
+  inputSchema: z.object({ userId: z.string() }),
+  outputSchema: z.object({
+    currentStreak: z.number(),
+    streakIncreased: z.boolean(),
+    streakBroken: z.boolean(),
+  }),
   execute: async (input) => {
     const db = getDB();
     await ensureGamificationRow(db, input.userId);
     const { data, error } = await db.rpc('update_streak', { p_user_id: input.userId });
     if (error) throw new Error(`update_streak failed: ${error.message}`);
-    return { currentStreak: data.current_streak, streakIncreased: data.increased, streakBroken: data.broken };
+    return {
+      currentStreak: data.current_streak,
+      streakIncreased: data.increased,
+      streakBroken: data.broken,
+    };
   },
 });
 
@@ -74,17 +102,31 @@ const checkStreak = createTool({
 const unlockBadge = createTool({
   id: 'unlockBadge',
   description: 'Unlocks a badge. Badge definitions read from achievement_definitions DB table.',
-  inputSchema:  z.object({ userId: z.string(), badgeId: z.string() }),
+  inputSchema: z.object({ userId: z.string(), badgeId: z.string() }),
   outputSchema: z.object({ unlocked: z.boolean(), alreadyHad: z.boolean(), badgeName: z.string() }),
   execute: async (input) => {
     const db = getDB();
-    const { data: badge } = await db.from('achievement_definitions').select('id,name').eq('id', input.badgeId).single();
+    const { data: badge } = await db
+      .from('achievement_definitions')
+      .select('id,name')
+      .eq('id', input.badgeId)
+      .single();
     if (!badge) return { unlocked: false, alreadyHad: false, badgeName: 'Unknown' };
-    const { data: existing } = await db.from('user_achievements').select('id')
-      .eq('user_id', input.userId).eq('achievement_type', input.badgeId).single();
+    const { data: existing } = await db
+      .from('user_achievements')
+      .select('id')
+      .eq('user_id', input.userId)
+      .eq('achievement_type', input.badgeId)
+      .single();
     if (existing) return { unlocked: false, alreadyHad: true, badgeName: badge.name };
-    await db.from('user_achievements').insert({ user_id: input.userId, achievement_type: input.badgeId,
-      achievement_name: badge.name, unlocked_at: new Date().toISOString() });
+    await db
+      .from('user_achievements')
+      .insert({
+        user_id: input.userId,
+        achievement_type: input.badgeId,
+        achievement_name: badge.name,
+        unlocked_at: new Date().toISOString(),
+      });
     return { unlocked: true, alreadyHad: false, badgeName: badge.name };
   },
 });
@@ -92,17 +134,26 @@ const unlockBadge = createTool({
 /** getDailyChallenges — calls assign_daily_challenges() DB function */
 const getDailyChallenges = createTool({
   id: 'getDailyChallenges',
-  description: 'Gets or assigns today\'s personalized daily challenges from DB.',
-  inputSchema:  z.object({ userId: z.string() }),
+  description: "Gets or assigns today's personalized daily challenges from DB.",
+  inputSchema: z.object({ userId: z.string() }),
   outputSchema: z.object({
-    challenges: z.array(z.object({ id: z.string(), title: z.string(), xpReward: z.number(), completed: z.boolean() })),
+    challenges: z.array(
+      z.object({ id: z.string(), title: z.string(), xpReward: z.number(), completed: z.boolean() })
+    ),
   }),
   execute: async (input) => {
     const db = getDB();
     await ensureGamificationRow(db, input.userId);
     const { data, error } = await db.rpc('assign_daily_challenges', { p_user_id: input.userId });
     if (error) throw new Error(`assign_daily_challenges failed: ${error.message}`);
-    return { challenges: (data ?? []).map((r: any) => ({ id: r.challenge_id, title: r.title, xpReward: r.xp_reward, completed: r.completed })) };
+    return {
+      challenges: (data ?? []).map((r: any) => ({
+        id: r.challenge_id,
+        title: r.title,
+        xpReward: r.xp_reward,
+        completed: r.completed,
+      })),
+    };
   },
 });
 
@@ -110,32 +161,79 @@ const getDailyChallenges = createTool({
 const getFullState = createTool({
   id: 'getFullState',
   description: 'Reads entire gamification state from DB for a user.',
-  inputSchema:  z.object({ userId: z.string() }),
+  inputSchema: z.object({ userId: z.string() }),
   outputSchema: z.object({
-    level: z.number(), levelTitle: z.string(), currentXP: z.number(), nextLevelXP: z.number(),
-    currentStreak: z.number(), booksCreatedCount: z.number(),
-    badges: z.array(z.object({ id: z.string(), name: z.string(), description: z.string(), icon: z.string(), unlocked: z.boolean() })),
-    dailyChallenges: z.array(z.object({ id: z.string(), title: z.string(), xpReward: z.number(), completed: z.boolean() })),
+    level: z.number(),
+    levelTitle: z.string(),
+    currentXP: z.number(),
+    nextLevelXP: z.number(),
+    currentStreak: z.number(),
+    booksCreatedCount: z.number(),
+    badges: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string(),
+        icon: z.string(),
+        unlocked: z.boolean(),
+      })
+    ),
+    dailyChallenges: z.array(
+      z.object({ id: z.string(), title: z.string(), xpReward: z.number(), completed: z.boolean() })
+    ),
   }),
   execute: async (input) => {
     const db = getDB();
     await ensureGamificationRow(db, input.userId);
-    const { data: ug } = await db.from('user_gamification')
+    const { data: ug } = await db
+      .from('user_gamification')
       .select('level,level_title,current_xp,books_created_count,current_streak,total_xp')
-      .eq('user_id', input.userId).single();
+      .eq('user_id', input.userId)
+      .single();
     const currentLevel = ug?.level ?? 1;
-    const { data: nextLevelRow } = await db.from('level_definitions').select('xp_required').eq('level', currentLevel + 1).single();
+    const { data: nextLevelRow } = await db
+      .from('level_definitions')
+      .select('xp_required')
+      .eq('level', currentLevel + 1)
+      .single();
     const nextLevelXP = nextLevelRow?.xp_required ?? (ug?.total_xp ?? 0) + 2000;
-    const { data: allBadges } = await db.from('achievement_definitions')
-      .select('id,name,description,icon').eq('is_active', true).not('trigger_action', 'is', null).order('id');
-    const { data: unlockedRows } = await db.from('user_achievements').select('achievement_type').eq('user_id', input.userId);
+    const { data: allBadges } = await db
+      .from('achievement_definitions')
+      .select('id,name,description,icon')
+      .eq('is_active', true)
+      .not('trigger_action', 'is', null)
+      .order('id');
+    const { data: unlockedRows } = await db
+      .from('user_achievements')
+      .select('achievement_type')
+      .eq('user_id', input.userId);
     const unlockedIds = new Set((unlockedRows ?? []).map((r: any) => r.achievement_type));
-    const badges = (allBadges ?? []).map((b: any) => ({ id: b.id, name: b.name, description: b.description, icon: b.icon, unlocked: unlockedIds.has(b.id) }));
-    const { data: challengeRows } = await db.rpc('assign_daily_challenges', { p_user_id: input.userId });
-    const dailyChallenges = (challengeRows ?? []).map((r: any) => ({ id: r.challenge_id, title: r.title, xpReward: r.xp_reward, completed: r.completed }));
-    return { level: ug?.level ?? 1, levelTitle: ug?.level_title ?? 'Aspiring Author',
-      currentXP: ug?.current_xp ?? 0, nextLevelXP, currentStreak: ug?.current_streak ?? 0,
-      booksCreatedCount: ug?.books_created_count ?? 0, badges, dailyChallenges };
+    const badges = (allBadges ?? []).map((b: any) => ({
+      id: b.id,
+      name: b.name,
+      description: b.description,
+      icon: b.icon,
+      unlocked: unlockedIds.has(b.id),
+    }));
+    const { data: challengeRows } = await db.rpc('assign_daily_challenges', {
+      p_user_id: input.userId,
+    });
+    const dailyChallenges = (challengeRows ?? []).map((r: any) => ({
+      id: r.challenge_id,
+      title: r.title,
+      xpReward: r.xp_reward,
+      completed: r.completed,
+    }));
+    return {
+      level: ug?.level ?? 1,
+      levelTitle: ug?.level_title ?? 'Aspiring Author',
+      currentXP: ug?.current_xp ?? 0,
+      nextLevelXP,
+      currentStreak: ug?.current_streak ?? 0,
+      booksCreatedCount: ug?.books_created_count ?? 0,
+      badges,
+      dailyChallenges,
+    };
   },
 });
 

@@ -33,7 +33,8 @@ const LIMIT_MESSAGES: Record<string, (props: UpgradePromptProps) => string> = {
     return `Your ${TIER_DISPLAY[p.currentTier].label} plan supports up to ${ent.pages_per_book} pages per book.`;
   },
   styles: () => 'This illustration style requires a higher plan.',
-  feature: (p) => `${p.featureName || 'This feature'} is available on the ${TIER_DISPLAY[p.requiredTier || 'CREATOR'].label} plan.`,
+  feature: (p) =>
+    `${p.featureName || 'This feature'} is available on the ${TIER_DISPLAY[p.requiredTier || 'CREATOR'].label} plan.`,
 };
 
 const UpgradePrompt: React.FC<UpgradePromptProps> = (props) => {
@@ -58,7 +59,12 @@ const UpgradeModal: React.FC<UpgradePromptProps> = (props) => {
   const message = LIMIT_MESSAGES[limitType](props);
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onDismiss(); }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onDismiss();
+      }}
+    >
       <DialogContent className="max-w-md p-0 overflow-hidden">
         <div className="bg-charcoal-soft pt-10 pb-14 px-8 text-center relative overflow-hidden">
           <div
@@ -74,9 +80,7 @@ const UpgradeModal: React.FC<UpgradePromptProps> = (props) => {
           <h2 className="font-heading font-bold text-xl text-white mb-2 relative z-10">
             Ready for More?
           </h2>
-          <p className="text-cocoa-light/80 text-sm font-medium relative z-10">
-            {message}
-          </p>
+          <p className="text-cocoa-light/80 text-sm font-medium relative z-10">{message}</p>
         </div>
 
         <div className="pt-10 pb-6 px-8">
@@ -86,16 +90,17 @@ const UpgradeModal: React.FC<UpgradePromptProps> = (props) => {
               <p className="font-heading font-bold text-charcoal-soft text-sm">
                 Upgrade to {TIER_DISPLAY[targetTier].label}
               </p>
-              <p className="text-xs text-cocoa-light">
-                {TIER_DISPLAY[targetTier].price}
-              </p>
+              <p className="text-xs text-cocoa-light">{TIER_DISPLAY[targetTier].price}</p>
             </div>
           </div>
 
           <TierBenefits tier={targetTier} />
 
           <Button
-            onClick={() => { onDismiss(); navigate('/pricing'); }}
+            onClick={() => {
+              onDismiss();
+              navigate('/pricing');
+            }}
             size="lg"
             className="w-full rounded-xl text-base mt-4 group"
           >
@@ -132,12 +137,19 @@ const UpgradeInline: React.FC<UpgradePromptProps> = (props) => {
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => { onDismiss(); navigate('/pricing'); }}
+          onClick={() => {
+            onDismiss();
+            navigate('/pricing');
+          }}
           className="text-sm font-medium text-coral-burst hover:underline whitespace-nowrap"
         >
           Upgrade to {TIER_DISPLAY[targetTier].label}
         </button>
-        <button type="button" onClick={onDismiss} className="text-cocoa-light hover:text-charcoal-soft">
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-cocoa-light hover:text-charcoal-soft"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -173,11 +185,13 @@ const UpgradeToast: React.FC<UpgradePromptProps> = (props) => {
             <Sparkles className="w-5 h-5 text-gold-sunshine shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-charcoal-soft font-medium">{message}</p>
-              <p className="text-xs text-cocoa-light mt-1">
-                Consider upgrading for more capacity.
-              </p>
+              <p className="text-xs text-cocoa-light mt-1">Consider upgrading for more capacity.</p>
             </div>
-            <button type="button" onClick={onDismiss} className="text-cocoa-light hover:text-charcoal-soft shrink-0">
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="text-cocoa-light hover:text-charcoal-soft shrink-0"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>

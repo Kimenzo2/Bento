@@ -5,6 +5,7 @@ Generated: 2026-03-26T18:22:43.049Z
 Total findings: 579
 
 ## components/CurriculumBuilder.tsx (24)
+
 - L382 [placeholder] Select subject
 - L408 [aria-label] Grade level
 - L428 [placeholder] e.g., Understanding fractions through a pizza party adventure...
@@ -31,6 +32,7 @@ Total findings: 579
 - L944 [jsx-text] German
 
 ## components/CharacterDepthPanel.tsx (23)
+
 - L187 [placeholder] Select...
 - L214 [jsx-text] Character Depth
 - L247 [title] Basic Information
@@ -56,6 +58,7 @@ Total findings: 579
 - L479 [placeholder] How they react under pressure
 
 ## components/RemixStudio.tsx (23)
+
 - L224 [jsx-text] Remix Studio
 - L295 [placeholder] Search worlds...
 - L326 [placeholder] All Eras
@@ -81,6 +84,7 @@ Total findings: 579
 - L849 [aria-label] Require attribution
 
 ## components/tiers/TierDetailEmpire.tsx (23)
+
 - L452 [title] Why Empire?
 - L461 [jsx-text] Competitive Moat
 - L468 [jsx-text] Infinite Scale
@@ -106,6 +110,7 @@ Total findings: 579
 - L880 [jsx-text] Legal
 
 ## components/tiers/TierDetailStudio.tsx (20)
+
 - L470 [title] Why Studio?
 - L479 [jsx-text] Scale Revenue
 - L487 [jsx-text] Empower Teams
@@ -128,6 +133,7 @@ Total findings: 579
 - L798 [jsx-text] Legal
 
 ## components/editor/EditorHeader.tsx (19)
+
 - L93 [jsx-text] Saved
 - L99 [title] Unsaved changes
 - L99 [aria-label] Unsaved changes
@@ -149,6 +155,7 @@ Total findings: 579
 - L353 [aria-label] Keyboard shortcuts
 
 ## components/BookSharing.tsx (17)
+
 - L315 [jsx-text] Share Book
 - L325 [title] Close
 - L392 [title] Share link URL
@@ -168,6 +175,7 @@ Total findings: 579
 - L730 [placeholder] Optional password
 
 ## components/tiers/TierDetailCreator.tsx (17)
+
 - L433 [title] Why Creator?
 - L441 [jsx-text] The Problem
 - L448 [jsx-text] The Shift
@@ -187,6 +195,7 @@ Total findings: 579
 - L751 [jsx-text] Legal
 
 ## components/StorybookViewer.tsx (16)
+
 - L120 [jsx-text] = 0 && page
 - L277 [title] Close
 - L298 [title] Table of Contents
@@ -205,6 +214,7 @@ Total findings: 579
 - L763 [title] Switch to visual mode
 
 ## components/learn/TransparencyPage.tsx (15)
+
 - L107 [jsx-text] Share of Voice
 - L115 [jsx-text] AI Mentions
 - L128 [jsx-text] Organic Clicks
@@ -222,6 +232,7 @@ Total findings: 579
 - L367 [jsx-text] Privacy
 
 ## components/settings/LibraryPanel.tsx (14)
+
 - L157 [jsx-text] Your saved creations in one place
 - L161 [jsx-text] Total Items
 - L199 [title] No books yet
@@ -238,6 +249,7 @@ Total findings: 579
 - L508 [jsx-text] Timeline
 
 ## components/infographic/InfographicPreview.tsx (12)
+
 - L60 [title] Close
 - L80 [title] Start Over
 - L91 [title] Print
@@ -252,6 +264,7 @@ Total findings: 579
 - L144 [aria-label] Zoom out
 
 ## components/SavedBookCard.tsx (12)
+
 - L59 [title] Edit
 - L60 [aria-label] Edit book
 - L63 [jsx-text] Edit
@@ -266,6 +279,7 @@ Total findings: 579
 - L102 [jsx-text] Delete
 
 ## components/blog/BlogPost.tsx (11)
+
 - L200 [aria-label] Back to blog
 - L203 [jsx-text] All Posts
 - L209 [aria-label] Breadcrumb
@@ -279,6 +293,7 @@ Total findings: 579
 - L501 [aria-label] Table of contents
 
 ## components/ExportModal.tsx (11)
+
 - L130 [jsx-text] Export Book
 - L179 [jsx-text] Include Illustrations
 - L180 [jsx-text] Embed all generated images
@@ -292,6 +307,7 @@ Total findings: 579
 - L465 [alt] Page ${i + 1}
 
 ## components/KDPExportModal.tsx (11)
+
 - L119 [jsx-text] Amazon KDP Export
 - L120 [jsx-text] Professional Print-Ready PDF
 - L229 [jsx-text] Include Bleed (Recommended)
@@ -305,6 +321,7 @@ Total findings: 579
 - L333 [jsx-text] ✓ Quality validation dashboard
 
 ## components/settings/AboutSection.tsx (11)
+
 - L18 [jsx-text] Genesis
 - L19 [jsx-text] AI-Powered eBook Creator
 - L38 [jsx-text] Version
@@ -318,6 +335,7 @@ Total findings: 579
 - L172 [jsx-text] Made with Love
 
 ## components/SettingsPanel.tsx (11)
+
 - L398 [alt] Avatar
 - L505 [jsx-text] Watercolor
 - L506 [jsx-text] 3D Render (Pixar Style)
@@ -338,6 +356,7 @@ Total findings: 579
 - L264 [title] Add new page
 
 ## components/CreationCanvas.tsx (10)
+
 - L1006 [jsx-text] Math
 - L1007 [jsx-text] Science
 - L1008 [jsx-text] Language Arts
@@ -350,6 +369,7 @@ Total findings: 579
 - L1027 [jsx-text] Advanced
 
 ## components/infographic/InfographicResultPage.tsx (10)
+
 - L84 [title] Back to Editor
 - L128 [title] Regenerate
 - L138 [title] Print
@@ -362,6 +382,7 @@ Total findings: 579
 - L191 [aria-label] Zoom out
 
 ## components/learn/LearnArticlePage.tsx (10)
+
 - L113 [jsx-text] Learn
 - L131 [aria-label] Breadcrumb
 - L133 [jsx-text] Home
@@ -374,6 +395,7 @@ Total findings: 579
 - L246 [jsx-text] Genesis
 
 ## components/CurriculumAssessment.tsx (9)
+
 - L326 [jsx-text] Score
 - L336 [jsx-text] Correct
 - L340 [jsx-text] Total Questions
@@ -385,6 +407,7 @@ Total findings: 579
 - L594 [placeholder] Type your response here...
 
 ## components/onboarding/ProRevealMoment.tsx (9)
+
 - L120 [jsx-text] left
 - L139 [jsx-text] Feature
 - L140 [jsx-text] Free
@@ -396,6 +419,7 @@ Total findings: 579
 - L416 [jsx-text] forever
 
 ## components/tiers/TierDetailShared.tsx (9)
+
 - L447 [jsx-text] Use Case
 - L451 [jsx-text] Results
 - L514 [jsx-text] Challenge
@@ -407,6 +431,7 @@ Total findings: 579
 - L824 [jsx-text] Back to Pricing
 
 ## components/canvas/CanvasToolbar.tsx (8)
+
 - L53 [title] Zoom out
 - L54 [aria-label] Zoom out
 - L78 [title] Fit to view
@@ -417,6 +442,7 @@ Total findings: 579
 - L178 [aria-label] Add a new scene
 
 ## components/onboarding/SaveMasterpieceModal.tsx (8)
+
 - L140 [jsx-text] Create a free account to keep
 - L169 [placeholder] Enter your email
 - L200 [jsx-text] Continue with Google
@@ -427,6 +453,7 @@ Total findings: 579
 - L237 [jsx-text] Privacy Policy
 
 ## components/settings/AdvancedSettings.tsx (8)
+
 - L68 [jsx-text] Developer Tools
 - L150 [jsx-text] Data & Sync
 - L170 [jsx-text] System Actions
@@ -437,6 +464,7 @@ Total findings: 579
 - L203 [jsx-text] Clear
 
 ## components/settings/DataManagement.tsx (8)
+
 - L168 [jsx-text] Storage Usage
 - L169 [jsx-text] Monitor your account storage and data
 - L180 [jsx-text] Saved books
@@ -447,6 +475,7 @@ Total findings: 579
 - L273 [jsx-text] Subscription cancelled
 
 ## components/settings/SessionManagement.tsx (8)
+
 - L103 [jsx-text] Active Sessions
 - L159 [jsx-text] End Session
 - L174 [jsx-text] End all active sessions on all devices
@@ -457,6 +486,7 @@ Total findings: 579
 - L196 [jsx-text] • Review sessions regularly
 
 ## components/AuthPage.tsx (7)
+
 - L147 [jsx-text] Cloud Sync
 - L159 [jsx-text] Premium Features
 - L238 [jsx-text] Continue with Google
@@ -466,6 +496,7 @@ Total findings: 579
 - L279 [jsx-text] Password
 
 ## components/editor/EditorLeftZone.tsx (7)
+
 - L201 [jsx-text] All changes saved
 - L208 [jsx-text] Unsaved changes
 - L215 [jsx-text] Save error
@@ -475,6 +506,7 @@ Total findings: 579
 - L591 [alt] Gen, your AI creative assistant
 
 ## components/editor/IntelligencePanel.tsx (7)
+
 - L309 [alt] Gen, your AI creative assistant
 - L386 [jsx-text] Improve This Page
 - L418 [jsx-text] Generate Illustration
@@ -484,6 +516,7 @@ Total findings: 579
 - L551 [jsx-text] Last saved
 
 ## components/GreenRoom.tsx (7)
+
 - L256 [jsx-text] The Green Room
 - L257 [jsx-text] with
 - L283 [title] Toggle ambient mode
@@ -493,6 +526,7 @@ Total findings: 579
 - L636 [jsx-text] No previous sessions
 
 ## components/learn/LearnPage.tsx (7)
+
 - L95 [jsx-text] Genesis
 - L130 [placeholder] Search guides...
 - L231 [jsx-text] Genesis
@@ -502,6 +536,7 @@ Total findings: 579
 - L237 [jsx-text] Terms
 
 ## components/AudioPlayer.tsx (6)
+
 - L257 [jsx-text] Reading Speed
 - L274 [jsx-text] Voice Pitch
 - L291 [jsx-text] Volume
@@ -510,6 +545,7 @@ Total findings: 579
 - L319 [jsx-text] Auto-select
 
 ## components/BlueprintReview.tsx (6)
+
 - L114 [placeholder] Enter title...
 - L128 [placeholder] Enter synopsis...
 - L134 [jsx-text] Narrative Arc
@@ -518,6 +554,7 @@ Total findings: 579
 - L264 [placeholder] Describe the scene...
 
 ## components/BookViewer.tsx (6)
+
 - L66 [title] Exit
 - L85 [title] Export Book
 - L169 [jsx-text] Previous
@@ -526,6 +563,7 @@ Total findings: 579
 - L184 [jsx-text] Next
 
 ## components/editor/IllustrationArea.tsx (6)
+
 - L74 [aria-label] Generating illustration
 - L91 [alt] Gen is illustrating
 - L127 [alt] Page illustration
@@ -534,6 +572,7 @@ Total findings: 579
 - L167 [alt] Gen, your AI creative assistant
 
 ## components/tiers/interactive/ROICalculator.tsx (6)
+
 - L85 [aria-label] Books to create per month
 - L89 [jsx-text] 1 book
 - L90 [jsx-text] 100 books
@@ -542,6 +581,7 @@ Total findings: 579
 - L145 [jsx-text] hrs/mo
 
 ## components/canvas/SceneNodeDetail.tsx (5)
+
 - L117 [title] Close detail panel
 - L118 [aria-label] Close detail panel
 - L278 [aria-label] Previous page
@@ -549,6 +589,7 @@ Total findings: 579
 - L342 [aria-label] Next page
 
 ## components/EmotionalArc.tsx (5)
+
 - L100 [jsx-text] No emotional arc data available
 - L111 [jsx-text] Emotional Arc
 - L132 [jsx-text] Positive
@@ -556,6 +597,7 @@ Total findings: 579
 - L229 [jsx-text] Suggestions
 
 ## components/StylePresets.tsx (5)
+
 - L421 [title] Close
 - L482 [placeholder] My Custom Style
 - L493 [placeholder] Describe the illustration style in detail...
@@ -563,207 +605,258 @@ Total findings: 579
 - L545 [jsx-text] No styles found in this category
 
 ## components/AccountPage.tsx (4)
+
 - L104 [jsx-text] Account
 - L144 [jsx-text] Monthly Usage
 - L150 [jsx-text] Your Features
 - L173 [jsx-text] Billing
 
 ## components/blog/BlogIndex.tsx (4)
+
 - L79 [aria-label] Back to Genesis
 - L82 [jsx-text] Genesis
 - L91 [aria-label] Genesis Blog
 - L162 [jsx-text] Genesis
 
 ## components/BookSuccessView.tsx (4)
+
 - L283 [title] Edit Story
 - L292 [title] Download PDF
 - L301 [title] Export for Amazon KDP
 - L310 [title] Share Story
 
 ## components/BulkActions.tsx (4)
+
 - L14 [jsx-text] Promise
 - L15 [jsx-text] Promise
 - L16 [jsx-text] Promise
 - L169 [title] Clear selection
 
 ## components/CurriculumViewer.tsx (4)
+
 - L59 [jsx-text] = 0 && index
 - L101 [jsx-text] No content available
 - L783 [title] Toggle SEL content
 - L794 [title] Toggle teacher notes
 
 ## components/LivingStoryboard.tsx (4)
+
 - L38 [jsx-text] No Storyboard Generated
 - L82 [jsx-text] Beat
 - L86 [jsx-text] Tension
 - L127 [jsx-text] Tension
 
 ## components/SharedBookViewer.tsx (4)
+
 - L184 [placeholder] Enter password
 - L269 [title] Download Book
 - L272 [jsx-text] Download
 - L305 [jsx-text] No image available
 
 ## components/VisualStudio.tsx (4)
+
 - L571 [title] Share
 - L585 [title] Download
 - L595 [title] Expand
 - L650 [jsx-text] No Project Loaded
 
 ## components/KeyboardShortcutsModal.tsx (3)
+
 - L214 [jsx-text] Keyboard Shortcuts
 - L229 [placeholder] Search shortcuts...
 - L323 [jsx-text] to open this panel anytime
 
 ## components/onboarding/OnboardingPricing.tsx (3)
+
 - L208 [jsx-text] Creative Journey
 - L217 [jsx-text] Monthly
 - L276 [jsx-text] /mo
 
 ## components/PricingPage.tsx (3)
+
 - L184 [aria-label] Pricing plans
 - L267 [jsx-text] /mo
 - L341 [alt] Genesis Community
 
 ## components/settings/ThemeSelector.tsx (3)
+
 - L67 [title] Accent 1
 - L72 [title] Accent 2
 - L77 [title] Background
 
 ## components/tiers/interactive/CommitmentCalculator.tsx (3)
+
 - L94 [jsx-text] Initial Annual Cost
 - L105 [jsx-text] Investment Recovered
 - L118 [jsx-text] Net Profit
 
 ## pages/LandingPage.tsx (2)
+
 - L1431 [alt] The Cell - Biology learning realm
 - L1596 [jsx-text] Genesis
 
 ## components/canvas/CanvasEmptyState.tsx (2)
+
 - L54 [alt] Gen, your AI creative assistant
 - L116 [aria-label] Start writing your story
 
 ## components/canvas/StoryCanvas.tsx (2)
+
 - L245 [aria-label] Back to Pages view
 - L325 [alt] Gen, your AI creative assistant
 
 ## components/editor/FocusMode.tsx (2)
+
 - L66 [placeholder] What happens on this page?
 - L68 [aria-label] Story text for current page
 
 ## components/editor/GenCompanionStrip.tsx (2)
+
 - L98 [alt] Gen, your AI creative assistant
 - L134 [alt] Gen, your AI creative assistant
 
 ## components/editor/StoryTextDisplay.tsx (2)
+
 - L99 [aria-label] Previous page
 - L121 [aria-label] Next page
 
 ## components/editor/VisualDescriptionPanel.tsx (2)
+
 - L46 [title] This is sent to the AI to generate your illustration
 - L79 [aria-label] Visual description
 
 ## components/editor/WritingPanel.tsx (2)
+
 - L65 [placeholder] What happens on this page? Write the story...
 - L74 [aria-label] Story text for current page
 
 ## components/EmailAuthModal.tsx (2)
+
 - L104 [jsx-text] Welcome to Genesis
 - L132 [placeholder] Enter your email
 
 ## components/GamificationHub.tsx (2)
+
 - L192 [jsx-text] Day Streak
 - L198 [jsx-text] Books Created
 
 ## components/InstallPWA.tsx (2)
+
 - L41 [jsx-text] Install App
 - L42 [jsx-text] Add to home screen for better experience
 
 ## components/InteractiveCharacterTutor.tsx (2)
+
 - L344 [title] Stop
 - L353 [title] Restart
 
 ## components/onboarding/InstantCreationDemo.tsx (2)
+
 - L245 [jsx-text] Sparks
 - L410 [alt] Generated visual
 
 ## components/tiers/interactive/SavingsCounter.tsx (2)
+
 - L167 [jsx-text] AI Projection
 - L168 [jsx-text] At your current pace
 
 ## components/WhatsNewModal.tsx (2)
+
 - L184 [jsx-text] What's New in Genesis
 - L186 [jsx-text] Check out the latest features and improvements
 
 ## components/billing/UsageCounter.tsx (1)
+
 - L23 [jsx-text] Unlimited books
 
 ## components/blog/BlogCard.tsx (1)
+
 - L95 [jsx-text] Read
 
 ## components/editor/GenCompanion.tsx (1)
+
 - L82 [alt] Gen, your AI creative assistant
 
 ## components/editor/GenerationControls.tsx (1)
+
 - L129 [aria-label] Visual description
 
 ## components/editor/PageNavigator.tsx (1)
+
 - L253 [title] Add new page
 
 ## components/gen/GenStatic.tsx (1)
+
 - L246 [alt] Gen, your AI creative guide
 
 ## components/infographic/CustomizationStep.tsx (1)
+
 - L144 [aria-label] Toggle interactive elements
 
 ## components/infographic/InfographicWizard.tsx (1)
+
 - L92 [jsx-text] Create stunning visual lessons in seconds
 
 ## components/infographic/TopicInputStep.tsx (1)
+
 - L66 [placeholder] e.g., How do volcanoes erupt?
 
 ## components/InfographicsPage.tsx (1)
+
 - L21 [aria-label] Infographics
 
 ## components/LoadingSpinner.tsx (1)
+
 - L33 [aria-label] Loading
 
 ## components/Navigation.tsx (1)
+
 - L188 [alt] Avatar
 
 ## components/onboarding/CreativePersonaQuiz.tsx (1)
+
 - L114 [jsx-text] Choose Your Path
 
 ## components/onboarding/OnboardingHeader.tsx (1)
+
 - L35 [jsx-text] Genesis
 
 ## components/onboarding/performance/memoization.tsx (1)
+
 - L109 [jsx-text] , style as Record
 
 ## components/onboarding/PersonalizationQuiz.tsx (1)
+
 - L186 [jsx-text] Quiz question progress
 
 ## components/settings/AccessibilitySettings.tsx (1)
+
 - L122 [jsx-text] Optimize for assistive technologies
 
 ## components/Sidebar.tsx (1)
+
 - L71 [jsx-text] System Config
 
 ## components/TemplateLibrary.tsx (1)
+
 - L563 [title] Close
 
 ## components/tiers/interactive/FeatureExplorer.tsx (1)
+
 - L33 [jsx-text] Seamlessly blend any two art styles
 
 ## components/tiers/interactive/FeatureVideoStories.tsx (1)
+
 - L95 [jsx-text] Video placeholder active
 
 ## components/tiers/interactive/PeerComparison.tsx (1)
+
 - L62 [jsx-text] high burnout risk
 
 ## components/Toast.tsx (1)
+
 - L49 [aria-label] Dismiss notification
 
 ## components/UpgradeModal.tsx (1)
-- L74 [jsx-text] Save 18% when you upgrade to annual
 
+- L74 [jsx-text] Save 18% when you upgrade to annual

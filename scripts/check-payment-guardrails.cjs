@@ -39,15 +39,11 @@ try {
     for (const expected of requiredRewrites) {
       const found = rewrites.some(
         (entry) =>
-          entry &&
-          entry.source === expected.source &&
-          entry.destination === expected.destination
+          entry && entry.source === expected.source && entry.destination === expected.destination
       );
 
       if (!found) {
-        failures.push(
-          `Missing required rewrite: ${expected.source} -> ${expected.destination}`
-        );
+        failures.push(`Missing required rewrite: ${expected.source} -> ${expected.destination}`);
       }
     }
   }
@@ -79,7 +75,9 @@ try {
     }
   }
 } catch (error) {
-  failures.push(`Guardrail check crashed: ${error instanceof Error ? error.message : String(error)}`);
+  failures.push(
+    `Guardrail check crashed: ${error instanceof Error ? error.message : String(error)}`
+  );
 }
 
 if (failures.length > 0) {

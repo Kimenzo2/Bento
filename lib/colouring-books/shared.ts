@@ -25,14 +25,32 @@ export const COLOURING_SOURCE_STATUSES = [
   'failed',
 ] as const;
 
-export const COLOURING_PAGE_STATUSES = ['queued', 'processing', 'ready', 'failed', 'skipped'] as const;
-export const COLOURING_JOB_STATUSES = ['queued', 'processing', 'ready', 'failed', 'cancelled'] as const;
+export const COLOURING_PAGE_STATUSES = [
+  'queued',
+  'processing',
+  'ready',
+  'failed',
+  'skipped',
+] as const;
+export const COLOURING_JOB_STATUSES = [
+  'queued',
+  'processing',
+  'ready',
+  'failed',
+  'cancelled',
+] as const;
 export const COLOURING_JOB_TYPES = ['build_book', 'retry_book', 'export_pdf'] as const;
 export const COLOURING_MEMBER_ROLES = ['owner', 'editor', 'viewer'] as const;
 export const COLOURING_MEMBER_STATUSES = ['pending', 'active', 'revoked'] as const;
 export const COLOURING_INVITE_SCOPES = ['book', 'export'] as const;
 export const COLOURING_INVITE_ROLES = ['editor', 'viewer'] as const;
-export const COLOURING_EXPORT_STATUSES = ['queued', 'processing', 'ready', 'failed', 'cancelled'] as const;
+export const COLOURING_EXPORT_STATUSES = [
+  'queued',
+  'processing',
+  'ready',
+  'failed',
+  'cancelled',
+] as const;
 
 export type ColouringBookStatus = (typeof COLOURING_BOOK_STATUSES)[number];
 export type ColouringSourceStatus = (typeof COLOURING_SOURCE_STATUSES)[number];
@@ -392,12 +410,7 @@ export function createSourceStoragePath(options: {
 }): string {
   const ext = getFileExtension(options.filename, 'jpg');
   const safeName = sanitizeFilename(options.filename).replace(/\.[^.]+$/, '');
-  return [
-    options.userId,
-    options.bookId,
-    options.sourceId,
-    `${safeName}.${ext}`,
-  ].join('/');
+  return [options.userId, options.bookId, options.sourceId, `${safeName}.${ext}`].join('/');
 }
 
 export function createDerivedR2Key(options: {
@@ -440,9 +453,7 @@ export function clamp(value: number, min: number, max: number): number {
 export function isAllowedImageContentType(contentType: string): boolean {
   const normalized = contentType.toLowerCase().trim();
   return (
-    normalized.startsWith('image/') &&
-    !normalized.includes('svg') &&
-    normalized !== 'image/gif'
+    normalized.startsWith('image/') && !normalized.includes('svg') && normalized !== 'image/gif'
   );
 }
 

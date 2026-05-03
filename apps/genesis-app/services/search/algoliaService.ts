@@ -23,8 +23,7 @@ import { type AppError, type Result, safeCall } from '../serviceWrapper';
 // ============================================================================
 
 const ALGOLIA_APP_ID = import.meta.env.VITE_ALGOLIA_APP_ID || '';
-const ALGOLIA_SEARCH_KEY =
-  import.meta.env.VITE_ALGOLIA_SEARCH_KEY || '';
+const ALGOLIA_SEARCH_KEY = import.meta.env.VITE_ALGOLIA_SEARCH_KEY || '';
 // SECURITY: Write key is server-only — never exposed to client bundle
 const ALGOLIA_WRITE_KEY = '';
 

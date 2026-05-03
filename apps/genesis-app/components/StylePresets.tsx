@@ -271,9 +271,7 @@ export const PresetCard: React.FC<PresetCardProps> = ({
         </span>
       )}
 
-      <h4
-        className={`font-semibold mb-1 ${isSelected ? 'text-white' : 'text-charcoal-soft '}`}
-      >
+      <h4 className={`font-semibold mb-1 ${isSelected ? 'text-white' : 'text-charcoal-soft '}`}>
         {preset.name}
       </h4>
 
@@ -350,7 +348,14 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
   onSelect,
   selectedId,
 }) => {
-  const { presets, favorites, recent: _recent, toggleFavorite, addPreset, deletePreset } = useStylePresets();
+  const {
+    presets,
+    favorites,
+    recent: _recent,
+    toggleFavorite,
+    addPreset,
+    deletePreset,
+  } = useStylePresets();
   const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'custom'>('all');
   const [isCreating, setIsCreating] = useState(false);
   const [newPreset, setNewPreset] = useState({ name: '', style: '', description: '' });
@@ -468,13 +473,9 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
           <div className="p-4 md:p-6 overflow-y-auto flex-1">
             {isCreating ? (
               <div className="max-w-lg mx-auto space-y-4">
-                <h3 className="text-lg font-semibold text-charcoal-soft ">
-                  Create New Style
-                </h3>
+                <h3 className="text-lg font-semibold text-charcoal-soft ">Create New Style</h3>
                 <div>
-                  <Label className="text-cocoa-light  mb-1">
-                    Style Name
-                  </Label>
+                  <Label className="text-cocoa-light  mb-1">Style Name</Label>
                   <Input
                     type="text"
                     value={newPreset.name}
@@ -484,9 +485,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                   />
                 </div>
                 <div>
-                  <Label className="text-cocoa-light  mb-1">
-                    Style Description (for AI)
-                  </Label>
+                  <Label className="text-cocoa-light  mb-1">Style Description (for AI)</Label>
                   <Textarea
                     value={newPreset.style}
                     onChange={(e) => setNewPreset((prev) => ({ ...prev, style: e.target.value }))}
@@ -496,9 +495,7 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
                   />
                 </div>
                 <div>
-                  <Label className="text-cocoa-light  mb-1">
-                    Short Description (optional)
-                  </Label>
+                  <Label className="text-cocoa-light  mb-1">Short Description (optional)</Label>
                   <Input
                     type="text"
                     value={newPreset.description}
@@ -555,4 +552,3 @@ export const StylePresetPicker: React.FC<StylePresetPickerProps> = ({
 };
 
 export default { useStylePresets, PresetCard, StylePresetPicker };
-

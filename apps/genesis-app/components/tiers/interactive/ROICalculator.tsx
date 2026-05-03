@@ -67,9 +67,7 @@ export const ROICalculator: React.FC<ROICalculatorProps> = ({ tier }) => {
           {/* Slider 1: Books per Month */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <Label>
-                Books to Create / Month
-              </Label>
+              <Label>Books to Create / Month</Label>
               <span
                 className={`px-3 py-1 rounded-full bg-${tier.accentColor}-100 text-${tier.accentColor}-700 font-bold font-mono`}
               >

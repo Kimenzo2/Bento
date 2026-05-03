@@ -15,12 +15,12 @@ export type TierName = 'SPARK' | 'CREATOR' | 'STUDIO' | 'EMPIRE';
 export type StyleSet = 'standard' | 'creator' | 'all';
 
 export interface TierEntitlements {
-  books_per_month: number;       // -1 = unlimited
-  pages_per_book: number;        // -1 = unlimited
+  books_per_month: number; // -1 = unlimited
+  pages_per_book: number; // -1 = unlimited
   illustration_styles: number;
   watermark: boolean;
   commercial_license: boolean;
-  team_seats: number;            // -1 = unlimited
+  team_seats: number; // -1 = unlimited
   white_label: boolean;
   brand_hub: boolean;
   video_export: boolean;
@@ -196,7 +196,10 @@ export function canUseStyle(tier: TierName | UserTier, style: ArtStyle): boolean
 }
 
 /** Tier display names and prices for UI. */
-export const TIER_DISPLAY: Record<TierName, { label: string; price: string; monthlyPrice: number }> = {
+export const TIER_DISPLAY: Record<
+  TierName,
+  { label: string; price: string; monthlyPrice: number }
+> = {
   SPARK: { label: 'Spark', price: 'Free', monthlyPrice: 0 },
   CREATOR: { label: 'Creator', price: '$19.99/mo', monthlyPrice: 19.99 },
   STUDIO: { label: 'Studio', price: '$59.99/mo', monthlyPrice: 59.99 },

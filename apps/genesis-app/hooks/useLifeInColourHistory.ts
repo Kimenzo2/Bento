@@ -39,4 +39,3 @@ export function useLifeInColourHistory() {
 
   return { generations, isLoading, error };
 }
-

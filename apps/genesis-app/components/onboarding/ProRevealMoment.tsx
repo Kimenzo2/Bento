@@ -92,7 +92,6 @@ const LiveUpgradeCounter = () => {
 const UrgencyTimer = ({ durationMinutes = 10 }: { durationMinutes?: number }) => {
   const [timeLeft, setTimeLeft] = useState(() => durationMinutes * 60 - 1);
 
-
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -266,7 +265,9 @@ export const ProRevealMoment: React.FC = () => {
   const handleUpgrade = async () => {
     try {
       const { supabase } = await import('../../services/supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         alert('Please sign in to upgrade your plan.');
         return;
@@ -417,15 +418,10 @@ export const ProRevealMoment: React.FC = () => {
               </motion.div>
             </div>
 
-              {/* CTA Buttons */}
+            {/* CTA Buttons */}
             <div className="flex flex-col gap-3">
               {/* Primary CTA - Upgrade */}
-              <Button
-                variant="primary"
-                size="xl"
-                className="w-full"
-                onClick={handleUpgrade}
-              >
+              <Button variant="primary" size="xl" className="w-full" onClick={handleUpgrade}>
                 <IcoCrown className="w-5 h-5" />
                 Unlock Pro Now
                 <ChevronRight className="w-5 h-5" />

@@ -1,7 +1,10 @@
 import { AndrewPromptVersionSchema, LifeInColourSourceAnalysisSchema } from '../schemas';
 import type { LifeInColourSourceAnalysis } from '../schemas';
 
-const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(
+  /\/+$/,
+  ''
+);
 
 const DEFAULT_TEXT_MODEL = 'gpt-5-nano';
 const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
@@ -86,7 +89,7 @@ export async function generateStructuredText(input: {
     throw new Error(`OpenAI text request failed (${response.status}): ${details}`);
   }
 
-  const payload = await response.json() as ChatCompletionPayload;
+  const payload = (await response.json()) as ChatCompletionPayload;
   const text = payload?.choices?.[0]?.message?.content;
   if (typeof text !== 'string' || text.trim().length === 0) {
     throw new Error('OpenAI returned an empty structured response.');
@@ -176,9 +179,10 @@ export async function generateImageFromReference(input: {
     throw new Error(`OpenAI image request failed (${response.status}): ${details}`);
   }
 
-  const payload = await response.json() as ResponseApiPayload;
+  const payload = (await response.json()) as ResponseApiPayload;
   const imageBase64 = Array.isArray(payload.output)
-    ? payload.output.find((item: { type?: string }) => item.type === 'image_generation_call')?.result
+    ? payload.output.find((item: { type?: string }) => item.type === 'image_generation_call')
+        ?.result
     : undefined;
 
   if (typeof imageBase64 !== 'string' || imageBase64.length === 0) {
@@ -238,7 +242,7 @@ export async function critiqueGeneratedImage(input: {
     throw new Error(`OpenAI critique request failed (${response.status}): ${details}`);
   }
 
-  const payload = await response.json() as ChatCompletionPayload;
+  const payload = (await response.json()) as ChatCompletionPayload;
   const text = payload?.choices?.[0]?.message?.content;
   if (typeof text !== 'string' || text.trim().length === 0) {
     throw new Error('OpenAI returned an empty critique response.');

@@ -12,10 +12,7 @@ import {
   type ColouringPageRow,
   type ColouringSourceRow,
 } from '../../../lib/colouring-books/shared';
-import {
-  downloadBufferFromR2,
-  uploadBufferToR2,
-} from '../../../lib/colouring-books/r2';
+import { downloadBufferFromR2, uploadBufferToR2 } from '../../../lib/colouring-books/r2';
 import {
   downloadStorageObjectAsBuffer,
   getBookManifestSnapshot,
@@ -23,7 +20,9 @@ import {
 } from '../../../lib/colouring-books/supabase';
 
 const db = getColouringSupabaseAdmin();
-const WORKER_ID = process.env.COLOURING_BOOKS_WORKER_ID || `colouring-books-${process.pid}-${randomUUID().slice(0, 8)}`;
+const WORKER_ID =
+  process.env.COLOURING_BOOKS_WORKER_ID ||
+  `colouring-books-${process.pid}-${randomUUID().slice(0, 8)}`;
 const POLL_INTERVAL_MS = Number(process.env.COLOURING_BOOKS_POLL_INTERVAL_MS || 2000);
 const SOURCE_DUPLICATE_DISTANCE = Number(process.env.COLOURING_BOOKS_DUPLICATE_DISTANCE || 6);
 const BASE_RETRY_DELAY_MS = Number(process.env.COLOURING_BOOKS_RETRY_DELAY_MS || 30_000);
@@ -65,9 +64,10 @@ function asPositiveNumber(value: unknown, fallback: number): number {
 }
 
 function resolveCustomPageSize(book: ColouringBookRow): { width: number; height: number } {
-  const metadata = book.metadata && typeof book.metadata === 'object' && !Array.isArray(book.metadata)
-    ? (book.metadata as Record<string, unknown>)
-    : {};
+  const metadata =
+    book.metadata && typeof book.metadata === 'object' && !Array.isArray(book.metadata)
+      ? (book.metadata as Record<string, unknown>)
+      : {};
 
   const width = asPositiveNumber(metadata.pageWidth ?? metadata.width, 612);
   const height = asPositiveNumber(metadata.pageHeight ?? metadata.height, 792);
@@ -91,11 +91,17 @@ async function claimNextJob(): Promise<ColouringJobRow | null> {
   return (rows[0] as ColouringJobRow | undefined) ?? null;
 }
 
-async function updateJob(jobId: string, patch: Partial<ColouringJobRow> & Record<string, unknown>): Promise<void> {
-  const { error } = await db.from('colouring_jobs').update({
-    ...patch,
-    updated_at: nowIso(),
-  }).eq('id', jobId);
+async function updateJob(
+  jobId: string,
+  patch: Partial<ColouringJobRow> & Record<string, unknown>
+): Promise<void> {
+  const { error } = await db
+    .from('colouring_jobs')
+    .update({
+      ...patch,
+      updated_at: nowIso(),
+    })
+    .eq('id', jobId);
 
   if (error) {
     throw new Error(error.message);
@@ -154,7 +160,10 @@ async function markJobRetry(job: ColouringJobRow, error: unknown): Promise<void>
   }
 }
 
-async function markJobComplete(job: ColouringJobRow, result: Record<string, unknown>): Promise<void> {
+async function markJobComplete(
+  job: ColouringJobRow,
+  result: Record<string, unknown>
+): Promise<void> {
   await updateJob(job.id, {
     status: 'ready',
     stage: 'ready',
@@ -166,7 +175,12 @@ async function markJobComplete(job: ColouringJobRow, result: Record<string, unkn
   } as Partial<ColouringJobRow>);
 }
 
-async function touchJob(jobId: string, stage: string, progress: number, message: string): Promise<void> {
+async function touchJob(
+  jobId: string,
+  stage: string,
+  progress: number,
+  message: string
+): Promise<void> {
   await updateJob(jobId, {
     stage,
     progress: Math.max(0, Math.min(100, Math.floor(progress))),
@@ -202,15 +216,21 @@ async function processBuildJob(job: ColouringJobRow): Promise<void> {
     heartbeat_at: nowIso(),
   } as Partial<ColouringJobRow>);
 
-  const { error: deletePagesError } = await db.from('colouring_pages').delete().eq('book_id', book.id);
+  const { error: deletePagesError } = await db
+    .from('colouring_pages')
+    .delete()
+    .eq('book_id', book.id);
   if (deletePagesError) {
     throw new Error(deletePagesError.message);
   }
 
-  const { error: processingBookError } = await db.from('colouring_books').update({
-    status: 'processing',
-    last_job_id: job.id,
-  }).eq('id', book.id);
+  const { error: processingBookError } = await db
+    .from('colouring_books')
+    .update({
+      status: 'processing',
+      last_job_id: job.id,
+    })
+    .eq('id', book.id);
   if (processingBookError) {
     throw new Error(processingBookError.message);
   }
@@ -224,7 +244,12 @@ async function processBuildJob(job: ColouringJobRow): Promise<void> {
   for (let index = 0; index < sources.length; index++) {
     const source = sources[index] as ColouringSourceRow;
     const progressBase = (index / Math.max(1, sources.length)) * 90 + 5;
-    await touchJob(job.id, 'processing', progressBase, `Processing source ${index + 1} of ${sources.length}`);
+    await touchJob(
+      job.id,
+      'processing',
+      progressBase,
+      `Processing source ${index + 1} of ${sources.length}`
+    );
 
     let buffer: Buffer;
     try {
@@ -232,11 +257,14 @@ async function processBuildJob(job: ColouringJobRow): Promise<void> {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failedSources.push({ sourceId: source.id, error: message });
-      await db.from('colouring_sources').update({
-        status: 'failed',
-        error_message: message,
-        processed_at: nowIso(),
-      }).eq('id', source.id);
+      await db
+        .from('colouring_sources')
+        .update({
+          status: 'failed',
+          error_message: message,
+          processed_at: nowIso(),
+        })
+        .eq('id', source.id);
       continue;
     }
 
@@ -246,11 +274,14 @@ async function processBuildJob(job: ColouringJobRow): Promise<void> {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failedSources.push({ sourceId: source.id, error: message });
-      await db.from('colouring_sources').update({
-        status: 'failed',
-        error_message: message,
-        processed_at: nowIso(),
-      }).eq('id', source.id);
+      await db
+        .from('colouring_sources')
+        .update({
+          status: 'failed',
+          error_message: message,
+          processed_at: nowIso(),
+        })
+        .eq('id', source.id);
       continue;
     }
 
@@ -268,12 +299,15 @@ async function processBuildJob(job: ColouringJobRow): Promise<void> {
 
     if (duplicateOfSourceId) {
       duplicateSources.push({ sourceId: source.id, duplicateOfSourceId });
-      await db.from('colouring_sources').update({
-        status: 'duplicate',
-        duplicate_of_source_id: duplicateOfSourceId,
-        processed_at: nowIso(),
-        error_message: 'Duplicate or near-duplicate source',
-      }).eq('id', source.id);
+      await db
+        .from('colouring_sources')
+        .update({
+          status: 'duplicate',
+          duplicate_of_source_id: duplicateOfSourceId,
+          processed_at: nowIso(),
+          error_message: 'Duplicate or near-duplicate source',
+        })
+        .eq('id', source.id);
       continue;
     }
 
@@ -351,30 +385,41 @@ async function processBuildJob(job: ColouringJobRow): Promise<void> {
       seenSha256.set(source.sha256, source.id);
     }
 
-    await db.from('colouring_sources').update({
-      status: 'ready',
-      duplicate_of_source_id: null,
-      processed_at: nowIso(),
-      error_message: null,
-      perceptual_hash: artifact.analysis.perceptualHash,
-      width: artifact.width,
-      height: artifact.height,
-    }).eq('id', source.id);
+    await db
+      .from('colouring_sources')
+      .update({
+        status: 'ready',
+        duplicate_of_source_id: null,
+        processed_at: nowIso(),
+        error_message: null,
+        perceptual_hash: artifact.analysis.perceptualHash,
+        width: artifact.width,
+        height: artifact.height,
+      })
+      .eq('id', source.id);
 
-    await touchJob(job.id, 'processing', 5 + ((acceptedPages.length / sources.length) * 90), `Generated ${acceptedPages.length} page(s)`);
+    await touchJob(
+      job.id,
+      'processing',
+      5 + (acceptedPages.length / sources.length) * 90,
+      `Generated ${acceptedPages.length} page(s)`
+    );
   }
 
   const pageCount = acceptedPages.length;
   const sourceCount = sources.length;
 
-  const { error: finalBookUpdateError } = await db.from('colouring_books').update({
-    status: pageCount > 0 ? 'ready' : 'failed',
-    page_count: pageCount,
-    source_count: sourceCount,
-    ready_page_count: pageCount,
-    processed_at: nowIso(),
-    last_job_id: job.id,
-  }).eq('id', book.id);
+  const { error: finalBookUpdateError } = await db
+    .from('colouring_books')
+    .update({
+      status: pageCount > 0 ? 'ready' : 'failed',
+      page_count: pageCount,
+      source_count: sourceCount,
+      ready_page_count: pageCount,
+      processed_at: nowIso(),
+      last_job_id: job.id,
+    })
+    .eq('id', book.id);
   if (finalBookUpdateError) {
     throw new Error(finalBookUpdateError.message);
   }
@@ -410,14 +455,14 @@ async function processExportJob(job: ColouringJobRow): Promise<void> {
   const book = snapshot.book;
   const payload = asJobPayload(job.payload);
   const selectedPageNumbers = Array.isArray(payload.pageNumbers)
-    ? payload.pageNumbers
-        .map((value) => asPositiveNumber(value, 0))
-        .filter((value) => value > 0)
+    ? payload.pageNumbers.map((value) => asPositiveNumber(value, 0)).filter((value) => value > 0)
     : [];
 
   const pages = snapshot.pages
     .filter((page) => page.status === 'ready')
-    .filter((page) => selectedPageNumbers.length === 0 || selectedPageNumbers.includes(page.page_number))
+    .filter(
+      (page) => selectedPageNumbers.length === 0 || selectedPageNumbers.includes(page.page_number)
+    )
     .sort((left, right) => left.page_number - right.page_number);
 
   if (pages.length === 0) {
@@ -440,7 +485,12 @@ async function processExportJob(job: ColouringJobRow): Promise<void> {
 
       const svgBuffer = await downloadBufferFromR2(page.svg_key);
       const svg = svgBuffer.toString('utf8');
-      await touchJob(job.id, 'exporting', 10 + ((index / Math.max(1, pages.length)) * 80), `Exporting page ${index + 1} of ${pages.length}`);
+      await touchJob(
+        job.id,
+        'exporting',
+        10 + (index / Math.max(1, pages.length)) * 80,
+        `Exporting page ${index + 1} of ${pages.length}`
+      );
 
       return {
         svg,

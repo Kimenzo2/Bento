@@ -21,21 +21,17 @@ export default function BookSharedEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        {senderName} shared a story.
-      </Text>
+      <Text style={heading(28)}>{senderName} shared a story.</Text>
 
       {/* Body */}
       <Text style={body()}>
-        They created this story using Genesis, an AI-powered visual storytelling
-        platform. Tap below to read it.
+        They created this story using Genesis, an AI-powered visual storytelling platform. Tap below
+        to read it.
       </Text>
 
       {/* Book title callout */}
       <Section style={{ ...callout, textAlign: 'center' }}>
-        <Text style={heading(22, { align: 'center', margin: '0' })}>
-          &ldquo;{bookTitle}&rdquo;
-        </Text>
+        <Text style={heading(22, { align: 'center', margin: '0' })}>&ldquo;{bookTitle}&rdquo;</Text>
       </Section>
 
       {/* CTA */}

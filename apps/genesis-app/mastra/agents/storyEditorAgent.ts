@@ -82,7 +82,8 @@ function recordRejectedSuggestion(bookId: string, suggestion: string): void {
  */
 const improveTool = createTool({
   id: 'improveTool',
-  description: 'Improves story text for a target audience and tone while preserving core meaning and charm',
+  description:
+    'Improves story text for a target audience and tone while preserving core meaning and charm',
   inputSchema: z.object({
     bookId: z.string(),
     text: z.string(),
@@ -100,9 +101,10 @@ const improveTool = createTool({
     const memoryContext = session.stylePreferences.preferredTone
       ? `The author prefers a ${session.stylePreferences.preferredTone} tone.`
       : '';
-    const rejectedContext = session.rejectedSuggestions.length > 0
-      ? `The author has previously rejected: ${session.rejectedSuggestions.slice(-5).join('; ')}. Avoid similar changes.`
-      : '';
+    const rejectedContext =
+      session.rejectedSuggestions.length > 0
+        ? `The author has previously rejected: ${session.rejectedSuggestions.slice(-5).join('; ')}. Avoid similar changes.`
+        : '';
 
     // This tool is called by the agent's LLM which performs the actual improvement
     return {
@@ -118,7 +120,8 @@ const improveTool = createTool({
  */
 const consistencyCheckTool = createTool({
   id: 'consistencyCheckTool',
-  description: 'Analyzes a book for character consistency issues — checks names, traits, appearances, and behavior',
+  description:
+    'Analyzes a book for character consistency issues — checks names, traits, appearances, and behavior',
   inputSchema: z.object({
     bookId: z.string(),
     bookText: z.string(),
@@ -164,7 +167,8 @@ const consistencyCheckTool = createTool({
  */
 const suggestionsTool = createTool({
   id: 'suggestionsTool',
-  description: 'Generates inline writing suggestions for text, avoiding types of suggestions the author has previously rejected',
+  description:
+    'Generates inline writing suggestions for text, avoiding types of suggestions the author has previously rejected',
   inputSchema: z.object({
     bookId: z.string(),
     text: z.string(),
@@ -179,7 +183,9 @@ const suggestionsTool = createTool({
         reason: z.string(),
       })
     ),
-    rejectedTypes: z.array(z.string()).describe('Types of suggestions the author has rejected before'),
+    rejectedTypes: z
+      .array(z.string())
+      .describe('Types of suggestions the author has rejected before'),
   }),
   execute: async (input) => {
     const session = getSession(input.bookId);
@@ -207,7 +213,8 @@ const suggestionsTool = createTool({
  */
 const recordFeedbackTool = createTool({
   id: 'recordFeedback',
-  description: 'Records whether the author accepted or rejected a suggestion to improve future recommendations',
+  description:
+    'Records whether the author accepted or rejected a suggestion to improve future recommendations',
   inputSchema: z.object({
     bookId: z.string(),
     suggestion: z.string(),
@@ -288,9 +295,4 @@ export const storyEditorAgent = new Agent({
 });
 
 // ─── Exports ─────────────────────────────────────────────────────────────────
-export {
-  sessionMemory,
-  getSession,
-  recordAcceptedSuggestion,
-  recordRejectedSuggestion,
-};
+export { sessionMemory, getSession, recordAcceptedSuggestion, recordRejectedSuggestion };

@@ -1,7 +1,11 @@
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type React from 'react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { ensureUserProfile, getUserProfile, invalidateProfileCache } from '../services/profileService';
+import {
+  ensureUserProfile,
+  getUserProfile,
+  invalidateProfileCache,
+} from '../services/profileService';
 import { supabase } from '../services/supabaseClient';
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 8000;
@@ -78,7 +82,11 @@ interface AuthContextType {
   signInWithGoogle: (returnTo?: string) => Promise<{ error: any }>;
   signInWithIdToken: (token: string, nonce?: string | null) => Promise<{ data: any; error: any }>;
   signInWithEmail: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ data: any; error: any }>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    fullName?: string
+  ) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<{ error: any }>;
   refreshSession: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -90,7 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dbProfile, setDbProfile] = useState<{ full_name: string | null; display_name: string | null; avatar_url: string | null; email: string } | null>(null);
+  const [dbProfile, setDbProfile] = useState<{
+    full_name: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+    email: string;
+  } | null>(null);
   const profileEnsuredRef = useRef<string | null>(null);
 
   // Refresh session helper
@@ -151,7 +164,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Cleanup URL hash if it contains auth tokens or errors
-        if (hash && (hash.includes('access_token') || hash.includes('error_description') || hash.includes('error='))) {
+        if (
+          hash &&
+          (hash.includes('access_token') ||
+            hash.includes('error_description') ||
+            hash.includes('error='))
+        ) {
           window.history.replaceState(null, '', window.location.pathname);
         }
       }
@@ -190,18 +208,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (user && profileEnsuredRef.current !== user.id) {
       profileEnsuredRef.current = user.id;
-      ensureUserProfile().then((profile) => {
-        if (profile) {
-          setDbProfile({
-            full_name: profile.full_name,
-            display_name: profile.display_name,
-            avatar_url: profile.avatar_url,
-            email: profile.email,
-          });
-        }
-      }).catch((err) => {
-        if (import.meta.env.DEV) console.error('[Auth] Failed to ensure profile:', err);
-      });
+      ensureUserProfile()
+        .then((profile) => {
+          if (profile) {
+            setDbProfile({
+              full_name: profile.full_name,
+              display_name: profile.display_name,
+              avatar_url: profile.avatar_url,
+              email: profile.email,
+            });
+          }
+        })
+        .catch((err) => {
+          if (import.meta.env.DEV) console.error('[Auth] Failed to ensure profile:', err);
+        });
     }
   }, [user]);
 
@@ -241,9 +261,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userName = data.user.user_metadata?.full_name || data.user.email.split('@')[0];
 
       if (data.session) {
-        import('../services/emailService').then(({ sendWelcomeEmail }) =>
-          sendWelcomeEmail(data.user.email, userName)
-        )
+        import('../services/emailService')
+          .then(({ sendWelcomeEmail }) => sendWelcomeEmail(data.user.email, userName))
           .then((result) => {
             if (!result.success) {
               queuePendingWelcomeEmail(data.user!.email!, userName);
@@ -308,7 +327,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         if (import.meta.env.DEV) console.warn('[Auth] State updated successfully');
       } else {
-        if (import.meta.env.DEV) console.warn('[Auth] No session in response despite successful sign-in');
+        if (import.meta.env.DEV)
+          console.warn('[Auth] No session in response despite successful sign-in');
       }
 
       return { data, error: null };
@@ -361,9 +381,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user.user_metadata?.name ||
             user.email?.split('@')[0],
           avatar_url:
-            dbProfile?.avatar_url ||
-            user.user_metadata?.avatar_url ||
-            user.user_metadata?.picture,
+            dbProfile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture,
         }
       : null,
     signInWithGoogle,
@@ -385,4 +403,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

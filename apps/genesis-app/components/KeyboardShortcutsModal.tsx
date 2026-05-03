@@ -20,7 +20,14 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from './ui/dialog';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -201,7 +208,12 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
   if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[80vh]">
         {/* Header */}
         <div className="p-6 border-b-2 border-peach-soft/30">
@@ -212,9 +224,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
               </div>
               <div>
                 <DialogTitle>Keyboard Shortcuts</DialogTitle>
-                <DialogDescription>
-                  Speed up your workflow with these shortcuts
-                </DialogDescription>
+                <DialogDescription>Speed up your workflow with these shortcuts</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -279,9 +289,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
                     >
                       <div className="flex items-center gap-3">
                         {shortcut.icon && <span className="text-cocoa-light">{shortcut.icon}</span>}
-                        <span className="text-charcoal-soft">
-                          {shortcut.description}
-                        </span>
+                        <span className="text-charcoal-soft">{shortcut.description}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         {shortcut.keys.map((key, keyIdx) => (
@@ -317,12 +325,14 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
               Ctrl/⌘
             </kbd>
             <span>+</span>
-            <kbd className="px-2 py-1 bg-surface border border-peach-soft rounded text-xs">
-              ?
-            </kbd>
+            <kbd className="px-2 py-1 bg-surface border border-peach-soft rounded text-xs">?</kbd>
             <span>to open this panel anytime</span>
           </div>
-          <Button variant="ghost" onClick={onClose} className="text-coral-burst hover:text-coral-burst">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="text-coral-burst hover:text-coral-burst"
+          >
             Close
           </Button>
         </DialogFooter>

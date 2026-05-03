@@ -119,9 +119,7 @@ self.onmessage = async (event: MessageEvent<WorkerCommand>) => {
 // Handlers
 // ============================================================================
 
-async function handleInit(
-  cmd: Extract<WorkerCommand, { type: 'init' }>
-): Promise<void> {
+async function handleInit(cmd: Extract<WorkerCommand, { type: 'init' }>): Promise<void> {
   try {
     // Initialize SharedArrayBuffer for high-frequency comms
     if (cmd.sharedBuffer) {

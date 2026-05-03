@@ -3,7 +3,8 @@ import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const isOutputScript = basename(scriptDir) === 'output' && basename(dirname(scriptDir)) === '.mastra';
+const isOutputScript =
+  basename(scriptDir) === 'output' && basename(dirname(scriptDir)) === '.mastra';
 const outputRoot = isOutputScript ? scriptDir : resolve(scriptDir, '../../.mastra/output');
 const sourcePath = fileURLToPath(import.meta.url);
 const outputScriptPath = resolve(outputRoot, 'patch-durable-shim.mjs');
@@ -28,15 +29,24 @@ const observabilityIndexDts = resolve(observabilityDir, 'index.d.ts');
 const storageIndexJs = resolve(outputRoot, 'node_modules/@mastra/core/dist/storage/index.js');
 const storageIndexCjs = resolve(outputRoot, 'node_modules/@mastra/core/dist/storage/index.cjs');
 const storageIndexDts = resolve(outputRoot, 'node_modules/@mastra/core/dist/storage/index.d.ts');
-const requestContextIndexJs = resolve(outputRoot, 'node_modules/@mastra/core/dist/request-context/index.js');
-const requestContextIndexCjs = resolve(outputRoot, 'node_modules/@mastra/core/dist/request-context/index.cjs');
-const requestContextIndexDts = resolve(outputRoot, 'node_modules/@mastra/core/dist/request-context/index.d.ts');
+const requestContextIndexJs = resolve(
+  outputRoot,
+  'node_modules/@mastra/core/dist/request-context/index.js'
+);
+const requestContextIndexCjs = resolve(
+  outputRoot,
+  'node_modules/@mastra/core/dist/request-context/index.cjs'
+);
+const requestContextIndexDts = resolve(
+  outputRoot,
+  'node_modules/@mastra/core/dist/request-context/index.d.ts'
+);
 const diIndexJs = resolve(outputRoot, 'node_modules/@mastra/core/dist/di/index.js');
 const diIndexCjs = resolve(outputRoot, 'node_modules/@mastra/core/dist/di/index.cjs');
 const diIndexDts = resolve(outputRoot, 'node_modules/@mastra/core/dist/di/index.d.ts');
 
 const jsSource = [
-  "export const AGENT_STREAM_TOPIC = (runId) => `workflow.events.v2.${runId}`;",
+  'export const AGENT_STREAM_TOPIC = (runId) => `workflow.events.v2.${runId}`;',
   'export default AGENT_STREAM_TOPIC;',
   '',
 ].join('\n');
@@ -133,8 +143,8 @@ const agentDtsSource = [
   "export * from './types.js';",
   "export * from './agent.js';",
   "export * from './utils.js';",
-  "export type { AgentExecutionOptions, AgentExecutionOptionsBase, InnerAgentExecutionOptions, MultiPrimitiveExecutionOptions, DelegationStartContext, DelegationStartResult, OnDelegationStartHandler, DelegationCompleteContext, DelegationCompleteResult, OnDelegationCompleteHandler, DelegationConfig, MessageFilterContext,",
-  "/** @deprecated Use MessageFilterContext instead */",
+  'export type { AgentExecutionOptions, AgentExecutionOptionsBase, InnerAgentExecutionOptions, MultiPrimitiveExecutionOptions, DelegationStartContext, DelegationStartResult, OnDelegationStartHandler, DelegationCompleteContext, DelegationCompleteResult, OnDelegationCompleteHandler, DelegationConfig, MessageFilterContext,',
+  '/** @deprecated Use MessageFilterContext instead */',
   "MessageFilterContext as ContextFilterContext, IterationCompleteContext, IterationCompleteResult, OnIterationCompleteHandler, StreamIsTaskCompleteConfig, IsTaskCompleteConfig, IsTaskCompleteRunResult, CompletionConfig, CompletionRunResult, NetworkOptions, NetworkRoutingConfig, } from './agent.types.js';",
   "export type { MastraLanguageModel, MastraLegacyLanguageModel } from '../llm/model/shared.types.js';",
   'export declare function isDurableAgentLike(agent: unknown): agent is { pubsub: unknown };',
@@ -427,7 +437,7 @@ const streamCjsSource = [
 const streamDtsSource = [
   "export type { ChunkType, TypedChunkType, MastraFinishReason, ProviderMetadata, StreamTransport, LanguageModelUsage, AgentChunkType, DataChunkType, NetworkChunkType, WorkflowStreamEvent, FileChunk, ReasoningChunk, SourceChunk, ToolCallChunk, ToolResultChunk, LLMStepResult, StepFinishPayload, StepStartPayload, DynamicToolCallPayload, DynamicToolResultPayload, ToolCallPayload, ToolResultPayload, ReasoningDeltaPayload, ReasoningStartPayload, TextDeltaPayload, TextStartPayload, FilePayload, SourcePayload, JSONArray, JSONObject, JSONValue, ReadonlyJSONArray, ReadonlyJSONObject, ReadonlyJSONValue, } from './types.js';",
   '/**',
-  ' * @deprecated Use StandardSchemaWithJSON from \'../schema/index.js\' instead',
+  " * @deprecated Use StandardSchemaWithJSON from '../schema/index.js' instead",
   ' */',
   "export type { OutputSchema, PartialSchemaOutput } from './base/schema.js';",
   "export type { FullOutput } from './base/output.js';",
@@ -778,7 +788,8 @@ async function main() {
       {
         pattern:
           /export \{ MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY(?:, MASTRA_VERSIONS_KEY)?, RequestContext \};/g,
-        replacement: 'export { MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY, MASTRA_VERSIONS_KEY, RequestContext };',
+        replacement:
+          'export { MASTRA_RESOURCE_ID_KEY, MASTRA_THREAD_ID_KEY, MASTRA_VERSIONS_KEY, RequestContext };',
       },
     ]);
   } else {

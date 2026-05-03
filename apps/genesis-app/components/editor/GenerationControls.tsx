@@ -107,7 +107,10 @@ const GenerationControls: React.FC<GenerationControlsProps> = ({
           {imagePrompt && !isEditingDesc && (
             <button
               type="button"
-              onClick={() => { setEditText(imagePrompt); setIsEditingDesc(true); }}
+              onClick={() => {
+                setEditText(imagePrompt);
+                setIsEditingDesc(true);
+              }}
               className="flex items-center gap-1 text-[11px] font-medium text-cocoa-light hover:text-coral-burst transition-colors cursor-pointer"
               style={geist}
             >
@@ -139,7 +142,10 @@ const GenerationControls: React.FC<GenerationControlsProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => { setIsEditingDesc(false); setEditText(imagePrompt); }}
+                onClick={() => {
+                  setIsEditingDesc(false);
+                  setEditText(imagePrompt);
+                }}
                 className="text-[11px] font-medium text-cocoa-light hover:underline cursor-pointer"
                 style={geist}
               >
@@ -175,9 +181,10 @@ const GenerationControls: React.FC<GenerationControlsProps> = ({
                 onClick={() => onStyleChange?.(opt.value)}
                 title={opt.label}
                 className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all cursor-pointer active:scale-[0.96]
-                  ${isActive
-                    ? 'bg-coral-burst/15 border border-coral-burst/40 text-coral-burst'
-                    : 'border border-peach-soft/40 text-cocoa-light hover:border-peach-soft hover:text-charcoal-soft'
+                  ${
+                    isActive
+                      ? 'bg-coral-burst/15 border border-coral-burst/40 text-coral-burst'
+                      : 'border border-peach-soft/40 text-cocoa-light hover:border-peach-soft hover:text-charcoal-soft'
                   }`}
                 style={geist}
               >

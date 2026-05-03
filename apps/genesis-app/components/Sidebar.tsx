@@ -30,11 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
     <div className="fixed left-0 top-0 h-full w-20 md:w-64 bg-black/40  border-r border-glassBorder z-50 flex flex-col justify-between">
       <div>
         <div className="p-6 flex items-center gap-3">
-          <img
-            src="/genesis-icon.jpg"
-            alt="Genesis"
-            className="w-8 h-8 rounded-lg object-cover"
-          />
+          <img src="/genesis-icon.jpg" alt="Genesis" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-xl tracking-wide hidden md:block bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400">
             GENESIS
           </span>
@@ -66,7 +62,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode }) => {
       </div>
 
       <div className="p-4 border-t border-glassBorder">
-        <Button variant="ghost" className="w-full flex gap-3 px-3 py-3 text-cocoa-light/60 hover:text-white hover:bg-surface/5">
+        <Button
+          variant="ghost"
+          className="w-full flex gap-3 px-3 py-3 text-cocoa-light/60 hover:text-white hover:bg-surface/5"
+        >
           <Settings className="w-5 h-5" />
           <span className="hidden md:block">System Config</span>
         </Button>

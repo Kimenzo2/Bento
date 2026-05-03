@@ -56,9 +56,7 @@ const TopicInputStep: React.FC<TopicInputStepProps> = ({ request, onChange, onNe
 
       {/* Topic Input */}
       <div className="space-y-3">
-        <Label className="text-xs sm:text-sm uppercase tracking-wide">
-          Topic
-        </Label>
+        <Label className="text-xs sm:text-sm uppercase tracking-wide">Topic</Label>
         <Input
           type="text"
           value={request.topic}

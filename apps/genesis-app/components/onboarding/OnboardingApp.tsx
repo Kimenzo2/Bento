@@ -1,13 +1,13 @@
 /**
  * OnboardingApp - Completely Isolated Onboarding Experience
- * 
+ *
  * ARCHITECTURE:
  * This is a SEPARATE mini-application that runs independently from the main Genesis app.
  * It has its own:
  * - Root-level styles (dark theme, no cream)
  * - State management (OnboardingProvider)
  * - No shared layout with main app
- * 
+ *
  * This architectural separation ensures:
  * 1. Zero style leakage - onboarding never sees cream background
  * 2. Clean bundle splitting - main app code not loaded during onboarding

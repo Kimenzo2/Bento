@@ -90,12 +90,7 @@ export type {
 } from './security/auditLogger';
 
 // API Middleware (Enforced Security Layer)
-export {
-  apiMiddleware,
-  secureQuery,
-  secureMutation,
-  secureDelete,
-} from './api/middleware';
+export { apiMiddleware, secureQuery, secureMutation, secureDelete } from './api/middleware';
 export type { ApiOperation, ApiMiddlewareConfig, AuditLogEntry } from './api/middleware';
 
 // API Validation Schemas

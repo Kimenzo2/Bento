@@ -1,7 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, Search } from 'lucide-react';
-import { getAllArticles, searchArticles, LEARN_CATEGORIES, type LearnCategory } from '../../data/learnContent';
+import {
+  getAllArticles,
+  searchArticles,
+  LEARN_CATEGORIES,
+  type LearnCategory,
+} from '../../data/learnContent';
 import { usePageSEO } from '../../hooks/usePageSEO';
 
 const BASE_URL = 'https://iamazeyou.me';
@@ -25,7 +30,7 @@ const CATEGORY_COLORS: Record<LearnCategory, string> = {
   'for-developers': '#059669',
   'how-it-works': '#D97706',
   'ai-explained': '#6366F1',
-  'publishing': '#0891B2',
+  publishing: '#0891B2',
   'character-design': '#DB2777',
 };
 
@@ -41,10 +46,12 @@ const LearnPage: React.FC = () => {
 
   usePageSEO({
     title: 'Learn | Genesis \u2014 AI Visual Storytelling',
-    description: 'Guides and answers on AI visual storytelling, children\'s book creation, classroom tools, character design, and publishing with Genesis.',
+    description:
+      "Guides and answers on AI visual storytelling, children's book creation, classroom tools, character design, and publishing with Genesis.",
     canonical: '/learn',
     ogTitle: 'Learn \u2014 Genesis',
-    ogDescription: 'AEO content hub for AI visual storytelling, education, publishing, and character design.',
+    ogDescription:
+      'AEO content hub for AI visual storytelling, education, publishing, and character design.',
   });
 
   React.useEffect(() => {
@@ -60,29 +67,34 @@ const LearnPage: React.FC = () => {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
       name: 'Learn \u2014 Genesis',
-      description: 'AEO and SEO content hub covering AI visual storytelling, children\'s book creation, classroom tools, and character design.',
+      description:
+        "AEO and SEO content hub covering AI visual storytelling, children's book creation, classroom tools, and character design.",
       url: `${BASE_URL}/learn`,
       publisher: { '@type': 'Organization', name: 'Genesis', url: BASE_URL },
     });
-    return () => { document.getElementById(id)?.remove(); };
+    return () => {
+      document.getElementById(id)?.remove();
+    };
   }, []);
 
   const usedCategories = useMemo(() => {
-    const cats = new Set(allArticles.map(a => a.category));
-    return (Object.keys(LEARN_CATEGORIES) as LearnCategory[]).filter(c => cats.has(c));
+    const cats = new Set(allArticles.map((a) => a.category));
+    return (Object.keys(LEARN_CATEGORIES) as LearnCategory[]).filter((c) => cats.has(c));
   }, [allArticles]);
 
   const filtered = useMemo(() => {
     let results = query.trim() ? searchArticles(query) : allArticles;
     if (activeCategory !== 'all') {
-      results = results.filter(a => a.category === activeCategory);
+      results = results.filter((a) => a.category === activeCategory);
     }
     return results;
   }, [query, activeCategory, allArticles]);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}>
-
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}
+    >
       {/* Nav */}
       <header
         className="sticky top-0 z-40 w-full border-b backdrop-blur-md"
@@ -90,19 +102,31 @@ const LearnPage: React.FC = () => {
       >
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4 sm:gap-6">
-            <Link to="/" className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70" style={{ color: S.textMuted }}>
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
+              style={{ color: S.textMuted }}
+            >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Genesis</span>
             </Link>
             <div className="w-px h-4 hidden sm:block" style={{ backgroundColor: S.border }} />
-            <Link to="/learn" className="text-base font-normal tracking-tight" style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.25rem' }}>
+            <Link
+              to="/learn"
+              className="text-base font-normal tracking-tight"
+              style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.25rem' }}
+            >
               Genesis Learn
             </Link>
           </div>
           <a
             href="/welcome"
             className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full text-sm font-medium transition-all hover:shadow-lg hover:-translate-y-0.5"
-            style={{ backgroundColor: S.accent, color: '#fff', boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)' }}
+            style={{
+              backgroundColor: S.accent,
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)',
+            }}
           >
             Try Free
           </a>
@@ -112,33 +136,57 @@ const LearnPage: React.FC = () => {
       {/* Hero */}
       <section className="border-b" style={{ borderColor: S.border, backgroundColor: S.surface }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: S.accent }}>
+          <p
+            className="text-xs font-semibold uppercase tracking-widest mb-4"
+            style={{ color: S.accent }}
+          >
             {allArticles.length} {allArticles.length === 1 ? 'Guide' : 'Guides'}
           </p>
-          <h1 className="leading-tight mb-4" style={{ fontFamily: S.fontSerif, color: S.text, fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', fontWeight: 400, letterSpacing: '-0.01em' }}>
+          <h1
+            className="leading-tight mb-4"
+            style={{
+              fontFamily: S.fontSerif,
+              color: S.text,
+              fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
+              fontWeight: 400,
+              letterSpacing: '-0.01em',
+            }}
+          >
             Learn
           </h1>
           <p className="text-lg leading-relaxed max-w-xl" style={{ color: S.textMuted }}>
-            Answers to the questions people actually ask about AI visual storytelling, classroom tools, publishing, and character design.
+            Answers to the questions people actually ask about AI visual storytelling, classroom
+            tools, publishing, and character design.
           </p>
 
           {/* Search */}
           <div className="relative mt-8 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: S.textMuted }} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+              style={{ color: S.textMuted }}
+            />
             <input
               type="text"
               placeholder="Search guides..."
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={(e) => setQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm outline-none transition-colors focus:ring-2"
-              style={{ borderColor: S.border, backgroundColor: S.surface, fontFamily: S.fontSans, color: S.text }}
+              style={{
+                borderColor: S.border,
+                backgroundColor: S.surface,
+                fontFamily: S.fontSans,
+                color: S.text,
+              }}
             />
           </div>
         </div>
       </section>
 
       {/* Category tabs */}
-      <div className="border-b overflow-x-auto" style={{ borderColor: S.border, backgroundColor: S.surface }}>
+      <div
+        className="border-b overflow-x-auto"
+        style={{ borderColor: S.border, backgroundColor: S.surface }}
+      >
         <div className="max-w-5xl mx-auto px-5 sm:px-8 flex gap-1">
           <button
             onClick={() => setActiveCategory('all')}
@@ -150,7 +198,7 @@ const LearnPage: React.FC = () => {
           >
             All
           </button>
-          {usedCategories.map(cat => (
+          {usedCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -174,10 +222,15 @@ const LearnPage: React.FC = () => {
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {filtered.map(article => {
+            {filtered.map((article) => {
               const catInfo = LEARN_CATEGORIES[article.category];
               const catColor = CATEGORY_COLORS[article.category];
-              const wordCount = [article.openAnswer, article.whyItMatters, article.howGenesisSolves, ...article.faqs.map(f => f.answer)].join(' ');
+              const wordCount = [
+                article.openAnswer,
+                article.whyItMatters,
+                article.howGenesisSolves,
+                ...article.faqs.map((f) => f.answer),
+              ].join(' ');
               const mins = readTime(wordCount);
               return (
                 <Link
@@ -192,10 +245,16 @@ const LearnPage: React.FC = () => {
                   >
                     {catInfo.icon} {catInfo.label}
                   </span>
-                  <h3 className="text-base font-semibold leading-snug mb-2 group-hover:underline" style={{ color: S.text }}>
+                  <h3
+                    className="text-base font-semibold leading-snug mb-2 group-hover:underline"
+                    style={{ color: S.text }}
+                  >
                     {article.title}
                   </h3>
-                  <p className="text-sm leading-relaxed mb-3 line-clamp-2" style={{ color: S.textMuted }}>
+                  <p
+                    className="text-sm leading-relaxed mb-3 line-clamp-2"
+                    style={{ color: S.textMuted }}
+                  >
                     {article.metaDescription}
                   </p>
                   <div className="flex items-center gap-3 text-xs" style={{ color: S.textMuted }}>
@@ -213,12 +272,20 @@ const LearnPage: React.FC = () => {
       {/* CTA */}
       <section className="border-t" style={{ borderColor: S.border, backgroundColor: S.surface }}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-16 text-center">
-          <h2 className="text-2xl mb-3" style={{ fontFamily: S.fontSerif, fontWeight: 400 }}>Ready to create your own story?</h2>
-          <p className="mb-6" style={{ color: S.textMuted }}>Start free. No account needed to preview.</p>
+          <h2 className="text-2xl mb-3" style={{ fontFamily: S.fontSerif, fontWeight: 400 }}>
+            Ready to create your own story?
+          </h2>
+          <p className="mb-6" style={{ color: S.textMuted }}>
+            Start free. No account needed to preview.
+          </p>
           <a
             href="/welcome"
             className="inline-flex items-center px-8 py-3 rounded-full text-sm font-medium transition-all hover:shadow-lg hover:-translate-y-0.5"
-            style={{ backgroundColor: S.accent, color: '#fff', boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)' }}
+            style={{
+              backgroundColor: S.accent,
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(193, 95, 60, 0.2)',
+            }}
           >
             Start Free
           </a>
@@ -226,15 +293,38 @@ const LearnPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-12 text-center text-sm" style={{ borderColor: S.border, color: S.textMuted, backgroundColor: S.bg }}>
+      <footer
+        className="border-t py-12 text-center text-sm"
+        style={{ borderColor: S.border, color: S.textMuted, backgroundColor: S.bg }}
+      >
         <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <p>&copy; 2026 <a href={BASE_URL} className="underline underline-offset-4 transition-colors hover:text-black" style={{ color: S.accent }}>Genesis</a> &mdash; AI Visual Storytelling Platform</p>
-          <span className="hidden sm:inline" style={{ color: S.border }}>&middot;</span>
+          <p>
+            &copy; 2026{' '}
+            <a
+              href={BASE_URL}
+              className="underline underline-offset-4 transition-colors hover:text-black"
+              style={{ color: S.accent }}
+            >
+              Genesis
+            </a>{' '}
+            &mdash; AI Visual Storytelling Platform
+          </p>
+          <span className="hidden sm:inline" style={{ color: S.border }}>
+            &middot;
+          </span>
           <div className="flex gap-4">
-            <Link to="/blog" className="hover:underline" style={{ color: S.textMuted }}>Blog</Link>
-            <Link to="/transparency" className="hover:underline" style={{ color: S.textMuted }}>Transparency</Link>
-            <Link to="/legal/privacy" className="hover:underline" style={{ color: S.textMuted }}>Privacy</Link>
-            <Link to="/legal/terms" className="hover:underline" style={{ color: S.textMuted }}>Terms</Link>
+            <Link to="/blog" className="hover:underline" style={{ color: S.textMuted }}>
+              Blog
+            </Link>
+            <Link to="/transparency" className="hover:underline" style={{ color: S.textMuted }}>
+              Transparency
+            </Link>
+            <Link to="/legal/privacy" className="hover:underline" style={{ color: S.textMuted }}>
+              Privacy
+            </Link>
+            <Link to="/legal/terms" className="hover:underline" style={{ color: S.textMuted }}>
+              Terms
+            </Link>
           </div>
         </div>
       </footer>

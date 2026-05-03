@@ -88,8 +88,16 @@ export function extractGrayscaleBuffer(imageData: ImageDataLike): Float32Array {
   const grayscale = new Float32Array(imageData.width * imageData.height);
   const { data } = imageData;
 
-  for (let pixelIndex = 0, dataIndex = 0; pixelIndex < grayscale.length; pixelIndex += 1, dataIndex += 4) {
-    grayscale[pixelIndex] = calculateLuminance(data[dataIndex], data[dataIndex + 1], data[dataIndex + 2]);
+  for (
+    let pixelIndex = 0, dataIndex = 0;
+    pixelIndex < grayscale.length;
+    pixelIndex += 1, dataIndex += 4
+  ) {
+    grayscale[pixelIndex] = calculateLuminance(
+      data[dataIndex],
+      data[dataIndex + 1],
+      data[dataIndex + 2]
+    );
   }
 
   return grayscale;
@@ -180,7 +188,8 @@ export function applyGaussianBlur(
     }
   }
 
-  const sampleHorizontal = (x: number, y: number) => horizontalPass[clampY(y) * width + clampX(x)] ?? 0;
+  const sampleHorizontal = (x: number, y: number) =>
+    horizontalPass[clampY(y) * width + clampX(x)] ?? 0;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -257,7 +266,11 @@ export function buildOutlineRgbaBuffer(
 ): Uint8ClampedArray {
   const pixels = new Uint8ClampedArray(width * height * 4);
 
-  for (let pixelIndex = 0, rgbaIndex = 0; pixelIndex < width * height; pixelIndex += 1, rgbaIndex += 4) {
+  for (
+    let pixelIndex = 0, rgbaIndex = 0;
+    pixelIndex < width * height;
+    pixelIndex += 1, rgbaIndex += 4
+  ) {
     const lineStrength = clampUnit(Number(lineStrengths[pixelIndex] ?? 0));
 
     if (lineStrength <= 0) {
@@ -347,7 +360,11 @@ export function buildColouringPageOutline(
     imageData.height,
     DETAIL_XDOG_OPTIONS
   );
-  const edgeStrengths = combineResponseMaps(coarseEdgeStrengths, detailEdgeStrengths, DETAIL_RESPONSE_WEIGHT);
+  const edgeStrengths = combineResponseMaps(
+    coarseEdgeStrengths,
+    detailEdgeStrengths,
+    DETAIL_RESPONSE_WEIGHT
+  );
   const outlinePixels = thinOutlineBuffer(
     buildOutlineRgbaBuffer(edgeStrengths, imageData.width, imageData.height),
     imageData.width,

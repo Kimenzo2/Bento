@@ -19,9 +19,13 @@ export function getSupabaseAdmin(): SupabaseClient {
     return adminClient;
   }
 
-  adminClient = createClient(getRequiredEnv('SUPABASE_URL'), getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'), {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  adminClient = createClient(
+    getRequiredEnv('SUPABASE_URL'),
+    getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'),
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  );
 
   return adminClient;
 }
@@ -81,7 +85,10 @@ export async function insertLifeInColourGeneration(input: {
   return data as LifeInColourGenerationRecord;
 }
 
-export async function getLifeInColourGeneration(id: string, userId: string): Promise<LifeInColourGenerationRecord | null> {
+export async function getLifeInColourGeneration(
+  id: string,
+  userId: string
+): Promise<LifeInColourGenerationRecord | null> {
   const { data, error } = await getSupabaseAdmin()
     .from('life_in_colour_generations')
     .select('*')

@@ -1,9 +1,9 @@
 /**
  * Generate OG Image for social media sharing
- * 
+ *
  * Usage: npx playwright test scripts/generate-og-image.mjs
  *   OR:  node scripts/generate-og-image.mjs
- * 
+ *
  * Outputs: public/og-image.png (1200x630)
  */
 
@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 
 async function generateOGImage() {
   console.log('🎨 Generating OG image...');
-  
+
   const browser = await chromium.launch();
   const page = await browser.newPage({
     viewport: { width: 1200, height: 630 },

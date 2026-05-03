@@ -27,26 +27,30 @@ export default function PaymentSucceededEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Payment received.
-      </Text>
+      <Text style={heading(28)}>Payment received.</Text>
 
       {/* Callout with payment details */}
       <Section style={callout}>
         <Row style={{ marginBottom: '16px' }}>
           <Column>
             <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Plan</Text>
-            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>{planName}</Text>
+            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>
+              {planName}
+            </Text>
           </Column>
           <Column>
             <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Amount</Text>
-            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>{amount} {currency}</Text>
+            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>
+              {amount} {currency}
+            </Text>
           </Column>
         </Row>
         <Row>
           <Column>
             <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Date</Text>
-            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>{date}</Text>
+            <Text style={body({ size: 14, weight: 600, margin: '0', color: '#3D3D3D' })}>
+              {date}
+            </Text>
           </Column>
           <Column>
             <Text style={body({ size: 12, color: '#8B7E74', margin: '0 0 4px 0' })}>Status</Text>

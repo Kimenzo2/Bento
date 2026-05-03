@@ -52,55 +52,55 @@ const SavedBookCard: React.FC<SavedBookCardProps> = ({
         {/* Hover Overlay - Action Buttons */}
         <div className="absolute inset-0 z-20 bg-linear-to-t from-black/85 via-black/78 to-black/66 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-300 ease-in-out flex items-end justify-center p-3 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto">
           <div className="flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(book)}
-            className={actionButtonBaseClass}
-            title="Edit"
-            aria-label="Edit book"
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>Edit</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onRead(book)}
-            className={actionButtonBaseClass}
-            title="Read"
-            aria-label="Read book"
-          >
-            <Eye className="w-4 h-4" />
-            <span>Read</span>
-          </button>
-          {onShare && (
             <button
               type="button"
-              onClick={() => onShare(book)}
+              onClick={() => onEdit(book)}
               className={actionButtonBaseClass}
-              title="Share"
-              aria-label="Share book"
+              title="Edit"
+              aria-label="Edit book"
             >
-              <Share2 className="w-4 h-4" />
-              <span>Share</span>
+              <Edit3 className="w-4 h-4" />
+              <span>Edit</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toast(`Delete "${book.title}"?`, {
-                description: 'This cannot be undone.',
-                action: { label: 'Delete', onClick: () => onDelete(book.id) },
-                cancel: { label: 'Cancel', onClick: () => {} },
-              });
-            }}
-            className={actionButtonBaseClass}
-            title="Delete"
-            aria-label="Delete book"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Delete</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => onRead(book)}
+              className={actionButtonBaseClass}
+              title="Read"
+              aria-label="Read book"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Read</span>
+            </button>
+            {onShare && (
+              <button
+                type="button"
+                onClick={() => onShare(book)}
+                className={actionButtonBaseClass}
+                title="Share"
+                aria-label="Share book"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toast(`Delete "${book.title}"?`, {
+                  description: 'This cannot be undone.',
+                  action: { label: 'Delete', onClick: () => onDelete(book.id) },
+                  cancel: { label: 'Cancel', onClick: () => {} },
+                });
+              }}
+              className={actionButtonBaseClass}
+              title="Delete"
+              aria-label="Delete book"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete</span>
+            </button>
           </div>
         </div>
       </div>

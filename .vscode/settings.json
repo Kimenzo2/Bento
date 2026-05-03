@@ -2,18 +2,13 @@
   // ─── CSS ────────────────────────────────────────────────────────────────────
   "css.lint.unknownAtRules": "ignore",
 
-  // ─── TypeScript performance ──────────────────────────────────────────────────
-  // Use the workspace TypeScript instead of VS Code's bundled one
-  "typescript.tsdk": "node_modules/typescript/lib",
-  // Disable the slow tsserver project-wide actions on file open
-  "typescript.disableAutomaticTypeAcquisition": true,
-  // Faster completions — skip auto-import indexing for large projects
-  "typescript.preferences.includePackageJsonAutoImports": "off",
-  // Use the new project-wide rename/find (faster than old reindex approach)
+  // ─── TypeScript native preview ──────────────────────────────────────────────
+  "js/ts.experimental.useTsgo": true,
+  "js/ts.tsserver.automaticTypeAcquisition.enabled": false,
+  "js/ts.preferences.includePackageJsonAutoImports": "off",
+  "js/ts.suggest.autoImports": true,
+  "js/ts.updateImportsOnFileMove.enabled": "always",
   "typescript.experimental.updateImportsOnPaste": true,
-  // Reduce re-analysis on each keystroke
-  "typescript.suggest.autoImports": true,
-  "typescript.updateImportsOnFileMove.enabled": "always",
 
   // ─── File watcher exclusions (huge perf boost on Windows) ───────────────────
   "files.watcherExclude": {
@@ -43,18 +38,12 @@
     "**/node_modules/.cache": true
   },
 
-  // ─── ESLint / Biome ─────────────────────────────────────────────────────────
-  // Run Biome only on save (not on type) — avoids linting on every keystroke
-  "editor.defaultFormatter": "biomejs.biome",
+  // ─── Oxc ────────────────────────────────────────────────────────────────────
+  "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSave": true,
   "editor.formatOnPaste": false,
   "editor.formatOnType": false,
-  "[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
-  "[typescriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
-  "[json]": { "editor.defaultFormatter": "biomejs.biome" },
-  "[jsonc]": { "editor.defaultFormatter": "biomejs.biome" },
-  // Disable ESLint auto-fix on save to avoid double-processing with Biome
-  "eslint.run": "onSave",
+  "eslint.enable": false,
 
   // ─── Terminal / Shell ────────────────────────────────────────────────────────
   "terminal.integrated.shellIntegration.enabled": true,
@@ -69,4 +58,3 @@
   "editor.suggest.preview": false,
   "editor.quickSuggestionsDelay": 100
 }
-

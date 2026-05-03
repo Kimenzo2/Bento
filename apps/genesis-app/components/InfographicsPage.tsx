@@ -9,7 +9,8 @@ const InfographicsPage: React.FC = () => {
 
   usePageSEO({
     title: 'Infographics — Genesis AI Visual Storytelling',
-    description: 'Create stunning educational infographics with AI. Choose a topic, customize the style, and generate beautiful visual lessons in seconds.',
+    description:
+      'Create stunning educational infographics with AI. Choose a topic, customize the style, and generate beautiful visual lessons in seconds.',
     canonical: '/infographics',
   });
 

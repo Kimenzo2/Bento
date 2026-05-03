@@ -1,5 +1,14 @@
 import { IcoBook, IcoPen } from './IconscoutIcons';
-import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, Clock, Download, Lock, User } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Download,
+  Lock,
+  User,
+} from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -147,9 +156,7 @@ const SharedBookViewer: React.FC<SharedBookViewerProps> = ({
           <div className="w-16 h-16 bg-red-100  rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-charcoal-soft  mb-2">
-            Unable to View Book
-          </h2>
+          <h2 className="text-xl font-bold text-charcoal-soft  mb-2">Unable to View Book</h2>
           <p className="text-cocoa-light  mb-6">{error}</p>
           <Button
             variant="default"

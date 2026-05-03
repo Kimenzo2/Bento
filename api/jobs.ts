@@ -95,7 +95,11 @@ function resolveJobsPath(req: VercelRequest): string {
 // HANDLERS
 // ============================================================================
 
-async function handleSubmit(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleSubmit(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const body = req.body as JobSubmission;
 
@@ -152,7 +156,11 @@ async function handleSubmit(req: VercelRequest, res: VercelResponse, userId: str
   }
 }
 
-async function handleStatus(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleStatus(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const jobId = req.query.id as string;
 
@@ -192,7 +200,11 @@ async function handleStatus(req: VercelRequest, res: VercelResponse, userId: str
   }
 }
 
-async function handleStream(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleStream(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   const jobId = req.query.id as string;
   const streamToken = typeof req.query.streamToken === 'string' ? req.query.streamToken : '';
 
@@ -261,7 +273,11 @@ async function handleStream(req: VercelRequest, res: VercelResponse, userId: str
   });
 }
 
-async function handleCancel(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleCancel(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const jobId = req.query.id as string;
 
@@ -439,7 +455,9 @@ export default createAuthenticatedHandler(async (ctx: ApiContext): Promise<void>
   }
 
   // CORS headers — restrict to app origin in production
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '*');
+  const allowedOrigin =
+    process.env.ALLOWED_ORIGIN ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '*');
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -477,5 +495,3 @@ export default createAuthenticatedHandler(async (ctx: ApiContext): Promise<void>
 
   res.status(404).json({ error: 'Not found' });
 });
-
-

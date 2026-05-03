@@ -42,9 +42,10 @@ function resolveColouringAction(req: VercelRequest): string {
     return req.query.action.trim();
   }
 
-  const bodyAction = req.body && typeof req.body === 'object' && typeof (req.body as JsonRecord).action === 'string'
-    ? String((req.body as JsonRecord).action).trim()
-    : '';
+  const bodyAction =
+    req.body && typeof req.body === 'object' && typeof (req.body as JsonRecord).action === 'string'
+      ? String((req.body as JsonRecord).action).trim()
+      : '';
   if (bodyAction) {
     return bodyAction;
   }
@@ -106,19 +107,25 @@ function nowIso(): string {
 function validateVisibility(value: unknown): ColouringBookRow['visibility'] | undefined {
   const normalized = asString(value);
   if (!normalized) return undefined;
-  return VALID_VISIBILITIES.has(normalized) ? (normalized as ColouringBookRow['visibility']) : undefined;
+  return VALID_VISIBILITIES.has(normalized)
+    ? (normalized as ColouringBookRow['visibility'])
+    : undefined;
 }
 
 function validatePaperSize(value: unknown): ColouringBookRow['paper_size'] | undefined {
   const normalized = asString(value);
   if (!normalized) return undefined;
-  return VALID_PAPER_SIZES.has(normalized) ? (normalized as ColouringBookRow['paper_size']) : undefined;
+  return VALID_PAPER_SIZES.has(normalized)
+    ? (normalized as ColouringBookRow['paper_size'])
+    : undefined;
 }
 
 function validateOrientation(value: unknown): ColouringBookRow['orientation'] | undefined {
   const normalized = asString(value);
   if (!normalized) return undefined;
-  return VALID_ORIENTATIONS.has(normalized) ? (normalized as ColouringBookRow['orientation']) : undefined;
+  return VALID_ORIENTATIONS.has(normalized)
+    ? (normalized as ColouringBookRow['orientation'])
+    : undefined;
 }
 
 function validateInviteRole(value: unknown): ColouringMemberRole | undefined {
@@ -137,7 +144,10 @@ function resolveInviteScope(value: unknown): ColouringInviteScope | undefined {
   return undefined;
 }
 
-async function getActiveJob(db: ReturnType<typeof getDb>, bookId: string): Promise<ColouringJobRow | null> {
+async function getActiveJob(
+  db: ReturnType<typeof getDb>,
+  bookId: string
+): Promise<ColouringJobRow | null> {
   const { data, error } = await db
     .from('colouring_jobs')
     .select('*')
@@ -177,11 +187,7 @@ async function refreshSourceCount(db: ReturnType<typeof getDb>, bookId: string):
   return sourceCount;
 }
 
-async function ensureReadableBook(
-  db: ReturnType<typeof getDb>,
-  bookId: string,
-  userId: string
-) {
+async function ensureReadableBook(db: ReturnType<typeof getDb>, bookId: string, userId: string) {
   const access = await getBookAccess(db, bookId, userId);
   if (!access.book) {
     return { access, forbidden: false, notFound: true };
@@ -190,11 +196,7 @@ async function ensureReadableBook(
   return { access, forbidden: !hasAccess, notFound: false };
 }
 
-async function ensureEditableBook(
-  db: ReturnType<typeof getDb>,
-  bookId: string,
-  userId: string
-) {
+async function ensureEditableBook(db: ReturnType<typeof getDb>, bookId: string, userId: string) {
   const access = await getBookAccess(db, bookId, userId);
   if (!access.book) {
     return { access, forbidden: false, notFound: true };
@@ -218,9 +220,10 @@ async function buildManifestForBook(
   }
 
   const allowedToSeeSources = Boolean(accessResult.access.isOwner || accessResult.access.canEdit);
-  const includeSources = typeof includeSourcesOverride === 'boolean'
-    ? includeSourcesOverride && allowedToSeeSources
-    : allowedToSeeSources;
+  const includeSources =
+    typeof includeSourcesOverride === 'boolean'
+      ? includeSourcesOverride && allowedToSeeSources
+      : allowedToSeeSources;
   const snapshot = await getBookManifestSnapshot(db, bookId);
   const book = snapshot.book;
   if (!book) {
@@ -283,7 +286,8 @@ async function handleCreateBook(ctx: ApiContext, body: JsonRecord): Promise<unkn
 
   const title = asNullableString(body.title) || 'Untitled Colouring Book';
   const description = asNullableString(body.description);
-  const paperSize = validatePaperSize(body.paperSize) || validatePaperSize(body.paper_size) || 'letter';
+  const paperSize =
+    validatePaperSize(body.paperSize) || validatePaperSize(body.paper_size) || 'letter';
   const orientation = validateOrientation(body.orientation) || 'portrait';
   const metadata = asJsonObject(body.metadata) || {};
   const visibility = validateVisibility(body.visibility);
@@ -410,10 +414,7 @@ async function handlePresignSourceUpload(ctx: ApiContext, body: JsonRecord): Pro
   }
 
   if (accessResult.access.book?.status === 'draft') {
-    await db
-      .from('colouring_books')
-      .update({ status: 'uploading' })
-      .eq('id', bookId);
+    await db.from('colouring_books').update({ status: 'uploading' }).eq('id', bookId);
   }
 
   return res.status(201).json({
@@ -464,14 +465,20 @@ async function handleCommitSource(ctx: ApiContext, body: JsonRecord): Promise<un
     return res.status(409).json({ error: `Source is ${source.status}` });
   }
 
-  const nextMimeType = asString(body.mimeType) || asString(body.mime_type) || source.mime_type || inferContentType(source.original_filename || source.storage_path);
-  const byteSize = typeof body.byteSize === 'number'
-    ? body.byteSize
-    : typeof body.byte_size === 'number'
-      ? body.byte_size
-      : source.byte_size;
+  const nextMimeType =
+    asString(body.mimeType) ||
+    asString(body.mime_type) ||
+    source.mime_type ||
+    inferContentType(source.original_filename || source.storage_path);
+  const byteSize =
+    typeof body.byteSize === 'number'
+      ? body.byteSize
+      : typeof body.byte_size === 'number'
+        ? body.byte_size
+        : source.byte_size;
   const sha256 = asString(body.sha256) || source.sha256;
-  const perceptualHash = asString(body.perceptualHash) || asString(body.perceptual_hash) || source.perceptual_hash;
+  const perceptualHash =
+    asString(body.perceptualHash) || asString(body.perceptual_hash) || source.perceptual_hash;
   const width = typeof body.width === 'number' ? Math.floor(body.width) : source.width;
   const height = typeof body.height === 'number' ? Math.floor(body.height) : source.height;
   const firstCommit = !source.committed_at;
@@ -506,10 +513,7 @@ async function handleCommitSource(ctx: ApiContext, body: JsonRecord): Promise<un
     console.warn('[colouring-books] source count refresh failed after commit:', error);
   }
   if (accessResult.access.book?.status === 'draft') {
-    await db
-      .from('colouring_books')
-      .update({ status: 'uploading' })
-      .eq('id', bookId);
+    await db.from('colouring_books').update({ status: 'uploading' }).eq('id', bookId);
   }
 
   if (firstCommit) {
@@ -522,7 +526,11 @@ async function handleCommitSource(ctx: ApiContext, body: JsonRecord): Promise<un
   return res.status(200).json({ source: updated });
 }
 
-async function handleQueueProcessing(ctx: ApiContext, body: JsonRecord, jobType: 'build_book' | 'retry_book'): Promise<unknown> {
+async function handleQueueProcessing(
+  ctx: ApiContext,
+  body: JsonRecord,
+  jobType: 'build_book' | 'retry_book'
+): Promise<unknown> {
   const { res, userId } = ctx;
   const db = getDb();
   const bookId = resolveBookId(ctx.req, body);
@@ -592,8 +600,10 @@ async function handleManifest(ctx: ApiContext, body: JsonRecord): Promise<unknow
   const { res, userId } = ctx;
   const db = getDb();
   const bookId = resolveBookId(ctx.req, body);
-  const rawIncludeSources = body.includeSources ?? body.include_sources ?? ctx.req.query.includeSources;
-  const includeSourcesOverride = typeof rawIncludeSources === 'undefined' ? undefined : asBoolean(rawIncludeSources);
+  const rawIncludeSources =
+    body.includeSources ?? body.include_sources ?? ctx.req.query.includeSources;
+  const includeSourcesOverride =
+    typeof rawIncludeSources === 'undefined' ? undefined : asBoolean(rawIncludeSources);
 
   if (!bookId) {
     return res.status(400).json({ error: 'bookId is required' });
@@ -664,7 +674,10 @@ async function handleCreateInvite(ctx: ApiContext, body: JsonRecord): Promise<un
   const role = validateInviteRole(body.role) || 'viewer';
   const exportId = scope === 'export' ? resolveExportId(ctx.req, body) : null;
   const maxUses = parsePositiveInteger(body.maxUses ?? body.max_uses, scope === 'export' ? 20 : 5);
-  const expiresInHours = parsePositiveInteger(body.expiresInHours ?? body.expires_in_hours, scope === 'export' ? 24 : 168);
+  const expiresInHours = parsePositiveInteger(
+    body.expiresInHours ?? body.expires_in_hours,
+    scope === 'export' ? 24 : 168
+  );
   const expiresAt = asString(body.expiresAt) || asString(body.expires_at);
 
   let resolvedExportId: string | null = null;
@@ -689,7 +702,8 @@ async function handleCreateInvite(ctx: ApiContext, body: JsonRecord): Promise<un
   const token = createInviteToken(scope === 'export' ? 'exp' : 'cbk');
   const tokenHash = hashToken(token);
   const tokenPrefixValue = tokenPrefix(token);
-  const expiryIso = expiresAt || new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
+  const expiryIso =
+    expiresAt || new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
 
   const { data: invite, error } = await db
     .from('colouring_invites')
@@ -807,9 +821,7 @@ async function handleRequestExport(ctx: ApiContext, body: JsonRecord): Promise<u
   }
 
   const selectedPageNumbers = Array.isArray(body.pageNumbers)
-    ? body.pageNumbers
-        .map((value) => parsePositiveInteger(value, 0))
-        .filter((value) => value > 0)
+    ? body.pageNumbers.map((value) => parsePositiveInteger(value, 0)).filter((value) => value > 0)
     : [];
   const exportOptions: JsonRecord = {
     requestedBy: userId,
@@ -859,10 +871,7 @@ async function handleRequestExport(ctx: ApiContext, body: JsonRecord): Promise<u
 
   const exportId = exportRow.id;
   if (exportId && queueResult.job) {
-    await db
-      .from('colouring_exports')
-      .update({ job_id: queueResult.job.id })
-      .eq('id', exportId);
+    await db.from('colouring_exports').update({ job_id: queueResult.job.id }).eq('id', exportId);
   }
 
   await db.rpc('increment_colouring_usage', {

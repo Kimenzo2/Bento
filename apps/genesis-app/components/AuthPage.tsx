@@ -25,7 +25,8 @@ const AuthPage: React.FC = () => {
 
   usePageSEO({
     title: 'Sign In — Genesis AI Visual Storytelling',
-    description: 'Sign in or create your Genesis account to start creating AI-powered visual stories, illustrated books, and educational content.',
+    description:
+      'Sign in or create your Genesis account to start creating AI-powered visual stories, illustrated books, and educational content.',
     canonical: '/auth',
   });
   const [isSignUp, setIsSignUp] = useState(true);
@@ -47,7 +48,9 @@ const AuthPage: React.FC = () => {
   // Google blocks OAuth from these WebViews — we must redirect to the real browser.
   const isInAppBrowser = React.useMemo(() => {
     const ua = navigator.userAgent || '';
-    return /FBAN|FBAV|Instagram|Threads|Line|Twitter|TikTok|Snapchat|Pinterest|LinkedInApp|MicroMessenger|WeChat/i.test(ua);
+    return /FBAN|FBAV|Instagram|Threads|Line|Twitter|TikTok|Snapchat|Pinterest|LinkedInApp|MicroMessenger|WeChat/i.test(
+      ua
+    );
   }, []);
 
   const handleGoogleLogin = async () => {
@@ -57,7 +60,9 @@ const AuthPage: React.FC = () => {
       // and window.open with _system works broadly.
       const authUrl = `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`;
       window.open(authUrl, '_system');
-      setError('Please tap the menu (⋮ or ⋯) above and choose "Open in browser" to sign in with Google.');
+      setError(
+        'Please tap the menu (⋮ or ⋯) above and choose "Open in browser" to sign in with Google.'
+      );
       return;
     }
 
@@ -198,9 +203,10 @@ const AuthPage: React.FC = () => {
             <div className="mb-6 p-4 rounded-xl bg-gold-sunshine/10 border border-gold-sunshine/30 text-sm text-charcoal-soft">
               <p className="font-semibold mb-1">You&rsquo;re using an in-app browser</p>
               <p className="text-cocoa-light">
-                Google sign-in requires a full browser. Tap the menu (<strong>&hellip;</strong>) above and select{' '}
-                <strong>&ldquo;Open in Chrome&rdquo;</strong> or <strong>&ldquo;Open in browser&rdquo;</strong> &#x2014;
-                or use email &amp; password below.
+                Google sign-in requires a full browser. Tap the menu (<strong>&hellip;</strong>)
+                above and select <strong>&ldquo;Open in Chrome&rdquo;</strong> or{' '}
+                <strong>&ldquo;Open in browser&rdquo;</strong> &#x2014; or use email &amp; password
+                below.
               </p>
             </div>
           )}

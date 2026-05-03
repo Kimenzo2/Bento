@@ -66,14 +66,9 @@ interface PageCardProps {
 }
 
 const SortablePageCard: React.FC<PageCardProps> = ({ page, index, isActive, onClick }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: page.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: page.id,
+  });
 
   const resolvedUrl = resolveImageUrl(page.imageUrl);
 
@@ -92,10 +87,7 @@ const SortablePageCard: React.FC<PageCardProps> = ({ page, index, isActive, onCl
           w-full h-[72px] rounded-lg overflow-hidden cursor-pointer
           transition-all duration-200 flex group text-left
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-burst/40
-          ${isActive
-            ? ''
-            : 'hover:border-coral-burst/40'
-          }
+          ${isActive ? '' : 'hover:border-coral-burst/40'}
         `}
         style={{
           borderLeft: isActive
@@ -134,7 +126,8 @@ const SortablePageCard: React.FC<PageCardProps> = ({ page, index, isActive, onCl
               draggable={false}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center"
+            <div
+              className="w-full h-full flex items-center justify-center"
               style={{ backgroundColor: 'var(--color-surface)' }}
             >
               <ImageIcon className="w-4 h-4 text-cocoa-light/40" />
@@ -149,7 +142,8 @@ const SortablePageCard: React.FC<PageCardProps> = ({ page, index, isActive, onCl
             className="self-start px-1.5 py-0.5 rounded text-[9px] font-semibold"
             style={{
               ...geist,
-              backgroundColor: 'color-mix(in srgb, var(--color-primary-start) 12%, var(--color-surface))',
+              backgroundColor:
+                'color-mix(in srgb, var(--color-primary-start) 12%, var(--color-surface))',
               color: 'var(--color-primary-start)',
             }}
           >
@@ -157,10 +151,7 @@ const SortablePageCard: React.FC<PageCardProps> = ({ page, index, isActive, onCl
           </span>
 
           {/* Text preview */}
-          <span
-            className="text-cocoa-light truncate"
-            style={{ ...geist, fontSize: 11 }}
-          >
+          <span className="text-cocoa-light truncate" style={{ ...geist, fontSize: 11 }}>
             {page.text?.slice(0, 20) || 'Empty page'}
           </span>
 
@@ -419,19 +410,13 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
           label="Story"
           defaultOpen={true}
           icon={<PenLine className="w-3.5 h-3.5" />}
-          badge={
-            <CountBadge
-              count={`${charCount}/${RECOMMENDED_MAX_CHARS}`}
-            />
-          }
+          badge={<CountBadge count={`${charCount}/${RECOMMENDED_MAX_CHARS}`} />}
         >
           {/* Text area — no visible border, accent left bar on focus */}
           <div
             className="transition-shadow duration-200"
             style={{
-              boxShadow: isWritingFocused
-                ? 'inset 2px 0 0 var(--color-primary-start)'
-                : 'none',
+              boxShadow: isWritingFocused ? 'inset 2px 0 0 var(--color-primary-start)' : 'none',
             }}
           >
             <textarea
@@ -460,8 +445,8 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
                 isOverLimit
                   ? 'text-coral-burst'
                   : isNearLimit
-                  ? 'text-gold-sunshine'
-                  : 'text-cocoa-light/50'
+                    ? 'text-gold-sunshine'
+                    : 'text-cocoa-light/50'
               }`}
               style={geist}
             >
@@ -498,7 +483,10 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsEditingDesc(false); setEditDescText(activePage.imagePrompt || ''); }}
+                  onClick={() => {
+                    setIsEditingDesc(false);
+                    setEditDescText(activePage.imagePrompt || '');
+                  }}
                   className="text-[11px] font-medium text-cocoa-light hover:underline cursor-pointer"
                   style={geist}
                 >
@@ -514,7 +502,8 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
                   ...geist,
                   fontSize: 13,
                   lineHeight: 1.6,
-                  borderLeft: '2px solid color-mix(in srgb, var(--color-primary-start) 40%, transparent)',
+                  borderLeft:
+                    '2px solid color-mix(in srgb, var(--color-primary-start) 40%, transparent)',
                   paddingLeft: 8,
                 }}
               >
@@ -523,7 +512,10 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
               {activePage.imagePrompt && (
                 <button
                   type="button"
-                  onClick={() => { setEditDescText(activePage.imagePrompt || ''); setIsEditingDesc(true); }}
+                  onClick={() => {
+                    setEditDescText(activePage.imagePrompt || '');
+                    setIsEditingDesc(true);
+                  }}
                   className="flex items-center gap-1 mt-2 text-[11px] font-medium text-coral-burst hover:underline cursor-pointer"
                   style={geist}
                 >
@@ -541,9 +533,9 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
           defaultOpen={false}
           icon={<Users className="w-3.5 h-3.5" />}
           badge={
-            editor.consistencyReport?.characters?.length
-              ? <CountBadge count={editor.consistencyReport.characters.length} />
-              : undefined
+            editor.consistencyReport?.characters?.length ? (
+              <CountBadge count={editor.consistencyReport.characters.length} />
+            ) : undefined
           }
         >
           {editor.consistencyReport?.characters?.length ? (
@@ -557,7 +549,10 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
                       className={`w-2 h-2 rounded-full ${dotColor} shrink-0`}
                       aria-hidden="true"
                     />
-                    <span className="text-charcoal-soft truncate" style={{ ...geist, fontSize: 13 }}>
+                    <span
+                      className="text-charcoal-soft truncate"
+                      style={{ ...geist, fontSize: 13 }}
+                    >
                       {char.name}
                     </span>
                     <span className="sr-only">
@@ -578,7 +573,9 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
                 style={{ ...geist, fontSize: 12, fontWeight: 500 }}
               >
                 {editor.isCheckingConsistency ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Checking...</>
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" /> Checking...
+                  </>
                 ) : (
                   'Check Characters'
                 )}
@@ -605,7 +602,9 @@ const EditorLeftZone: React.FC<EditorLeftZoneProps> = ({ editor }) => {
                 style={{ ...geist, fontSize: 12, fontWeight: 500 }}
               >
                 {editor.isCheckingConsistency ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Checking...</>
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" /> Checking...
+                  </>
                 ) : (
                   'Check Characters'
                 )}

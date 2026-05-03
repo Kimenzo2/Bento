@@ -58,7 +58,12 @@ export const LifeInColourCritiqueSchema = z.object({
   retryRecommended: z.boolean().default(false),
 });
 
-export const LifeInColourGenerationStatusSchema = z.enum(['queued', 'processing', 'ready', 'failed']);
+export const LifeInColourGenerationStatusSchema = z.enum([
+  'queued',
+  'processing',
+  'ready',
+  'failed',
+]);
 
 export const LifeInColourGenerationRecordSchema = z.object({
   id: z.string().uuid(),

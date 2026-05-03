@@ -23,7 +23,10 @@ export interface BuildManifestOptions {
   signUrl: (key: string) => Promise<string | null>;
 }
 
-function mapPage(page: ColouringPageRow, signUrl: (key: string) => Promise<string | null>): Promise<ColouringBookManifestPage> {
+function mapPage(
+  page: ColouringPageRow,
+  signUrl: (key: string) => Promise<string | null>
+): Promise<ColouringBookManifestPage> {
   return Promise.all([
     page.svg_key ? signUrl(page.svg_key) : Promise.resolve(null),
     page.png_key ? signUrl(page.png_key) : Promise.resolve(null),
@@ -96,7 +99,9 @@ export async function buildColouringBookManifest(
   const accessRole = options.userId
     ? options.book.owner_id === options.userId
       ? 'owner'
-      : options.members.find((member) => member.user_id === options.userId && member.status === 'active')?.role || 'none'
+      : options.members.find(
+          (member) => member.user_id === options.userId && member.status === 'active'
+        )?.role || 'none'
     : 'none';
   const isOwner = options.userId === options.book.owner_id;
   const isMember = isOwner || accessRole !== 'none';

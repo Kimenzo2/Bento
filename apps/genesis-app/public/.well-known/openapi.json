@@ -5,9 +5,7 @@
     "version": "1.0.0",
     "description": "Genesis AI Visual Storytelling Platform — product discovery and subscription plan information."
   },
-  "servers": [
-    { "url": "https://iamazeyou.me" }
-  ],
+  "servers": [{ "url": "https://iamazeyou.me" }],
   "paths": {
     "/api/products": {
       "get": {
@@ -88,19 +86,28 @@
     "schemas": {
       "Plan": {
         "type": "object",
-        "required": ["id", "title", "description", "price", "currency", "link", "image_link", "brand"],
+        "required": [
+          "id",
+          "title",
+          "description",
+          "price",
+          "currency",
+          "link",
+          "image_link",
+          "brand"
+        ],
         "properties": {
-          "id":               { "type": "string", "description": "Unique product identifier" },
-          "title":            { "type": "string", "description": "Plan display name" },
-          "description":      { "type": "string", "description": "Full plan description" },
-          "price":            { "type": "string", "description": "Monthly price in decimal format" },
-          "currency":         { "type": "string", "description": "ISO 4217 currency code" },
-          "link":             { "type": "string", "description": "Purchase / info page URL" },
-          "image_link":       { "type": "string", "description": "Product image URL (min 100x100px)" },
-          "brand":            { "type": "string", "description": "Brand name" },
+          "id": { "type": "string", "description": "Unique product identifier" },
+          "title": { "type": "string", "description": "Plan display name" },
+          "description": { "type": "string", "description": "Full plan description" },
+          "price": { "type": "string", "description": "Monthly price in decimal format" },
+          "currency": { "type": "string", "description": "ISO 4217 currency code" },
+          "link": { "type": "string", "description": "Purchase / info page URL" },
+          "image_link": { "type": "string", "description": "Product image URL (min 100x100px)" },
+          "brand": { "type": "string", "description": "Brand name" },
           "product_category": { "type": "string", "description": "Google product category path" },
-          "mpn":              { "type": "string", "description": "Manufacturer part number" },
-          "condition":        { "type": "string", "enum": ["new", "used", "refurbished"] }
+          "mpn": { "type": "string", "description": "Manufacturer part number" },
+          "condition": { "type": "string", "enum": ["new", "used", "refurbished"] }
         }
       }
     }

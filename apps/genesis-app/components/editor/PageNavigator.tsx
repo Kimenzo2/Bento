@@ -41,14 +41,9 @@ interface ThumbProps {
 }
 
 const SortableThumb: React.FC<ThumbProps> = ({ page, index, isActive, onClick }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: page.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: page.id,
+  });
 
   const thumbRef = useRef<HTMLDivElement>(null);
 
@@ -62,20 +57,14 @@ const SortableThumb: React.FC<ThumbProps> = ({ page, index, isActive, onClick })
   };
 
   const cardStyle: React.CSSProperties = {
-    borderLeft: isActive
-      ? '3px solid var(--color-primary-start)'
-      : '3px solid transparent',
+    borderLeft: isActive ? '3px solid var(--color-primary-start)' : '3px solid transparent',
     boxShadow: isActive
       ? '0 0 8px 1px color-mix(in srgb, var(--color-primary-start) 25%, transparent)'
       : 'none',
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      data-page-index={index}
-    >
+    <div ref={setNodeRef} style={style} data-page-index={index}>
       <div
         ref={thumbRef}
         className={`
@@ -104,7 +93,8 @@ const SortableThumb: React.FC<ThumbProps> = ({ page, index, isActive, onClick })
               draggable={false}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center"
+            <div
+              className="w-full h-full flex items-center justify-center"
               style={{ backgroundColor: 'var(--color-surface)' }}
             >
               <ImageIcon className="w-4 h-4 text-cocoa-light/40" />
@@ -136,10 +126,7 @@ const SortableThumb: React.FC<ThumbProps> = ({ page, index, isActive, onClick })
             backgroundColor: 'var(--color-surface)',
           }}
         >
-          <span
-            className="text-[10px] text-cocoa-light truncate leading-tight"
-            style={geist}
-          >
+          <span className="text-[10px] text-cocoa-light truncate leading-tight" style={geist}>
             {page.text?.slice(0, 15) || 'Empty page'}
           </span>
         </div>
@@ -211,11 +198,7 @@ const PageNavigator: React.FC<PageNavigatorProps> = ({
       </div>
 
       {/* Vertical thumbnail stack */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={pages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
           <div
             ref={scrollRef}

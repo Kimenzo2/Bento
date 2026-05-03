@@ -25,20 +25,14 @@ export default function CollaborationInviteEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        You&rsquo;re invited to collaborate.
-      </Text>
+      <Text style={heading(28)}>You&rsquo;re invited to collaborate.</Text>
 
       {/* Body */}
-      <Text style={body()}>
-        {inviterName} invited you to collaborate on their book.
-      </Text>
+      <Text style={body()}>{inviterName} invited you to collaborate on their book.</Text>
 
       {/* Book title callout */}
       <Section style={{ ...callout, textAlign: 'center' }}>
-        <Text style={heading(22, { align: 'center', margin: '0' })}>
-          &ldquo;{bookTitle}&rdquo;
-        </Text>
+        <Text style={heading(22, { align: 'center', margin: '0' })}>&ldquo;{bookTitle}&rdquo;</Text>
       </Section>
 
       {/* Role callout */}

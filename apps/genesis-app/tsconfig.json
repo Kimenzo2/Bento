@@ -2,7 +2,7 @@
   "compilerOptions": {
     /* Ignore deprecation warnings for TS compat */
     "ignoreDeprecations": "5.0",
-    
+
     /* Language and Environment */
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],

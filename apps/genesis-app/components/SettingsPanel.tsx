@@ -1,5 +1,27 @@
 import { IcoBook } from './IconscoutIcons';
-import { ArrowLeft, Bell, Calendar, CheckCircle, CreditCard, Database, Eye, FolderOpen, Globe, Image, ImageIcon, Info, LogOut, Newspaper, Save, Shield, Smartphone, Type, Upload, User, Wrench } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Calendar,
+  CheckCircle,
+  CreditCard,
+  Database,
+  Eye,
+  FolderOpen,
+  Globe,
+  Image,
+  ImageIcon,
+  Info,
+  LogOut,
+  Newspaper,
+  Save,
+  Shield,
+  Smartphone,
+  Type,
+  Upload,
+  User,
+  Wrench,
+} from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { persistAvatarImage } from '../services/avatarStorage';
@@ -114,7 +136,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   usePageSEO({
     title: 'Settings — Genesis AI Visual Storytelling',
-    description: 'Manage your Genesis account, preferences, subscriptions, and creative workspace settings.',
+    description:
+      'Manage your Genesis account, preferences, subscriptions, and creative workspace settings.',
     canonical: '/settings',
   });
 
@@ -291,10 +314,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         email: user.email || prev.email,
       }));
 
-      const metaAvatar =
-        user.user_metadata?.avatar_url ||
-        user.user_metadata?.picture ||
-        null;
+      const metaAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || null;
       if (metaAvatar && !localStorage.getItem(getAvatarStorageKey(user.id))) {
         setAvatarPreview(metaAvatar);
       }
@@ -401,7 +421,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error(t('messages.selectImageFile', { defaultValue: 'Please select an image file.' }));
+        toast.error(
+          t('messages.selectImageFile', { defaultValue: 'Please select an image file.' })
+        );
         return;
       }
       // Validate file size (max 2MB to stay within localStorage limits)
@@ -426,7 +448,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     id,
     icon: Icon,
     label,
-  }: { id: typeof activeTab; icon: any; label: string }) => (
+  }: {
+    id: typeof activeTab;
+    icon: any;
+    label: string;
+  }) => (
     <Button
       variant="ghost"
       onClick={() => setActiveTab(id)}
@@ -444,7 +470,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6 pb-24 animate-fadeIn relative">
-
       <div className="mb-6 md:mb-10 flex items-center gap-3 md:gap-4">
         {onNavigate && (
           <Button
@@ -473,18 +498,66 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Sidebar Menu - Horizontal scroll on mobile, vertical on desktop */}
         <div className="w-full md:w-64">
           <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-            <TabButton id="profile" icon={User} label={t('tabs.profile', { defaultValue: 'Profile' })} />
-            <TabButton id="library" icon={FolderOpen} label={t('tabs.library', { defaultValue: 'My Library' })} />
-            <TabButton id="themes" icon={ImageIcon} label={t('tabs.themes', { defaultValue: 'Themes' })} />
-            <TabButton id="typography" icon={Type} label={t('tabs.typography', { defaultValue: 'Typography' })} />
-            <TabButton id="language" icon={Globe} label={t('tabs.language', { defaultValue: 'Language' })} />
-            <TabButton id="accessibility" icon={Eye} label={t('tabs.accessibility', { defaultValue: 'Accessibility' })} />
-            <TabButton id="subscriptions" icon={CreditCard} label={t('tabs.subscriptions', { defaultValue: 'Subscriptions' })} />
-            <TabButton id="notifications" icon={Bell} label={t('tabs.notifications', { defaultValue: 'Notifications' })} />
-            <TabButton id="privacy" icon={Shield} label={t('tabs.privacy', { defaultValue: 'Privacy' })} />
-            <TabButton id="data" icon={Database} label={t('tabs.data', { defaultValue: 'Data & Export' })} />
-            <TabButton id="sessions" icon={Smartphone} label={t('tabs.sessions', { defaultValue: 'Sessions' })} />
-            <TabButton id="advanced" icon={Wrench} label={t('tabs.advanced', { defaultValue: 'Advanced' })} />
+            <TabButton
+              id="profile"
+              icon={User}
+              label={t('tabs.profile', { defaultValue: 'Profile' })}
+            />
+            <TabButton
+              id="library"
+              icon={FolderOpen}
+              label={t('tabs.library', { defaultValue: 'My Library' })}
+            />
+            <TabButton
+              id="themes"
+              icon={ImageIcon}
+              label={t('tabs.themes', { defaultValue: 'Themes' })}
+            />
+            <TabButton
+              id="typography"
+              icon={Type}
+              label={t('tabs.typography', { defaultValue: 'Typography' })}
+            />
+            <TabButton
+              id="language"
+              icon={Globe}
+              label={t('tabs.language', { defaultValue: 'Language' })}
+            />
+            <TabButton
+              id="accessibility"
+              icon={Eye}
+              label={t('tabs.accessibility', { defaultValue: 'Accessibility' })}
+            />
+            <TabButton
+              id="subscriptions"
+              icon={CreditCard}
+              label={t('tabs.subscriptions', { defaultValue: 'Subscriptions' })}
+            />
+            <TabButton
+              id="notifications"
+              icon={Bell}
+              label={t('tabs.notifications', { defaultValue: 'Notifications' })}
+            />
+            <TabButton
+              id="privacy"
+              icon={Shield}
+              label={t('tabs.privacy', { defaultValue: 'Privacy' })}
+            />
+            <TabButton
+              id="data"
+              icon={Database}
+              label={t('tabs.data', { defaultValue: 'Data & Export' })}
+            />
+            <TabButton
+              id="sessions"
+              icon={Smartphone}
+              label={t('tabs.sessions', { defaultValue: 'Sessions' })}
+            />
+            <TabButton
+              id="advanced"
+              icon={Wrench}
+              label={t('tabs.advanced', { defaultValue: 'Advanced' })}
+            />
             <TabButton id="about" icon={Info} label={t('tabs.about', { defaultValue: 'About' })} />
 
             <a
@@ -494,7 +567,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               className="shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation min-w-30 md:min-w-0 bg-transparent text-cocoa-light hover:bg-surface/50 hover:text-charcoal-soft"
             >
               <IcoBook className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
-              <span className="text-sm md:text-base whitespace-nowrap">{t('helpCenter', { defaultValue: 'Help Center' })}</span>
+              <span className="text-sm md:text-base whitespace-nowrap">
+                {t('helpCenter', { defaultValue: 'Help Center' })}
+              </span>
             </a>
 
             <a
@@ -550,7 +625,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     </h3>
                     <p className="text-cocoa-light text-sm md:text-base">
                       {isLoadingProfile ? (
-                        <span className="animate-pulse">{t('loading', { defaultValue: 'Loading...' })}</span>
+                        <span className="animate-pulse">
+                          {t('loading', { defaultValue: 'Loading...' })}
+                        </span>
                       ) : (
                         <>
                           <span
@@ -565,7 +642,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             }`}
                           >
                             {t(`tiers.${actualUserTier.toLowerCase()}`, {
-                              defaultValue: actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase(),
+                              defaultValue:
+                                actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase(),
                             })}
                           </span>
                           {` ${t('profilePlanMemberSince', {
@@ -581,16 +659,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       onClick={handleAvatarClick}
                       className="mt-2 text-coral-burst hover:underline mx-auto sm:mx-0 touch-manipulation"
                     >
-                      <ImageIcon className="w-3 h-3" /> {t('changeAvatar', { defaultValue: 'Change Avatar' })}
+                      <ImageIcon className="w-3 h-3" />{' '}
+                      {t('changeAvatar', { defaultValue: 'Change Avatar' })}
                     </Button>
                   </div>
                 </div>
                 <div className="h-px bg-peach-soft/50 w-full"></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label>
-                      {t('displayName', { defaultValue: 'Display Name' })}
-                    </Label>
+                    <Label>{t('displayName', { defaultValue: 'Display Name' })}</Label>
                     <Input
                       type="text"
                       value={formData.displayName}
@@ -598,9 +675,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>
-                      {t('emailAddress', { defaultValue: 'Email Address' })}
-                    </Label>
+                    <Label>{t('emailAddress', { defaultValue: 'Email Address' })}</Label>
                     <Input
                       type="email"
                       value={formData.email}
@@ -609,9 +684,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>
-                    {t('bioAuthorNote', { defaultValue: 'Bio / Author Note' })}
-                  </Label>
+                  <Label>{t('bioAuthorNote', { defaultValue: 'Bio / Author Note' })}</Label>
                   <Textarea
                     value={formData.bio}
                     onChange={(e) => handleChange('bio', e.target.value)}
@@ -619,19 +692,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>
-                    {t('defaultArtStyle', { defaultValue: 'Default Art Style' })}
-                  </Label>
+                  <Label>{t('defaultArtStyle', { defaultValue: 'Default Art Style' })}</Label>
                   <Select
                     value={formData.defaultStyle}
                     onValueChange={(value) => handleChange('defaultStyle', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={t('chooseArtStyle', { defaultValue: 'Choose art style' })} />
+                      <SelectValue
+                        placeholder={t('chooseArtStyle', { defaultValue: 'Choose art style' })}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Watercolor">Watercolor</SelectItem>
-                      <SelectItem value="3D Render (Pixar Style)">3D Render (Pixar Style)</SelectItem>
+                      <SelectItem value="3D Render (Pixar Style)">
+                        3D Render (Pixar Style)
+                      </SelectItem>
                       <SelectItem value="Japanese Manga">Japanese Manga</SelectItem>
                       <SelectItem value="Corporate Minimalist">Corporate Minimalist</SelectItem>
                       <SelectItem value="Cyberpunk Neon">Cyberpunk Neon</SelectItem>
@@ -675,12 +750,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   {t('emailPreferences', { defaultValue: 'Email Preferences' })}
                 </h3>
                 <ToggleRow
-                  label={t('notificationLabels.generationComplete', { defaultValue: 'Generation Complete Alerts' })}
+                  label={t('notificationLabels.generationComplete', {
+                    defaultValue: 'Generation Complete Alerts',
+                  })}
                   checked={formData.emailUpdates}
                   onCheckedChange={(val) => handleChange('emailUpdates', val)}
                 />
                 <ToggleRow
-                  label={t('notificationLabels.marketingUpdates', { defaultValue: 'Marketing & Product Updates' })}
+                  label={t('notificationLabels.marketingUpdates', {
+                    defaultValue: 'Marketing & Product Updates',
+                  })}
                   checked={formData.marketingEmails}
                   onCheckedChange={(val) => handleChange('marketingEmails', val)}
                 />
@@ -693,17 +772,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   {t('privacyData', { defaultValue: 'Privacy & Data' })}
                 </h3>
                 <ToggleRow
-                  label={t('privacyLabels.publicProfileVisibility', { defaultValue: 'Public Profile Visibility' })}
+                  label={t('privacyLabels.publicProfileVisibility', {
+                    defaultValue: 'Public Profile Visibility',
+                  })}
                   checked={formData.publicProfile}
                   onCheckedChange={(val) => handleChange('publicProfile', val)}
                 />
                 <ToggleRow
-                  label={t('privacyLabels.allowAiTraining', { defaultValue: 'Allow Content Analysis for AI Training' })}
+                  label={t('privacyLabels.allowAiTraining', {
+                    defaultValue: 'Allow Content Analysis for AI Training',
+                  })}
                   checked={formData.dataSharing}
                   onCheckedChange={(val) => handleChange('dataSharing', val)}
                 />
                 <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100">
-                  <h4 className="text-sm font-bold text-red-800 mb-2">{t('dangerZone', { defaultValue: 'Danger Zone' })}</h4>
+                  <h4 className="text-sm font-bold text-red-800 mb-2">
+                    {t('dangerZone', { defaultValue: 'Danger Zone' })}
+                  </h4>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -754,7 +839,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <h3 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
                     {t('currentPlan', { defaultValue: 'Current Plan' })}
                   </h3>
-                  <p className="text-cocoa-light text-sm">{t('manageSubscriptionBilling', { defaultValue: 'Manage your subscription and billing' })}</p>
+                  <p className="text-cocoa-light text-sm">
+                    {t('manageSubscriptionBilling', {
+                      defaultValue: 'Manage your subscription and billing',
+                    })}
+                  </p>
                 </div>
 
                 {/* Premium Black Card */}
@@ -780,14 +869,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                           {t('subscriptionSection.currentTierPlan', {
                             defaultValue: '{{tier}} Plan',
                             tier: t(`tiers.${actualUserTier.toLowerCase()}`, {
-                              defaultValue: actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase(),
+                              defaultValue:
+                                actualUserTier.charAt(0) + actualUserTier.slice(1).toLowerCase(),
                             }),
                           })}
                         </h4>
                         <p className="text-white/70 text-xs md:text-sm">
                           {actualUserTier === UserTier.SPARK
                             ? t('subscriptionSection.freeForever', { defaultValue: 'Free Forever' })
-                            : t('subscriptionSection.activeSubscription', { defaultValue: 'Active Subscription' })}
+                            : t('subscriptionSection.activeSubscription', {
+                                defaultValue: 'Active Subscription',
+                              })}
                         </p>
                       </div>
                       <span className="px-2.5 md:px-3 py-1 md:py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-full border border-green-500/30">
@@ -797,27 +889,57 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-5 md:mb-6">
                       <div>
-                        <p className="text-white/50 text-xs mb-1">{t('subscriptionSection.ebooksPerMonth', { defaultValue: 'Ebooks / Month' })}</p>
-                        <p className="text-white font-bold text-lg md:text-xl">{isUnlimited(getEntitlements(userTierToTierName(actualUserTier)).books_per_month) ? '∞' : getEntitlements(userTierToTierName(actualUserTier)).books_per_month}</p>
+                        <p className="text-white/50 text-xs mb-1">
+                          {t('subscriptionSection.ebooksPerMonth', {
+                            defaultValue: 'Ebooks / Month',
+                          })}
+                        </p>
+                        <p className="text-white font-bold text-lg md:text-xl">
+                          {isUnlimited(
+                            getEntitlements(userTierToTierName(actualUserTier)).books_per_month
+                          )
+                            ? '∞'
+                            : getEntitlements(userTierToTierName(actualUserTier)).books_per_month}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-white/50 text-xs mb-1">{t('subscriptionSection.maxPages', { defaultValue: 'Max Pages' })}</p>
-                        <p className="text-white font-bold text-lg md:text-xl">{isUnlimited(getEntitlements(userTierToTierName(actualUserTier)).pages_per_book) ? '∞' : getEntitlements(userTierToTierName(actualUserTier)).pages_per_book}</p>
+                        <p className="text-white/50 text-xs mb-1">
+                          {t('subscriptionSection.maxPages', { defaultValue: 'Max Pages' })}
+                        </p>
+                        <p className="text-white font-bold text-lg md:text-xl">
+                          {isUnlimited(
+                            getEntitlements(userTierToTierName(actualUserTier)).pages_per_book
+                          )
+                            ? '∞'
+                            : getEntitlements(userTierToTierName(actualUserTier)).pages_per_book}
+                        </p>
                       </div>
                     </div>
 
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-white/80">
                         <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                        <span>{t('subscriptionSection.featureStyles', { defaultValue: '5 illustration styles' })}</span>
+                        <span>
+                          {t('subscriptionSection.featureStyles', {
+                            defaultValue: '5 illustration styles',
+                          })}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-white/80">
                         <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                        <span>{t('subscriptionSection.featureTemplates', { defaultValue: 'Standard templates' })}</span>
+                        <span>
+                          {t('subscriptionSection.featureTemplates', {
+                            defaultValue: 'Standard templates',
+                          })}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-white/80">
                         <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                        <span>{t('subscriptionSection.featureSupport', { defaultValue: 'Community support' })}</span>
+                        <span>
+                          {t('subscriptionSection.featureSupport', {
+                            defaultValue: 'Community support',
+                          })}
+                        </span>
                       </div>
                     </div>
 
@@ -829,7 +951,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 {/* Upgrade CTA */}
                 <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-5 md:p-6 rounded-2xl text-white">
                   <h4 className="font-heading font-bold text-lg md:text-xl mb-2">
-                    {t('subscriptionSection.unlockPremium', { defaultValue: 'Unlock Premium Features' })}
+                    {t('subscriptionSection.unlockPremium', {
+                      defaultValue: 'Unlock Premium Features',
+                    })}
                   </h4>
                   <p className="text-sm text-white/90 mb-4">
                     {t('subscriptionSection.upgradeMessage', {
@@ -856,8 +980,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                       <div className="flex items-center gap-3">
                         <Calendar className="w-5 h-5 text-cocoa-light shrink-0" />
                         <div>
-                          <p className="font-bold text-sm text-charcoal-soft">{t('subscriptionSection.sparkPlan', { defaultValue: 'Spark Plan' })}</p>
-                          <p className="text-xs text-cocoa-light">{t('subscriptionSection.freeTierNoCharges', { defaultValue: 'Free tier - No charges' })}</p>
+                          <p className="font-bold text-sm text-charcoal-soft">
+                            {t('subscriptionSection.sparkPlan', { defaultValue: 'Spark Plan' })}
+                          </p>
+                          <p className="text-xs text-cocoa-light">
+                            {t('subscriptionSection.freeTierNoCharges', {
+                              defaultValue: 'Free tier - No charges',
+                            })}
+                          </p>
                         </div>
                       </div>
                       <span className="text-base md:text-lg font-bold text-charcoal-soft">
@@ -911,7 +1041,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   await signOut();
                   window.location.href = '/auth';
                 }}
-                className="md:justify-start text-cocoa-light hover:text-red-500 px-4 py-3 md:py-2 hover:bg-red-50/50 touch-manipulation text-sm md:text-base">
+                className="md:justify-start text-cocoa-light hover:text-red-500 px-4 py-3 md:py-2 hover:bg-red-50/50 touch-manipulation text-sm md:text-base"
+              >
                 <LogOut className="w-4 h-4" /> {t('actions.signOut', { defaultValue: 'Sign Out' })}
               </Button>
               <Button

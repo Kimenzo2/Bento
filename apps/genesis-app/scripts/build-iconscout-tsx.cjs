@@ -52,4 +52,4 @@ export const ${exportName} = (props: SvgProps) => (
 const outPath = path.join(__dirname, '..', 'components', 'IconscoutIcons.tsx');
 fs.writeFileSync(outPath, output, 'utf8');
 console.log(`Written IconscoutIcons.tsx with ${icons.length} icons:`);
-icons.forEach(i => console.log(`  ${i.export}  —  ${i.iname}`));
+icons.forEach((i) => console.log(`  ${i.export}  —  ${i.iname}`));

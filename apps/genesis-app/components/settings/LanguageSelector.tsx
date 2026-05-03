@@ -81,7 +81,11 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   // Compact mode - just a dropdown
   if (showCompact) {
     return (
-      <Select value={currentLanguage.code} onValueChange={(v) => handleLanguageSelect(v as LanguageCode)} disabled={isLoading}>
+      <Select
+        value={currentLanguage.code}
+        onValueChange={(v) => handleLanguageSelect(v as LanguageCode)}
+        disabled={isLoading}
+      >
         <SelectTrigger aria-label={t('selectLanguage', 'Select language')}>
           <SelectValue placeholder={t('selectLanguage', 'Select language')} />
         </SelectTrigger>

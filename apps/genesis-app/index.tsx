@@ -19,13 +19,19 @@ if (import.meta.env.DEV) {
 // Global error handler to catch unhandled errors
 window.onerror = (_message, _source, _lineno, _colno, _error) => {
   if (import.meta.env.DEV) {
-    console.error('[Genesis] Global error:', { message: _message, source: _source, lineno: _lineno, error: _error });
+    console.error('[Genesis] Global error:', {
+      message: _message,
+      source: _source,
+      lineno: _lineno,
+      error: _error,
+    });
   }
   // Show safe error on page if root is empty (no user-controlled data in HTML)
   const root = document.getElementById('root');
   if (root && !root.hasChildNodes()) {
     const container = document.createElement('div');
-    container.style.cssText = 'padding: 20px; font-family: sans-serif; background: #FFF8E7; min-height: 100vh; display: flex; align-items: center; justify-content: center;';
+    container.style.cssText =
+      'padding: 20px; font-family: sans-serif; background: #FFF8E7; min-height: 100vh; display: flex; align-items: center; justify-content: center;';
     const inner = document.createElement('div');
     inner.style.cssText = 'max-width: 500px; text-align: center;';
     const h1 = document.createElement('h1');
@@ -36,7 +42,8 @@ window.onerror = (_message, _source, _lineno, _colno, _error) => {
     p.textContent = 'Something went wrong. Please reload the page.';
     const btn = document.createElement('button');
     btn.textContent = 'Reload';
-    btn.style.cssText = 'margin-top: 20px; padding: 10px 20px; background: #FFD93D; border: none; border-radius: 20px; cursor: pointer;';
+    btn.style.cssText =
+      'margin-top: 20px; padding: 10px 20px; background: #FFD93D; border: none; border-radius: 20px; cursor: pointer;';
     btn.onclick = () => location.reload();
     inner.appendChild(h1);
     inner.appendChild(p);
@@ -94,7 +101,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             We encountered an unexpected error while loading Genesis.
           </p>
           <div className="bg-white p-4 rounded-xl border border-[#FFE4CC] text-left overflow-auto max-w-lg max-h-40 mb-6 w-full text-sm font-mono text-red-500">
-            {import.meta.env.DEV ? (this.state.error?.message || 'Unknown error') : 'An unexpected error occurred. Please reload the page.'}
+            {import.meta.env.DEV
+              ? this.state.error?.message || 'Unknown error'
+              : 'An unexpected error occurred. Please reload the page.'}
           </div>
           <Button
             variant="secondary"
@@ -122,7 +131,8 @@ root.render(
     <ErrorBoundary>
       <IntegrationsProvider
         onReady={(_result) => {
-          if (import.meta.env.DEV) console.warn('[Genesis] Integrations ready:', _result.initialized);
+          if (import.meta.env.DEV)
+            console.warn('[Genesis] Integrations ready:', _result.initialized);
         }}
         onError={(_error) => {
           if (import.meta.env.DEV) console.error('[Genesis] Integrations failed:', _error);

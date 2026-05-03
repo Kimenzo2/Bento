@@ -83,10 +83,18 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
 
       {/* Actions */}
       <div className="flex gap-2">
-        <Button variant="default" size="sm" className="flex-1 px-3 py-2 bg-coral-burst text-white font-medium hover:bg-coral-hover">
+        <Button
+          variant="default"
+          size="sm"
+          className="flex-1 px-3 py-2 bg-coral-burst text-white font-medium hover:bg-coral-hover"
+        >
           Send Message
         </Button>
-        <Button variant="secondary" size="icon" className="px-3 py-2 bg-peach-soft/30 [#2D2D2D] text-cocoa-light  font-medium hover:bg-peach-light/50 :bg-[#3D3D3D]">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="px-3 py-2 bg-peach-soft/30 [#2D2D2D] text-cocoa-light  font-medium hover:bg-peach-light/50 :bg-[#3D3D3D]"
+        >
           <User className="w-4 h-4" />
         </Button>
       </div>
@@ -95,4 +103,3 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, onClose }) => {
 };
 
 export default UserProfileCard;
-

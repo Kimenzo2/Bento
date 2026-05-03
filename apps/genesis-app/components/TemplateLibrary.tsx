@@ -638,9 +638,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
 
                   {/* Info */}
                   <h3 className="mb-1 font-bold text-charcoal-soft ">{template.name}</h3>
-                  <p className="mb-3 text-sm text-cocoa-light ">
-                    {template.description}
-                  </p>
+                  <p className="mb-3 text-sm text-cocoa-light ">{template.description}</p>
 
                   {/* Meta */}
                   <div className="flex items-center gap-4 text-xs text-cocoa-light/60">
@@ -731,4 +729,3 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
 };
 
 export default TemplateLibrary;
-

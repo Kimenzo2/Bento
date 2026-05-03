@@ -1,6 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { AndrewRuntimeRequestContextSchema, summarizeAndrewRequestContext } from '../lib/andrewRuntime';
+import {
+  AndrewRuntimeRequestContextSchema,
+  summarizeAndrewRequestContext,
+} from '../lib/andrewRuntime';
 import { downloadPrivateObject, LIFE_IN_COLOUR_SOURCE_BUCKET } from '../lib/supabase';
 
 export async function fetchSourceImageBuffer(sourcePath: string): Promise<Buffer> {

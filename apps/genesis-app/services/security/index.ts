@@ -223,7 +223,10 @@ function initializeRateLimiting(): void {
   }
 }
 
-if (typeof import.meta !== 'undefined' && (import.meta as { hot?: { dispose(cb: () => void): void } }).hot) {
+if (
+  typeof import.meta !== 'undefined' &&
+  (import.meta as { hot?: { dispose(cb: () => void): void } }).hot
+) {
   (import.meta as { hot?: { dispose(cb: () => void): void } }).hot?.dispose(() => {
     cleanupSecurityResources();
   });

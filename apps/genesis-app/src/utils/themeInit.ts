@@ -15,7 +15,7 @@
  *  4. Set color-scheme accordingly
  */
 
-export const INLINE_SCRIPT = /* js */`
+export const INLINE_SCRIPT = /* js */ `
 (function(){
   var m=localStorage.getItem('genesis_theme_mode');
   var legacy=localStorage.getItem('genesis_dark_mode');

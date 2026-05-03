@@ -1,6 +1,13 @@
 import { Text, Button, Section } from '@react-email/components';
 import * as React from 'react';
-import GenesisLayout, { heading, body, badge, divider, callout, btnSecondary } from './GenesisLayout';
+import GenesisLayout, {
+  heading,
+  body,
+  badge,
+  divider,
+  callout,
+  btnSecondary,
+} from './GenesisLayout';
 
 interface SubscriptionCancelledEmailProps {
   userName: string;
@@ -21,15 +28,12 @@ export default function SubscriptionCancelledEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28)}>
-        Your {planName} plan is cancelled.
-      </Text>
+      <Text style={heading(28)}>Your {planName} plan is cancelled.</Text>
 
       {/* Body */}
       <Text style={body()}>
-        Hi {userName}, your subscription has been cancelled. You&rsquo;ll keep
-        access to all {planName} features until{' '}
-        <span style={body({ weight: 600, margin: '0' })}>{endDate}</span>.
+        Hi {userName}, your subscription has been cancelled. You&rsquo;ll keep access to all{' '}
+        {planName} features until <span style={body({ weight: 600, margin: '0' })}>{endDate}</span>.
       </Text>
 
       {/* Callout — what happens */}
@@ -39,8 +43,8 @@ export default function SubscriptionCancelledEmail({
         </Text>
         <Text style={body({ size: 14, margin: '0' })}>
           After this date, your account reverts to the free{' '}
-          <span style={body({ size: 14, weight: 600, margin: '0' })}>Spark</span> tier.
-          Your existing books and content will be preserved.
+          <span style={body({ size: 14, weight: 600, margin: '0' })}>Spark</span> tier. Your
+          existing books and content will be preserved.
         </Text>
       </Section>
 
@@ -57,9 +61,7 @@ export default function SubscriptionCancelledEmail({
       </Section>
 
       {/* Footer text */}
-      <Text style={body({ size: 13, color: '#8B7E74', margin: '0' })}>
-        Your content is safe.
-      </Text>
+      <Text style={body({ size: 13, color: '#8B7E74', margin: '0' })}>Your content is safe.</Text>
     </GenesisLayout>
   );
 }

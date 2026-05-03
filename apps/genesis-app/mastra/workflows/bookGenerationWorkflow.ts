@@ -10,11 +10,7 @@
 
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import {
-  BookProjectSchema,
-  GenerationSettingsSchema,
-  UserTierSchema,
-} from '../schemas';
+import { BookProjectSchema, GenerationSettingsSchema, UserTierSchema } from '../schemas';
 import { db } from '../db';
 import {
   DEFAULT_BYTEZ_IMAGE_MODEL,
@@ -183,9 +179,10 @@ function buildGenerationPrompt(settings: WorkflowInput['settings']): string {
     ? JSON.stringify(settings.brandStoryConfig, null, 2)
     : 'None';
 
-  const learningContext = settings.educational && settings.learningConfig
-    ? JSON.stringify(settings.learningConfig, null, 2)
-    : 'None';
+  const learningContext =
+    settings.educational && settings.learningConfig
+      ? JSON.stringify(settings.learningConfig, null, 2)
+      : 'None';
 
   const templateContext = settings.templateStructure?.length
     ? JSON.stringify(settings.templateStructure, null, 2)
@@ -329,7 +326,9 @@ function normalizeProject(
     ],
     characters: payload.characters.map((character) => {
       const visualPrompt =
-        character.visualPrompt?.trim() || character.visualTraits?.trim() || character.description.trim();
+        character.visualPrompt?.trim() ||
+        character.visualTraits?.trim() ||
+        character.description.trim();
 
       return {
         id: crypto.randomUUID(),
@@ -436,11 +435,19 @@ async function addIllustrationsToProject(
           prompt: page.imagePrompt,
         });
         if (imageUrl) {
-          page.imageUrl = await persistImageToStorage(imageUrl, userId, project.id, `page-${page.pageNumber}`);
+          page.imageUrl = await persistImageToStorage(
+            imageUrl,
+            userId,
+            project.id,
+            `page-${page.pageNumber}`
+          );
           successCount += 1;
         }
       } catch (error) {
-        console.error(`[bookGenerationWorkflow] Illustration failed for page ${page.pageNumber}:`, error);
+        console.error(
+          `[bookGenerationWorkflow] Illustration failed for page ${page.pageNumber}:`,
+          error
+        );
       }
     }
   }
@@ -452,7 +459,9 @@ async function addIllustrationsToProject(
       `Book cover for "${clonedProject.title}".`,
       `Style: ${clonedProject.style}.`,
       `Synopsis: ${clonedProject.synopsis}.`,
-      ...clonedProject.characters.slice(0, 2).map((character) => character.visualPrompt ?? character.visualTraits),
+      ...clonedProject.characters
+        .slice(0, 2)
+        .map((character) => character.visualPrompt ?? character.visualTraits),
     ].join(' ');
 
     const coverImage = await generateBytezImage({
@@ -460,7 +469,12 @@ async function addIllustrationsToProject(
       prompt: coverPrompt,
     });
     if (coverImage) {
-      clonedProject.coverImage = await persistImageToStorage(coverImage, userId, project.id, 'cover');
+      clonedProject.coverImage = await persistImageToStorage(
+        coverImage,
+        userId,
+        project.id,
+        'cover'
+      );
     }
   } catch (error) {
     console.error('[bookGenerationWorkflow] Cover illustration failed:', error);
@@ -470,7 +484,10 @@ async function addIllustrationsToProject(
   return BookProjectSchema.parse(clonedProject);
 }
 
-async function saveProject(project: z.infer<typeof BookProjectSchema>, userId: string): Promise<boolean> {
+async function saveProject(
+  project: z.infer<typeof BookProjectSchema>,
+  userId: string
+): Promise<boolean> {
   const { error } = await db.from('books').upsert(
     {
       id: project.id,
@@ -509,7 +526,10 @@ const validateRequest = createStep({
 
     const { settings, userId, userTier, workflowId } = inputData;
 
-    const tierLimits: Record<WorkflowInput['userTier'], { ebooksPerMonth: number; maxPages: number }> = {
+    const tierLimits: Record<
+      WorkflowInput['userTier'],
+      { ebooksPerMonth: number; maxPages: number }
+    > = {
       SPARK: { ebooksPerMonth: 3, maxPages: 4 },
       CREATOR: { ebooksPerMonth: 30, maxPages: 12 },
       STUDIO: { ebooksPerMonth: Number.POSITIVE_INFINITY, maxPages: 500 },
@@ -592,7 +612,8 @@ const generateProject = createStep({
 
 const generateIllustrations = createStep({
   id: 'generateIllustrations',
-  description: 'Generate page and cover images server-side. Missing image credentials degrade gracefully.',
+  description:
+    'Generate page and cover images server-side. Missing image credentials degrade gracefully.',
   inputSchema: WorkingStateSchema.extend({
     project: BookProjectSchema,
   }),
@@ -602,7 +623,11 @@ const generateIllustrations = createStep({
   execute: async ({ inputData, bail }) => {
     try {
       assertWorkflowActive(inputData.workflowId);
-      const project = await addIllustrationsToProject(inputData.project, inputData.workflowId, inputData.userId);
+      const project = await addIllustrationsToProject(
+        inputData.project,
+        inputData.workflowId,
+        inputData.userId
+      );
       assertWorkflowActive(inputData.workflowId);
 
       return {

@@ -7,10 +7,7 @@ interface MobileBottomNavProps {
   onTabChange: (tab: 'character' | 'scene' | 'style') => void;
 }
 
-const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
-  activeTab,
-  onTabChange,
-}) => {
+const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'character' as const, label: 'Character', icon: User },
     { id: 'scene' as const, label: 'Scene', icon: Camera },
@@ -40,7 +37,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <div className="relative">
-                <Icon width={20} height={20}
+                <Icon
+                  width={20}
+                  height={20}
                   className={`transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-glow' : ''}`}
                   strokeWidth={isActive ? 2.5 : 2}
                 />

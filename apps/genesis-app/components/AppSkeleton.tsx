@@ -59,7 +59,7 @@ const NavSkeleton: React.FC = () => (
       <Bone className="w-16 h-7 rounded-full" />
       <Bone className="w-16 h-7 rounded-full" />
     </div>
-    
+
     <div className="hidden sm:flex items-center">
       <Bone className="w-9 h-9 rounded-full" />
     </div>
@@ -132,8 +132,7 @@ const AppSkeleton: React.FC = () => {
   // localStorage in its useState() initialiser, so it's available even on
   // the very first render before any effect runs.
   const isDark =
-    typeof document !== 'undefined' &&
-    document.documentElement.classList.contains('dark');
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
   return (
     <div
@@ -181,4 +180,3 @@ const AppSkeleton: React.FC = () => {
 };
 
 export default AppSkeleton;
-

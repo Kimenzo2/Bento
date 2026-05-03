@@ -1,5 +1,15 @@
 import { IcoAward } from '../IconscoutIcons';
-import { ArrowLeft, Bookmark, Check, FileImage, FileText, Printer, RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bookmark,
+  Check,
+  FileImage,
+  FileText,
+  Printer,
+  RefreshCw,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { saveInfographic } from '../../services/libraryService';

@@ -4,7 +4,7 @@
 // Gen draws on this when guiding users through their creative journeys.
 // ============================================================================
 
-import type { Realm } from './genPersonality'
+import type { Realm } from './genPersonality';
 
 // ────────────────────────────────────────────────────────────
 // REALM DEFINITIONS
@@ -12,17 +12,17 @@ import type { Realm } from './genPersonality'
 
 export interface RealmKnowledge {
   /** Full display name with "The" prefix */
-  displayName: string
+  displayName: string;
   /** Tone and voice of Gen in this realm */
-  voiceDescription: string
+  voiceDescription: string;
   /** Signature quote from Gen in this realm */
-  signatureQuote: string
+  signatureQuote: string;
   /** Core knowledge areas Gen can draw on */
-  knowledgeAreas: readonly string[]
+  knowledgeAreas: readonly string[];
   /** Curated story directions Gen can suggest */
-  storyDirections: readonly string[]
+  storyDirections: readonly string[];
   /** Vocabulary Gen naturally uses in this realm */
-  vocabulary: readonly string[]
+  vocabulary: readonly string[];
 }
 
 export const REALM_KNOWLEDGE: Record<Realm, RealmKnowledge> = {
@@ -52,8 +52,17 @@ export const REALM_KNOWLEDGE: Record<Realm, RealmKnowledge> = {
       'A child who befriends a comet',
     ],
     vocabulary: [
-      'drift', 'luminous', 'vast', 'ancient', 'orbit', 'shimmer',
-      'infinite', 'nebula', 'constellation', 'horizon', 'beyond',
+      'drift',
+      'luminous',
+      'vast',
+      'ancient',
+      'orbit',
+      'shimmer',
+      'infinite',
+      'nebula',
+      'constellation',
+      'horizon',
+      'beyond',
     ],
   },
 
@@ -62,12 +71,11 @@ export const REALM_KNOWLEDGE: Record<Realm, RealmKnowledge> = {
   // ──────────────────────────────────────
   kingdom: {
     displayName: 'The Kingdom',
-    voiceDescription:
-      'Warm, slightly ceremonial, storyteller\'s cadence.',
+    voiceDescription: "Warm, slightly ceremonial, storyteller's cadence.",
     signatureQuote:
       'Every great kingdom started with one person who refused to accept that this was just how things had to be.',
     knowledgeAreas: [
-      'Archetypes: the hero\'s journey, mentor, trickster, shadow',
+      "Archetypes: the hero's journey, mentor, trickster, shadow",
       'World-building fundamentals: geography affects culture and conflict',
       'Medieval history as creative substrate',
       'Mythology: Norse, Celtic, Arthurian, African, Asian traditions',
@@ -75,15 +83,24 @@ export const REALM_KNOWLEDGE: Record<Realm, RealmKnowledge> = {
       'Creature design logic: ecology, diet, predators, fears',
     ],
     storyDirections: [
-      'A mapmaker who discovers a country that shouldn\'t exist',
+      "A mapmaker who discovers a country that shouldn't exist",
       'A dragon who is tired of being the villain',
       'Twin heirs who see the kingdom completely differently',
       'A spell that works perfectly but always costs something unexpected',
-      'A war that ended a hundred years ago that isn\'t actually over',
+      "A war that ended a hundred years ago that isn't actually over",
     ],
     vocabulary: [
-      'forge', 'legend', 'enchanted', 'shadow', 'quest', 'ancient',
-      'dawn', 'sworn', 'realm', 'whisper', 'throne',
+      'forge',
+      'legend',
+      'enchanted',
+      'shadow',
+      'quest',
+      'ancient',
+      'dawn',
+      'sworn',
+      'realm',
+      'whisper',
+      'throne',
     ],
   },
 
@@ -92,8 +109,7 @@ export const REALM_KNOWLEDGE: Record<Realm, RealmKnowledge> = {
   // ──────────────────────────────────────
   cell: {
     displayName: 'The Cell',
-    voiceDescription:
-      'Precise, fascinated, full of genuine awe.',
+    voiceDescription: 'Precise, fascinated, full of genuine awe.',
     signatureQuote:
       'Your immune system is fighting right now. Quietly. Without asking you. There are more battles happening inside you than have ever been fought in any kingdom.',
     knowledgeAreas: [
@@ -108,22 +124,30 @@ export const REALM_KNOWLEDGE: Record<Realm, RealmKnowledge> = {
     storyDirections: [
       'A white blood cell who is the last line of defence',
       'A DNA strand being read like a book — what story does it tell?',
-      'A mitochondrion powering a marathon runner\'s final mile',
+      "A mitochondrion powering a marathon runner's final mile",
       'A virus told from its own perspective — trying to survive',
       'A neuron carrying the memory of a first day of school',
     ],
     vocabulary: [
-      'alive', 'intricate', 'invisible', 'remarkable', 'pulse',
-      'teeming', 'microscopic', 'membrane', 'signal', 'divide',
+      'alive',
+      'intricate',
+      'invisible',
+      'remarkable',
+      'pulse',
+      'teeming',
+      'microscopic',
+      'membrane',
+      'signal',
+      'divide',
     ],
   },
-} as const
+} as const;
 
 /**
  * Returns the full realm knowledge for a given realm.
  */
 export function getRealmKnowledge(realm: Realm): RealmKnowledge {
-  return REALM_KNOWLEDGE[realm]
+  return REALM_KNOWLEDGE[realm];
 }
 
 /**
@@ -131,12 +155,12 @@ export function getRealmKnowledge(realm: Realm): RealmKnowledge {
  */
 export function getRealmPromptBlock(realm: Realm | null): string {
   if (!realm) {
-    return 'CURRENT REALM: None selected. Guide the user toward choosing a realm.'
+    return 'CURRENT REALM: None selected. Guide the user toward choosing a realm.';
   }
-  const r = REALM_KNOWLEDGE[realm]
+  const r = REALM_KNOWLEDGE[realm];
   return `CURRENT REALM: ${r.displayName}
 Voice: ${r.voiceDescription}
 Knowledge areas: ${r.knowledgeAreas.join('; ')}
 Preferred vocabulary: ${r.vocabulary.join(', ')}
-Signature quote: "${r.signatureQuote}"`
+Signature quote: "${r.signatureQuote}"`;
 }

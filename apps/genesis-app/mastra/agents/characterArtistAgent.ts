@@ -27,16 +27,15 @@ import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
 import { getMastraModel } from '../lib/mastraProvider';
 import { z } from 'zod';
-import {
-  CharacterProfileSchema,
-  VisualIdentitySchema,
-  CharacterSheetSchema,
-} from '../schemas';
+import { CharacterProfileSchema, VisualIdentitySchema, CharacterSheetSchema } from '../schemas';
 
 // ─── In-Memory Character Store ───────────────────────────────────────────────
 // Short-term memory for characters within a single book generation workflow run.
 // Keyed by bookId. Entries are cleaned up after 30 minutes to prevent leaks.
-const characterMemory = new Map<string, { chars: Map<string, z.infer<typeof CharacterSheetSchema>>; createdAt: number }>();
+const characterMemory = new Map<
+  string,
+  { chars: Map<string, z.infer<typeof CharacterSheetSchema>>; createdAt: number }
+>();
 const CHARACTER_MEMORY_TTL_MS = 30 * 60_000; // 30 minutes
 
 function getBookCharacters(bookId: string): z.infer<typeof CharacterSheetSchema>[] {
@@ -72,7 +71,8 @@ setInterval(() => {
  */
 const generateVisualIdentity = createTool({
   id: 'generateVisualIdentity',
-  description: 'Generates a detailed VisualIdentity for a character based on their profile and the book art style',
+  description:
+    'Generates a detailed VisualIdentity for a character based on their profile and the book art style',
   inputSchema: z.object({
     characterProfile: CharacterProfileSchema,
     artStyle: z.string(),
@@ -80,7 +80,9 @@ const generateVisualIdentity = createTool({
   }),
   outputSchema: z.object({
     visualIdentity: VisualIdentitySchema,
-    existingCharacterStyles: z.array(z.string()).describe('Color palettes of existing characters in this book for compatibility'),
+    existingCharacterStyles: z
+      .array(z.string())
+      .describe('Color palettes of existing characters in this book for compatibility'),
   }),
   execute: async (input) => {
     const existingChars = getBookCharacters(input.bookId);
@@ -110,7 +112,8 @@ const generateVisualIdentity = createTool({
  */
 const validateColorPalette = createTool({
   id: 'validateColorPalette',
-  description: 'Validates that a character color palette is harmonious with the book style and other characters',
+  description:
+    'Validates that a character color palette is harmonious with the book style and other characters',
   inputSchema: z.object({
     characterColors: z.array(z.string()),
     bookPrimaryColors: z.array(z.string()),
@@ -126,7 +129,10 @@ const validateColorPalette = createTool({
     if (input.characterColors.length < 3) {
       return {
         valid: false,
-        adjustedColors: [...input.characterColors, ...input.bookPrimaryColors.slice(0, 3 - input.characterColors.length)],
+        adjustedColors: [
+          ...input.characterColors,
+          ...input.bookPrimaryColors.slice(0, 3 - input.characterColors.length),
+        ],
         notes: 'Character needs at least 3 palette colors. Supplemented from book palette.',
       };
     }
@@ -139,7 +145,8 @@ const validateColorPalette = createTool({
  */
 const enforceStyleConsistency = createTool({
   id: 'enforceCharacterStyleConsistency',
-  description: 'Ensures a new character sheet is visually consistent with all existing characters in the same book',
+  description:
+    'Ensures a new character sheet is visually consistent with all existing characters in the same book',
   inputSchema: z.object({
     bookId: z.string(),
     newCharacterSheet: CharacterSheetSchema,
@@ -157,7 +164,9 @@ const enforceStyleConsistency = createTool({
     if (existingChars.length > 0) {
       const existingStyle = existingChars[0].styleEnforcement;
       if (input.newCharacterSheet.styleEnforcement !== existingStyle) {
-        issues.push(`Style enforcement mismatch: expected "${existingStyle}" but got "${input.newCharacterSheet.styleEnforcement}"`);
+        issues.push(
+          `Style enforcement mismatch: expected "${existingStyle}" but got "${input.newCharacterSheet.styleEnforcement}"`
+        );
       }
     }
 

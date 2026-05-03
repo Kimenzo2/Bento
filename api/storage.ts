@@ -99,7 +99,11 @@ function getBaseAssetUrl(key: string): string {
   return `${R2_CONFIG.publicUrl || `https://pub-${R2_CONFIG.accountId}.r2.dev`}/${key}`;
 }
 
-function buildStoredAsset(key: string, ownerId: string, overrides: Partial<StoredAsset> = {}): StoredAsset {
+function buildStoredAsset(
+  key: string,
+  ownerId: string,
+  overrides: Partial<StoredAsset> = {}
+): StoredAsset {
   return {
     ownerId,
     key,
@@ -134,7 +138,11 @@ function resolveStoragePath(req: VercelRequest): string {
   return urlPath.replace('/api/storage', '') || '';
 }
 
-async function handlePresign(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handlePresign(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const body = req.body as PresignRequest;
 
@@ -166,7 +174,11 @@ async function handlePresign(req: VercelRequest, res: VercelResponse, userId: st
   }
 }
 
-async function handleUploadFromUrl(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleUploadFromUrl(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const body = req.body as UploadFromUrlRequest;
 
@@ -192,7 +204,11 @@ async function handleUploadFromUrl(req: VercelRequest, res: VercelResponse, user
   }
 }
 
-async function handleGetAsset(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleGetAsset(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const key = decodeURIComponent(req.query.key as string);
 
@@ -216,7 +232,11 @@ async function handleGetAsset(req: VercelRequest, res: VercelResponse, userId: s
   }
 }
 
-async function handleDeleteAsset(req: VercelRequest, res: VercelResponse, userId: string): Promise<void> {
+async function handleDeleteAsset(
+  req: VercelRequest,
+  res: VercelResponse,
+  userId: string
+): Promise<void> {
   try {
     const key = decodeURIComponent(req.query.key as string);
 

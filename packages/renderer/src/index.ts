@@ -23,13 +23,7 @@ export type {
   GenCharacterState,
 } from './types';
 
-export {
-  REALM_COLORS,
-  GEN_COLORS,
-  Easing,
-  STATE_PRIORITIES,
-  EXPRESSION_PRESETS,
-} from './types';
+export { REALM_COLORS, GEN_COLORS, Easing, STATE_PRIORITIES, EXPRESSION_PRESETS } from './types';
 
 export { AnimationController, createAnimationController } from './animation/controller';
 export { GenCharacter, createGenCharacter } from './gen/character';
@@ -102,7 +96,10 @@ export async function createRenderer(config: RendererConfig): Promise<GenRendere
       // keeps Gen visible instead of leaving the container empty on public routes.
       return await createOffscreenRenderer(config);
     } catch (error) {
-      console.error('[gen-engine] OffscreenCanvas initialization failed, falling back to main-thread renderer.', error);
+      console.error(
+        '[gen-engine] OffscreenCanvas initialization failed, falling back to main-thread renderer.',
+        error
+      );
       return createMainThreadRenderer(config);
     }
   }
@@ -135,11 +132,7 @@ async function createOffscreenRenderer(config: RendererConfig): Promise<GenRende
   });
 
   // Initialize — transfers canvas to worker permanently
-  await proxy.initialize(
-    canvas,
-    config.realm,
-    config.pixelRatio ?? window.devicePixelRatio
-  );
+  await proxy.initialize(canvas, config.realm, config.pixelRatio ?? window.devicePixelRatio);
 
   // Spatial presence state
   let homePosition: Position = { x: 0.5, y: 0.5 };

@@ -1,20 +1,20 @@
-import { memo, useCallback, useEffect, useRef } from 'react'
-import type { Page } from '../../types'
-import type { SceneNodeData } from '../../lib/canvas/canvasTypes'
-import { ChevronLeft, ChevronRight, Edit3, ImageIcon, X } from 'lucide-react'
+import { memo, useCallback, useEffect, useRef } from 'react';
+import type { Page } from '../../types';
+import type { SceneNodeData } from '../../lib/canvas/canvasTypes';
+import { ChevronLeft, ChevronRight, Edit3, ImageIcon, X } from 'lucide-react';
 
 const F = {
   serif: '"Instrument Serif", Georgia, serif',
   sans: '"Geist", ui-sans-serif, system-ui, -apple-system, sans-serif',
-}
+};
 
 interface SceneNodeDetailProps {
-  data: SceneNodeData
-  totalPages: number
-  allPages: Page[]
-  onClose: () => void
-  onEdit: (pageNumber: number) => void
-  onNavigate: (pageNumber: number) => void
+  data: SceneNodeData;
+  totalPages: number;
+  allPages: Page[];
+  onClose: () => void;
+  onEdit: (pageNumber: number) => void;
+  onNavigate: (pageNumber: number) => void;
 }
 
 function SceneNodeDetailInner({
@@ -25,42 +25,42 @@ function SceneNodeDetailInner({
   onEdit,
   onNavigate,
 }: SceneNodeDetailProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const pageNumber = data.pageNumber as number
+  const panelRef = useRef<HTMLDivElement>(null);
+  const pageNumber = data.pageNumber as number;
 
   // Slide-in animation
   useEffect(() => {
-    const el = panelRef.current
-    if (!el) return
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const el = panelRef.current;
+    if (!el) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
-      el.style.transform = 'translateX(0)'
-      return
+      el.style.transform = 'translateX(0)';
+      return;
     }
-    el.style.transform = 'translateX(360px)'
+    el.style.transform = 'translateX(360px)';
     requestAnimationFrame(() => {
-      el.style.transition = 'transform 300ms cubic-bezier(0.25, 1, 0.5, 1)'
-      el.style.transform = 'translateX(0)'
-    })
-  }, [data.pageId])
+      el.style.transition = 'transform 300ms cubic-bezier(0.25, 1, 0.5, 1)';
+      el.style.transform = 'translateX(0)';
+    });
+  }, [data.pageId]);
 
   const handleEdit = useCallback(() => {
-    onEdit(pageNumber)
-  }, [onEdit, pageNumber])
+    onEdit(pageNumber);
+  }, [onEdit, pageNumber]);
 
   const handlePrev = useCallback(() => {
     if (pageNumber > 1) {
-      const prevPage = allPages.find((p) => p.pageNumber === pageNumber - 1)
-      if (prevPage) onNavigate(prevPage.pageNumber)
+      const prevPage = allPages.find((p) => p.pageNumber === pageNumber - 1);
+      if (prevPage) onNavigate(prevPage.pageNumber);
     }
-  }, [pageNumber, allPages, onNavigate])
+  }, [pageNumber, allPages, onNavigate]);
 
   const handleNext = useCallback(() => {
     if (pageNumber < totalPages) {
-      const nextPage = allPages.find((p) => p.pageNumber === pageNumber + 1)
-      if (nextPage) onNavigate(nextPage.pageNumber)
+      const nextPage = allPages.find((p) => p.pageNumber === pageNumber + 1);
+      if (nextPage) onNavigate(nextPage.pageNumber);
     }
-  }, [pageNumber, totalPages, allPages, onNavigate])
+  }, [pageNumber, totalPages, allPages, onNavigate]);
 
   return (
     <div
@@ -109,10 +109,10 @@ function SceneNodeDetailInner({
             transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--color-primary-start)'
+            e.currentTarget.style.color = 'var(--color-primary-start)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--color-text-light)'
+            e.currentTarget.style.color = 'var(--color-text-light)';
           }}
           title="Close detail panel"
           aria-label="Close detail panel"
@@ -255,10 +255,7 @@ function SceneNodeDetailInner({
           style={{
             fontFamily: F.sans,
             fontSize: 12,
-            color:
-              pageNumber > 1
-                ? 'var(--color-text-light)'
-                : 'var(--color-border)',
+            color: pageNumber > 1 ? 'var(--color-text-light)' : 'var(--color-border)',
             background: 'none',
             border: 'none',
             cursor: pageNumber > 1 ? 'pointer' : 'default',
@@ -270,10 +267,11 @@ function SceneNodeDetailInner({
             transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => {
-            if (pageNumber > 1) e.currentTarget.style.color = 'var(--color-text)'
+            if (pageNumber > 1) e.currentTarget.style.color = 'var(--color-text)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = pageNumber > 1 ? 'var(--color-text-light)' : 'var(--color-border)'
+            e.currentTarget.style.color =
+              pageNumber > 1 ? 'var(--color-text-light)' : 'var(--color-border)';
           }}
           aria-label="Previous page"
         >
@@ -301,10 +299,10 @@ function SceneNodeDetailInner({
             transition: 'opacity 150ms ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '0.9'
+            e.currentTarget.style.opacity = '0.9';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '1'
+            e.currentTarget.style.opacity = '1';
           }}
           aria-label="Edit this page"
         >
@@ -319,10 +317,7 @@ function SceneNodeDetailInner({
           style={{
             fontFamily: F.sans,
             fontSize: 12,
-            color:
-              pageNumber < totalPages
-                ? 'var(--color-text-light)'
-                : 'var(--color-border)',
+            color: pageNumber < totalPages ? 'var(--color-text-light)' : 'var(--color-border)',
             background: 'none',
             border: 'none',
             cursor: pageNumber < totalPages ? 'pointer' : 'default',
@@ -334,10 +329,11 @@ function SceneNodeDetailInner({
             transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => {
-            if (pageNumber < totalPages) e.currentTarget.style.color = 'var(--color-text)'
+            if (pageNumber < totalPages) e.currentTarget.style.color = 'var(--color-text)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = pageNumber < totalPages ? 'var(--color-text-light)' : 'var(--color-border)'
+            e.currentTarget.style.color =
+              pageNumber < totalPages ? 'var(--color-text-light)' : 'var(--color-border)';
           }}
           aria-label="Next page"
         >
@@ -346,8 +342,8 @@ function SceneNodeDetailInner({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
-export const SceneNodeDetail = memo(SceneNodeDetailInner)
-export default SceneNodeDetail
+export const SceneNodeDetail = memo(SceneNodeDetailInner);
+export default SceneNodeDetail;

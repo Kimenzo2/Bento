@@ -125,13 +125,16 @@ class ErrorBoundary extends Component<Props, State> {
 
   private handleCopyError = (): void => {
     const errorText = this.getErrorReport();
-    navigator.clipboard.writeText(errorText).then(() => {
-      this.setState({ copied: true });
-      setTimeout(() => this.setState({ copied: false }), 2000);
-    }).catch(() => {
-      // Clipboard API unavailable (insecure context or permission denied)
-      console.warn('Failed to copy error report to clipboard');
-    });
+    navigator.clipboard
+      .writeText(errorText)
+      .then(() => {
+        this.setState({ copied: true });
+        setTimeout(() => this.setState({ copied: false }), 2000);
+      })
+      .catch(() => {
+        // Clipboard API unavailable (insecure context or permission denied)
+        console.warn('Failed to copy error report to clipboard');
+      });
   };
 
   private getErrorReport = (): string => {
@@ -172,7 +175,7 @@ class ErrorBoundary extends Component<Props, State> {
       // Default error UI
       return (
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-cream-base to-peach-soft p-4">
-            <div className="bg-surface rounded-3xl border border-peach-soft p-8 max-w-lg w-full text-center">
+          <div className="bg-surface rounded-3xl border border-peach-soft p-8 max-w-lg w-full text-center">
             <div className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>

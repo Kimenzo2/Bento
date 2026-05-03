@@ -107,7 +107,12 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
     : null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-4xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-6 text-white relative">
@@ -125,215 +130,214 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
         {/* Content */}
         <ScrollArea className="flex-1">
           <div className="p-6">
-          {/* Quality Dashboard */}
-          {preview && preview.quality && (
-            <div className="mb-6 p-6 bg-linear-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-heading font-bold text-charcoal-soft">
-                  Quality Assessment
-                </h3>
-                <div className={`text-3xl font-bold ${qualityAssessment?.color}`}>
-                  {preview.quality.overallScore}%
+            {/* Quality Dashboard */}
+            {preview && preview.quality && (
+              <div className="mb-6 p-6 bg-linear-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-heading font-bold text-charcoal-soft">
+                    Quality Assessment
+                  </h3>
+                  <div className={`text-3xl font-bold ${qualityAssessment?.color}`}>
+                    {preview.quality.overallScore}%
+                  </div>
+                </div>
+
+                {qualityAssessment && (
+                  <div className={`flex items-center gap-2 mb-4 ${qualityAssessment.color}`}>
+                    {qualityAssessment.level === 'excellent' ||
+                    qualityAssessment.level === 'good' ? (
+                      <CheckCircle className="w-5 h-5" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5" />
+                    )}
+                    <span className="font-bold">{qualityAssessment.message}</span>
+                  </div>
+                )}
+
+                {/* Quality Metrics */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <QualityMetric
+                    label="Image Resolution"
+                    score={preview.quality.imageResolution}
+                    icon="📸"
+                  />
+                  <QualityMetric
+                    label="Color Accuracy"
+                    score={preview.quality.colorAccuracy}
+                    icon="🎨"
+                  />
+                  <QualityMetric
+                    label="Margin Compliance"
+                    score={preview.quality.marginCompliance}
+                    icon="📐"
+                  />
+                  <QualityMetric
+                    label="Font Embedding"
+                    score={preview.quality.fontEmbedding}
+                    icon="✍️"
+                  />
+                </div>
+
+                {/* File Info */}
+                <div className="flex items-center justify-between text-sm text-cocoa-light">
+                  <span>
+                    Estimated File Size: {(preview.estimatedFileSize / 1024 / 1024).toFixed(2)} MB
+                  </span>
+                  <span>Pages: {preview.validation.pageCount}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Export Settings */}
+            <div className="mb-6">
+              <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-4">
+                Export Settings
+              </h3>
+
+              {/* Trim Size Selection */}
+              <div className="mb-4">
+                <Label className="mb-2">Book Size (Trim Size)</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { value: '6x9', label: '6" × 9"', desc: 'Standard Novel' },
+                    { value: '8.5x8.5', label: '8.5" × 8.5"', desc: 'Square Picture Book' },
+                    { value: '8x10', label: '8" × 10"', desc: 'Premium Format' },
+                    { value: '8.5x11', label: '8.5" × 11"', desc: 'Large Format' },
+                  ].map((size) => (
+                    <button
+                      key={size.value}
+                      onClick={() => setTrimSize(size.value as TrimSize)}
+                      className={`p-4 rounded-xl border transition-all text-left ${
+                        trimSize === size.value
+                          ? 'border-coral-burst bg-coral-burst/10'
+                          : 'border-peach-soft hover:border-coral-burst/50'
+                      }`}
+                    >
+                      <div className="font-bold text-charcoal-soft">{size.label}</div>
+                      <div className="text-xs text-cocoa-light mt-1">{size.desc}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {qualityAssessment && (
-                <div className={`flex items-center gap-2 mb-4 ${qualityAssessment.color}`}>
-                  {qualityAssessment.level === 'excellent' || qualityAssessment.level === 'good' ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5" />
-                  )}
-                  <span className="font-bold">{qualityAssessment.message}</span>
+              {/* Bleed Option */}
+              <div className="flex items-start gap-3 p-4 bg-cream-soft rounded-xl">
+                <input
+                  type="checkbox"
+                  id="includeBleed"
+                  checked={includeBleed}
+                  onChange={(e) => setIncludeBleed(e.target.checked)}
+                  className="mt-1 w-5 h-5 text-coral-burst rounded focus:ring-coral-burst"
+                />
+                <Label htmlFor="includeBleed" className="flex-1 cursor-pointer">
+                  <div className="font-bold text-charcoal-soft">Include Bleed (Recommended)</div>
+                  <div className="text-sm text-cocoa-light mt-1">
+                    Extends images 0.125" past trim edge for professional full-page illustrations
+                  </div>
+                </Label>
+              </div>
+
+              {/* Advanced Options */}
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="mt-4 text-sm text-coral-burst font-bold flex items-center gap-2 hover:underline"
+              >
+                <Settings className="w-4 h-4" />
+                {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-4 p-4 bg-surface/50 rounded-xl space-y-3">
+                  <div className="text-sm">
+                    <div className="font-bold text-charcoal-soft mb-2">Advanced Settings</div>
+                    <div className="space-y-2 text-cocoa-light">
+                      <div>✓ Resolution: 300 DPI (Print Quality)</div>
+                      <div>✓ Color Mode: RGB (Auto-converted by KDP)</div>
+                      <div>✓ PDF Format: PDF/X-1a:2001</div>
+                      <div>✓ Fonts: Fully Embedded</div>
+                      <div>✓ Compression: Optimized</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pre-flight Checklist */}
+            {preview && preview.checklist && (
+              <div className="mb-6">
+                <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-3">
+                  Pre-flight Checklist
+                </h3>
+                <div className="space-y-2">
+                  {preview.checklist.map((item: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-3 p-3 rounded-xl ${
+                        item.status === 'pass'
+                          ? 'bg-green-50 border border-green-200'
+                          : item.status === 'warning'
+                            ? 'bg-yellow-50 border border-yellow-200'
+                            : 'bg-red-50 border border-red-200'
+                      }`}
+                    >
+                      {item.status === 'pass' ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : item.status === 'warning' ? (
+                        <Info className="w-5 h-5 text-yellow-600" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-bold text-sm text-charcoal-soft">{item.category}</div>
+                        <div className="text-xs text-cocoa-light">{item.message}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {preview &&
+              preview.validation &&
+              preview.validation.warnings &&
+              preview.validation.warnings.length > 0 && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-yellow-800 mb-2">Warnings</div>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        {preview.validation.warnings.map((warning: string, idx: number) => (
+                          <li key={idx}>• {warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Quality Metrics */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <QualityMetric
-                  label="Image Resolution"
-                  score={preview.quality.imageResolution}
-                  icon="📸"
-                />
-                <QualityMetric
-                  label="Color Accuracy"
-                  score={preview.quality.colorAccuracy}
-                  icon="🎨"
-                />
-                <QualityMetric
-                  label="Margin Compliance"
-                  score={preview.quality.marginCompliance}
-                  icon="📐"
-                />
-                <QualityMetric
-                  label="Font Embedding"
-                  score={preview.quality.fontEmbedding}
-                  icon="✍️"
-                />
-              </div>
-
-              {/* File Info */}
-              <div className="flex items-center justify-between text-sm text-cocoa-light">
-                <span>
-                  Estimated File Size: {(preview.estimatedFileSize / 1024 / 1024).toFixed(2)} MB
-                </span>
-                <span>Pages: {preview.validation.pageCount}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Export Settings */}
-          <div className="mb-6">
-            <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-4">
-              Export Settings
-            </h3>
-
-            {/* Trim Size Selection */}
-            <div className="mb-4">
-              <Label className="mb-2">
-                Book Size (Trim Size)
-              </Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { value: '6x9', label: '6" × 9"', desc: 'Standard Novel' },
-                  { value: '8.5x8.5', label: '8.5" × 8.5"', desc: 'Square Picture Book' },
-                  { value: '8x10', label: '8" × 10"', desc: 'Premium Format' },
-                  { value: '8.5x11', label: '8.5" × 11"', desc: 'Large Format' },
-                ].map((size) => (
-                  <button
-                    key={size.value}
-                    onClick={() => setTrimSize(size.value as TrimSize)}
-                    className={`p-4 rounded-xl border transition-all text-left ${
-                      trimSize === size.value
-                        ? 'border-coral-burst bg-coral-burst/10'
-                        : 'border-peach-soft hover:border-coral-burst/50'
-                    }`}
-                  >
-                    <div className="font-bold text-charcoal-soft">{size.label}</div>
-                    <div className="text-xs text-cocoa-light mt-1">{size.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Bleed Option */}
-            <div className="flex items-start gap-3 p-4 bg-cream-soft rounded-xl">
-              <input
-                type="checkbox"
-                id="includeBleed"
-                checked={includeBleed}
-                onChange={(e) => setIncludeBleed(e.target.checked)}
-                className="mt-1 w-5 h-5 text-coral-burst rounded focus:ring-coral-burst"
-              />
-              <Label htmlFor="includeBleed" className="flex-1 cursor-pointer">
-                <div className="font-bold text-charcoal-soft">Include Bleed (Recommended)</div>
-                <div className="text-sm text-cocoa-light mt-1">
-                  Extends images 0.125" past trim edge for professional full-page illustrations
-                </div>
-              </Label>
-            </div>
-
-            {/* Advanced Options */}
-            <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="mt-4 text-sm text-coral-burst font-bold flex items-center gap-2 hover:underline"
-            >
-              <Settings className="w-4 h-4" />
-              {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-            </button>
-
-            {showAdvanced && (
-              <div className="mt-4 p-4 bg-surface/50 rounded-xl space-y-3">
-                <div className="text-sm">
-                  <div className="font-bold text-charcoal-soft mb-2">Advanced Settings</div>
-                  <div className="space-y-2 text-cocoa-light">
-                    <div>✓ Resolution: 300 DPI (Print Quality)</div>
-                    <div>✓ Color Mode: RGB (Auto-converted by KDP)</div>
-                    <div>✓ PDF Format: PDF/X-1a:2001</div>
-                    <div>✓ Fonts: Fully Embedded</div>
-                    <div>✓ Compression: Optimized</div>
+            {/* Tier Restriction */}
+            {userTier === UserTier.SPARK && (
+              <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border border-gold-sunshine rounded-2xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Pre-flight Checklist */}
-          {preview && preview.checklist && (
-            <div className="mb-6">
-              <h3 className="text-lg font-heading font-bold text-charcoal-soft mb-3">
-                Pre-flight Checklist
-              </h3>
-              <div className="space-y-2">
-                {preview.checklist.map((item: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-3 p-3 rounded-xl ${
-                      item.status === 'pass'
-                        ? 'bg-green-50 border border-green-200'
-                        : item.status === 'warning'
-                          ? 'bg-yellow-50 border border-yellow-200'
-                          : 'bg-red-50 border border-red-200'
-                    }`}
-                  >
-                    {item.status === 'pass' ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    ) : item.status === 'warning' ? (
-                      <Info className="w-5 h-5 text-yellow-600" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                    )}
-                    <div className="flex-1">
-                      <div className="font-bold text-sm text-charcoal-soft">{item.category}</div>
-                      <div className="text-xs text-cocoa-light">{item.message}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Warnings */}
-          {preview &&
-            preview.validation &&
-            preview.validation.warnings &&
-            preview.validation.warnings.length > 0 && (
-              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-yellow-600 mt-0.5" />
                   <div>
-                    <div className="font-bold text-yellow-800 mb-2">Warnings</div>
-                    <ul className="text-sm text-yellow-700 space-y-1">
-                      {preview.validation.warnings.map((warning: string, idx: number) => (
-                        <li key={idx}>• {warning}</li>
-                      ))}
-                    </ul>
+                    <div className="font-bold text-charcoal-soft">Premium Feature</div>
+                    <div className="text-sm text-cocoa-light">Upgrade to unlock KDP export</div>
                   </div>
                 </div>
+                <ul className="text-sm text-cocoa-light space-y-1 mb-4">
+                  <li>✓ Professional print-ready PDFs</li>
+                  <li>✓ Multiple trim sizes (6x9, 8.5x8.5, 8x10, 8.5x11)</li>
+                  <li>✓ 300 DPI print quality</li>
+                  <li>✓ Bleed support for full-page images</li>
+                  <li>✓ Quality validation dashboard</li>
+                </ul>
               </div>
             )}
-
-          {/* Tier Restriction */}
-          {userTier === UserTier.SPARK && (
-            <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border border-gold-sunshine rounded-2xl">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <div className="font-bold text-charcoal-soft">Premium Feature</div>
-                  <div className="text-sm text-cocoa-light">Upgrade to unlock KDP export</div>
-                </div>
-              </div>
-              <ul className="text-sm text-cocoa-light space-y-1 mb-4">
-                <li>✓ Professional print-ready PDFs</li>
-                <li>✓ Multiple trim sizes (6x9, 8.5x8.5, 8x10, 8.5x11)</li>
-                <li>✓ 300 DPI print quality</li>
-                <li>✓ Bleed support for full-page images</li>
-                <li>✓ Quality validation dashboard</li>
-              </ul>
-            </div>
-          )}
           </div>
         </ScrollArea>
 

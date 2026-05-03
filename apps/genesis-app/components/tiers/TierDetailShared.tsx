@@ -4,7 +4,22 @@ import { IcoWand } from '../IconscoutIcons';
  * Reusable sections, cards, and UI elements across Creator, Studio, and Empire pages
  */
 
-import { ArrowRight, BookOpen, Building2, Check, ChevronDown, ChevronRight, Download, Headphones, Lock, Phone, Play, Quote, Star, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Building2,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Headphones,
+  Lock,
+  Phone,
+  Play,
+  Quote,
+  Star,
+  Zap,
+} from 'lucide-react';
 import type React from 'react';
 import { type ReactNode, useState } from 'react';
 import { Button } from '@components/ui/button';
@@ -424,10 +439,7 @@ interface PersonaCardsProps {
 export const PersonaCards: React.FC<PersonaCardsProps> = ({ personas, gradient }) => (
   <div className="grid md:grid-cols-2 gap-6">
     {personas.map((persona, index) => (
-      <div
-        key={index}
-        className="bg-surface rounded-2xl overflow-hidden border border-peach-soft"
-      >
+      <div key={index} className="bg-surface rounded-2xl overflow-hidden border border-peach-soft">
         <div className={`h-2 bg-linear-to-r ${gradient}`} />
         <div className="p-6">
           <div className="flex items-start gap-4 mb-4">
@@ -770,12 +782,7 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({
         <h2 className="text-3xl md:text-4xl font-heading font-bold mb-6">{headline}</h2>
 
         <div className="flex flex-wrap justify-center gap-4 mb-8">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={onStartTrial}
-            className="hover:scale-105"
-          >
+          <Button variant="outline" size="lg" onClick={onStartTrial} className="hover:scale-105">
             {ctaText}
             <ArrowRight className="w-5 h-5" />
           </Button>

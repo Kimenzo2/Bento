@@ -130,8 +130,7 @@ function fleschKincaidEase(text: string): number {
   if (sentences.length === 0 || words.length === 0) return 0;
 
   const avgWordsPerSentence = words.length / sentences.length;
-  const avgSyllablesPerWord =
-    words.reduce((sum, w) => sum + countSyllables(w), 0) / words.length;
+  const avgSyllablesPerWord = words.reduce((sum, w) => sum + countSyllables(w), 0) / words.length;
 
   const score = 206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord;
   return Math.max(0, Math.min(score, 100)) / 100;
@@ -241,9 +240,12 @@ function ageAppropriatenessScore(text: string, ageRange?: string): number {
     maxAvgSentLen = 18;
   }
 
-  const wordLenScore = avgWordLength <= maxAvgWordLen ? 1 : Math.max(0, 1 - (avgWordLength - maxAvgWordLen) / 3);
+  const wordLenScore =
+    avgWordLength <= maxAvgWordLen ? 1 : Math.max(0, 1 - (avgWordLength - maxAvgWordLen) / 3);
   const sentLenScore =
-    avgSentenceLength <= maxAvgSentLen ? 1 : Math.max(0, 1 - (avgSentenceLength - maxAvgSentLen) / 10);
+    avgSentenceLength <= maxAvgSentLen
+      ? 1
+      : Math.max(0, 1 - (avgSentenceLength - maxAvgSentLen) / 10);
 
   // Inappropriate content check (very basic — flag common red-flag patterns)
   const inappropriatePatterns =
@@ -251,16 +253,13 @@ function ageAppropriatenessScore(text: string, ageRange?: string): number {
   const flagMatches = text.match(inappropriatePatterns);
   const contentPenalty = flagMatches ? Math.min(flagMatches.length * 0.15, 0.6) : 0;
 
-  return Math.max(0, (wordLenScore * 0.4 + sentLenScore * 0.4 + 0.2) - contentPenalty);
+  return Math.max(0, wordLenScore * 0.4 + sentLenScore * 0.4 + 0.2 - contentPenalty);
 }
 
 /**
  * Completeness scorer — checks that the book has expected structural elements.
  */
-function completenessScore(
-  input: BookEvalInput,
-  output: BookEvalOutput
-): number {
+function completenessScore(input: BookEvalInput, output: BookEvalOutput): number {
   let checks = 0;
   let passed = 0;
 

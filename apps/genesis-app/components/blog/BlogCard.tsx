@@ -92,8 +92,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
             style={{ color: S.accent, backgroundColor: S.accentBg }}
             aria-hidden="true"
           >
-            <span className="sr-only">Read</span>
-            →
+            <span className="sr-only">Read</span>→
           </span>
         </div>
       </div>
@@ -102,4 +101,3 @@ const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
 };
 
 export default BlogCard;
-

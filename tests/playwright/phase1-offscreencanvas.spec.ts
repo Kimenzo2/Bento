@@ -107,7 +107,10 @@ async function getGenContainerState(page: Page) {
   });
 }
 
-async function collectMainThreadMetrics(page: Page, sampleFrames = 180): Promise<MainThreadMetrics> {
+async function collectMainThreadMetrics(
+  page: Page,
+  sampleFrames = 180
+): Promise<MainThreadMetrics> {
   return page.evaluate(async (frameBudget: number) => {
     const longTasks: number[] = [];
     const observer = new PerformanceObserver((list) => {
@@ -186,7 +189,9 @@ test.describe('Q1: OffscreenCanvas path activation', () => {
     const renderMode = await getGenRenderMode(page);
     const projectName = testInfo.project.name;
 
-    if (['chrome-desktop', 'edge-desktop', 'chrome-mobile', 'firefox-desktop'].includes(projectName)) {
+    if (
+      ['chrome-desktop', 'edge-desktop', 'chrome-mobile', 'firefox-desktop'].includes(projectName)
+    ) {
       expect(renderMode).toBe('offscreen');
     } else {
       expect(['offscreen', 'main-thread']).toContain(renderMode);
@@ -259,7 +264,9 @@ test.describe('Q3: COOP/COEP did not break cross-origin resources', () => {
 });
 
 test.describe('Q4: Main thread stays responsive while Gen renders', () => {
-  test('keeps long tasks, interaction latency, and fps within budget', async ({ page }, testInfo) => {
+  test('keeps long tasks, interaction latency, and fps within budget', async ({
+    page,
+  }, testInfo) => {
     await gotoGenesis(page);
     await waitForGenMount(page);
 
@@ -279,7 +286,9 @@ test.describe('Q4: Main thread stays responsive while Gen renders', () => {
 });
 
 test.describe('Q5: Gen renders correctly on all devices', () => {
-  test('Gen container is visible, mounted, and kept out of the primary content lane', async ({ page }, testInfo) => {
+  test('Gen container is visible, mounted, and kept out of the primary content lane', async ({
+    page,
+  }, testInfo) => {
     await gotoGenesis(page);
     await waitForGenMount(page);
 
@@ -308,7 +317,10 @@ test.describe('Q5: Gen renders correctly on all devices', () => {
 
 test.describe('Q6: CPU impact of OffscreenCanvas vs main thread', () => {
   test('records main-thread task deltas over an animation window', async ({ page }) => {
-    test.skip(page.context().browser()?.browserType().name() !== 'chromium', 'CDP metrics are Chromium-only.');
+    test.skip(
+      page.context().browser()?.browserType().name() !== 'chromium',
+      'CDP metrics are Chromium-only.'
+    );
 
     await gotoGenesis(page);
     await waitForGenMount(page);
@@ -337,8 +349,10 @@ test.describe('Q6: CPU impact of OffscreenCanvas vs main thread', () => {
 
     const beforeTask = before.metrics.find((metric) => metric.name === 'TaskDuration')?.value ?? 0;
     const afterTask = after.metrics.find((metric) => metric.name === 'TaskDuration')?.value ?? 0;
-    const beforeScript = before.metrics.find((metric) => metric.name === 'ScriptDuration')?.value ?? 0;
-    const afterScript = after.metrics.find((metric) => metric.name === 'ScriptDuration')?.value ?? 0;
+    const beforeScript =
+      before.metrics.find((metric) => metric.name === 'ScriptDuration')?.value ?? 0;
+    const afterScript =
+      after.metrics.find((metric) => metric.name === 'ScriptDuration')?.value ?? 0;
 
     expect(afterTask - beforeTask).toBeLessThan(0.5);
     expect(afterScript - beforeScript).toBeLessThan(0.5);

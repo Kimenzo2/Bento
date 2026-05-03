@@ -46,10 +46,7 @@ const tiers: PricingTier[] = [
       '5 illustration styles',
       'Standard templates',
     ],
-    limitations: [
-      'Watermarked exports',
-      'No commercial license',
-    ]
+    limitations: ['Watermarked exports', 'No commercial license'],
   },
   {
     name: UserTier.CREATOR,
@@ -127,14 +124,16 @@ export const OnboardingPricing: React.FC = () => {
   const getAuthUser = async () => {
     try {
       const { supabase } = await import('../../services/supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       return user;
     } catch {
       return null;
     }
   };
 
-  const handleSubscribe = (tier: typeof tiers[0]) => {
+  const handleSubscribe = (tier: (typeof tiers)[0]) => {
     if (tier.priceMonthly === 0) {
       // Free tier - continue to tour
       addSparkPoints(5);
@@ -146,7 +145,7 @@ export const OnboardingPricing: React.FC = () => {
   };
 
   // -- Dodo Payments checkout --
-  const handleDodoCheckout = async (tier: typeof tiers[0]) => {
+  const handleDodoCheckout = async (tier: (typeof tiers)[0]) => {
     const dodoPlan = tierToDodoPlan(tier.name, isAnnual ? 'yearly' : 'monthly');
     if (!dodoPlan) {
       alert('This plan is not available for subscription.');
@@ -181,7 +180,7 @@ export const OnboardingPricing: React.FC = () => {
     <div className="relative h-full min-h-full flex flex-col items-center px-(--ob-container-padding) py-6 overflow-x-hidden overflow-y-auto">
       {/* Background */}
       <div className="absolute inset-0 bg-linear-to-br from-purple-950/30 via-[#0d0d1a] to-blue-950/30" />
-      
+
       {/* Ambient orbs */}
       <motion.div
         animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
@@ -196,7 +195,6 @@ export const OnboardingPricing: React.FC = () => {
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col py-4">
-        
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -205,7 +203,10 @@ export const OnboardingPricing: React.FC = () => {
         >
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-3 font-heading">
             Choose Your
-            <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent"> Creative Journey</span>
+            <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
+              {' '}
+              Creative Journey
+            </span>
           </h1>
           <p className="text-white/50 text-sm md:text-lg max-w-md mx-auto mb-4">
             Join 100,000+ creators making beautiful books
@@ -214,13 +215,17 @@ export const OnboardingPricing: React.FC = () => {
           {/* Billing Toggle */}
           {supportsAnnualDodoBilling ? (
             <div className="flex items-center justify-center gap-3">
-              <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>Monthly</span>
+              <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>
+                Monthly
+              </span>
               <Switch
                 checked={isAnnual}
                 onCheckedChange={setIsAnnual}
                 aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
               />
-              <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}>
+              <span
+                className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}
+              >
                 Annual
                 <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-400/30">
                   Save 18%
@@ -239,7 +244,7 @@ export const OnboardingPricing: React.FC = () => {
           {tiers.map((tier, index) => {
             const isSelected = selectedTier === tier.name;
             const isProcessing = processingTier === tier.name;
-            
+
             return (
               <motion.div
                 key={tier.name}
@@ -247,8 +252,8 @@ export const OnboardingPricing: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className={`relative bg-surface/5  rounded-2xl border p-3 md:p-5 flex flex-col transition-all duration-300 ${
-                  tier.isPopular 
-                    ? 'border-amber-400/50' 
+                  tier.isPopular
+                    ? 'border-amber-400/50'
                     : `${tier.borderColor} hover:border-white/20`
                 } ${isSelected ? 'ring-2 ring-purple-500' : ''}`}
               >
@@ -260,12 +265,16 @@ export const OnboardingPricing: React.FC = () => {
                 )}
 
                 {/* Icon */}
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-linear-to-br ${tier.gradient} flex items-center justify-center mb-3`}>
+                <div
+                  className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-linear-to-br ${tier.gradient} flex items-center justify-center mb-3`}
+                >
                   <tier.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
 
                 {/* Name & Description */}
-                <h3 className="text-lg md:text-xl font-bold text-white mb-0.5">{tier.displayName}</h3>
+                <h3 className="text-lg md:text-xl font-bold text-white mb-0.5">
+                  {tier.displayName}
+                </h3>
                 <p className="text-white/40 text-xs mb-3">{tier.description}</p>
 
                 {/* Price */}
@@ -304,7 +313,9 @@ export const OnboardingPricing: React.FC = () => {
 
                 {/* CTA Button */}
                 <Button
-                  variant={tier.isPopular ? 'primary' : tier.priceMonthly === 0 ? 'ghost' : 'outline'}
+                  variant={
+                    tier.isPopular ? 'primary' : tier.priceMonthly === 0 ? 'ghost' : 'outline'
+                  }
                   size="default"
                   className="w-full"
                   onClick={() => handleSubscribe(tier)}

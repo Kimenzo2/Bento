@@ -45,10 +45,7 @@ const CenterPanel: React.FC<CenterPanelProps> = ({ editor }) => {
       }}
     >
       {/* Illustration — hero, commanding */}
-      <div
-        className="w-full"
-        style={{ maxWidth: editor.isFocusMode ? 720 : 640 }}
-      >
+      <div className="w-full" style={{ maxWidth: editor.isFocusMode ? 720 : 640 }}>
         <IllustrationArea
           imageUrl={activePage.imageUrl}
           isGenerating={editor.isGeneratingImage}
@@ -59,10 +56,7 @@ const CenterPanel: React.FC<CenterPanelProps> = ({ editor }) => {
       </div>
 
       {/* Story text display + page nav — below the hero */}
-      <div
-        className="w-full"
-        style={{ maxWidth: editor.isFocusMode ? 720 : 640 }}
-      >
+      <div className="w-full" style={{ maxWidth: editor.isFocusMode ? 720 : 640 }}>
         <StoryTextDisplay
           text={activePage.text}
           pageNumber={activePage.pageNumber}

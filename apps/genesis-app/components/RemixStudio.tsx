@@ -12,13 +12,33 @@ import { IcoBook, IcoWand, IcoSend } from './IconscoutIcons';
  */
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Eye, Filter, GitFork, Globe, Hash, Heart, Lock, MapPin, Search, TrendingUp, User, X } from 'lucide-react';
+import {
+  Check,
+  Eye,
+  Filter,
+  GitFork,
+  Globe,
+  Hash,
+  Heart,
+  Lock,
+  MapPin,
+  Search,
+  TrendingUp,
+  User,
+  X,
+} from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { remixService, type WorldSearchFilters } from '../services/remixService';
 import type { BookProject, RemixableWorld } from '../types';
 import { Button } from '@components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@components/ui/select';
 import { Input, Label } from '@components/ui/input';
 import { Textarea } from '@components/ui/input';
 
@@ -321,7 +341,12 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                         >
                           <div className="pt-4 flex flex-wrap gap-3">
                             {/* Era Filter */}
-                            <Select value={filters.era || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, era: v === 'all' ? undefined : v }))}>
+                            <Select
+                              value={filters.era || 'all'}
+                              onValueChange={(v) =>
+                                setFilters((f) => ({ ...f, era: v === 'all' ? undefined : v }))
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="All Eras" />
                               </SelectTrigger>
@@ -335,7 +360,15 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                             </Select>
 
                             {/* Sort By */}
-                            <Select value={filters.sortBy || 'trending'} onValueChange={(v) => setFilters((f) => ({ ...f, sortBy: v as WorldSearchFilters['sortBy'] }))}>
+                            <Select
+                              value={filters.sortBy || 'trending'}
+                              onValueChange={(v) =>
+                                setFilters((f) => ({
+                                  ...f,
+                                  sortBy: v as WorldSearchFilters['sortBy'],
+                                }))
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Sort by" />
                               </SelectTrigger>
@@ -686,9 +719,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
                       {/* World Name */}
                       <div>
-                        <Label className="text-white/80 mb-2">
-                          World Name *
-                        </Label>
+                        <Label className="text-white/80 mb-2">World Name *</Label>
                         <Input
                           type="text"
                           value={publishSettings.name}
@@ -702,9 +733,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
                       {/* Description */}
                       <div>
-                        <Label className="text-white/80 mb-2">
-                          Description
-                        </Label>
+                        <Label className="text-white/80 mb-2">Description</Label>
                         <Textarea
                           value={publishSettings.description}
                           onChange={(e) =>
@@ -719,10 +748,11 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                       {/* Era & Magic */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-white/80 mb-2">
-                            Era
-                          </Label>
-                          <Select value={publishSettings.era} onValueChange={(v) => setPublishSettings((s) => ({ ...s, era: v }))}>
+                          <Label className="text-white/80 mb-2">Era</Label>
+                          <Select
+                            value={publishSettings.era}
+                            onValueChange={(v) => setPublishSettings((s) => ({ ...s, era: v }))}
+                          >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select era" />
                             </SelectTrigger>
@@ -736,9 +766,7 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
                           </Select>
                         </div>
                         <div>
-                          <Label className="text-white/80 mb-2">
-                            Magic System (optional)
-                          </Label>
+                          <Label className="text-white/80 mb-2">Magic System (optional)</Label>
                           <Input
                             type="text"
                             value={publishSettings.magicSystem}
@@ -798,15 +826,20 @@ export const RemixStudio: React.FC<RemixStudioProps> = ({
 
                       {/* License */}
                       <div>
-                        <Label className="text-white/80 mb-2">
-                          License
-                        </Label>
+                        <Label className="text-white/80 mb-2">License</Label>
                         <div className="grid grid-cols-2 gap-2">
                           {Object.entries(LICENSE_ICONS).map(([key, { icon, label, color }]) => (
                             <Button
                               key={key}
                               onClick={() =>
-                                setPublishSettings((s) => ({ ...s, license: key as 'open' | 'attribution' | 'non-commercial' | 'restricted' }))
+                                setPublishSettings((s) => ({
+                                  ...s,
+                                  license: key as
+                                    | 'open'
+                                    | 'attribution'
+                                    | 'non-commercial'
+                                    | 'restricted',
+                                }))
                               }
                               variant="outline"
                               className={`p-3 text-left h-auto ${

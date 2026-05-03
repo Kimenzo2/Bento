@@ -100,7 +100,10 @@ describe('storageService.saveBook', () => {
     await saveBook(project);
 
     expect(mockExistsForUser).toHaveBeenCalledWith('book-1', 'user-1');
-    expect(mockCreateBook).toHaveBeenCalledWith(expect.objectContaining({ id: 'book-1' }), 'user-1');
+    expect(mockCreateBook).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'book-1' }),
+      'user-1'
+    );
     expect(mockTrackAction).toHaveBeenCalledWith(
       'book_created',
       expect.objectContaining({ bookId: 'book-1', title: 'Genesis Test Book' })
@@ -112,7 +115,10 @@ describe('storageService.saveBook', () => {
 
     await saveBook(project);
 
-    expect(mockCreateBook).toHaveBeenCalledWith(expect.objectContaining({ id: 'book-1' }), 'user-1');
+    expect(mockCreateBook).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'book-1' }),
+      'user-1'
+    );
     expect(mockTrackAction).not.toHaveBeenCalled();
   });
 });

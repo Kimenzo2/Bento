@@ -1,17 +1,17 @@
 import { createTool } from '@mastra/core/tools';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { AndrewRuntimeRequestContextSchema, summarizeAndrewRequestContext } from '../lib/andrewRuntime';
+import {
+  AndrewRuntimeRequestContextSchema,
+  summarizeAndrewRequestContext,
+} from '../lib/andrewRuntime';
 import { uploadPublicPng, updateLifeInColourGeneration } from '../lib/supabase';
 import type {
   LifeInColourCritique,
   LifeInColourGenerationRecord,
   LifeInColourSourceAnalysis,
 } from '../schemas';
-import {
-  LifeInColourGenerationRecordSchema,
-  LifeInColourSourceAnalysisSchema,
-} from '../schemas';
+import { LifeInColourGenerationRecordSchema, LifeInColourSourceAnalysisSchema } from '../schemas';
 
 export async function persistGenerationResult(input: {
   generationId: string;
@@ -27,12 +27,13 @@ export async function persistGenerationResult(input: {
   sourceAnalysisSummary: LifeInColourSourceAnalysis;
   critique: LifeInColourCritique;
 }): Promise<LifeInColourGenerationRecord> {
-  const safeStem = input.sourceFileName
-    .replace(/\.[^.]+$/, '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'life-in-colour';
+  const safeStem =
+    input.sourceFileName
+      .replace(/\.[^.]+$/, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'life-in-colour';
 
   const path = `${input.userId}/${input.generationId}/${safeStem}-${randomUUID()}.png`;
   const buffer = Buffer.from(input.base64Png, 'base64');

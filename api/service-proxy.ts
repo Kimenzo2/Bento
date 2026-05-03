@@ -90,7 +90,8 @@ export default createProtectedHandler(
     if (!process.env.INTERNAL_SERVICE_PROXY_TOKEN) {
       return res.status(503).json({
         error: 'Service unavailable',
-        message: 'The integration proxy is disabled until INTERNAL_SERVICE_PROXY_TOKEN is configured.',
+        message:
+          'The integration proxy is disabled until INTERNAL_SERVICE_PROXY_TOKEN is configured.',
       });
     }
 
@@ -149,4 +150,3 @@ export default createProtectedHandler(
   },
   { protection: 'api', cors: false, logging: true, rateLimit: { requests: 60, window: '1m' } }
 );
-

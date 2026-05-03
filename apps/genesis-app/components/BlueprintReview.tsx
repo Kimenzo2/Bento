@@ -39,7 +39,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
           editedBlueprint,
           (event) => console.log('[BlueprintReview] Resume progress:', event),
           (result) => console.log('[BlueprintReview] Resume complete:', result),
-          (err) => console.error('[BlueprintReview] Resume error:', err),
+          (err) => console.error('[BlueprintReview] Resume error:', err)
         );
       } catch (err) {
         console.warn('[BlueprintReview] Mastra resume failed, using legacy path:', err);
@@ -101,9 +101,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-fadeIn">
               <div>
-                <Label className="uppercase tracking-wide mb-2">
-                  Book Title
-                </Label>
+                <Label className="uppercase tracking-wide mb-2">Book Title</Label>
                 <Input
                   type="text"
                   value={editedBlueprint.title}
@@ -116,9 +114,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
               </div>
 
               <div>
-                <Label className="uppercase tracking-wide mb-2">
-                  Synopsis
-                </Label>
+                <Label className="uppercase tracking-wide mb-2">Synopsis</Label>
                 <Textarea
                   value={editedBlueprint.synopsis}
                   onChange={(e) =>

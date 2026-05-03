@@ -320,7 +320,9 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                     <Button
                       key={tab.id}
                       variant="ghost"
-                      onClick={() => setActiveTab(tab.id as 'basics' | 'standards' | 'students' | 'options')}
+                      onClick={() =>
+                        setActiveTab(tab.id as 'basics' | 'standards' | 'students' | 'options')
+                      }
                       className={`flex-1 min-w-0 px-2 md:px-4 py-2.5 md:py-3 text-xs md:text-sm whitespace-nowrap ${
                         activeTab === tab.id
                           ? 'bg-surface text-coral-burst'
@@ -595,11 +597,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                           className="flex-1 bg-cream-base py-2"
                           onKeyDown={(e) => e.key === 'Enter' && addCustomStandard()}
                         />
-                        <Button
-                          variant="primary"
-                          onClick={addCustomStandard}
-                          className="px-4 py-2"
-                        >
+                        <Button variant="primary" onClick={addCustomStandard} className="px-4 py-2">
                           Add
                         </Button>
                       </div>
@@ -851,9 +849,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
 
                       {includeSEL && (
                         <div>
-                          <Label className="text-cocoa-dark mb-2">
-                            Primary Competency
-                          </Label>
+                          <Label className="text-cocoa-dark mb-2">Primary Competency</Label>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {Object.entries(selCompetencies).map(([key, competency]) => (
                               <Button
@@ -897,7 +893,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         }`}
                       >
                         <div
-                            className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
+                          className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                             includeAssessments ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
@@ -920,7 +916,7 @@ export const CurriculumBuilder: React.FC<CurriculumBuilderProps> = ({
                         }`}
                       >
                         <div
-                            className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
+                          className={`w-5 h-5 rounded-full bg-surface transform transition-transform ${
                             includeFamilyEngagement ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />

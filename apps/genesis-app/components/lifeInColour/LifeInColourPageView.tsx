@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   BookOpen,
@@ -17,36 +18,28 @@ import {
 import type { ChangeEvent, DragEvent, ElementType } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
-import { AnimatePresence, motion } from 'framer-motion';
-import { downloadPDF } from '../../services/generator/pdfService';
-import { mastra } from '../../src/services/mastraClient';
 import { usePageSEO } from '../../hooks/usePageSEO';
-import {
-  ArtStyle,
-  BookTone,
-  type ColoringOutlineMode,
-  type GenerationSettings,
-} from '../../types';
+import { downloadPDF } from '../../services/generator/pdfService';
 import {
   buildLifeInColourPrompt,
   COLORING_OUTLINE_MODES,
   getColoringOutlineModeConfig,
 } from '../../services/generator/prompts/lifeInColourPrompts';
-import { ColouringPageCanvas } from './ColouringPageCanvas';
-import { LifeInColourHeroBand } from './LifeInColourHeroBand';
-import { SavedGenerationPanel } from './SavedGenerationPanel';
-import { Button } from '../ui/button';
+import { useLifeInColourWorkspace } from '../../src/contexts/LifeInColourWorkspaceContext';
+import { mastra } from '../../src/services/mastraClient';
+import { ArtStyle, BookTone, type ColoringOutlineMode, type GenerationSettings } from '../../types';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Input, Label, Textarea } from '../ui/input';
 import { Progress } from '../ui/progress';
 import { Slider } from '../ui/slider';
 import { toast } from '../ui/sonner';
-import {
-  type LifeInColourDisplaySize,
-} from './lifeInColourSizing';
-import { LifeInColourPhotoRail, type LifeInColourPhotoItem } from './LifeInColourPhotoRail';
-import { useLifeInColourWorkspace } from '../../src/contexts/LifeInColourWorkspaceContext';
+import { ColouringPageCanvas } from './ColouringPageCanvas';
+import { LifeInColourHeroBand } from './LifeInColourHeroBand';
+import { type LifeInColourPhotoItem, LifeInColourPhotoRail } from './LifeInColourPhotoRail';
+import type { LifeInColourDisplaySize } from './lifeInColourSizing';
+import { SavedGenerationPanel } from './SavedGenerationPanel';
 
 type BookPreset = 'single' | 'family' | 'trip';
 
@@ -107,6 +100,11 @@ const formatFileSize = (bytes: number) => {
 };
 
 const joinSignature = (parts: Array<string | number>) => parts.join('::');
+const SELECTOR_CARD_BASE =
+  'flex min-h-[124px] flex-col justify-start rounded-2xl border px-4 py-3 text-left transition-all duration-200 active:scale-[0.99]';
+const SELECTOR_CARD_ACTIVE = 'border-coral-burst/35 bg-coral-burst/5 shadow-sm';
+const SELECTOR_CARD_INACTIVE =
+  'border-peach-soft bg-cream-base hover:-translate-y-0.5 hover:border-coral-burst/30 hover:bg-coral-burst/5';
 
 function LoadingPanel({ message }: { message: string }) {
   return (
@@ -123,13 +121,7 @@ function LoadingPanel({ message }: { message: string }) {
   );
 }
 
-function ErrorPanel({
-  message,
-  onReplacePhoto,
-}: {
-  message: string;
-  onReplacePhoto: () => void;
-}) {
+function ErrorPanel({ message, onReplacePhoto }: { message: string; onReplacePhoto: () => void }) {
   return (
     <div className="mx-auto w-full max-w-[48rem] rounded-[28px] border border-peach-soft bg-surface/65 p-4">
       <div className="flex min-h-[18rem] items-center justify-center rounded-[24px] border border-coral-burst/20 bg-white px-6 py-10 text-center">
@@ -137,7 +129,9 @@ function ErrorPanel({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-coral-burst/10 text-coral-burst">
             <ImageIcon className="h-6 w-6" />
           </div>
-          <p className="font-heading text-lg font-bold text-charcoal-soft">Could not build the page</p>
+          <p className="font-heading text-lg font-bold text-charcoal-soft">
+            Could not build the page
+          </p>
           <p className="mt-2 text-sm leading-relaxed text-cocoa-light">{message}</p>
           <div className="mt-4 flex justify-center">
             <Button variant="outline" size="sm" onClick={onReplacePhoto}>
@@ -203,11 +197,14 @@ const LifeInColourPageView = () => {
   const currentPreset = PRESETS[preset];
   const currentOutlineMode = getColoringOutlineModeConfig(outlineMode);
   const photo = photos[0] ?? null;
-  const isPageReady = pageGeneration.phase === 'ready_ai' || pageGeneration.phase === 'fallback_local';
+  const isPageReady =
+    pageGeneration.phase === 'ready_ai' || pageGeneration.phase === 'fallback_local';
   const isBookWorking = bookPhase === 'generating';
   const selectedSavedGeneration =
-    savedHistory.generations.find((generation: (typeof savedHistory.generations)[number]) => generation.id === selectedSavedGenerationId) ??
-    null;
+    savedHistory.generations.find(
+      (generation: (typeof savedHistory.generations)[number]) =>
+        generation.id === selectedSavedGenerationId
+    ) ?? null;
   const selectedSavedGenerationAnalysis = selectedSavedGeneration?.sourceAnalysisSummary;
   const selectedSavedGenerationCritique = selectedSavedGeneration?.critiqueSummary;
 
@@ -223,12 +220,24 @@ const LifeInColourPageView = () => {
         brief.trim() || currentPreset.brief,
         pageCount,
       ]),
-    [brief, currentPreset.brief, currentPreset.title, outlineMode, pageCount, photo?.id, photo?.name, photos, preset, title]
+    [
+      brief,
+      currentPreset.brief,
+      currentPreset.title,
+      outlineMode,
+      pageCount,
+      photo?.id,
+      photo?.name,
+      photos,
+      preset,
+      title,
+    ]
   );
 
-  const isBookResultStale = Boolean(bookProject) && generatedBookSignatureRef.current !== null
-    ? generatedBookSignatureRef.current !== bookSignature
-    : false;
+  const isBookResultStale =
+    Boolean(bookProject) && generatedBookSignatureRef.current !== null
+      ? generatedBookSignatureRef.current !== bookSignature
+      : false;
 
   const handleChoosePhoto = useCallback(() => {
     fileInputRef.current?.click();
@@ -238,7 +247,9 @@ const LifeInColourPageView = () => {
     generationCancelRef.current?.();
     generationCancelRef.current = null;
     generatedBookSignatureRef.current = null;
-    photosRef.current.forEach((photoItem) => URL.revokeObjectURL(photoItem.previewUrl));
+    photosRef.current.forEach((photoItem) => {
+      URL.revokeObjectURL(photoItem.previewUrl);
+    });
     photosRef.current = [];
     setPhotos([]);
     setPreset('family');
@@ -258,46 +269,45 @@ const LifeInColourPageView = () => {
     }
   }, []);
 
-  const handleFiles = useCallback(
-    (fileList: FileList | File[] | null | undefined) => {
-      const incomingFiles = Array.from(fileList ?? []).filter((file) => file.type.startsWith('image/'));
+  const handleFiles = useCallback((fileList: FileList | File[] | null | undefined) => {
+    const incomingFiles = Array.from(fileList ?? []).filter((file) =>
+      file.type.startsWith('image/')
+    );
 
-      if (incomingFiles.length === 0) {
-        toast.error('Select image files only.', {
-          description: 'Camera roll photos and uploaded images are supported.',
-        });
-        return;
-      }
+    if (incomingFiles.length === 0) {
+      toast.error('Select image files only.', {
+        description: 'Camera roll photos and uploaded images are supported.',
+      });
+      return;
+    }
 
-      const nextPhotos = incomingFiles.map((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        name: file.name,
-        sizeLabel: formatFileSize(file.size),
-        previewUrl: URL.createObjectURL(file),
-      }));
+    const nextPhotos = incomingFiles.map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      name: file.name,
+      sizeLabel: formatFileSize(file.size),
+      previewUrl: URL.createObjectURL(file),
+    }));
 
-      if (nextPhotos.length === 0) {
-        return;
-      }
+    if (nextPhotos.length === 0) {
+      return;
+    }
 
-      setPhotos((current) => [...current, ...nextPhotos]);
-      setBookFlowOpen(false);
-      setBookProject(null);
-      setSelectedSavedGenerationId(null);
-      setBookPhase('idle');
-      setBookProgress(0);
-      setBookMessage('');
-      generatedBookSignatureRef.current = null;
+    setPhotos((current) => [...current, ...nextPhotos]);
+    setBookFlowOpen(false);
+    setBookProject(null);
+    setSelectedSavedGenerationId(null);
+    setBookPhase('idle');
+    setBookProgress(0);
+    setBookMessage('');
+    generatedBookSignatureRef.current = null;
 
-      if (nextPhotos.length > 1) {
-        toast.success('Photos added', {
-          description: `${nextPhotos.length} images are now in the Life in Colour rail.`,
-        });
-      }
-    },
-    []
-  );
+    if (nextPhotos.length > 1) {
+      toast.success('Photos added', {
+        description: `${nextPhotos.length} images are now in the Life in Colour rail.`,
+      });
+    }
+  }, []);
 
   const handleInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -571,9 +581,12 @@ const LifeInColourPageView = () => {
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[color:var(--color-background)] text-coral-burst shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_10px_24px_-18px_rgba(0,0,0,0.35)] ring-1 ring-black/5">
         <Upload className="h-7 w-7" />
       </div>
-      <p className="font-heading text-lg font-bold text-charcoal-soft">Drop one or more photos here</p>
+      <p className="font-heading text-lg font-bold text-charcoal-soft">
+        Drop one or more photos here
+      </p>
       <p className="mt-2 max-w-lg text-sm leading-relaxed text-cocoa-light">
-        Andrew turns your images into printable colouring pages. Add more photos when you want options.
+        Andrew turns your images into printable colouring pages. Add more photos when you want
+        options.
       </p>
     </button>
   );
@@ -583,7 +596,9 @@ const LifeInColourPageView = () => {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Saved page</div>
-          <div className="mt-1 text-sm font-semibold text-charcoal-soft">{selectedSavedGeneration.title}</div>
+          <div className="mt-1 text-sm font-semibold text-charcoal-soft">
+            {selectedSavedGeneration.title}
+          </div>
         </div>
         <Badge variant="secondary">{selectedSavedGeneration.status}</Badge>
       </div>
@@ -599,7 +614,8 @@ const LifeInColourPageView = () => {
           {selectedSavedGeneration.renderModel || selectedSavedGeneration.model || 'gpt-image-2'}
         </Badge>
         <Badge variant="outline" className="text-[10px]">
-          {selectedSavedGeneration.retryCount} repair{selectedSavedGeneration.retryCount === 1 ? '' : 's'}
+          {selectedSavedGeneration.retryCount} repair
+          {selectedSavedGeneration.retryCount === 1 ? '' : 's'}
         </Badge>
       </div>
 
@@ -620,18 +636,22 @@ const LifeInColourPageView = () => {
       <div className="mt-4 border-t border-peach-soft pt-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-cocoa-light">Source analysis</div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-cocoa-light">
+              Source analysis
+            </div>
             <p className="mt-1 text-sm leading-relaxed text-charcoal-soft">
               {selectedSavedGenerationAnalysis?.subjectSummary || selectedSavedGeneration.brief}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-cocoa-light">
-              {selectedSavedGenerationAnalysis?.compositionSummary || 'Andrew preserved the source composition in simplified line art.'}
+              {selectedSavedGenerationAnalysis?.compositionSummary ||
+                'Andrew preserved the source composition in simplified line art.'}
             </p>
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-cocoa-light">Critique</div>
             <p className="mt-1 text-sm leading-relaxed text-charcoal-soft">
-              {selectedSavedGenerationCritique?.summary || 'Andrew completed the page and stored the result.'}
+              {selectedSavedGenerationCritique?.summary ||
+                'Andrew completed the page and stored the result.'}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-cocoa-light">
               {selectedSavedGenerationCritique?.retryRecommended
@@ -649,7 +669,9 @@ const LifeInColourPageView = () => {
   ) : null;
 
   return (
-    <section className="w-full pb-24 animate-fadeIn">
+    <section
+      className={`w-full animate-fadeIn ${photo && isPageReady && !bookFlowOpen ? 'pb-32' : 'pb-24'}`}
+    >
       <div className="mx-auto max-w-6xl px-4 pt-6 md:px-6 md:pt-10">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Button
@@ -662,7 +684,6 @@ const LifeInColourPageView = () => {
             Back to Create
           </Button>
         </div>
-
       </div>
 
       <div className="px-3 md:px-4 lg:px-6">
@@ -670,7 +691,9 @@ const LifeInColourPageView = () => {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 md:px-6">
-        <div className={`mt-6 grid gap-6 md:mt-8 ${bookFlowOpen ? 'lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]' : 'lg:grid-cols-1'}`}>
+        <div
+          className={`mt-6 grid gap-6 md:mt-8 ${bookFlowOpen ? 'lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]' : 'lg:grid-cols-1'}`}
+        >
           <Card className="overflow-hidden">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2">
@@ -678,7 +701,9 @@ const LifeInColourPageView = () => {
                 {photo ? 'Colouring page' : 'Photo source'}
               </CardTitle>
               <CardDescription className="mt-1">
-                {photo ? 'Andrew is building a colouring page from your uploads.' : 'Upload your images to begin.'}
+                {photo
+                  ? 'Andrew is building a colouring page from your uploads.'
+                  : 'Upload your images to begin.'}
               </CardDescription>
             </CardHeader>
 
@@ -691,50 +716,60 @@ const LifeInColourPageView = () => {
                 onChange={handleInputChange}
               />
 
-              {!photo ? (
-                uploadZone
-              ) : pageGeneration.phase === 'uploading' || pageGeneration.phase === 'generating_ai' ? (
-                <LoadingPanel message={pageGeneration.message || 'Andrew is drawing your colouring page...'} />
-              ) : pageGeneration.phase === 'error' ? (
-                <ErrorPanel
-                  message={pageGeneration.errorMessage || pageGeneration.message || 'The page could not be processed.'}
-                  onReplacePhoto={handleChoosePhoto}
-                />
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <LifeInColourPhotoRail
-                    photos={photos}
-                    layoutSize={stageSize}
-                    onAddPhoto={handleChoosePhoto}
-                    onRemovePhoto={handleRemovePhoto}
+              {photo ? (
+                pageGeneration.phase === 'uploading' || pageGeneration.phase === 'generating_ai' ? (
+                  <LoadingPanel
+                    message={pageGeneration.message || 'Andrew is drawing your colouring page...'}
                   />
-
-                  <ColouringPageCanvas
-                    key={photo.id}
-                    canvas={
-                      pageGeneration.phase === 'ready_ai' && pageGeneration.aiImageUrl
-                        ? {
-                            kind: 'image',
-                            width: pageGeneration.localPipeline.width || 1536,
-                            height: pageGeneration.localPipeline.height || 1536,
-                            imageUrl: pageGeneration.aiImageUrl,
-                          }
-                        : {
-                            kind: 'outline',
-                            width: pageGeneration.localPipeline.width,
-                            height: pageGeneration.localPipeline.height,
-                            outlinePixels: pageGeneration.localPipeline.outlinePixels ?? new Uint8ClampedArray(),
-                          }
-                    }
-                    sourceName={
-                      pageGeneration.phase === 'ready_ai'
-                        ? pageGeneration.generation?.title || 'Your colouring page'
-                        : pageGeneration.localPipeline.sourceName ?? 'Your colouring page'
+                ) : pageGeneration.phase === 'error' ? (
+                  <ErrorPanel
+                    message={
+                      pageGeneration.errorMessage ||
+                      pageGeneration.message ||
+                      'The page could not be processed.'
                     }
                     onReplacePhoto={handleChoosePhoto}
-                    displaySize={stageSize}
                   />
-                </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <LifeInColourPhotoRail
+                      photos={photos}
+                      layoutSize={stageSize}
+                      onAddPhoto={handleChoosePhoto}
+                      onRemovePhoto={handleRemovePhoto}
+                    />
+
+                    <ColouringPageCanvas
+                      key={photo.id}
+                      canvas={
+                        pageGeneration.phase === 'ready_ai' && pageGeneration.aiImageUrl
+                          ? {
+                              kind: 'image',
+                              width: pageGeneration.localPipeline.width || 1536,
+                              height: pageGeneration.localPipeline.height || 1536,
+                              imageUrl: pageGeneration.aiImageUrl,
+                            }
+                          : {
+                              kind: 'outline',
+                              width: pageGeneration.localPipeline.width,
+                              height: pageGeneration.localPipeline.height,
+                              outlinePixels:
+                                pageGeneration.localPipeline.outlinePixels ??
+                                new Uint8ClampedArray(),
+                            }
+                      }
+                      sourceName={
+                        pageGeneration.phase === 'ready_ai'
+                          ? pageGeneration.generation?.title || 'Your colouring page'
+                          : (pageGeneration.localPipeline.sourceName ?? 'Your colouring page')
+                      }
+                      onReplacePhoto={handleChoosePhoto}
+                      displaySize={stageSize}
+                    />
+                  </div>
+                )
+              ) : (
+                uploadZone
               )}
 
               <div className="flex flex-wrap gap-3">
@@ -742,7 +777,12 @@ const LifeInColourPageView = () => {
                   <Camera className="h-4 w-4" />
                   {photo ? 'Replace photo' : 'Choose photo'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={clearDraft} disabled={!photo && !bookProject}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearDraft}
+                  disabled={!photo && !bookProject}
+                >
                   <Trash2 className="h-4 w-4" />
                   Reset
                 </Button>
@@ -789,7 +829,8 @@ const LifeInColourPageView = () => {
                       Book options
                     </CardTitle>
                     <CardDescription className="mt-1">
-                      Add the book details only when you want to turn the colouring page into a printable set.
+                      Add the book details only when you want to turn the colouring page into a
+                      printable set.
                     </CardDescription>
                   </CardHeader>
 
@@ -806,23 +847,25 @@ const LifeInColourPageView = () => {
 
                     <div className="flex flex-col gap-2">
                       <Label>Outline mode</Label>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        {(Object.entries(COLORING_OUTLINE_MODES) as Array<
-                          [ColoringOutlineMode, (typeof COLORING_OUTLINE_MODES)[ColoringOutlineMode]]
-                        >).map(([mode, config]) => {
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {(
+                          Object.entries(COLORING_OUTLINE_MODES) as Array<
+                            [
+                              ColoringOutlineMode,
+                              (typeof COLORING_OUTLINE_MODES)[ColoringOutlineMode],
+                            ]
+                          >
+                        ).map(([mode, config]) => {
                           const active = outlineMode === mode;
-                          const Icon = mode === 'simple' ? Brush : mode === 'detailed' ? Layers3 : Flower2;
+                          const Icon =
+                            mode === 'simple' ? Brush : mode === 'detailed' ? Layers3 : Flower2;
 
                           return (
                             <button
                               key={mode}
                               type="button"
                               onClick={() => setOutlineMode(mode)}
-                              className={`flex min-h-[124px] flex-col justify-start rounded-2xl border px-4 py-3 text-left transition-all duration-200 active:scale-[0.99] ${
-                                active
-                                  ? 'border-coral-burst/35 bg-coral-burst/5 shadow-sm'
-                                  : 'border-peach-soft bg-cream-base hover:-translate-y-0.5 hover:border-coral-burst/30 hover:bg-coral-burst/5'
-                              }`}
+                              className={`${SELECTOR_CARD_BASE} ${active ? SELECTOR_CARD_ACTIVE : SELECTOR_CARD_INACTIVE}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div
@@ -835,7 +878,10 @@ const LifeInColourPageView = () => {
                                   <Icon className="h-4 w-4" />
                                 </div>
                                 {config.recommended ? (
-                                  <Badge variant="outline" className="px-2 py-0.5 text-[10px] leading-none">
+                                  <Badge
+                                    variant="outline"
+                                    className="px-2 py-0.5 text-[10px] leading-none"
+                                  >
                                     Recommended
                                   </Badge>
                                 ) : null}
@@ -844,18 +890,22 @@ const LifeInColourPageView = () => {
                                 <div className="font-heading text-sm font-bold leading-tight text-charcoal-soft">
                                   {config.label}
                                 </div>
-                                <div className="mt-1 text-xs leading-5 text-cocoa-light">{config.description}</div>
+                                <div className="mt-1 text-xs leading-5 text-cocoa-light">
+                                  {config.description}
+                                </div>
                               </div>
                             </button>
                           );
                         })}
                       </div>
-                      <p className="text-xs leading-relaxed text-cocoa-light">{currentOutlineMode.summary}</p>
+                      <p className="text-xs leading-relaxed text-cocoa-light">
+                        {currentOutlineMode.summary}
+                      </p>
                     </div>
 
                     <div className="flex flex-col gap-2">
                       <Label>Preset</Label>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         {(Object.keys(PRESETS) as BookPreset[]).map((key) => {
                           const config = PRESETS[key];
                           const Icon = config.icon;
@@ -866,19 +916,21 @@ const LifeInColourPageView = () => {
                               key={key}
                               type="button"
                               onClick={() => applyPreset(key)}
-                              className={`flex min-h-24 flex-col justify-between rounded-2xl border px-4 py-3 text-left transition-all ${
-                                active
-                                  ? 'border-coral-burst bg-coral-burst/5 shadow-sm'
-                                  : 'border-peach-soft bg-cream-base hover:border-coral-burst/30'
-                              }`}
+                              className={`min-h-24 justify-between ${SELECTOR_CARD_BASE} ${active ? SELECTOR_CARD_ACTIVE : SELECTOR_CARD_INACTIVE}`}
                             >
                               <div className="flex items-center justify-between gap-3">
-                                <span className={`font-heading font-bold ${active ? 'text-coral-burst' : 'text-charcoal-soft'}`}>
+                                <span
+                                  className={`font-heading font-bold ${active ? 'text-coral-burst' : 'text-charcoal-soft'}`}
+                                >
                                   {config.label}
                                 </span>
-                                <Icon className={`h-4 w-4 ${active ? 'text-coral-burst' : 'text-cocoa-light'}`} />
+                                <Icon
+                                  className={`h-4 w-4 ${active ? 'text-coral-burst' : 'text-cocoa-light'}`}
+                                />
                               </div>
-                              <div className="mt-2 text-xs leading-relaxed text-cocoa-light">{config.helper}</div>
+                              <div className="mt-2 text-xs leading-relaxed text-cocoa-light">
+                                {config.helper}
+                              </div>
                             </button>
                           );
                         })}
@@ -918,20 +970,20 @@ const LifeInColourPageView = () => {
                             <Sparkles className="h-4 w-4 text-coral-burst" />
                             <span className="text-sm font-semibold text-charcoal-soft">
                               {bookPhase === 'generating'
-                                  ? 'Building the book'
-                                  : bookPhase === 'ready'
-                                    ? 'Book ready'
-                                    : 'Build failed'}
-                          </span>
-                        </div>
-                        <Badge variant="secondary">
-                            {bookPhase === 'generating'
-                                ? 'Rendering'
+                                ? 'Building the book'
                                 : bookPhase === 'ready'
-                                  ? 'Complete'
-                                  : bookPhase === 'error'
-                                    ? 'Stopped'
-                                    : 'Idle'}
+                                  ? 'Book ready'
+                                  : 'Build failed'}
+                            </span>
+                          </div>
+                          <Badge variant="secondary">
+                            {bookPhase === 'generating'
+                              ? 'Rendering'
+                              : bookPhase === 'ready'
+                                ? 'Complete'
+                                : bookPhase === 'error'
+                                  ? 'Stopped'
+                                  : 'Idle'}
                           </Badge>
                         </div>
                         <Progress value={bookProgress} className="mt-3" />
@@ -953,11 +1005,21 @@ const LifeInColourPageView = () => {
                         <Sparkles className="h-4 w-4" />
                       </Button>
                       {isBookWorking ? (
-                        <Button variant="outline" size="lg" onClick={handleCancelGeneration} className="min-w-[120px]">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={handleCancelGeneration}
+                          className="min-w-[120px]"
+                        >
                           Cancel
                         </Button>
                       ) : (
-                        <Button variant="outline" size="lg" onClick={clearDraft} className="min-w-[120px]">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={clearDraft}
+                          className="min-w-[120px]"
+                        >
                           Reset
                         </Button>
                       )}
@@ -982,14 +1044,21 @@ const LifeInColourPageView = () => {
               <div className="rounded-[28px] border border-peach-soft bg-cream-base/96 px-4 py-3 shadow-[0_16px_44px_-30px_rgba(0,0,0,0.4)] backdrop-blur-md md:px-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <div className="font-heading text-sm font-bold text-charcoal-soft">Colouring page ready</div>
+                    <div className="font-heading text-sm font-bold text-charcoal-soft">
+                      Colouring page ready
+                    </div>
                     <p className="mt-1 text-xs leading-relaxed text-cocoa-light">
                       {pageGeneration.phase === 'fallback_local'
                         ? 'Andrew did not finish, so the browser fallback is ready. Open the book flow only if you want a printable set.'
                         : 'Andrew finished the page. Open the book flow only if you want to turn it into a printable set.'}
                     </p>
                   </div>
-                  <Button variant="primary" size="lg" onClick={() => setBookFlowOpen(true)} className="shrink-0">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={() => setBookFlowOpen(true)}
+                    className="shrink-0"
+                  >
                     Turn it into a Page
                     <Sparkles className="h-4 w-4" />
                   </Button>
@@ -1006,7 +1075,7 @@ const LifeInColourPageView = () => {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
-              transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+              transition={{ type: 'spring', stiffness: 140, damping: 20 }}
               className="mt-6 md:mt-8"
             >
               <Card className="overflow-hidden">
@@ -1018,7 +1087,8 @@ const LifeInColourPageView = () => {
                         {bookProject.title}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        {bookProject.targetAudience} · {bookProject.tone} · {bookProject.chapters.reduce(
+                        {bookProject.targetAudience} · {bookProject.tone} ·{' '}
+                        {bookProject.chapters.reduce(
                           (count, chapter) => count + chapter.pages.length,
                           0
                         )}{' '}
@@ -1026,11 +1096,21 @@ const LifeInColourPageView = () => {
                       </CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" onClick={handleShareBook} disabled={isBookResultStale || isBookWorking}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleShareBook}
+                        disabled={isBookResultStale || isBookWorking}
+                      >
                         <Share2 className="h-4 w-4" />
                         Share summary
                       </Button>
-                      <Button variant="primary" size="sm" onClick={handleExportPdf} disabled={isExporting || isBookResultStale || isBookWorking}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleExportPdf}
+                        disabled={isExporting || isBookResultStale || isBookWorking}
+                      >
                         <Download className="h-4 w-4" />
                         {isExporting ? 'Exporting...' : 'Export PDF'}
                       </Button>
@@ -1041,7 +1121,8 @@ const LifeInColourPageView = () => {
                 <CardContent className="flex flex-col gap-6">
                   {isBookResultStale ? (
                     <div className="rounded-2xl border border-coral-burst/20 bg-coral-burst/5 px-4 py-3 text-sm text-charcoal-soft">
-                      The inputs changed after this result was generated. Generate again to refresh the book and re-enable export.
+                      The inputs changed after this result was generated. Generate again to refresh
+                      the book and re-enable export.
                     </div>
                   ) : null}
 
@@ -1073,21 +1154,38 @@ const LifeInColourPageView = () => {
 
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                         <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
-                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Title</div>
-                          <div className="mt-2 text-sm font-medium text-charcoal-soft">{bookProject.title}</div>
-                        </div>
-                        <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
-                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Audience</div>
-                          <div className="mt-2 text-sm font-medium text-charcoal-soft">{bookProject.targetAudience}</div>
-                        </div>
-                        <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
-                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Tone</div>
-                          <div className="mt-2 text-sm font-medium text-charcoal-soft">{bookProject.tone}</div>
-                        </div>
-                        <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
-                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Pages</div>
+                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+                            Title
+                          </div>
                           <div className="mt-2 text-sm font-medium text-charcoal-soft">
-                            {bookProject.chapters.reduce((count, chapter) => count + chapter.pages.length, 0)}
+                            {bookProject.title}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
+                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+                            Audience
+                          </div>
+                          <div className="mt-2 text-sm font-medium text-charcoal-soft">
+                            {bookProject.targetAudience}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
+                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+                            Tone
+                          </div>
+                          <div className="mt-2 text-sm font-medium text-charcoal-soft">
+                            {bookProject.tone}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-peach-soft bg-cream-base p-4">
+                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+                            Pages
+                          </div>
+                          <div className="mt-2 text-sm font-medium text-charcoal-soft">
+                            {bookProject.chapters.reduce(
+                              (count, chapter) => count + chapter.pages.length,
+                              0
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1095,30 +1193,50 @@ const LifeInColourPageView = () => {
 
                     <div className="flex flex-col gap-4">
                       <div className="rounded-xl border border-peach-soft bg-surface/70 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Synopsis</div>
-                        <p className="mt-3 text-sm leading-relaxed text-charcoal-soft">{bookProject.synopsis}</p>
+                        <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+                          Synopsis
+                        </div>
+                        <p className="mt-3 text-sm leading-relaxed text-charcoal-soft">
+                          {bookProject.synopsis}
+                        </p>
                       </div>
 
                       <div className="rounded-xl border border-peach-soft bg-surface/70 p-4">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">Book timeline</div>
+                          <div className="text-xs uppercase tracking-[0.18em] text-cocoa-light">
+                            Book timeline
+                          </div>
                           <Badge variant="secondary">
-                            {bookProject.chapters.reduce((count, chapter) => count + chapter.pages.length, 0)} pages
+                            {bookProject.chapters.reduce(
+                              (count, chapter) => count + chapter.pages.length,
+                              0
+                            )}{' '}
+                            pages
                           </Badge>
                         </div>
 
                         <div className="mt-4 flex max-h-[420px] flex-col gap-3 overflow-auto pr-1">
-                          {bookProject.chapters.flatMap((chapter) => chapter.pages).slice(0, 6).map((page) => (
-                            <div key={page.id} className="rounded-2xl border border-peach-soft bg-white p-4">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-cocoa-light">
-                                  Page {page.pageNumber}
-                                </span>
-                                <span className="text-[11px] text-cocoa-light">{page.layoutType.replace('-', ' ')}</span>
+                          {bookProject.chapters
+                            .flatMap((chapter) => chapter.pages)
+                            .slice(0, 6)
+                            .map((page) => (
+                              <div
+                                key={page.id}
+                                className="rounded-2xl border border-peach-soft bg-white p-4"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-cocoa-light">
+                                    Page {page.pageNumber}
+                                  </span>
+                                  <span className="text-[11px] text-cocoa-light">
+                                    {page.layoutType.replace('-', ' ')}
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-sm leading-relaxed text-charcoal-soft">
+                                  {page.text}
+                                </p>
                               </div>
-                              <p className="mt-2 text-sm leading-relaxed text-charcoal-soft">{page.text}</p>
-                            </div>
-                          ))}
+                            ))}
                         </div>
                       </div>
                     </div>

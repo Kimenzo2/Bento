@@ -30,7 +30,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   className = '',
 }) => {
   const spinner = (
-    <div role="status" aria-label="Loading" className={`flex flex-col items-center justify-center gap-3 ${className}`}>
+    <div
+      role="status"
+      aria-label="Loading"
+      className={`flex flex-col items-center justify-center gap-3 ${className}`}
+    >
       <Loader2 className={`${sizeClasses[size]} text-coral-burst animate-spin`} />
       {text && <p className="text-cocoa-light font-body text-sm animate-pulse">{text}</p>}
       {!text && <span className="sr-only">Loading...</span>}

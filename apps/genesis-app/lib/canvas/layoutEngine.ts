@@ -1,8 +1,8 @@
-import { DEFAULT_LAYOUT, type LayoutConfig } from './canvasTypes'
+import { DEFAULT_LAYOUT, type LayoutConfig } from './canvasTypes';
 
 export interface NodePosition {
-  id: string
-  position: { x: number; y: number }
+  id: string;
+  position: { x: number; y: number };
 }
 
 export function computeLayout(
@@ -17,7 +17,7 @@ export function computeLayout(
    *
    * Every other node is offset vertically to create a river of story.
    */
-  const positions: NodePosition[] = []
+  const positions: NodePosition[] = [];
 
   for (let i = 0; i < pageCount; i++) {
     positions.push({
@@ -26,8 +26,8 @@ export function computeLayout(
         x: config.startX + i * (config.nodeWidth + config.horizontalGap),
         y: config.startY + (i % 2 === 0 ? 0 : config.verticalOffset),
       },
-    })
+    });
   }
 
-  return positions
+  return positions;
 }

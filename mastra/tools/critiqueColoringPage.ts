@@ -1,6 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { AndrewRuntimeRequestContextSchema, summarizeAndrewRequestContext } from '../lib/andrewRuntime';
+import {
+  AndrewRuntimeRequestContextSchema,
+  summarizeAndrewRequestContext,
+} from '../lib/andrewRuntime';
 import { critiqueGeneratedImage } from '../lib/openai';
 import { LifeInColourCritiqueSchema, type LifeInColourCritique } from '../schemas';
 
@@ -19,7 +22,8 @@ export async function critiqueColoringPage(input: {
 
 export const critiqueColoringPageTool = createTool({
   id: 'critiqueColoringPage',
-  description: 'Critiques a generated coloring page against printability and subject fidelity criteria.',
+  description:
+    'Critiques a generated coloring page against printability and subject fidelity criteria.',
   requestContextSchema: AndrewRuntimeRequestContextSchema,
   inputSchema: z.object({
     sourceDataUrl: z.string(),

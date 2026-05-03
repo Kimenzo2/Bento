@@ -326,11 +326,7 @@ export const InstantCreationDemo: React.FC = memo(() => {
                   "{content.prompt}"
                 </p>
 
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleActivate}
-                >
+                <Button variant="primary" size="lg" onClick={handleActivate}>
                   <IcoWand className="w-4 h-4 md:w-5 md:h-5" />
                   Tap to Generate
                 </Button>

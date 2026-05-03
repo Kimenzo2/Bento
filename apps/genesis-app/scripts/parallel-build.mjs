@@ -1,6 +1,6 @@
 /**
  * parallel-build.mjs
- * Runs `tsc --noEmit` and `vite build` concurrently for faster CI builds.
+ * Runs `tsgo --noEmit` and `vite build` concurrently for faster CI builds.
  * Falls back to exit code 1 if either process fails.
  *
  * FIXES:
@@ -41,14 +41,10 @@ try {
   await Promise.all([
     run(
       process.execPath, // node — absolute path, no PATH lookup needed
-      ['node_modules/typescript/bin/tsc', '--noEmit', '--incremental'],
-      'TypeScript',
+      ['node_modules/@typescript/native-preview/bin/tsgo.js', '--noEmit', '--incremental'],
+      'TypeScript'
     ),
-    run(
-      process.execPath,
-      ['node_modules/vite/bin/vite.js', 'build', '--mode', viteMode],
-      'Vite',
-    ),
+    run(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--mode', viteMode], 'Vite'),
   ]);
 
   const elapsed = ((performance.now() - start) / 1000).toFixed(1);

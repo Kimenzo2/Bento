@@ -34,16 +34,13 @@ describe('GenProvider', () => {
   beforeAll(() => {
     env.VITE_ENABLE_GEN_RUNTIME = 'true';
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.stubGlobal(
-      'requestIdleCallback',
-      (callback: (deadline: IdleDeadline) => void) => {
-        callback({
-          didTimeout: false,
-          timeRemaining: () => 50,
-        } as IdleDeadline);
-        return 1 as unknown as number;
-      }
-    );
+    vi.stubGlobal('requestIdleCallback', (callback: (deadline: IdleDeadline) => void) => {
+      callback({
+        didTimeout: false,
+        timeRemaining: () => 50,
+      } as IdleDeadline);
+      return 1 as unknown as number;
+    });
     vi.stubGlobal('cancelIdleCallback', (id: number) => {
       clearTimeout(id);
     });
@@ -67,8 +64,7 @@ describe('GenProvider', () => {
     await waitFor(() => {
       const genContextBridgeFailure = consoleErrorSpy.mock.calls.some(
         ([firstArg]) =>
-          typeof firstArg === 'string' &&
-          firstArg.includes('[GenContext] Mount failed:')
+          typeof firstArg === 'string' && firstArg.includes('[GenContext] Mount failed:')
       );
 
       expect(genContextBridgeFailure).toBe(false);

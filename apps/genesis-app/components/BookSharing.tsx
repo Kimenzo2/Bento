@@ -152,7 +152,12 @@ interface ShareModalProps {
   userName?: string;
 }
 
-export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, userName: _userName }) => {
+export const ShareModal: React.FC<ShareModalProps> = ({
+  isOpen,
+  onClose,
+  book,
+  userName: _userName,
+}) => {
   const { createShareLink, getShareLink, updateShareSettings, deleteShareLink, loading, error } =
     useBookSharing();
   const [copied, setCopied] = useState(false);
@@ -313,9 +318,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-charcoal-soft ">Share Book</h2>
-                  <p className="text-sm text-cocoa-light  truncate max-w-50">
-                    {book.title}
-                  </p>
+                  <p className="text-sm text-cocoa-light  truncate max-w-50">{book.title}</p>
                 </div>
               </div>
               <Button
@@ -425,9 +428,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       {/* Settings Update Controls */}
                       <div className="space-y-2 pt-2 border-t border-peach-soft/50 ">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-cocoa-light ">
-                            Public Access
-                          </span>
+                          <span className="text-sm text-cocoa-light ">Public Access</span>
                           <Switch
                             checked={settings.isPublic}
                             onCheckedChange={(val) => handleUpdateSettings({ isPublic: val })}
@@ -435,9 +436,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-cocoa-light ">
-                            Allow Downloads
-                          </span>
+                          <span className="text-sm text-cocoa-light ">Allow Downloads</span>
                           <Switch
                             checked={settings.allowDownload}
                             onCheckedChange={(val) => handleUpdateSettings({ allowDownload: val })}
@@ -551,9 +550,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                     >
                       {/* Embed Code Display */}
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-cocoa-light ">
-                          Embed Code
-                        </p>
+                        <p className="text-sm font-medium text-cocoa-light ">Embed Code</p>
                         <div className="relative">
                           <pre className="p-4 bg-charcoal-soft text-green-400 rounded-xl text-xs overflow-x-auto">
                             {generateEmbedCode(shareLink.url, book.title)}
@@ -583,9 +580,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 
                       {/* Preview */}
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-cocoa-light ">
-                          Preview
-                        </p>
+                        <p className="text-sm font-medium text-cocoa-light ">Preview</p>
                         <div className="border border-peach-soft  rounded-xl p-4 bg-surface/50 ">
                           <div className="bg-surface  rounded-lg border border-peach-soft p-4 text-center">
                             <div className="w-full h-32 bg-linear-to-br from-coral-burst/20 to-gold-sunshine/20 rounded-lg flex items-center justify-center">
@@ -669,9 +664,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       <Download className="w-5 h-5 text-blue-500" />
                       <div>
                         <p className="font-medium text-charcoal-soft ">Allow Downloads</p>
-                        <p className="text-sm text-cocoa-light ">
-                          Viewers can download the book
-                        </p>
+                        <p className="text-sm text-cocoa-light ">Viewers can download the book</p>
                       </div>
                     </div>
                     <Button
@@ -736,9 +729,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
                       <div className="p-4 bg-surface/50  rounded-xl space-y-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-cocoa-light" />
-                          <p className="font-medium text-charcoal-soft  text-sm">
-                            Link Expiration
-                          </p>
+                          <p className="font-medium text-charcoal-soft  text-sm">Link Expiration</p>
                         </div>
                         <div className="flex gap-2">
                           {[null, 7, 30, 90].map((days) => (
@@ -791,4 +782,3 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, book, u
 };
 
 export default { useBookSharing, ShareModal };
-

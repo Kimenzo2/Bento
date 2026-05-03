@@ -13,12 +13,12 @@ The only safe approach: **use a backend proxy** for all third-party API calls th
 ```typescript
 // BAD: API key in the mobile app
 const response = await fetch('https://api.openai.com/v1/chat/completions', {
-  headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` }
+  headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
 });
 
 // GOOD: call your own backend, which holds the key
 const response = await fetch('https://your-api.com/ai/chat', {
-  headers: { 'Authorization': `Bearer ${userSessionToken}` },
+  headers: { Authorization: `Bearer ${userSessionToken}` },
   body: JSON.stringify({ message: userInput }),
 });
 ```

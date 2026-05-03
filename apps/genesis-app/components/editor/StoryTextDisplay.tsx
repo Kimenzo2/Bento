@@ -102,10 +102,7 @@ const StoryTextDisplay: React.FC<StoryTextDisplayProps> = ({
           Previous
         </button>
 
-        <span
-          className="text-cocoa-light"
-          style={{ ...geist, fontSize: 12 }}
-        >
+        <span className="text-cocoa-light" style={{ ...geist, fontSize: 12 }}>
           Page {pageNumber} of {totalPages}
         </span>
 

@@ -45,4 +45,3 @@ export const LIFE_IN_COLOUR_DISPLAY_SIZE_CONFIG: Record<
     description: 'A larger work surface for detailed pages.',
   },
 };
-

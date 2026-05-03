@@ -40,7 +40,9 @@ function capScore(score: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-export function scoreAndrewColoringPage(input: AndrewColoringPageScoreInput): AndrewColoringPageScoreResult {
+export function scoreAndrewColoringPage(
+  input: AndrewColoringPageScoreInput
+): AndrewColoringPageScoreResult {
   const breakdown: Record<string, number> = {};
   const reasons: string[] = [];
   let score = 100;
@@ -79,7 +81,9 @@ export function scoreAndrewColoringPage(input: AndrewColoringPageScoreInput): An
   if (refinementPenalty > 0) {
     score -= refinementPenalty;
     breakdown.refinements = -refinementPenalty;
-    reasons.push(`The critique still has ${input.critique.refinements.length} concrete refinements.`);
+    reasons.push(
+      `The critique still has ${input.critique.refinements.length} concrete refinements.`
+    );
   } else {
     breakdown.refinements = 0;
   }
@@ -103,7 +107,8 @@ export function scoreAndrewColoringPage(input: AndrewColoringPageScoreInput): An
 export const andrewColoringPageScorer = createScorer({
   id: 'andrew-coloring-page',
   name: 'Andrew Coloring Page',
-  description: 'Scores Andrew Life in Colour outputs for printability, fidelity, and outline-mode fit.',
+  description:
+    'Scores Andrew Life in Colour outputs for printability, fidelity, and outline-mode fit.',
   type: {
     input: AndrewColoringPageScorerInputSchema,
     output: AndrewColoringPageScorerOutputSchema,

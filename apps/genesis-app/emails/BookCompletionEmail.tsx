@@ -21,9 +21,7 @@ export default function BookCompletionEmail({
       </Section>
 
       {/* Heading */}
-      <Text style={heading(28, { align: 'center' })}>
-        Your book is finished.
-      </Text>
+      <Text style={heading(28, { align: 'center' })}>Your book is finished.</Text>
 
       {/* Body */}
       <Text style={body()}>

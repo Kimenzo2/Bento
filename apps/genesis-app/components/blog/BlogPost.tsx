@@ -3,12 +3,7 @@ import { Link, useParams, Navigate } from 'react-router';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArrowLeft, Clock, Calendar, ChevronRight, Share2, ExternalLink } from 'lucide-react';
-import {
-  getPostBySlug,
-  formatDate,
-  extractHeadings,
-  slugifyHeading,
-} from '../../lib/blog/posts';
+import { getPostBySlug, formatDate, extractHeadings, slugifyHeading } from '../../lib/blog/posts';
 import { usePageSEO } from '../../hooks/usePageSEO';
 
 const BASE_URL = 'https://iamazeyou.me';
@@ -42,11 +37,27 @@ function HeadingRenderer(level: 2 | 3 | 4) {
       scrollMarginTop: '80px',
     };
     if (level === 2) {
-      Object.assign(styles, { fontSize: '1.65rem', marginTop: '2.75rem', marginBottom: '0.75rem', lineHeight: 1.25, letterSpacing: '-0.01em' });
+      Object.assign(styles, {
+        fontSize: '1.65rem',
+        marginTop: '2.75rem',
+        marginBottom: '0.75rem',
+        lineHeight: 1.25,
+        letterSpacing: '-0.01em',
+      });
     } else if (level === 3) {
-      Object.assign(styles, { fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.5rem', lineHeight: 1.35 });
+      Object.assign(styles, {
+        fontSize: '1.25rem',
+        marginTop: '2rem',
+        marginBottom: '0.5rem',
+        lineHeight: 1.35,
+      });
     } else {
-      Object.assign(styles, { fontSize: '1.05rem', fontWeight: 500, marginTop: '1.5rem', marginBottom: '0.4rem' });
+      Object.assign(styles, {
+        fontSize: '1.05rem',
+        fontWeight: 500,
+        marginTop: '1.5rem',
+        marginBottom: '0.4rem',
+      });
     }
     return (
       <Tag id={id} style={styles} {...props}>
@@ -177,8 +188,10 @@ const BlogPost: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}>
-
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: S.bg, color: S.text, fontFamily: S.fontSans }}
+    >
       {/* ── Reading progress bar ── */}
       <div
         aria-hidden="true"
@@ -203,18 +216,28 @@ const BlogPost: React.FC = () => {
               <span className="hidden sm:inline">All Posts</span>
             </Link>
 
-            <div className="w-px h-4 hidden sm:block" style={{ backgroundColor: S.border }} aria-hidden="true" />
+            <div
+              className="w-px h-4 hidden sm:block"
+              style={{ backgroundColor: S.border }}
+              aria-hidden="true"
+            />
 
             <nav
               aria-label="Breadcrumb"
               className="hidden md:flex items-center gap-2 text-xs overflow-hidden"
               style={{ color: S.textMuted }}
             >
-              <Link to="/" className="hover:text-black transition-colors whitespace-nowrap">Genesis</Link>
+              <Link to="/" className="hover:text-black transition-colors whitespace-nowrap">
+                Genesis
+              </Link>
               <ChevronRight className="w-3 h-3 shrink-0 opacity-50" aria-hidden="true" />
-              <Link to="/blog" className="hover:text-black transition-colors whitespace-nowrap">Blog</Link>
+              <Link to="/blog" className="hover:text-black transition-colors whitespace-nowrap">
+                Blog
+              </Link>
               <ChevronRight className="w-3 h-3 shrink-0 opacity-50" aria-hidden="true" />
-              <span className="truncate max-w-[200px] font-medium" style={{ color: S.text }}>{post.title}</span>
+              <span className="truncate max-w-[200px] font-medium" style={{ color: S.text }}>
+                {post.title}
+              </span>
             </nav>
           </div>
 
@@ -267,7 +290,10 @@ const BlogPost: React.FC = () => {
           </h1>
 
           {/* Meta */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm" style={{ color: S.textMuted }}>
+          <div
+            className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm"
+            style={{ color: S.textMuted }}
+          >
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
               <time dateTime={post.date}>{formatDate(post.date)}</time>
@@ -288,10 +314,12 @@ const BlogPost: React.FC = () => {
 
       {/* ── Body: article + TOC ── */}
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-16 flex flex-col xl:flex-row gap-12 xl:gap-16 items-start">
-
         {/* Article */}
-        <article ref={articleRef} className="min-w-0 flex-1 max-w-[65ch]" aria-label="Article content">
-
+        <article
+          ref={articleRef}
+          className="min-w-0 flex-1 max-w-[65ch]"
+          aria-label="Article content"
+        >
           {/* Lead / excerpt */}
           <p
             className="leading-relaxed mb-10 pb-8 border-b"
@@ -316,7 +344,15 @@ const BlogPost: React.FC = () => {
               h4: HeadingRenderer(4),
               p({ children }) {
                 return (
-                  <p style={{ marginBottom: '1.4rem', lineHeight: '1.85', fontSize: '1.0625rem', color: S.text, fontFamily: S.fontSans }}>
+                  <p
+                    style={{
+                      marginBottom: '1.4rem',
+                      lineHeight: '1.85',
+                      fontSize: '1.0625rem',
+                      color: S.text,
+                      fontFamily: S.fontSans,
+                    }}
+                  >
                     {children}
                   </p>
                 );
@@ -347,20 +383,36 @@ const BlogPost: React.FC = () => {
               },
               ul({ children }) {
                 return (
-                  <ul style={{ margin: '0.75rem 0 1.35rem 1.5rem', listStyleType: 'disc', lineHeight: '1.8', color: S.text }}>
+                  <ul
+                    style={{
+                      margin: '0.75rem 0 1.35rem 1.5rem',
+                      listStyleType: 'disc',
+                      lineHeight: '1.8',
+                      color: S.text,
+                    }}
+                  >
                     {children}
                   </ul>
                 );
               },
               ol({ children }) {
                 return (
-                  <ol style={{ margin: '0.75rem 0 1.35rem 1.5rem', listStyleType: 'decimal', lineHeight: '1.8', color: S.text }}>
+                  <ol
+                    style={{
+                      margin: '0.75rem 0 1.35rem 1.5rem',
+                      listStyleType: 'decimal',
+                      lineHeight: '1.8',
+                      color: S.text,
+                    }}
+                  >
                     {children}
                   </ol>
                 );
               },
               li({ children }) {
-                return <li style={{ marginBottom: '0.4rem', fontSize: '1.0625rem' }}>{children}</li>;
+                return (
+                  <li style={{ marginBottom: '0.4rem', fontSize: '1.0625rem' }}>{children}</li>
+                );
               },
               a({ href, children }) {
                 const isExternal = href?.startsWith('http');
@@ -369,10 +421,19 @@ const BlogPost: React.FC = () => {
                     href={href}
                     target={isExternal ? '_blank' : undefined}
                     rel={isExternal ? 'noopener noreferrer' : undefined}
-                    style={{ color: S.accent, textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                    style={{
+                      color: S.accent,
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '3px',
+                    }}
                   >
                     {children}
-                    {isExternal && <ExternalLink className="inline-block w-3 h-3 ml-0.5 align-baseline" aria-label="(opens in new tab)" />}
+                    {isExternal && (
+                      <ExternalLink
+                        className="inline-block w-3 h-3 ml-0.5 align-baseline"
+                        aria-label="(opens in new tab)"
+                      />
+                    )}
                   </a>
                 );
               },
@@ -382,26 +443,66 @@ const BlogPost: React.FC = () => {
               table({ children }) {
                 return (
                   <div style={{ overflowX: 'auto', margin: '1.5rem 0' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9375rem', fontFamily: S.fontSans, color: S.text, border: `1px solid ${S.border}` }}>
+                    <table
+                      style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '0.9375rem',
+                        fontFamily: S.fontSans,
+                        color: S.text,
+                        border: `1px solid ${S.border}`,
+                      }}
+                    >
                       {children}
                     </table>
                   </div>
                 );
               },
               thead({ children }) {
-                return <thead style={{ backgroundColor: S.bg, borderBottom: `2px solid ${S.border}` }}>{children}</thead>;
+                return (
+                  <thead style={{ backgroundColor: S.bg, borderBottom: `2px solid ${S.border}` }}>
+                    {children}
+                  </thead>
+                );
               },
               th({ children }) {
-                return <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontWeight: 600, color: S.text, whiteSpace: 'nowrap', fontFamily: S.fontSans }}>{children}</th>;
+                return (
+                  <th
+                    style={{
+                      padding: '0.6rem 1rem',
+                      textAlign: 'left',
+                      fontWeight: 600,
+                      color: S.text,
+                      whiteSpace: 'nowrap',
+                      fontFamily: S.fontSans,
+                    }}
+                  >
+                    {children}
+                  </th>
+                );
               },
               td({ children }) {
-                return <td style={{ padding: '0.6rem 1rem', borderBottom: `1px solid ${S.border}`, verticalAlign: 'top' }}>{children}</td>;
+                return (
+                  <td
+                    style={{
+                      padding: '0.6rem 1rem',
+                      borderBottom: `1px solid ${S.border}`,
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    {children}
+                  </td>
+                );
               },
               tr({ children }) {
                 return (
                   <tr
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = S.bg; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = S.bg;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                    }}
                   >
                     {children}
                   </tr>
@@ -411,13 +512,35 @@ const BlogPost: React.FC = () => {
                 const isBlock = className?.includes('language-');
                 if (isBlock) {
                   return (
-                    <pre style={{ backgroundColor: S.bg, border: `1px solid ${S.border}`, borderRadius: '8px', padding: '1.25rem', overflowX: 'auto', margin: '1.5rem 0', fontSize: '0.875rem', lineHeight: '1.65', fontFamily: 'ui-monospace, SFMono-Regular, monospace', color: S.text }}>
+                    <pre
+                      style={{
+                        backgroundColor: S.bg,
+                        border: `1px solid ${S.border}`,
+                        borderRadius: '8px',
+                        padding: '1.25rem',
+                        overflowX: 'auto',
+                        margin: '1.5rem 0',
+                        fontSize: '0.875rem',
+                        lineHeight: '1.65',
+                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                        color: S.text,
+                      }}
+                    >
                       <code>{children}</code>
                     </pre>
                   );
                 }
                 return (
-                  <code style={{ backgroundColor: S.accentBg, borderRadius: '4px', padding: '0.15em 0.4em', fontSize: '0.875em', fontFamily: 'ui-monospace, SFMono-Regular, monospace', color: S.accent }}>
+                  <code
+                    style={{
+                      backgroundColor: S.accentBg,
+                      borderRadius: '4px',
+                      padding: '0.15em 0.4em',
+                      fontSize: '0.875em',
+                      fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                      color: S.accent,
+                    }}
+                  >
                     {children}
                   </code>
                 );
@@ -440,15 +563,20 @@ const BlogPost: React.FC = () => {
               {post.author.charAt(0)}
             </div>
             <div>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: S.text, fontFamily: S.fontSans }}>
+              <p
+                className="text-sm font-semibold mb-0.5"
+                style={{ color: S.text, fontFamily: S.fontSans }}
+              >
                 {post.author}
               </p>
               {post.authorRole && (
-                <p className="text-xs mb-2" style={{ color: S.textMuted }}>{post.authorRole}</p>
+                <p className="text-xs mb-2" style={{ color: S.textMuted }}>
+                  {post.authorRole}
+                </p>
               )}
               <p className="text-sm leading-relaxed" style={{ color: S.textMuted }}>
-                Building Genesis — an AI visual storytelling platform for creators who want a finished
-                story, not a pile of disconnected images.
+                Building Genesis — an AI visual storytelling platform for creators who want a
+                finished story, not a pile of disconnected images.
               </p>
             </div>
           </div>
@@ -456,16 +584,29 @@ const BlogPost: React.FC = () => {
           {/* ── CTA ── */}
           <div
             className="mt-12 rounded-2xl p-8 sm:p-10 border text-center transition-shadow"
-            style={{ backgroundColor: S.surface, borderColor: S.border, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
+            style={{
+              backgroundColor: S.surface,
+              borderColor: S.border,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+            }}
           >
             <h3
               className="mb-3"
-              style={{ fontFamily: S.fontSerif, color: S.text, fontSize: '1.6rem', fontWeight: 400 }}
+              style={{
+                fontFamily: S.fontSerif,
+                color: S.text,
+                fontSize: '1.6rem',
+                fontWeight: 400,
+              }}
             >
               Try Genesis Free
             </h3>
-            <p className="text-[15px] leading-relaxed mb-8 max-w-md mx-auto" style={{ color: S.textMuted }}>
-              Choose a realm. Meet Gen. Create your first illustrated story — no prompt engineering required.
+            <p
+              className="text-[15px] leading-relaxed mb-8 max-w-md mx-auto"
+              style={{ color: S.textMuted }}
+            >
+              Choose a realm. Meet Gen. Create your first illustrated story — no prompt engineering
+              required.
             </p>
             <a
               href="https://iamazeyou.me/welcome"
@@ -534,7 +675,8 @@ const BlogPost: React.FC = () => {
                         fontWeight: activeHeading === id ? 500 : 400,
                         fontFamily: S.fontSans,
                         fontSize: level === 3 ? '0.8125rem' : '0.875rem',
-                        borderLeft: activeHeading === id ? `2px solid ${S.accent}` : '2px solid transparent',
+                        borderLeft:
+                          activeHeading === id ? `2px solid ${S.accent}` : '2px solid transparent',
                         backgroundColor: activeHeading === id ? S.bg : 'transparent',
                       }}
                     >
@@ -551,15 +693,24 @@ const BlogPost: React.FC = () => {
       {/* ── Footer ── */}
       <footer
         className="border-t py-12 text-center text-sm mt-8"
-        style={{ borderColor: S.border, color: S.textMuted, fontFamily: S.fontSans, backgroundColor: S.surface }}
+        style={{
+          borderColor: S.border,
+          color: S.textMuted,
+          fontFamily: S.fontSans,
+          backgroundColor: S.surface,
+        }}
       >
         <div className="max-w-5xl mx-auto px-5">
           <p>
             © 2026{' '}
-            <a href={BASE_URL} className="underline underline-offset-4 transition-colors hover:text-black" style={{ color: S.accent }}>
+            <a
+              href={BASE_URL}
+              className="underline underline-offset-4 transition-colors hover:text-black"
+              style={{ color: S.accent }}
+            >
               Genesis
-            </a>
-            {' '}— AI Visual Storytelling Platform
+            </a>{' '}
+            — AI Visual Storytelling Platform
           </p>
         </div>
       </footer>
@@ -568,4 +719,3 @@ const BlogPost: React.FC = () => {
 };
 
 export default BlogPost;
-

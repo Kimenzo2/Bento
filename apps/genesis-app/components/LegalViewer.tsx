@@ -101,7 +101,9 @@ const LegalViewer: React.FC<LegalViewerProps> = ({ onNavigate, initialDoc = 'pri
             <h1 className="font-heading font-bold text-2xl md:text-4xl text-charcoal-soft">
               {currentDoc.title}
             </h1>
-            <p className="text-cocoa-light text-sm md:text-base">{t('header.infoPolicies', 'Legal Information & Policies')}</p>
+            <p className="text-cocoa-light text-sm md:text-base">
+              {t('header.infoPolicies', 'Legal Information & Policies')}
+            </p>
           </div>
         </div>
 

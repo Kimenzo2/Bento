@@ -93,8 +93,10 @@ const defaultCharacters: Character[] = [
   {
     id: 'demo-luna',
     name: 'Luna the Moon Fairy',
-    description: 'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
-    visualTraits: 'Translucent wings that shimmer with captured starlight, flowing silver hair, pale luminescent skin with a soft blue glow',
+    description:
+      'A graceful fairy who tends to moonflowers and grants wishes to kind-hearted children.',
+    visualTraits:
+      'Translucent wings that shimmer with captured starlight, flowing silver hair, pale luminescent skin with a soft blue glow',
     imageUrl: '/assets/characters/Demo Character 1.jpeg',
     traits: ['ethereal', 'nurturing', 'melancholic', 'wise', 'gentle'],
     personalityTraits: ['Deeply empathetic', 'Quietly observant', 'Eternally patient'],
@@ -103,7 +105,8 @@ const defaultCharacters: Character[] = [
     id: 'demo-blaze',
     name: 'Blaze the Dragon',
     description: 'A young dragon who hatched with flames too powerful for his small body.',
-    visualTraits: 'Compact dragon about the size of a large dog, scales that shift from deep crimson to bright orange',
+    visualTraits:
+      'Compact dragon about the size of a large dog, scales that shift from deep crimson to bright orange',
     imageUrl: '/assets/characters/Demo character 2.jpeg',
     traits: ['enthusiastic', 'clumsy', 'loyal', 'insecure', 'brave'],
     personalityTraits: ['Desperately eager to please', 'Heart of gold', 'Self-deprecating humor'],
@@ -120,11 +123,16 @@ const defaultCharacters: Character[] = [
   {
     id: 'demo-captain',
     name: 'Captain Silverhook',
-    description: 'Once the most feared pirate, now sailing under a different flag — his own redemption.',
+    description:
+      'Once the most feared pirate, now sailing under a different flag — his own redemption.',
     visualTraits: 'Weathered face with kind crinkles around steel-grey eyes, salt-and-pepper beard',
     imageUrl: '/assets/characters/Demo character 4.jpeg',
     traits: ['reformed', 'wise', 'haunted', 'generous'],
-    personalityTraits: ['Gruff exterior hiding a tender heart', 'Mentor figure', 'Carries guilt gracefully'],
+    personalityTraits: [
+      'Gruff exterior hiding a tender heart',
+      'Mentor figure',
+      'Carries guilt gracefully',
+    ],
   },
 ];
 
@@ -140,13 +148,15 @@ const DEMO_PROJECT: BookProject = {
     {
       id: 'demo-chapter',
       title: 'Demo Chapter',
-      pages: [{
-        id: 'demo-page',
-        pageNumber: 1,
-        text: 'Welcome to the Creative Hub! This is a demo space to explore features.',
-        imagePrompt: 'A magical workshop filled with creative tools and sparkling ideas',
-        layoutType: 'text-only',
-      }],
+      pages: [
+        {
+          id: 'demo-page',
+          pageNumber: 1,
+          text: 'Welcome to the Creative Hub! This is a demo space to explore features.',
+          imagePrompt: 'A magical workshop filled with creative tools and sparkling ideas',
+          layoutType: 'text-only',
+        },
+      ],
     },
   ],
   characters: defaultCharacters,
@@ -336,17 +346,28 @@ const EditorInner: React.FC<EditorInnerProps> = ({
       {editor.editorView === 'canvas' && (
         <>
           {/* Mobile canvas fallback */}
-          <div className="lg:hidden absolute inset-0 z-40 flex flex-col items-center justify-center px-8 text-center" style={{ backgroundColor: 'var(--color-background)' }}>
+          <div
+            className="lg:hidden absolute inset-0 z-40 flex flex-col items-center justify-center px-8 text-center"
+            style={{ backgroundColor: 'var(--color-background)' }}
+          >
             <img
               src="/images/onboarding/Style_directive_highend_202512150033.jpeg"
               alt={t('smartEditor.genAssistantAlt', 'Gen, your AI creative assistant')}
               className="w-24 h-24 rounded-full object-cover mb-6"
-              style={{ boxShadow: '0 0 30px 6px color-mix(in srgb, var(--color-primary-start) 30%, transparent)' }}
+              style={{
+                boxShadow:
+                  '0 0 30px 6px color-mix(in srgb, var(--color-primary-start) 30%, transparent)',
+              }}
               draggable={false}
             />
-            <p className="font-heading text-lg text-charcoal-soft mb-2">{t('smartEditor.canvasBestOnDesktop', 'Canvas view is best on desktop')}</p>
+            <p className="font-heading text-lg text-charcoal-soft mb-2">
+              {t('smartEditor.canvasBestOnDesktop', 'Canvas view is best on desktop')}
+            </p>
             <p className="font-body text-sm text-cocoa-light mb-6 max-w-xs">
-              {t('smartEditor.canvasDesktopHint', 'I can show you the full picture on a bigger screen. For now, Pages view is your best way to create.')}
+              {t(
+                'smartEditor.canvasDesktopHint',
+                'I can show you the full picture on a bigger screen. For now, Pages view is your best way to create.'
+              )}
             </p>
             <button
               type="button"
@@ -359,7 +380,13 @@ const EditorInner: React.FC<EditorInnerProps> = ({
 
           {/* Desktop canvas */}
           <div className="hidden lg:block absolute inset-0 z-30">
-            <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cocoa-light font-body">{t('smartEditor.loadingCanvas', 'Loading canvas...')}</div>}>
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center text-cocoa-light font-body">
+                  {t('smartEditor.loadingCanvas', 'Loading canvas...')}
+                </div>
+              }
+            >
               <ReactFlowProvider>
                 <StoryCanvas
                   project={editor.currentProject}
@@ -401,12 +428,11 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                 type="button"
                 onClick={() => editor.setMobileView('edit')}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  editor.mobileView === 'edit'
-                    ? 'text-coral-burst'
-                    : 'text-cocoa-light'
+                  editor.mobileView === 'edit' ? 'text-coral-burst' : 'text-cocoa-light'
                 }`}
                 style={{
-                  backgroundColor: editor.mobileView === 'edit' ? 'var(--color-surface)' : 'transparent',
+                  backgroundColor:
+                    editor.mobileView === 'edit' ? 'var(--color-surface)' : 'transparent',
                   ...geist,
                   fontSize: 12,
                 }}
@@ -417,12 +443,11 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                 type="button"
                 onClick={() => editor.setMobileView('preview')}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  editor.mobileView === 'preview'
-                    ? 'text-coral-burst'
-                    : 'text-cocoa-light'
+                  editor.mobileView === 'preview' ? 'text-coral-burst' : 'text-cocoa-light'
                 }`}
                 style={{
-                  backgroundColor: editor.mobileView === 'preview' ? 'var(--color-surface)' : 'transparent',
+                  backgroundColor:
+                    editor.mobileView === 'preview' ? 'var(--color-surface)' : 'transparent',
                   ...geist,
                   fontSize: 12,
                 }}
@@ -442,18 +467,22 @@ const EditorInner: React.FC<EditorInnerProps> = ({
               aria-label={t('smartEditor.openIntelligencePanel', 'Open intelligence panel')}
             >
               <Brain className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{t('smartEditor.intelligence', 'Intelligence')}</span>
+              <span className="hidden sm:inline">
+                {t('smartEditor.intelligence', 'Intelligence')}
+              </span>
             </button>
           </div>
 
           {/* ── MAIN THREE-PANEL AREA ── */}
-          <div className="flex-1 flex overflow-hidden relative" role="group" aria-label={t('smartEditor.editorPanels', 'Editor panels')}>
+          <div
+            className="flex-1 flex overflow-hidden relative"
+            role="group"
+            aria-label={t('smartEditor.editorPanels', 'Editor panels')}
+          >
             {/* ── LEFT SIDEBAR (260px, desktop only; full-width on mobile Write view) ── */}
             <aside
               aria-label={t('smartEditor.writingCompanion', 'Writing companion')}
-              className={`${
-                editor.mobileView === 'preview' ? 'hidden lg:flex' : 'flex'
-              } ${
+              className={`${editor.mobileView === 'preview' ? 'hidden lg:flex' : 'flex'} ${
                 editor.isFocusMode ? 'lg:hidden' : ''
               } flex-col h-full overflow-hidden`}
               style={{
@@ -483,8 +512,16 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   borderRight: '1px solid var(--color-border)',
                   backgroundColor: 'var(--color-background)',
                 }}
-                aria-label={isLeftCollapsed ? t('smartEditor.expandLeftSidebar', 'Expand left sidebar') : t('smartEditor.collapseLeftSidebar', 'Collapse left sidebar')}
-                title={isLeftCollapsed ? t('smartEditor.expandLeftSidebar', 'Expand left sidebar') : t('smartEditor.collapseLeftSidebar', 'Collapse left sidebar')}
+                aria-label={
+                  isLeftCollapsed
+                    ? t('smartEditor.expandLeftSidebar', 'Expand left sidebar')
+                    : t('smartEditor.collapseLeftSidebar', 'Collapse left sidebar')
+                }
+                title={
+                  isLeftCollapsed
+                    ? t('smartEditor.expandLeftSidebar', 'Expand left sidebar')
+                    : t('smartEditor.collapseLeftSidebar', 'Collapse left sidebar')
+                }
               >
                 {isLeftCollapsed ? (
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -520,8 +557,16 @@ const EditorInner: React.FC<EditorInnerProps> = ({
                   borderLeft: '1px solid var(--color-border)',
                   backgroundColor: 'var(--color-background)',
                 }}
-                aria-label={isRightCollapsed ? t('smartEditor.expandRightSidebar', 'Expand right sidebar') : t('smartEditor.collapseRightSidebar', 'Collapse right sidebar')}
-                title={isRightCollapsed ? t('smartEditor.expandRightSidebar', 'Expand right sidebar') : t('smartEditor.collapseRightSidebar', 'Collapse right sidebar')}
+                aria-label={
+                  isRightCollapsed
+                    ? t('smartEditor.expandRightSidebar', 'Expand right sidebar')
+                    : t('smartEditor.collapseRightSidebar', 'Collapse right sidebar')
+                }
+                title={
+                  isRightCollapsed
+                    ? t('smartEditor.expandRightSidebar', 'Expand right sidebar')
+                    : t('smartEditor.collapseRightSidebar', 'Collapse right sidebar')
+                }
               >
                 {isRightCollapsed ? (
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -534,9 +579,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
             {/* ── RIGHT SIDEBAR (300px, desktop only) ── */}
             <aside
               aria-label={t('smartEditor.intelligencePanel', 'Intelligence panel')}
-              className={`hidden ${
-                editor.isFocusMode ? '' : 'lg:flex'
-              } overflow-hidden`}
+              className={`hidden ${editor.isFocusMode ? '' : 'lg:flex'} overflow-hidden`}
               style={{
                 transition: transitionStyle,
                 width: isRightCollapsed ? 0 : undefined,
@@ -557,12 +600,16 @@ const EditorInner: React.FC<EditorInnerProps> = ({
               aria-label={t('smartEditor.intelligencePanel', 'Intelligence panel')}
               tabIndex={-1}
               onClick={() => setShowIntelligenceSheet(false)}
-              onKeyDown={(e) => { if (e.key === 'Escape') setShowIntelligenceSheet(false); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setShowIntelligenceSheet(false);
+              }}
             >
               {/* Backdrop */}
               <div
                 className="absolute inset-0"
-                style={{ backgroundColor: 'color-mix(in srgb, var(--color-text) 30%, transparent)' }}
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--color-text) 30%, transparent)',
+                }}
               />
 
               {/* Sheet */}
@@ -621,8 +668,15 @@ const EditorInner: React.FC<EditorInnerProps> = ({
           aria-label={t('smartEditor.audienceSafetyReview', 'Audience safety review')}
           tabIndex={-1}
           onClick={() => editor.setShowAudienceSafety(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape') editor.setShowAudienceSafety(false); }}
-        >          <div className="absolute inset-0" style={{ backgroundColor: 'color-mix(in srgb, var(--color-text) 20%, transparent)' }} />
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') editor.setShowAudienceSafety(false);
+          }}
+        >
+          {' '}
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--color-text) 20%, transparent)' }}
+          />
           <div
             className="relative w-full max-w-md h-full overflow-y-auto border-l border-peach-soft p-6"
             style={{ backgroundColor: 'var(--color-surface)' }}

@@ -41,11 +41,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Add smooth transition
     root.style.setProperty('transition', 'background-color 0.3s ease, color 0.3s ease');
 
-// Resolve specific theme's dark or light variables for NO conflicts
-    const variablesSource = isDarkMode && currentTheme.darkCssVariables 
-      ? currentTheme.darkCssVariables 
-      : currentTheme.cssVariables;
-      
+    // Resolve specific theme's dark or light variables for NO conflicts
+    const variablesSource =
+      isDarkMode && currentTheme.darkCssVariables
+        ? currentTheme.darkCssVariables
+        : currentTheme.cssVariables;
+
     const cssVars = { ...variablesSource };
 
     // Fallbacks if missing
@@ -61,7 +62,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Add theme and mode classes to body
     body.className = body.className.replace(/theme-\w+/g, '');
     body.classList.add(`theme-${currentTheme.id}`);
-    
+
     if (isDarkMode) {
       body.classList.add('dark');
       root.classList.add('dark');
@@ -77,9 +78,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('genesis_dark_mode', isDarkMode.toString());
 
     // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('themeChanged', { 
-      detail: { theme: currentTheme, isDarkMode } 
-    }));
+    window.dispatchEvent(
+      new CustomEvent('themeChanged', {
+        detail: { theme: currentTheme, isDarkMode },
+      })
+    );
   }, [currentTheme, isDarkMode]);
 
   const setTheme = (themeId: ThemeId) => {
@@ -92,7 +95,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
 
   return (
-    <ThemeContext.Provider value={{ currentTheme, isDarkMode, setTheme, toggleDarkMode, availableThemes: themes }}>
+    <ThemeContext.Provider
+      value={{ currentTheme, isDarkMode, setTheme, toggleDarkMode, availableThemes: themes }}
+    >
       {children}
     </ThemeContext.Provider>
   );
