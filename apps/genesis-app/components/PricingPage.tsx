@@ -75,7 +75,7 @@ const tiers: TierData[] = [
     icon: Briefcase,
     color: 'bg-coral-burst/10 text-coral-burst',
     buttonColor:
-      'bg-linear-to-r from-coral-burst to-gold-sunshine text-white border border-white/20 hover:scale-105',
+      'bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white border border-white/20 hover:scale-105',
     saveLabel: 'Save 17%',
     features: [
       'Everything in Creator',

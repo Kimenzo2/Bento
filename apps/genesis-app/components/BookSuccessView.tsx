@@ -271,7 +271,7 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setIsViewerOpen(true)}
-                    className="w-full px-8 py-4 bg-linear-to-r from-coral-burst to-gold-sunshine text-white rounded-full font-heading font-bold text-lg border border-white/20 transition-all flex items-center justify-center gap-3 group"
+                    className="w-full px-8 py-4 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white rounded-full font-heading font-bold text-lg border border-white/20 transition-all flex items-center justify-center gap-3 group"
                   >
                     <Eye className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     Read Your Story

@@ -712,7 +712,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ isOpen, onClose, onSe
                     <Button
                       onClick={handleUseTemplate}
                       variant="primary"
-                      className="w-full px-6 py-3 text-white md:w-auto bg-linear-to-r from-coral-burst to-sunset-coral border border-white/20"
+                      className="w-full px-6 py-3 text-white md:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] border border-white/20"
                     >
                       Use Template
                       <ArrowRight className="w-5 h-5" />

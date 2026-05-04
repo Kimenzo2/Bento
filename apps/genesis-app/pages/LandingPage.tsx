@@ -395,10 +395,7 @@ const LandingPage: React.FC = memo(() => {
           <button
             type="button"
             className={`px-5 py-2.5 text-sm font-medium font-body text-white rounded-full transition-opacity duration-200 hover:opacity-90 ${BTN_PRESS}`}
-            style={{
-              background:
-                'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
-            }}
+            style={{ backgroundColor: 'var(--primary)' }}
             onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
           >
             {t('landing.getStarted', 'Get Started')}
@@ -460,10 +457,7 @@ const LandingPage: React.FC = memo(() => {
                 <button
                   type="button"
                   className={`text-center px-4 py-3 text-sm font-medium font-body text-white rounded-full ${BTN_PRESS}`}
-                  style={{
-                    background:
-                      'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
-                  }}
+                  style={{ backgroundColor: 'var(--primary)' }}
                   onClick={() => {
                     setMobileMenuOpen(false);
                     navigate('/auth?returnTo=/welcome/onboarding');
@@ -589,10 +583,7 @@ const LandingPage: React.FC = memo(() => {
                 type="button"
                 onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
                 className={`px-6 py-3 text-sm font-medium font-body text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
-                style={{
-                  background:
-                    'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
-                }}
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 {t('landing.chooseRealm', 'Choose Your Realm')}
               </button>

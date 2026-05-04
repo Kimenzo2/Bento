@@ -19,4 +19,11 @@ export interface Theme {
   darkCssVariables?: Record<string, string>;
 }
 
-export type ThemeId = 'genesis' | 'aurora' | 'ocean' | 'forest' | 'nebula' | 'sunset';
+export type ThemeId =
+  | 'genesis'
+  | 'aurora'
+  | 'ocean'
+  | 'forest'
+  | 'nebula'
+  | 'sunset'
+  | 'midnightclassic';

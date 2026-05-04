@@ -1,5 +1,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../types/theme';
 
 /**
  * SparkleCursor — lightweight mouse sparkle effect.
@@ -21,15 +23,39 @@ interface Sparkle {
   vy: number; // vertical velocity (gravity)
 }
 
-const COLORS = ['#FF9B71', '#FFD700', '#60A5FA', '#F472B6'];
 const MAX_SPARKLES = 20;
 const SPAWN_CHANCE = 0.2;
 
+function resolveSparkleColor(theme: Theme, isDarkMode: boolean) {
+  if (typeof document === 'undefined') {
+    return isDarkMode && theme.darkColors ? theme.darkColors.primary[0] : theme.colors.primary[0];
+  }
+
+  const activeVariables =
+    isDarkMode && theme.darkCssVariables ? theme.darkCssVariables : theme.cssVariables;
+  const rootStyles = window.getComputedStyle(document.documentElement);
+  const direct = rootStyles.getPropertyValue('--primary').trim() || activeVariables['--primary'];
+  if (direct) return direct;
+
+  const legacy =
+    rootStyles.getPropertyValue('--color-primary-start').trim() ||
+    activeVariables['--color-primary-start'];
+  if (legacy) return legacy;
+
+  return isDarkMode && theme.darkColors ? theme.darkColors.primary[0] : theme.colors.primary[0];
+}
+
 const SparkleCursor: React.FC = () => {
+  const { currentTheme, isDarkMode } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sparklesRef = useRef<Sparkle[]>([]);
   const rafRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
+  const sparkleColorRef = useRef(resolveSparkleColor(currentTheme, isDarkMode));
+
+  const syncSparkleColor = useCallback(() => {
+    sparkleColorRef.current = resolveSparkleColor(currentTheme, isDarkMode);
+  }, [currentTheme, isDarkMode]);
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
@@ -75,12 +101,18 @@ const SparkleCursor: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    syncSparkleColor();
+
     // Skip on touch-only devices or reduced motion preference
     const isTouch =
       window.matchMedia('(pointer: coarse)').matches &&
       !window.matchMedia('(pointer: fine)').matches;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (isTouch || reducedMotion) return;
+
+    const handleThemeChanged = () => {
+      syncSparkleColor();
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current.x = e.clientX;
@@ -92,21 +124,23 @@ const SparkleCursor: React.FC = () => {
           x: e.clientX,
           y: e.clientY,
           size: Math.random() * 4 + 2,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          color: sparkleColorRef.current,
           life: 1,
           vy: -(Math.random() * 1.5 + 0.5), // slight upward initial velocity
         });
       }
     };
 
+    window.addEventListener('themeChanged', handleThemeChanged);
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     rafRef.current = requestAnimationFrame(animate);
 
     return () => {
+      window.removeEventListener('themeChanged', handleThemeChanged);
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [animate]);
+  }, [animate, syncSparkleColor]);
 
   return (
     <canvas

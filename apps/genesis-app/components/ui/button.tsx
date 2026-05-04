@@ -12,7 +12,7 @@ const buttonVariants = cva(
         default:
           'bg-charcoal-soft text-white hover:bg-charcoal-soft/90 border border-charcoal-soft/10',
         primary:
-          'bg-linear-to-r from-coral-burst to-gold-sunshine text-white hover:scale-[1.02] border border-white/20',
+          'bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] hover:scale-[1.02] border border-white/20',
         destructive: 'bg-red-500 text-white hover:bg-red-600 border border-red-600/20',
         outline:
           'border border-peach-soft bg-cream-base text-charcoal-soft hover:bg-cream-base hover:border-coral-burst/30',

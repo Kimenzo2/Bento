@@ -167,7 +167,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           variant="primary"
           size="icon"
           onClick={handlePlayPause}
-          className="p-3 rounded-full bg-linear-to-r from-coral-burst to-gold-sunshine hover:from-coral-hover hover:to-gold-sunshine text-white border border-white/20"
+          className="p-3 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white border border-white/20"
         >
           {audio.isPlaying && !audio.isPaused ? (
             <Pause className="w-6 h-6" />

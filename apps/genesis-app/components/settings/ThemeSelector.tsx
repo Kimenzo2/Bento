@@ -1,7 +1,46 @@
 import { CheckCircle } from 'lucide-react';
 import type React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import type { ThemeId } from '../../types/theme';
+import type { Theme, ThemeId } from '../../types/theme';
+
+type PreviewToken = {
+  label: string;
+  token: '--primary' | '--accent' | '--background';
+  alias: '--color-primary-start' | '--color-accent-start' | '--color-background';
+  fallback: 'primary' | 'accent' | 'background';
+};
+
+const PREVIEW_TOKENS: readonly PreviewToken[] = [
+  { label: 'Primary', token: '--primary', alias: '--color-primary-start', fallback: 'primary' },
+  { label: 'Accent', token: '--accent', alias: '--color-accent-start', fallback: 'accent' },
+  {
+    label: 'Background',
+    token: '--background',
+    alias: '--color-background',
+    fallback: 'background',
+  },
+] as const;
+
+function resolvePreviewColor(theme: Theme, isDarkMode: boolean, previewToken: PreviewToken) {
+  const variables =
+    isDarkMode && theme.darkCssVariables ? theme.darkCssVariables : theme.cssVariables;
+  const direct = variables[previewToken.token];
+  if (direct) return direct;
+
+  const aliasValue = variables[previewToken.alias];
+  if (aliasValue) return aliasValue;
+
+  const source = isDarkMode && theme.darkColors ? theme.darkColors : theme.colors;
+  switch (previewToken.fallback) {
+    case 'accent':
+      return source.accent[0];
+    case 'background':
+      return source.background;
+    case 'primary':
+    default:
+      return source.primary[0];
+  }
+}
 
 const ThemeSelector: React.FC = () => {
   const { currentTheme, setTheme, availableThemes, isDarkMode } = useTheme();
@@ -32,17 +71,26 @@ const ThemeSelector: React.FC = () => {
                 }
               `}
             >
-              {/* Gradient Preview */}
-              <div
-                className="h-24 rounded-xl mb-4 w-full"
-                style={{
-                  background: `linear-gradient(135deg, ${isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-primary-start'] : theme.colors.primary[0]}, ${isDarkMode && theme.darkCssVariables ? theme.darkCssVariables['--color-primary-end'] : theme.colors.primary[1]})`,
-                }}
-              >
-                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-surface/20  px-3 py-1 rounded-full text-white text-xs font-bold">
-                    Preview
-                  </div>
+              {/* Token preview */}
+              <div className="mb-4 flex h-24 w-full items-center justify-center rounded-xl border border-peach-soft bg-surface/70 px-4">
+                <div className="flex items-center gap-3">
+                  {PREVIEW_TOKENS.map((preview) => {
+                    const value = resolvePreviewColor(theme, isDarkMode, preview);
+                    const isBackground = preview.token === '--background';
+
+                    return (
+                      <span
+                        key={preview.label}
+                        className={`h-5 w-5 rounded-full border ${isBackground ? 'scale-110' : ''}`}
+                        style={{
+                          backgroundColor: value,
+                          borderColor: 'var(--color-border)',
+                        }}
+                        title={preview.label}
+                        aria-label={preview.label}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
@@ -57,40 +105,6 @@ const ThemeSelector: React.FC = () => {
                   <p className="text-xs text-cocoa-light mt-1 line-clamp-2">{theme.description}</p>
                 </div>
                 {isActive && <CheckCircle className="w-5 h-5 text-coral-burst shrink-0" />}
-              </div>
-
-              {/* Color Swatches */}
-              <div className="flex gap-2 mt-3">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{
-                    background:
-                      isDarkMode && theme.darkCssVariables
-                        ? theme.darkCssVariables['--color-accent-start']
-                        : theme.colors.accent[0],
-                  }}
-                  title="Accent 1"
-                ></div>
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{
-                    background:
-                      isDarkMode && theme.darkCssVariables
-                        ? theme.darkCssVariables['--color-accent-end']
-                        : theme.colors.accent[1],
-                  }}
-                  title="Accent 2"
-                ></div>
-                <div
-                  className="w-4 h-4 rounded-full border border-peach-soft"
-                  style={{
-                    background:
-                      isDarkMode && theme.darkCssVariables
-                        ? theme.darkCssVariables['--color-background']
-                        : theme.colors.background,
-                  }}
-                  title="Background"
-                ></div>
               </div>
             </button>
           );
