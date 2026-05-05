@@ -3,9 +3,30 @@ use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum McpMethod {
+    #[serde(rename = "ping")]
+    Ping,
+    #[serde(rename = "creative.plan")]
+    CreativePlan,
+    #[serde(rename = "workspace.health")]
+    WorkspaceHealth,
+}
+
+impl McpMethod {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Ping => "ping",
+            Self::CreativePlan => "creative.plan",
+            Self::WorkspaceHealth => "workspace.health",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct McpRequest {
     pub id: String,
-    pub method: String,
+    pub method: McpMethod,
     #[serde(default)]
     pub params: Value,
 }
@@ -57,7 +78,7 @@ fn handle_request(request: McpRequest) -> McpResponse {
             result: None,
             error: Some(McpError {
                 code: -32601,
-                message: format!("Unknown MCP method: {}", request.method),
+                message: format!("Unknown MCP method: {}", request.method.as_str()),
             }),
         },
     }

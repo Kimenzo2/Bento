@@ -2,7 +2,7 @@
 
 Windows:
 - `GENESIS_DESKTOP_WINDOWS_CERTIFICATE_THUMBPRINT`: certificate thumbprint used by the Windows signing config
-- `GENESIS_DESKTOP_WINDOWS_SIGN_COMMAND`: optional external signing command for CI services such as Azure Trusted Signing
+- `GENESIS_DESKTOP_WINDOWS_SIGN_COMMAND`: optional external signing command for CI services such as Azure Trusted Signing; the wrapper parses the command line and launches the resolved executable directly instead of shelling out through `cmd.exe`
 - `GENESIS_DESKTOP_WINDOWS_TIMESTAMP_URL`: optional RFC 3161 timestamp server for the local Windows signing wrapper
 - `TAURI_WINDOWS_SIGNTOOL_PATH`: optional path to `signtool.exe` when the local wrapper signs via the Windows SDK
 

@@ -6,35 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>Genesis</title>
-    <script type="module">
-      // Minimal theme initialization - loads from localStorage without importing all theme data
-      const storedTheme = localStorage.getItem("genesis_desktop_theme") || "default";
-      const storedMode = localStorage.getItem("genesis_desktop_mode");
-      const mode =
-        storedMode === "light" || storedMode === "dark"
-          ? storedMode
-          : window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-
-      // Apply minimal default styles immediately
-      const root = document.documentElement;
-      root.dataset.theme = storedTheme;
-      root.classList.toggle("dark", mode === "dark");
-      root.style.colorScheme = mode;
-
-      // Load full theme data asynchronously after first paint
-      import("./lib/data/themes.ts").then(({ getThemeTokensFor, resolveThemeById }) => {
-        const theme = resolveThemeById(storedTheme);
-        const tokens = getThemeTokensFor(theme.id, mode);
-        Object.entries(tokens).forEach(([key, value]) => {
-          root.style.setProperty(key, value);
-        });
-      }).catch(() => {
-        // Fallback if theme loading fails - use system defaults
-        console.warn("Failed to load theme data");
-      });
-    </script>
+    <script type="module" src="/src/lib/theme-bootstrap.ts"></script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

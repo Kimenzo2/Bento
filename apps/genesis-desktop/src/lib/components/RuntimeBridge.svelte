@@ -87,7 +87,31 @@
   const routeDeepLink = (payload: string) => {
     try {
       const url = new URL(payload);
-      goto(`${url.pathname}${url.search}${url.hash}`);
+      if (url.protocol !== "genesis:") {
+        goto("/");
+        return;
+      }
+
+      const host = url.hostname.toLowerCase();
+      if (host === "auth") {
+        goto(`/auth${url.search}${url.hash}`);
+        return;
+      }
+
+      if (host === "payment-callback") {
+        goto(`/payment-callback${url.search}${url.hash}`);
+        return;
+      }
+
+      if (host === "shared") {
+        const path = url.pathname.replace(/\/+$/, "");
+        if (path && path !== "/") {
+          goto(`/shared${path}${url.search}${url.hash}`);
+          return;
+        }
+      }
+
+      goto("/");
     } catch {
       goto("/");
     }

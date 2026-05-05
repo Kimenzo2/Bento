@@ -1,4 +1,14 @@
+import { z } from "zod";
 import { invoke } from "@tauri-apps/api/core";
+
+const mcpMethodSchema = z.enum(["ping", "creative.plan", "workspace.health"]);
+const mcpRequestSchema = z
+  .object({
+    id: z.string().min(1).max(128),
+    method: mcpMethodSchema,
+    params: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
 
 export type McpSidecarStatus = {
   started: boolean;
@@ -8,7 +18,7 @@ export type McpSidecarStatus = {
 
 export type McpRequest = {
   id: string;
-  method: string;
+  method: z.infer<typeof mcpMethodSchema>;
   params?: Record<string, unknown>;
 };
 
@@ -23,5 +33,6 @@ export async function startMcpSidecar(): Promise<McpSidecarStatus> {
 }
 
 export async function sendMcpRequest(request: McpRequest): Promise<McpResponse> {
-  return invoke<McpResponse>("send_mcp_request", { request });
+  const parsedRequest = mcpRequestSchema.parse(request);
+  return invoke<McpResponse>("send_mcp_request", { request: parsedRequest });
 }

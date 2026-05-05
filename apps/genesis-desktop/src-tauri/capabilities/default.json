@@ -18,24 +18,15 @@
     "deep-link:default",
     "notification:default",
     "updater:default",
-    "shell:default",
     "window-state:default",
-    "fs:read-files",
     "fs:write-files",
-    "fs:allow-exists",
     "fs:allow-mkdir",
     "fs:allow-write-text-file",
     {
       "identifier": "fs:scope",
       "allow": [
-        { "path": "$DOWNLOAD/Genesis" },
-        { "path": "$DOWNLOAD/Genesis/**/*" },
-        { "path": "$DOCUMENT/Genesis" },
-        { "path": "$DOCUMENT/Genesis/**/*" },
-        { "path": "$APPDATA/exports" },
-        { "path": "$APPDATA/exports/**/*" },
-        { "path": "$APPLOCALDATA/exports" },
-        { "path": "$APPLOCALDATA/exports/**/*" }
+        { "path": "$DOWNLOAD/Genesis/exports" },
+        { "path": "$DOWNLOAD/Genesis/exports/**/*" }
       ]
     },
     {
