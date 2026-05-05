@@ -1,0 +1,86 @@
+name: Publish Genesis Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "genesis-desktop-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-windows:
+    name: Publish Windows Installer
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: ./apps/genesis-desktop
+    env:
+      CI: true
+      CARGO_BUILD_JOBS: 2
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      GENESIS_DESKTOP_WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.GENESIS_DESKTOP_WINDOWS_CERTIFICATE_THUMBPRINT }}
+      GENESIS_DESKTOP_WINDOWS_SIGN_COMMAND: ${{ secrets.GENESIS_DESKTOP_WINDOWS_SIGN_COMMAND }}
+      GENESIS_DESKTOP_WINDOWS_TIMESTAMP_URL: ${{ secrets.GENESIS_DESKTOP_WINDOWS_TIMESTAMP_URL }}
+      TAURI_WINDOWS_SIGNTOOL_PATH: ${{ secrets.TAURI_WINDOWS_SIGNTOOL_PATH }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./apps/genesis-desktop/src-tauri -> target
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Windows installer
+        run: bun run release:windows
+
+      - name: Normalize release asset names
+        run: |
+          $bundleRoot = Join-Path $PWD 'src-tauri\target\release\bundle\nsis'
+          $installer = Get-ChildItem -Path $bundleRoot -Filter '*-setup.exe' |
+            Where-Object { $_.Name -notlike '*.sig' } |
+            Select-Object -First 1
+
+          if (-not $installer) {
+            throw 'Windows installer not found.'
+          }
+
+          $stableInstaller = Join-Path $bundleRoot 'Genesis_Windows_x64-setup.exe'
+          Copy-Item -LiteralPath $installer.FullName -Destination $stableInstaller -Force
+
+          $sourceSig = "$($installer.FullName).sig"
+          if (-not (Test-Path $sourceSig)) {
+            throw "Updater signature not found: $sourceSig"
+          }
+
+          Copy-Item -LiteralPath $sourceSig -Destination "$stableInstaller.sig" -Force
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Genesis Desktop ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            apps/genesis-desktop/src-tauri/target/release/bundle/nsis/Genesis_Windows_x64-setup.exe
+            apps/genesis-desktop/src-tauri/target/release/bundle/nsis/Genesis_Windows_x64-setup.exe.sig
