@@ -1,0 +1,219 @@
+.grocery-app {
+  --grocery-bg: var(--background);
+  --grocery-surface: color-mix(in srgb, var(--surface) 94%, var(--background));
+  --grocery-surface-strong: color-mix(in srgb, var(--surface) 82%, var(--background));
+  --grocery-ink: var(--foreground);
+  --grocery-muted: var(--muted);
+  --grocery-border: var(--border);
+  --grocery-accent: var(--primary);
+  --grocery-overlay: color-mix(in srgb, var(--background) 72%, transparent);
+  --grocery-soft: color-mix(in srgb, var(--surface) 90%, var(--background));
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--grocery-bg);
+  color: var(--grocery-ink);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--grocery-border);
+}
+
+.list-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.list-dropdown h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.text-muted {
+  color: var(--grocery-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: var(--grocery-muted);
+  cursor: default;
+  padding: 4px;
+}
+
+.action-btn:hover {
+  color: var(--grocery-ink);
+}
+
+.add-item-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  margin: 16px 0;
+  gap: 12px;
+}
+
+.item-input {
+  flex: 1;
+  background: var(--grocery-surface);
+  border: 1px solid var(--grocery-border);
+  padding: 16px;
+  font-size: 18px;
+  border-radius: 4px;
+  color: var(--grocery-ink);
+}
+
+.item-input:focus {
+  outline: none;
+  border-color: var(--grocery-accent);
+}
+
+.voice-btn {
+  background: var(--grocery-soft);
+  border: 1px solid var(--grocery-border);
+  color: var(--grocery-ink);
+  padding: 16px;
+  border-radius: 4px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-btn:hover {
+  background: var(--grocery-surface-strong);
+}
+
+.grocery-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--grocery-border);
+  cursor: default;
+}
+
+.item-row:hover {
+  background: var(--grocery-surface);
+}
+
+.check-box {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--grocery-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.check-box.active {
+  border: none;
+  color: var(--grocery-ink);
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.name {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.category {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--grocery-muted);
+  text-transform: uppercase;
+}
+
+.quantity {
+  font-size: 16px;
+  color: var(--grocery-muted);
+}
+
+.checked-section {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--grocery-border);
+  padding-top: 16px;
+}
+
+.checked-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+.checked-header h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--grocery-muted);
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--grocery-muted);
+  cursor: default;
+  font-size: 14px;
+}
+
+.clear-btn:hover {
+  color: var(--grocery-ink);
+}
+
+.item-row.checked {
+  opacity: 0.5;
+}
+
+.item-row.checked .name {
+  text-decoration: line-through;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  color: var(--grocery-muted);
+}
+
+.empty-state p {
+  margin-top: 16px;
+  font-size: 16px;
+}

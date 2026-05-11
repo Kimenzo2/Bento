@@ -2,11 +2,12 @@
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { check } from "@tauri-apps/plugin-updater";
   import { goto } from "@mateothegreat/svelte5-router";
-  import { startMcpSidecar } from "$lib/ai/mcp-client";
+  import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { fontStore } from "$lib/stores/font.store";
+  import { setLifecycleState, type DesktopLifecycleState } from "$lib/stores/lifecycle.store";
   import { languageStore } from "$lib/stores/language.store";
   import { showCrash } from "$lib/stores/crash.store";
   import { activeTheme, getThemeTokens, isDark, themeState } from "$lib/stores/theme.store";
@@ -122,21 +123,44 @@
     const cancelDeferredTasks: Array<() => void> = [];
 
     if ("__TAURI_INTERNALS__" in window) {
-      const appWindow = getCurrentWindow();
+      const appWindow = getCurrentWebviewWindow();
 
-      void invoke<string | null>("consume_pending_deep_link")
-        .then((payload) => {
-          if (payload) {
-            routeDeepLink(payload);
-          }
+      void hydrateDesktopSettings().catch((error) => {
+        console.error("Genesis desktop settings failed to hydrate.", error);
+      });
+
+      void invoke<DesktopLifecycleState>("get_lifecycle_state")
+        .then((state) => {
+          setLifecycleState(state);
         })
         .catch(() => {
-          // Normal launches do not have a pending deep link.
+          // The native lifecycle event stream will still update once available.
         });
+
+      void (async () => {
+        while (true) {
+          const payload = await invoke<string | null>("consume_pending_deep_link");
+          if (!payload) {
+            break;
+          }
+
+          routeDeepLink(payload);
+        }
+      })().catch(() => {
+        // Normal launches do not have a pending deep link.
+      });
 
       unlistenPromises.push(
         appWindow.listen<string>("genesis://deep-link", ({ payload }) => {
           routeDeepLink(payload);
+        })
+      );
+
+      unlistenPromises.push(
+        appWindow.listen<string>("genesis://navigate", ({ payload }) => {
+          if (payload.startsWith("/")) {
+            goto(payload);
+          }
         })
       );
 
@@ -149,12 +173,10 @@
         )
       );
 
-      cancelDeferredTasks.push(
-        scheduleAfterFirstPaint(() => {
-          void startMcpSidecar().catch(() => {
-            // Keep the shell responsive even if the local MCP sidecar is unavailable.
-          });
-        }, 240)
+      unlistenPromises.push(
+        appWindow.listen<string>("genesis://lifecycle", ({ payload }) => {
+          setLifecycleState(payload as DesktopLifecycleState);
+        })
       );
 
       cancelDeferredTasks.push(

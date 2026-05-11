@@ -15,21 +15,23 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-log = "0.4"
+rmcp = { version = "1.6.0", features = ["transport-io"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "2", features = [] }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "macros"] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-deep-link = "2"
-tauri-plugin-log = "2"
+tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-notification = "2"
 tauri-plugin-persisted-scope = "2"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-shell = "2"
+tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
 tokio = { version = "1", features = ["sync", "time"] }
-rmcp = { version = "1.5.0", features = ["server"] }
 
 [target."cfg(any(target_os = \"macos\", target_os = \"linux\", windows))".dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
@@ -37,14 +39,16 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 # Release profile optimized for production binaries
 [profile.release]
 codegen-units = 1
-opt-level = 3
+opt-level = "z"
 debug = false
 incremental = false
-lto = "thin"
+panic = "abort"
+strip = true
+lto = true
 
-# Dev builds tuned to stay within the available Windows memory budget
+# Fast dev builds with full debug info and incremental compilation
 [profile.dev]
-codegen-units = 1
+codegen-units = 256
 opt-level = 0
-debug = 1
+debug = true
 incremental = true

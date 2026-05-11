@@ -1,17 +1,18 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
-  import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
+  import { getCurrentWebviewWindow, type WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import MinusIcon from "@lucide/svelte/icons/minus";
   import SquareIcon from "@lucide/svelte/icons/square";
   import XIcon from "@lucide/svelte/icons/x";
+  import TitlebarContextMenu from "./TitlebarContextMenu.svelte";
   import { isDark } from "$lib/stores/theme.store";
   import { getShellTokens } from "$lib/shell-theme";
 
   const isMac = browser && /mac/i.test(navigator.userAgent);
   const canUseTauri = browser && "__TAURI_INTERNALS__" in window;
   let isMaximized = $state(false);
-  let appWindow: Window | null = null;
+  let appWindow: WebviewWindow | null = null;
   const shellStyle = $derived(
     Object.entries(getShellTokens($isDark))
       .map(([key, value]) => `${key}:${value}`)
@@ -20,7 +21,7 @@
   const maximizeLabel = $derived(isMaximized ? "Restore Genesis" : "Maximize Genesis");
 
   async function minimize() {
-    if (!canUseTauri || isMac || !appWindow) {
+    if (!canUseTauri || !appWindow) {
       return;
     }
 
@@ -28,7 +29,7 @@
   }
 
   async function close() {
-    if (!canUseTauri || isMac || !appWindow) {
+    if (!canUseTauri || !appWindow) {
       return;
     }
 
@@ -36,7 +37,7 @@
   }
 
   async function syncMaximizedState() {
-    if (isMac || !appWindow) {
+    if (!appWindow) {
       return;
     }
 
@@ -62,25 +63,43 @@
     await syncMaximizedState();
   }
 
-  onMount(() => {
-    if (!canUseTauri || isMac) {
+  async function startDragging() {
+    if (!canUseTauri || !appWindow) {
       return;
     }
 
-    appWindow = getCurrentWindow();
+    await appWindow.startDragging();
+  }
+
+  async function startResize() {
+    if (!canUseTauri || !appWindow || isMaximized) {
+      return;
+    }
+
+    await appWindow.startResizeDragging("SouthEast");
+  }
+
+  onMount(() => {
+    if (!canUseTauri) {
+      return;
+    }
+
+    appWindow = getCurrentWebviewWindow();
     void syncMaximizedState();
 
     let disposed = false;
     let removeResizeListener: (() => void) | undefined;
 
-    void appWindow.listen("tauri://resize", () => {
+    const resizeListener = appWindow.listen("tauri://resize", () => {
       if (!disposed) {
         void syncMaximizedState();
       }
-      }).then((unlisten: () => void) => {
-        if (disposed) {
-          unlisten();
-          return;
+    });
+
+    void resizeListener.then((unlisten: () => void) => {
+      if (disposed) {
+        unlisten();
+        return;
       }
 
       removeResizeListener = unlisten;
@@ -95,17 +114,15 @@
 
 <header class:window-shell--mac={isMac} class="window-shell" style={shellStyle}>
   <div class="window-shell__frame">
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-      class="window-shell__drag"
-      data-tauri-drag-region
-      ondblclick={() => void toggleMaximized()}
-    >
-      {#if isMac}
-        <div class="window-shell__traffic-spacer"></div>
-      {/if}
-      <span class="window-shell__title">Genesis</span>
-    </div>
+    <TitlebarContextMenu
+      {isMac}
+      {isMaximized}
+      onClose={close}
+      onMinimize={minimize}
+      onStartDragging={startDragging}
+      onStartResize={startResize}
+      onToggleMaximized={toggleMaximized}
+    />
 
     {#if !isMac}
       <div class="window-shell__controls" aria-label="Window controls">

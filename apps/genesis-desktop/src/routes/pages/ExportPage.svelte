@@ -1,12 +1,14 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { BaseDirectory, mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
   import { toast } from "svelte-sonner";
   import { exportFormats } from "$lib/data/app-data";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
+  import { pickExportDirectory, saveExportManifest } from "$lib/desktop/runtime";
+  import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
 
   let isExporting = $state(false);
+  let isChoosingFolder = $state(false);
 
   const startExport = async () => {
     if (!browser || !("__TAURI_INTERNALS__" in window)) {
@@ -18,31 +20,52 @@
 
     try {
       const timestamp = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
-      const directory = "Genesis/exports";
-      const filename = `${directory}/genesis-export-${timestamp}.json`;
-      const payload = JSON.stringify(
-        {
-          createdAt: new Date().toISOString(),
-          presets: exportFormats,
-          pipeline: ["print-pdf", "viewer-sequence", "asset-pack-manifest"],
-        },
-        null,
-        2
-      );
-
-      await mkdir(directory, {
-        baseDir: BaseDirectory.Download,
-        recursive: true,
-      });
-      await writeTextFile(filename, payload, {
-        baseDir: BaseDirectory.Download,
+      const savedPath = await saveExportManifest({
+        createdAt: new Date().toISOString(),
+        presets: exportFormats,
+        pipeline: ["print-pdf", "viewer-sequence", "asset-pack-manifest"],
       });
 
-      toast.success(`Export manifest saved to Downloads/${filename}`);
+      if (savedPath) {
+        toast.success(`Export manifest saved to ${savedPath}`);
+      } else {
+        toast.info("Export cancelled.");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to write export manifest.");
     } finally {
       isExporting = false;
+    }
+  };
+
+  const chooseExportDirectory = async () => {
+    if (!browser || !("__TAURI_INTERNALS__" in window)) {
+      toast.info("Run this view inside the desktop shell to choose an export folder.");
+      return;
+    }
+
+    isChoosingFolder = true;
+
+    try {
+      const directory = await pickExportDirectory();
+      if (!directory) {
+        toast.info("Export folder selection cancelled.");
+        return;
+      }
+
+      await updateDesktopSettings((current) => ({
+        ...current,
+        files: {
+          ...current.files,
+          exportDirectory: directory,
+        },
+      }));
+
+      toast.success(`Genesis export folder set to ${directory}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update the export folder.");
+    } finally {
+      isChoosingFolder = false;
     }
   };
 </script>
@@ -69,11 +92,22 @@
       <CardTitle class="font-[var(--font-heading)] text-2xl text-[var(--foreground)]">
         Queue
       </CardTitle>
-      <Button class="rounded-full px-5" disabled={isExporting} onclick={startExport}>
-        {isExporting ? "Exporting..." : "Start export"}
-      </Button>
+      <div class="flex gap-3">
+        <Button class="rounded-full px-5" disabled={isChoosingFolder} variant="outline" onclick={chooseExportDirectory}>
+          {isChoosingFolder ? "Choosing..." : "Export folder"}
+        </Button>
+        <Button class="rounded-full px-5" disabled={isExporting} onclick={startExport}>
+          {isExporting ? "Exporting..." : "Start export"}
+        </Button>
+      </div>
     </CardHeader>
     <CardContent class="grid gap-3">
+      <div class="rounded-2xl app-surface p-4">
+        <p class="font-semibold text-[var(--foreground)]">Current export folder</p>
+        <p class="mt-1 break-all text-sm text-[var(--muted)]">
+          {$desktopSettings.files.exportDirectory || "Downloads/Genesis/exports"}
+        </p>
+      </div>
       {#each ["Print PDF bundle", "Viewer image sequence", "Asset pack manifest"] as task}
         <div class="rounded-2xl app-surface p-4">
           <p class="font-semibold text-[var(--foreground)]">{task}</p>

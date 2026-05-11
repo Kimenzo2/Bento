@@ -6,17 +6,24 @@
 
   let {
     page,
+    activeAppId,
+    title,
+    subtitle,
     children,
   }: {
     page: PageKey;
+    activeAppId?: string;
+    title?: string;
+    subtitle?: string;
     children?: Snippet;
   } = $props();
+
 </script>
 
 <div class="desktop-workspace">
-  <ShellSidebar currentPage={page} />
+  <ShellSidebar currentPage={page} {activeAppId} />
   <div class="desktop-workspace__content">
-    <AppTopbar currentPage={page} />
+    <AppTopbar currentPage={page} {title} {subtitle} />
 
     <main class="desktop-workspace__main">
       {@render children?.()}

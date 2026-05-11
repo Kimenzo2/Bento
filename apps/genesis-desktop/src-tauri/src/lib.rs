@@ -1,5 +1,9 @@
 pub mod commands;
+pub mod db;
 pub mod mcp;
+pub mod modules;
+pub mod runtime;
+pub mod settings;
 pub mod window_bounds;
 
 use chrono::Utc;
@@ -16,9 +20,22 @@ use tauri_plugin_window_state::StateFlags;
 use window_bounds::restore_main_window;
 
 use crate::commands::{
-    consume_pending_deep_link, emit_main_window_event, send_mcp_request, start_mcp_sidecar,
+    backup_desktop_settings, begin_background_task, consume_pending_deep_link,
+    emit_main_window_event, finish_background_task, get_lifecycle_state, load_desktop_settings,
+    pick_export_directory, quit_app, restore_desktop_settings_backup, restore_window,
+    save_desktop_settings, save_export_manifest, send_mcp_request, start_mcp_sidecar,
     McpManager, PendingDeepLink,
 };
+use crate::db::{
+    flush_module_state, get_module_context, get_module_fonts, save_module_context,
+    set_module_fonts, stream_ai_response, GenesisAppState,
+};
+use crate::modules::{
+    fetch_module_registry, get_active_module, get_installed_modules, get_module_settings,
+    install_module, register_local_module, set_active_module, set_module_settings,
+    uninstall_module,
+};
+use crate::runtime::DesktopRuntime;
 
 #[derive(Clone, Serialize)]
 struct CrashPayload {
@@ -119,23 +136,31 @@ pub fn run() {
     }
 
     builder
+        .register_uri_scheme_protocol("module", modules::module_protocol)
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-
             install_runtime_panic_hook(app.handle().clone());
+
+            let settings = settings::load_desktop_settings(app.handle());
+            app.manage(DesktopRuntime::new(settings.clone()));
+            let _ = settings::apply_configured_shortcuts(app.handle(), &settings);
+
+            let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
+                Ok(db) => db,
+                Err(error) => {
+                    return Err(std::io::Error::new(std::io::ErrorKind::Other, error).into());
+                }
+            };
+            app.manage(GenesisAppState::new(db));
 
             if let Some(window) = app.get_webview_window("main") {
                 restore_main_window(&window)?;
@@ -172,6 +197,32 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            load_desktop_settings,
+            save_desktop_settings,
+            backup_desktop_settings,
+            restore_desktop_settings_backup,
+            pick_export_directory,
+            save_export_manifest,
+            get_lifecycle_state,
+            begin_background_task,
+            finish_background_task,
+            restore_window,
+            quit_app,
+            get_module_context,
+            save_module_context,
+            flush_module_state,
+            get_module_fonts,
+            set_module_fonts,
+            get_active_module,
+            set_active_module,
+            get_installed_modules,
+            fetch_module_registry,
+            get_module_settings,
+            set_module_settings,
+            register_local_module,
+            install_module,
+            uninstall_module,
+            stream_ai_response,
             start_mcp_sidecar,
             send_mcp_request,
             consume_pending_deep_link

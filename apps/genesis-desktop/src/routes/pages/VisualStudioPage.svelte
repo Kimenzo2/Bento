@@ -4,7 +4,7 @@
   import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
 </script>
 
-<section class="grid gap-6">
+<section class="ai-thread grid gap-6">
   <Card class="surface-card rounded-[32px] border-none bg-transparent shadow-none">
     <CardHeader>
       <CardTitle class="font-[var(--font-heading)] text-2xl text-[var(--foreground)]">

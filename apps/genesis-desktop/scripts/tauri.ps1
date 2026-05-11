@@ -5,6 +5,10 @@ $srcTauri = Join-Path $appRoot "src-tauri"
 $cargoBin = Join-Path $HOME ".cargo\\bin"
 $llvmBin = "C:\\Program Files\\LLVM\\bin"
 $isWindowsPlatform = $env:OS -eq "Windows_NT"
+$desktopBinary = Join-Path $srcTauri "target\\debug\\genesis-desktop.exe"
+$allowRustBuild = $env:GENESIS_DESKTOP_ALLOW_RUST_BUILD -eq "1"
+$isRelease = $args -contains "build"
+$isDev = ($args -contains "dev") -and (-not $isRelease)
 
 if (-not ($env:PATH -split ";" | Where-Object { $_ -eq $cargoBin })) {
   $env:PATH = "$cargoBin;$env:PATH"
@@ -14,7 +18,81 @@ if ((Test-Path (Join-Path $llvmBin "lld-link.exe")) -and -not ($env:PATH -split 
   $env:PATH = "$llvmBin;$env:PATH"
 }
 
-$isRelease = $args -contains "build"
+function Start-GenesisFrontend {
+  $frontendListenPort = 1420
+  $hasFrontendListener = Get-NetTCPConnection -LocalPort $frontendListenPort -State Listen -ErrorAction SilentlyContinue
+  if ($hasFrontendListener) {
+    return
+  }
+
+  Start-Process -WindowStyle Hidden -FilePath bun -ArgumentList @("run", "dev:frontend") -WorkingDirectory $appRoot | Out-Null
+
+  $deadline = [DateTime]::UtcNow.AddSeconds(30)
+  while ([DateTime]::UtcNow -lt $deadline) {
+    if (Get-NetTCPConnection -LocalPort $frontendListenPort -State Listen -ErrorAction SilentlyContinue) {
+      return
+    }
+
+    Start-Sleep -Milliseconds 250
+  }
+
+  throw "The frontend dev server did not start on port 1420."
+}
+
+function Assert-CachedRustBinaryFresh {
+  param(
+    [string]$BinaryPath
+  )
+
+  $binary = Get-Item -LiteralPath $BinaryPath -ErrorAction Stop
+  $trackedInputs = @(
+    (Join-Path $srcTauri "Cargo.toml"),
+    (Join-Path $srcTauri "Cargo.lock"),
+    (Join-Path $srcTauri "tauri.conf.json")
+  )
+
+  $rustSources = Get-ChildItem -Path (Join-Path $srcTauri "src") -Recurse -File -Include *.rs -ErrorAction Stop
+  $newerInput = @($trackedInputs | Where-Object { (Test-Path $_) -and ((Get-Item -LiteralPath $_).LastWriteTimeUtc -gt $binary.LastWriteTimeUtc) })
+  $newerSource = @($rustSources | Where-Object { $_.LastWriteTimeUtc -gt $binary.LastWriteTimeUtc })
+
+  if ($newerInput.Count -gt 0 -or $newerSource.Count -gt 0) {
+    throw "Cached Rust binary is stale. Run `$env:GENESIS_DESKTOP_ALLOW_RUST_BUILD='1'; bun run tauri dev once to rebuild, then return to bun run dev for frontend-only hot reload."
+  }
+}
+
+function Assert-CachedSidecarFresh {
+  param(
+    [string]$SidecarPath
+  )
+
+  if (-not (Test-Path $SidecarPath)) {
+    throw "Cached MCP sidecar not found at $SidecarPath. Run `$env:GENESIS_DESKTOP_ALLOW_RUST_BUILD='1'; bun run tauri dev once to rebuild."
+  }
+
+  $sidecar = Get-Item -LiteralPath $SidecarPath
+  $mcpSources = Get-ChildItem -Path (Join-Path $srcTauri "src\\mcp") -Recurse -File -Include *.rs -ErrorAction SilentlyContinue
+  $newerSource = @($mcpSources | Where-Object { $_.LastWriteTimeUtc -gt $sidecar.LastWriteTimeUtc })
+
+  if ($newerSource.Count -gt 0) {
+    throw "Cached MCP sidecar is stale. Run `$env:GENESIS_DESKTOP_ALLOW_RUST_BUILD='1'; bun run tauri dev once to rebuild it."
+  }
+}
+
+if ($isDev -and -not $allowRustBuild) {
+  if (-not (Test-Path $desktopBinary)) {
+    throw "Cached desktop binary not found at $desktopBinary. Run a full build once, or set GENESIS_DESKTOP_ALLOW_RUST_BUILD=1 for a rebuild."
+  }
+
+  $effectiveTargetForCache = (& rustc --print host-tuple).Trim()
+  $cachedSidecarName = if ($isWindowsPlatform) { "genesis-mcp-$effectiveTargetForCache.exe" } else { "genesis-mcp-$effectiveTargetForCache" }
+  $cachedSidecar = Join-Path $srcTauri "binaries\\$cachedSidecarName"
+  Assert-CachedRustBinaryFresh -BinaryPath $desktopBinary
+  Assert-CachedSidecarFresh -SidecarPath $cachedSidecar
+  Start-GenesisFrontend
+  & $desktopBinary
+  exit $LASTEXITCODE
+}
+
 $requestedTarget = $env:CARGO_BUILD_TARGET
 $env:CARGO_BUILD_JOBS = if ($isRelease -and [string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
   "2"

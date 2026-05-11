@@ -3,6 +3,7 @@ import ShellRoute from "$lib/components/ShellRoute.svelte";
 import AuthPage from "../../routes/pages/AuthPage.svelte";
 import PaymentCallbackPage from "../../routes/pages/PaymentCallbackPage.svelte";
 import SharedViewerPage from "../../routes/pages/SharedViewerPage.svelte";
+import { routePatterns } from "$lib/router/route-patterns";
 
 export const pageMeta = {
   dashboard: {
@@ -57,6 +58,10 @@ export const pageMeta = {
     title: "Viewer",
     subtitle: "Immersive playback and shared-reader previews.",
   },
+  starterApp: {
+    title: "Genesis Apps",
+    subtitle: "Focused offline-first personal tools inside the desktop shell.",
+  },
 } as const;
 
 export type PageKey = keyof typeof pageMeta;
@@ -71,13 +76,8 @@ export const appRoutes = [
     component: PaymentCallbackPage,
   },
   {
-    path: "/shared/:shortCode",
+    path: routePatterns.shared,
     component: SharedViewerPage,
-  },
-  {
-    path: "/",
-    component: ShellRoute,
-    props: { page: "dashboard" satisfies PageKey },
   },
   {
     path: "/create",
@@ -85,7 +85,7 @@ export const appRoutes = [
     props: { page: "project" satisfies PageKey },
   },
   {
-    path: "/project/:projectId",
+    path: routePatterns.project,
     component: ShellRoute,
     props: { page: "project" satisfies PageKey },
   },
@@ -143,6 +143,16 @@ export const appRoutes = [
     path: "/viewer",
     component: ShellRoute,
     props: { page: "viewer" satisfies PageKey },
+  },
+  {
+    path: routePatterns.starterApp,
+    component: ShellRoute,
+    props: { page: "starterApp" satisfies PageKey },
+  },
+  {
+    path: "/",
+    component: ShellRoute,
+    props: { page: "dashboard" satisfies PageKey },
   },
   {
     component: ShellRoute,

@@ -1,0 +1,16 @@
+.habits-app { min-height: 100%; padding: 36px; background: #111318; color: #f6f7f2; font-family: "Space Grotesk", sans-serif; animation: habits-in .35s ease; }
+.habits-app nav { display: flex; align-items: center; gap: 24px; margin-bottom: 58px; }
+.habits-app nav strong { margin-right: auto; }
+.habits-app nav span, .habits-app nav label { padding: 12px 22px; border-radius: 999px; background: #24272c; color: #b8beb2; }
+.habits-app h1 { font-size: 48px; font-weight: 500; }.habits-app h1 b { color: #c8f535; }
+.habits-grid { display: grid; grid-template-columns: 1fr 1fr .65fr 1.35fr; gap: 16px; }
+.habits-grid article { border-radius: 28px; background: #1c2128; padding: 28px; transition: transform .2s ease; }
+.habits-grid article:hover { transform: translateY(-3px); }
+.habits-streak div { display: flex; gap: 10px; margin: 32px 0; }.habits-streak p { display: grid; gap: 10px; text-align: center; }.habits-streak i { width: 22px; height: 116px; border-radius: 999px; background: #373b40; }.habits-streak .habits-done { background: linear-gradient(#5147a2, #c8f535); }
+.habits-streak footer, .habits-ring footer { display: flex; justify-content: space-between; color: #a6aa9f; }.habits-streak strong { color: #fff; font-size: 36px; }
+.habits-ring div { display: grid; place-items: center; width: 180px; height: 180px; margin: 18px auto; border-radius: 50%; background: conic-gradient(#c8f535 68%, #32373a 0); box-shadow: inset 0 0 0 36px #1c2128; }.habits-ring span { font-size: 36px; }
+.habits-add { display: grid; background: linear-gradient(160deg, #20253a, #6559df) !important; }.habits-add button, .habits-schedule button { place-self: end; width: 58px; height: 58px; border: 0; border-radius: 50%; background: #c8f535; font-size: 32px; cursor: default; }
+.habits-goals { grid-column: span 1; }.habits-goals p { display: grid; grid-template-columns: 34px 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid #303633; color: #d6dacd; }.habits-goals p span { width: 34px; height: 34px; border-radius: 50%; background: #586152; }.habits-finished { text-decoration: line-through; color: #73796e !important; }.habits-finished b { color: #c8f535; text-decoration: none; }
+.habits-goals footer { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; margin-top: 26px; }.habits-goals footer i { height: 18px; border-radius: 999px; background: linear-gradient(90deg, #c8f535 40%, #fff 0); }
+.habits-schedule { grid-column: 1 / 4; min-height: 190px; background: linear-gradient(140deg, #202326, #31401f) !important; }.habits-schedule span, .habits-schedule b { display: inline-block; margin-right: 22px; padding: 10px 18px; border-radius: 999px; background: #2c3032; }.habits-schedule p { margin: 28px 0 0 160px; padding: 14px 20px; border-radius: 18px; background: #161819; width: fit-content; }
+@keyframes habits-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }

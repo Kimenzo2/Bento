@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { clearCrash, crashStore } from "$lib/stores/crash.store";
@@ -12,11 +11,6 @@
     }
 
     const value = `Crash time: ${$crashStore.timestamp}\nLog path: ${$crashStore.logPath}\nMessage: ${$crashStore.message}`;
-
-    if ("__TAURI_INTERNALS__" in window) {
-      await writeText(value);
-      return;
-    }
 
     await navigator.clipboard.writeText(value);
   };

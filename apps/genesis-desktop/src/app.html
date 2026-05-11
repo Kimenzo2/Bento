@@ -6,7 +6,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>Genesis</title>
-    <script type="module" src="/src/lib/theme-bootstrap.ts"></script>
+    <script>
+      (function () {
+        const fallback = { themeId: "default", mode: "light", tokens: {} };
+        let snapshot = fallback;
+
+        try {
+          const raw = sessionStorage.getItem("__genesis_theme_snapshot");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (
+              parsed &&
+              typeof parsed.themeId === "string" &&
+              (parsed.mode === "light" || parsed.mode === "dark")
+            ) {
+              snapshot = {
+                themeId: parsed.themeId,
+                mode: parsed.mode,
+                tokens: parsed.tokens && typeof parsed.tokens === "object" ? parsed.tokens : {},
+              };
+            }
+          }
+        } catch {
+          snapshot = fallback;
+        }
+
+        const root = document.documentElement;
+        root.dataset.theme = snapshot.themeId;
+        root.classList.toggle("dark", snapshot.mode === "dark");
+        root.style.colorScheme = snapshot.mode;
+
+        Object.entries(snapshot.tokens).forEach(([key, value]) => {
+          if (typeof value === "string") {
+            root.style.setProperty(key, value);
+          }
+        });
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

@@ -1,9 +1,55 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { check } from "@tauri-apps/plugin-updater";
+  import {
+    isPermissionGranted,
+    requestPermission,
+    sendNotification,
+  } from "@tauri-apps/plugin-notification";
   import { Button } from "$lib/components/ui/button/index.js";
+  import { desktopSettings } from "$lib/desktop/settings";
+  import { lifecycleStore } from "$lib/stores/lifecycle.store";
   import { setAvailableUpdate, setDownloadedBytes, setInstallingUpdate, updateStore } from "$lib/stores/update.store";
 
   let errorMessage = $state("");
+  let lastNativeNotificationVersion = $state("");
+
+  async function notifyBackgroundUpdate(version: string, body?: string) {
+    if (!browser || !("__TAURI_INTERNALS__" in window)) {
+      return;
+    }
+
+    const granted = await isPermissionGranted();
+    const allowed = granted || (await requestPermission()) === "granted";
+
+    if (!allowed) {
+      return;
+    }
+
+    sendNotification({
+      title: "Genesis update available",
+      body: body?.trim()
+        ? `Version ${version} is ready to install. ${body}`
+        : `Version ${version} is ready to install.`,
+    });
+    lastNativeNotificationVersion = version;
+  }
+
+  $effect(() => {
+    if (!browser || !$updateStore.available || !$desktopSettings.notifications.backgroundAlerts) {
+      return;
+    }
+
+    if ($lifecycleStore !== "Backgrounded") {
+      return;
+    }
+
+    if (lastNativeNotificationVersion === $updateStore.available.version) {
+      return;
+    }
+
+    void notifyBackgroundUpdate($updateStore.available.version, $updateStore.available.body);
+  });
 
   const installAndRestart = async () => {
     if (!$updateStore.available) {

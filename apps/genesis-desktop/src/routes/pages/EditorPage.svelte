@@ -3,7 +3,7 @@
   import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
 </script>
 
-<section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+<section class="notes-editor grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
   <Card class="surface-card rounded-[32px] border-none bg-transparent shadow-none">
     <CardHeader class="flex-row items-center justify-between">
       <CardTitle class="font-[var(--font-heading)] text-2xl text-[var(--foreground)]">

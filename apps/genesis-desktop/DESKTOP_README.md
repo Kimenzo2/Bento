@@ -8,6 +8,9 @@ bun run type-check
 bun run tauri dev
 ```
 
+`bun run tauri dev` now uses the cached `target/debug/genesis-desktop.exe` binary plus the Vite dev server, so the hot-reload loop does not block on Rust compilation.
+Set `GENESIS_DESKTOP_ALLOW_RUST_BUILD=1` if you need to force a fresh Rust rebuild during development.
+
 ## Production Build
 
 ```bash

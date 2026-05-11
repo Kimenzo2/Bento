@@ -1,6 +1,9 @@
 <script lang="ts">
   import { Router } from "@mateothegreat/svelte5-router";
+  import AppLaunchCanvas from "$lib/components/AppLaunchCanvas.svelte";
   import CrashDialog from "$lib/components/CrashDialog.svelte";
+  import GlobalSettings from "$lib/components/GlobalSettings.svelte";
+  import ModuleSwitcher from "$lib/components/ModuleSwitcher.svelte";
   import RuntimeBridge from "$lib/components/RuntimeBridge.svelte";
   import UpdateNotification from "$lib/components/UpdateNotification.svelte";
   import WindowShell from "$lib/components/WindowShell.svelte";
@@ -10,6 +13,9 @@
 
 <RuntimeBridge />
 <WindowShell />
+<ModuleSwitcher />
+<AppLaunchCanvas />
+<GlobalSettings />
 
 <div class="desktop-app-root">
   <Router routes={appRoutes} />

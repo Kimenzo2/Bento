@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 
 const host = process.env.TAURI_DEV_HOST;
 
-export default defineConfig({
+const config = {
   plugins: [tailwindcss(), sveltekit()],
   resolve: {
     alias: {
@@ -29,9 +29,10 @@ export default defineConfig({
     },
   },
   build: {
+    assetsInlineLimit: 0,
     rollupOptions: {
       output: {
-        manualChunks(id) {
+        manualChunks(id: string) {
           if (id.includes("@mastra/")) {
             return "mastra";
           }
@@ -56,4 +57,11 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
   },
-});
+  test: {
+    environment: "jsdom",
+    globals: true,
+    include: ["src/**/*.{test,spec}.{ts,js}"],
+  },
+};
+
+export default defineConfig(config as any);

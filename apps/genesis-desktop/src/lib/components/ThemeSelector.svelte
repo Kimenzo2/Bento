@@ -1,15 +1,37 @@
 <script lang="ts">
   import { desktopThemes, type ThemeId } from "$lib/data/themes";
   import { activeTheme, mode, setTheme, toggleMode } from "$lib/stores/theme.store";
+  import { toast } from "svelte-sonner";
 
   const currentThemeId = $derived($activeTheme.id);
   const currentMode = $derived($mode);
 
-  const previewStyle = (colors: [string, string, string]) =>
-    `background: linear-gradient(135deg, ${colors[0]}, ${colors[1]}); box-shadow: inset 0 0 0 1px color-mix(in srgb, ${colors[2]} 45%, transparent);`;
+  const selectTheme = async (themeId: ThemeId) => {
+    console.info("[Genesis Desktop] Theme card selected", { themeId });
 
-  const selectTheme = (themeId: ThemeId) => {
-    setTheme(themeId);
+    try {
+      await setTheme(themeId);
+      toast.success(`Theme switched to ${desktopThemes.find((theme) => theme.id === themeId)?.name ?? themeId}.`);
+    } catch (error) {
+      console.error("[Genesis Desktop] Theme card selection failed", error);
+      toast.error(error instanceof Error ? error.message : "Theme selection failed.");
+    }
+  };
+
+  const toggleThemeWithLog = async () => {
+    const nextMode = currentMode === "dark" ? "light" : "dark";
+    console.info("[Genesis Desktop] Settings theme toggle clicked", {
+      currentMode,
+      nextMode,
+    });
+
+    try {
+      await toggleMode();
+      toast.success(`Theme switched to ${nextMode}.`);
+    } catch (error) {
+      console.error("[Genesis Desktop] Settings theme toggle failed", error);
+      toast.error(error instanceof Error ? error.message : "Theme toggle failed.");
+    }
   };
 </script>
 
@@ -23,7 +45,7 @@
         The shell and document variables update in the same cycle.
       </p>
     </div>
-    <button class="theme-chip" type="button" onclick={toggleMode}>
+    <button class="theme-chip" type="button" onclick={toggleThemeWithLog}>
       Toggle {currentMode === "dark" ? "light" : "dark"}
     </button>
   </div>
@@ -34,7 +56,7 @@
         class:theme-card-active={currentThemeId === theme.id}
         class="theme-card text-left"
         type="button"
-        onclick={() => selectTheme(theme.id)}
+        onclick={() => void selectTheme(theme.id)}
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
@@ -51,7 +73,6 @@
             {/each}
           </div>
         </div>
-        <div class="theme-swatch" style={previewStyle(theme.preview)}></div>
       </button>
     {/each}
   </div>
