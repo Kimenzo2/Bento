@@ -66,6 +66,10 @@ const APPLE_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const BTN_PRESS =
   'active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral-burst/40';
 
+const WINDOWS_PACKAGE_URL = '/downloads/Genesis_0.1.0_x64-setup.exe';
+
+const releaseNotes = ['Windows 64-bit unsigned package', 'Hosted in the Genesis web app'];
+
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
   animate: { opacity: 1, y: 0 },
@@ -328,7 +332,6 @@ const LandingPage: React.FC = memo(() => {
   }, []);
 
   const navLinks = [
-    { label: t('landing.navRealms', 'Choose a realm'), id: 'realms' },
     { label: t('landing.navFeatures', 'What you can create'), id: 'features' },
     { label: t('landing.navUseCases', 'Use cases'), id: 'use-cases' },
     { label: t('landing.navFaq', 'FAQ'), id: 'faq' },
@@ -573,53 +576,6 @@ const LandingPage: React.FC = memo(() => {
                 {t('landing.subheadline2', 'Your story, finished.')}
               </span>
             </motion.p>
-
-            {/* CTAs */}
-            <motion.div
-              variants={fadeUp}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-3"
-            >
-              <button
-                type="button"
-                onClick={() => navigate('/auth?returnTo=/welcome/onboarding')}
-                className={`px-6 py-3 text-sm font-medium font-body text-white rounded-full transition-opacity hover:opacity-90 ${BTN_PRESS}`}
-                style={{ backgroundColor: 'var(--primary)' }}
-              >
-                {t('landing.chooseRealm', 'Choose Your Realm')}
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollTo('pricing')}
-                className={`px-6 py-3 text-sm font-semibold font-body text-charcoal-soft border border-peach-soft rounded-full transition-colors hover:opacity-80 ${BTN_PRESS}`}
-              >
-                {t('landing.comparePlans', 'Compare Plans')}
-              </button>
-              <a
-                href="mailto:support@iamazeyou.me"
-                className="px-6 py-3 text-sm font-semibold font-body text-cocoa-light rounded-full transition-colors hover:opacity-80"
-              >
-                {t('landing.contactSupport', 'Contact Support')}
-              </a>
-            </motion.div>
-
-            {/* Social proof pills */}
-            <motion.div
-              variants={fadeUp}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-6"
-            >
-              {[
-                t('landing.pillFree', 'Start free with Spark'),
-                t('landing.pillCommercial', 'Commercial use on paid tiers'),
-                t('landing.pillExport', 'Export to PDF and ebook'),
-              ].map((pill) => (
-                <span
-                  key={pill}
-                  className="px-3 py-1.5 text-xs font-body text-cocoa-light border border-peach-soft rounded-full"
-                >
-                  {pill}
-                </span>
-              ))}
-            </motion.div>
           </motion.div>
 
           {/* Right — Mascot in GlowCard */}
@@ -650,6 +606,45 @@ const LandingPage: React.FC = memo(() => {
               </div>
             </GlowCard>
           </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+
+  const DesktopInstallerSection = (
+    <section className="bg-[#0b0b0b] text-white">
+      <div className="mx-auto flex w-full max-w-6xl flex-col justify-center px-6 py-20 sm:px-10 lg:px-12">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.45em] text-white/45">
+            Genesis Desktop
+          </p>
+          <h2 className="mt-5 text-5xl font-semibold leading-none tracking-tight text-balance sm:text-6xl lg:text-7xl">
+              Download the Windows package.
+          </h2>
+          <p className="mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
+              Genesis Desktop is available for Windows right now. Use the direct download below to
+              get the hosted build here.
+          </p>
+
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <a
+                href={WINDOWS_PACKAGE_URL}
+              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              Download for Windows
+            </a>
+          </div>
+
+          <ul className="mt-10 grid gap-3 text-sm text-white/70 sm:grid-cols-3">
+            {releaseNotes.map((note) => (
+              <li
+                key={note}
+                className="rounded-2xl border border-white/10 bg-white/3 px-4 py-3 backdrop-blur-sm"
+              >
+                {note}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
@@ -1584,7 +1579,7 @@ const LandingPage: React.FC = memo(() => {
             >
               {tier.popular && (
                 <span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 text-xs font-medium font-body text-white rounded-full"
+                  className="inline-flex items-center gap-2 px-3 py-1 text-[10px] font-semibold font-body uppercase tracking-[0.3em] rounded-full mb-4 text-white"
                   style={{
                     background:
                       'linear-gradient(to right, var(--color-primary-start), var(--color-primary-end))',
@@ -2209,8 +2204,8 @@ const LandingPage: React.FC = memo(() => {
       {Nav}
       <main id="main-content">
         {Hero}
+        {DesktopInstallerSection}
         {SocialProofBar}
-        {RealmsSection}
         {HowItWorksSection}
         {VisualShowcase}
         {FeaturesSection}
