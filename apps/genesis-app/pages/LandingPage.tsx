@@ -67,6 +67,7 @@ const BTN_PRESS =
   'active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral-burst/40';
 
 const WINDOWS_PACKAGE_URL = '/downloads/Genesis_0.1.0_x64-setup.exe';
+const WINDOWS_PACKAGE_FILENAME = 'Genesis_0.1.0_x64-setup.exe';
 
 const releaseNotes = ['Windows 64-bit unsigned package', 'Hosted in the Genesis web app'];
 
@@ -288,8 +289,45 @@ const LandingPage: React.FC = memo(() => {
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isDownloadingDesktopPackage, setIsDownloadingDesktopPackage] = useState(false);
   const { currentTheme, isDarkMode } = useTheme();
   const navigate = useNavigate();
+
+  const handleDesktopPackageDownload = useCallback(async (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    if (isDownloadingDesktopPackage) {
+      return;
+    }
+
+    setIsDownloadingDesktopPackage(true);
+
+    try {
+      const response = await fetch(WINDOWS_PACKAGE_URL, { cache: 'no-store' });
+
+      if (!response.ok) {
+        throw new Error(`Download failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = objectUrl;
+      link.download = WINDOWS_PACKAGE_FILENAME;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+    } catch (error) {
+      console.error('Desktop package download failed, falling back to navigation.', error);
+      window.location.assign(WINDOWS_PACKAGE_URL);
+    } finally {
+      setIsDownloadingDesktopPackage(false);
+    }
+  }, [isDownloadingDesktopPackage]);
   const { t } = useTranslation('common');
 
   // Extract the dark-mode CSS variables from the ACTIVE theme.
@@ -627,12 +665,14 @@ const LandingPage: React.FC = memo(() => {
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-            <a
+              <a
                 href={WINDOWS_PACKAGE_URL}
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              Download for Windows
-            </a>
+                download={WINDOWS_PACKAGE_FILENAME}
+                onClick={handleDesktopPackageDownload}
+                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                {isDownloadingDesktopPackage ? 'Preparing download...' : 'Download for Windows'}
+              </a>
           </div>
 
           <ul className="mt-10 grid gap-3 text-sm text-white/70 sm:grid-cols-3">
