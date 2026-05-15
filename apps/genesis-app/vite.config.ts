@@ -83,7 +83,10 @@ export default defineConfig(({ mode }) => {
             navigateFallbackDenylist: [
               /^\/assets\//,
               /^\/api\//,
+              /^\/download\//,
+              /^\/downloads\//,
               /\.(?:js|css|png|jpg|jpeg|svg|ico|woff|woff2|webp|json|txt|map)$/,
+              /\.exe$/i,
             ],
             globPatterns: ['**/*.{css,html,ico,woff,woff2}'],
             runtimeCaching: [

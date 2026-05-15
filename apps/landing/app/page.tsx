@@ -1,10 +1,7 @@
-const WINDOWS_INSTALLER_URL =
-  'https://github.com/Kimenzo/Genesis/releases/latest/download/Genesis_0.1.0_x64-setup.exe';
-
 const releaseNotes = [
   'Windows 64-bit installer',
-  'Direct GitHub Releases download',
-  'Includes the Genesis desktop shell and local runtime',
+  'Same-domain download route',
+  'Starts immediately without a release-page hop',
 ];
 
 export default function HomePage() {
@@ -19,13 +16,13 @@ export default function HomePage() {
             Download the Windows installer.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-            Genesis Desktop is available for Windows right now. Use the direct installer below to
-            get the current packaged build from GitHub Releases.
+            Genesis Desktop is available for Windows right now. Use the download below and the
+            browser will start the installer immediately on the Genesis domain.
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
             <a
-              href={WINDOWS_INSTALLER_URL}
+              href="/download/windows"
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               Download for Windows

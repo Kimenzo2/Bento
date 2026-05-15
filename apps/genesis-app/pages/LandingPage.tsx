@@ -66,7 +66,7 @@ const APPLE_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const BTN_PRESS =
   'active:scale-[0.98] transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral-burst/40';
 
-const WINDOWS_PACKAGE_URL = '/download/windows';
+const WINDOWS_PACKAGE_URL = '/downloads/Genesis_0.1.0_x64-setup.exe';
 const WINDOWS_PACKAGE_FILENAME = 'Genesis_0.1.0_x64-setup.exe';
 
 const fadeUp = {
