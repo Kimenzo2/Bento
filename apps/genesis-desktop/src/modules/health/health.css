@@ -1,0 +1,33 @@
+.health-ring__track {
+  stroke: color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+.health-ring__progress {
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.health-sheet-overlay {
+  animation: health-fade-in 0.2s ease;
+}
+
+.health-sheet {
+  animation: health-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes health-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes health-slide-up {
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}

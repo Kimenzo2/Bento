@@ -1,0 +1,59 @@
+.sleep-orb {
+  display: grid;
+  place-items: center;
+  width: 10rem;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: conic-gradient(
+    var(--primary) var(--sleep-fill, 82%),
+    color-mix(in srgb, var(--border) 78%, transparent) 0
+  );
+  box-shadow: inset 0 0 0 1.75rem var(--card);
+}
+
+.sleep-orb strong {
+  display: block;
+  font-size: 2.5rem;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.sleep-orb small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.sleep-trend-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+  min-height: 10rem;
+}
+
+.sleep-trend-chart article {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 0.5rem;
+  height: 100%;
+}
+
+.sleep-trend-chart i {
+  display: block;
+  width: 1.75rem;
+  height: var(--bar, 50%);
+  min-height: 1.125rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--primary),
+    color-mix(in srgb, var(--accent) 40%, var(--primary))
+  );
+}
+
+.sleep-trend-chart strong {
+  color: var(--foreground);
+}

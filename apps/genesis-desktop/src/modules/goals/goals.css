@@ -1,0 +1,125 @@
+.goals-app {
+  min-height: 100%;
+  position: relative;
+}
+
+.goals-checkin {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.5rem);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+
+.goals-checkin-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: calc(var(--radius) + 0.15rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.goals-card {
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.35rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+}
+
+.goals-card.is-overdue {
+  border-left: 4px solid var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 6%, var(--card));
+}
+
+.goals-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.goals-icon-box {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--surface) 92%, var(--background));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  flex-shrink: 0;
+}
+
+.goals-deadline {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.goals-deadline.is-overdue {
+  color: var(--destructive);
+}
+
+.goals-progress-track {
+  height: 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  overflow: hidden;
+}
+
+.goals-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.goals-progress-fill.is-overdue {
+  background: var(--destructive);
+}
+
+.goals-footer {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.goals-footer.is-updated {
+  color: color-mix(in srgb, var(--primary) 75%, var(--foreground));
+}
+
+.goals-fab {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 10;
+}
+
+.goals-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: color-mix(in srgb, var(--background) 55%, transparent);
+}
+
+.goals-modal {
+  width: 100%;
+  max-width: 32rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.5rem);
+  background: var(--background);
+  overflow: hidden;
+}

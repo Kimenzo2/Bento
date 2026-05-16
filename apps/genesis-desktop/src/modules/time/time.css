@@ -1,0 +1,132 @@
+.time-app {
+  min-height: 100%;
+}
+
+.time-timer-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.75rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+}
+
+.time-timer-panel.is-tracking {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+}
+
+.time-task-input {
+  width: 100%;
+  max-width: 28rem;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--foreground);
+  outline: none;
+}
+
+.time-task-input::placeholder {
+  color: var(--muted);
+}
+
+.time-display {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(3rem, 12vw, 5.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.time-toggle {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 999px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-foreground);
+}
+
+.time-toggle--start {
+  background: var(--primary);
+}
+
+.time-toggle--stop {
+  background: var(--destructive);
+}
+
+.time-week-chart {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  height: 7.5rem;
+  padding: 1.25rem 1rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.35rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+}
+
+.time-day-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+}
+
+.time-bar-track {
+  width: 2rem;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+.time-bar-fill {
+  width: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 55%, var(--border));
+}
+
+.time-bar-fill.is-today {
+  background: var(--primary);
+}
+
+.time-day-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.time-day-label.is-today {
+  color: var(--foreground);
+}
+
+.time-project-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.time-project-dot--a {
+  background: var(--primary);
+}
+
+.time-project-dot--b {
+  background: color-mix(in srgb, var(--accent) 72%, var(--primary));
+}
+
+.time-project-dot--c {
+  background: var(--muted);
+}

@@ -1,0 +1,30 @@
+.mood-picker__item {
+  border-color: color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+}
+
+.mood-picker__item--active {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+
+.mood-calendar__day {
+  min-height: 5.75rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) * 1.25);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+  padding: 0.75rem;
+  display: grid;
+  align-content: space-between;
+  justify-items: start;
+}
+
+.mood-pattern-bar {
+  height: 0.625rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--primary) var(--fill, 50%),
+    color-mix(in srgb, var(--border) 82%, transparent) 0
+  );
+}

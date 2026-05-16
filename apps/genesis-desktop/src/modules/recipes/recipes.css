@@ -1,0 +1,199 @@
+.recipes-app {
+  min-height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipes-toolbar {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr);
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .recipes-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recipes-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.15rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+  color: var(--muted);
+}
+
+.recipes-search :global(input) {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.recipes-filters {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.recipes-chip {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.recipes-chip.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.recipes-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  padding-bottom: 5rem;
+}
+
+.recipes-card {
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.15rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+  color: inherit;
+}
+
+.recipes-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.recipes-card-image {
+  height: 8.75rem;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.recipes-fav {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+  color: var(--foreground);
+}
+
+.recipes-card-body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.recipes-meta {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.recipes-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.recipes-section-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+.recipes-plan-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+}
+
+.recipes-plan-card {
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 94%, var(--background));
+}
+
+.recipes-plan-card small {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.recipes-cook-step {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 94%, var(--background));
+}
+
+.recipes-cook-step span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.recipes-fab {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 20;
+}
+
+.recipes-fab-menu {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.recipes-fab-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: calc(var(--radius) + 0.15rem);
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.recipes-fab-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  border: none;
+  background: color-mix(in srgb, var(--background) 55%, transparent);
+}

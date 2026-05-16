@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "macOS": {
+      "signingIdentity": "__APPLE_SIGNING_IDENTITY__",
+      "providerShortName": "__APPLE_PROVIDER_SHORT_NAME__"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+.budget-assign-warn {
+  --tw-ring-color: color-mix(in srgb, var(--destructive) 38%, var(--border));
+  background: color-mix(in srgb, var(--destructive) 10%, var(--card));
+}
+
+.budget-assign-ok {
+  --tw-ring-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+
+.budget-app .mini-app-progress > span.overspent,
+.mini-app-progress > span.overspent {
+  background: var(--destructive);
+}

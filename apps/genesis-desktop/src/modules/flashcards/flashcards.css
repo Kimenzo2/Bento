@@ -1,0 +1,135 @@
+.flashcards-app {
+  min-height: 100%;
+}
+
+.flashcards-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 0 2rem;
+}
+
+.flashcards-due {
+  font-size: clamp(3rem, 10vw, 5rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.flashcards-due-label {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.flashcards-review-bar {
+  width: 100%;
+  max-width: 8rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  overflow: hidden;
+}
+
+.flashcards-review-fill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.25s ease;
+}
+
+.flashcards-scene {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+  min-height: 18rem;
+  padding: 0 0 1rem;
+}
+
+.flashcards-card {
+  width: 100%;
+  max-width: 36rem;
+  min-height: 16rem;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.flashcards-card.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcards-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.5rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+}
+
+.flashcards-face--back {
+  transform: rotateY(180deg);
+  background: color-mix(in srgb, var(--surface) 94%, var(--background));
+}
+
+.flashcards-rating {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  opacity: 0;
+  transform: translateY(1rem);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.flashcards-rating.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.flashcards-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 4rem;
+  border-radius: calc(var(--radius) + 0.15rem);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background: color-mix(in srgb, var(--card) 92%, var(--background));
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.flashcards-rate--again {
+  color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 28%, var(--border));
+}
+
+.flashcards-rate--hard {
+  color: color-mix(in srgb, var(--accent) 80%, var(--foreground));
+}
+
+.flashcards-rate--good {
+  color: var(--primary);
+}
+
+.flashcards-rate--easy {
+  color: color-mix(in srgb, var(--accent) 65%, var(--primary));
+}
+
+.flashcards-rate-time {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}

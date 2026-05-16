@@ -1,0 +1,128 @@
+.focus-app {
+  min-height: 100%;
+}
+
+.focus-hero {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+}
+
+@media (max-width: 900px) {
+  .focus-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.focus-timer-card__content {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.focus-ring {
+  position: relative;
+  width: min(220px, 100%);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.focus-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.focus-ring__bg,
+.focus-ring__progress {
+  fill: none;
+  stroke-width: 8;
+}
+
+.focus-ring__bg {
+  stroke: color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+.focus-ring__progress {
+  stroke: var(--primary);
+  stroke-linecap: round;
+}
+
+.focus-ring strong {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 clamp(2rem, 5vw, 2.75rem) var(--font-mono, ui-monospace, monospace);
+  color: var(--foreground);
+}
+
+.focus-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.focus-controls button {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 92%, var(--background));
+  color: var(--foreground);
+}
+
+.focus-controls__play {
+  width: 4.5rem !important;
+  height: 4.5rem !important;
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+}
+
+.focus-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+}
+
+.focus-preset-grid button {
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border));
+  border-radius: calc(var(--radius) + 0.25rem);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+}
+
+.focus-history-chart {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  min-height: 10rem;
+}
+
+.focus-history-chart article {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+}
+
+.focus-history-chart i {
+  display: block;
+  width: 2rem;
+  height: var(--bar, 2rem);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--primary),
+    color-mix(in srgb, var(--accent) 36%, var(--primary))
+  );
+}
+
+.focus-section-panel {
+  min-height: 0;
+  flex: 1;
+}

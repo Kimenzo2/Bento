@@ -56,6 +56,7 @@
     "clsx": "^2.1.1",
     "lucide-svelte": "^1.0.1",
     "marked": "^18.0.3",
+    "sortablejs": "^1.15.7",
     "tailwind-merge": "^3.5.0",
     "tailwind-variants": "^3.2.2",
     "tw-animate-css": "^1.3.8",

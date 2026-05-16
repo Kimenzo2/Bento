@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "allowArbitraryExtensions": true,
+    "paths": {
+      "$lib": ["./src/lib"],
+      "$lib/*": ["./src/lib/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "src/lib/**/*.ts",
+    "src-tauri/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.svelte",
+    "src/routes/**/+page.svelte",
+    "src/routes/**/+layout.svelte",
+    "node_modules",
+    ".svelte-kit"
+  ]
+}
