@@ -419,7 +419,11 @@ function sanitizeCheckoutRedirectUrl(
 }
 
 function buildDodoClient(apiKey: string, webhookKey?: string | null) {
-  return import('dodopayments').then(({ default: DodoPayments }) => {
+  return import('dodopayments').then((mod) => {
+    const DodoPayments = mod.default as unknown as new (
+      options: { bearerToken: string; environment: DodoEnvironment; webhookKey?: string | null }
+    ) => any;
+
     return new DodoPayments({
       bearerToken: apiKey,
       environment: DODO_ENV,

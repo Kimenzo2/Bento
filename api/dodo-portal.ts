@@ -15,8 +15,11 @@ const DODO_ENV: DodoEnvironment =
     : "live_mode";
 
 async function buildDodoClient(apiKey: string) {
-  const mod = await import("dodopayments");
-  return new mod.default({
+  const { default: DodoPayments } = (await import("dodopayments")) as {
+    default: new (options: { bearerToken: string; environment: DodoEnvironment }) => any;
+  };
+
+  return new DodoPayments({
     bearerToken: apiKey,
     environment: DODO_ENV,
   });
