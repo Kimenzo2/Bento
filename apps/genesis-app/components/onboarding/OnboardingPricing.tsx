@@ -1,395 +1,95 @@
 import type React from 'react';
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Briefcase, Check, Crown, Loader, Shield, Star, X, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { ArrowRight, MonitorSmartphone, Sparkles } from 'lucide-react';
 import { useOnboarding } from './OnboardingState';
-import { UserTier } from '../../types';
-import { createDodoCheckout } from '../../services/dodoService';
-import { supportsAnnualDodoBilling, tierToDodoPlan } from '../../config/dodoPricing';
-import type { LucideIcon } from 'lucide-react';
 import { Button } from '@components/ui/button';
-import { Switch } from '@components/ui/switch';
-
-// Type for pricing tier
-interface PricingTier {
-  name: UserTier;
-  displayName: string;
-  priceMonthly: number;
-  priceAnnual: number;
-  description: string;
-  icon: LucideIcon;
-  gradient: string;
-  glowColor: string;
-  borderColor: string;
-  features: string[];
-  limitations?: string[];
-  saveLabel?: string;
-  isPopular?: boolean;
-}
-
-// Tier data matching PricingPage
-const tiers: PricingTier[] = [
-  {
-    name: UserTier.SPARK,
-    displayName: 'Spark',
-    priceMonthly: 0,
-    priceAnnual: 0,
-    description: 'Start Free',
-    icon: Zap,
-    gradient: 'from-slate-500 to-slate-600',
-    glowColor: '',
-    borderColor: 'border-white/10',
-    features: [
-      '3 ebooks per month',
-      'Max 4 pages per book',
-      '5 illustration styles',
-      'Standard templates',
-    ],
-    limitations: ['Watermarked exports', 'No commercial license'],
-  },
-  {
-    name: UserTier.CREATOR,
-    displayName: 'Creator',
-    priceMonthly: 19.99,
-    priceAnnual: 16.41,
-    description: 'Most Popular',
-    icon: Star,
-    gradient: 'from-blue-500 to-cyan-500',
-    glowColor: '',
-    borderColor: 'border-blue-400/30',
-    saveLabel: 'Save 18%',
-    features: [
-      '30 ebooks per month',
-      'Up to 12 pages/book',
-      'NO watermarks',
-      '20+ illustration styles',
-      'Commercial license',
-      'Priority rendering',
-    ],
-    isPopular: false,
-  },
-  {
-    name: UserTier.STUDIO,
-    displayName: 'Studio',
-    priceMonthly: 59.99,
-    priceAnnual: 49.92,
-    description: 'Professional',
-    icon: Briefcase,
-    gradient: 'from-purple-500 via-pink-500 to-amber-500',
-    glowColor: '',
-    borderColor: 'border-amber-400/40',
-    saveLabel: 'Save 17%',
-    features: [
-      'Everything in Creator',
-      '5 team seats',
-      '500 pages/book',
-      'ALL 50+ styles',
-      'White-label exports',
-      'Brand Hub & Style Guides',
-    ],
-    isPopular: true,
-  },
-  {
-    name: UserTier.EMPIRE,
-    displayName: 'Empire',
-    priceMonthly: 199.99,
-    priceAnnual: 166.58,
-    description: 'Enterprise',
-    icon: Crown,
-    gradient: 'from-amber-400 to-yellow-500',
-    glowColor: '',
-    borderColor: 'border-amber-400/30',
-    saveLabel: 'Save 17%',
-    features: [
-      'Everything in Studio',
-      'Unlimited team members',
-      'Unlimited pages',
-      'Custom AI Model Training',
-      'Dedicated Account Manager',
-      'API Access',
-    ],
-    isPopular: false,
-  },
-];
 
 export const OnboardingPricing: React.FC = () => {
   const { setStep, addSparkPoints } = useOnboarding();
-  const navigate = useNavigate();
-  const [isAnnual, setIsAnnual] = useState(supportsAnnualDodoBilling);
-  const [processingTier, setProcessingTier] = useState<string | null>(null);
-  const [selectedTier, _setSelectedTier] = useState<string | null>(null);
 
-  // Helper to get user ID and email from Supabase auth
-  const getAuthUser = async () => {
-    try {
-      const { supabase } = await import('../../services/supabaseClient');
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
-    } catch {
-      return null;
-    }
-  };
-
-  const handleSubscribe = (tier: (typeof tiers)[0]) => {
-    if (tier.priceMonthly === 0) {
-      // Free tier - continue to tour
-      addSparkPoints(5);
-      setStep('tour');
-      return;
-    }
-
-    handleDodoCheckout(tier);
-  };
-
-  // -- Dodo Payments checkout --
-  const handleDodoCheckout = async (tier: (typeof tiers)[0]) => {
-    const dodoPlan = tierToDodoPlan(tier.name, isAnnual ? 'yearly' : 'monthly');
-    if (!dodoPlan) {
-      alert('This plan is not available for subscription.');
-      return;
-    }
-
-    const user = await getAuthUser();
-    if (!user) {
-      alert('Please sign in to upgrade your plan.');
-      return;
-    }
-
-    try {
-      setProcessingTier(tier.name);
-      const checkoutUrl = await createDodoCheckout({
-        plan: dodoPlan,
-      });
-      window.location.href = checkoutUrl;
-    } catch (err) {
-      console.error('Dodo checkout error:', err);
-      alert(err instanceof Error ? err.message : 'Unable to start checkout. Please try again.');
-    } finally {
-      setProcessingTier(null);
-    }
-  };
-
-  const handleSkip = () => {
+  const handleContinue = () => {
+    addSparkPoints(5);
     setStep('tour');
   };
 
   return (
     <div className="relative h-full min-h-full flex flex-col items-center px-(--ob-container-padding) py-6 overflow-x-hidden overflow-y-auto">
-      {/* Background */}
       <div className="absolute inset-0 bg-linear-to-br from-purple-950/30 via-[#0d0d1a] to-blue-950/30" />
 
-      {/* Ambient orbs */}
       <motion.div
-        animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+        animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.22, 0.15] }}
         transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
         className="absolute top-10 left-0 w-72 h-72 bg-purple-600 rounded-full blur-[120px]"
       />
       <motion.div
-        animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
+        animate={{ scale: [1.1, 1, 1.1], opacity: [0.15, 0.22, 0.15] }}
         transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY }}
         className="absolute bottom-10 right-0 w-80 h-80 bg-blue-600 rounded-full blur-[120px]"
       />
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col py-4">
-        {/* Header */}
+      <div className="relative z-10 w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center py-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6 md:mb-10"
+          className="text-center mb-8"
         >
-          <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-3 font-heading">
-            Choose Your
-            <span className="bg-linear-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">
-              {' '}
-              Creative Journey
-            </span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70 mb-5">
+            <Sparkles className="w-4 h-4 text-gold-sunshine" />
+            Billing moved to desktop
+          </div>
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 font-heading">
+            Your plans are now managed in the Genesis desktop app
           </h1>
-          <p className="text-white/50 text-sm md:text-lg max-w-md mx-auto mb-4">
-            Join 100,000+ creators making beautiful books
+          <p className="text-white/55 text-sm md:text-lg max-w-2xl mx-auto">
+            The web onboarding flow no longer collects payments. Core, Pro, and Power live in the
+            desktop app so there is one purchase surface and no upgrade confusion.
           </p>
-
-          {/* Billing Toggle */}
-          {supportsAnnualDodoBilling ? (
-            <div className="flex items-center justify-center gap-3">
-              <span className={`text-sm font-medium ${isAnnual ? 'text-white/40' : 'text-white'}`}>
-                Monthly
-              </span>
-              <Switch
-                checked={isAnnual}
-                onCheckedChange={setIsAnnual}
-                aria-label={isAnnual ? 'Switch to monthly billing' : 'Switch to annual billing'}
-              />
-              <span
-                className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}
-              >
-                Annual
-                <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-400/30">
-                  Save 18%
-                </span>
-              </span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70">
-              Monthly billing only
-            </div>
-          )}
         </motion.div>
 
-        {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {tiers.map((tier, index) => {
-            const isSelected = selectedTier === tier.name;
-            const isProcessing = processingTier === tier.name;
-
-            return (
-              <motion.div
-                key={tier.name}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={`relative bg-surface/5  rounded-2xl border p-3 md:p-5 flex flex-col transition-all duration-300 ${
-                  tier.isPopular
-                    ? 'border-amber-400/50'
-                    : `${tier.borderColor} hover:border-white/20`
-                } ${isSelected ? 'ring-2 ring-purple-500' : ''}`}
-              >
-                {/* Popular Badge */}
-                {tier.isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-linear-to-r from-purple-500 via-pink-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
-                    ⭐ Most Popular
-                  </div>
-                )}
-
-                {/* Icon */}
-                <div
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-linear-to-br ${tier.gradient} flex items-center justify-center mb-3`}
-                >
-                  <tier.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                </div>
-
-                {/* Name & Description */}
-                <h3 className="text-lg md:text-xl font-bold text-white mb-0.5">
-                  {tier.displayName}
-                </h3>
-                <p className="text-white/40 text-xs mb-3">{tier.description}</p>
-
-                {/* Price */}
-                <div className="mb-3">
-                  <span className="text-2xl md:text-3xl font-bold text-white">
-                    ${isAnnual ? tier.priceAnnual : tier.priceMonthly}
-                  </span>
-                  <span className="text-white/40 text-sm">/mo</span>
-                  {isAnnual && tier.priceAnnual > 0 && (
-                    <div className="text-emerald-400 text-xs mt-0.5">
-                      ${Math.ceil(tier.priceAnnual * 12)}/yr
-                    </div>
-                  )}
-                </div>
-
-                {/* Features */}
-                <div className="flex-1 space-y-1.5 mb-4">
-                  {tier.features.slice(0, 4).map((feature, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-white/70">
-                      <Check className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" />
-                      <span className="line-clamp-1">{feature}</span>
-                    </div>
-                  ))}
-                  {tier.features.length > 4 && (
-                    <div className="text-xs text-white/40">
-                      +{tier.features.length - 4} more features
-                    </div>
-                  )}
-                  {tier.limitations?.slice(0, 2).map((limitation, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-white/30">
-                      <X className="w-3 h-3 mt-0.5 shrink-0" />
-                      <span className="line-clamp-1">{limitation}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA Button */}
-                <Button
-                  variant={
-                    tier.isPopular ? 'primary' : tier.priceMonthly === 0 ? 'ghost' : 'outline'
-                  }
-                  size="default"
-                  className="w-full"
-                  onClick={() => handleSubscribe(tier)}
-                  disabled={processingTier !== null}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : tier.priceMonthly === 0 ? (
-                    'Continue Free'
-                  ) : (
-                    <>
-                      Upgrade Now
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </Button>
-
-                {/* Why This Tier Button */}
-                {tier.priceMonthly > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(`/tier/${tier.name.toLowerCase()}`)}
-                    className="w-full mt-2 py-2 font-medium text-white/40 hover:text-white/70 hover:bg-surface/5 border border-transparent hover:border-white/10"
-                  >
-                    Why {tier.displayName}?
-                  </Button>
-                )}
-              </motion.div>
-            );
-          })}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          {[
+            {
+              title: 'Core',
+              body: 'Five anchor apps. Local only. No sync. No AI.',
+            },
+            {
+              title: 'Pro',
+              body: 'All 21 apps. Sync across 3 devices. Basic AI.',
+            },
+            {
+              title: 'Power',
+              body: 'All 21 apps. Unlimited devices. Advanced AI and priority support.',
+            },
+          ].map((plan) => (
+            <div
+              key={plan.title}
+              className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left"
+            >
+              <h3 className="text-lg font-bold text-white mb-2">{plan.title}</h3>
+              <p className="text-sm text-white/60">{plan.body}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Trust Signals */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-wrap justify-center gap-4 text-white/40 text-xs mb-4"
-        >
-          <span className="flex items-center gap-1">
-            <Shield className="w-3 h-3 text-emerald-400" />
-            Secure Payment
-          </span>
-          <span className="flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-400" />
-            Cancel anytime
-          </span>
-          <span className="flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-400" />
-            7-day money back
-          </span>
-        </motion.div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+          <div className="flex items-start gap-3">
+            <MonitorSmartphone className="mt-1 w-5 h-5 text-coral-burst shrink-0" />
+            <div>
+              <h2 className="text-white font-semibold">Continue without checkout</h2>
+              <p className="text-white/55 text-sm mt-1">
+                You can finish onboarding now and manage billing later in the desktop app.
+              </p>
+            </div>
+          </div>
 
-        {/* Skip Link */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="mx-auto"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSkip}
-            className="text-white/30 hover:text-white/50 hover:bg-transparent"
-          >
-            Maybe later, continue with Free →
+          <Button onClick={handleContinue} size="lg" className="rounded-full gap-2">
+            Continue
+            <ArrowRight className="w-4 h-4" />
           </Button>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
 };
+
+export default OnboardingPricing;

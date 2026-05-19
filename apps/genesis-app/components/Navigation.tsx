@@ -1,4 +1,3 @@
-import { IcoZap } from './IconscoutIcons';
 import {
   BarChart3,
   BookOpen,
@@ -185,19 +184,6 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
             </div>
           </Button>
 
-          {currentUserTier === UserTier.SPARK && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => handleModeChange(AppMode.PRICING)}
-              className="rounded-full ring-2 ring-gold-sunshine/40"
-              aria-label={t('common:upgrade', 'Upgrade')}
-            >
-              <IcoZap className="w-4 h-4 fill-white" />
-              {t('common:upgrade', 'Upgrade')}
-            </Button>
-          )}
-
           <Button
             variant="outline"
             onClick={() => handleModeChange(AppMode.SETTINGS)}
@@ -232,17 +218,6 @@ const Navigation: React.FC<NavigationProps> = ({ currentMode, setMode, gameState
       <div
         className={`fixed inset-0 z-40 bg-cream-base/95 backdrop-blur-xl transition-transform duration-300 pt-[100px] px-6 pb-[calc(1.5rem+var(--safe-area-inset-bottom))] lg:hidden flex flex-col gap-4 overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        <Button
-          variant="primary"
-          size="xl"
-          onClick={() => handleModeChange(AppMode.PRICING)}
-          className="w-full rounded-2xl text-lg mb-4"
-          aria-label={t('upgradePremium', 'Upgrade to Premium')}
-        >
-          <IcoZap className="w-6 h-6 fill-white" />
-          {t('upgradePremium', 'Upgrade to Premium')}
-        </Button>
-
         <Button
           variant="outline"
           onClick={() => handleModeChange(AppMode.GAMIFICATION)}

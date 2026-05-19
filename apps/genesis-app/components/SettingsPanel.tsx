@@ -948,51 +948,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   </div>
                 </div>
 
-                {/* Upgrade CTA */}
-                <div className="bg-linear-to-r from-coral-burst to-gold-sunshine p-5 md:p-6 rounded-2xl text-white">
-                  <h4 className="font-heading font-bold text-lg md:text-xl mb-2">
-                    {t('subscriptionSection.unlockPremium', {
-                      defaultValue: 'Unlock Premium Features',
-                    })}
-                  </h4>
-                  <p className="text-sm text-white/90 mb-4">
-                    {t('subscriptionSection.upgradeMessage', {
-                      defaultValue:
-                        'Upgrade to Creator (10 ebooks/month) or Visionary (unlimited) for advanced AI and priority support',
-                    })}
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => onNavigate?.(AppMode.PRICING)}
-                    className="bg-surface text-coral-burst hover:bg-surface/90 rounded-full border border-white"
-                  >
-                    {t('subscriptionSection.viewPlans', { defaultValue: 'View Plans' })}
-                  </Button>
-                </div>
-
-                {/* Billing History */}
-                <div>
-                  <h4 className="font-heading font-bold text-base md:text-lg text-charcoal-soft mb-4">
-                    {t('billingHistory', { defaultValue: 'Billing History' })}
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-cream-base rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-5 h-5 text-cocoa-light shrink-0" />
-                        <div>
-                          <p className="font-bold text-sm text-charcoal-soft">
-                            {t('subscriptionSection.sparkPlan', { defaultValue: 'Spark Plan' })}
-                          </p>
-                          <p className="text-xs text-cocoa-light">
-                            {t('subscriptionSection.freeTierNoCharges', {
-                              defaultValue: 'Free tier - No charges',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-base md:text-lg font-bold text-charcoal-soft">
-                        $0.00
-                      </span>
+                <div className="rounded-2xl border border-peach-soft/30 bg-surface p-5 md:p-6">
+                  <div className="flex items-start gap-3">
+                    <Shield className="mt-1 w-5 h-5 text-gold-sunshine shrink-0" />
+                    <div>
+                      <h4 className="font-heading font-bold text-lg md:text-xl text-charcoal-soft mb-2">
+                        Billing has moved to desktop
+                      </h4>
+                      <p className="text-sm text-cocoa-light">
+                        Subscription changes, upgrades, and device limits are now managed in the
+                        Genesis desktop app. The web app keeps your current access visible only.
+                      </p>
                     </div>
                   </div>
                 </div>

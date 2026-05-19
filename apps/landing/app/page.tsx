@@ -1,5 +1,5 @@
 const releaseNotes = [
-  'Windows 64-bit installer',
+  'Windows 64-bit NSIS installer — v0.1.0',
   'Same-domain download route',
   'Starts immediately without a release-page hop',
 ];
@@ -10,14 +10,14 @@ export default function HomePage() {
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-20 sm:px-10 lg:px-12">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.45em] text-white/45">
-            Genesis Desktop
+            Bento Desktop
           </p>
           <h1 className="mt-5 text-5xl font-semibold leading-none tracking-tight text-balance sm:text-6xl lg:text-7xl">
             Download the Windows installer.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-            Genesis Desktop is available for Windows right now. Use the download below and the
-            browser will start the installer immediately on the Genesis domain.
+            Bento Desktop is available for Windows right now. Use the download below and the
+            browser will start the installer immediately.
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -25,7 +25,7 @@ export default function HomePage() {
               href="/download/windows"
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              Download for Windows
+              Download for Windows v0.1.0
             </a>
             <span className="text-sm leading-6 text-white/50">
               Direct installer, no extra release page.

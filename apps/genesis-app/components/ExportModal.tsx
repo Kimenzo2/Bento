@@ -331,7 +331,9 @@ async function generatePDF(
   return exportToPDF(book.project, {
     includeImages: options.includeImages,
     includeWatermark,
-    watermarkText: includeWatermark ? 'Created with Genesis - Upgrade to remove' : undefined,
+    watermarkText: includeWatermark
+      ? 'Created with Genesis - desktop billing manages watermark removal'
+      : undefined,
     pageSize: sizeMap[options.pageSize],
     margins: {
       top: marginMap[options.margins],

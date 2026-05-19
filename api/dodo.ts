@@ -379,14 +379,43 @@ async function verifyCheckoutUser(req: VercelRequest): Promise<VerifiedCheckoutU
 
 async function parseCheckoutBody(
   req: VercelRequest
-): Promise<{ plan?: string }> {
+): Promise<{ plan?: string; return_url?: string; cancel_url?: string }> {
   const rawBody = await getRawBody(req);
 
   if (!rawBody) {
     return {};
   }
 
-  return JSON.parse(rawBody) as { plan?: string };
+  return JSON.parse(rawBody) as { plan?: string; return_url?: string; cancel_url?: string };
+}
+
+function sanitizeCheckoutRedirectUrl(
+  value: string | undefined,
+  {
+    appUrl,
+    fallbackPath,
+    desktopPrefix,
+  }: {
+    appUrl: string;
+    fallbackPath: string;
+    desktopPrefix: string;
+  }
+): string {
+  const fallbackUrl = `${appUrl}${fallbackPath}`;
+  if (!value?.trim()) {
+    return fallbackUrl;
+  }
+
+  const candidate = value.trim();
+  if (candidate.startsWith(desktopPrefix)) {
+    return candidate;
+  }
+
+  if (candidate.startsWith(fallbackUrl)) {
+    return candidate;
+  }
+
+  throw new Error('Unsupported checkout redirect URL');
 }
 
 function buildDodoClient(apiKey: string, webhookKey?: string | null) {
@@ -423,6 +452,7 @@ async function createCheckoutSession(params: {
   userId: string;
   tier: string;
   returnUrl: string;
+  cancelUrl?: string;
   req: VercelRequest;
 }): Promise<{ checkoutUrl: string; sessionId: string }> {
   if (DODO_API_KEY_CANDIDATES.length === 0) {
@@ -444,6 +474,7 @@ async function createCheckoutSession(params: {
             name: params.customerName,
           },
           return_url: params.returnUrl,
+          cancel_url: params.cancelUrl,
           feature_flags: {
             redirect_immediately: true,
           },
@@ -520,7 +551,7 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const { plan } = await parseCheckoutBody(req);
+    const { plan, return_url, cancel_url } = await parseCheckoutBody(req);
     if (!plan) {
       return res.status(400).json({ status: false, message: 'plan is required' });
     }
@@ -543,13 +574,25 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
 
     const customerName = authUser.name?.trim() || customerEmail;
     const appUrl = getAppUrl(req);
+    const tierSlug = resolvedPlan.tier.toLowerCase();
+    const returnUrl = sanitizeCheckoutRedirectUrl(return_url, {
+      appUrl,
+      fallbackPath: `/payment-callback?plan=${tierSlug}`,
+      desktopPrefix: 'genesis://payment-callback',
+    });
+    const cancelUrl = sanitizeCheckoutRedirectUrl(cancel_url, {
+      appUrl,
+      fallbackPath: '/pricing',
+      desktopPrefix: 'genesis://pricing',
+    });
     const session = await createCheckoutSession({
       productId: resolvedPlan.productId,
       customerEmail,
       customerName,
       userId: authUser.userId,
       tier: resolvedPlan.tier,
-      returnUrl: `${appUrl}/payment-callback?plan=${resolvedPlan.tier.toLowerCase()}`,
+      returnUrl,
+      cancelUrl,
       req,
     });
 

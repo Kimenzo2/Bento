@@ -84,12 +84,12 @@ const BookSuccessView: React.FC<BookSuccessViewProps> = ({ project, onNavigate, 
     try {
       await downloadPDF(project, {
         includeWatermark: needsWatermark,
-        watermarkText: 'Created with Genesis - Upgrade to remove',
+        watermarkText: 'Created with Genesis - desktop billing manages watermark removal',
       });
 
       if (needsWatermark) {
         toast.success('Book downloaded with watermark', {
-          description: 'Upgrade to Creator tier for clean, watermark-free exports.',
+          description: 'Use the Genesis desktop app to manage billing and watermark-free exports.',
         });
       }
     } catch (error) {

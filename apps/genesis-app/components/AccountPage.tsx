@@ -1,45 +1,28 @@
 import { motion } from 'framer-motion';
-import {
-  Calendar,
-  CreditCard,
-  Crown,
-  ExternalLink,
-  Shield,
-  Sparkles,
-  User,
-  Zap,
-} from 'lucide-react';
+import { Calendar, Crown, MonitorSmartphone, Shield, User } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import {
-  type TierName,
-  TIER_DISPLAY,
-  TIER_ENTITLEMENTS,
-  getEntitlements,
-  isUnlimited,
-  userTierToTierName,
-} from '../config/entitlements';
+import { type TierName, TIER_DISPLAY, getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile } from '../services/profileService';
 import { getCurrentMonthUsage } from '../services/usageService';
-import { AppMode, UserTier } from '../types';
+import { UserTier } from '../types';
 import UsageCounter from './billing/UsageCounter';
-import { Button } from './ui/button';
 
 interface AccountPageProps {
-  onNavigate: (mode: AppMode) => void;
+  onNavigate?: (mode: any) => void;
 }
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   active: { label: 'Active', color: 'bg-emerald-100 text-emerald-700' },
   cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-600' },
   on_hold: { label: 'On Hold', color: 'bg-amber-100 text-amber-700' },
-  inactive: { label: 'Free', color: 'bg-blue-100 text-blue-700' },
+  inactive: { label: 'Read only', color: 'bg-blue-100 text-blue-700' },
   expired: { label: 'Expired', color: 'bg-red-100 text-red-600' },
 };
 
-const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
-  const { user, userProfile } = useAuth();
+const AccountPage: React.FC<AccountPageProps> = () => {
+  const { user } = useAuth();
   const [tier, setTier] = useState<TierName>('SPARK');
   const [subscriptionStatus, setSubscriptionStatus] = useState('inactive');
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
@@ -63,7 +46,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
         const usage = await getCurrentMonthUsage(userId);
         setMonthlyUsage(usage);
       } catch {
-        // fallback to defaults
+        // keep defaults
       } finally {
         setLoading(false);
       }
@@ -95,7 +78,6 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
-        {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-charcoal-soft flex items-center justify-center">
             <User className="w-6 h-6 text-white" />
@@ -106,8 +88,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Subscription Card */}
-        <div className="bg-white rounded-2xl border-2 border-peach-soft/30 overflow-hidden">
+        <div className="rounded-2xl border-2 border-peach-soft/30 overflow-hidden bg-white">
           <div className="p-6 border-b border-peach-soft/20">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -141,13 +122,11 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
             )}
           </div>
 
-          {/* Usage */}
           <div className="p-6 border-b border-peach-soft/20">
             <h3 className="text-sm font-medium text-charcoal-soft mb-3">Monthly Usage</h3>
             <UsageCounter tier={tier} monthlyUsage={monthlyUsage} />
           </div>
 
-          {/* Features */}
           <div className="p-6">
             <h3 className="text-sm font-medium text-charcoal-soft mb-3">Your Features</h3>
             <div className="grid grid-cols-2 gap-2">
@@ -167,72 +146,22 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Manage Billing (paid users) */}
-        {!isSpark && (
-          <div className="bg-white rounded-2xl border-2 border-peach-soft/30 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <CreditCard className="w-5 h-5 text-cocoa-light" />
-              <h2 className="font-heading font-bold text-charcoal-soft">Billing</h2>
+        <div className="rounded-2xl border border-peach-soft/30 bg-surface p-6">
+          <div className="flex items-start gap-3">
+            <MonitorSmartphone className="mt-1 w-5 h-5 text-coral-burst shrink-0" />
+            <div>
+              <h2 className="font-heading font-bold text-charcoal-soft">Billing is desktop-only</h2>
+              <p className="mt-2 text-sm text-cocoa-light">
+                Subscription changes, upgrades, and device-limit changes are now handled in the
+                Genesis desktop app. The web app only shows your current access state.
+              </p>
             </div>
-            <p className="text-sm text-cocoa-light mb-4">
-              Manage your subscription, update payment method, or download invoices through the Dodo
-              Payments portal.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => window.open('https://checkout.dodopayments.com/billing', '_blank')}
-              className="gap-2"
-            >
-              Manage Billing
-              <ExternalLink className="w-4 h-4" />
-            </Button>
           </div>
-        )}
+        </div>
 
-        {/* Upgrade Cards (Spark users) */}
-        {isSpark && (
-          <div className="space-y-3">
-            <h2 className="font-heading font-bold text-lg text-charcoal-soft flex items-center gap-2">
-              <Zap className="w-5 h-5 text-gold-sunshine" />
-              Upgrade Your Plan
-            </h2>
-            {(['CREATOR', 'STUDIO', 'EMPIRE'] as TierName[]).map((t) => {
-              const tEnt = getEntitlements(t);
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => onNavigate(AppMode.PRICING)}
-                  className="w-full text-left bg-white rounded-2xl border-2 border-peach-soft/30 p-5 hover:border-coral-burst/40 transition-colors group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-heading font-bold text-charcoal-soft group-hover:text-coral-burst transition-colors">
-                        {TIER_DISPLAY[t].label}
-                      </h3>
-                      <p className="text-sm text-cocoa-light mt-1">
-                        {isUnlimited(tEnt.books_per_month) ? 'Unlimited' : tEnt.books_per_month}{' '}
-                        books/mo
-                        {' · '}
-                        {isUnlimited(tEnt.pages_per_book) ? 'Unlimited' : tEnt.pages_per_book} pages
-                        {!tEnt.watermark ? ' · No watermark' : ''}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-charcoal-soft">{TIER_DISPLAY[t].price}</span>
-                      <Sparkles className="w-4 h-4 text-gold-sunshine ml-2 inline-block" />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Security */}
         <div className="flex items-center gap-2 text-xs text-cocoa-light/60 justify-center pb-4">
           <Shield className="w-3 h-3" />
-          Payments handled securely by Dodo Payments
+          Billing managed through the desktop app
         </div>
       </motion.div>
     </div>

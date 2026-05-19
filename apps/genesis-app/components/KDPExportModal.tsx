@@ -55,8 +55,8 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
   const handleExport = async () => {
     // Check tier restrictions
     if (userTier === UserTier.SPARK) {
-      toast.error('KDP Export is a Creator feature', {
-        description: 'Upgrade to Creator tier to unlock professional book exports.',
+      toast.error('KDP Export is managed in desktop', {
+        description: 'Use the Genesis desktop app to change billing and unlock export access.',
       });
       return;
     }
@@ -321,12 +321,12 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
             {userTier === UserTier.SPARK && (
               <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border border-gold-sunshine rounded-2xl">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <div className="font-bold text-charcoal-soft">Premium Feature</div>
-                    <div className="text-sm text-cocoa-light">Upgrade to unlock KDP export</div>
+                    <div className="font-bold text-charcoal-soft">Desktop feature</div>
+                    <div className="text-sm text-cocoa-light">Billing moved to the desktop app</div>
                   </div>
                 </div>
                 <ul className="text-sm text-cocoa-light space-y-1 mb-4">
@@ -364,7 +364,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
             ) : (
               <>
                 <Download className="w-5 h-5" />
-                {userTier === UserTier.SPARK ? 'Upgrade to Export' : 'Export for Amazon KDP'}
+                {userTier === UserTier.SPARK ? 'Managed in desktop' : 'Export for Amazon KDP'}
               </>
             )}
           </Button>

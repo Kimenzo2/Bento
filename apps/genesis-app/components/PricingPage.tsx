@@ -1,380 +1,185 @@
-import { Briefcase, Check, Crown, Loader, Star, X, Zap } from 'lucide-react';
+import { ArrowLeft, BrainCircuit, Check, MonitorSmartphone, ShieldCheck, Sparkles } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { usePageSEO } from '../hooks/usePageSEO';
-import type { LucideProps } from 'lucide-react';
-import { UserTier } from '../types';
-import { createDodoCheckout } from '../services/dodoService';
-import { supportsAnnualDodoBilling, tierToDodoPlan } from '../config/dodoPricing';
 import { Button } from './ui/button';
-import { Switch } from './ui/switch';
+import { useNavigate } from 'react-router';
 
-interface PricingPageProps {
-  onUpgrade?: (tier: UserTier) => void;
-}
-
-interface TierData {
-  name: UserTier;
-  priceMonthly: number;
-  priceAnnual: number;
-  description: string;
-  icon: React.ForwardRefExoticComponent<
-    Omit<LucideProps, 'ref'> & React.RefAttributes<SVGSVGElement>
-  >;
-  color: string;
-  buttonColor: string;
+type BillingPlan = {
+  name: string;
+  monthly: string;
+  yearly: string;
+  summary: string;
   features: string[];
-  limitations?: string[];
-  saveLabel?: string;
-  isPopular?: boolean;
-}
+  accent: string;
+};
 
-const tiers: TierData[] = [
+const PLANS: BillingPlan[] = [
   {
-    name: UserTier.SPARK,
-    priceMonthly: 0,
-    priceAnnual: 0,
-    description: 'The Hook That Gets You Addicted',
-    icon: Zap,
-    color: 'bg-peach-soft/30 text-cocoa-light',
-    buttonColor: 'bg-peach-light/50 text-charcoal-soft hover:bg-gray-300',
-    features: [
-      '3 ebooks per month',
-      'Max 4 pages per book',
-      '5 illustration styles',
-      'Standard templates',
-      'Community support',
-    ],
-    limitations: ['Watermarked exports', 'Basic AI writing', 'No commercial license'],
+    name: 'Core',
+    monthly: '$9/month',
+    yearly: '$90/year',
+    summary: 'Five anchor apps. Local only. No sync. No AI.',
+    features: ['Tasks', 'Notes', 'Journal', 'Password Vault', 'Budget'],
+    accent: 'from-cocoa-light/10 to-peach-soft/30',
   },
   {
-    name: UserTier.CREATOR,
-    priceMonthly: 19.99,
-    priceAnnual: 16.41, // $197/yr
-    description: 'The Sweet Spot',
-    icon: Star,
-    color: 'bg-blue-50 text-blue-600',
-    buttonColor: 'bg-blue-500 text-white hover:bg-blue-600',
-    saveLabel: 'Save 18%',
-    features: [
-      '30 ebooks per month',
-      'Up to 12 pages/book',
-      'NO watermarks',
-      '20+ illustration styles',
-      'Commercial license',
-      'Priority rendering',
-    ],
-    isPopular: false,
+    name: 'Pro',
+    monthly: '$19/month',
+    yearly: '$180/year',
+    summary: 'All 21 apps. Sync across 3 devices. Basic AI features.',
+    features: ['All 21 apps', 'Sync across 3 devices', 'Basic AI', 'Desktop + web access'],
+    accent: 'from-coral-burst/10 to-gold-sunshine/25',
   },
   {
-    name: UserTier.STUDIO,
-    priceMonthly: 59.99,
-    priceAnnual: 49.92, // $599/yr
-    description: 'The Professional Choice',
-    icon: Briefcase,
-    color: 'bg-coral-burst/10 text-coral-burst',
-    buttonColor:
-      'bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white border border-white/20 hover:scale-105',
-    saveLabel: 'Save 17%',
+    name: 'Power',
+    monthly: '$29/month',
+    yearly: '$270/year',
+    summary:
+      'All 21 apps. Unlimited devices. Advanced AI intelligence layer. Priority support.',
     features: [
-      'Everything in Creator',
-      '5 team seats',
-      '500 pages/book',
-      'ALL 50+ styles',
-      'White-label exports',
-      'Brand Hub & Style Guides',
-      'Video book exports',
+      'All 21 apps',
+      'Unlimited devices',
+      'Advanced AI recommendations',
+      'Priority support',
+      'Early access to new modules',
     ],
-    isPopular: true,
-  },
-  {
-    name: UserTier.EMPIRE,
-    priceMonthly: 199.99,
-    priceAnnual: 166.58, // $1999/yr
-    description: 'Best Value for Scale',
-    icon: Crown,
-    color: 'bg-purple-50 text-purple-600',
-    buttonColor: 'bg-charcoal-soft text-white hover:bg-black',
-    saveLabel: 'Save 17%',
-    features: [
-      'Everything in Studio',
-      'Unlimited team members',
-      'Unlimited pages',
-      'Custom AI Model Training',
-      'Dedicated Account Manager',
-      'API Access',
-      'VIP 24/7 Support',
-    ],
-    isPopular: false,
+    accent: 'from-blue-500/10 to-purple-500/20',
   },
 ];
 
+interface PricingPageProps {
+  onUpgrade?: () => void;
+}
+
 const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
-  const { user } = useAuth();
-  const [isAnnual, setIsAnnual] = useState(supportsAnnualDodoBilling);
-  const [processingTier, setProcessingTier] = useState<string | null>(null);
+  void onUpgrade;
+  const navigate = useNavigate();
 
   usePageSEO({
-    title: 'Pricing — Genesis AI Visual Storytelling',
+    title: 'Billing moved to desktop — Genesis',
     description:
-      'Genesis plans from free to enterprise. Create AI-powered visual stories, educational content, and illustrated books.',
+      'Genesis billing and subscription changes are now managed in the desktop app. The web app only shows plan information.',
     canonical: '/pricing',
   });
 
-  // Inject pricing JSON-LD
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'pricing-jsonld';
-    script.textContent = JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'Genesis',
-      applicationCategory: 'EducationalApplication',
-      operatingSystem: 'Web Browser',
-      offers: [
-        {
-          '@type': 'Offer',
-          name: 'Spark',
-          price: '0',
-          priceCurrency: 'USD',
-          description: 'Free tier with basic features',
-        },
-        {
-          '@type': 'Offer',
-          name: 'Creator',
-          price: '19.99',
-          priceCurrency: 'USD',
-          description: 'Monthly plan for individual creators',
-          url: 'https://iamazeyou.me/tier/creator',
-        },
-        {
-          '@type': 'Offer',
-          name: 'Studio',
-          price: '59.99',
-          priceCurrency: 'USD',
-          description: 'Monthly plan for professional studios',
-          url: 'https://iamazeyou.me/tier/studio',
-        },
-        {
-          '@type': 'Offer',
-          name: 'Empire',
-          price: '199.99',
-          priceCurrency: 'USD',
-          description: 'Monthly plan for enterprise teams',
-          url: 'https://iamazeyou.me/tier/empire',
-        },
-      ],
-    });
-    document.head.appendChild(script);
-    return () => {
-      document.getElementById('pricing-jsonld')?.remove();
-    };
-  }, []);
-
-  const handleSubscribe = (tier: TierData) => {
-    if (tier.priceMonthly === 0) {
-      alert('You are now on the Free Spark plan!');
-      if (onUpgrade) onUpgrade(UserTier.SPARK);
-      return;
-    }
-
-    handleDodoCheckout(tier);
-  };
-
-  // -- Dodo Payments checkout --
-  const handleDodoCheckout = async (tier: TierData) => {
-    const dodoPlan = tierToDodoPlan(tier.name, isAnnual ? 'yearly' : 'monthly');
-    if (!dodoPlan) {
-      alert('This plan is not available for subscription.');
-      return;
-    }
-
-    if (!user) {
-      alert('Please sign in to upgrade your plan.');
-      return;
-    }
-
-    try {
-      setProcessingTier(tier.name);
-      const checkoutUrl = await createDodoCheckout({
-        plan: dodoPlan,
-      });
-      window.location.href = checkoutUrl;
-    } catch (err) {
-      console.error('Dodo checkout error:', err);
-      alert(err instanceof Error ? err.message : 'Unable to start checkout. Please try again.');
-    } finally {
-      setProcessingTier(null);
-    }
-  };
-
   return (
-    <section
-      aria-label="Pricing plans"
-      className="w-full min-h-screen bg-cream-base pb-24 animate-fadeIn"
-    >
-      <div className="max-w-7xl mx-auto px-6 pt-12">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="font-heading font-bold text-4xl md:text-5xl text-charcoal-soft mb-6">
-            Choose Your{' '}
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-coral-burst to-gold-sunshine">
-              Creative Journey
-            </span>
-          </h1>
-          <p className="font-body text-xl text-cocoa-light max-w-2xl mx-auto mb-10">
-            Join 100,000+ creators making beautiful books today. Upgrade to unlock your full
-            potential.
-          </p>
+    <section className="w-full min-h-screen bg-cream-base pb-24">
+      <div className="max-w-6xl mx-auto px-6 pt-12">
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-peach-soft/60 bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cocoa-light">
+              <Sparkles className="w-3.5 h-3.5 text-gold-sunshine" />
+              Billing moved to desktop
+            </div>
+            <h1 className="mt-4 font-heading font-bold text-4xl md:text-5xl text-charcoal-soft">
+              Pricing is now read only on the web
+            </h1>
+            <p className="mt-4 max-w-2xl text-lg text-cocoa-light">
+              Subscription changes and checkout now happen inside the Genesis desktop app. This
+              web page stays open for reference only so there is no confusion about where billing
+              lives.
+            </p>
+          </div>
 
-          {/* Toggle */}
-          {supportsAnnualDodoBilling ? (
-            <div className="flex items-center justify-center gap-4">
-              <span
-                className={`font-heading font-bold ${isAnnual ? 'text-cocoa-light' : 'text-charcoal-soft'}`}
-              >
-                Monthly
-              </span>
-              <Switch
-                checked={isAnnual}
-                onCheckedChange={setIsAnnual}
-                aria-label={
-                  isAnnual
-                    ? 'Currently annual billing, click to switch to monthly'
-                    : 'Currently monthly billing, click to switch to annual'
-                }
-              />
-              <span
-                className={`font-heading font-bold flex items-center gap-2 ${isAnnual ? 'text-charcoal-soft' : 'text-cocoa-light'}`}
-              >
-                Annual
-                <span className="bg-gold-sunshine/20 text-yellow-600 text-xs px-2 py-0.5 rounded-full">
-                  Save up to 18%
-                </span>
-              </span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-full border border-peach-soft/60 bg-surface px-4 py-2 text-sm font-medium text-cocoa-light">
-              Monthly billing only
-            </div>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/')}
+            className="hidden md:inline-flex gap-2 rounded-full"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to app
+          </Button>
         </div>
 
-        {/* Pricing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-end">
-          {tiers.map((tier) => (
-            <div
-              key={tier.name}
-              className={`relative bg-surface rounded-3xl p-8 border transition-all duration-300 flex flex-col h-full
-                ${
-                  tier.isPopular
-                    ? 'border-gold-sunshine transform scale-105 z-10'
-                    : 'border-peach-soft/50 hover:-translate-y-2'
-                }`}
-            >
-              {tier.isPopular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-linear-to-r from-coral-burst to-gold-sunshine text-white px-4 py-1 rounded-full font-heading font-bold text-sm whitespace-nowrap">
-                  Most Popular ⭐
-                </div>
-              )}
-
-              <div
-                className={`w-12 h-12 rounded-2xl ${tier.color} flex items-center justify-center mb-6`}
-              >
-                <tier.icon className="w-6 h-6" />
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] mb-8">
+          <div className="rounded-3xl border-2 border-peach-soft/40 bg-white p-6 md:p-8 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-charcoal-soft flex items-center justify-center shrink-0">
+                <MonitorSmartphone className="w-6 h-6 text-white" />
               </div>
-
-              <h2 className="font-heading font-bold text-2xl text-charcoal-soft mb-2">
-                {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}
-              </h2>
-              <p className="text-xs font-bold text-cocoa-light uppercase tracking-wider mb-6">
-                {tier.description}
-              </p>
-
-              <div className="mb-6">
-                <span className="font-heading font-bold text-4xl text-charcoal-soft">
-                  ${isAnnual ? tier.priceAnnual : tier.priceMonthly}
-                </span>
-                <span className="text-cocoa-light font-medium">/mo</span>
-                {isAnnual && tier.priceAnnual > 0 && (
-                  <div className="text-xs text-green-500 font-bold mt-1">
-                    Billed ${Math.ceil(tier.priceAnnual * 12)}/yr
-                  </div>
-                )}
+              <div>
+                <h2 className="font-heading font-bold text-2xl text-charcoal-soft">
+                  Desktop is the purchase surface
+                </h2>
+                <p className="mt-2 text-cocoa-light">
+                  The web app will no longer route users into checkout, upgrade modals, or billing
+                  flows. Desktop owns the purchase path and the same live Dodo infra remains in
+                  place there.
+                </p>
               </div>
+            </div>
 
-              <Button
-                onClick={() => handleSubscribe(tier)}
-                disabled={processingTier !== null}
-                className={`w-full py-3 mb-4 ${tier.buttonColor}`}
-              >
-                {processingTier === tier.name ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : tier.priceMonthly === 0 ? (
-                  'Start Creating Free'
-                ) : (
-                  'Upgrade now'
-                )}
-              </Button>
-
-              {/* Why This Tier Button */}
-              {tier.priceMonthly > 0 && (
-                <Button
-                  onClick={() => {
-                    const el = document.getElementById('pricing-faq');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full py-2 font-medium text-cocoa-light hover:text-charcoal-soft hover:bg-peach-soft/30 mb-6 border border-transparent hover:border-peach-soft"
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                'No web checkout buttons',
+                'No billing modal on the web',
+                'Desktop uses the live Dodo backend',
+                'Plan changes sync through Supabase',
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-start gap-2 rounded-2xl border border-peach-soft/40 bg-cream-base/70 p-4"
                 >
-                  Why {tier.name.charAt(0) + tier.name.slice(1).toLowerCase()}?
-                </Button>
-              )}
-              {tier.priceMonthly === 0 && <div className="mb-4" />}
-
-              <div className="flex-1 space-y-4 mb-4">
-                {tier.features.map((feature, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 text-sm text-charcoal-soft font-medium"
-                  >
-                    <div className="mt-0.5 min-w-4 min-h-4 rounded-full bg-mint-breeze flex items-center justify-center">
-                      <Check className="w-2.5 h-2.5 text-green-600" />
-                    </div>
-                    {feature}
-                  </div>
-                ))}
-                {tier.limitations?.map((limitation, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm text-cocoa-light/70">
-                    <X className="w-4 h-4 mt-0.5" />
-                    {limitation}
-                  </div>
-                ))}
-              </div>
+                  <Check className="mt-0.5 w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-sm text-charcoal-soft">{item}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="rounded-3xl border-2 border-peach-soft/40 bg-white p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <BrainCircuit className="w-5 h-5 text-coral-burst" />
+              <h2 className="font-heading font-bold text-xl text-charcoal-soft">Plan summary</h2>
+            </div>
+            <p className="text-sm text-cocoa-light">
+              The tiers below are the current desktop billing model. The web app keeps them visible
+              for clarity only.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              {PLANS.map((plan) => (
+                <div key={plan.name} className="rounded-2xl border border-peach-soft/40 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-heading font-bold text-charcoal-soft">{plan.name}</h3>
+                      <p className="text-xs uppercase tracking-[0.2em] text-cocoa-light">
+                        {plan.monthly} / {plan.yearly}
+                      </p>
+                    </div>
+                    <div className={`h-10 w-10 rounded-xl bg-linear-to-br ${plan.accent}`} />
+                  </div>
+                  <p className="mt-3 text-sm text-charcoal-soft/80">{plan.summary}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {plan.features.map((feature) => (
+                      <span
+                        key={feature}
+                        className="rounded-full border border-peach-soft/50 bg-cream-base px-3 py-1 text-xs text-cocoa-light"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Bottom Illustration with Fade Up Effect */}
-      <div className="relative w-full mt-16 overflow-hidden">
-        {/* Gradient fade overlay - fades upward */}
-        <div className="absolute inset-0 z-10 pointer-events-none bg-linear-to-b from-cream-base via-cream-base/80 to-transparent" />
-
-        {/* Illustration container */}
-        <div className="relative w-full flex justify-center items-end">
-          <img
-            src="/assets/mascots/8k_3d_pixar_202512022053.jpeg"
-            alt="Genesis Community"
-            className="w-full max-w-7xl h-auto object-contain object-bottom max-h-100 min-h-50"
-            loading="lazy"
-          />
+        <div className="rounded-3xl border border-peach-soft/40 bg-surface p-6 md:p-8">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-1 w-5 h-5 text-gold-sunshine shrink-0" />
+            <div>
+              <h2 className="font-heading font-bold text-xl text-charcoal-soft">
+                Need to change your plan?
+              </h2>
+              <p className="mt-2 text-cocoa-light">
+                Open the Genesis desktop app and use the billing page there. That is now the only
+                place where plan changes, device limits, and AI tier changes are managed.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

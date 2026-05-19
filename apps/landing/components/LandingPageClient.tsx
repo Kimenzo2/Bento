@@ -2,7 +2,7 @@
 'use client';
 
 /**
- * LandingPage.tsx — Genesis Public Landing Page
+ * LandingPage.tsx — Bento Public Landing Page
  *
  * THEME-AWARE: This page uses CSS variables from the Genesis theme system.
  * It responds to all 6 themes (Genesis Classic, Aurora Scholar, Ocean Academy,
