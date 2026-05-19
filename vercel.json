@@ -102,6 +102,14 @@
       "destination": "/api/inbound-email"
     },
     {
+      "source": "/api/send-email/",
+      "destination": "/api/inbound-email?action=send-email"
+    },
+    {
+      "source": "/api/send-email",
+      "destination": "/api/inbound-email?action=send-email"
+    },
+    {
       "source": "/api/delete-account/",
       "destination": "/api/delete-account"
     },
