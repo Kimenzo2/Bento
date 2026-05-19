@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { invoke, isTauri } from "@tauri-apps/api/core";
+  import { onMount } from "svelte";
   import LaunchReadyReporter from "$lib/components/LaunchReadyReporter.svelte";
   import { isStarterModuleId, loadStarterModule } from "$lib/modules/starter-module-registry";
 
@@ -9,6 +11,34 @@
   } = $props();
 
   const modulePromise = $derived(isStarterModuleId(appId) ? loadStarterModule(appId) : null);
+
+  onMount(() => {
+    if (!isTauri()) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const metrics = performance as Performance & {
+        memory?: {
+          usedJSHeapSize?: number;
+        };
+      };
+
+      const usedHeapBytes = metrics.memory?.usedJSHeapSize;
+      const jsHeapMb = typeof usedHeapBytes === "number" ? usedHeapBytes / 1_048_576 : null;
+
+      void invoke("record_active_js_heap", {
+        report: {
+          miniAppId: appId,
+          jsHeapMb,
+        },
+      });
+    }, 5_000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  });
 </script>
 
 {#if modulePromise}

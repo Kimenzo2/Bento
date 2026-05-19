@@ -3,6 +3,8 @@
 
   export let moduleId: string;
   export let settings: any = {};
+  void moduleId;
+  void settings;
 
   let searchQuery = '';
 
@@ -36,18 +38,24 @@
   function copyAction(text: string) {
     console.log("Copied to clipboard:", text);
   }
+
+  function handleKeyActivate(event: KeyboardEvent, callback: () => void) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      callback();
+    }
+  }
 </script>
 
 <div class="clipboard-app flat-ui module-root">
   <!-- Top Search Bar -->
   <div class="search-header">
     <div class="search-input-wrapper">
-      <Search class="search-icon" size={20} />
+      <span class="search-icon"><Search size={20} /></span>
       <input 
         type="text" 
         bind:value={searchQuery}
-        placeholder="Search clipboard history..." 
-        autofocus
+        placeholder="Search clipboard history..."
       />
     </div>
   </div>
@@ -57,12 +65,12 @@
       <!-- Pinned Section -->
       {#if pinnedClips.length > 0}
         <div class="section-title">
-          <Pin size={14} class="pin-indicator-color" />
+          <span class="pin-indicator-color"><Pin size={14} /></span>
           <span>Pinned</span>
         </div>
         <div class="clip-list">
           {#each pinnedClips as clip}
-            <div class="clip-row" on:click={() => copyAction(clip.content)}>
+            <div class="clip-row" role="button" tabindex="0" on:click={() => copyAction(clip.content)} on:keydown={(event) => handleKeyActivate(event, () => copyAction(clip.content))}>
               <div class="clip-left">
                 <div class="type-icon-wrapper" style="color: {getIconColor(clip.type)}">
                   <svelte:component this={getIcon(clip.type)} size={18} />
@@ -91,7 +99,7 @@
       </div>
       <div class="clip-list">
         {#each recentClips as clip}
-          <div class="clip-row" on:click={() => copyAction(clip.content)}>
+          <div class="clip-row" role="button" tabindex="0" on:click={() => copyAction(clip.content)} on:keydown={(event) => handleKeyActivate(event, () => copyAction(clip.content))}>
             <div class="clip-left">
               <div class="type-icon-wrapper" style="color: {getIconColor(clip.type)}">
                 <svelte:component this={getIcon(clip.type)} size={18} />
@@ -120,7 +128,7 @@
       <!-- Mock search showing all for now -->
       <div class="clip-list">
         {#each [...pinnedClips, ...recentClips] as clip}
-          <div class="clip-row" on:click={() => copyAction(clip.content)}>
+          <div class="clip-row" role="button" tabindex="0" on:click={() => copyAction(clip.content)} on:keydown={(event) => handleKeyActivate(event, () => copyAction(clip.content))}>
             <div class="clip-left">
               <div class="type-icon-wrapper" style="color: {getIconColor(clip.type)}">
                 <svelte:component this={getIcon(clip.type)} size={18} />

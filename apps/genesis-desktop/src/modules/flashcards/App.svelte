@@ -3,6 +3,8 @@
 
   export let moduleId: string;
   export let settings: any = {};
+  void moduleId;
+  void settings;
 
   let currentView = 'home'; // 'home' or 'review'
   
@@ -97,7 +99,7 @@
                 {#if deck.dueCount > 0}
                   <span class="due-badge">{deck.dueCount}</span>
                 {/if}
-                <ChevronRight size={18} class="chevron" />
+                <span class="chevron"><ChevronRight size={18} /></span>
               </div>
             </button>
           {/each}

@@ -1,5 +1,4 @@
 <script lang="ts">
-  // State
   let newTaskInput = "";
 
   type Task = {
@@ -15,52 +14,32 @@
     { id: "2", title: "Dentist appointment", time: "3:00 PM", completed: false },
     { id: "3", title: "Call mom", time: "6:00 PM", completed: false },
     { id: "4", title: "Buy groceries", completed: false },
-    { id: "5", title: "Send Weekly Update to team", time: "9:00 AM", completed: true },
+    { id: "5", title: "Send weekly update to team", time: "9:00 AM", completed: true }
   ];
 
-  $: activeTasks = tasks.filter(t => !t.completed).sort((a, b) => (a.overdue ? -1 : 1));
-  $: completedTasks = tasks.filter(t => t.completed);
+  $: activeTasks = tasks.filter((task) => !task.completed).sort((a, b) => (a.overdue ? -1 : b.overdue ? 1 : 0));
+  $: completedTasks = tasks.filter((task) => task.completed);
 
-  function addTask(e: KeyboardEvent) {
-    if (e.key === "Enter" && newTaskInput.trim()) {
-      tasks = [...tasks, {
-        id: crypto.randomUUID(),
-        title: newTaskInput.trim(),
-        completed: false
-      }];
+  function addTask(event: KeyboardEvent) {
+    if (event.key === "Enter" && newTaskInput.trim()) {
+      tasks = [
+        ...tasks,
+        {
+          id: crypto.randomUUID(),
+          title: newTaskInput.trim(),
+          completed: false
+        }
+      ];
       newTaskInput = "";
     }
   }
 
   function toggleTask(id: string) {
-    tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    tasks = tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task));
   }
 </script>
 
-<main class="tasks-app-v2 module-root">
-  <aside class="tasks-sidebar-v2">
-    <div class="ts-section">
-      <button class="ts-item active">Today <span class="ts-badge">{activeTasks.length}</span></button>
-      <button class="ts-item">Upcoming</button>
-      <button class="ts-item">Inbox</button>
-    </div>
-    
-    <div class="ts-section">
-      <h3 class="ts-heading">PROJECTS</h3>
-      <button class="ts-item">Work</button>
-      <button class="ts-item">Personal</button>
-    </div>
-    
-    <div class="ts-section">
-      <h3 class="ts-heading">LABELS</h3>
-      <button class="ts-item">Urgent</button>
-    </div>
-
-    <div class="ts-bottom">
-      <button class="ts-item">Settings</button>
-    </div>
-  </aside>
-
+<main class="tasks-app-v2 module-root mini-app-root">
   <section class="tasks-main-v2">
     <header class="tm-header">
       <span class="tm-date">Monday, May 11</span>
@@ -68,21 +47,20 @@
     </header>
 
     <div class="tm-input-area">
-      <input 
-        type="text" 
-        class="tm-input" 
-        placeholder="What needs to be done?" 
+      <input
+        type="text"
+        class="tm-input"
+        placeholder="What needs to be done?"
         bind:value={newTaskInput}
         on:keydown={addTask}
       />
-      <small class="tm-hint">Try: 'call mom tomorrow 3pm'</small>
+      <small class="tm-hint">Try: call mom tomorrow 3pm</small>
     </div>
 
-    <div class="tm-task-list">
-      <!-- Active Tasks -->
+    <div class="tm-task-list task-list">
       {#each activeTasks as task (task.id)}
         <label class="tm-task-row {task.overdue ? 'overdue' : ''}">
-          <input type="checkbox" class="tm-checkbox" checked={task.completed} on:change={() => toggleTask(task.id)}/>
+          <input type="checkbox" class="tm-checkbox" checked={task.completed} on:change={() => toggleTask(task.id)} />
           <span class="tm-custom-checkbox"></span>
           <span class="tm-title">{task.title}</span>
           {#if task.time}
@@ -91,12 +69,11 @@
         </label>
       {/each}
 
-      <!-- Completed Tasks -->
       {#if completedTasks.length > 0}
         <div class="tm-completed-section">
           {#each completedTasks as task (task.id)}
             <label class="tm-task-row completed">
-              <input type="checkbox" class="tm-checkbox" checked={task.completed} on:change={() => toggleTask(task.id)}/>
+              <input type="checkbox" class="tm-checkbox" checked={task.completed} on:change={() => toggleTask(task.id)} />
               <span class="tm-custom-checkbox"></span>
               <span class="tm-title">{task.title}</span>
               {#if task.time}
@@ -110,676 +87,148 @@
   </section>
 </main>
 
-
 <style>
-.tasks-app {
-  --tasks-bg: var(--background);
-  --tasks-surface: var(--surface);
-  --tasks-accent: var(--primary);
-  --tasks-accent-2: var(--accent);
-  --tasks-ink: var(--foreground);
-  --tasks-muted: var(--muted);
-  --tasks-border: var(--border);
-  
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  padding: 0;
-  background: var(--tasks-bg);
-  color: var(--tasks-ink);
-  font-family: var(--font-body);
-}
-
-.tasks-sidebar { display: none; }
-
-.tasks-board {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  height: 100%;
-}
-
-.tasks-topbar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 24px;
-  padding: 24px 32px;
-  border-bottom: 1px solid var(--tasks-border);
-  background: var(--tasks-surface);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.tasks-topbar label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  height: 42px;
-  border-radius: 999px;
-  background: var(--muted-surface);
-  border: 1px solid var(--tasks-border);
-}
-
-.tasks-topbar input {
-  height: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  font: inherit;
-  flex: 1;
-  min-width: 200px;
-}
-
-.tasks-topbar kbd {
-  margin-left: 12px;
-  color: var(--tasks-muted);
-  font-size: 12px;
-  font-family: var(--font-body);
-}
-
-.tasks-topbar > div {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.tasks-topbar > div button {
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--muted-surface);
-  color: var(--tasks-ink);
-  cursor: default;
-  transition: background 180ms ease;
-  display: grid;
-  place-items: center;
-}
-
-.tasks-topbar > div button:hover {
-  background: var(--border);
-}
-
-.tasks-avatar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: var(--primary);
-  color: var(--surface);
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.tasks-topbar p {
-  margin: 0;
-  display: grid;
-  gap: 2px;
-  font-size: 14px;
-}
-
-.tasks-topbar p strong {
-  font-weight: 600;
-  color: var(--tasks-ink);
-}
-
-.tasks-topbar p small {
-  color: var(--tasks-muted);
-  font-size: 12px;
-}
-
-.tasks-heading {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 24px;
-  padding: 32px;
-  border-bottom: 1px solid var(--tasks-border);
-}
-
-.tasks-heading h1 {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 700;
-  font-family: var(--font-heading);
-  line-height: 1.2;
-}
-
-.tasks-heading p {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: var(--tasks-muted);
-}
-
-.tasks-heading nav {
-  display: flex;
-  gap: 12px;
-}
-
-.tasks-heading nav button {
-  min-height: 44px;
-  padding: 0 20px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 999px;
-  background: var(--tasks-surface);
-  color: var(--tasks-ink);
-  cursor: default;
-  font-weight: 600;
-  transition: all 180ms ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tasks-heading nav button:hover {
-  background: var(--muted-surface);
-  border-color: var(--tasks-border);
-}
-
-.tasks-heading nav button:first-child {
-  background: var(--tasks-accent);
-  color: white;
-  border-color: var(--tasks-accent);
-}
-
-.tasks-heading nav button:first-child:hover {
-  background: var(--primary-hover);
-}
-
-/* Main content container */
-.tasks-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 32px;
-  display: grid;
-  gap: 32px;
-}
-
-/* Stats row - smaller metric cards */
-.tasks-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.tasks-stats article {
-  padding: 24px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 28px;
-  background: var(--tasks-surface);
-  transition: all 180ms ease;
-}
-
-.tasks-stats article:hover {
-  border-color: var(--tasks-accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.tasks-stats article span {
-  display: block;
-  font-size: 12px;
-  color: var(--tasks-muted);
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-}
-
-.tasks-stats strong {
-  display: block;
-  font-size: 36px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  color: var(--tasks-ink);
-  line-height: 1;
-}
-
-.tasks-stats small {
-  font-size: 12px;
-  color: var(--tasks-muted);
-}
-
-.tasks-stat-primary {
-  background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
-  color: white;
-  border-color: transparent;
-}
-
-.tasks-stat-primary span {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.tasks-stat-primary strong {
-  color: white;
-}
-
-.tasks-stat-primary small {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Bento grid layout - 2 column base with variable card sizes */
-.tasks-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  grid-auto-rows: auto;
-}
-
-.tasks-grid article,
-.tasks-analytics,
-.tasks-reminder,
-.tasks-projects,
-.tasks-team,
-.tasks-progress,
-.tasks-timer {
-  padding: 28px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 28px;
-  background: var(--tasks-surface);
-  transition: all 180ms ease;
-  display: flex;
-  flex-direction: column;
-}
-
-.tasks-grid article:hover {
-  border-color: var(--tasks-accent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.tasks-grid h2 {
-  margin: 0 0 20px;
-  font-size: 18px;
-  font-weight: 600;
-  font-family: var(--font-heading);
-  color: var(--tasks-ink);
-}
-
-/* Analytics card - takes full width */
-.tasks-analytics {
-  grid-column: 1 / -1;
-  min-height: 280px;
-}
-
-.tasks-analytics canvas {
-  width: 100% !important;
-  height: 200px !important;
-  margin-top: 16px;
-}
-
-/* Reminder card */
-.tasks-reminder {
-  min-height: 260px;
-}
-
-.tasks-reminder strong {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--tasks-accent);
-  line-height: 1.2;
-}
-
-.tasks-reminder p {
-  margin: 12px 0 20px;
-  font-size: 13px;
-  color: var(--tasks-muted);
-  flex: 1;
-}
-
-.tasks-reminder button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--tasks-accent);
-  color: white;
-  cursor: default;
-  font-weight: 600;
-  transition: all 180ms ease;
-  width: fit-content;
-}
-
-.tasks-reminder button:hover {
-  background: var(--primary-hover);
-  transform: translateY(-2px);
-}
-
-/* Projects card */
-.tasks-projects {
-  min-height: 260px;
-  overflow-y: auto;
-}
-
-.tasks-projects header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--tasks-border);
-}
-
-.tasks-projects header h2 {
-  margin: 0;
-}
-
-.tasks-projects header button {
-  padding: 8px 14px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--tasks-accent);
-  cursor: default;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 180ms ease;
-}
-
-.tasks-projects header button:hover {
-  background: var(--muted-surface);
-  border-color: var(--tasks-accent);
-}
-
-.tasks-projects p {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin: 16px 0;
-  font-size: 13px;
-}
-
-.tasks-projects i {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: var(--tasks-accent);
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.tasks-projects span {
-  display: grid;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.tasks-projects span strong {
-  font-weight: 600;
-  color: var(--tasks-ink);
-  line-height: 1.3;
-}
-
-.tasks-projects small {
-  color: var(--tasks-muted);
-  font-size: 12px;
-}
-
-/* Team collaboration card */
-.tasks-team {
-  min-height: 260px;
-  overflow-y: auto;
-}
-
-.tasks-team header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--tasks-border);
-}
-
-.tasks-team header h2 {
-  margin: 0;
-}
-
-.tasks-team header button {
-  padding: 8px 14px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--tasks-accent);
-  cursor: default;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 180ms ease;
-}
-
-.tasks-team header button:hover {
-  background: var(--muted-surface);
-  border-color: var(--tasks-accent);
-}
-
-.tasks-team p {
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  margin: 16px 0;
-  font-size: 13px;
-}
-
-.tasks-team p > span {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: var(--muted-surface);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--foreground);
-  flex-shrink: 0;
-}
-
-.tasks-team b {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  font-weight: 600;
-}
-
-.tasks-team b strong {
-  color: var(--tasks-ink);
-  line-height: 1.2;
-}
-
-.tasks-team small {
-  color: var(--tasks-muted);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tasks-team em {
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: var(--muted-surface);
-  color: var(--tasks-accent);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* Progress card */
-.tasks-progress {
-  min-height: 260px;
-  text-align: center;
-  justify-content: space-between;
-}
-
-.tasks-progress div {
-  position: relative;
-  min-height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  margin: 20px 0;
-}
-
-.tasks-progress canvas {
-  width: 100% !important;
-  height: 120px !important;
-}
-
-.tasks-progress strong {
-  position: absolute;
-  font-size: 40px;
-  font-weight: 700;
-  color: var(--tasks-ink);
-  line-height: 1;
-}
-
-.tasks-progress small {
-  display: block;
-  font-size: 12px;
-  color: var(--tasks-muted);
-  margin-top: 8px;
-}
-
-.tasks-progress footer {
-  display: flex;
-  justify-content: center;
-  gap: 28px;
-  font-size: 12px;
-  color: var(--tasks-muted);
-}
-
-/* Timer card */
-.tasks-timer {
-  min-height: 260px;
-  text-align: center;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-color: transparent;
-  color: white;
-  justify-content: center;
-}
-
-.tasks-timer h2 {
-  margin: 0 0 20px;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.tasks-timer strong {
-  display: block;
-  font-size: 56px;
-  color: white;
-  line-height: 1;
-  margin: 20px 0;
-}
-
-.tasks-timer p {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.tasks-timer button {
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 999px;
-  background: white;
-  color: var(--tasks-accent);
-  cursor: default;
-  display: grid;
-  place-items: center;
-  transition: all 180ms ease;
-}
-
-.tasks-timer button:hover {
-  background: rgba(255, 255, 255, 0.95);
-  transform: scale(1.1);
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .tasks-grid {
-    grid-template-columns: 1fr;
+  .tasks-app-v2 {
+    display: flex;
+    min-height: 100%;
+    background: var(--background);
+    color: var(--foreground);
   }
 
-  .tasks-analytics {
-    grid-column: 1;
+  .tasks-main-v2 {
+    --tasks-surface: color-mix(in srgb, var(--surface) 94%, var(--background));
+    --tasks-border: var(--border);
+    --tasks-muted: var(--muted);
+    --tasks-accent: var(--primary);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 100%;
+    gap: 1.5rem;
+    padding: 2rem 2.25rem;
   }
-}
 
-@media (max-width: 768px) {
-  .tasks-topbar {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px 24px;
+  .tm-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
   }
 
-  .tasks-topbar label {
+  .tm-date {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .tm-count,
+  .tm-hint {
+    color: var(--tasks-muted);
+  }
+
+  .tm-input-area {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .tm-input {
     width: 100%;
+    min-height: 3rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--tasks-border);
+    border-radius: 1rem;
+    background: var(--tasks-surface);
+    color: var(--foreground);
+    outline: none;
   }
 
-  .tasks-topbar > div {
-    width: 100%;
-    flex-wrap: wrap;
+  .tm-input:focus {
+    border-color: var(--tasks-accent);
   }
 
-  .tasks-heading {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 24px;
+  .tm-task-list {
+    display: grid;
+    gap: 0.75rem;
+    flex: 1;
+    min-height: 0;
+    padding-right: 0.125rem;
   }
 
-  .tasks-heading h1 {
-    font-size: 24px;
+  .tm-task-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 0.875rem;
+    min-height: 4rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--tasks-border);
+    border-radius: 1rem;
+    background: var(--tasks-surface);
   }
 
-  .tasks-heading nav {
-    flex-wrap: wrap;
+  .tm-task-row.completed {
+    opacity: 0.7;
   }
 
-  .tasks-content {
-    padding: 24px;
-    gap: 24px;
+  .tm-task-row.overdue {
+    border-color: color-mix(in srgb, var(--destructive, #ef4444) 55%, var(--tasks-border));
   }
 
-  .tasks-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+  .tm-checkbox {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
   }
 
-  .tasks-stats article {
-    padding: 20px;
-    border-radius: 24px;
+  .tm-custom-checkbox {
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 1px solid var(--tasks-border);
+    border-radius: 999px;
+    background: var(--background);
   }
 
-  .tasks-grid {
-    gap: 20px;
+  .tm-checkbox:checked + .tm-custom-checkbox {
+    background: var(--tasks-accent);
+    border-color: var(--tasks-accent);
   }
 
-  .tasks-grid article,
-  .tasks-analytics,
-  .tasks-reminder,
-  .tasks-projects,
-  .tasks-team,
-  .tasks-progress,
-  .tasks-timer {
-    padding: 24px;
-    border-radius: 24px;
+  .tm-title {
+    min-width: 0;
   }
-}
 
+  .completed .tm-title {
+    color: var(--tasks-muted);
+    text-decoration: line-through;
+  }
+
+  .tm-time {
+    color: var(--tasks-muted);
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+
+  .overdue-time {
+    color: var(--destructive, #ef4444);
+  }
+
+  .tm-completed-section {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 840px) {
+    .tasks-main-v2 {
+      padding: 1.25rem;
+    }
+
+    .tm-task-row {
+      grid-template-columns: auto auto 1fr;
+    }
+
+    .tm-time {
+      grid-column: 3;
+    }
+  }
 </style>
-
-

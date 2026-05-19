@@ -1,4 +1,7 @@
-use std::{str::FromStr, sync::Mutex};
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -13,7 +16,7 @@ const MAX_AI_PROMPT_BYTES: usize = 32 * 1024;
 #[derive(Clone)]
 pub struct GenesisAppState {
     db: SqlitePool,
-    active_module: std::sync::Arc<Mutex<String>>,
+    active_module: Arc<Mutex<String>>,
 }
 
 impl GenesisAppState {
@@ -35,6 +38,10 @@ impl GenesisAppState {
             .lock()
             .map(|module| module.clone())
             .unwrap_or_else(|_| ModuleId::Dashboard.as_str().to_string())
+    }
+
+    pub fn active_module_handle(&self) -> Arc<Mutex<String>> {
+        self.active_module.clone()
     }
 
     pub fn set_active_module(&self, module: impl Into<String>) {
@@ -297,6 +304,36 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
             file_path TEXT,
             size_scale REAL DEFAULT 1.0,
             PRIMARY KEY (module, role)
+        )
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS telemetry_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp_ms INTEGER NOT NULL,
+            module TEXT NOT NULL,
+            data TEXT NOT NULL,
+            anomaly_flags TEXT
+        )
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS anomaly_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp_ms INTEGER NOT NULL,
+            module TEXT NOT NULL,
+            anomaly_type TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            data TEXT NOT NULL,
+            resolved INTEGER NOT NULL DEFAULT 0,
+            resolution TEXT
+        )
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS performance_baselines (
+            module TEXT PRIMARY KEY,
+            avg_heap_mb REAL,
+            p95_ipc_ms REAL,
+            p95_db_ms REAL,
+            computed_at INTEGER NOT NULL
         )
         "#,
     ];

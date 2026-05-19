@@ -80,18 +80,6 @@
     cursor: default;
   }
 
-  .voice-app label {
-    display: block;
-    width: 520px;
-    margin: 20px auto 34px;
-    padding: 18px;
-    border: 1px solid var(--voice-border);
-    border-radius: 24px;
-    background: var(--voice-surface);
-    color: var(--voice-muted);
-    text-align: left;
-  }
-
   .voice-grid {
     display: grid;
     grid-template-columns: 1.15fr 0.95fr 0.55fr;

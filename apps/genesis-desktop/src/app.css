@@ -79,8 +79,8 @@ html,
 body {
   margin: 0;
   width: 100%;
-  height: 100vh;
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
@@ -93,29 +93,15 @@ body {
   flex-direction: column;
 }
 
-/* Module viewport and scrollbar contract (all mini-app modules). */
-.module-root,
-.module-root * {
-  scrollbar-width: none;
-}
-
-.module-root::-webkit-scrollbar,
-.module-root *::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
-}
-
+.mini-app-root,
 .module-root {
-  display: grid;
-  grid-template-rows: [topbar] auto [content] minmax(0, 1fr);
-  grid-template-columns: [sidebar] auto [main] minmax(0, 1fr);
   width: 100%;
-  height: 100vh;
-  min-height: 100vh;
+  max-width: 100%;
+  height: auto;
+  min-height: 100%;
   min-width: 0;
-  overflow: hidden;
-  gap: clamp(8px, 1vh, 16px);
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .module-root > * {
@@ -123,18 +109,11 @@ body {
   min-height: 0;
 }
 
-.module-root > :only-child {
-  grid-column: 1 / -1;
-  grid-row: 1 / -1;
-  height: 100%;
-  overflow: hidden;
-}
-
 .module-root :where(label, small, .label) {
   font-size: clamp(11px, 1.1vw, 14px);
 }
 
-/* Scroll-capable lists: functional scroll, hidden scrollbar. */
+/* Scroll-capable lists: functional scroll, subtle theme scrollbar. */
 .module-root :is(
     .scrollable-content,
     .clip-scroll-container,
@@ -155,45 +134,104 @@ body {
   max-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
 }
 
-/* Exception modules: notes, journal, ai/codex (hover-only scrollbar). */
+.module-root :is(
+    .scrollable-content,
+    .clip-scroll-container,
+    .grocery-content,
+    .task-list,
+    .tasks-list,
+    .tm-task-list,
+    .vault-list,
+    .clip-list,
+    .event-list,
+    .entries-list,
+    .category-list,
+    .item-list,
+    .health-log-list,
+    .water-log,
+    .log-list
+  )::-webkit-scrollbar {
+  width: var(--shell-scrollbar-size);
+  height: var(--shell-scrollbar-size);
+}
+
+.module-root :is(
+    .scrollable-content,
+    .clip-scroll-container,
+    .grocery-content,
+    .task-list,
+    .tasks-list,
+    .tm-task-list,
+    .vault-list,
+    .clip-list,
+    .event-list,
+    .entries-list,
+    .category-list,
+    .item-list,
+    .health-log-list,
+    .water-log,
+    .log-list
+  )::-webkit-scrollbar-track {
+  background: var(--shell-scrollbar-track);
+}
+
+.module-root :is(
+    .scrollable-content,
+    .clip-scroll-container,
+    .grocery-content,
+    .task-list,
+    .tasks-list,
+    .tm-task-list,
+    .vault-list,
+    .clip-list,
+    .event-list,
+    .entries-list,
+    .category-list,
+    .item-list,
+    .health-log-list,
+    .water-log,
+    .log-list
+  )::-webkit-scrollbar-thumb {
+  border: 0.08rem solid transparent;
+  border-radius: 999px;
+  background: var(--shell-scrollbar-thumb);
+  background-clip: content-box;
+}
+
+/* Rich text panes follow the same visible thin-scrollbar contract. */
 .notes-editor,
 .journal-editor,
 .ai-thread {
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: none;
-}
-
-.notes-editor:hover,
-.journal-editor:hover,
-.ai-thread:hover {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
 }
 
-.notes-editor:hover::-webkit-scrollbar,
-.journal-editor:hover::-webkit-scrollbar,
-.ai-thread:hover::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-  display: block;
+.notes-editor::-webkit-scrollbar,
+.journal-editor::-webkit-scrollbar,
+.ai-thread::-webkit-scrollbar {
+  width: var(--shell-scrollbar-size);
+  height: var(--shell-scrollbar-size);
 }
 
-.notes-editor:hover::-webkit-scrollbar-thumb,
-.journal-editor:hover::-webkit-scrollbar-thumb,
-.ai-thread:hover::-webkit-scrollbar-thumb {
-  border: 0;
+.notes-editor::-webkit-scrollbar-thumb,
+.journal-editor::-webkit-scrollbar-thumb,
+.ai-thread::-webkit-scrollbar-thumb {
+  border: 0.08rem solid transparent;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--shell-scrollbar-thumb);
+  background-clip: content-box;
 }
 
-.notes-editor:hover::-webkit-scrollbar-track,
-.journal-editor:hover::-webkit-scrollbar-track,
-.ai-thread:hover::-webkit-scrollbar-track {
-  background: transparent;
+.notes-editor::-webkit-scrollbar-track,
+.journal-editor::-webkit-scrollbar-track,
+.ai-thread::-webkit-scrollbar-track {
+  background: var(--shell-scrollbar-track);
 }
 
 .module-switcher {
@@ -260,18 +298,18 @@ body {
   left: 50%;
   z-index: 9998;
   width: min(44rem, calc(100vw - 1rem));
-  transform: translateX(-50%) translateY(10px) scale(0.985);
+  transform: translateX(-50%) translateY(8px) scale(0.988);
   opacity: 0;
   overflow: visible;
   pointer-events: auto;
-  animation: module-switcher-stack-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: module-switcher-stack-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .module-switcher-stack__rows {
   position: relative;
   height: 51px;
   overflow: visible;
-  transition: height 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: height 460ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .module-switcher-stack--expanded .module-switcher-stack__rows {
@@ -281,8 +319,8 @@ body {
 .module-switcher-stack__row {
   position: absolute;
   right: 0;
-  bottom: 0;
   left: 0;
+  top: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
@@ -290,13 +328,13 @@ body {
   height: 36px;
   transform: translateY(var(--stack-translate-y)) scale(var(--stack-scale));
   opacity: var(--stack-opacity);
-  transform-origin: bottom center;
+  transform-origin: top center;
   will-change: transform, opacity;
+  backface-visibility: hidden;
   transition:
-    transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 320ms ease;
-  animation: module-switcher-row-enter 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--stack-row-index) * 32ms);
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 300ms ease;
+  transition-delay: var(--stack-delay, 0ms);
 }
 
 .module-switcher-stack__pill,
@@ -328,10 +366,12 @@ body {
   line-height: 1;
   white-space: nowrap;
   cursor: default;
+  position: relative;
   transition:
-    background 150ms ease,
-    color 150ms ease,
-    border-color 150ms ease;
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .module-switcher-stack__pill:hover {
@@ -340,9 +380,13 @@ body {
 }
 
 .module-switcher-stack__pill--active {
-  background: color-mix(in srgb, var(--foreground) 12%, transparent);
-  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  background: color-mix(in srgb, var(--foreground) 92%, var(--background) 8%);
+  color: color-mix(in srgb, var(--background) 94%, white);
   font-weight: 800;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 12%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 4%, transparent);
 }
 
 .module-switcher-stack__pill:disabled {
@@ -369,22 +413,11 @@ body {
 @keyframes module-switcher-stack-enter {
   0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px) scale(0.985);
+    transform: translateX(-50%) translateY(8px) scale(0.988);
   }
   100% {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
-  }
-}
-
-@keyframes module-switcher-row-enter {
-  0% {
-    opacity: 0;
-    transform: translateY(calc(var(--stack-translate-y) + 12px)) scale(calc(var(--stack-scale) * 0.985));
-  }
-  100% {
-    opacity: var(--stack-opacity);
-    transform: translateY(var(--stack-translate-y)) scale(var(--stack-scale));
   }
 }
 
@@ -766,8 +799,39 @@ textarea {
 .desktop-workspace--mini-app .desktop-workspace__main {
   padding: 0.85rem;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   scrollbar-gutter: stable;
+}
+
+.desktop-workspace--mini-app .mini-app-root,
+.desktop-workspace--mini-app .module-root {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
+}
+
+.desktop-workspace--mini-app .mini-app-root::-webkit-scrollbar,
+.desktop-workspace--mini-app .module-root::-webkit-scrollbar {
+  width: var(--shell-scrollbar-size);
+  height: var(--shell-scrollbar-size);
+}
+
+.desktop-workspace--mini-app .mini-app-root::-webkit-scrollbar-track,
+.desktop-workspace--mini-app .module-root::-webkit-scrollbar-track {
+  background: var(--shell-scrollbar-track);
+}
+
+.desktop-workspace--mini-app .mini-app-root::-webkit-scrollbar-thumb,
+.desktop-workspace--mini-app .module-root::-webkit-scrollbar-thumb {
+  border: 0.08rem solid transparent;
+  border-radius: 999px;
+  background: var(--shell-scrollbar-thumb);
+  background-clip: content-box;
+  min-height: 3rem;
 }
 
 .desktop-workspace__main::-webkit-scrollbar,
@@ -816,7 +880,7 @@ textarea {
   bottom: 0;
   width: 18rem;
   border-right: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
-  background: color-mix(in srgb, var(--surface) 96%, var(--background));
+  background: color-mix(in srgb, var(--surface) 94%, var(--background));
   padding: 1.25rem 1rem;
   overflow: hidden;
   z-index: 80;
@@ -2312,13 +2376,7 @@ textarea {
   width: 15.35rem;
   border: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
   border-radius: 2.1rem;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--surface) 96%, transparent),
-      color-mix(in srgb, var(--background) 92%, transparent)
-    ),
-    var(--surface);
+  background: color-mix(in srgb, var(--surface) 94%, var(--background));
   padding: 0.8rem;
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
 }

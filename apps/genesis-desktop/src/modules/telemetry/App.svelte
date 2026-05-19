@@ -1,171 +1,491 @@
 <script lang="ts">
-  import { Activity, ServerCog, Database, BrainCircuit, Maximize2, AlertTriangle, CheckCircle2 } from 'lucide-svelte';
+  import { Activity, ServerCog, Database, AlertTriangle, CheckCircle2, TrendingUp, Download, BarChart3 } from 'lucide-svelte';
+  import { onMount } from 'svelte';
+  import {
+    getModuleSectionLabel,
+    setModuleSection,
+    ensureModuleSection,
+    moduleSectionStore,
+  } from '$lib/stores/module-sections.store';
+  import { Badge } from '$lib/components/ui/badge/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
 
-  export let moduleId: string;
+  export let moduleId: string = 'telemetry';
   export let settings: any = {};
+  void settings;
 
-  // Mock telemetry data
-  let systemStatus = 'healthy'; // healthy, warning, critical
-  
-  let metrics = [
-    { title: "Memory Base", value: "248.5", unit: "MB", status: "green", trend: "up", spark: [20, 22, 25, 23, 24, 25, 26], icon: Database },
-    { title: "IPC Speed", value: "2.4", unit: "ms", status: "green", trend: "stable", spark: [2, 3, 2, 2, 2, 2, 2], icon: Activity },
-    { title: "DB Connect", value: "18.2", unit: "ms", status: "amber", trend: "up", spark: [12, 14, 15, 12, 18, 18, 18], icon: ServerCog },
-    { title: "AI Load", value: "0", unit: "jobs", status: "green", trend: "down", spark: [4, 1, 0, 0, 0, 0, 0], icon: BrainCircuit }
+  const sectionLabels = ["Overview", "Memory", "Performance", "Database", "Alerts", "Reports"] as const;
+  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
+
+  onMount(() => {
+    ensureModuleSection(moduleId, sectionLabels);
+  });
+
+  // Mock data
+  const metrics =  [
+    { title: "Memory Usage", value: "248.5", unit: "MB", change: "+12.3%", icon: Database },
+    { title: "API Latency", value: "2.4", unit: "ms", change: "-4.2%", icon: Activity },
+    { title: "DB Queries", value: "142", unit: "/min", change: "+8.1%", icon: ServerCog },
+    { title: "Active Users", value: "1", unit: "", change: "stable", icon: Activity },
   ];
 
-  let logs = [
-    { time: "14:22:18", module: "Notes", event: "Memory cleanup triggered", severity: "info", resolved: true },
-    { time: "14:15:02", module: "Core", event: "Renderer IPC timeout (2s)", severity: "amber", resolved: false },
-    { time: "13:50:44", module: "Groceries", event: "Sync successful", severity: "info", resolved: true },
-    { time: "11:20:10", module: "DB", event: "Vacuum routine complete", severity: "info", resolved: true }
+  const memoryData = [
+    { hour: '10:00', value: 186 },
+    { hour: '11:00', value: 205 },
+    { hour: '12:00', value: 198 },
+    { hour: '13:00', value: 242 },
+    { hour: '14:00', value: 256 },
+    { hour: '15:00', value: 248 },
+    { hour: '16:00', value: 251 },
   ];
 
-  function getStatusColor(status: string) {
-    if (status === 'green' || status === 'info') return '#10b981';
-    if (status === 'amber') return '#f59e0b';
-    if (status === 'critical' || status === 'red') return '#ef4444';
-    return 'var(--muted)';
-  }
+  const processes = [
+    { name: 'Tauri Runtime', memory: 142.3 },
+    { name: 'WebView', memory: 85.6 },
+    { name: 'Database', memory: 18.2 },
+    { name: 'Renderer', memory: 12.4 },
+  ];
 
-  // Draw simple SVG sparkline
-  function drawSparkline(data: number[]) {
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const width = 60;
-    const height = 20;
-    
-    const pts = data.map((val, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - ((val - min) / range) * height;
-      return `${x},${y}`;
-    }).join(' ');
-    
-    return `<polyline fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />`;
-  }
+  const latencies = [
+    { cmd: 'write_note', avg: 1.2, p95: 2.8, calls: 342 },
+    { cmd: 'fetch_tasks', avg: 3.4, p95: 8.2, calls: 156 },
+    { cmd: 'sync_calendar', avg: 5.1, p95: 14.3, calls: 48 },
+    { cmd: 'get_health', avg: 0.3, p95: 0.6, calls: 4821 },
+  ];
+
+  const tables = [
+    { name: 'profiles', rows: '1.2K', size: '3.2 MB' },
+    { name: 'payment_history', rows: '18.4K', size: '24.5 MB' },
+    { name: 'processed_webhooks', rows: '3.3K', size: '5.1 MB' },
+    { name: 'gamification_events', rows: '45.1K', size: '12.3 MB' },
+  ];
+
+  const alerts = [
+    { time: '14:22', severity: 'warning', msg: 'Memory spike detected', resolved: true },
+    { time: '14:15', severity: 'critical', msg: 'IPC timeout on fetch', resolved: true },
+    { time: '13:50', severity: 'info', msg: 'Query optimization applied', resolved: true },
+  ];
+
+  const maxMem = Math.max(...memoryData.map(d => d.value));
+  const maxProc = Math.max(...processes.map(p => p.memory));
+
 </script>
 
-<main class="telemetry-app module-root">
-  <div class="telemetry-container">
-    
-    <!-- TOP STATUS BANNER -->
-    {#if systemStatus === 'healthy'}
-      <div class="status-banner ok">
-        <CheckCircle2 size={20} />
-        <span>All systems healthy</span>
-      </div>
-    {:else if systemStatus === 'warning'}
-      <div class="status-banner warn">
-        <AlertTriangle size={20} />
-        <span>1 issue detected — tap to view</span>
-      </div>
-    {:else}
-      <div class="status-banner crit">
-        <AlertTriangle size={20} />
-        <span>Critical: Memory spike in Notes module</span>
-      </div>
-    {/if}
+<main class="telemetry-workspace module-root">
+  <div class="telemetry-header">
+    <h1>System Monitor</h1>
+    <p class="telemetry-subtitle">Real-time system performance and health</p>
+  </div>
 
-    <!-- METRICS GRID -->
-    <div class="metrics-grid">
-      {#each metrics as metric}
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="status-dot" style="background: {getStatusColor(metric.status)}"></span>
-            <span class="metric-title">{metric.title}</span>
-          </div>
-          <div class="metric-body">
-            <div class="metric-value">
-              <span class="num">{metric.value}</span>
-              <span class="unit">{metric.unit}</span>
-            </div>
-            <div class="sparkline" style="color: {getStatusColor(metric.status)}">
-              <svg width="60" height="20" viewBox="0 -2 60 24">
-                {@html drawSparkline(metric.spark)}
-              </svg>
-            </div>
-          </div>
-        </div>
-      {/each}
-    </div>
-
-    <!-- ACTIVE SESSIONS INFO -->
-    <div class="session-card">
-      <div class="session-info">
-        <h3>Active Module</h3>
-        <p><strong>Telemetry</strong> · Running for 2m 14s</p>
-      </div>
-      <button class="expand-btn"><Maximize2 size={16} /></button>
-    </div>
-
-    <!-- ANOMALY LOG -->
-    <div class="log-section">
-      <div class="log-header">
-        <h3>System Log</h3>
-        <span class="log-count">{logs.length} events</span>
-      </div>
-      
-      <div class="log-list">
-        {#each logs as log}
-          <div class="log-row">
-            <div class="log-time">{log.time}</div>
-            <div class="log-content">
-              <div class="log-top">
-                <span class="log-module">{log.module}</span>
-                {#if log.severity === 'amber'}
-                  {#if log.resolved}
-                    <span class="badge resolved">AI Fixed</span>
-                  {:else}
-                    <span class="badge unresolved">Unresolved</span>
-                  {/if}
-                {/if}
+  <!-- OVERVIEW SECTION -->
+  {#if selectedSection === 'Overview'}
+    <div class="telemetry-content">
+      <div class="metrics-grid">
+        {#each metrics as m}
+          <Card>
+            <CardContent class="metric-item">
+              <div class="metric-top">
+                <span class="metric-label">{m.title}</span>
+                <Badge variant="secondary">{m.change}</Badge>
               </div>
-              <div class="log-event">{log.event}</div>
-            </div>
-            <div class="log-indicator">
-              <span class="dot" style="background: {getStatusColor(log.severity)}"></span>
-            </div>
-          </div>
+              <div class="metric-value">{m.value} <span class="metric-unit">{m.unit}</span></div>
+            </CardContent>
+          </Card>
         {/each}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>System Status</CardTitle>
+          <CardDescription>Current health across all subsystems</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <CheckCircle2 size={20} style="color: #10b981" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">Runtime</div>
+                <div style="font-size: 12px; color: var(--muted);">Uptime: 14h 22m</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <CheckCircle2 size={20} style="color: #10b981" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">Database</div>
+                <div style="font-size: 12px; color: var(--muted);">4 connections active</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <CheckCircle2 size={20} style="color: #10b981" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">Memory</div>
+                <div style="font-size: 12px; color: var(--muted);">248.5 MB / 512 MB</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
 
-  </div>
+  <!-- MEMORY SECTION -->
+  {:else if selectedSection === 'Memory'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Memory Usage Timeline</CardTitle>
+          <CardDescription>Heap allocation over the last 7 hours</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="chart-bars">
+            {#each memoryData as d}
+              <div class="bar-item">
+                <div class="bar" style={`height: ${(d.value / maxMem) * 150}px`} />
+                <div class="bar-label">{d.hour}</div>
+              </div>
+            {/each}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Process Memory</CardTitle>
+          <CardDescription>Top memory-consuming processes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            {#each processes as p}
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 500; font-size: 14px; margin-bottom: 6px;">{p.name}</div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style={`width: ${(p.memory / maxProc) * 100}%`} />
+                  </div>
+                </div>
+                <div style="min-width: 70px; text-align: right; font-weight: 600; font-size: 14px;">{p.memory}MB</div>
+              </div>
+            {/each}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+  <!-- PERFORMANCE SECTION -->
+  {:else if selectedSection === 'Performance'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>API Latency Distribution</CardTitle>
+          <CardDescription>Command execution times at different percentiles</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Command</th>
+                  <th>Avg (ms)</th>
+                  <th>P95 (ms)</th>
+                  <th>Calls</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each latencies as l}
+                  <tr>
+                    <td><code style="font-size: 12px;">{l.cmd}</code></td>
+                    <td>{l.avg}</td>
+                    <td>{l.p95}</td>
+                    <td>{l.calls}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+  <!-- DATABASE SECTION -->
+  {:else if selectedSection === 'Database'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Database Tables</CardTitle>
+          <CardDescription>Table sizes and row counts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Table</th>
+                  <th>Rows</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each tables as t}
+                  <tr>
+                    <td><code style="font-size: 12px;">
+{t.name}</code></td>
+                    <td>{t.rows}</td>
+                    <td>{t.size}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+  <!-- ALERTS SECTION -->
+  {:else if selectedSection === 'Alerts'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Alerts</CardTitle>
+          <CardDescription>System detected issues and resolutions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            {#each alerts as a}
+              <div style="display: flex; gap: 12px; padding: 12px; background: var(--muted-surface); border-radius: 8px; border-left: 3px solid {a.severity === 'critical' ? '#ef4444' : a.severity === 'warning' ? '#f59e0b' : '#3b82f6'};">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                    {a.severity === 'critical' ? '❌' : a.severity === 'warning' ? '⚠️' : 'ℹ️'} {a.msg}
+                  </div>
+                  <div style="font-size: 12px; color: var(--muted);">{a.time}</div>
+                </div>
+                {#if a.resolved}
+                  <Badge style="background: #10b981; height: fit-content;">Resolved</Badge>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+  <!-- REPORTS SECTION -->
+  {:else if selectedSection === 'Reports'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Export Session Data</CardTitle>
+          <CardDescription>Download telemetry reports and logs</CardDescription>
+        </CardHeader>
+        <CardContent style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <Button variant="outline">
+            <Download size={16} />
+            Export JSON
+          </Button>
+          <Button variant="outline">
+            <BarChart3 size={16} />
+            Export CSV
+          </Button>
+          <Button variant="outline">
+            <Download size={16} />
+            Export PDF
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  {/if}
 </main>
 
 <style>
-.telemetry-app {
-  min-height: 100vh;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: inherit;
-  display: flex;
-  justify-content: center;
-}
-.telemetry-container {
-  width: 100%;
-  max-width: 800px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
+  .telemetry-workspace {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+  }
 
-/* STATUS BANNER */
-.status-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  height: 56px;
-  font-weight: 600;
-  font-size: 15px;
-  color: #fff;
-  letter-spacing: 0.5px;
-}
-.status-banner.ok { background: #059669; }
-.status-banner.warn { background: #d97706; cursor: pointer; }
-.status-banner.crit { background: #dc2626; cursor: pointer; }
+  .telemetry-header {
+    padding: 32px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .telemetry-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--foreground);
+  }
+
+  .telemetry-subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .telemetry-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .metric-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .metric-unit {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    height: 180px;
+    margin: 24px 0;
+  }
+
+  .bar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bar {
+    width: 100%;
+    background: linear-gradient(180deg, var(--primary), var(--accent));
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+  }
+
+  .bar-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--muted-surface);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table thead {
+    background: var(--muted-surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 12px;
+    text-align: left;
+  }
+
+  .data-table th {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .data-table td {
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table tr:hover {
+    background: var(--muted-surface);
+  }
+
+  code {
+    background: var(--muted-surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  .telemetry-app {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: inherit;
+    display: flex;
+    justify-content: center;
+  }
+  .telemetry-container {
+    width: 100%;
+    max-width: 800px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* STATUS BANNER */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 56px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .status-banner.ok { background: #059669; }
+  .status-banner.warn { background: #d97706; cursor: pointer; }
+  .status-banner.crit { background: #dc2626; cursor: pointer; }
 
 /* METRICS GRID */
 .metrics-grid {

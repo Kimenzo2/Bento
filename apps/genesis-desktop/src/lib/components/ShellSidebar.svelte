@@ -14,6 +14,12 @@
   import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "$lib/components/ui/tooltip/index.js";
   import { demoProjects } from "$lib/data/app-data";
   import { getStarterModuleEntry } from "$lib/data/module-catalog";
+  import {
+    ensureModuleSection,
+    getModuleSectionLabel,
+    moduleSectionStore,
+    setModuleSection,
+  } from "$lib/stores/module-sections.store";
   import type { PageKey } from "$lib/router/routes";
   import { toggleSidebar, workspaceStore } from "$lib/stores/workspace.store";
 
@@ -50,6 +56,17 @@
         }))
       : []
   );
+
+  const appSectionLabels = $derived(activeStarterApp?.sidebar?.items ?? []);
+  const selectedAppSection = $derived(
+    activeStarterApp ? getModuleSectionLabel($moduleSectionStore, activeStarterApp.id, appSectionLabels) : ""
+  );
+
+  $effect(() => {
+    if (activeStarterApp) {
+      ensureModuleSection(activeStarterApp.id, appSectionLabels);
+    }
+  });
 
   const navigateTo = (path: string) => goto(path);
 </script>
@@ -98,10 +115,11 @@
                 {#snippet child({ props })}
                   <button
                     {...props}
-                    class:desktop-sidebar__nav-item--active={index === 0}
+                    class:desktop-sidebar__nav-item--active={item.label === selectedAppSection}
                     class="desktop-sidebar__nav-item desktop-sidebar__nav-item--app"
                     aria-label={item.label}
                     type="button"
+                    onclick={() => activeStarterApp && setModuleSection(activeStarterApp.id, item.label, appSectionLabels)}
                   >
                     <item.icon />
                   </button>
@@ -111,10 +129,11 @@
             </Tooltip>
           {:else}
             <button
-              class:desktop-sidebar__nav-item--active={index === 0}
+              class:desktop-sidebar__nav-item--active={item.label === selectedAppSection}
               class="desktop-sidebar__nav-item desktop-sidebar__nav-item--app"
               aria-label={item.label}
               type="button"
+              onclick={() => activeStarterApp && setModuleSection(activeStarterApp.id, item.label, appSectionLabels)}
             >
               <item.icon />
               <span>{item.label}</span>
@@ -122,42 +141,6 @@
           {/if}
         {/each}
 
-        {#if !$workspaceStore.sidebarCollapsed}
-          <p class="desktop-sidebar__section-label desktop-sidebar__section-label--apps">Shell</p>
-        {/if}
-
-        {#if $workspaceStore.sidebarCollapsed}
-          <Tooltip>
-            <TooltipTrigger>
-              {#snippet child({ props })}
-                <button {...props} class="desktop-sidebar__nav-item" aria-label="Home" type="button" onclick={() => navigateTo("/")}>
-                  <LayoutDashboardIcon />
-                </button>
-              {/snippet}
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10}>Home</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger>
-              {#snippet child({ props })}
-                <button {...props} class="desktop-sidebar__nav-item" aria-label="Global Settings" type="button" onclick={() => navigateTo("/settings")}>
-                  <SettingsIcon />
-                </button>
-              {/snippet}
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10}>Global Settings</TooltipContent>
-          </Tooltip>
-        {:else}
-          <button class="desktop-sidebar__nav-item" aria-label="Home" type="button" onclick={() => navigateTo("/")}>
-            <LayoutDashboardIcon />
-            <span>Home</span>
-          </button>
-
-          <button class="desktop-sidebar__nav-item" aria-label="Global Settings" type="button" onclick={() => navigateTo("/settings")}>
-            <SettingsIcon />
-            <span>Global Settings</span>
-          </button>
-        {/if}
       {:else}
         {#if !$workspaceStore.sidebarCollapsed}
           <p class="desktop-sidebar__section-label">Core</p>

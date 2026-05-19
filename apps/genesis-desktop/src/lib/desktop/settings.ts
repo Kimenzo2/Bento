@@ -133,7 +133,7 @@ export const defaultDesktopSettings: DesktopSettings = {
     code: defaultLanguageCode,
   },
   workspace: {
-    sidebarCollapsed: false,
+    sidebarCollapsed: true,
   },
   window: {
     restoreOnLaunch: true,
@@ -484,7 +484,9 @@ export async function loadDesktopSettings(): Promise<DesktopSettings> {
     return await readStoreSettings();
   } catch (error) {
     console.warn('Genesis desktop settings failed to load from Store; falling back.', error);
-    return (await readNativeSettingsMirror()) ?? readBrowserSettingsBlob() ?? defaultDesktopSettings;
+    return (
+      (await readNativeSettingsMirror()) ?? readBrowserSettingsBlob() ?? defaultDesktopSettings
+    );
   }
 }
 
@@ -555,7 +557,8 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
         ...current,
         migration: {
           legacyBrowserStorageMigrated: true,
-          storeSettingsMigrated: current.migration.storeSettingsMigrated || isTauriRuntimeAvailable(),
+          storeSettingsMigrated:
+            current.migration.storeSettingsMigrated || isTauriRuntimeAvailable(),
         },
       };
 

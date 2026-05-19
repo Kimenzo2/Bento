@@ -197,7 +197,7 @@ const starterSidebarSpecs = {
   },
   telemetry: {
     sectionLabel: "Telemetry",
-    items: ["Health", "Memory", "IPC", "Database", "Anomalies", "Reports"],
+    items: ["Brain Overview", "Module Detail", "Insights"],
   },
 } as const satisfies Record<StarterModuleId, SidebarSpec>;
 

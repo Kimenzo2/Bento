@@ -3,6 +3,8 @@
 
   export let moduleId: string;
   export let settings: any = {};
+  void moduleId;
+  void settings;
 
   let events = [
     { 

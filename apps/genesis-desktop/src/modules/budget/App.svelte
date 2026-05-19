@@ -2,6 +2,7 @@
   import { Wallet, ChevronLeft, ChevronRight, Settings, Plus, PiggyBank, Coffee, Home, Car, ChevronDown } from 'lucide-svelte';
   
   export let moduleId: string;
+  void moduleId;
 
   let currentMonth = 'May 2026';
   let toAssign = 340.00;
@@ -34,6 +35,9 @@
   let txAmount = '';
   let txCategory = '';
   let txNote = '';
+  const txCategoryId = "budget-tx-category";
+  const txNoteId = "budget-tx-note";
+  const txDateId = "budget-tx-date";
 </script>
 
 <div class="budget-app-container module-root">
@@ -115,9 +119,9 @@
         </div>
         
         <div class="form-group">
-          <label>Category</label>
+          <label for={txCategoryId}>Category</label>
           <div class="select-wrapper">
-            <select bind:value={txCategory}>
+            <select id={txCategoryId} bind:value={txCategory}>
               <option value="" disabled selected>Select category...</option>
               {#each categories as group}
                 <optgroup label={group.group}>
@@ -127,18 +131,18 @@
                 </optgroup>
               {/each}
             </select>
-            <ChevronDown size={16} class="select-icon" />
+            <span class="select-icon"><ChevronDown size={16} /></span>
           </div>
         </div>
         
         <div class="form-group">
-          <label>Note (Optional)</label>
-          <input type="text" bind:value={txNote} placeholder="What was this for?" />
+          <label for={txNoteId}>Note (Optional)</label>
+          <input id={txNoteId} type="text" bind:value={txNote} placeholder="What was this for?" />
         </div>
         
         <div class="form-group">
-          <label>Date</label>
-          <input type="date" value="2026-05-11" />
+          <label for={txDateId}>Date</label>
+          <input id={txDateId} type="date" value="2026-05-11" />
         </div>
         
         <button class="save-tx-btn" on:click={() => showTransactionForm = false}>Save Transaction</button>

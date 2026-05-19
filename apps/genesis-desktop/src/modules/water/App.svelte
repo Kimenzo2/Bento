@@ -3,6 +3,8 @@
 
   export let moduleId: string;
   export let settings: any = {};
+  void moduleId;
+  void settings;
 
   let intake = 1200;
   let goal = 2500;
@@ -22,7 +24,7 @@
 </script>
 
 <main class="water-app module-root">
-  <div class="water-container">
+  <div class="water-container scrollable-content">
     <header class="water-header">
       <div class="streak-badge">
         <span>🔥 12 days</span>
@@ -66,7 +68,7 @@
 
     <div class="log-section">
       <h3>Today's Log</h3>
-      <div class="logs">
+      <div class="logs water-log">
         {#each logs as log (log.id)}
           <div class="log-item">
             <div class="log-icon">
@@ -106,7 +108,9 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .water-header {
   display: flex;
@@ -189,11 +193,6 @@
   margin-bottom: 40px;
   overflow-x: auto;
   padding-bottom: 8px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.quick-add::-webkit-scrollbar {
-  display: none;
 }
 .add-btn {
   display: flex;

@@ -20,7 +20,7 @@
 
 </script>
 
-<div class="desktop-workspace">
+<div class:desktop-workspace--mini-app={Boolean(activeAppId)} class="desktop-workspace">
   <ShellSidebar currentPage={page} {activeAppId} />
   <div class="desktop-workspace__content">
     <AppTopbar currentPage={page} {title} {subtitle} />

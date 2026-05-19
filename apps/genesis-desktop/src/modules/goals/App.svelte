@@ -3,6 +3,8 @@
 
   export let moduleId: string;
   export let settings: any = {};
+  void moduleId;
+  void settings;
 
   const currentWeek = 19;
   const totalWeeks = 52;
@@ -51,6 +53,11 @@
   ];
 
   let showNewGoalForm = false;
+  const goalNameId = "goal-name";
+  const goalTargetId = "goal-target";
+  const goalUnitId = "goal-unit";
+  const goalDeadlineId = "goal-deadline";
+  const goalCategoryId = "goal-category";
 </script>
 
 <div class="goals-app-container module-root">
@@ -94,7 +101,7 @@
               <h3 class="goal-title">{goal.title}</h3>
               <p class="goal-deadline {goal.status === 'overdue' ? 'text-red' : 'text-gray'}">
                 {#if goal.status === 'overdue'}
-                  <AlertCircle size={14} class="mr-1" />
+                  <span class="mr-1"><AlertCircle size={14} /></span>
                 {/if}
                 {goal.deadline}
               </p>
@@ -124,7 +131,7 @@
           <div class="goal-footer">
             <div class="last-logged">
               {#if goal.lastLogged.includes('Updated today')}
-                <CheckCircle2 size={14} class="text-green mr-1" />
+                <span class="mr-1 text-green"><CheckCircle2 size={14} /></span>
                 <span class="text-green">{goal.lastLogged}</span>
               {:else}
                 {goal.lastLogged}
@@ -151,33 +158,33 @@
         </div>
         <div class="modal-body">
           <div class="input-group">
-            <label>Goal Name</label>
-            <input type="text" placeholder="e.g. Learn Spanish" class="premium-input" />
+            <label for={goalNameId}>Goal Name</label>
+            <input id={goalNameId} type="text" placeholder="e.g. Learn Spanish" class="premium-input" />
           </div>
           <div class="input-row">
             <div class="input-group">
-              <label>Target Number</label>
-              <input type="number" placeholder="0" class="premium-input" />
+              <label for={goalTargetId}>Target Number</label>
+              <input id={goalTargetId} type="number" placeholder="0" class="premium-input" />
             </div>
             <div class="input-group">
-              <label>Unit</label>
-              <input type="text" placeholder="e.g. hours, km" class="premium-input" />
+              <label for={goalUnitId}>Unit</label>
+              <input id={goalUnitId} type="text" placeholder="e.g. hours, km" class="premium-input" />
             </div>
           </div>
           <div class="input-group">
-            <label>Deadline</label>
-            <input type="date" class="premium-input" />
+            <label for={goalDeadlineId}>Deadline</label>
+            <input id={goalDeadlineId} type="date" class="premium-input" />
           </div>
           <div class="input-group">
-            <label>Category</label>
+            <label for={goalCategoryId}>Category</label>
             <div class="premium-select-wrapper">
-              <select class="premium-input select">
+              <select id={goalCategoryId} class="premium-input select">
                 <option>Health & Fitness</option>
                 <option>Finance</option>
                 <option>Learning & Growth</option>
                 <option>Career</option>
               </select>
-              <ChevronDown size={18} class="select-indicator" />
+              <span class="select-indicator"><ChevronDown size={18} /></span>
             </div>
           </div>
         </div>

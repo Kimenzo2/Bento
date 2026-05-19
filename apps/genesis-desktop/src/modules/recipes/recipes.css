@@ -9,7 +9,7 @@
   --recipes-overlay: color-mix(in srgb, var(--background) 72%, transparent);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   box-sizing: border-box;
   background: var(--recipes-bg);
   color: var(--recipes-ink);
@@ -214,3 +214,4 @@
   background: var(--recipes-overlay);
   z-index: 99;
 }
+

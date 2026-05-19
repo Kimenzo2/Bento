@@ -9,6 +9,7 @@
   let switching = $state<GenesisModuleId | null>(null);
   let stackContainer: HTMLDivElement | null = $state(null);
   let triggerButton: HTMLButtonElement | null = $state(null);
+  const comingSoonModules = new Set<GenesisModuleId>(["notes", "ai"]);
 
   type SwitcherSlot = {
     id: GenesisModuleId;
@@ -45,7 +46,7 @@
       { id: "recipes", label: "Recipes" },
     ],
     [
-      { id: "water", label: "Water" },
+      { id: "nutrition", label: "Water" },
       { id: "countdown", label: "Countdown" },
       { id: "ai", label: "AI" },
       null,
@@ -55,26 +56,27 @@
 
   const collapsedStack = [
     { translateY: 0, scale: 1, opacity: 1 },
-    { translateY: -6, scale: 0.95, opacity: 0.7 },
-    { translateY: -10, scale: 0.9, opacity: 0.4 },
-    { translateY: -13, scale: 0.85, opacity: 0.2 },
-    { translateY: -15, scale: 0.8, opacity: 0.1 },
+    { translateY: 8, scale: 0.965, opacity: 0.72 },
+    { translateY: 14, scale: 0.93, opacity: 0.48 },
+    { translateY: 20, scale: 0.895, opacity: 0.26 },
+    { translateY: 26, scale: 0.86, opacity: 0.14 },
   ] as const;
 
   const rowStep = 44;
 
   function toggleSwitcher() {
     expanded = !expanded;
-    stackExpanded = false;
+    stackExpanded = expanded;
   }
 
   function rowStyle(index: number) {
     const collapsed = collapsedStack[index] ?? collapsedStack[collapsedStack.length - 1];
-    const translateY = stackExpanded ? -(index * rowStep) : collapsed.translateY;
+    const translateY = stackExpanded ? index * rowStep : collapsed.translateY;
     const scale = stackExpanded ? 1 : collapsed.scale;
     const opacity = stackExpanded ? 1 : collapsed.opacity;
     const zIndex = rows.length - index;
-    return `--stack-translate-y:${translateY}px;--stack-scale:${scale};--stack-opacity:${opacity};--stack-row-index:${index};z-index:${zIndex};`;
+    const delay = stackExpanded ? index * 22 : (rows.length - index - 1) * 14;
+    return `--stack-translate-y:${translateY}px;--stack-scale:${scale};--stack-opacity:${opacity};--stack-row-index:${index};--stack-delay:${delay}ms;z-index:${zIndex};`;
   }
 
   function handleWindowPointerDown(event: PointerEvent) {
@@ -93,6 +95,13 @@
   }
 
   async function selectModule(moduleId: GenesisModuleId) {
+    if (comingSoonModules.has(moduleId)) {
+      beginAppLaunch(moduleId);
+      signalAppLaunchError(moduleId, new Error("Coming soon"));
+      expanded = false;
+      return;
+    }
+
     if (switching || moduleId === $activeModule) {
       expanded = false;
       return;
@@ -136,6 +145,7 @@
     class="module-switcher-stack"
     class:module-switcher-stack--expanded={stackExpanded}
     role="menu"
+    tabindex="-1"
     aria-label="Genesis modules"
     onpointerenter={() => {
       stackExpanded = true;

@@ -3,6 +3,8 @@
 
   export let moduleId: string;
   export let settings: any = {};
+  void moduleId;
+  void settings;
 
   // Mock State
   let searchQuery = '';
@@ -52,6 +54,13 @@
     showDetail = item;
     revealPassword = false;
   }
+
+  function handleKeyActivate(event: KeyboardEvent, callback: () => void) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      callback();
+    }
+  }
 </script>
 
 <div class="passwords-app-container module-root">
@@ -62,12 +71,11 @@
       <button class="icon-btn outline-btn"><Plus size={18} /></button>
     </div>
     <div class="search-wrapper">
-      <Search size={20} class="search-icon" />
+      <span class="search-icon"><Search size={20} /></span>
       <input 
         type="text" 
         bind:value={searchQuery}
-        placeholder="Search passwords..." 
-        autofocus
+        placeholder="Search passwords..."
       />
     </div>
   </div>
@@ -92,7 +100,7 @@
         <h3 class="section-title">Recently Used</h3>
         <div class="item-list">
           {#each recentLogins as entry}
-            <div class="vault-item" on:click={() => openDetail(entry)}>
+            <div class="vault-item" role="button" tabindex="0" on:click={() => openDetail(entry)} on:keydown={(event) => handleKeyActivate(event, () => openDetail(entry))}>
               <div class="item-left">
                 <div class="favicon-circle">{entry.site.charAt(0)}</div>
                 <div class="item-meta">
@@ -116,7 +124,7 @@
           <div class="alpha-header">{group.section}</div>
           <div class="item-list">
             {#each group.items as entry}
-              <div class="vault-item" on:click={() => openDetail(entry)}>
+              <div class="vault-item" role="button" tabindex="0" on:click={() => openDetail(entry)} on:keydown={(event) => handleKeyActivate(event, () => openDetail(entry))}>
                 <div class="item-left">
                   <div class="favicon-circle">{entry.site.charAt(0)}</div>
                   <div class="item-meta">
@@ -145,7 +153,7 @@
         <!-- Just rendering recent items as mock results -->
         <div class="item-list">
           {#each recentLogins as entry}
-            <div class="vault-item" on:click={() => openDetail(entry)}>
+            <div class="vault-item" role="button" tabindex="0" on:click={() => openDetail(entry)} on:keydown={(event) => handleKeyActivate(event, () => openDetail(entry))}>
               <div class="item-left">
                 <div class="favicon-circle">{entry.site.charAt(0)}</div>
                 <div class="item-meta">
@@ -168,8 +176,8 @@
   <!-- Detail Bottom Sheet / Slide Pane -->
   {#if showDetail}
     {@const detail = showDetail}
-    <div class="detail-overlay" on:click={() => showDetail = null}>
-      <div class="detail-pane" on:click|stopPropagation>
+    <div class="detail-overlay" role="button" tabindex="0" aria-label="Close vault detail" on:click={() => (showDetail = null)} on:keydown={(event) => handleKeyActivate(event, () => (showDetail = null))}>
+      <div class="detail-pane" role="presentation" on:click|stopPropagation>
         
         <div class="pane-header">
           <div class="pane-title-wrap">
@@ -181,7 +189,7 @@
 
         <div class="pane-body">
           <div class="field-block">
-            <label>Username / Email</label>
+            <span class="field-label">Username / Email</span>
             <div class="field-row">
               <span class="field-value">{detail.user}</span>
               <button class="action-btn"><Copy size={16}/></button>
@@ -189,7 +197,7 @@
           </div>
 
           <div class="field-block">
-            <label>Password</label>
+            <span class="field-label">Password</span>
             <div class="field-row">
               <span class="field-value password-font">
                 {revealPassword ? detail.pass : '••••••••••••••••'}
@@ -206,7 +214,7 @@
           </div>
 
           <div class="field-block">
-            <label>Website</label>
+            <span class="field-label">Website</span>
             <div class="field-row">
               <span class="field-value text-blue">{detail.url}</span>
               <button class="action-btn"><ExternalLink size={16}/></button>
@@ -297,11 +305,8 @@
     padding: 16px 32px;
     border-bottom: 1px solid var(--vault-border);
     overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .categories-strip::-webkit-scrollbar {
-    display: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--vault-accent) transparent;
   }
 
   .cat-pill {
@@ -326,11 +331,8 @@
     flex: 1;
     overflow-y: auto;
     padding: 0 32px 32px;
-    scrollbar-width: none;
-  }
-
-  .scrollable-content::-webkit-scrollbar {
-    display: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--vault-accent) transparent;
   }
 
   .vault-section {
@@ -499,7 +501,7 @@
     gap: 6px;
   }
 
-  .field-block label {
+  .field-label {
     font-size: 12px;
     font-weight: 600;
     color: var(--vault-muted);
