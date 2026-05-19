@@ -12,6 +12,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
+type SupabaseAuthClientCompat = {
+  getUser(token: string): Promise<{
+    data: { user: { id: string; email?: string | null } | null };
+    error: Error | null;
+  }>;
+  admin: {
+    deleteUser(userId: string): Promise<{ error: Error | null }>;
+  };
+};
+
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseServiceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
@@ -46,10 +56,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const token = authHeader.slice(7);
 
+  const supabaseAuth = supabaseAdmin.auth as unknown as SupabaseAuthClientCompat;
+
   const {
     data: { user },
     error: authError,
-  } = await supabaseAdmin.auth.getUser(token);
+  } = await supabaseAuth.getUser(token);
 
   if (authError || !user) {
     return res.status(401).json({ error: 'Invalid or expired token' });
@@ -60,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // notifications, shared_books, user_gamification, user_achievements,
   // user_daily_challenges, user_analytics_summary, and all other FK tables.
   try {
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+    const { error: deleteError } = await supabaseAuth.admin.deleteUser(user.id);
 
     if (deleteError) {
       console.error('[delete-account] Failed to delete user:', deleteError);
