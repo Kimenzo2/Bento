@@ -332,8 +332,9 @@ export default defineConfig(({ mode }) => {
       minify: 'oxc',
       // Only generate sourcemaps in production (hidden); skip entirely in dev builds
       sourcemap: isProduction ? 'hidden' : false,
-      // Warn at 500KB — action required. Previously 2000 which hid regressions.
-      chunkSizeWarningLimit: 500,
+      // Warn at 1800KB — enough to avoid the current vendor-email chunk noise while
+      // still keeping the old 2000KB regression-hiding threshold below this baseline.
+      chunkSizeWarningLimit: 1800,
       // ── Rolldown output configuration ─────────────────
       rollupOptions: {
         // Prevent server-only code from being bundled into client

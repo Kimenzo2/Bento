@@ -32,9 +32,7 @@ const PersonalizationQuiz = lazy(() =>
 const InstantCreationDemo = lazy(() =>
   import('./InstantCreationDemo').then((m) => ({ default: m.InstantCreationDemo }))
 );
-const ProRevealMoment = lazy(() =>
-  import('./ProRevealMoment').then((m) => ({ default: m.ProRevealMoment }))
-);
+const ProRevealMoment = lazy(() => import('./ProRevealMoment'));
 const OnboardingPricing = lazy(() =>
   import('./OnboardingPricing').then((m) => ({ default: m.OnboardingPricing }))
 );
