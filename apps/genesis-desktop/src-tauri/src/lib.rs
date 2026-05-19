@@ -1,12 +1,9 @@
-pub mod actors;
 pub mod commands;
 pub mod db;
 pub mod mcp;
 pub mod modules;
 pub mod runtime;
-pub mod session;
 pub mod settings;
-pub mod telemetry;
 pub mod window_bounds;
 
 use chrono::Utc;
@@ -20,13 +17,14 @@ use std::{
 use tauri::{AppHandle, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::StateFlags;
+use window_bounds::restore_main_window;
 
 use crate::commands::{
     backup_desktop_settings, begin_background_task, consume_pending_deep_link,
-    emit_main_window_event, finish_background_task, get_cursor_screen_position,
-    get_lifecycle_state, load_desktop_settings, pick_export_directory, quit_app,
-    restore_desktop_settings_backup, restore_window, save_desktop_settings,
-    save_export_manifest, send_mcp_request, start_mcp_sidecar, McpManager, PendingDeepLink,
+    emit_main_window_event, finish_background_task, get_lifecycle_state, load_desktop_settings,
+    pick_export_directory, quit_app, restore_desktop_settings_backup, restore_window,
+    save_desktop_settings, save_export_manifest, send_mcp_request, start_mcp_sidecar,
+    McpManager, PendingDeepLink,
 };
 use crate::db::{
     flush_module_state, get_module_context, get_module_fonts, save_module_context,
@@ -38,15 +36,6 @@ use crate::modules::{
     uninstall_module,
 };
 use crate::runtime::DesktopRuntime;
-use crate::session::{
-    tab_close, tab_get, tab_get_foreground, tab_handle_sync_event, tab_is_module_open,
-    tab_list, tab_open, tab_set_foreground, tab_switch, ManagedTabSession,
-};
-use crate::telemetry::{
-    TelemetryState, get_telemetry_brain_overview,
-    get_telemetry_insights, get_telemetry_module_detail, record_active_js_heap,
-    spawn_collector, subscribe_brain_events,
-};
 
 #[derive(Clone, Serialize)]
 struct CrashPayload {
@@ -171,16 +160,11 @@ pub fn run() {
                     return Err(std::io::Error::new(std::io::ErrorKind::Other, error).into());
                 }
             };
-            let app_state = GenesisAppState::new(db);
-            let telemetry = TelemetryState::new(
-                app_state.db().clone(),
-                app_state.active_module_handle(),
-            )
-            .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
-            spawn_collector(app.handle().clone(), telemetry.clone());
-            app.manage(app_state);
-            app.manage(telemetry);
-            app.manage(ManagedTabSession::new());
+            app.manage(GenesisAppState::new(db));
+
+            if let Some(window) = app.get_webview_window("main") {
+                restore_main_window(&window)?;
+            }
 
             #[cfg(any(windows, target_os = "linux"))]
             app.deep_link().register_all()?;
@@ -203,6 +187,11 @@ pub fn run() {
 
             if let Some(url) = extract_deep_link(std::env::args().collect::<Vec<_>>()) {
                 queue_deep_link(app.handle(), &pending, url);
+            }
+            
+            // Show window immediately after setup to minimize time to first paint
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
             }
 
             Ok(())
@@ -234,24 +223,9 @@ pub fn run() {
             install_module,
             uninstall_module,
             stream_ai_response,
-            record_active_js_heap,
-            subscribe_brain_events,
-            get_cursor_screen_position,
-            get_telemetry_brain_overview,
-            get_telemetry_module_detail,
-            get_telemetry_insights,
             start_mcp_sidecar,
             send_mcp_request,
-            consume_pending_deep_link,
-            tab_open,
-            tab_close,
-            tab_switch,
-            tab_set_foreground,
-            tab_list,
-            tab_get_foreground,
-            tab_get,
-            tab_is_module_open,
-            tab_handle_sync_event,
+            consume_pending_deep_link
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

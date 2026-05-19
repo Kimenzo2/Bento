@@ -13,7 +13,6 @@
   import { fetchModuleRegistry, type ModuleRegistryEntry } from "$lib/desktop/installer";
   import { availableThemes, setMode, setTheme } from "$lib/stores/theme.store";
   import { toast } from "svelte-sonner";
-  import { logger } from "$lib/utils/logger";
 
   type SectionId = "appearance" | "apps" | "ai" | "notifications" | "privacy";
 
@@ -48,7 +47,7 @@
     try {
       registry = await fetchModuleRegistry();
     } catch (error) {
-      logger.warn("Module registry failed to load", error);
+      console.warn("[Genesis Desktop] Module registry failed to load", error);
       toast.error("Module registry failed to load.");
     } finally {
       loadingRegistry = false;
@@ -171,27 +170,6 @@
                 <h3>Installed Apps</h3>
                 <p>The shell stays mounted. Built-in apps route internally; future signed bundles load through the guarded module protocol.</p>
               </div>
-
-              <label class="global-settings__toggle">
-                <span>
-                  <strong>Enable tab bar</strong>
-                  <small>Show the app tab strip and keep tab session state active.</small>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={$desktopSettings.workspace.tabsEnabled}
-                  onchange={(event) => {
-                    const checked = event.currentTarget.checked;
-                    void updateDesktopSettings((current) => ({
-                      ...current,
-                      workspace: {
-                        ...current.workspace,
-                        tabsEnabled: checked,
-                      },
-                    }));
-                  }}
-                />
-              </label>
 
               <div class="global-settings__apps">
                 {#if loadingRegistry}

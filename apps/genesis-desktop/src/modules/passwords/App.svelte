@@ -1,19 +1,13 @@
 <script lang="ts">
-  import "./passwords.css";
-  import CopyIcon from "@lucide/svelte/icons/copy";
-  import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
-  import EyeIcon from "@lucide/svelte/icons/eye";
-  import EyeOffIcon from "@lucide/svelte/icons/eye-off";
-  import PlusIcon from "@lucide/svelte/icons/plus";
-  import SearchIcon from "@lucide/svelte/icons/search";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { MiniAppHeader, MiniAppRoot, MiniAppStatGrid } from "$lib/modules/mini-app/index.js";
+  import { Search, Plus, Copy, ExternalLink, Eye, EyeOff } from 'lucide-svelte';
 
-  let { moduleId = "passwords", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
-    $props();
+  export let moduleId: string;
+  export let settings: any = {};
+  void moduleId;
+  void settings;
 
+  // Mock State
+  let searchQuery = '';
   type VaultEntry = {
     id: number;
     site: string;
@@ -27,55 +21,33 @@
     items: VaultEntry[];
   };
 
-  let searchQuery = $state("");
-  let showDetail = $state<VaultEntry | null>(null);
-  let revealPassword = $state(false);
-  let activeCategory = $state("All");
+  let showDetail: VaultEntry | null = null;
+  let revealPassword = false;
 
   const categories = ["All", "Login", "Cards", "Notes", "Identity"];
+  let activeCategory = "All";
 
+  // Data
   const recentLogins: VaultEntry[] = [
-    { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV…" },
-    { id: 2, site: "Stripe", user: "admin@corp.com", url: "stripe.com", pass: "str_live_…" },
-    { id: 3, site: "AWS Console", user: "root-dev", url: "aws.amazon.com", pass: "aws_19192…" },
+    { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV..." },
+    { id: 2, site: "Stripe", user: "admin@corp.com", url: "stripe.com", pass: "str_live_..."},
+    { id: 3, site: "AWS Console", user: "root-dev", url: "aws.amazon.com", pass: "aws_19192..."},
   ];
 
   const vault: VaultGroup[] = [
-    {
-      section: "A",
-      items: [
-        { id: 4, site: "Apple", user: "steve@mac.com", url: "apple.com", pass: "apple_xZ91…" },
-        { id: 5, site: "Adobe", user: "design@ui.com", url: "adobe.com", pass: "dobe_pass…" },
-      ],
-    },
-    {
-      section: "G",
-      items: [
-        { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV…" },
-        { id: 6, site: "Google", user: "kimenzo@gmail.com", url: "google.com", pass: "g_99182…" },
-      ],
-    },
+    { section: "A", items: [
+      { id: 4, site: "Apple", user: "steve@mac.com", url: "apple.com", pass: "apple_xZ91..." },
+      { id: 5, site: "Adobe", user: "design@ui.com", url: "adobe.com", pass: "dobe_pass..." },
+    ]},
+    { section: "G", items: [
+      { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV..." },
+      { id: 6, site: "Google", user: "kimenzo@gmail.com", url: "google.com", pass: "g_99182..." },
+    ]}
   ];
 
-  async function copyText(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      return;
-    }
-  }
-
-  async function copyPass(pass: string) {
-    await copyText(pass);
-  }
-
-  async function copyUsername(user: string) {
-    await copyText(user);
-  }
-
-  function openWebsite(url: string) {
-    const target = /^https?:\/\//.test(url) ? url : `https://${url}`;
-    window.open(target, "_blank", "noopener,noreferrer");
+  function copyPass(pass: string) {
+    // In real app, write to clipboard
+    console.log("Copied:", pass);
   }
 
   function openDetail(item: VaultEntry) {
@@ -83,184 +55,489 @@
     revealPassword = false;
   }
 
-  function closeDetail() {
-    showDetail = null;
-    revealPassword = false;
+  function handleKeyActivate(event: KeyboardEvent, callback: () => void) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      callback();
+    }
   }
 </script>
 
-<MiniAppRoot class="passwords-app gap-5 p-4 sm:p-6">
-  <MiniAppHeader
-    eyebrow="Vault"
-    title="Password vault"
-    description="Local-first logins, secure notes, and passkeys — encrypted on this device."
-  >
-    {#snippet actions()}
-      <Button type="button" variant="outline" size="icon" aria-label="Add item">
-        <PlusIcon />
-      </Button>
-    {/snippet}
-  </MiniAppHeader>
-
-  <MiniAppStatGrid
-    columns={3}
-    stats={[
-      { label: "Saved items", value: "128", hint: "Across all categories" },
-      { label: "Health score", value: "94", hint: "Strong passwords" },
-      { label: "Breaches", value: "0", hint: "Monitored emails" },
-    ]}
-  />
-
-  <section class="passwords-toolbar">
-    <div class="passwords-search">
-      <SearchIcon class="passwords-search-icon size-5" />
-      <Input class="pl-9" bind:value={searchQuery} placeholder="Search vault…" />
+<div class="passwords-app-container module-root">
+  
+  <!-- Top: Search Bar -->
+  <div class="search-header">
+    <div class="add-action">
+      <button class="icon-btn outline-btn"><Plus size={18} /></button>
     </div>
-  </section>
+    <div class="search-wrapper">
+      <span class="search-icon"><Search size={20} /></span>
+      <input 
+        type="text" 
+        bind:value={searchQuery}
+        placeholder="Search passwords..."
+      />
+    </div>
+  </div>
 
-  <section class="passwords-categories">
-    {#each categories as cat (cat)}
-      <Button
-        type="button"
-        variant={activeCategory === cat ? "default" : "outline"}
-        size="sm"
-        class="rounded-full"
-        onclick={() => (activeCategory = cat)}
-      >
-        {cat}
-      </Button>
-    {/each}
-  </section>
-
-  <section class="passwords-scroll grid gap-1">
-    {#if !searchQuery}
-      <p class="passwords-section-title">Recently used</p>
-      {#each recentLogins as entry (entry.id)}
-        <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
-              <span class="flex min-w-0 items-center gap-3">
-            <span class="passwords-favicon">{entry.site.charAt(0)}</span>
-            <span class="min-w-0">
-              <span class="block truncate font-medium text-(--foreground)">{entry.site}</span>
-              <span class="block truncate text-sm text-muted-foreground">{entry.user}</span>
-            </span>
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Copy password"
-            onclick={(e) => {
-              e.stopPropagation();
-              copyPass(entry.pass);
-            }}
-          >
-            <CopyIcon class="size-4" />
-          </Button>
+  {#if !searchQuery}
+    <!-- Categories -->
+    <div class="categories-strip">
+      {#each categories as cat}
+        <button 
+          class="cat-pill {activeCategory === cat ? 'active' : ''}"
+          on:click={() => activeCategory = cat}
+        >
+          {cat}
         </button>
       {/each}
+    </div>
 
-      {#each vault as group (group.section)}
-        <p class="passwords-alpha">{group.section}</p>
-        {#each group.items as entry (entry.id)}
-          <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
-              <span class="flex min-w-0 items-center gap-3">
-              <span class="passwords-favicon">{entry.site.charAt(0)}</span>
-              <span class="min-w-0">
-                <span class="block truncate font-medium text-(--foreground)">{entry.site}</span>
-                <span class="block truncate text-sm text-muted-foreground">{entry.user}</span>
-              </span>
-            </span>
-            <CopyIcon class="size-4 shrink-0 text-muted-foreground" />
-          </button>
-        {/each}
-      {/each}
-    {:else}
-      <p class="passwords-section-title">Results</p>
-      {#each recentLogins as entry (entry.id)}
-        <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
-            <span class="flex min-w-0 items-center gap-3">
-            <span class="passwords-favicon">{entry.site.charAt(0)}</span>
-            <span class="min-w-0">
-              <span class="block truncate font-medium">{entry.site}</span>
-              <span class="block truncate text-sm text-muted-foreground">{entry.user}</span>
-            </span>
-          </span>
-        </button>
-      {/each}
-    {/if}
-  </section>
+    <div class="scrollable-content">
+      
+      <!-- Recently Used -->
+      <section class="vault-section">
+        <h3 class="section-title">Recently Used</h3>
+        <div class="item-list">
+          {#each recentLogins as entry}
+            <div class="vault-item" role="button" tabindex="0" on:click={() => openDetail(entry)} on:keydown={(event) => handleKeyActivate(event, () => openDetail(entry))}>
+              <div class="item-left">
+                <div class="favicon-circle">{entry.site.charAt(0)}</div>
+                <div class="item-meta">
+                  <span class="item-site">{entry.site}</span>
+                  <span class="item-user">{entry.user}</span>
+                </div>
+              </div>
+              <div class="item-right">
+                <button class="action-btn" on:click|stopPropagation={() => copyPass(entry.pass)}>
+                  <Copy size={16} />
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </section>
 
+      <!-- Alphabetical List -->
+      {#each vault as group}
+        <section class="vault-section">
+          <div class="alpha-header">{group.section}</div>
+          <div class="item-list">
+            {#each group.items as entry}
+              <div class="vault-item" role="button" tabindex="0" on:click={() => openDetail(entry)} on:keydown={(event) => handleKeyActivate(event, () => openDetail(entry))}>
+                <div class="item-left">
+                  <div class="favicon-circle">{entry.site.charAt(0)}</div>
+                  <div class="item-meta">
+                    <span class="item-site">{entry.site}</span>
+                    <span class="item-user">{entry.user}</span>
+                  </div>
+                </div>
+                <div class="item-right">
+                  <button class="action-btn" on:click|stopPropagation={() => copyPass(entry.pass)}>
+                    <Copy size={16} />
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/each}
+      
+    </div>
+
+  {:else}
+    <!-- Search Results View -->
+    <div class="scrollable-content">
+      <section class="vault-section">
+        <h3 class="section-title">Search Results</h3>
+        <!-- Just rendering recent items as mock results -->
+        <div class="item-list">
+          {#each recentLogins as entry}
+            <div class="vault-item" role="button" tabindex="0" on:click={() => openDetail(entry)} on:keydown={(event) => handleKeyActivate(event, () => openDetail(entry))}>
+              <div class="item-left">
+                <div class="favicon-circle">{entry.site.charAt(0)}</div>
+                <div class="item-meta">
+                  <span class="item-site">{entry.site}</span>
+                  <span class="item-user">{entry.user}</span>
+                </div>
+              </div>
+              <div class="item-right">
+                <button class="action-btn" on:click|stopPropagation={() => copyPass(entry.pass)}>
+                  <Copy size={16} />
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </section>
+    </div>
+  {/if}
+
+  <!-- Detail Bottom Sheet / Slide Pane -->
   {#if showDetail}
     {@const detail = showDetail}
-    <div class="passwords-detail-overlay" role="presentation">
-      <button type="button" class="absolute inset-0" aria-label="Close detail" onclick={closeDetail}></button>
-      <div class="passwords-detail-pane relative z-10">
-        <div class="mb-6 flex items-start justify-between gap-4 border-b border-[color-mix(in_srgb,var(--border)_86%,transparent)] pb-5">
-          <span class="flex items-center gap-3">
-            <span class="passwords-favicon passwords-favicon--lg">{detail.site.charAt(0)}</span>
-            <span>
-              <h2 class="font-(--font-heading) text-xl font-semibold">{detail.site}</h2>
-              <Badge variant="outline" class="mt-1">Login</Badge>
-            </span>
-          </span>
-          <Button type="button" variant="ghost" size="sm">Edit</Button>
+    <div class="detail-overlay" role="button" tabindex="0" aria-label="Close vault detail" on:click={() => (showDetail = null)} on:keydown={(event) => handleKeyActivate(event, () => (showDetail = null))}>
+      <div class="detail-pane" role="presentation" on:click|stopPropagation>
+        
+        <div class="pane-header">
+          <div class="pane-title-wrap">
+            <div class="favicon-circle large">{detail.site.charAt(0)}</div>
+            <h2>{detail.site}</h2>
+          </div>
+          <button class="text-btn">Edit</button>
         </div>
 
-        <div class="grid gap-4">
-          <div class="passwords-field">
-            <span class="passwords-field-label">Username</span>
-            <div class="passwords-field-row">
-              <span class="passwords-field-value">{detail.user}</span>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Copy username" onclick={() => copyUsername(detail.user)}>
-                <CopyIcon class="size-4" />
-              </Button>
+        <div class="pane-body">
+          <div class="field-block">
+            <span class="field-label">Username / Email</span>
+            <div class="field-row">
+              <span class="field-value">{detail.user}</span>
+              <button class="action-btn"><Copy size={16}/></button>
             </div>
           </div>
 
-          <div class="passwords-field">
-            <span class="passwords-field-label">Password</span>
-            <div class="passwords-field-row">
-              <span class="passwords-field-value passwords-field-value--mono">
-                {revealPassword ? detail.pass : "••••••••••••"}
+          <div class="field-block">
+            <span class="field-label">Password</span>
+            <div class="field-row">
+              <span class="field-value password-font">
+                {revealPassword ? detail.pass : '••••••••••••••••'}
               </span>
-              <span class="flex gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={revealPassword ? "Hide password" : "Show password"}
-                  onclick={() => (revealPassword = !revealPassword)}
-                >
-                  {#if revealPassword}
-                    <EyeOffIcon class="size-4" />
-                  {:else}
-                    <EyeIcon class="size-4" />
-                  {/if}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Copy password"
-                  onclick={() => copyPass(detail.pass)}
-                >
-                  <CopyIcon class="size-4" />
-                </Button>
-              </span>
+              <div class="field-actions">
+                <button class="action-btn" on:click={() => revealPassword = !revealPassword}>
+                  {#if revealPassword} <EyeOff size={16}/> {:else} <Eye size={16}/> {/if}
+                </button>
+                <button class="action-btn" on:click={() => copyPass(detail.pass)}>
+                  <Copy size={16}/>
+                </button>
+              </div>
             </div>
           </div>
 
-          <section class="passwords-field">
-            <span class="passwords-field-label">Website</span>
-            <div class="passwords-field-row">
-              <span class="passwords-field-value passwords-field-value--link">{detail.url}</span>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Open website" onclick={() => openWebsite(detail.url)}>
-                <ExternalLinkIcon class="size-4" />
-              </Button>
+          <div class="field-block">
+            <span class="field-label">Website</span>
+            <div class="field-row">
+              <span class="field-value text-blue">{detail.url}</span>
+              <button class="action-btn"><ExternalLink size={16}/></button>
             </div>
-          </section>
+          </div>
+          
         </div>
       </div>
     </div>
   {/if}
-</MiniAppRoot>
+
+</div>
+
+<style>
+  .passwords-app-container {
+    --vault-bg: var(--background);
+    --vault-surface: color-mix(in srgb, var(--surface) 94%, var(--background));
+    --vault-surface-strong: color-mix(in srgb, var(--surface) 84%, var(--background));
+    --vault-ink: var(--foreground);
+    --vault-muted: var(--muted);
+    --vault-border: var(--border);
+    --vault-accent: var(--primary);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--vault-bg);
+    color: var(--vault-ink);
+    font-family: inherit;
+    border-radius: 8px;
+  }
+
+  .search-header {
+    display: flex;
+    gap: 16px;
+    padding: 24px 32px 16px;
+    align-items: center;
+    border-bottom: 1px solid var(--vault-border);
+  }
+
+  .search-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    color: var(--vault-muted);
+  }
+
+  .search-wrapper input {
+    width: 100%;
+    background: var(--vault-surface);
+    border: 1px solid var(--vault-border);
+    color: var(--vault-ink);
+    padding: 14px 16px 14px 44px;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+  }
+
+  .search-wrapper input:focus {
+    border-color: var(--vault-accent);
+  }
+
+  .search-wrapper input::placeholder {
+    color: var(--vault-muted);
+  }
+
+  .icon-btn.outline-btn {
+    background: transparent;
+    border: 1px solid var(--vault-border);
+    color: var(--vault-ink);
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .categories-strip {
+    display: flex;
+    gap: 8px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--vault-border);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--vault-accent) transparent;
+  }
+
+  .cat-pill {
+    background: var(--vault-surface);
+    border: 1px solid var(--vault-border);
+    color: var(--vault-muted);
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: default;
+    white-space: nowrap;
+  }
+
+  .cat-pill.active {
+    background: var(--vault-ink);
+    color: var(--vault-bg);
+    border-color: color-mix(in srgb, var(--vault-ink) 68%, var(--vault-border));
+  }
+
+  .scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 32px 32px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--vault-accent) transparent;
+  }
+
+  .vault-section {
+    margin-top: 24px;
+  }
+
+  .section-title,
+  .alpha-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vault-muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--vault-border);
+  }
+
+  .alpha-header {
+    font-size: 18px;
+    color: var(--vault-accent);
+    border-bottom: none;
+  }
+
+  .item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .vault-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: default;
+  }
+
+  .vault-item:hover {
+    background: var(--vault-surface-strong);
+  }
+
+  .item-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .favicon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--vault-border);
+    background: var(--vault-surface-strong);
+    color: var(--vault-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .favicon-circle.large {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    font-size: 20px;
+  }
+
+  .item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .item-site {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vault-ink);
+  }
+
+  .item-user {
+    font-size: 13px;
+    color: var(--vault-muted);
+  }
+
+  .item-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .action-btn {
+    background: transparent;
+    border: none;
+    color: var(--vault-muted);
+    cursor: default;
+    padding: 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-btn:hover {
+    background: var(--vault-surface-strong);
+    color: var(--vault-ink);
+  }
+
+  .detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--vault-bg) 62%, transparent);
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .detail-pane {
+    width: 100%;
+    max-width: 600px;
+    background: var(--vault-bg);
+    border: 1px solid var(--vault-border);
+    border-radius: 16px 16px 0 0;
+    padding: 32px;
+  }
+
+  .pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--vault-border);
+  }
+
+  .pane-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .pane-title-wrap h2 {
+    font-size: 24px;
+    margin: 0;
+    color: var(--vault-ink);
+  }
+
+  .text-btn {
+    background: transparent;
+    border: none;
+    color: var(--vault-accent);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: default;
+  }
+
+  .pane-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .field-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vault-muted);
+    text-transform: uppercase;
+  }
+
+  .field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--vault-surface);
+    border: 1px solid var(--vault-border);
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+
+  .field-value {
+    font-size: 16px;
+    color: var(--vault-ink);
+  }
+
+  .password-font {
+    font-family: "Space Mono", monospace;
+    letter-spacing: 0.1em;
+  }
+
+  .text-blue {
+    color: var(--vault-accent);
+    cursor: default;
+    text-decoration: underline;
+  }
+
+  .field-actions {
+    display: flex;
+    gap: 4px;
+  }
+</style>
+
+

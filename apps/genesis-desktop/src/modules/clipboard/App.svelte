@@ -1,249 +1,324 @@
 <script lang="ts">
-  import CodeIcon from "@lucide/svelte/icons/code";
-  import CopyIcon from "@lucide/svelte/icons/copy";
-  import DownloadIcon from "@lucide/svelte/icons/download";
-  import ImageIcon from "@lucide/svelte/icons/image";
-  import Link2Icon from "@lucide/svelte/icons/link-2";
-  import PinIcon from "@lucide/svelte/icons/pin";
-  import SearchIcon from "@lucide/svelte/icons/search";
-  import ShieldIcon from "@lucide/svelte/icons/shield";
-  import TypeIcon from "@lucide/svelte/icons/type";
-  import { onMount } from "svelte";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import {
-    MiniAppHeader,
-    MiniAppRoot,
-    MiniAppStatGrid,
-    miniAppAccent,
-  } from "$lib/modules/mini-app/index.js";
-  import {
-    ensureModuleSection,
-    getModuleSectionLabel,
-    moduleSectionStore,
-  } from "$lib/stores/module-sections.store";
+  import { Search, Copy, Pin, Clock, Type, Image as ImageIcon, Link2, Code, Trash2 } from 'lucide-svelte';
 
-  let { moduleId = "clipboard", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
-    $props();
+  export let moduleId: string;
+  export let settings: any = {};
+  void moduleId;
+  void settings;
 
-  const sectionLabels = ["History", "Pinned", "Snippets", "Images", "Sensitive", "Settings"] as const;
-  const selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+  let searchQuery = '';
 
-  type ClipType = "text" | "code" | "link" | "image";
-  type Clip = { id: string; type: ClipType; content: string; time: string; isPinned?: boolean };
-
-  let searchQuery = $state("");
-
-  const pinnedClips: Clip[] = [
-    { id: "p1", type: "code", content: "npm install -D tailwindcss postcss autoprefixer", time: "2d ago", isPinned: true },
-    { id: "p2", type: "text", content: "0x98fB...12aE (Wallet Address)", time: "1w ago", isPinned: true },
+  const pinnedClips = [
+    { id: 'p1', type: 'code', content: 'npm install -D tailwindcss postcss autoprefixer', time: '2d ago', isPinned: true },
+    { id: 'p2', type: 'text', content: '0x98fB...12aE (Wallet Address)', time: '1w ago', isPinned: true },
   ];
 
-  const recentClips: Clip[] = [
-    { id: "1", type: "text", content: "Meeting notes from today: Need to hit the Q3 metrics before we scale the marketing spend.", time: "2m ago" },
-    { id: "2", type: "link", content: "https://github.com/Kimenzo/Bento/pulls", time: "15m ago" },
-    { id: "3", type: "image", content: "Screenshot 2026-05-09 175836.png [1034x601]", time: "1h ago" },
-    { id: "4", type: "code", content: "const app = express(); app.use(express.json());", time: "3h ago" },
-    { id: "5", type: "text", content: "Check out the new design system specs attached.", time: "5h ago" },
+  const recentClips = [
+    { id: '1', type: 'text', content: 'Meeting notes from today: Need to hit the Q3 metrics before we scale the marketing spend.', time: '2m ago', isPinned: false },
+    { id: '2', type: 'link', content: 'https://github.com/Kimenzo/Bento/pulls', time: '15m ago', isPinned: false },
+    { id: '3', type: 'image', content: 'Screenshot 2026-05-09 175836.png [1034x601]', time: '1h ago', isPinned: false },
+    { id: '4', type: 'code', content: 'const app = express(); app.use(express.json());', time: '3h ago', isPinned: false },
+    { id: '5', type: 'text', content: 'Check out the new design system specs attached.', time: '5h ago', isPinned: false },
   ];
 
-  const snippets = [
-    { id: "s1", label: "git status", content: "git status --short --branch" },
-    { id: "s2", label: "Supabase URL", content: "VITE_SUPABASE_URL=https://..." },
-    { id: "s3", label: "Standup", content: "Yesterday: … | Today: … | Blockers: …" },
-  ];
-
-  const sensitiveClips = [
-    { id: "x1", content: "API key sk_live_••••••••", expires: "Expires in 4m" },
-    { id: "x2", content: "One-time backup codes", expires: "Expires in 12m" },
-  ];
-
-  const settingsRows = [
-    { label: "History limit", value: "500 items" },
-    { label: "Sensitive auto-expire", value: "15 minutes" },
-    { label: "Sync across devices", value: "Off (local only)" },
-  ];
-
-  onMount(() => {
-    ensureModuleSection(moduleId, sectionLabels);
-  });
-
-  function iconFor(type: ClipType) {
-    if (type === "code") return CodeIcon;
-    if (type === "link") return Link2Icon;
-    if (type === "image") return ImageIcon;
-    return TypeIcon;
+  function getIcon(type: string) {
+    if(type === 'code') return Code;
+    if(type === 'link') return Link2;
+    if(type === 'image') return ImageIcon;
+    return Type;
   }
 
-  function accentFor(type: ClipType, index: number) {
-    if (type === "code") return miniAppAccent(0);
-    if (type === "link") return miniAppAccent(1);
-    if (type === "image") return miniAppAccent(2);
-    return miniAppAccent(index + 3);
+  function getIconColor(type: string) {
+    if(type === 'code') return 'var(--clipboard-tone-code)';
+    if(type === 'link') return 'var(--clipboard-tone-link)';
+    if(type === 'image') return 'var(--clipboard-tone-image)';
+    return 'var(--clipboard-tone-text)';
   }
 
-  const allClips = $derived([...pinnedClips, ...recentClips]);
+  function copyAction(text: string) {
+    console.log("Copied to clipboard:", text);
+  }
 
-  const visibleClips = $derived.by(() => {
-    const q = searchQuery.trim().toLowerCase();
-    let pool: Clip[] = allClips;
-
-    if (selectedSection === "Pinned") pool = pinnedClips;
-    else if (selectedSection === "Images") pool = allClips.filter((c) => c.type === "image");
-    else if (selectedSection === "History") pool = recentClips;
-
-    if (!q) return pool;
-    return pool.filter((c) => c.content.toLowerCase().includes(q));
-  });
-
-  async function copyAction(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      return;
+  function handleKeyActivate(event: KeyboardEvent, callback: () => void) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      callback();
     }
   }
 </script>
 
-<MiniAppRoot class="gap-5 p-4 sm:p-6">
-  <MiniAppHeader
-    eyebrow="Clipboard"
-    title="History, snippets, and sensitive clips"
-    description="Persistent clipboard history with pins, search, and auto-expire for secrets — all on-device."
-  >
-    {#snippet actions()}
-      <Badge variant="outline">{selectedSection}</Badge>
-      <Button variant="outline" type="button">
-        <DownloadIcon data-icon="inline-start" />
-        Export
-      </Button>
-    {/snippet}
-  </MiniAppHeader>
-
-  <MiniAppStatGrid
-    stats={[
-      { label: "Items saved", value: "247", hint: "Last 30 days" },
-      { label: "Pinned", value: String(pinnedClips.length), hint: "Quick access" },
-      { label: "Sensitive", value: "2", hint: "Auto-expiring" },
-    ]}
-  />
-
-  {#if selectedSection === "Settings"}
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Clipboard settings</CardTitle>
-        <CardDescription>Retention, privacy, and sync preferences.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each settingsRows as row (row.label)}
-          <article class="mini-app-row">
-            <span class="text-sm text-[var(--muted)]">{row.label}</span>
-            <span class="text-sm font-medium text-[var(--foreground)]">{row.value}</span>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  {:else if selectedSection === "Snippets"}
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Snippet templates</CardTitle>
-        <CardDescription>Reusable blocks for standups, git, and env vars.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each snippets as snippet (snippet.id)}
-          <article class="mini-app-row">
-            <div class="min-w-0">
-              <p class="font-medium text-[var(--foreground)]">{snippet.label}</p>
-              <p class="mt-1 truncate font-mono text-sm text-[var(--muted)]">{snippet.content}</p>
-            </div>
-            <Button variant="ghost" size="icon" type="button" onclick={() => copyAction(snippet.content)} aria-label="Copy snippet">
-              <CopyIcon class="size-4" />
-            </Button>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  {:else if selectedSection === "Sensitive"}
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Sensitive clips</CardTitle>
-        <CardDescription>Short-lived entries with automatic purge.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each sensitiveClips as clip (clip.id)}
-          <article class="mini-app-row">
-            <div class="flex min-w-0 items-center gap-3">
-              <ShieldIcon class="size-4 shrink-0 text-[var(--destructive)]" />
-              <div class="min-w-0">
-                <p class="truncate font-mono text-sm text-[var(--foreground)]">{clip.content}</p>
-                <p class="mt-1 text-xs text-[var(--muted)]">{clip.expires}</p>
-              </div>
-            </div>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  {:else}
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-        <CardHeader>
-          <CardTitle class="font-[var(--font-heading)] text-xl">Search history</CardTitle>
-          <CardDescription>Full-text search across text, links, code, and images.</CardDescription>
-        </CardHeader>
-        <CardContent class="grid gap-3">
-          <div class="relative">
-            <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--muted)]" />
-            <Input class="pl-9" placeholder="Search clipboard history…" bind:value={searchQuery} />
-          </div>
-          {#if selectedSection === "Pinned"}
-            <p class="text-sm text-[var(--muted)]">Showing pinned clips only.</p>
-          {:else if selectedSection === "Images"}
-            <p class="text-sm text-[var(--muted)]">Filtering image captures from history.</p>
-          {/if}
-        </CardContent>
-      </Card>
-
-      <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-        <CardHeader>
-          <CardTitle class="font-[var(--font-heading)] text-xl">
-            {selectedSection === "Pinned" ? "Pinned" : selectedSection === "Images" ? "Images" : "Recent history"}
-          </CardTitle>
-          <CardDescription>Click a row to copy. Pin favorites from the actions.</CardDescription>
-        </CardHeader>
-        <CardContent class="grid gap-2">
-          {#each visibleClips as clip, index (clip.id)}
-            {@const Icon = iconFor(clip.type)}
-            <div class="mini-app-row">
-              <button
-                type="button"
-                class="flex min-w-0 flex-1 items-center gap-3 text-left"
-                onclick={() => copyAction(clip.content)}
-              >
-                <div
-                  class="flex size-9 shrink-0 items-center justify-center rounded-md ring-1 ring-[color:color-mix(in_srgb,var(--border)_82%,transparent)]"
-                  style:color={accentFor(clip.type, index)}
-                >
-                  <Icon class="size-4" />
-                </div>
-                <p class="min-w-0 flex-1 truncate font-mono text-sm text-[var(--foreground)]">{clip.content}</p>
-              </button>
-              <div class="flex shrink-0 items-center gap-2">
-                <span class="text-xs text-[var(--muted)]">{clip.time}</span>
-                {#if clip.isPinned}
-                  <PinIcon class="size-4 text-[var(--primary)]" />
-                {/if}
-                <Button variant="ghost" size="icon" type="button" aria-label="Copy" onclick={(e) => { e.stopPropagation(); copyAction(clip.content); }}>
-                  <CopyIcon class="size-4" />
-                </Button>
-              </div>
-            </div>
-          {:else}
-            <p class="py-8 text-center text-sm text-[var(--muted)]">No clips match this view.</p>
-          {/each}
-        </CardContent>
-      </Card>
+<div class="clipboard-app flat-ui module-root">
+  <!-- Top Search Bar -->
+  <div class="search-header">
+    <div class="search-input-wrapper">
+      <span class="search-icon"><Search size={20} /></span>
+      <input 
+        type="text" 
+        bind:value={searchQuery}
+        placeholder="Search clipboard history..."
+      />
     </div>
-  {/if}
-</MiniAppRoot>
+  </div>
+
+  <div class="clip-scroll-container">
+    {#if !searchQuery}
+      <!-- Pinned Section -->
+      {#if pinnedClips.length > 0}
+        <div class="section-title">
+          <span class="pin-indicator-color"><Pin size={14} /></span>
+          <span>Pinned</span>
+        </div>
+        <div class="clip-list">
+          {#each pinnedClips as clip}
+            <div class="clip-row" role="button" tabindex="0" on:click={() => copyAction(clip.content)} on:keydown={(event) => handleKeyActivate(event, () => copyAction(clip.content))}>
+              <div class="clip-left">
+                <div class="type-icon-wrapper" style="color: {getIconColor(clip.type)}">
+                  <svelte:component this={getIcon(clip.type)} size={18} />
+                </div>
+              </div>
+              <div class="clip-center">
+                <span class="clip-content">{clip.content}</span>
+              </div>
+              <div class="clip-right">
+                <span class="clip-time">{clip.time}</span>
+                <button class="action-btn pinned" title="Unpin">
+                  <Pin size={16} fill="currentColor" />
+                </button>
+                <button class="action-btn" title="Copy">
+                  <Copy size={16} />
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      <div class="section-title">
+        <Clock size={14} />
+        <span>Recent History</span>
+      </div>
+      <div class="clip-list">
+        {#each recentClips as clip}
+          <div class="clip-row" role="button" tabindex="0" on:click={() => copyAction(clip.content)} on:keydown={(event) => handleKeyActivate(event, () => copyAction(clip.content))}>
+            <div class="clip-left">
+              <div class="type-icon-wrapper" style="color: {getIconColor(clip.type)}">
+                <svelte:component this={getIcon(clip.type)} size={18} />
+              </div>
+            </div>
+            <div class="clip-center">
+              <span class="clip-content">{clip.content}</span>
+            </div>
+            <div class="clip-right">
+              <span class="clip-time">{clip.time}</span>
+              <button class="action-btn" title="Pin">
+                <Pin size={16} />
+              </button>
+              <button class="action-btn" title="Copy">
+                <Copy size={16} />
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="section-title">
+        <Search size={14} />
+        <span>Search Results</span>
+      </div>
+      <!-- Mock search showing all for now -->
+      <div class="clip-list">
+        {#each [...pinnedClips, ...recentClips] as clip}
+          <div class="clip-row" role="button" tabindex="0" on:click={() => copyAction(clip.content)} on:keydown={(event) => handleKeyActivate(event, () => copyAction(clip.content))}>
+            <div class="clip-left">
+              <div class="type-icon-wrapper" style="color: {getIconColor(clip.type)}">
+                <svelte:component this={getIcon(clip.type)} size={18} />
+              </div>
+            </div>
+            <div class="clip-center">
+              <span class="clip-content">{clip.content}</span>
+            </div>
+            <div class="clip-right">
+              <span class="clip-time">{clip.time}</span>
+              <button class="action-btn" title="Copy">
+                <Copy size={16} />
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+</div>
+
+<style>
+  .clipboard-app.flat-ui {
+    --clipboard-bg: var(--background);
+    --clipboard-surface: color-mix(in srgb, var(--surface) 94%, var(--background));
+    --clipboard-surface-strong: color-mix(in srgb, var(--surface) 82%, var(--background));
+    --clipboard-ink: var(--foreground);
+    --clipboard-muted: var(--muted);
+    --clipboard-border: var(--border);
+    --clipboard-accent: var(--primary);
+    --clipboard-tone-code: color-mix(in srgb, var(--clipboard-accent) 80%, var(--clipboard-ink));
+    --clipboard-tone-link: color-mix(in srgb, var(--accent) 72%, var(--clipboard-ink));
+    --clipboard-tone-image: color-mix(in srgb, var(--clipboard-ink) 58%, var(--clipboard-surface));
+    --clipboard-tone-text: color-mix(in srgb, var(--clipboard-accent) 62%, var(--clipboard-surface));
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--clipboard-bg);
+    color: var(--clipboard-ink);
+    font-family: inherit;
+  }
+
+  .search-header {
+    padding: 24px 32px;
+    background-color: var(--clipboard-surface-strong);
+    border-bottom: 1px solid var(--clipboard-border);
+    flex-shrink: 0;
+  }
+
+  .search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    color: var(--clipboard-muted);
+  }
+
+  .search-input-wrapper input {
+    width: 100%;
+    background: var(--clipboard-bg);
+    border: 1px solid var(--clipboard-border);
+    color: var(--clipboard-ink);
+    padding: 16px 16px 16px 48px;
+    font-size: 16px;
+    outline: none;
+  }
+
+  .search-input-wrapper input:focus {
+    border-color: var(--clipboard-accent);
+  }
+
+  .search-input-wrapper input::placeholder {
+    color: var(--clipboard-muted);
+  }
+
+  .clip-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 32px 32px;
+    background-color: var(--clipboard-bg);
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--clipboard-muted);
+    margin: 32px 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--clipboard-border);
+  }
+
+  .pin-indicator-color {
+    color: var(--clipboard-tone-code);
+  }
+
+  .clip-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .clip-row {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 16px;
+    border-bottom: 1px solid color-mix(in srgb, var(--clipboard-border) 70%, transparent);
+    cursor: default;
+    background-color: var(--clipboard-bg);
+  }
+
+  .clip-row:hover {
+    background-color: var(--clipboard-surface-strong);
+  }
+
+  .clip-left {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .type-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--clipboard-border);
+    background-color: var(--clipboard-surface-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .clip-center {
+    flex: 1;
+    min-width: 0;
+    padding-right: 16px;
+  }
+
+  .clip-content {
+    display: block;
+    font-size: 14px;
+    color: var(--clipboard-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: "Space Mono", monospace;
+  }
+
+  .clip-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .clip-time {
+    font-size: 12px;
+    color: var(--clipboard-muted);
+    min-width: 60px;
+    text-align: right;
+    margin-right: 8px;
+  }
+
+  .action-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--clipboard-muted);
+    padding: 6px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .action-btn:hover {
+    background-color: var(--clipboard-surface-strong);
+    color: var(--clipboard-ink);
+  }
+
+  .action-btn.pinned {
+    color: var(--clipboard-tone-code);
+  }
+</style>
+
+

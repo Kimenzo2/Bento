@@ -4,7 +4,6 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { load, type Store } from '@tauri-apps/plugin-store';
 import { writable, get } from 'svelte/store';
 import { z } from 'zod';
-import { logger } from '$lib/utils/logger';
 import {
   defaultThemeId,
   desktopThemes,
@@ -29,7 +28,6 @@ const SIDEBAR_KEY = 'genesis_desktop_sidebar_collapsed';
 const SHORTCUT_KEY = 'genesis_desktop_shortcut';
 const NOTIFICATIONS_KEY = 'genesis_desktop_notifications';
 const TELEMETRY_KEY = 'genesis_desktop_telemetry';
-const CRASH_REPORTS_KEY = 'genesis_desktop_crash_reports';
 const EXPORT_DIRECTORY_KEY = 'genesis_desktop_export_directory';
 const SETTINGS_KEY = 'genesis_desktop_settings';
 const STORE_PATH = 'settings.json';
@@ -41,8 +39,6 @@ const storeKeys = {
   fontPairingId: 'appearance.fontPairingId',
   languageCode: 'language.code',
   sidebarCollapsed: 'workspace.sidebarCollapsed',
-  tabsEnabled: 'workspace.tabsEnabled',
-  tabsSandboxMigrated: 'workspace.tabsSandboxMigrated',
   restoreOnLaunch: 'window.restoreOnLaunch',
   startHidden: 'window.startHidden',
   reopenId: 'shortcuts.reopenId',
@@ -70,12 +66,10 @@ const migrationSchema = z
   .object({
     legacyBrowserStorageMigrated: z.boolean().default(false),
     storeSettingsMigrated: z.boolean().default(false),
-    tabsSandboxMigrated: z.boolean().default(false),
   })
   .default({
     legacyBrowserStorageMigrated: false,
     storeSettingsMigrated: false,
-    tabsSandboxMigrated: false,
   });
 
 const desktopSettingsSchema = z
@@ -90,7 +84,6 @@ const desktopSettingsSchema = z
     workspace: z
       .object({
         sidebarCollapsed: z.boolean(),
-        tabsEnabled: z.boolean().default(false),
       })
       .strict(),
     window: z
@@ -141,7 +134,6 @@ export const defaultDesktopSettings: DesktopSettings = {
   },
   workspace: {
     sidebarCollapsed: true,
-    tabsEnabled: false,
   },
   window: {
     restoreOnLaunch: true,
@@ -163,7 +155,6 @@ export const defaultDesktopSettings: DesktopSettings = {
   migration: {
     legacyBrowserStorageMigrated: false,
     storeSettingsMigrated: false,
-    tabsSandboxMigrated: false,
   },
 };
 
@@ -205,7 +196,6 @@ function storeDefaults() {
     [storeKeys.fontPairingId]: defaultDesktopSettings.appearance.fontPairingId,
     [storeKeys.languageCode]: defaultDesktopSettings.language.code,
     [storeKeys.sidebarCollapsed]: defaultDesktopSettings.workspace.sidebarCollapsed,
-    [storeKeys.tabsEnabled]: defaultDesktopSettings.workspace.tabsEnabled,
     [storeKeys.restoreOnLaunch]: defaultDesktopSettings.window.restoreOnLaunch,
     [storeKeys.startHidden]: defaultDesktopSettings.window.startHidden,
     [storeKeys.reopenId]: defaultDesktopSettings.shortcuts.reopenId,
@@ -216,7 +206,6 @@ function storeDefaults() {
     [storeKeys.legacyBrowserStorageMigrated]:
       defaultDesktopSettings.migration.legacyBrowserStorageMigrated,
     [storeKeys.storeSettingsMigrated]: defaultDesktopSettings.migration.storeSettingsMigrated,
-    [storeKeys.tabsSandboxMigrated]: defaultDesktopSettings.migration.tabsSandboxMigrated,
   };
 }
 
@@ -290,7 +279,7 @@ function readLegacyBrowserSettings() {
     },
     telemetry: {
       consented: window.localStorage.getItem(TELEMETRY_KEY) === 'true',
-      crashReports: window.localStorage.getItem(CRASH_REPORTS_KEY) === 'true',
+      crashReports: window.localStorage.getItem(TELEMETRY_KEY) === 'true',
     },
     files: {
       exportDirectory: window.localStorage.getItem(EXPORT_DIRECTORY_KEY) ?? '',
@@ -311,7 +300,6 @@ function clearLegacyBrowserSettings() {
   window.localStorage.removeItem(SHORTCUT_KEY);
   window.localStorage.removeItem(NOTIFICATIONS_KEY);
   window.localStorage.removeItem(TELEMETRY_KEY);
-  window.localStorage.removeItem(CRASH_REPORTS_KEY);
   window.localStorage.removeItem(EXPORT_DIRECTORY_KEY);
 }
 
@@ -357,9 +345,6 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       sidebarCollapsed:
         (await store.get<boolean>(storeKeys.sidebarCollapsed)) ??
         defaultDesktopSettings.workspace.sidebarCollapsed,
-      tabsEnabled:
-        (await store.get<boolean>(storeKeys.tabsEnabled)) ??
-        defaultDesktopSettings.workspace.tabsEnabled,
     },
     window: {
       restoreOnLaunch:
@@ -399,19 +384,8 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       storeSettingsMigrated:
         (await store.get<boolean>(storeKeys.storeSettingsMigrated)) ??
         defaultDesktopSettings.migration.storeSettingsMigrated,
-      tabsSandboxMigrated:
-        (await store.get<boolean>(storeKeys.tabsSandboxMigrated)) ??
-        defaultDesktopSettings.migration.tabsSandboxMigrated,
     },
   };
-
-  if (!settings.migration.tabsSandboxMigrated) {
-    settings.workspace.tabsEnabled = false;
-    settings.migration.tabsSandboxMigrated = true;
-    await store.set(storeKeys.tabsEnabled, false);
-    await store.set(storeKeys.tabsSandboxMigrated, true);
-    await store.save();
-  }
 
   return normalizeSettings(settings);
 }
@@ -423,7 +397,6 @@ async function persistStoreSettings(settings: DesktopSettings) {
   await store.set(storeKeys.fontPairingId, settings.appearance.fontPairingId);
   await store.set(storeKeys.languageCode, settings.language.code);
   await store.set(storeKeys.sidebarCollapsed, settings.workspace.sidebarCollapsed);
-  await store.set(storeKeys.tabsEnabled, settings.workspace.tabsEnabled);
   await store.set(storeKeys.restoreOnLaunch, settings.window.restoreOnLaunch);
   await store.set(storeKeys.startHidden, settings.window.startHidden);
   await store.set(storeKeys.reopenId, settings.shortcuts.reopenId);
@@ -436,7 +409,6 @@ async function persistStoreSettings(settings: DesktopSettings) {
     settings.migration.legacyBrowserStorageMigrated
   );
   await store.set(storeKeys.storeSettingsMigrated, settings.migration.storeSettingsMigrated);
-  await store.set(storeKeys.tabsSandboxMigrated, settings.migration.tabsSandboxMigrated);
   await store.save();
 }
 
@@ -462,7 +434,7 @@ async function syncNativeSettingsMirror(settings: DesktopSettings) {
   try {
     await invoke<unknown>('save_desktop_settings', { settings });
   } catch (error) {
-    logger.warn('Genesis desktop settings were stored, but native mirror sync failed.', error);
+    console.warn('Genesis desktop settings were stored, but native mirror sync failed.', error);
   }
 }
 
@@ -490,7 +462,7 @@ async function applyNativeTheme(settings: DesktopSettings) {
   try {
     await setNativeTheme(settings.appearance.mode);
   } catch (error) {
-    logger.warn('Genesis native app theme failed to update.', error);
+    console.warn('Genesis native app theme failed to update.', error);
   }
 }
 
@@ -511,7 +483,7 @@ export async function loadDesktopSettings(): Promise<DesktopSettings> {
   try {
     return await readStoreSettings();
   } catch (error) {
-    logger.warn('Genesis desktop settings failed to load from Store; falling back.', error);
+    console.warn('Genesis desktop settings failed to load from Store; falling back.', error);
     return (
       (await readNativeSettingsMirror()) ?? readBrowserSettingsBlob() ?? defaultDesktopSettings
     );
@@ -547,7 +519,7 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
   const merged: DesktopSettings = shouldMigrateToStore
     ? {
         ...current,
-        ...(nativeMirror ?? undefined),
+        ...(nativeMirror ?? {}),
         appearance: {
           ...current.appearance,
           ...nativeMirror?.appearance,
@@ -579,7 +551,6 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
         migration: {
           legacyBrowserStorageMigrated: true,
           storeSettingsMigrated: true,
-          tabsSandboxMigrated: true,
         },
       }
     : {
@@ -588,7 +559,6 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
           legacyBrowserStorageMigrated: true,
           storeSettingsMigrated:
             current.migration.storeSettingsMigrated || isTauriRuntimeAvailable(),
-          tabsSandboxMigrated: current.migration.tabsSandboxMigrated,
         },
       };
 

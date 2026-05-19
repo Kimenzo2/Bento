@@ -1,19 +1,17 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { check } from "@tauri-apps/plugin-updater";
   import { goto } from "@mateothegreat/svelte5-router";
-  import { restoreWindow } from "$lib/desktop/runtime";
-  import { hydrateDesktopSettings, desktopSettingsReady } from "$lib/desktop/settings";
+  import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { fontStore } from "$lib/stores/font.store";
   import { setLifecycleState, type DesktopLifecycleState } from "$lib/stores/lifecycle.store";
   import { languageStore } from "$lib/stores/language.store";
   import { showCrash } from "$lib/stores/crash.store";
   import { activeTheme, getThemeTokens, isDark, themeState } from "$lib/stores/theme.store";
   import { setAvailableUpdate, setUpdateChecking } from "$lib/stores/update.store";
-  import { logger } from "$lib/utils/logger";
 
   const themeTokens = $derived(getThemeTokens($themeState));
   let arabicFontReady = false;
@@ -127,19 +125,8 @@
     if ("__TAURI_INTERNALS__" in window) {
       const appWindow = getCurrentWebviewWindow();
 
-      void hydrateDesktopSettings()
-        .then(() => {
-          desktopSettingsReady.set(true);
-        })
-        .catch((error) => {
-          logger.error("Genesis desktop settings failed to hydrate.", error);
-          desktopSettingsReady.set(true);
-        });
-
-      void tick().then(() => {
-        void restoreWindow().catch((error) => {
-          logger.error("Failed to restore window after first paint.", error);
-        });
+      void hydrateDesktopSettings().catch((error) => {
+        console.error("Genesis desktop settings failed to hydrate.", error);
       });
 
       void invoke<DesktopLifecycleState>("get_lifecycle_state")
@@ -147,7 +134,7 @@
           setLifecycleState(state);
         })
         .catch(() => {
-          logger.debug("get_lifecycle_state failed on first attempt; native events will update later.");
+          // The native lifecycle event stream will still update once available.
         });
 
       void (async () => {
@@ -160,7 +147,7 @@
           routeDeepLink(payload);
         }
       })().catch(() => {
-        logger.debug("No pending deep link to consume (normal launch).");
+        // Normal launches do not have a pending deep link.
       });
 
       unlistenPromises.push(
@@ -205,7 +192,7 @@
                 });
               }
             } catch {
-              logger.debug("Updater check failed; non-blocking in development.");
+              // Updater errors are non-blocking during development and stubbed deployments.
             } finally {
               setUpdateChecking(false);
             }

@@ -2,7 +2,6 @@
   import MoonStarIcon from "@lucide/svelte/icons/moon-star";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
-  import { onMount } from "svelte";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -13,30 +12,18 @@
     CardTitle,
   } from "$lib/components/ui/card/index.js";
   import {
-    MiniAppRoot,
-    MiniAppHeader,
-    MiniAppStatGrid,
-  } from "$lib/modules/mini-app/index.js";
-  import {
-    ensureModuleSection,
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
-  import "./sleep.css";
 
   const moduleId = "sleep";
   const sectionLabels = ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export"] as const;
-
-  const selectedSection = $derived(
-    getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels),
-  );
-
-  onMount(() => ensureModuleSection(moduleId, sectionLabels));
+  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
 
   const tonightFocus = [
-    { label: "Wind-down", value: "22:15", note: "Reading lamp, no inbox after 10pm." },
-    { label: "Target sleep", value: "7h 50m", note: "Recovery for tomorrow's training." },
-    { label: "Bedroom", value: "19°C", note: "Cooling starts 30 min before bed." },
+    { label: "Wind-down", value: "22:15", note: "Reading lamp and no inbox after 10pm." },
+    { label: "Target sleep", value: "7h 50m", note: "Enough recovery for tomorrow’s training block." },
+    { label: "Bedroom", value: "19°C", note: "Cooling mode starts 30 minutes before bed." },
   ];
 
   const sleepStages = [
@@ -47,10 +34,10 @@
   ];
 
   const routine = [
-    { title: "Dim lights", status: "Done", note: "45 min before bed." },
+    { title: "Dim lights", status: "Done", note: "Started 45 minutes before bed." },
     { title: "Phone docked", status: "Done", note: "Charging outside the room." },
-    { title: "Stretch shoulders", status: "Next", note: "6 min unwind queued." },
-    { title: "Set smart alarm", status: "Ready", note: "Wake window 06:15–06:45." },
+    { title: "Stretch shoulders", status: "Next", note: "6 minute unwind queued." },
+    { title: "Set smart alarm", status: "Ready", note: "Wake window 06:15 to 06:45." },
   ];
 
   const weeklyTrend = [
@@ -70,261 +57,572 @@
   ];
 
   const exportOptions = [
-    { title: "Sleep PDF", detail: "Last 30 nights with score and routine adherence." },
-    { title: "CSV stages", detail: "Deep, REM, and wake events for analysis." },
-    { title: "Shareable recap", detail: "One-page summary for coach or clinician." },
+    { title: "Sleep PDF", detail: "Last 30 nights with score, debt, and routine adherence." },
+    { title: "CSV stages", detail: "Nightly deep, REM, and wake events for external analysis." },
+    { title: "Shareable recap", detail: "A one-page summary for coach or clinician review." },
   ];
 </script>
 
-<MiniAppRoot class="gap-5 p-4 sm:p-6">
-  <MiniAppHeader
-    eyebrow="Sleep"
-    title="Last night"
-    description="Score, stages, routine, and smart alarms in one place."
-  >
-    {#snippet actions()}
-      <Badge variant="outline" class="rounded-full">{selectedSection}</Badge>
-      <Button variant="outline" type="button">
-        <MoonStarIcon data-icon="inline-start" />
-        Night mode
-      </Button>
-      <Button type="button">
-        <SparklesIcon data-icon="inline-start" />
-        Bedtime tips
-      </Button>
-    {/snippet}
-  </MiniAppHeader>
-
-  <MiniAppStatGrid
-    columns={3}
-    stats={[
-      { label: "Sleep score", value: "82", hint: "+11% vs weekly avg" },
-      { label: "Duration", value: "7h 42m", hint: "Last night" },
-      { label: "Smart wake", value: "06:35", hint: "Target window" },
-    ]}
-  />
-
-  <div class="grid gap-4 lg:grid-cols-2">
-    <Card
-      class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]"
-    >
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Recovery</CardTitle>
-        <CardDescription>7h 42m total with a strong deep-sleep share.</CardDescription>
-      </CardHeader>
-      <CardContent class="flex flex-wrap items-center gap-6">
-        <div class="sleep-orb" style="--sleep-fill: 82%">
-          <strong>82</strong>
-          <small>score</small>
+<main class="sleep-workspace module-root">
+  <section class="sleep-shell">
+    <header class="sleep-shell__header">
+      <div class="sleep-shell__intro">
+        <div class="sleep-shell__eyebrow">
+          <span>Somna</span>
+          <Badge variant="outline">{selectedSection}</Badge>
         </div>
-        <div class="grid flex-1 gap-3 min-w-[12rem]">
-          <div>
-            <strong class="text-xl text-[var(--foreground)]">+11%</strong>
-            <p class="text-sm text-[var(--muted)]">vs weekly average</p>
-          </div>
-          <div>
-            <strong class="text-xl text-[var(--foreground)]">06:35</strong>
-            <p class="text-sm text-[var(--muted)]">Smart wake target</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card
-      class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]"
-    >
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Tonight</CardTitle>
-        <CardDescription>Wind-down and environment targets.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each tonightFocus as item (item.label)}
-          <article class="mini-app-row flex-col items-start gap-1 sm:flex-row sm:items-center">
-            <span class="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">{item.label}</span>
-            <strong class="text-[var(--foreground)]">{item.value}</strong>
-            <p class="text-sm text-[var(--muted)] sm:ml-auto sm:text-right">{item.note}</p>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  </div>
-
-  <section class="grid gap-4">
-    {#if selectedSection === "Tonight"}
-      <div class="grid gap-4 lg:grid-cols-2">
-        <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-          <CardHeader>
-            <CardTitle class="font-[var(--font-heading)] text-xl">Tonight plan</CardTitle>
-            <CardDescription>Targets before lights out.</CardDescription>
-          </CardHeader>
-          <CardContent class="grid gap-2">
-            {#each tonightFocus as item (item.label)}
-              <article class="mini-app-row flex-col items-start gap-1">
-                <span class="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">{item.label}</span>
-                <strong>{item.value}</strong>
-                <p class="text-sm text-[var(--muted)]">{item.note}</p>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-        <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-          <CardHeader>
-            <CardTitle class="font-[var(--font-heading)] text-xl">Pre-sleep checklist</CardTitle>
-            <CardDescription>Routine steps for tonight.</CardDescription>
-          </CardHeader>
-          <CardContent class="grid gap-2">
-            {#each routine as step (step.title)}
-              <article class="mini-app-row">
-                <div class="min-w-0">
-                  <strong class="text-[var(--foreground)]">{step.title}</strong>
-                  <p class="text-sm text-[var(--muted)]">{step.note}</p>
-                </div>
-                <Badge variant={step.status === "Done" ? "default" : "secondary"}>{step.status}</Badge>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
+        <h1>Sleep score, routine, and alarm planning stay inside one calm desktop surface.</h1>
+        <p>Tonight’s setup, last night’s quality, and the weekly pattern all fit without leaving the shell.</p>
       </div>
-    {:else if selectedSection === "Score"}
-      <div class="grid gap-4 lg:grid-cols-2">
-        <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-          <CardHeader>
-            <CardTitle class="font-[var(--font-heading)] text-xl">Stage balance</CardTitle>
-            <CardDescription>What drove last night's score.</CardDescription>
-          </CardHeader>
-          <CardContent class="grid gap-3">
-            {#each sleepStages as stage (stage.label)}
-              <article class="grid gap-2">
-                <div class="flex justify-between gap-2 text-sm">
-                  <strong>{stage.label}</strong>
-                  <span class="text-[var(--muted)]">{stage.value}</span>
-                </div>
-                <div class="mini-app-progress h-2">
-                  <span style={`width: ${stage.fill}%`}></span>
-                </div>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-        <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-          <CardHeader>
-            <CardTitle class="font-[var(--font-heading)] text-xl">Breakdown</CardTitle>
-            <CardDescription>Duration, consistency, and recovery.</CardDescription>
-          </CardHeader>
-          <CardContent class="grid grid-cols-2 gap-3">
-            {#each [
-              { label: "Duration", value: "88" },
-              { label: "Consistency", value: "79" },
-              { label: "Recovery", value: "84" },
-              { label: "Wake stability", value: "81" },
-            ] as row (row.label)}
-              <article class="rounded-2xl border border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[color:color-mix(in_srgb,var(--card)_96%,var(--background))] p-4">
-                <span class="text-sm text-[var(--muted)]">{row.label}</span>
-                <strong class="mt-2 block text-3xl text-[var(--foreground)]">{row.value}</strong>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
+
+      <div class="sleep-shell__actions">
+        <Button variant="outline">
+          <MoonStarIcon data-icon="inline-start" />
+          Night mode
+        </Button>
+        <Button>
+          <SparklesIcon data-icon="inline-start" />
+          AI bedtime
+        </Button>
       </div>
-    {:else if selectedSection === "Routine"}
-      <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+    </header>
+
+    <section class="sleep-hero-grid">
+      <Card class="sleep-orb-card">
         <CardHeader>
-          <CardTitle class="font-[var(--font-heading)] text-xl">Bedtime routine</CardTitle>
-          <CardDescription>Ordered steps with status.</CardDescription>
+          <CardTitle>Last night</CardTitle>
+          <CardDescription>7h 42m total sleep with a strong recovery curve.</CardDescription>
         </CardHeader>
-        <CardContent class="grid gap-2">
-          {#each routine as step, index (step.title)}
-            <article class="mini-app-row">
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--primary)_14%,var(--card))] text-sm font-semibold text-[var(--foreground)]"
-              >
-                {index + 1}
-              </span>
-              <div class="min-w-0 flex-1">
-                <strong>{step.title}</strong>
-                <p class="text-sm text-[var(--muted)]">{step.note}</p>
-              </div>
-              <Badge variant={step.status === "Done" ? "default" : "outline"}>{step.status}</Badge>
+        <CardContent class="sleep-orb-card__content">
+          <div class="sleep-orb">
+            <strong>82</strong>
+            <small>score</small>
+          </div>
+          <div class="sleep-meta">
+            <div><strong>+11%</strong><span>better than weekly average</span></div>
+            <div><strong>06:35</strong><span>smart wake target</span></div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card class="sleep-summary-card">
+        <CardHeader>
+          <CardTitle>Recovery outlook</CardTitle>
+          <CardDescription>Energy forecast before tomorrow begins.</CardDescription>
+        </CardHeader>
+        <CardContent class="sleep-summary-list">
+          {#each tonightFocus as item}
+            <article>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <p>{item.note}</p>
             </article>
           {/each}
         </CardContent>
       </Card>
-    {:else if selectedSection === "Trends"}
-      <div class="grid gap-4 lg:grid-cols-2">
-        <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+    </section>
+
+    <section class="sleep-shell__body">
+      {#if selectedSection === "Tonight"}
+        <div class="sleep-grid sleep-grid--tonight">
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Tonight plan</CardTitle>
+              <CardDescription>Keep the current module’s bedtime flow, but expand it into a full nightly brief.</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-list">
+              {#each tonightFocus as item}
+                <article>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <p>{item.note}</p>
+                </article>
+              {/each}
+            </CardContent>
+          </Card>
+
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Pre-sleep checklist</CardTitle>
+              <CardDescription>Routine steps remain visible before you close the app.</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-routine-list">
+              {#each routine as step}
+                <article>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.note}</p>
+                  </div>
+                  <Badge variant={step.status === "Done" ? "default" : "secondary"}>{step.status}</Badge>
+                </article>
+              {/each}
+            </CardContent>
+          </Card>
+        </div>
+      {:else if selectedSection === "Score"}
+        <div class="sleep-grid sleep-grid--score">
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Stage balance</CardTitle>
+              <CardDescription>Break the score into the parts that actually drove it.</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-stage-list">
+              {#each sleepStages as stage}
+                <article>
+                  <div class="sleep-stage-copy">
+                    <strong>{stage.label}</strong>
+                    <span>{stage.value}</span>
+                  </div>
+                  <div class="sleep-meter"><i style={`--fill:${stage.fill}%`}></i></div>
+                </article>
+              {/each}
+            </CardContent>
+          </Card>
+
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Score breakdown</CardTitle>
+              <CardDescription>Sleep timing, duration, and wake consistency mapped into one panel.</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-breakdown">
+              <div><span>Duration</span><strong>88</strong></div>
+              <div><span>Consistency</span><strong>79</strong></div>
+              <div><span>Recovery</span><strong>84</strong></div>
+              <div><span>Wake stability</span><strong>81</strong></div>
+            </CardContent>
+          </Card>
+        </div>
+      {:else if selectedSection === "Routine"}
+        <Card class="sleep-panel sleep-panel--full">
           <CardHeader>
-            <CardTitle class="font-[var(--font-heading)] text-xl">Weekly trend</CardTitle>
-            <CardDescription>Seven-day sleep scores.</CardDescription>
+            <CardTitle>Bedtime routine</CardTitle>
+            <CardDescription>The original routine card now expands into a full sequence with status and coaching.</CardDescription>
           </CardHeader>
-          <CardContent class="sleep-trend-chart">
-            {#each weeklyTrend as item (item.day)}
+          <CardContent class="sleep-routine-board">
+            {#each routine as step, index}
               <article>
-                <span class="text-xs text-[var(--muted)]">{item.day}</span>
-                <i style={`--bar: ${item.score}%`}></i>
-                <strong class="text-sm">{item.score}</strong>
+                <div class="sleep-routine-board__count">{index + 1}</div>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.note}</p>
+                </div>
+                <Badge variant={step.status === "Done" ? "default" : "outline"}>{step.status}</Badge>
               </article>
             {/each}
           </CardContent>
         </Card>
-        <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+      {:else if selectedSection === "Trends"}
+        <div class="sleep-grid sleep-grid--trends">
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Weekly trend</CardTitle>
+              <CardDescription>The original bar chart becomes a full-width trend view.</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-trend-chart">
+              {#each weeklyTrend as item}
+                <article>
+                  <span>{item.day}</span>
+                  <i style={`--bar:${item.score}%`}></i>
+                  <strong>{item.score}</strong>
+                </article>
+              {/each}
+            </CardContent>
+          </Card>
+
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Pattern notes</CardTitle>
+              <CardDescription>Simple takeaways instead of another dashboard layer.</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-list">
+              <article><span>Best night</span><strong>Thursday</strong><p>Longest deep sleep after screens cut off by 9:30 PM.</p></article>
+              <article><span>Weakest night</span><strong>Wednesday</strong><p>Late caffeine and short recovery window pulled the score down.</p></article>
+              <article><span>Trend</span><strong>Rising</strong><p>Average score is up 6 points compared with the previous week.</p></article>
+            </CardContent>
+          </Card>
+        </div>
+      {:else if selectedSection === "Alarm"}
+        <Card class="sleep-panel sleep-panel--full">
           <CardHeader>
-            <CardTitle class="font-[var(--font-heading)] text-xl">Notes</CardTitle>
-            <CardDescription>Patterns from the past week.</CardDescription>
+            <CardTitle>Alarm orchestration</CardTitle>
+            <CardDescription>Smart wake presets, travel backup, and routine tie-ins stay in one screen.</CardDescription>
           </CardHeader>
-          <CardContent class="grid gap-2">
-            <article class="mini-app-row flex-col items-start gap-1">
-              <span class="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">Best night</span>
-              <strong>Thursday</strong>
-              <p class="text-sm text-[var(--muted)]">Longest deep sleep after screens off by 9:30 PM.</p>
-            </article>
-            <article class="mini-app-row flex-col items-start gap-1">
-              <span class="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">Weakest</span>
-              <strong>Wednesday</strong>
-              <p class="text-sm text-[var(--muted)]">Late caffeine shortened recovery.</p>
-            </article>
+          <CardContent class="sleep-alarm-list">
+            {#each alarms as alarm}
+              <article>
+                <div>
+                  <strong>{alarm.label}</strong>
+                  <p>{alarm.window}</p>
+                </div>
+                <div class="sleep-alarm-list__time">{alarm.time}</div>
+                <Badge variant="secondary">{alarm.mode}</Badge>
+              </article>
+            {/each}
           </CardContent>
         </Card>
-      </div>
-    {:else if selectedSection === "Alarm"}
-      <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-        <CardHeader>
-          <CardTitle class="font-[var(--font-heading)] text-xl">Alarms</CardTitle>
-          <CardDescription>Smart wake presets and backups.</CardDescription>
-        </CardHeader>
-        <CardContent class="grid gap-2">
-          {#each alarms as alarm (alarm.label)}
-            <article class="mini-app-row">
-              <div class="min-w-0">
-                <strong>{alarm.label}</strong>
-                <p class="text-sm text-[var(--muted)]">{alarm.window}</p>
-              </div>
-              <span class="shrink-0 font-mono text-lg font-semibold tabular-nums">{alarm.time}</span>
-              <Badge variant="secondary">{alarm.mode}</Badge>
-            </article>
-          {/each}
-        </CardContent>
-      </Card>
-    {:else}
-      <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-        <CardHeader>
-          <CardTitle class="font-[var(--font-heading)] text-xl">Export</CardTitle>
-          <CardDescription>Download sleep history.</CardDescription>
-        </CardHeader>
-        <CardContent class="grid gap-2">
-          {#each exportOptions as option (option.title)}
-            <article class="mini-app-row">
-              <div class="min-w-0">
-                <strong>{option.title}</strong>
-                <p class="text-sm text-[var(--muted)]">{option.detail}</p>
-              </div>
-              <Button variant="outline" type="button">
-                <DownloadIcon data-icon="inline-start" />
-                Export
-              </Button>
-            </article>
-          {/each}
-        </CardContent>
-      </Card>
-    {/if}
+      {:else}
+        <Card class="sleep-panel sleep-panel--full">
+          <CardHeader>
+            <CardTitle>Export sleep data</CardTitle>
+            <CardDescription>Prepare coach-ready or archive-ready files without breaking the desktop flow.</CardDescription>
+          </CardHeader>
+          <CardContent class="sleep-export-list">
+            {#each exportOptions as option}
+              <article>
+                <div>
+                  <strong>{option.title}</strong>
+                  <p>{option.detail}</p>
+                </div>
+                <Button variant="outline">
+                  <DownloadIcon data-icon="inline-start" />
+                  Export
+                </Button>
+              </article>
+            {/each}
+          </CardContent>
+        </Card>
+      {/if}
+    </section>
   </section>
-</MiniAppRoot>
+</main>
+
+<style>
+  :global(.sleep-workspace) {
+    --sleep-bg: var(--background);
+    --sleep-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
+    --sleep-surface-strong: color-mix(in srgb, var(--surface) 88%, var(--background));
+    --sleep-border: color-mix(in srgb, var(--border) 86%, transparent);
+    --sleep-ink: var(--foreground);
+    --sleep-muted: var(--muted);
+    --sleep-accent: var(--primary);
+    --sleep-accent-soft: color-mix(in srgb, var(--accent) 36%, var(--primary));
+    height: 100%;
+    padding: 28px 30px;
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    overflow: hidden;
+    font-family: "Satoshi", "Manrope", sans-serif;
+  }
+
+  :global(.sleep-shell) {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 20px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  :global(.sleep-shell__header),
+  :global(.sleep-hero-grid),
+  :global(.sleep-shell__body),
+  :global(.sleep-grid) {
+    min-height: 0;
+  }
+
+  :global(.sleep-shell__header) {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  :global(.sleep-shell__intro) {
+    max-width: 56rem;
+  }
+
+  :global(.sleep-shell__eyebrow) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--sleep-muted);
+    font-size: 0.82rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  :global(.sleep-shell__intro) h1 {
+    margin: 0;
+    font-size: clamp(1.9rem, 3.2vw, 3rem);
+    line-height: 1.02;
+  }
+
+  :global(.sleep-shell__intro) p {
+    max-width: 44rem;
+    margin: 12px 0 0;
+    color: var(--sleep-muted);
+    font-size: 0.98rem;
+  }
+
+  :global(.sleep-shell__actions) {
+    display: flex;
+    gap: 12px;
+  }
+
+  :global(.sleep-hero-grid) {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 16px;
+  }
+
+  :global(.sleep-orb-card),
+  :global(.sleep-summary-card),
+  :global(.sleep-panel) {
+    border-color: var(--sleep-border);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--sleep-surface) 98%, var(--background)),
+        color-mix(in srgb, var(--sleep-surface) 86%, var(--background))
+      );
+  }
+
+  :global(.sleep-orb-card__content) {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  :global(.sleep-orb) {
+    display: grid;
+    place-items: center;
+    width: 180px;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    background: conic-gradient(var(--sleep-accent) 82%, color-mix(in srgb, var(--border) 80%, transparent) 0);
+    box-shadow: inset 0 0 0 28px var(--sleep-surface);
+  }
+
+  :global(.sleep-orb) strong {
+    display: block;
+    font-size: 3.15rem;
+    line-height: 1;
+  }
+
+  :global(.sleep-orb) small,
+  :global(.sleep-meta) span,
+  :global(.sleep-list) p,
+  :global(.sleep-routine-list) p,
+  :global(.sleep-stage-copy) span,
+  :global(.sleep-alarm-list) p {
+    color: var(--sleep-muted);
+  }
+
+  :global(.sleep-meta) {
+    display: grid;
+    gap: 14px;
+  }
+
+  :global(.sleep-meta) strong {
+    display: block;
+    font-size: 1.35rem;
+  }
+
+  :global(.sleep-summary-list),
+  :global(.sleep-list),
+  :global(.sleep-routine-list),
+  :global(.sleep-stage-list),
+  :global(.sleep-export-list),
+  :global(.sleep-alarm-list) {
+    display: grid;
+    gap: 12px;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  :global(.sleep-summary-list) article,
+  :global(.sleep-list) article,
+  :global(.sleep-routine-list) article,
+  :global(.sleep-stage-list) article,
+  :global(.sleep-export-list) article,
+  :global(.sleep-alarm-list) article,
+  :global(.sleep-routine-board) article,
+  :global(.sleep-breakdown) div {
+    border: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--sleep-surface-strong) 92%, transparent);
+  }
+
+  :global(.sleep-summary-list) article,
+  :global(.sleep-list) article {
+    padding: 16px 18px;
+  }
+
+  :global(.sleep-summary-list) span,
+  :global(.sleep-list) span {
+    display: block;
+    color: var(--sleep-muted);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  :global(.sleep-summary-list) strong,
+  :global(.sleep-list) strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 1.2rem;
+  }
+
+  :global(.sleep-shell__body) {
+    min-height: 0;
+  }
+
+  :global(.sleep-grid) {
+    display: grid;
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  :global(.sleep-grid--tonight),
+  :global(.sleep-grid--score),
+  :global(.sleep-grid--trends) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :global(.sleep-panel),
+  :global(.sleep-panel) :global(.card-content) {
+    min-height: 0;
+  }
+
+  :global(.sleep-panel) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(.sleep-panel--full) {
+    height: 100%;
+  }
+
+  :global(.sleep-routine-list) article,
+  :global(.sleep-alarm-list) article,
+  :global(.sleep-routine-board) article {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 18px;
+  }
+
+  :global(.sleep-stage-list) article {
+    padding: 16px 18px;
+  }
+
+  :global(.sleep-stage-copy) {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+
+  :global(.sleep-meter) {
+    height: 12px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sleep-border) 72%, transparent);
+    overflow: hidden;
+  }
+
+  :global(.sleep-meter) i,
+  :global(.sleep-trend-chart) i {
+    display: block;
+    border-radius: inherit;
+    background: linear-gradient(180deg, var(--sleep-accent), var(--sleep-accent-soft));
+  }
+
+  :global(.sleep-meter) i {
+    width: var(--fill);
+    height: 100%;
+  }
+
+  :global(.sleep-breakdown) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  :global(.sleep-breakdown) div {
+    padding: 18px;
+  }
+
+  :global(.sleep-breakdown) span {
+    display: block;
+    color: var(--sleep-muted);
+    font-size: 0.85rem;
+  }
+
+  :global(.sleep-breakdown) strong {
+    display: block;
+    margin-top: 12px;
+    font-size: 2rem;
+  }
+
+  :global(.sleep-routine-board),
+  :global(.sleep-trend-chart) {
+    display: grid;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  :global(.sleep-routine-board) {
+    overflow: auto;
+  }
+
+  :global(.sleep-routine-board) article {
+    grid-template-columns: 46px 1fr auto;
+  }
+
+  :global(.sleep-routine-board__count) {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--sleep-accent) 16%, var(--sleep-surface));
+    color: var(--sleep-ink);
+    font-weight: 700;
+  }
+
+  :global(.sleep-trend-chart) {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    align-items: end;
+    height: 100%;
+  }
+
+  :global(.sleep-trend-chart) article {
+    display: grid;
+    justify-items: center;
+    align-items: end;
+    gap: 10px;
+    height: 100%;
+  }
+
+  :global(.sleep-trend-chart) i {
+    width: 28px;
+    height: var(--bar);
+    min-height: 18px;
+    align-self: end;
+  }
+
+  :global(.sleep-trend-chart) span,
+  :global(.sleep-trend-chart) strong {
+    font-size: 0.8rem;
+  }
+
+  :global(.sleep-alarm-list) article {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  :global(.sleep-alarm-list__time) {
+    font: 600 1.4rem "JetBrains Mono", monospace;
+  }
+
+  :global(.sleep-export-list) article {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 18px;
+  }
+</style>

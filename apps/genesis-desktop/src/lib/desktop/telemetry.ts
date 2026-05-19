@@ -118,7 +118,7 @@ const predictionInsightCardSchema = z.object({
   metric: z.string(),
   currentValue: z.number(),
   projectedValueIn5min: z.number(),
-  timeToThresholdSecs: z.number().nullable().optional(),
+  timeToThresholdSecs: z.number(),
   wasCorrect: z.boolean().nullable().optional(),
 });
 
@@ -179,11 +179,6 @@ const brainEventSchema = z.discriminatedUnion('kind', [
     currentValue: z.number(),
     projectedValueIn5min: z.number(),
     timeToThresholdSecs: z.number(),
-  }),
-  z.object({
-    kind: z.literal('clock_tick'),
-    timestampMs: z.number(),
-    generatedAt: z.string(),
   }),
 ]);
 
@@ -278,14 +273,6 @@ function normalizeBrainEvent(payload: unknown): BrainEvent {
       correlation: value.correlation,
       confidence: value.confidence,
       observedNTimes: value.observed_n_times,
-    });
-  }
-  if ('ClockTick' in keyed) {
-    const value = keyed.ClockTick as Record<string, unknown>;
-    return brainEventSchema.parse({
-      kind: 'clock_tick',
-      timestampMs: value.timestamp_ms,
-      generatedAt: value.generated_at,
     });
   }
 

@@ -1,0 +1,1022 @@
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use sqlx::Row;
+use tauri::{AppHandle, Emitter, State, ipc::Channel};
+
+use crate::auth::AuthManager;
+use crate::db::GenesisAppState;
+use crate::settings;
+
+// ──────────────────────────────────────────────────────────
+// Shared types for all settings commands
+// ──────────────────────────────────────────────────────────
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountInfo {
+    pub name: String,
+    pub email: String,
+    pub avatar_url: Option<String>,
+    pub plan: String,
+    pub renewal_date: Option<String>,
+    pub devices: Vec<DeviceInfo>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceInfo {
+    pub id: String,
+    pub name: String,
+    pub os: String,
+    pub last_synced: Option<String>,
+    pub is_current: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppearancePatch {
+    pub theme_id: Option<String>,
+    pub mode: Option<String>,
+    pub accent_color: Option<String>,
+    pub border_radius: Option<String>,
+    pub density: Option<String>,
+    pub animations_enabled: Option<bool>,
+    pub sidebar_labels: Option<bool>,
+    pub font_scale: Option<f64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrivacySettings {
+    pub analytics: bool,
+    pub crash_reports: bool,
+    pub session_lock_timeout: Option<u64>,
+    pub biometric_unlock: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TelemetrySummary {
+    pub snapshots: Vec<serde_json::Value>,
+    pub anomalies: Vec<serde_json::Value>,
+    pub insights: Vec<serde_json::Value>,
+}
+
+fn normalize_plan_label(plan_code: Option<&str>, user_tier: Option<&str>) -> String {
+    let raw = plan_code
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .or_else(|| user_tier.map(str::trim).filter(|value| !value.is_empty()));
+
+    match raw.map(|value| value.to_uppercase()) {
+        Some(ref value) if value == "CREATOR" || value == "CORE" => "Core".to_string(),
+        Some(ref value) if value == "STUDIO" || value == "PRO" => "Pro".to_string(),
+        Some(ref value) if value == "EMPIRE" || value == "POWER" => "Power".to_string(),
+        Some(ref value) if value == "SPARK" || value == "FREE" => "Free".to_string(),
+        Some(value) => value,
+        None => "Free".to_string(),
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledModuleEntry {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub active: bool,
+    pub order: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AvailableModuleEntry {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub size_mb: f64,
+    pub icon_url: Option<String>,
+    pub accent: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncStatus {
+    pub last_synced: Option<String>,
+    pub pending_count: u32,
+    pub devices: Vec<DeviceInfo>,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageBreakdownEntry {
+    pub module: String,
+    pub bytes_used: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiConfig {
+    pub enabled: bool,
+    pub provider: Option<String>,
+    pub model: Option<String>,
+    pub stream_tokens: bool,
+    pub telemetry_healing: bool,
+    pub ollama_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiKeyStatus {
+    pub is_set: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionTestResult {
+    pub ok: bool,
+    pub model_list: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationConfig {
+    pub enabled: bool,
+    pub do_not_disturb_from: Option<String>,
+    pub do_not_disturb_to: Option<String>,
+    pub dnd_days: Vec<u8>,
+    pub sound_enabled: bool,
+    pub module_settings: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartupConfig {
+    pub launch_on_login: bool,
+    pub start_minimized: bool,
+    pub close_behavior: String,
+    pub hardware_acceleration: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessibilityConfig {
+    pub reduce_motion: bool,
+    pub high_contrast: bool,
+    pub focus_indicators_always_visible: bool,
+    pub keyboard_navigation_mode: bool,
+    pub text_size_override: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocaleConfig {
+    pub language: String,
+    pub date_format: String,
+    pub time_format: String,
+    pub week_starts_on: String,
+    pub currency: String,
+    pub units: String,
+    pub number_format: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateInfo {
+    pub current_version: String,
+    pub available_version: Option<String>,
+    pub release_notes: Option<String>,
+    pub download_size: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemInfo {
+    pub os_name: String,
+    pub os_version: String,
+    pub app_version: String,
+    pub rust_version: String,
+    pub webview_version: String,
+    pub build_target: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShortcutEntry {
+    pub action: String,
+    pub combo: String,
+    pub category: String,
+    pub default_combo: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShortcutConflict {
+    pub action: String,
+    pub current_combo: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyShortcutResult {
+    pub success: bool,
+    pub conflict: Option<ShortcutConflict>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModuleFonts {
+    pub primary: Option<String>,
+    pub secondary: Option<String>,
+    pub mono: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BiometricSupportInfo {
+    pub supported: bool,
+    pub device_type: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsSnapshot {
+    pub desktop_settings: settings::DesktopSettings,
+    pub account_info: Option<AccountInfo>,
+    pub sync_status: SyncStatus,
+    pub installed_modules: Vec<InstalledModuleEntry>,
+    pub keyboard_shortcuts: Vec<ShortcutEntry>,
+    pub privacy_settings: PrivacySettings,
+    pub update_info: UpdateInfo,
+    pub system_info: SystemInfo,
+    pub biometric_support: BiometricSupportInfo,
+    pub api_key_status: HashMap<String, ApiKeyStatus>,
+    pub unsupported_commands: Vec<String>,
+}
+
+fn unsupported(setting: &str) -> String {
+    format!("{setting} is not supported yet in the backend.")
+}
+
+fn platform_name() -> String {
+    if cfg!(windows) {
+        "Windows".to_string()
+    } else if cfg!(target_os = "macos") {
+        "macOS".to_string()
+    } else {
+        "Linux".to_string()
+    }
+}
+
+fn current_device_info(id: String) -> DeviceInfo {
+    DeviceInfo {
+        id,
+        name: "This Device".to_string(),
+        os: platform_name(),
+        last_synced: None,
+        is_current: true,
+    }
+}
+
+fn privacy_from_settings(settings: &settings::DesktopSettings) -> PrivacySettings {
+    PrivacySettings {
+        analytics: settings.telemetry.consented,
+        crash_reports: settings.telemetry.crash_reports,
+        session_lock_timeout: None,
+        biometric_unlock: false,
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 1 — ACCOUNT
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_account_info(
+    app: AppHandle,
+    auth: State<'_, AuthManager>,
+) -> Result<AccountInfo, String> {
+    let session = auth
+        .current_session()
+        .await
+        .ok_or_else(|| "Sign in to view account information.".to_string())?;
+    let local_settings = settings::current_settings(&app);
+    let billing_profile = auth.get_billing_profile().await.ok();
+
+    let name = billing_profile
+        .as_ref()
+        .map(|profile| profile.display_name.clone())
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            if local_settings.display_name.trim().is_empty() {
+                None
+            } else {
+                Some(local_settings.display_name.clone())
+            }
+        })
+        .unwrap_or_else(|| session.user.name.clone());
+
+    let email = billing_profile
+        .as_ref()
+        .map(|profile| profile.email.clone())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| session.user.email.clone());
+
+    let avatar_url = billing_profile
+        .as_ref()
+        .and_then(|profile| {
+            if profile.avatar_url.trim().is_empty() {
+                None
+            } else {
+                Some(profile.avatar_url.clone())
+            }
+        })
+        .or_else(|| {
+            if session.user.avatar_url.trim().is_empty() {
+                None
+            } else {
+                Some(session.user.avatar_url.clone())
+            }
+        });
+
+    let plan = billing_profile
+        .as_ref()
+        .map(|profile| normalize_plan_label(
+            profile.subscription_plan_code.as_deref(),
+            Some(profile.user_tier.as_str()),
+        ))
+        .unwrap_or_else(|| "Free".to_string());
+
+    let renewal_date = billing_profile
+        .as_ref()
+        .and_then(|profile| profile.subscription_end_date.clone());
+
+    Ok(AccountInfo {
+        name,
+        email,
+        avatar_url,
+        plan,
+        renewal_date,
+        devices: vec![DeviceInfo {
+            id: session.user.id.clone(),
+            name: "This Device".to_string(),
+            os: platform_name(),
+            last_synced: None,
+            is_current: true,
+        }],
+    })
+}
+
+#[tauri::command]
+pub async fn update_display_name(
+    app: AppHandle,
+    auth: State<'_, AuthManager>,
+    name: String,
+) -> Result<(), String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Display name cannot be empty.".to_string());
+    }
+    if trimmed.len() > 100 {
+        return Err("Display name must be 100 characters or fewer.".to_string());
+    }
+
+    if auth.current_session().await.is_some() {
+        auth.update_display_name(trimmed.to_string()).await?;
+    }
+
+    settings::update_desktop_settings(&app, |next| {
+        next.display_name = trimmed.to_string();
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn revoke_device(
+    auth: State<'_, AuthManager>,
+    device_id: String,
+) -> Result<(), String> {
+    let session = auth
+        .current_session()
+        .await
+        .ok_or_else(|| "Sign in to revoke a device.".to_string())?;
+
+    if device_id == session.user.id {
+        auth.sign_out().await?;
+        return Ok(());
+    }
+
+    Err(unsupported("Revoking other devices"))
+}
+
+#[tauri::command]
+pub async fn sign_out_backend(auth: State<'_, AuthManager>) -> Result<(), String> {
+    auth.sign_out().await
+}
+
+#[tauri::command]
+pub async fn delete_account_backend(auth: State<'_, AuthManager>) -> Result<(), String> {
+    auth.delete_account().await
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 2 — APPEARANCE
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn set_theme(app: AppHandle, theme: String) -> Result<(), String> {
+    let trimmed = theme.trim();
+    if trimmed.is_empty() {
+        return Err("Theme id cannot be empty.".to_string());
+    }
+
+    settings::update_desktop_settings(&app, |next| {
+        next.appearance.theme_id = trimmed.to_string();
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_appearance(app: AppHandle, patch: AppearancePatch) -> Result<(), String> {
+    if patch.accent_color.is_some()
+        || patch.border_radius.is_some()
+        || patch.density.is_some()
+        || patch.animations_enabled.is_some()
+        || patch.sidebar_labels.is_some()
+        || patch.font_scale.is_some()
+    {
+        return Err(unsupported("Advanced appearance overrides"));
+    }
+
+    if patch.theme_id.is_none() && patch.mode.is_none() {
+        return Err("No supported appearance fields were provided.".to_string());
+    }
+
+    settings::update_desktop_settings(&app, |next| {
+        if let Some(theme_id) = patch.theme_id {
+            next.appearance.theme_id = theme_id;
+        }
+        if let Some(mode) = patch.mode {
+            next.appearance.mode = settings::normalize_mode(&mode);
+        }
+    })?;
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 9 — PRIVACY & SECURITY
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_privacy_settings(app: AppHandle) -> Result<PrivacySettings, String> {
+    Ok(privacy_from_settings(&settings::current_settings(&app)))
+}
+
+#[tauri::command]
+pub async fn set_privacy_settings(app: AppHandle, patch: PrivacySettings) -> Result<(), String> {
+    if patch.session_lock_timeout.is_some() || patch.biometric_unlock {
+        return Err(unsupported("Session lock timeout and biometric unlock"));
+    }
+
+    settings::update_desktop_settings(&app, |next| {
+        next.telemetry.consented = patch.analytics;
+        next.telemetry.crash_reports = patch.crash_reports;
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_telemetry_summary(
+    state: State<'_, GenesisAppState>,
+) -> Result<TelemetrySummary, String> {
+    let snapshots = sqlx::query(
+        "SELECT id, ts, module_id, heap_mb, state, ipc_ms, db_ms, last_action FROM telemetry_ticks ORDER BY ts DESC LIMIT 25",
+    )
+    .fetch_all(state.db())
+    .await
+    .map_err(|error| error.to_string())?
+    .into_iter()
+    .map(|row| {
+        serde_json::json!({
+            "id": row.try_get::<i64, _>("id").unwrap_or_default(),
+            "timestampMs": row.try_get::<i64, _>("ts").unwrap_or_default(),
+            "moduleId": row.try_get::<String, _>("module_id").unwrap_or_default(),
+            "heapMb": row.try_get::<f32, _>("heap_mb").unwrap_or_default(),
+            "state": row.try_get::<String, _>("state").unwrap_or_default(),
+            "ipcMs": row.try_get::<Option<f32>, _>("ipc_ms").ok().flatten(),
+            "dbMs": row.try_get::<Option<f32>, _>("db_ms").ok().flatten(),
+            "lastAction": row.try_get::<Option<String>, _>("last_action").ok().flatten(),
+        })
+    })
+    .collect();
+
+    let anomalies = sqlx::query(
+        "SELECT id, ts, module_id, type, severity, message, healed, heal_action, heal_ms FROM anomaly_log ORDER BY ts DESC LIMIT 25",
+    )
+    .fetch_all(state.db())
+    .await
+    .map_err(|error| error.to_string())?
+    .into_iter()
+    .map(|row| {
+        serde_json::json!({
+            "id": row.try_get::<i64, _>("id").unwrap_or_default(),
+            "timestampMs": row.try_get::<i64, _>("ts").unwrap_or_default(),
+            "moduleId": row.try_get::<String, _>("module_id").unwrap_or_default(),
+            "type": row.try_get::<String, _>("type").unwrap_or_default(),
+            "severity": row.try_get::<String, _>("severity").unwrap_or_default(),
+            "message": row.try_get::<String, _>("message").unwrap_or_default(),
+            "healed": row.try_get::<i64, _>("healed").unwrap_or(0) == 1,
+            "healAction": row.try_get::<Option<String>, _>("heal_action").ok().flatten(),
+            "healMs": row.try_get::<Option<i64>, _>("heal_ms").ok().flatten(),
+        })
+    })
+    .collect();
+
+    let insights = sqlx::query(
+        "SELECT id, discovered_at, action, metric, pearson, n_samples, description FROM insights ORDER BY discovered_at DESC LIMIT 25",
+    )
+    .fetch_all(state.db())
+    .await
+    .map_err(|error| error.to_string())?
+    .into_iter()
+    .map(|row| {
+        serde_json::json!({
+            "id": row.try_get::<i64, _>("id").unwrap_or_default(),
+            "discoveredAt": row.try_get::<i64, _>("discovered_at").unwrap_or_default(),
+            "action": row.try_get::<String, _>("action").unwrap_or_default(),
+            "metric": row.try_get::<String, _>("metric").unwrap_or_default(),
+            "pearson": row.try_get::<f32, _>("pearson").unwrap_or_default(),
+            "nSamples": row.try_get::<i64, _>("n_samples").unwrap_or_default(),
+            "description": row.try_get::<String, _>("description").unwrap_or_default(),
+        })
+    })
+    .collect();
+
+    Ok(TelemetrySummary {
+        snapshots,
+        anomalies,
+        insights,
+    })
+}
+
+#[tauri::command]
+pub async fn clear_telemetry_data(state: State<'_, GenesisAppState>) -> Result<(), String> {
+    let mut tx = state.db().begin().await.map_err(|error| error.to_string())?;
+    for query in [
+        "DELETE FROM telemetry_ticks",
+        "DELETE FROM anomaly_log",
+        "DELETE FROM backend_traces",
+        "DELETE FROM insights",
+        "DELETE FROM predictions",
+    ] {
+        sqlx::query(query)
+            .execute(&mut *tx)
+            .await
+            .map_err(|error| error.to_string())?;
+    }
+    tx.commit().await.map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn lock_now(app: AppHandle) -> Result<(), String> {
+    let _ = app.emit("app:locked", ());
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn check_biometric_support() -> Result<serde_json::Value, String> {
+    // Stub: return OS-specific result
+    let supported = cfg!(windows) || cfg!(target_os = "macos");
+    let bio_type = if cfg!(windows) {
+        "Windows Hello"
+    } else if cfg!(target_os = "macos") {
+        "Touch ID"
+    } else {
+        ""
+    };
+    Ok(serde_json::json!({
+        "supported": supported,
+        "type": bio_type
+    }))
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 4 — MODULES & APPS
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_installed_modules_list(
+    state: State<'_, GenesisAppState>,
+) -> Result<Vec<InstalledModuleEntry>, String> {
+    let active_module = state.active_module();
+    let modules = crate::modules::get_installed_modules(state).await?;
+
+    Ok(modules
+        .into_iter()
+        .enumerate()
+        .map(|(index, module)| {
+            let name = module
+                .manifest
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(|| {
+                    module
+                        .id
+                        .split('-')
+                        .filter(|segment| !segment.is_empty())
+                        .map(|segment| {
+                            let mut chars = segment.chars();
+                            match chars.next() {
+                                Some(first) => {
+                                    first.to_uppercase().chain(chars).collect::<String>()
+                                }
+                                None => String::new(),
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                });
+
+            InstalledModuleEntry {
+                id: module.id.clone(),
+                name,
+                version: module.version,
+                active: module.id == active_module,
+                order: index as u32,
+            }
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub async fn get_available_modules(
+    state: State<'_, GenesisAppState>,
+) -> Result<Vec<AvailableModuleEntry>, String> {
+    Ok(crate::modules::fetch_module_registry(state)
+        .await?
+        .into_iter()
+        .map(|module| AvailableModuleEntry {
+            id: module.id,
+            name: module.name,
+            description: module.description,
+            size_mb: module.size_mb,
+            icon_url: module.icon_url,
+            accent: module.accent,
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub async fn install_module_v2(
+    _app: AppHandle,
+    state: State<'_, GenesisAppState>,
+    module_id: String,
+    bundle_url: String,
+    checksum: String,
+    on_progress: Channel<f32>,
+) -> Result<(), String> {
+    crate::modules::install_module(module_id, bundle_url, checksum, on_progress).await?;
+    let _ = state;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn uninstall_module_v2(
+    app: AppHandle,
+    state: State<'_, GenesisAppState>,
+    module_id: String,
+) -> Result<(), String> {
+    crate::modules::uninstall_module(app, state, module_id).await
+}
+
+#[tauri::command]
+pub async fn reorder_modules(order: Vec<String>) -> Result<(), String> {
+    let _ = order;
+    Err(unsupported("Module reordering"))
+}
+
+#[tauri::command]
+pub async fn set_default_launch_module(module_id: String) -> Result<(), String> {
+    let _ = module_id;
+    Err(unsupported("Default launch module"))
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 5 — SYNC & STORAGE
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_sync_status(
+    auth: State<'_, AuthManager>,
+) -> Result<SyncStatus, String> {
+    let session = auth.current_session().await;
+    let status = if session.is_some() { "synced" } else { "signed_out" };
+
+    Ok(SyncStatus {
+        last_synced: None,
+        pending_count: 0,
+        devices: session
+            .map(|session| vec![current_device_info(session.user.id)])
+            .unwrap_or_default(),
+        status: status.to_string(),
+    })
+}
+
+#[tauri::command]
+pub async fn sync_now(app: AppHandle, auth: State<'_, AuthManager>) -> Result<(), String> {
+    app.emit("sync:progress", serde_json::json!({"status": "syncing"}))
+        .map_err(|error| error.to_string())?;
+    auth.sync_profile_now().await?;
+    app.emit("sync:complete", serde_json::json!({"status": "synced"}))
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_sync_enabled(enabled: bool) -> Result<(), String> {
+    let _ = enabled;
+    Err(unsupported("Sync enablement"))
+}
+
+#[tauri::command]
+pub async fn get_storage_breakdown() -> Result<Vec<StorageBreakdownEntry>, String> {
+    Err(unsupported("Storage breakdown reporting"))
+}
+
+#[tauri::command]
+pub async fn export_all_data() -> Result<Option<String>, String> {
+    Err(unsupported("Full data export"))
+}
+
+#[tauri::command]
+pub async fn import_data(file_path: String) -> Result<(), String> {
+    let _ = file_path;
+    Err(unsupported("Data import"))
+}
+
+#[tauri::command]
+pub async fn clear_local_data() -> Result<(), String> {
+    Err(unsupported("Clearing local data"))
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 6 — AI & INTELLIGENCE
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn save_api_key(provider: String, _key: String) -> Result<(), String> {
+    // Stub: store in OS keychain
+    let supported = ["anthropic", "openai", "ollama", "groq"];
+    if !supported.contains(&provider.as_str()) {
+        return Err(format!("Unknown provider: {provider}"));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_api_key_status(provider: String) -> Result<ApiKeyStatus, String> {
+    let _ = provider;
+    Ok(ApiKeyStatus { is_set: false })
+}
+
+#[tauri::command]
+pub async fn test_ai_connection(provider: String) -> Result<ConnectionTestResult, String> {
+    let models = match provider.as_str() {
+        "anthropic" => vec![
+            "claude-sonnet-4-20250514".to_string(),
+            "claude-opus-4-5".to_string(),
+            "claude-haiku-4-5-20251001".to_string(),
+        ],
+        "openai" => vec![
+            "gpt-4o".to_string(),
+            "gpt-4o-mini".to_string(),
+            "o3-mini".to_string(),
+        ],
+        "ollama" => vec![],
+        "groq" => vec![
+            "llama-3.3-70b-versatile".to_string(),
+            "mixtral-8x7b-32768".to_string(),
+        ],
+        _ => vec![],
+    };
+    Ok(ConnectionTestResult {
+        ok: !models.is_empty(),
+        model_list: models,
+    })
+}
+
+#[tauri::command]
+pub async fn set_ai_config(patch: AiConfig) -> Result<(), String> {
+    let _ = patch;
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 3 — TYPOGRAPHY
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_system_fonts() -> Result<Vec<String>, String> {
+    // Stub: return common system fonts
+    Ok(vec![
+        "Arial".to_string(),
+        "Helvetica".to_string(),
+        "Times New Roman".to_string(),
+        "Georgia".to_string(),
+        "Courier New".to_string(),
+        "Segoe UI".to_string(),
+        "SF Pro".to_string(),
+        "System UI".to_string(),
+    ])
+}
+
+#[tauri::command]
+pub async fn download_font(font_id: String) -> Result<String, String> {
+    // Stub: pretend to download font
+    let path = std::env::temp_dir().join("fonts").join(format!("{font_id}.woff2"));
+    std::fs::create_dir_all(path.parent().unwrap()).ok();
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn set_module_fonts_v2(module: String, fonts: ModuleFonts) -> Result<(), String> {
+    let _ = module;
+    let _ = fonts;
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 7 — NOTIFICATIONS
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn set_notification_config(config: NotificationConfig) -> Result<(), String> {
+    let _ = config;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn send_test_notification(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt;
+    app.notification()
+        .builder()
+        .title("Genesis")
+        .body("This is a test notification from your settings.")
+        .show()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 10 — SYSTEM & STARTUP
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn set_launch_on_login(enabled: bool) -> Result<(), String> {
+    let _ = enabled;
+    // Stub: would use tauri-plugin-autostart
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_startup_config(config: StartupConfig) -> Result<(), String> {
+    let _ = config;
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 12 — LANGUAGE & REGION
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn set_locale_config(config: LocaleConfig) -> Result<(), String> {
+    let _ = config;
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 13 — UPDATES
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn check_for_updates() -> Result<UpdateInfo, String> {
+    // Stub: return current version only (no update available)
+    Ok(UpdateInfo {
+        current_version: env!("CARGO_PKG_VERSION").to_string(),
+        available_version: None,
+        release_notes: None,
+        download_size: None,
+    })
+}
+
+#[tauri::command]
+pub async fn download_and_install_update(
+    _on_progress: Channel<f32>,
+) -> Result<(), String> {
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_update_channel(channel: String) -> Result<(), String> {
+    let supported = ["stable", "beta"];
+    if !supported.contains(&channel.as_str()) {
+        return Err(format!("Unknown update channel: {channel}"));
+    }
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 14 — ABOUT
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_system_info() -> Result<SystemInfo, String> {
+    Ok(SystemInfo {
+        os_name: std::env::consts::OS.to_string(),
+        os_version: "Unknown".to_string(),
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        rust_version: "1.85".to_string(),
+        webview_version: "WebView2 (Chromium)".to_string(),
+        build_target: std::env::consts::ARCH.to_string(),
+    })
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 8 — KEYBOARD SHORTCUTS
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn get_keyboard_shortcuts() -> Result<Vec<ShortcutEntry>, String> {
+    Ok(vec![
+        ShortcutEntry {
+            action: "Open Settings".to_string(),
+            combo: "Cmd+,".to_string(),
+            category: "Global".to_string(),
+            default_combo: "Cmd+,".to_string(),
+        },
+        ShortcutEntry {
+            action: "Switch Module".to_string(),
+            combo: "Cmd+Shift+M".to_string(),
+            category: "Global".to_string(),
+            default_combo: "Cmd+Shift+M".to_string(),
+        },
+        ShortcutEntry {
+            action: "Search".to_string(),
+            combo: "Cmd+F".to_string(),
+            category: "Global".to_string(),
+            default_combo: "Cmd+F".to_string(),
+        },
+        ShortcutEntry {
+            action: "New Item".to_string(),
+            combo: "Cmd+N".to_string(),
+            category: "Global".to_string(),
+            default_combo: "Cmd+N".to_string(),
+        },
+        ShortcutEntry {
+            action: "Toggle Sidebar".to_string(),
+            combo: "Cmd+B".to_string(),
+            category: "Navigation".to_string(),
+            default_combo: "Cmd+B".to_string(),
+        },
+        ShortcutEntry {
+            action: "Next Tab".to_string(),
+            combo: "Option+Right".to_string(),
+            category: "Navigation".to_string(),
+            default_combo: "Option+Right".to_string(),
+        },
+        ShortcutEntry {
+            action: "Previous Tab".to_string(),
+            combo: "Option+Left".to_string(),
+            category: "Navigation".to_string(),
+            default_combo: "Option+Left".to_string(),
+        },
+    ])
+}
+
+#[tauri::command]
+pub async fn set_keyboard_shortcut(_action: String, _combo: String) -> Result<KeyShortcutResult, String> {
+    // Stub: accept shortcut
+    Ok(KeyShortcutResult {
+        success: true,
+        conflict: None,
+    })
+}
+
+#[tauri::command]
+pub async fn reset_all_shortcuts() -> Result<(), String> {
+    Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 11 — ACCESSIBILITY
+// ──────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn set_accessibility_config(config: AccessibilityConfig) -> Result<(), String> {
+    let _ = config;
+    Ok(())
+}

@@ -5,7 +5,6 @@
   import SearchIcon from "@lucide/svelte/icons/search";
   import SunIcon from "@lucide/svelte/icons/sun";
   import { toast } from "svelte-sonner";
-  import { logger } from "$lib/utils/logger";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import type { PageKey } from "$lib/router/routes";
@@ -28,7 +27,7 @@
   });
 
   const openAlertsPanel = async () => {
-    logger.info("Alerts button clicked", { currentPage });
+    console.info("[Genesis Desktop] Alerts button clicked", { currentPage });
 
     if (currentPage !== "settings") {
       await goto("/settings");
@@ -45,13 +44,16 @@
 
   const toggleThemeWithLog = async () => {
     const nextMode = $isDark ? "light" : "dark";
-    logger.info("Theme toggle clicked", { currentPage, nextMode });
+    console.info("[Genesis Desktop] Theme toggle clicked", {
+      currentPage,
+      nextMode,
+    });
 
     try {
       await toggleMode();
       toast.success(`Theme switched to ${nextMode}.`);
     } catch (error) {
-      logger.error("Theme toggle failed", error);
+      console.error("[Genesis Desktop] Theme toggle failed", error);
       toast.error(error instanceof Error ? error.message : "Theme toggle failed.");
     }
   };

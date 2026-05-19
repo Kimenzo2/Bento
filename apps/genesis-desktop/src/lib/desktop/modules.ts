@@ -2,16 +2,13 @@ import { browser } from '$app/environment';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { goto } from '@mateothegreat/svelte5-router';
 import { writable } from 'svelte/store';
-import { get } from 'svelte/store';
 import { z } from 'zod';
-import { logger } from '$lib/utils/logger';
 import {
   getModuleCatalogEntry,
   moduleCatalog,
   moduleIdValues,
   type GenesisModuleId,
 } from '$lib/data/module-catalog';
-import { desktopSettings } from '$lib/desktop/settings';
 
 export const moduleIdSchema = z.enum(moduleIdValues);
 export type { GenesisModuleId } from '$lib/data/module-catalog';
@@ -61,10 +58,6 @@ export function moduleFromPath(pathname: string): GenesisModuleId {
 export const activeModule = writable<string>(
   moduleFromPath(browser ? window.location.pathname : '/')
 );
-
-function areTabsEnabled() {
-  return get(desktopSettings).workspace.tabsEnabled;
-}
 
 export function captureModuleContext(module: GenesisModuleId): ModuleContext {
   if (!browser) {
@@ -125,39 +118,30 @@ export async function switchModule(toModule: GenesisModuleId): Promise<ModuleSwi
 
   if (browser && isTauri()) {
     try {
-      // Phase 1 & 2: flush current module state, load incoming module context
       const result = await invoke<unknown>('flush_module_state', {
         fromModule,
         toModule,
         context,
       });
-
-      if (areTabsEnabled()) {
-        // Register or resolve the module tab first, then switch the Rust session
-        // before moving the visible route.
-        const tabInfo = await invoke<{ id: string }>('tab_open', { moduleId: toModule });
-        await invoke('tab_switch', { tabId: tabInfo.id });
-      }
-
       const receipt = switchReceiptSchema.parse(result);
-      await Promise.resolve(goto(target.route));
       activeModule.set(toModule);
+      await Promise.resolve(goto(target.route));
       return receipt;
     } catch (error) {
       if (!isRecoverableDesktopSwitchError(error)) {
         throw error;
       }
 
-      logger.warn(
-        'Falling back to frontend-only module switch; restart the desktop shell to refresh the Rust module catalog.',
+      console.warn(
+        '[Genesis Desktop] Falling back to frontend-only module switch; restart the desktop shell to refresh the Rust module catalog.',
         error,
       );
     }
   }
 
   if (browser) {
-    await Promise.resolve(goto(target.route));
     activeModule.set(toModule);
+    await Promise.resolve(goto(target.route));
   }
 
   return {
@@ -181,8 +165,6 @@ function isRecoverableDesktopSwitchError(error: unknown) {
     message.includes('Unsupported Genesis module') ||
     message.includes('Module is not installed') ||
     message.includes('invalid args `toModule`') ||
-    message.includes('invalid args `fromModule`') ||
-    message.includes('Cannot open tab') ||
-    message.includes('is not installed')
+    message.includes('invalid args `fromModule`')
   );
 }

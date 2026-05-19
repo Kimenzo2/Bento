@@ -1,103 +1,157 @@
-<script lang="ts">
-  import MicIcon from "@lucide/svelte/icons/mic";
-  import SearchIcon from "@lucide/svelte/icons/search";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { MiniAppHeader, MiniAppRoot, MiniAppStatGrid } from "$lib/modules/mini-app/index.js";
+<script lang="ts"></script>
 
-  let { moduleId = "voice-memos", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
-    $props();
+<main class="voice-app module-root">
+  <aside>
+    {#each ["Home", "Calendar", "Insights", "Record", "Tags"] as x}
+      <button class:voice-on={x === "Home"}>{x[0]}</button>
+    {/each}
+  </aside>
+  <section>
+    <header>
+      <h1>Good morning, Amara</h1>
+      <p><button>Record</button><button>Transcribe</button></p>
+    </header>
+    <div class="voice-grid">
+      <article class="voice-large">
+        <h2>Recent Recordings</h2>
+        <strong>Board review for client launch</strong>
+        <span>18:42</span>
+        <footer>Product Research Action</footer>
+      </article>
+      <article class="voice-transcript">
+        <small>Jul 15</small>
+        <h2>Championship Viewing Party</h2>
+        <p>Speaker labels and summary sections are ready for export.</p>
+      </article>
+      <article class="voice-number">
+        <span>345</span>
+        <small>Minutes transcribed</small>
+      </article>
+      <article class="voice-number">
+        <span>4,569</span>
+        <small>Total recordings</small>
+      </article>
+    </div>
+    <button class="voice-fab">Record</button>
+  </section>
+</main>
 
-  const recordings = [
-    {
-      id: "1",
-      title: "Board review for client launch",
-      duration: "18:42",
-      tag: "Product research",
-      summary: "Speaker labels and action items are ready for export.",
-    },
-    {
-      id: "2",
-      title: "Championship viewing party notes",
-      duration: "06:12",
-      tag: "Personal",
-      summary: "Venue, snacks, and guest list captured from voice.",
-    },
-    {
-      id: "3",
-      title: "Morning standup recap",
-      duration: "04:05",
-      tag: "Work",
-      summary: "Blockers, owners, and follow-ups transcribed automatically.",
-    },
-  ];
-</script>
+<style>
+  .voice-app {
+    --voice-bg: var(--background);
+    --voice-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
+    --voice-surface-strong: color-mix(in srgb, var(--surface) 86%, var(--background));
+    --voice-ink: var(--foreground);
+    --voice-muted: var(--muted);
+    --voice-border: var(--border);
+    --voice-accent: var(--primary);
+    --voice-accent-b: var(--accent);
+    min-height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 34px;
+    background: var(--voice-bg);
+    color: var(--voice-ink);
+    font-family: "Manrope", sans-serif;
+  }
 
-<MiniAppRoot class="gap-5 p-4 sm:p-6">
-  <MiniAppHeader
-    eyebrow="Voice memos"
-    title="Capture, transcribe, and search recordings"
-    description="One-tap record, AI titles, speaker labels, and export-ready transcripts — all on-device."
-  >
-    {#snippet actions()}
-      <Button variant="outline" type="button">
-        <SearchIcon data-icon="inline-start" />
-        Search
-      </Button>
-      <Button type="button">
-        <MicIcon data-icon="inline-start" />
-        Record
-      </Button>
-    {/snippet}
-  </MiniAppHeader>
+  .voice-app aside {
+    display: none;
+  }
 
-  <MiniAppStatGrid
-    stats={[
-      { label: "Minutes transcribed", value: "345", hint: "This week" },
-      { label: "Recordings", value: "4,569", hint: "Library total" },
-      { label: "AI titles", value: "92%", hint: "Auto-labeled last 30 days" },
-    ]}
-  />
+  .voice-app section {
+    padding: 40px;
+  }
 
-  <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Quick capture</CardTitle>
-        <CardDescription>Natural-language search across transcript text.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-3">
-        <div class="relative">
-          <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--muted)]" />
-          <Input class="pl-9" placeholder="Search inside recordings…" />
-        </div>
-        <Button class="w-full sm:w-auto" type="button">
-          <SparklesIcon data-icon="inline-start" />
-          Transcribe latest clip
-        </Button>
-      </CardContent>
-    </Card>
+  .voice-app header {
+    text-align: center;
+  }
 
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Recent recordings</CardTitle>
-        <CardDescription>Tap a row to open transcript and export options.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each recordings as item (item.id)}
-          <article class="mini-app-row">
-            <div class="min-w-0">
-              <p class="truncate font-medium text-[var(--foreground)]">{item.title}</p>
-              <p class="mt-1 truncate text-sm text-[var(--muted)]">{item.summary}</p>
-            </div>
-            <div class="flex shrink-0 flex-col items-end gap-1 text-right">
-              <span class="text-sm font-medium text-[var(--foreground)]">{item.duration}</span>
-              <span class="text-xs text-[var(--muted)]">{item.tag}</span>
-            </div>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  </div>
-</MiniAppRoot>
+  .voice-app h1 {
+    font-size: 34px;
+  }
+
+  .voice-app header button {
+    padding: 8px 16px;
+    border: 1px solid var(--voice-border);
+    border-radius: 999px;
+    background: var(--voice-surface);
+    color: var(--voice-ink);
+    cursor: default;
+  }
+
+  .voice-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.95fr 0.55fr;
+    gap: 18px;
+  }
+
+  .voice-grid article {
+    border: 1px solid var(--voice-border);
+    border-radius: 26px;
+    background: var(--voice-surface);
+    padding: 24px;
+  }
+
+  .voice-large {
+    min-height: 300px;
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--voice-accent) 72%, var(--voice-surface)),
+        color-mix(in srgb, var(--voice-accent-b) 68%, var(--voice-surface-strong))
+      ) !important;
+    color: color-mix(in srgb, var(--voice-bg) 88%, var(--voice-ink));
+  }
+
+  .voice-large strong {
+    display: block;
+    max-width: 13ch;
+    margin-top: 100px;
+    font-size: 32px;
+  }
+
+  .voice-large span {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 14px;
+    border: 1px solid color-mix(in srgb, var(--voice-bg) 28%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--voice-bg) 30%, transparent);
+  }
+
+  .voice-transcript {
+    min-height: 300px;
+  }
+
+  .voice-transcript h2 {
+    font-size: 26px;
+  }
+
+  .voice-number {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    background: color-mix(in srgb, var(--voice-accent) 14%, var(--voice-surface)) !important;
+  }
+
+  .voice-number span {
+    font-size: 46px;
+  }
+
+  .voice-fab {
+    position: fixed;
+    right: 52px;
+    bottom: 42px;
+    width: 72px;
+    height: 72px;
+    border: 1px solid color-mix(in srgb, var(--voice-accent) 40%, var(--voice-border));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--voice-accent) 42%, var(--voice-surface));
+    color: var(--voice-ink);
+    box-shadow: none;
+    cursor: default;
+  }
+</style>
+
+

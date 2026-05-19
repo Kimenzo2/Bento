@@ -1,281 +1,356 @@
 <script lang="ts">
-  import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
-  import DownloadIcon from "@lucide/svelte/icons/download";
-  import HourglassIcon from "@lucide/svelte/icons/hourglass";
-  import PlusIcon from "@lucide/svelte/icons/plus";
-  import Share2Icon from "@lucide/svelte/icons/share-2";
-  import { onMount } from "svelte";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
-  import {
-    MiniAppHeader,
-    MiniAppRoot,
-    MiniAppStatGrid,
-    miniAppAccent,
-  } from "$lib/modules/mini-app/index.js";
-  import {
-    ensureModuleSection,
-    getModuleSectionLabel,
-    moduleSectionStore,
-  } from "$lib/stores/module-sections.store";
+  import { Plus, Bell, Calendar as CalendarIcon, Clock, ChevronDown } from 'lucide-svelte';
 
-  let { moduleId = "countdown", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
-    $props();
+  export let moduleId: string;
+  export let settings: any = {};
+  void moduleId;
+  void settings;
 
-  const sectionLabels = ["Events", "Birthdays", "Since", "Cards", "Widgets", "Export"] as const;
-  const selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
-
-  type EventCategory = "Trip" | "Deadline" | "Birthday" | "Work" | "Anniversary";
-
-  type CountdownEvent = {
-    id: number;
-    name: string;
-    date: Date;
-    category: EventCategory;
-    cover?: string;
-    accent: string;
-  };
-
-  const events: CountdownEvent[] = [
-    {
-      id: 1,
-      name: "Hawaii Trip",
-      date: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000),
+  let events = [
+    { 
+      id: 1, 
+      name: "Hawaii Trip", 
+      date: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000), 
       category: "Trip",
       cover: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800",
-      accent: miniAppAccent(0),
+      color: "var(--primary)"
     },
-    {
-      id: 2,
-      name: "Product Launch",
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    { 
+      id: 2, 
+      name: "Product Launch", 
+      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), 
       category: "Deadline",
-      accent: miniAppAccent(1),
+      color: "#f59e0b"
     },
-    {
-      id: 3,
-      name: "Mom's Birthday",
-      date: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
+    { 
+      id: 3, 
+      name: "Mom's Birthday", 
+      date: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000), 
       category: "Birthday",
-      accent: miniAppAccent(2),
+      color: "#ec4899"
     },
-    {
-      id: 4,
-      name: "Project Presentation",
-      date: new Date(),
+    { 
+      id: 4, 
+      name: "Project Presentation", 
+      date: new Date(), // today
       category: "Work",
-      accent: miniAppAccent(3),
-    },
-    {
-      id: 5,
-      name: "Genesis v1 ship",
-      date: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000),
-      category: "Anniversary",
-      accent: miniAppAccent(4),
-    },
+      color: "#10b981"
+    }
   ];
 
-  const shareCards = [
-    { id: "c1", title: "Hawaii Trip", detail: "17 days · beach cover" },
-    { id: "c2", title: "Mom's Birthday", detail: "42 days · confetti theme" },
-  ];
-
-  const widgets = [
-    { id: "w1", label: "Lock screen", detail: "Next event + days remaining" },
-    { id: "w2", label: "Menu bar", detail: "Compact countdown chip" },
-  ];
-
-  const exportOptions = [
-    { label: "ICS calendar pack", detail: "All upcoming events with reminders" },
-    { label: "Share card PNG", detail: "Social-ready countdown graphics" },
-  ];
-
-  onMount(() => {
-    ensureModuleSection(moduleId, sectionLabels);
-  });
-
+  // Helper to format date
   function formatDate(d: Date) {
-    return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(d);
+    return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(d);
   }
 
+  // Calculate days away
   function getDaysAway(d: Date) {
     const diff = d.getTime() - Date.now();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
-  const enrichedEvents = $derived(
-    events
-      .map((event) => ({ ...event, daysAway: getDaysAway(event.date) }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime()),
-  );
+  // Sort events
+  $: upcomingEvents = events
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .map(e => ({...e, daysAway: getDaysAway(e.date)}));
 
-  const filteredEvents = $derived.by(() => {
-    if (selectedSection === "Birthdays") {
-      return enrichedEvents.filter((e) => e.category === "Birthday");
-    }
-    if (selectedSection === "Since") {
-      return enrichedEvents.filter((e) => e.daysAway <= 0);
-    }
-    return enrichedEvents.filter((e) => e.daysAway >= 0);
-  });
-
-  const heroEvent = $derived(filteredEvents.find((e) => e.daysAway > 0) ?? filteredEvents[0]);
-  const timelineEvents = $derived(filteredEvents.filter((e) => e.id !== heroEvent?.id));
+  $: heroEvent = upcomingEvents.find(e => e.daysAway > 0) || upcomingEvents[0];
+  $: timelineEvents = upcomingEvents.filter(e => e.id !== heroEvent?.id);
 </script>
 
-<MiniAppRoot class="gap-5 p-4 sm:p-6">
-  <MiniAppHeader
-    eyebrow="Countdown"
-    title="Events, birthdays, and days-since"
-    description="Cover photos, shareable cards, and widgets — track what matters without leaving the shell."
-  >
-    {#snippet actions()}
-      <Badge variant="outline">{selectedSection}</Badge>
-      <Button type="button">
-        <PlusIcon data-icon="inline-start" />
-        Add event
-      </Button>
-    {/snippet}
-  </MiniAppHeader>
-
-  <MiniAppStatGrid
-    stats={[
-      { label: "Upcoming", value: String(enrichedEvents.filter((e) => e.daysAway > 0).length), hint: "On calendar" },
-      { label: "This month", value: "2", hint: "Birthdays & deadlines" },
-      { label: "Share cards", value: String(shareCards.length), hint: "Ready to export" },
-    ]}
-  />
-
-  {#if selectedSection === "Export"}
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Export</CardTitle>
-        <CardDescription>Calendar feeds and shareable countdown graphics.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each exportOptions as option (option.label)}
-          <article class="mini-app-row">
-            <div class="min-w-0">
-              <p class="font-medium text-[var(--foreground)]">{option.label}</p>
-              <p class="mt-1 text-sm text-[var(--muted)]">{option.detail}</p>
-            </div>
-            <Button variant="outline" size="sm" type="button">
-              <DownloadIcon data-icon="inline-start" />
-              Export
-            </Button>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  {:else if selectedSection === "Cards"}
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Shareable cards</CardTitle>
-        <CardDescription>Pre-styled countdown graphics for messages and social.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-3 sm:grid-cols-2">
-        {#each shareCards as card (card.id)}
-          <article class="mini-app-board flex flex-col gap-3">
-            <HourglassIcon class="size-8 text-[var(--primary)]" />
-            <div>
-              <p class="font-medium text-[var(--foreground)]">{card.title}</p>
-              <p class="mt-1 text-sm text-[var(--muted)]">{card.detail}</p>
-            </div>
-            <Button variant="outline" size="sm" type="button" class="w-fit">
-              <Share2Icon data-icon="inline-start" />
-              Share
-            </Button>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  {:else if selectedSection === "Widgets"}
-    <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-      <CardHeader>
-        <CardTitle class="font-[var(--font-heading)] text-xl">Widgets</CardTitle>
-        <CardDescription>Glanceable countdowns on desktop and mobile surfaces.</CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-2">
-        {#each widgets as widget (widget.id)}
-          <article class="mini-app-row">
-            <div class="min-w-0">
-              <p class="font-medium text-[var(--foreground)]">{widget.label}</p>
-              <p class="mt-1 text-sm text-[var(--muted)]">{widget.detail}</p>
-            </div>
-            <Button variant="outline" size="sm" type="button">Configure</Button>
-          </article>
-        {/each}
-      </CardContent>
-    </Card>
-  {:else if heroEvent}
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-      <Card
-        class="surface-card overflow-hidden rounded-2xl border-none bg-transparent p-0 shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]"
-      >
-        <div
-          class="relative flex min-h-[280px] flex-col justify-end p-6 text-[var(--foreground)]"
-          style={heroEvent.cover
-            ? `background-image: linear-gradient(to bottom, color-mix(in srgb, var(--background) 20%, transparent), color-mix(in srgb, var(--background) 88%, transparent)), url(${heroEvent.cover}); background-size: cover; background-position: center;`
-            : `background: color-mix(in srgb, ${heroEvent.accent} 24%, var(--surface));`}
-        >
-          <Badge variant="outline" class="mb-3 w-fit bg-[color:color-mix(in_srgb,var(--card)_70%,transparent)]">
-            {heroEvent.category}
-          </Badge>
-          <p class="font-[var(--font-heading)] text-5xl font-bold tracking-tight">
-            {heroEvent.daysAway > 0 ? heroEvent.daysAway : "Today"}
-            {#if heroEvent.daysAway > 0}
-              <span class="text-2xl font-semibold text-[var(--muted)]"> days</span>
-            {/if}
-          </p>
-          <h2 class="mt-2 font-[var(--font-heading)] text-2xl font-semibold">{heroEvent.name}</h2>
-          <p class="mt-1 text-sm text-[var(--muted)]">{formatDate(heroEvent.date)}</p>
+<main class="countdown-app module-root">
+  <div class="countdown-container">
+    {#if heroEvent}
+      <!-- HERO CARD -->
+      <section class="hero-card">
+        <div class="hero-bg"
+             style="background-image: url({heroEvent.cover || ''}); background-color: {heroEvent.cover ? 'transparent' : 'var(--surface)'};">
         </div>
-      </Card>
+        <div class="hero-overlay"></div>
+        
+        <header class="top-nav">
+          <h2 class="app-title">Countdowns</h2>
+          <button class="add-btn">
+            <Plus size={24} />
+          </button>
+        </header>
 
-      <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-        <CardHeader>
-          <CardTitle class="font-[var(--font-heading)] text-xl">
-            {selectedSection === "Since" ? "Days since" : selectedSection === "Birthdays" ? "Birthdays" : "Upcoming"}
-          </CardTitle>
-          <CardDescription>Timeline of everything else on your calendar.</CardDescription>
-        </CardHeader>
-        <CardContent class="grid gap-3">
-          {#each timelineEvents as event (event.id)}
-            <article class="mini-app-row">
-              <div class="flex min-w-0 items-center gap-3">
-                <span
-                  class="size-2.5 shrink-0 rounded-full"
-                  style:background={event.accent}
-                  aria-hidden="true"
-                ></span>
-                <div class="min-w-0">
-                  <p class="font-medium text-[var(--foreground)]">{event.name}</p>
-                  <p class="mt-0.5 text-sm text-[var(--muted)]">{formatDate(event.date)}</p>
-                </div>
-              </div>
-              <div class="shrink-0 text-right">
-                {#if event.daysAway === 0}
-                  <span class="text-sm font-semibold uppercase" style:color={event.accent}>Today</span>
-                {:else if event.daysAway < 0}
-                  <span class="text-lg font-bold text-[var(--foreground)]">{Math.abs(event.daysAway)}</span>
-                  <span class="block text-xs text-[var(--muted)]">days ago</span>
-                {:else}
-                  <span class="text-lg font-bold text-[var(--foreground)]">{event.daysAway}</span>
-                  <span class="block text-xs text-[var(--muted)]">days</span>
-                {/if}
-              </div>
-            </article>
-          {:else}
-            <p class="py-6 text-center text-sm text-[var(--muted)]">No other events in this view.</p>
-          {/each}
+        <div class="hero-content">
+          <div class="category-pill">{heroEvent.category}</div>
+          <h1 class="hero-days">{heroEvent.daysAway} days</h1>
+          <h2 class="hero-name">{heroEvent.name}</h2>
+          <p class="hero-date">{formatDate(heroEvent.date)}</p>
+        </div>
+      </section>
+    {/if}
 
-          <Button variant="outline" type="button" class="mt-2 w-full">
-            View past events
-            <ChevronDownIcon data-icon="inline-end" />
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  {/if}
-</MiniAppRoot>
+    <!-- EVENT LIST -->
+    <section class="event-list">
+      {#each timelineEvents as event (event.id)}
+        <div class="event-row">
+          <div class="event-indicator" aria-hidden="true">
+            <div class="dot" style="background: {event.color}">
+              {#if event.daysAway === 0}
+                <div class="pulse-ring" style="border-color: {event.color}"></div>
+              {/if}
+            </div>
+            <div class="line"></div>
+          </div>
+          
+          <div class="event-card">
+            <div class="event-details">
+              <h3>{event.name}</h3>
+              <p>{formatDate(event.date)}</p>
+            </div>
+            <div class="event-days">
+              {#if event.daysAway === 0}
+                <span class="today-text" style="color: {event.color}">Today</span>
+              {:else}
+                <span class="days-num">{event.daysAway}</span>
+                <span class="days-label">days</span>
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/each}
+
+      <button class="expand-past-btn">
+        <span>View Past Events</span>
+        <ChevronDown size={16} />
+      </button>
+    </section>
+  </div>
+</main>
+
+<style>
+.countdown-app {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: inherit;
+  display: flex;
+  justify-content: center;
+}
+.countdown-container {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HERO CARD */
+.hero-card {
+  position: relative;
+  height: 45vh;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  overflow: hidden;
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  margin-bottom: 24px;
+}
+.hero-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-size: cover;
+  background-position: center;
+}
+.hero-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+  backdrop-filter: blur(2px);
+}
+.top-nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+}
+.app-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+.add-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s;
+}
+.add-btn:hover { background: rgba(255,255,255,0.3); }
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 32px 24px;
+  align-items: center;
+  text-align: center;
+}
+.category-pill {
+  background: rgba(255,255,255,0.2);
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(4px);
+}
+.hero-days {
+  font-size: 72px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.hero-name {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.hero-date {
+  font-size: 16px;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* EVENT LIST */
+.event-list {
+  flex: 1;
+  padding: 0 24px 40px;
+  display: flex;
+  flex-direction: column;
+}
+.event-row {
+  display: flex;
+  margin-bottom: 16px;
+}
+.event-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  margin-right: 16px;
+}
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 24px; /* Align with card title */
+  position: relative;
+}
+.pulse-ring {
+  position: absolute;
+  top: -4px; right: -4px; bottom: -4px; left: -4px;
+  border: 2px solid;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  opacity: 0.5;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+.line {
+  flex: 1;
+  width: 2px;
+  background: var(--border);
+  margin-top: 8px;
+  min-height: 20px;
+}
+.event-row:last-child .line { display: none; }
+
+.event-card {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+.event-card:hover { border-color: var(--muted); transform: translateY(-2px); }
+
+.event-details h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--foreground);
+}
+.event-details p {
+  font-size: 14px;
+  margin: 0;
+  color: var(--muted);
+}
+.event-days {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.days-num {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--foreground);
+}
+.days-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.today-text {
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.expand-past-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 12px 20px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.expand-past-btn:hover {
+  color: var(--foreground);
+  background: var(--surface);
+}
+</style>
+
+

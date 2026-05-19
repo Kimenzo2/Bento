@@ -2,7 +2,6 @@
 @import '@fontsource/manrope';
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import './lib/modules/mini-app/mini-app.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -259,26 +258,6 @@ body {
   backdrop-filter: blur(14px);
 }
 
-.module-switcher:hover,
-.module-switcher:focus-within {
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--foreground) 12%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--background) 35%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
-}
-
-.module-switcher > summary {
-  list-style: none;
-}
-
-.module-switcher > summary::-webkit-details-marker {
-  display: none;
-}
-
-.module-switcher > summary::marker {
-  content: "";
-}
-
 .module-switcher__trigger {
   color: var(--foreground);
   pointer-events: auto;
@@ -289,7 +268,7 @@ body {
   justify-content: center;
   gap: 0.38rem;
   border: 0;
-  border-radius: 9999px;
+  border-radius: inherit;
   background: transparent;
   color: color-mix(in srgb, var(--foreground) 92%, var(--muted-foreground));
   font-size: 0.72rem;
@@ -298,12 +277,13 @@ body {
   cursor: default;
   transition:
     transform 180ms ease,
-    box-shadow 180ms ease,
+    background 180ms ease,
     color 180ms ease;
 }
 
 .module-switcher__trigger:hover,
 .module-switcher__trigger:focus-visible {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
   color: var(--foreground);
   outline: none;
 }
@@ -322,9 +302,6 @@ body {
   opacity: 0;
   overflow: visible;
   pointer-events: auto;
-}
-
-.module-switcher[open] .module-switcher-stack {
   animation: module-switcher-stack-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -335,7 +312,7 @@ body {
   transition: height 460ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.module-switcher[open]:is(:hover, :focus-within) .module-switcher-stack__rows {
+.module-switcher-stack--expanded .module-switcher-stack__rows {
   height: 220px;
 }
 
@@ -349,21 +326,15 @@ body {
   align-items: center;
   gap: 8px;
   height: 36px;
-  transform: translateY(var(--stack-collapsed-translate-y)) scale(var(--stack-collapsed-scale));
-  opacity: var(--stack-collapsed-opacity);
+  transform: translateY(var(--stack-translate-y)) scale(var(--stack-scale));
+  opacity: var(--stack-opacity);
   transform-origin: top center;
   will-change: transform, opacity;
   backface-visibility: hidden;
   transition:
     transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
     opacity 300ms ease;
-  transition-delay: calc((4 - var(--stack-row-index)) * 14ms);
-}
-
-.module-switcher[open]:is(:hover, :focus-within) .module-switcher-stack__row {
-  transform: translateY(calc(var(--stack-row-index) * 44px)) scale(1);
-  opacity: 1;
-  transition-delay: calc(var(--stack-row-index) * 22ms);
+  transition-delay: var(--stack-delay, 0ms);
 }
 
 .module-switcher-stack__pill,
@@ -427,15 +398,15 @@ body {
   background: transparent;
 }
 
-.module-switcher[open]:not(:hover):not(:focus-within) .module-switcher-stack__row:first-child {
+.module-switcher-stack:not(.module-switcher-stack--expanded) .module-switcher-stack__row:first-child {
   pointer-events: auto;
 }
 
-.module-switcher[open]:not(:hover):not(:focus-within) .module-switcher-stack__row:not(:first-child) {
+.module-switcher-stack:not(.module-switcher-stack--expanded) .module-switcher-stack__row:not(:first-child) {
   pointer-events: none;
 }
 
-.module-switcher[open]:is(:hover, :focus-within) .module-switcher-stack__row {
+.module-switcher-stack--expanded .module-switcher-stack__row {
   pointer-events: auto;
 }
 
@@ -816,6 +787,7 @@ textarea {
   scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
   overscroll-behavior: contain;
   padding: 1.5rem 1.5rem 2rem;
+  contain: layout paint;
   min-height: 0;
 }
 
@@ -825,17 +797,41 @@ textarea {
 }
 
 .desktop-workspace--mini-app .desktop-workspace__main {
-  padding: 1.5rem 1.5rem 2rem;
+  padding: 0.85rem;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
 }
 
 .desktop-workspace--mini-app .mini-app-root,
 .desktop-workspace--mini-app .module-root {
-  width: 100% !important;
-  max-width: none !important;
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-  margin: 0 !important;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
+}
+
+.desktop-workspace--mini-app .mini-app-root::-webkit-scrollbar,
+.desktop-workspace--mini-app .module-root::-webkit-scrollbar {
+  width: var(--shell-scrollbar-size);
+  height: var(--shell-scrollbar-size);
+}
+
+.desktop-workspace--mini-app .mini-app-root::-webkit-scrollbar-track,
+.desktop-workspace--mini-app .module-root::-webkit-scrollbar-track {
+  background: var(--shell-scrollbar-track);
+}
+
+.desktop-workspace--mini-app .mini-app-root::-webkit-scrollbar-thumb,
+.desktop-workspace--mini-app .module-root::-webkit-scrollbar-thumb {
+  border: 0.08rem solid transparent;
+  border-radius: 999px;
+  background: var(--shell-scrollbar-thumb);
+  background-clip: content-box;
+  min-height: 3rem;
 }
 
 .desktop-workspace__main::-webkit-scrollbar,
@@ -881,18 +877,16 @@ textarea {
   position: fixed;
   top: 41px;
   left: 0;
+  bottom: 0;
   width: 18rem;
   border-right: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, var(--background));
   padding: 1.25rem 1rem;
-  height: fit-content;
-  max-height: calc(100dvh - 2.25rem);
-  overflow: visible;
+  overflow: hidden;
   z-index: 80;
   transition: width 150ms ease;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 1rem;
 }
 
@@ -1307,322 +1301,6 @@ textarea {
 
 .window-shell__menu-separator {
   margin: 0.25rem 0.125rem;
-}
-
-/* ── Tab Bar (Anytype 1:1) ── */
-
-.window-tabs {
-  padding: 8px;
-}
-
-.window-tabs__wrapper {
-  position: relative;
-  width: 100%;
-  overflow: visible;
-  transition: opacity 0.15s ease-in-out;
-  -webkit-app-region: drag;
-}
-.window-tabs__wrapper.isHidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-#tabs {
-  display: flex;
-  flex-direction: row;
-  overflow-x: auto;
-  overflow-y: hidden;
-  align-items: stretch;
-  min-height: 36px;
-}
-#tabs::-webkit-scrollbar {
-  display: none;
-}
-#tabs * {
-  -webkit-app-region: no-drag;
-}
-
-.tab {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex: 1 1 204px;
-  min-width: 36px;
-  max-width: 204px;
-  padding: 8px 8px 8px 12px;
-  color: var(--muted);
-  cursor: default;
-  transition:
-    color 0.1s ease-in-out,
-    background-color 0.1s ease-in-out;
-}
-
-.tab.active {
-  color: var(--foreground);
-  flex-shrink: 0;
-}
-
-.tab.noClose .icon.close {
-  display: none !important;
-}
-
-.tab.hideDiv .div {
-  display: none;
-}
-
-.tab.isAdd {
-  flex: 0 0 auto;
-  min-width: 24px;
-  padding: 4px;
-}
-.tab.isAdd .icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background-image: url("data:image/svg+xml,%3Csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3E%3Cpath%20d='M10%203C10.4142%203%2010.75%203.33579%2010.75%203.75V9.25H16.25C16.6642%209.25%2017%209.58579%2017%2010C17%2010.4142%2016.6642%2010.75%2016.25%2010.75H10.75V16.25C10.75%2016.6642%2010.4142%2017%2010%2017C9.58579%2017%209.25%2016.6642%209.25%2016.25V10.75H3.75C3.33579%2010.75%203%2010.4142%203%2010C3%209.58579%203.33579%209.25%203.75%209.25H9.25V3.75C9.25%203.33579%209.58579%203%2010%203Z'%20fill='%239B9B9B'/%3E%3C/svg%3E");
-  background-size: 20px;
-  background-position: center;
-  background-repeat: no-repeat;
-  color: var(--muted);
-}
-
-.tab .clickable {
-  display: flex;
-  flex-direction: row;
-  gap: 0 6px;
-  align-items: center;
-  overflow: hidden;
-  flex-grow: 1;
-  position: relative;
-  z-index: 2;
-}
-
-.tab .name {
-  height: 20px;
-  line-height: 20px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-grow: 1;
-}
-
-.tab .icon {
-  flex-shrink: 0;
-}
-.tab .icon.close {
-  width: 20px;
-  height: 20px;
-  opacity: 0;
-  background-image: url("data:image/svg+xml,%3Csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3E%3Cpath%20d='M6.5%206.5L13.5%2013.5'%20stroke='%239B9B9B'%20stroke-width='1.25'%20stroke-linecap='round'/%3E%3Cpath%20d='M13.5%206.5L6.5%2013.5'%20stroke='%239B9B9B'%20stroke-width='1.25'%20stroke-linecap='round'/%3E%3C/svg%3E");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 20px;
-  position: relative;
-  transition: opacity 0.1s ease-in-out, background-color 0.1s ease-in-out;
-}
-.icon.withBackground {
-  border-radius: 10px;
-}
-.icon.withBackground:hover {
-  background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
-}
-.tab:hover .icon.close,
-.tab.active .icon.close {
-  opacity: 1;
-}
-
-.tab .icon.object {
-  width: 18px;
-  height: 18px;
-  background-size: cover;
-  border-radius: 2px;
-}
-.tab .icon.object.layout1,
-.tab .icon.object.layout10.spaceType4.isImage,
-.tab .icon.object.layout18.spaceType4.isImage,
-.tab .icon.object.layout22.isImage {
-  border-radius: 50%;
-}
-
-.iconWrapper {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.tab .div {
-  position: absolute;
-  width: 1px;
-  top: 50%;
-  margin-top: -10px;
-  height: 20px;
-  background: var(--foreground);
-  opacity: 0.11;
-  z-index: 0;
-  right: 0;
-}
-
-.tab.isPinned {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  max-width: 36px;
-  flex: 0 0 36px;
-  padding: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  margin-right: 4px;
-  z-index: auto;
-}
-.tab.isPinned .name {
-  display: none;
-}
-.tab.isPinned .icon.close {
-  display: none !important;
-}
-.tab.isPinned .clickable {
-  justify-content: center;
-  align-self: stretch;
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-}
-.tab.isPinned .div {
-  display: none;
-}
-.tab.isPinned::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--secondary);
-  border-radius: inherit;
-  z-index: 0;
-}
-.tab.isPinned:hover {
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-}
-.tab.isPinned.active {
-  background: transparent;
-}
-
-#tabsBackground {
-  height: 100%;
-  background: var(--surface);
-  top: 0;
-  position: absolute;
-  border-radius: 18px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-#marker {
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  height: calc(100% - 4px);
-  background: var(--background);
-  border-radius: 18px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-#tabs.dropTarget {
-  outline: 2px dashed color-mix(in srgb, var(--shell-border) 74%, transparent);
-  outline-offset: -2px;
-}
-
-.tab-add-menu {
-  position: absolute;
-  right: 8px;
-  top: calc(100% + 8px);
-  z-index: 10;
-  display: grid;
-  gap: 2px;
-  width: min(220px, calc(100vw - 32px));
-  padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface) 96%, var(--background));
-  color: var(--foreground);
-  -webkit-app-region: no-drag;
-}
-
-.tab-add-menu__item,
-.tab-add-menu__empty {
-  display: grid;
-  gap: 0;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-}
-
-.tab-add-menu__item {
-  cursor: default;
-}
-
-.tab-add-menu__item:hover {
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-}
-
-.tab-add-menu__title {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-.tab-add-menu__empty {
-  font-size: 12px;
-  line-height: 1.25;
-  color: var(--muted);
-}
-
-body.tabsHidden {
-  -webkit-app-region: no-drag;
-}
-body.tabsHidden #tabsWrapper,
-body.tabsHidden #tabs,
-body.tabsHidden #tabsBackground,
-body.tabsHidden #marker {
-  -webkit-app-region: no-drag;
-}
-
-body.draggingOutside #tabs,
-body.draggingOutside #tabsBackground,
-body.draggingOutside #marker {
-  opacity: 0.6;
-}
-
-body.showDimmer::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  z-index: 100;
-}
-
-.sortable-drag {
-  opacity: 1;
-  background: var(--secondary);
-  border-radius: 16px;
-  color: var(--foreground);
-  -webkit-app-region: no-drag;
-}
-.sortable-drag.isPinned {
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  border-radius: 50%;
 }
 
 .desktop-loading-shell {
@@ -2692,18 +2370,15 @@ body.showDimmer::after {
 }
 
 .desktop-sidebar {
-  top: auto;
-  bottom: 1.8rem;
+  top: 54px;
   left: 0.9rem;
+  bottom: 0.9rem;
   width: 15.35rem;
   border: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
   border-radius: 2.1rem;
   background: color-mix(in srgb, var(--surface) 94%, var(--background));
   padding: 0.8rem;
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
-  height: fit-content;
-  max-height: calc(100dvh - 1.8rem);
-  bottom: auto;
 }
 
 .desktop-sidebar.sidebar-collapsed {
@@ -2787,13 +2462,29 @@ body.showDimmer::after {
 
 .starter-app {
   --starter-accent: var(--accent);
-  --starter-bg: var(--background);
-  --starter-board: color-mix(in srgb, var(--surface) 94%, var(--background));
-  --starter-card: color-mix(in srgb, var(--card) 90%, transparent);
-  --starter-text: var(--foreground);
-  --starter-muted: var(--muted);
-  --starter-line: color-mix(in srgb, var(--border) 88%, transparent);
+  --starter-bg: #f4f3ef;
+  --starter-board: #fbfaf7;
+  --starter-card: rgba(255, 255, 255, 0.76);
+  --starter-text: #151515;
+  --starter-muted: rgba(21, 21, 21, 0.58);
+  --starter-line: rgba(20, 20, 20, 0.08);
   min-height: 100%;
+}
+
+.theme-dark .starter-app,
+.starter-app--slate,
+.starter-app--lime,
+.starter-app-layout--telemetry,
+.starter-app-layout--voice,
+.starter-app-layout--health,
+.starter-app-layout--nutrition,
+.starter-app-layout--sleep {
+  --starter-bg: #0f1110;
+  --starter-board: #171917;
+  --starter-card: rgba(255, 255, 255, 0.055);
+  --starter-text: #f7f5ee;
+  --starter-muted: rgba(247, 245, 238, 0.58);
+  --starter-line: rgba(255, 255, 255, 0.09);
 }
 
 .starter-stage {

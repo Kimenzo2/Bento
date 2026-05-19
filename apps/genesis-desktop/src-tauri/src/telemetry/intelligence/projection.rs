@@ -59,7 +59,6 @@ impl ProjectionEngine {
                     metric: "heap_mb".to_string(),
                     current_val: current_heap,
                     projected_5m: projected_heap_300s,
-                    time_to_threshold_secs,
                     was_correct: None,
                 })
             } else {

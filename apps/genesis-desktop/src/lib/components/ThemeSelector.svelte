@@ -2,32 +2,34 @@
   import { desktopThemes, type ThemeId } from "$lib/data/themes";
   import { activeTheme, mode, setTheme, toggleMode } from "$lib/stores/theme.store";
   import { toast } from "svelte-sonner";
-  import { logger } from "$lib/utils/logger";
 
   const currentThemeId = $derived($activeTheme.id);
   const currentMode = $derived($mode);
 
   const selectTheme = async (themeId: ThemeId) => {
-    logger.info("Theme card selected", { themeId });
+    console.info("[Genesis Desktop] Theme card selected", { themeId });
 
     try {
       await setTheme(themeId);
       toast.success(`Theme switched to ${desktopThemes.find((theme) => theme.id === themeId)?.name ?? themeId}.`);
     } catch (error) {
-      logger.error("Theme card selection failed", error);
+      console.error("[Genesis Desktop] Theme card selection failed", error);
       toast.error(error instanceof Error ? error.message : "Theme selection failed.");
     }
   };
 
   const toggleThemeWithLog = async () => {
     const nextMode = currentMode === "dark" ? "light" : "dark";
-    logger.info("Settings theme toggle clicked", { currentMode, nextMode });
+    console.info("[Genesis Desktop] Settings theme toggle clicked", {
+      currentMode,
+      nextMode,
+    });
 
     try {
       await toggleMode();
       toast.success(`Theme switched to ${nextMode}.`);
     } catch (error) {
-      logger.error("Settings theme toggle failed", error);
+      console.error("[Genesis Desktop] Settings theme toggle failed", error);
       toast.error(error instanceof Error ? error.message : "Theme toggle failed.");
     }
   };

@@ -2,6 +2,9 @@
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
   import { getCurrentWebviewWindow, type WebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import MinusIcon from "@lucide/svelte/icons/minus";
+  import SquareIcon from "@lucide/svelte/icons/square";
+  import XIcon from "@lucide/svelte/icons/x";
   import TitlebarContextMenu from "./TitlebarContextMenu.svelte";
   import { isDark } from "$lib/stores/theme.store";
   import { getShellTokens } from "$lib/shell-theme";
@@ -123,17 +126,15 @@
 
     {#if !isMac}
       <div class="window-shell__controls" aria-label="Window controls">
-        <button aria-label="Minimize Genesis" class="window-shell__control" type="button" onclick={minimize}>
-          <svg aria-hidden="true" viewBox="0 0 16 16">
-            <path d="M3.5 8h9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4" />
-          </svg>
+        <button aria-label="Minimize Genesis" class="window-shell__control" type="button" onclick={() => void minimize()}>
+          <MinusIcon />
         </button>
         <button
           aria-label={maximizeLabel}
           aria-pressed={isMaximized}
           class="window-shell__control"
           type="button"
-          onclick={toggleMaximized}
+          onclick={() => void toggleMaximized()}
         >
           {#if isMaximized}
             <svg aria-hidden="true" class="window-shell__restore-icon" viewBox="0 0 16 16">
@@ -147,26 +148,16 @@
               />
             </svg>
           {:else}
-            <svg aria-hidden="true" viewBox="0 0 16 16">
-              <rect x="3.5" y="3.5" width="9" height="9" rx="1.25" fill="none" stroke="currentColor" stroke-width="1.2" />
-            </svg>
+            <SquareIcon />
           {/if}
         </button>
         <button
           aria-label="Close Genesis"
           class="window-shell__control window-shell__control--close"
           type="button"
-          onclick={close}
+          onclick={() => void close()}
         >
-          <svg aria-hidden="true" viewBox="0 0 16 16">
-            <path
-              d="M4.25 4.25 11.75 11.75M11.75 4.25 4.25 11.75"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-width="1.4"
-            />
-          </svg>
+          <XIcon />
         </button>
       </div>
     {/if}

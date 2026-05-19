@@ -2,7 +2,7 @@ import type { Component } from "svelte";
 import { starterModuleIds, type StarterModuleId } from "$lib/data/module-catalog";
 
 type StarterModule = {
-  default: Component<Record<string, unknown>>;
+  default: Component<any>;
 };
 
 export const starterModuleLoaders = {

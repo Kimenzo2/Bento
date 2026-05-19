@@ -13,6 +13,8 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
   
   export let moduleId: string = 'journal';
+  export let settings: any = {};
+  void settings;
 
   const sectionLabels = ["Today", "Timeline", "Mood", "Photos", "Recap", "Export"] as const;
   $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
@@ -112,8 +114,7 @@
         <CardContent class="entry-content">
           
           <div class="mood-section">
-            <fieldset class="mood-fieldset">
-              <legend class="mood-label">Today's Mood</legend>
+            <label class="mood-label">Today's Mood</label>
             <div class="mood-picker">
               {#each moods as mood}
                 <button 
@@ -126,17 +127,15 @@
                 </button>
               {/each}
             </div>
-            </fieldset>
           </div>
 
           <div class="note-section">
-            <label class="note-label" for="journal-note">Reflections</label>
+            <label class="note-label">Reflections</label>
             <textarea 
-              id="journal-note"
               bind:value={todayNote}
               placeholder="What happened today? How did you feel?"
               class="journal-textarea"
-            ></textarea>
+            />
             <span class="char-count">{todayNote.length} / 2000</span>
           </div>
 
@@ -331,8 +330,293 @@
   {/if}
 </main>
 <style>
+.journal-app-container {
+  height: 100%;
+  padding: 32px 40px;
+  position: relative;
+  color: var(--text-primary, #F9FAFB);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.journal-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.journal-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.journal-date {
+  font-size: 15px;
+  color: var(--text-secondary, #9CA3AF);
+  margin: 0;
+}
+
+/* Mood Picker */
+.mood-picker {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 48px;
+  padding: 0 16px;
+}
+
+.mood-btn {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.6;
+}
+
+.mood-emoji {
+  font-size: 40px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mood-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #9CA3AF);
+  transition: color 0.2s;
+}
+
+.mood-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.mood-btn.active {
+  opacity: 1;
+}
+.mood-btn.active .mood-emoji {
+  font-size: 56px;
+  width: 80px;
+  height: 80px;
+  box-shadow: 0 0 0 4px var(--mood-color), 0 8px 24px rgba(0,0,0,0.2);
+  background: rgba(255,255,255,0.05); /* Slight fill so it pops against shadow */
+}
+.mood-btn.active .mood-label {
+  color: var(--mood-color);
+  font-weight: 700;
+}
+
+/* Activities Grid */
+.section-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--text-secondary, #9CA3AF);
+  margin-bottom: 16px;
+}
+
+.activities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.activity-tile {
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  border-radius: 16px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-secondary, #9CA3AF);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.activity-tile span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.activity-tile:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary, white);
+}
+
+.activity-tile.selected {
+  background: #818CF8; /* Journal accent from registry */
+  border-color: #818CF8;
+  color: white;
+  transform: scale(0.95); /* Little pop effect */
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+}
+
+.custom-tile {
+  border-style: dashed;
+}
+
+/* Notes Field */
 .note-section {
   margin-bottom: 120px;
+}
+
+.journal-note-input {
+  width: 100%;
+  min-height: 80px;
+  max-height: 160px;
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  border-radius: 16px;
+  padding: 16px;
+  color: var(--text-primary, white);
+  font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+.journal-note-input:focus {
+  outline: none;
+  border-color: #818CF8;
+}
+
+/* Save Button */
+.journal-save-btn {
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  right: 40px;
+  height: 56px;
+  background: var(--bg-surface, rgba(255, 255, 255, 0.1));
+  color: rgba(255, 255, 255, 0.4);
+  border: none;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: not-allowed;
+  transition: all 0.3s;
+}
+
+.journal-save-btn.ready {
+  background: #818CF8;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(129, 140, 248, 0.4);
+}
+.journal-save-btn.ready:hover {
+  background: #6366F1;
+  transform: translateY(-2px);
+}
+
+/* Calendar View */
+.calendar-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+  color: var(--text-secondary, #9CA3AF);
+  padding: 8px 16px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.back-btn:hover {
+  color: white;
+  border-color: white;
+}
+
+.pixel-calendar-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 20px auto 40px;
+}
+
+.month-pixels {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.pixel-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+.pixel-day:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.pixel-day-num {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pixel-day:hover .pixel-day-num {
+  opacity: 1;
+  color: white;
+  mix-blend-mode: overlay;
+  font-weight: bold;
+}
+
+.pixel-day.is-today {
+  border: 2px solid white;
+}
+
+.mood-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary, #9CA3AF);
+}
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
 }
 
 /* Current journal layout */
@@ -396,25 +680,25 @@
   gap: 24px;
 }
 
-.journal-content :global(.full-width),
-.journal-content :global(.entry-card),
-.journal-content :global(.recap-card) {
+.journal-content .full-width,
+.journal-content .entry-card,
+.journal-content .recap-card {
   border-color: var(--border);
   border-radius: 24px;
   background: color-mix(in srgb, var(--surface) 96%, var(--background));
 }
 
-:global(.entry-content),
-:global(.recap-content),
-:global(.export-section),
-:global(.timeline-list),
-:global(.photo-gallery),
-:global(.mood-calendar) {
+.entry-content,
+.recap-content,
+.export-section,
+.timeline-list,
+.photo-gallery,
+.mood-calendar {
   display: grid;
   gap: 20px;
 }
 
-:global(.entry-content) {
+.entry-content {
   padding-top: 0;
 }
 
@@ -507,11 +791,11 @@
   justify-content: flex-end;
 }
 
-:global(.save-btn) {
+.save-btn {
   min-width: 160px;
 }
 
-:global(.timeline-list) {
+.timeline-list {
   gap: 16px;
 }
 
@@ -592,13 +876,13 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-:global(.stat-card) {
+.stat-card {
   border-color: var(--border);
   border-radius: 20px;
   background: var(--surface);
 }
 
-:global(.stat-card) :global(.card-content) {
+.stat-card :global(.card-content) {
   display: grid;
   gap: 8px;
 }
@@ -657,7 +941,7 @@
   font-size: 1.05rem;
 }
 
-:global(.photo-gallery) {
+.photo-gallery {
   gap: 16px;
 }
 
@@ -668,7 +952,7 @@
 .photo-item,
 .upload-button,
 .export-card,
-:global(.privacy-notice) {
+.privacy-notice {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--surface);
@@ -753,11 +1037,11 @@
   font-size: 0.92rem;
 }
 
-:global(.privacy-notice) {
+.privacy-notice {
   border-style: dashed;
 }
 
-:global(.privacy-notice) :global(.card-content) {
+.privacy-notice :global(.card-content) {
   padding: 0;
 }
 
@@ -790,3 +1074,5 @@
   }
 }
 </style>
+
+

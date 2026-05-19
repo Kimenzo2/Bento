@@ -12,10 +12,10 @@ use std::{
     time::Duration,
 };
 
-use chrono::{Local, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager, Runtime, ipc::Channel};
+use tauri::{AppHandle, ipc::Channel};
 use tokio::sync::Mutex as AsyncMutex;
 
 use self::{
@@ -202,7 +202,6 @@ pub struct PredictionRecord {
     pub metric: String,
     pub current_val: f32,
     pub projected_5m: f32,
-    pub time_to_threshold_secs: Option<u32>,
     pub was_correct: Option<bool>,
 }
 
@@ -230,21 +229,6 @@ pub struct StoredAnomaly {
     pub healed: bool,
     pub heal_action: Option<HealAction>,
     pub heal_ms: Option<i64>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct StoredBackendTrace {
-    pub id: i64,
-    pub ts: i64,
-    pub source: String,
-    pub operation: String,
-    pub module_id: Option<String>,
-    pub status_code: i32,
-    pub severity: Severity,
-    pub message: String,
-    pub path: Option<String>,
-    pub details: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -326,22 +310,7 @@ pub struct ModuleDetailPayload {
     pub state_history: Vec<StateHistoryEntry>,
     pub insights: Vec<InsightCard>,
     pub anomaly_history: Vec<AnomalyHistoryEntry>,
-    pub backend_trace_history: Vec<BackendTraceHistoryEntry>,
     pub available_modules: Vec<MiniAppPickerItem>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BackendTraceHistoryEntry {
-    pub at: String,
-    pub source: String,
-    pub operation: String,
-    pub module_id: Option<String>,
-    pub status_code: i32,
-    pub severity: Severity,
-    pub message: String,
-    pub path: Option<String>,
-    pub details: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -403,7 +372,7 @@ pub struct PredictionInsightCard {
     pub metric: String,
     pub current_value: f32,
     pub projected_value_in_5min: f32,
-    pub time_to_threshold_secs: Option<u32>,
+    pub time_to_threshold_secs: u32,
     pub was_correct: Option<bool>,
 }
 
@@ -424,19 +393,6 @@ pub struct ActiveJsHeapInput {
     pub js_heap_mb: Option<f32>,
     #[serde(default)]
     pub last_action: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BackendTraceInput {
-    pub source: String,
-    pub operation: String,
-    pub module_id: Option<String>,
-    pub status_code: i32,
-    pub severity: Severity,
-    pub message: String,
-    pub path: Option<String>,
-    pub details: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -473,18 +429,6 @@ pub enum BrainEvent {
         projected_value_in_5min: f32,
         time_to_threshold_secs: u32,
     },
-    ClockTick {
-        timestamp_ms: i64,
-        generated_at: String,
-    },
-    BackendTraceRecorded {
-        source: String,
-        operation: String,
-        module: Option<String>,
-        status_code: i32,
-        severity: Severity,
-        message: String,
-    },
 }
 
 impl TelemetryState {
@@ -517,36 +461,6 @@ impl TelemetryState {
         Ok(())
     }
 
-    pub async fn record_backend_trace(&self, input: BackendTraceInput) -> Result<(), String> {
-        let trace = StoredBackendTrace {
-            id: 0,
-            ts: now_ms(),
-            source: input.source,
-            operation: input.operation,
-            module_id: input.module_id,
-            status_code: input.status_code,
-            severity: input.severity,
-            message: input.message,
-            path: input.path,
-            details: input.details,
-        };
-        let trace_id = self.store.insert_backend_trace(&trace).await?;
-
-        self.events
-            .broadcast(BrainEvent::BackendTraceRecorded {
-                source: trace.source.clone(),
-                operation: trace.operation.clone(),
-                module: trace.module_id.clone(),
-                status_code: trace.status_code,
-                severity: trace.severity.clone(),
-                message: trace.message.clone(),
-            })
-            .await;
-
-        let _ = trace_id;
-        Ok(())
-    }
-
     pub async fn subscribe(&self, on_event: Channel<BrainEvent>) -> Result<(), String> {
         self.events.add_subscriber(on_event).await;
         Ok(())
@@ -572,13 +486,6 @@ impl TelemetryState {
         let coordinator = self.coordinator.lock().await;
         coordinator.build_insights(parse_range(&range)?).await
     }
-}
-
-pub fn record_backend_trace_from_app<R: Runtime>(app: &AppHandle<R>, input: BackendTraceInput) {
-    let telemetry = app.state::<TelemetryState>().inner().clone();
-    tauri::async_runtime::spawn(async move {
-        let _ = telemetry.record_backend_trace(input).await;
-    });
 }
 
 pub fn spawn_collector(_app: AppHandle, telemetry: TelemetryState) {
@@ -710,8 +617,7 @@ pub fn format_relative(ts: i64) -> String {
 }
 
 pub fn format_clock(ts: i64) -> String {
-    Local
-        .timestamp_millis_opt(ts)
+    Utc.timestamp_millis_opt(ts)
         .single()
         .map(|value| value.format("%b %-d · %-I:%M %p").to_string())
         .unwrap_or_else(|| "Unknown time".to_string())
@@ -741,27 +647,12 @@ pub fn sparkline_from_ticks(ticks: &[TickRecord]) -> Vec<f32> {
 }
 
 pub fn recent_activity_title(anomaly: &StoredAnomaly) -> String {
-    let module_name = module_display_name(&anomaly.module_id);
     match anomaly.kind {
-        AnomalyType::MemorySpike => format!("{module_name} memory spike"),
-        AnomalyType::SlowIpc => format!("{module_name} IPC slowed"),
-        AnomalyType::SlowDb => format!("{module_name} database slowed"),
-        AnomalyType::RapidGrowth => format!("{module_name} memory growth detected"),
-        AnomalyType::Frozen => format!("{module_name} stopped responding"),
-    }
-}
-
-pub fn recent_backend_trace_title(trace: &StoredBackendTrace) -> String {
-    let module_name = trace
-        .module_id
-        .as_deref()
-        .map(module_display_name)
-        .unwrap_or_else(|| "Backend".to_string());
-
-    if trace.status_code >= 500 {
-        format!("{module_name} backend error")
-    } else {
-        format!("{module_name} backend trace")
+        AnomalyType::MemorySpike => format!("{} memory spike", anomaly.module_id),
+        AnomalyType::SlowIpc => format!("{} IPC slowed", anomaly.module_id),
+        AnomalyType::SlowDb => format!("{} database slowed", anomaly.module_id),
+        AnomalyType::RapidGrowth => format!("{} memory growth detected", anomaly.module_id),
+        AnomalyType::Frozen => format!("{} stopped responding", anomaly.module_id),
     }
 }
 
@@ -792,26 +683,4 @@ pub fn module_label_map() -> HashMap<String, String> {
         .iter()
         .map(|(id, label)| ((*id).to_string(), (*label).to_string()))
         .collect()
-}
-
-pub fn module_display_name(module_id: &str) -> String {
-    module_label_map()
-        .get(module_id)
-        .cloned()
-        .unwrap_or_else(|| humanize_identifier(module_id))
-}
-
-pub fn humanize_identifier(value: &str) -> String {
-    value
-        .split(['_', '-'])
-        .filter(|part| !part.is_empty())
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                Some(first) => format!("{}{}", first.to_uppercase(), chars.as_str().to_lowercase()),
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
 }

@@ -13,7 +13,6 @@ use tauri::{
 };
 
 use crate::db::{GenesisAppState, is_builtin_module_id};
-use crate::telemetry::{BackendTraceInput, Severity, record_backend_trace_from_app};
 
 const BUILTIN_MODULES: &[(&str, &str, &str, &str, f64, &str, &str)] = &[
     (
@@ -320,7 +319,7 @@ pub fn validate_module_id(module_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn is_installed(state: &GenesisAppState, module_id: &str) -> Result<bool, String> {
+async fn is_installed(state: &GenesisAppState, module_id: &str) -> Result<bool, String> {
     if is_builtin_module_id(module_id) {
         return Ok(true);
     }
@@ -621,15 +620,6 @@ fn module_mime(path: &Path) -> &'static str {
     }
 }
 
-fn request_module_id(request_path: &str) -> Option<String> {
-    request_path
-        .trim_start_matches('/')
-        .split('/')
-        .next()
-        .filter(|value| !value.is_empty())
-        .map(|value| value.to_string())
-}
-
 fn protocol_response(status: StatusCode, mime: &str, body: Vec<u8>) -> Response<Vec<u8>> {
     Response::builder()
         .status(status)
@@ -708,21 +698,7 @@ pub fn module_protocol<R: Runtime>(
     match std::fs::read(&module_file) {
         Ok(bytes) => protocol_response(StatusCode::OK, module_mime(&module_file), bytes),
         Err(error) => protocol_response(
-            {
-                let module_id = request_module_id(path);
-                let trace = BackendTraceInput {
-                    source: "module_protocol".to_string(),
-                    operation: "read_module_asset".to_string(),
-                    module_id,
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR.as_u16() as i32,
-                    severity: Severity::Critical,
-                    message: error.to_string(),
-                    path: Some(path.to_string()),
-                    details: Some(format!("resolved_path={}", module_file.display())),
-                };
-                record_backend_trace_from_app(ctx.app_handle(), trace);
-                StatusCode::INTERNAL_SERVER_ERROR
-            },
+            StatusCode::INTERNAL_SERVER_ERROR,
             "text/plain; charset=utf-8",
             error.to_string().into_bytes(),
         ),

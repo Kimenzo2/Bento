@@ -64,4 +64,4 @@ const config = {
   },
 };
 
-export default defineConfig(config as import('vite').UserConfig);
+export default defineConfig(config as any);

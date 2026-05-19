@@ -1,0 +1,8 @@
+[env]
+CARGO_BUILD_TARGET = "x86_64-pc-windows-msvc"
+RUST_MIN_STACK = "33554432"
+
+# Use mold linker on Linux for faster builds/links (if available)
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]

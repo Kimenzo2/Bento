@@ -4,12 +4,12 @@ use std::{
 };
 
 use crate::telemetry::{
-    ActivityFeedItem, ActiveJsHeapInput, AnomalyHistoryEntry, AnomalyType, BackendTraceHistoryEntry,
-    BrainEvent, BrainOverviewPayload, GraphPoint, HealAction, HealingFeedItem, InsightCard,
-    InsightsPayload, MiniAppPickerItem, MiniAppTile, ModuleDetailPayload, ModuleState,
-    OverviewCard, PredictionInsightCard, RangeSpec, Severity, StateHistoryEntry, StoredAnomaly,
-    TickRecord, format_bytes, format_bytes_per_second, format_clock, format_relative, mean,
-    module_label_map, now_ms, percentile, recent_activity_title, recent_backend_trace_title,
+    ActivityFeedItem, ActiveJsHeapInput, AnomalyHistoryEntry, AnomalyType, BrainEvent,
+    BrainOverviewPayload, GraphPoint, HealAction, HealingFeedItem, InsightCard, InsightsPayload,
+    MiniAppPickerItem, MiniAppTile, ModuleDetailPayload, ModuleState, OverviewCard,
+    PredictionInsightCard, RangeSpec, Severity, StateHistoryEntry, StoredAnomaly, TickRecord,
+    format_bytes, format_bytes_per_second, format_clock, format_relative, mean, module_label_map,
+    now_ms, percentile, recent_activity_title,
 };
 
 use super::{
@@ -200,7 +200,7 @@ impl TelemetryCoordinator {
                     metric: prediction.metric.clone(),
                     current_value: prediction.current_val,
                     projected_value_in_5min: prediction.projected_5m,
-                    time_to_threshold_secs: prediction.time_to_threshold_secs.unwrap_or_else(|| projection.time_to_threshold_secs.unwrap_or_default()),
+                    time_to_threshold_secs: projection.time_to_threshold_secs.unwrap_or_default(),
                 });
             }
 
@@ -263,11 +263,6 @@ impl TelemetryCoordinator {
             }
         }
 
-        self.immediate_events.push(BrainEvent::ClockTick {
-            timestamp_ms: now,
-            generated_at: format_clock(now),
-        });
-
         Ok(())
     }
 
@@ -280,7 +275,6 @@ impl TelemetryCoordinator {
     pub async fn build_overview(&self, range: RangeSpec) -> Result<BrainOverviewPayload, String> {
         let since = now_ms() - range.range_ms;
         let recent_anomalies = self.store.recent_anomalies(None, since).await?;
-        let recent_backend_traces = self.store.recent_backend_traces(None, since).await?;
         let labels = module_label_map();
         let system = self.last_system_snapshot.clone();
 
@@ -319,36 +313,15 @@ impl TelemetryCoordinator {
             "healthy".to_string()
         };
 
-        let mut recent_activity = recent_anomalies
+        let recent_activity = recent_anomalies
             .iter()
-            .map(|anomaly| {
-                (
-                    anomaly.ts,
-                    ActivityFeedItem {
-                        at: format_clock(anomaly.ts),
-                        title: recent_activity_title(anomaly),
-                        detail: anomaly.message.clone(),
-                        tone: anomaly.severity.as_str().to_lowercase(),
-                    },
-                )
-            })
-            .chain(recent_backend_traces.iter().map(|trace| {
-                (
-                    trace.ts,
-                    ActivityFeedItem {
-                        at: format_clock(trace.ts),
-                        title: recent_backend_trace_title(trace),
-                        detail: format!("{} · {} · {}", trace.source, trace.operation, trace.message),
-                        tone: trace.severity.as_str().to_lowercase(),
-                    },
-                )
-            }))
-            .collect::<Vec<_>>();
-        recent_activity.sort_by(|left, right| right.0.cmp(&left.0));
-        let recent_activity = recent_activity
-            .into_iter()
             .take(6)
-            .map(|(_, item)| item)
+            .map(|anomaly| ActivityFeedItem {
+                at: format_clock(anomaly.ts),
+                title: recent_activity_title(anomaly),
+                detail: anomaly.message.clone(),
+                tone: anomaly.severity.as_str().to_lowercase(),
+            })
             .collect::<Vec<_>>();
 
         let memory_values = mini_apps.iter().filter_map(|item| item.heap_mb).collect::<Vec<_>>();
@@ -479,10 +452,6 @@ impl TelemetryCoordinator {
             .store
             .recent_anomalies(Some(&selected.manifest.module_id), since)
             .await?;
-        let backend_traces = self
-            .store
-            .recent_backend_traces(Some(&selected.manifest.module_id), since)
-            .await?;
         let insights = self.store.recent_insights(since).await?;
         let projection = self
             .latest_projection
@@ -559,21 +528,6 @@ impl TelemetryCoordinator {
                     resolved_in_ms: anomaly.heal_ms,
                 })
                 .collect(),
-            backend_trace_history: backend_traces
-                .into_iter()
-                .take(8)
-                .map(|trace| BackendTraceHistoryEntry {
-                    at: format_clock(trace.ts),
-                    source: trace.source,
-                    operation: trace.operation,
-                    module_id: trace.module_id,
-                    status_code: trace.status_code,
-                    severity: trace.severity,
-                    message: trace.message,
-                    path: trace.path,
-                    details: trace.details,
-                })
-                .collect(),
             available_modules: self
                 .registry
                 .order()
@@ -616,7 +570,7 @@ impl TelemetryCoordinator {
                     metric: prediction.metric,
                     current_value: prediction.current_val,
                     projected_value_in_5min: prediction.projected_5m,
-                    time_to_threshold_secs: prediction.time_to_threshold_secs,
+                    time_to_threshold_secs: 300,
                     was_correct: prediction.was_correct,
                 })
                 .collect(),

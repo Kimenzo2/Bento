@@ -7,8 +7,7 @@ $llvmBin = "C:\\Program Files\\LLVM\\bin"
 $isWindowsPlatform = $env:OS -eq "Windows_NT"
 $desktopBinary = Join-Path $srcTauri "target\\debug\\genesis-desktop.exe"
 $allowRustBuild = $env:GENESIS_DESKTOP_ALLOW_RUST_BUILD -eq "1"
-$isDebugBuild = $args -contains "--debug"
-$isRelease = ($args -contains "build") -and (-not $isDebugBuild)
+$isRelease = $args -contains "build"
 $isDev = ($args -contains "dev") -and (-not $isRelease)
 
 if (-not ($env:PATH -split ";" | Where-Object { $_ -eq $cargoBin })) {
@@ -95,8 +94,10 @@ if ($isDev -and -not $allowRustBuild) {
 }
 
 $requestedTarget = $env:CARGO_BUILD_TARGET
-$env:CARGO_BUILD_JOBS = if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
-  "4"
+$env:CARGO_BUILD_JOBS = if ($isRelease -and [string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
+  "2"
+} elseif (-not $isRelease -and [string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
+  "1"
 } else {
   $env:CARGO_BUILD_JOBS
 }

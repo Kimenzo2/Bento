@@ -24,7 +24,6 @@ use crate::{
     window_bounds::restore_main_window,
 };
 
-#[cfg(windows)]
 const MAX_MCP_REQUEST_BYTES: usize = 64 * 1024;
 
 #[derive(Default, Clone)]
@@ -529,44 +528,6 @@ pub async fn send_mcp_request(
             Err("MCP sidecar request timed out.".to_string())
         }
     }
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CursorScreenPoint {
-    pub x: i32,
-    pub y: i32,
-}
-
-#[tauri::command]
-pub fn get_cursor_screen_position() -> Result<CursorScreenPoint, String> {
-    get_cursor_pos().map(|(x, y)| CursorScreenPoint { x, y })
-}
-
-#[cfg(windows)]
-fn get_cursor_pos() -> Result<(i32, i32), String> {
-    #[repr(C)]
-    struct POINT {
-        x: i32,
-        y: i32,
-    }
-
-    extern "system" {
-        fn GetCursorPos(lpPoint: *mut POINT) -> i32;
-    }
-
-    unsafe {
-        let mut pt = POINT { x: 0, y: 0 };
-        if GetCursorPos(&mut pt) == 0 {
-            return Err("GetCursorPos failed: unable to retrieve cursor position.".to_string());
-        }
-        Ok((pt.x, pt.y))
-    }
-}
-
-#[cfg(not(windows))]
-fn get_cursor_pos() -> Result<(i32, i32), String> {
-    Err("Cursor screen position is not supported on this platform.".to_string())
 }
 
 #[tauri::command]

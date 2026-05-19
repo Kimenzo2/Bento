@@ -1,8 +1,7 @@
 use sqlx::{Row, SqlitePool};
 
 use crate::telemetry::{
-    InsightRecord, PredictionRecord, RETENTION_WINDOW_MS, StoredAnomaly, StoredBackendTrace,
-    TickRecord, now_ms,
+    InsightRecord, PredictionRecord, RETENTION_WINDOW_MS, StoredAnomaly, TickRecord, now_ms,
 };
 
 #[derive(Clone)]
@@ -70,29 +69,6 @@ impl RingBufferStore {
         Ok(result.last_insert_rowid())
     }
 
-    pub async fn insert_backend_trace(&self, trace: &StoredBackendTrace) -> Result<i64, String> {
-        let result = sqlx::query(
-            r#"
-            INSERT INTO backend_traces (ts, source, operation, module_id, status_code, severity, message, path, details)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#,
-        )
-        .bind(trace.ts)
-        .bind(&trace.source)
-        .bind(&trace.operation)
-        .bind(trace.module_id.as_deref())
-        .bind(trace.status_code)
-        .bind(trace.severity.as_str())
-        .bind(&trace.message)
-        .bind(trace.path.as_deref())
-        .bind(trace.details.as_deref())
-        .execute(&self.db)
-        .await
-        .map_err(|error| error.to_string())?;
-
-        Ok(result.last_insert_rowid())
-    }
-
     pub async fn mark_anomaly_healed(
         &self,
         anomaly_id: i64,
@@ -134,8 +110,8 @@ impl RingBufferStore {
     pub async fn insert_prediction(&self, prediction: &PredictionRecord) -> Result<i64, String> {
         let result = sqlx::query(
             r#"
-            INSERT INTO predictions (ts, module_id, metric, current_val, projected_5m, time_to_threshold_secs, was_correct)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO predictions (ts, module_id, metric, current_val, projected_5m, was_correct)
+            VALUES (?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(prediction.ts)
@@ -143,7 +119,6 @@ impl RingBufferStore {
         .bind(&prediction.metric)
         .bind(prediction.current_val)
         .bind(prediction.projected_5m)
-        .bind(prediction.time_to_threshold_secs.map(|value| value as i64))
         .bind(prediction.was_correct.map(|value| if value { 1 } else { 0 }))
         .execute(&self.db)
         .await
@@ -251,49 +226,6 @@ impl RingBufferStore {
             .collect())
     }
 
-    pub async fn recent_backend_traces(
-        &self,
-        module_id: Option<&str>,
-        since_ms: i64,
-    ) -> Result<Vec<StoredBackendTrace>, String> {
-        let rows = if let Some(module_id) = module_id {
-            sqlx::query(
-                "SELECT id, ts, source, operation, module_id, status_code, severity, message, path, details FROM backend_traces WHERE module_id = ? AND ts >= ? ORDER BY ts DESC",
-            )
-            .bind(module_id)
-            .bind(since_ms)
-            .fetch_all(&self.db)
-            .await
-            .map_err(|error| error.to_string())?
-        } else {
-            sqlx::query(
-                "SELECT id, ts, source, operation, module_id, status_code, severity, message, path, details FROM backend_traces WHERE ts >= ? ORDER BY ts DESC",
-            )
-            .bind(since_ms)
-            .fetch_all(&self.db)
-            .await
-            .map_err(|error| error.to_string())?
-        };
-
-        Ok(rows
-            .into_iter()
-            .map(|row| StoredBackendTrace {
-                id: row.try_get("id").unwrap_or_default(),
-                ts: row.try_get("ts").unwrap_or_default(),
-                source: row.try_get("source").unwrap_or_default(),
-                operation: row.try_get("operation").unwrap_or_default(),
-                module_id: row.try_get::<Option<String>, _>("module_id").ok().flatten(),
-                status_code: row.try_get("status_code").unwrap_or_default(),
-                severity: parse_severity(
-                    row.try_get::<String, _>("severity").unwrap_or_else(|_| "INFO".to_string()).as_str(),
-                ),
-                message: row.try_get("message").unwrap_or_default(),
-                path: row.try_get::<Option<String>, _>("path").ok().flatten(),
-                details: row.try_get::<Option<String>, _>("details").ok().flatten(),
-            })
-            .collect())
-    }
-
     pub async fn recent_insights(&self, since_ms: i64) -> Result<Vec<InsightRecord>, String> {
         let rows = sqlx::query(
             "SELECT id, discovered_at, action, metric, pearson, n_samples, description FROM insights WHERE discovered_at >= ? ORDER BY discovered_at DESC",
@@ -319,7 +251,7 @@ impl RingBufferStore {
 
     pub async fn recent_predictions(&self, since_ms: i64) -> Result<Vec<PredictionRecord>, String> {
         let rows = sqlx::query(
-            "SELECT id, ts, module_id, metric, current_val, projected_5m, time_to_threshold_secs, was_correct FROM predictions WHERE ts >= ? ORDER BY ts DESC",
+            "SELECT id, ts, module_id, metric, current_val, projected_5m, was_correct FROM predictions WHERE ts >= ? ORDER BY ts DESC",
         )
         .bind(since_ms)
         .fetch_all(&self.db)
@@ -335,11 +267,6 @@ impl RingBufferStore {
                 metric: row.try_get("metric").unwrap_or_default(),
                 current_val: row.try_get("current_val").unwrap_or_default(),
                 projected_5m: row.try_get("projected_5m").unwrap_or_default(),
-                time_to_threshold_secs: row
-                    .try_get::<Option<i64>, _>("time_to_threshold_secs")
-                    .ok()
-                    .flatten()
-                    .map(|value| value.max(0) as u32),
                 was_correct: row
                     .try_get::<Option<i64>, _>("was_correct")
                     .ok()
@@ -435,29 +362,6 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
 
     ensure_table_columns(
         db,
-        "backend_traces",
-        &["ts", "source", "operation", "module_id", "status_code", "severity", "message", "path", "details"],
-        r#"
-        CREATE TABLE backend_traces (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            ts           INTEGER NOT NULL,
-            source       TEXT NOT NULL,
-            operation    TEXT NOT NULL,
-            module_id    TEXT,
-            status_code  INTEGER NOT NULL,
-            severity     TEXT NOT NULL,
-            message      TEXT NOT NULL,
-            path         TEXT,
-            details      TEXT
-        );
-        CREATE INDEX idx_backend_trace_ts ON backend_traces(ts);
-        CREATE INDEX idx_backend_trace_module_ts ON backend_traces(module_id, ts);
-        "#,
-    )
-    .await?;
-
-    ensure_table_columns(
-        db,
         "insights",
         &["discovered_at", "action", "metric", "pearson", "n_samples", "description"],
         r#"
@@ -478,7 +382,7 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
     ensure_table_columns(
         db,
         "predictions",
-        &["ts", "module_id", "metric", "current_val", "projected_5m", "time_to_threshold_secs", "was_correct"],
+        &["ts", "module_id", "metric", "current_val", "projected_5m", "was_correct"],
         r#"
         CREATE TABLE predictions (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -487,7 +391,6 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
             metric        TEXT NOT NULL,
             current_val   REAL NOT NULL,
             projected_5m  REAL NOT NULL,
-            time_to_threshold_secs INTEGER,
             was_correct   INTEGER
         );
         CREATE INDEX idx_predictions_ts ON predictions(ts);
@@ -538,29 +441,12 @@ async fn ensure_table_columns(
         return Ok(());
     }
 
-    let missing_columns = required_columns
-        .iter()
-        .copied()
-        .filter(|column| !columns.iter().any(|existing| existing == column))
-        .collect::<Vec<_>>();
-
-    if table_name == "predictions" && missing_columns.as_slice() == ["time_to_threshold_secs"] {
-        sqlx::query("ALTER TABLE predictions ADD COLUMN time_to_threshold_secs INTEGER")
-            .execute(db)
-            .await
-            .map_err(|error| error.to_string())?;
-        return Ok(());
-    }
-
     let drop_indexes_sql = match table_name {
         "telemetry_ticks" => {
             "DROP INDEX IF EXISTS idx_ticks_ts; DROP INDEX IF EXISTS idx_ticks_module_ts;"
         }
         "anomaly_log" => {
             "DROP INDEX IF EXISTS idx_anomaly_ts; DROP INDEX IF EXISTS idx_anomaly_module_ts;"
-        }
-        "backend_traces" => {
-            "DROP INDEX IF EXISTS idx_backend_trace_ts; DROP INDEX IF EXISTS idx_backend_trace_module_ts;"
         }
         "insights" => "DROP INDEX IF EXISTS idx_insights_discovered_at;",
         "predictions" => {

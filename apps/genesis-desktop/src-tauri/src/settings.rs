@@ -332,6 +332,7 @@ pub fn apply_legacy_settings(
 
     if let Some(telemetry_consented) = legacy.telemetry_consented {
         merged.telemetry.consented = telemetry_consented;
+        merged.telemetry.crash_reports = telemetry_consented;
     }
 
     if let Some(export_directory) = legacy.export_directory.as_ref() {

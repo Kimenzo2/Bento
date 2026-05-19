@@ -1,930 +1,671 @@
 <script lang="ts">
+  import { Activity, ServerCog, Database, AlertTriangle, CheckCircle2, TrendingUp, Download, BarChart3 } from 'lucide-svelte';
   import { onMount } from 'svelte';
-  import { ArrowUpRight, CircleAlert, Download, RefreshCcw } from 'lucide-svelte';
+  import {
+    getModuleSectionLabel,
+    setModuleSection,
+    ensureModuleSection,
+    moduleSectionStore,
+  } from '$lib/stores/module-sections.store';
   import { Badge } from '$lib/components/ui/badge/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
-  import {
-    ensureModuleSection,
-    getModuleSectionLabel,
-    moduleSectionStore,
-    setModuleSection,
-  } from '$lib/stores/module-sections.store';
-  import {
-    getTelemetryBrainOverview,
-    getTelemetryInsights,
-    getTelemetryModuleDetail,
-    subscribeBrainEvents,
-    type BrainOverviewPayload,
-    type InsightsPayload,
-    type ModuleDetailPayload,
-    type TelemetryRange,
-  } from '$lib/desktop/telemetry';
-  import TelemetryChartPanel from './TelemetryChartPanel.svelte';
-  import TelemetryDataTable from './TelemetryDataTable.svelte';
+  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
 
-  export let moduleId = 'telemetry';
+  export let moduleId: string = 'telemetry';
+  export let settings: any = {};
+  void settings;
 
-  const sectionLabels = ['Brain Overview', 'Module Detail', 'Insights'] as const;
-  type SectionLabel = (typeof sectionLabels)[number];
-  const rangeOptions: TelemetryRange[] = ['24h', '7d', '30d'];
-
-  let currentRange: TelemetryRange = '24h';
-  let loading = false;
-  let errorMessage = '';
-  let collectorWarmingUp = false;
-  let selectedModuleId = 'tasks';
-  let overview: BrainOverviewPayload | null = null;
-  let detail: ModuleDetailPayload | null = null;
-  let insights: InsightsPayload | null = null;
-  let lastEventNote = '';
-  let reloadTimer: number | null = null;
-
-  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels) as SectionLabel;
-  $: selectedModuleCard = overview?.miniApps.find((item) => item.miniAppId === selectedModuleId) ?? overview?.miniApps[0] ?? null;
-  $: selectedModulePicker = detail?.availableModules.find((item) => item.miniAppId === selectedModuleId) ?? detail?.availableModules[0] ?? null;
-  $: detailMemoryLabels = detail?.memoryPoints.map((point) => point.label) ?? [];
-  $: detailMemoryValues = detail?.memoryPoints.map((point) => point.value) ?? [];
-  $: detailBaselineValue = detail?.baselineHeapMb ?? 0;
-  $: detailMemoryBaseline = detail?.memoryPoints.map(() => detailBaselineValue) ?? [];
-  $: detailAnomalyRows =
-    detail?.anomalyHistory.map((row) => ({
-      id: `${row.at}-${row.kind}`,
-      cells: {
-        at: row.at,
-        severity: row.severity,
-        kind: row.kind,
-        message: row.message,
-        resolution: row.healAction ? `${row.healAction} · ${row.resolvedInMs ?? 0}ms` : 'Logged only',
-      },
-    })) ?? [];
-  $: predictionRows =
-    insights?.predictions.map((row) => ({
-      id: `${row.miniAppId}-${row.metric}`,
-      cells: {
-        miniApp: row.miniAppId,
-        metric: row.metric,
-        current: row.currentValue.toFixed(1),
-        projected: row.projectedValueIn5min.toFixed(1),
-        threshold:
-          row.timeToThresholdSecs === null || row.timeToThresholdSecs === undefined
-            ? '—'
-            : `${Math.round(row.timeToThresholdSecs / 60)} min`,
-        verdict:
-          row.wasCorrect === null || row.wasCorrect === undefined ? 'Pending' : row.wasCorrect ? 'Correct' : 'Missed',
-      },
-    })) ?? [];
-  $: healingRows =
-    insights?.healings.map((row) => ({
-      id: `${row.at}-${row.miniAppId}-${row.action}`,
-      cells: {
-        at: row.at,
-        miniApp: row.miniAppId,
-        action: row.action,
-        status: row.result.status,
-        detail: row.result.message,
-        resolved: `${row.resolvedInMs} ms`,
-      },
-    })) ?? [];
-
-  async function loadTelemetry() {
-    loading = true;
-    errorMessage = '';
-    collectorWarmingUp = false;
-
-    try {
-      const [nextOverview, nextDetail, nextInsights] = await Promise.all([
-        getTelemetryBrainOverview(currentRange),
-        getTelemetryModuleDetail(currentRange, selectedModuleId),
-        getTelemetryInsights(currentRange),
-      ]);
-
-      overview = nextOverview;
-      detail = nextDetail;
-      insights = nextInsights;
-      selectedModuleId = nextDetail.selectedModuleId;
-      lastEventNote = nextOverview.lastEvent;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to load telemetry brain.';
-      if (!overview && !detail && !insights) {
-        collectorWarmingUp = true;
-        lastEventNote = 'Telemetry brain is warming up and will populate as collector samples arrive.';
-      } else {
-        errorMessage = message;
-      }
-    } finally {
-      loading = false;
-    }
-  }
-
-  function setRange(range: TelemetryRange) {
-    if (range === currentRange) return;
-    currentRange = range;
-    void loadTelemetry();
-  }
-
-  function selectModule(miniAppId: string) {
-    if (selectedModuleId === miniAppId) return;
-    selectedModuleId = miniAppId;
-    setModuleSection(moduleId, 'Module Detail', sectionLabels);
-    void loadTelemetry();
-  }
-
-  function scheduleReload() {
-    if (reloadTimer) {
-      window.clearTimeout(reloadTimer);
-    }
-
-    reloadTimer = window.setTimeout(() => {
-      reloadTimer = null;
-      void loadTelemetry();
-    }, 400);
-  }
-
-  function exportJson(filename: string, payload: unknown) {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const href = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = href;
-    anchor.download = filename;
-    anchor.click();
-    URL.revokeObjectURL(href);
-  }
-
-  function exportCurrentView() {
-    if (selectedSection === 'Brain Overview' && overview) {
-      exportJson(`telemetry-brain-overview-${currentRange}.json`, overview);
-      return;
-    }
-    if (selectedSection === 'Module Detail' && detail) {
-      exportJson(`telemetry-module-detail-${detail.selectedModuleId}-${currentRange}.json`, detail);
-      return;
-    }
-    if (selectedSection === 'Insights' && insights) {
-      exportJson(`telemetry-insights-${currentRange}.json`, insights);
-    }
-  }
+  const sectionLabels = ["Overview", "Memory", "Performance", "Database", "Alerts", "Reports"] as const;
+  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
 
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
-
-    let unsubscribe = () => {};
-    void (async () => {
-      await loadTelemetry();
-      unsubscribe = await subscribeBrainEvents((event) => {
-        if (event.kind === 'anomaly_detected') {
-          lastEventNote = `${event.module} · ${event.message}`;
-        } else if (event.kind === 'predictive_warning') {
-          lastEventNote = `${event.module} · ${event.metric} projects to ${event.projectedValueIn5min.toFixed(1)} in 5 min`;
-        } else if (event.kind === 'healing_applied') {
-          lastEventNote = `${event.module} · ${event.result.message}`;
-        }
-        scheduleReload();
-      });
-    })();
-
-    return () => {
-      unsubscribe();
-      if (reloadTimer) {
-        window.clearTimeout(reloadTimer);
-      }
-    };
   });
+
+  // Mock data
+  const metrics =  [
+    { title: "Memory Usage", value: "248.5", unit: "MB", change: "+12.3%", icon: Database },
+    { title: "API Latency", value: "2.4", unit: "ms", change: "-4.2%", icon: Activity },
+    { title: "DB Queries", value: "142", unit: "/min", change: "+8.1%", icon: ServerCog },
+    { title: "Active Users", value: "1", unit: "", change: "stable", icon: Activity },
+  ];
+
+  const memoryData = [
+    { hour: '10:00', value: 186 },
+    { hour: '11:00', value: 205 },
+    { hour: '12:00', value: 198 },
+    { hour: '13:00', value: 242 },
+    { hour: '14:00', value: 256 },
+    { hour: '15:00', value: 248 },
+    { hour: '16:00', value: 251 },
+  ];
+
+  const processes = [
+    { name: 'Tauri Runtime', memory: 142.3 },
+    { name: 'WebView', memory: 85.6 },
+    { name: 'Database', memory: 18.2 },
+    { name: 'Renderer', memory: 12.4 },
+  ];
+
+  const latencies = [
+    { cmd: 'write_note', avg: 1.2, p95: 2.8, calls: 342 },
+    { cmd: 'fetch_tasks', avg: 3.4, p95: 8.2, calls: 156 },
+    { cmd: 'sync_calendar', avg: 5.1, p95: 14.3, calls: 48 },
+    { cmd: 'get_health', avg: 0.3, p95: 0.6, calls: 4821 },
+  ];
+
+  const tables = [
+    { name: 'profiles', rows: '1.2K', size: '3.2 MB' },
+    { name: 'payment_history', rows: '18.4K', size: '24.5 MB' },
+    { name: 'processed_webhooks', rows: '3.3K', size: '5.1 MB' },
+    { name: 'gamification_events', rows: '45.1K', size: '12.3 MB' },
+  ];
+
+  const alerts = [
+    { time: '14:22', severity: 'warning', msg: 'Memory spike detected', resolved: true },
+    { time: '14:15', severity: 'critical', msg: 'IPC timeout on fetch', resolved: true },
+    { time: '13:50', severity: 'info', msg: 'Query optimization applied', resolved: true },
+  ];
+
+  const maxMem = Math.max(...memoryData.map(d => d.value));
+  const maxProc = Math.max(...processes.map(p => p.memory));
+
 </script>
 
-<main class="telemetry-shell module-root">
-  <section class="telemetry-toolbar">
-    <div class="telemetry-context">
-      <Badge variant="outline" class={`brain-state brain-state--${overview?.overallState ?? 'healthy'}`}>
-        {(overview?.overallState ?? 'healthy').toUpperCase()}
-      </Badge>
-      <span>{lastEventNote || 'System intelligence is monitoring all mini apps.'}</span>
-      {#if overview}
-        <small>{overview.generatedAt}</small>
-      {/if}
-    </div>
+<main class="telemetry-workspace module-root">
+  <div class="telemetry-header">
+    <h1>System Monitor</h1>
+    <p class="telemetry-subtitle">Real-time system performance and health</p>
+  </div>
 
-    <div class="telemetry-toolbar-right">
-      <div class="telemetry-range-switch">
-        {#each rangeOptions as range}
-          <button
-            type="button"
-            class:selected={currentRange === range}
-            onclick={() => setRange(range)}
-            aria-pressed={currentRange === range}
-          >
-            {range}
-          </button>
+  <!-- OVERVIEW SECTION -->
+  {#if selectedSection === 'Overview'}
+    <div class="telemetry-content">
+      <div class="metrics-grid">
+        {#each metrics as m}
+          <Card>
+            <CardContent class="metric-item">
+              <div class="metric-top">
+                <span class="metric-label">{m.title}</span>
+                <Badge variant="secondary">{m.change}</Badge>
+              </div>
+              <div class="metric-value">{m.value} <span class="metric-unit">{m.unit}</span></div>
+            </CardContent>
+          </Card>
         {/each}
       </div>
 
-      <div class="telemetry-actions">
-        <Button type="button" variant="outline" class="telemetry-button" onclick={() => void loadTelemetry()}>
-          <RefreshCcw size={18} />
-          <span>Refresh</span>
-        </Button>
-        <Button type="button" variant="outline" class="telemetry-button" onclick={exportCurrentView}>
-          <Download size={18} />
-          <span>Export current view</span>
-        </Button>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>System Status</CardTitle>
+          <CardDescription>Current health across all subsystems</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <CheckCircle2 size={20} style="color: #10b981" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">Runtime</div>
+                <div style="font-size: 12px; color: var(--muted);">Uptime: 14h 22m</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <CheckCircle2 size={20} style="color: #10b981" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">Database</div>
+                <div style="font-size: 12px; color: var(--muted);">4 connections active</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <CheckCircle2 size={20} style="color: #10b981" />
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">Memory</div>
+                <div style="font-size: 12px; color: var(--muted);">248.5 MB / 512 MB</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  </section>
 
-  {#if errorMessage}
-    <section class="telemetry-error">
-      <CircleAlert size={18} />
-      <span>{errorMessage}</span>
-    </section>
-  {:else if collectorWarmingUp || (loading && !overview)}
-    <section class="telemetry-loading">
-      <span>Telemetry brain is live and waiting for the first useful samples…</span>
-    </section>
-  {:else if overview && detail && insights}
-    {#if selectedSection === 'Brain Overview'}
-      <section class="telemetry-section">
-        <div class="brain-grid">
-          {#each overview.cards as card}
-            <article class="brain-card">
-              <span>{card.label}</span>
-              <strong>{card.value}</strong>
-              <p>{card.note}</p>
-              <div class="sparkline-row">
-                {#each card.sparkline as point}
-                  <i style={`height:${Math.max(18, point)}px`}></i>
-                {/each}
+  <!-- MEMORY SECTION -->
+  {:else if selectedSection === 'Memory'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Memory Usage Timeline</CardTitle>
+          <CardDescription>Heap allocation over the last 7 hours</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="chart-bars">
+            {#each memoryData as d}
+              <div class="bar-item">
+                <div class="bar" style={`height: ${(d.value / maxMem) * 150}px`} />
+                <div class="bar-label">{d.hour}</div>
               </div>
-            </article>
-          {/each}
-        </div>
-
-        <section class="flat-panel">
-          <header class="section-head">
-            <div>
-              <h2>Mini app health map</h2>
-              <p>Scan all 20 mini apps once, then jump into the one that needs inspection.</p>
-            </div>
-          </header>
-
-          <div class="mini-app-grid">
-            {#each overview.miniApps as miniApp}
-              <button
-                type="button"
-                class:selected={selectedModuleCard?.miniAppId === miniApp.miniAppId}
-                class={`mini-app-tile mini-app-tile--${miniApp.state.toLowerCase()}`}
-                onclick={() => selectModule(miniApp.miniAppId)}
-              >
-                <div class="mini-app-tile-top">
-                  <span class="mini-app-name">{miniApp.label}</span>
-                  <Badge variant="outline" class={`mini-app-state mini-app-state--${miniApp.state.toLowerCase()}`}>
-                    {miniApp.state}
-                  </Badge>
-                </div>
-                <strong>{miniApp.heapMb?.toFixed(1) ?? '—'} MB</strong>
-                <p>{miniApp.lastAction}</p>
-                <div class="mini-app-meta">
-                  <span>{miniApp.lastSeenAt}</span>
-                  <span>{miniApp.anomalyCount} anomalies</span>
-                </div>
-              </button>
             {/each}
           </div>
-        </section>
+        </CardContent>
+      </Card>
 
-        <section class="flat-panel">
-          <header class="section-head">
-            <div>
-              <h2>Recent activity</h2>
-              <p>Only changes that mattered enough for the brain to emit an event.</p>
-            </div>
-          </header>
-
-          <div class="activity-feed">
-            {#each overview.recentActivity as item}
-              <article class={`activity-item activity-item--${item.tone}`}>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.detail}</p>
-                </div>
-                <span>{item.at}</span>
-              </article>
-            {/each}
-          </div>
-        </section>
-      </section>
-    {:else if selectedSection === 'Module Detail'}
-      <section class="telemetry-section telemetry-split">
-        <aside class="telemetry-rail">
-          <header class="rail-head">
-            <div>
-              <h2>Mini apps</h2>
-              <p>Pick one mini app and inspect its learned baseline, live trend, and anomaly history.</p>
-            </div>
-          </header>
-
-          <div class="rail-list">
-            {#each detail.availableModules as item}
-              <button
-                type="button"
-                class:selected={selectedModulePicker?.miniAppId === item.miniAppId}
-                onclick={() => selectModule(item.miniAppId)}
-              >
-                <span>{item.label}</span>
-                <small>{item.state}</small>
-              </button>
-            {/each}
-          </div>
-        </aside>
-
-        <div class="telemetry-main-panel">
-          <TelemetryChartPanel
-            featured={true}
-            title={`${detail.selectedLabel} memory`}
-            value={`${detail.memoryPoints.at(-1)?.value?.toFixed(1) ?? '0.0'} MB`}
-            trend={`${detail.projectionStatus} · ${detail.activeSince}`}
-            note="The brain learns this module’s baseline over time, tracks rate of change, and projects the next five minutes."
-            periodLabel={detail.generatedAt}
-            labels={detailMemoryLabels}
-            current={detailMemoryValues}
-            previous={detailMemoryBaseline}
-            unit="MB"
-            live={detail.selectedState === 'ACTIVE'}
-          />
-
-          <section class="flat-panel">
-            <header class="section-head">
-              <div>
-                <h2>Runtime state</h2>
-                <p>The operator view of this mini app right now.</p>
-              </div>
-              <Badge variant="outline" class={`mini-app-state mini-app-state--${detail.selectedState.toLowerCase()}`}>
-                {detail.selectedState}
-              </Badge>
-            </header>
-
-            <div class="detail-metrics">
-              <article><span>Baseline heap</span><strong>{detail.baselineHeapMb.toFixed(1)} MB</strong></article>
-              <article><span>Peak heap</span><strong>{detail.peakHeapMb.toFixed(1)} MB</strong></article>
-              <article><span>Growth rate</span><strong>{detail.rateMbPerMin.toFixed(1)} MB/min</strong></article>
-              <article><span>Projected 5 min</span><strong>{detail.projectedHeap5m.toFixed(1)} MB</strong></article>
-              <article><span>IPC avg / p95</span><strong>{detail.ipcAvgMs.toFixed(1)} / {detail.ipcP95Ms.toFixed(1)} ms</strong></article>
-              <article><span>DB avg / p95</span><strong>{detail.dbAvgMs.toFixed(1)} / {detail.dbP95Ms.toFixed(1)} ms</strong></article>
-            </div>
-          </section>
-
-          <section class="flat-panel">
-            <header class="section-head">
-              <div>
-                <h2>Insights about this mini app</h2>
-                <p>Correlations only appear after enough observations. Until then, the panel stays sparse by design.</p>
-              </div>
-            </header>
-
-            <div class="insight-list">
-              {#if detail.insights.length}
-                {#each detail.insights as insight}
-                  <article class="insight-item">
-                    <div class="insight-head">
-                      <strong>{insight.title}</strong>
-                      <Badge variant="outline">{Math.round(insight.confidence * 100)}%</Badge>
-                    </div>
-                    <p>{insight.description}</p>
-                    <small>{insight.observations} observations</small>
-                  </article>
-                {/each}
-              {:else}
-                <p class="empty-copy">The correlation engine has not reached enough observations for this mini app yet.</p>
-              {/if}
-            </div>
-          </section>
-
-          <section class="flat-panel">
-            <header class="section-head">
-              <div>
-                <h2>Anomaly history</h2>
-                <p>All state transitions that crossed into a warn or critical condition.</p>
-              </div>
-            </header>
-            <TelemetryDataTable
-              columns={[
-                { key: 'at', label: 'At' },
-                { key: 'severity', label: 'Severity' },
-                { key: 'kind', label: 'Kind' },
-                { key: 'message', label: 'Message' },
-                { key: 'resolution', label: 'Resolution' },
-              ]}
-              rows={detailAnomalyRows}
-              emptyLabel="No anomalies recorded for this mini app in the selected range."
-            />
-          </section>
-        </div>
-      </section>
-    {:else}
-      <section class="telemetry-section">
-        <section class="flat-panel">
-          <header class="section-head">
-            <div>
-              <h2>Discovered insights</h2>
-              <p>The brain becomes useful immediately for alerts and gets smarter over time for correlations and recommendations.</p>
-            </div>
-            <Badge variant="outline">{insights.newThisWeek} new this week</Badge>
-          </header>
-
-          <div class="insight-list">
-            {#if insights.insights.length}
-              {#each insights.insights as insight}
-                <article class="insight-item">
-                  <div class="insight-head">
-                    <strong>{insight.title}</strong>
-                    <Badge variant="outline">{Math.round(insight.confidence * 100)}%</Badge>
+      <Card>
+        <CardHeader>
+          <CardTitle>Process Memory</CardTitle>
+          <CardDescription>Top memory-consuming processes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            {#each processes as p}
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 500; font-size: 14px; margin-bottom: 6px;">{p.name}</div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style={`width: ${(p.memory / maxProc) * 100}%`} />
                   </div>
-                  <p>{insight.description}</p>
-                  <small>{insight.observations} observations</small>
-                </article>
-              {/each}
-            {:else}
-              <p class="empty-copy">There are no statistically significant insights yet. Keep using Genesis and the brain will learn.</p>
-            {/if}
+                </div>
+                <div style="min-width: 70px; text-align: right; font-weight: 600; font-size: 14px;">{p.memory}MB</div>
+              </div>
+            {/each}
           </div>
-        </section>
+        </CardContent>
+      </Card>
+    </div>
 
-        <section class="flat-panel">
-          <header class="section-head">
-            <div>
-              <h2>Predictions</h2>
-              <p>Warnings generated before a threshold is crossed, then audited five minutes later.</p>
-            </div>
-          </header>
-          <TelemetryDataTable
-            columns={[
-              { key: 'miniApp', label: 'Mini app' },
-              { key: 'metric', label: 'Metric' },
-              { key: 'current', label: 'Current', align: 'end' },
-              { key: 'projected', label: 'Projected 5m', align: 'end' },
-              { key: 'threshold', label: 'Threshold', align: 'end' },
-              { key: 'verdict', label: 'Verdict', align: 'end' },
-            ]}
-            rows={predictionRows}
-            emptyLabel="No predictive warnings have been stored for this range."
-          />
-        </section>
+  <!-- PERFORMANCE SECTION -->
+  {:else if selectedSection === 'Performance'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>API Latency Distribution</CardTitle>
+          <CardDescription>Command execution times at different percentiles</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Command</th>
+                  <th>Avg (ms)</th>
+                  <th>P95 (ms)</th>
+                  <th>Calls</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each latencies as l}
+                  <tr>
+                    <td><code style="font-size: 12px;">{l.cmd}</code></td>
+                    <td>{l.avg}</td>
+                    <td>{l.p95}</td>
+                    <td>{l.calls}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
 
-        <section class="flat-panel">
-          <header class="section-head">
-            <div>
-              <h2>Healing feed</h2>
-              <p>Deterministic rule-based actions taken by the brain when it decided intervention was safer than waiting.</p>
-            </div>
-          </header>
-          <TelemetryDataTable
-            columns={[
-              { key: 'at', label: 'At' },
-              { key: 'miniApp', label: 'Mini app' },
-              { key: 'action', label: 'Action' },
-              { key: 'status', label: 'Status' },
-              { key: 'detail', label: 'Detail' },
-              { key: 'resolved', label: 'Resolved', align: 'end' },
-            ]}
-            rows={healingRows}
-            emptyLabel="No healing actions were recorded for this range."
-          />
-        </section>
-      </section>
-    {/if}
+  <!-- DATABASE SECTION -->
+  {:else if selectedSection === 'Database'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Database Tables</CardTitle>
+          <CardDescription>Table sizes and row counts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="overflow-x: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Table</th>
+                  <th>Rows</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each tables as t}
+                  <tr>
+                    <td><code style="font-size: 12px;">
+{t.name}</code></td>
+                    <td>{t.rows}</td>
+                    <td>{t.size}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+  <!-- ALERTS SECTION -->
+  {:else if selectedSection === 'Alerts'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Alerts</CardTitle>
+          <CardDescription>System detected issues and resolutions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            {#each alerts as a}
+              <div style="display: flex; gap: 12px; padding: 12px; background: var(--muted-surface); border-radius: 8px; border-left: 3px solid {a.severity === 'critical' ? '#ef4444' : a.severity === 'warning' ? '#f59e0b' : '#3b82f6'};">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                    {a.severity === 'critical' ? '❌' : a.severity === 'warning' ? '⚠️' : 'ℹ️'} {a.msg}
+                  </div>
+                  <div style="font-size: 12px; color: var(--muted);">{a.time}</div>
+                </div>
+                {#if a.resolved}
+                  <Badge style="background: #10b981; height: fit-content;">Resolved</Badge>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+  <!-- REPORTS SECTION -->
+  {:else if selectedSection === 'Reports'}
+    <div class="telemetry-content">
+      <Card>
+        <CardHeader>
+          <CardTitle>Export Session Data</CardTitle>
+          <CardDescription>Download telemetry reports and logs</CardDescription>
+        </CardHeader>
+        <CardContent style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <Button variant="outline">
+            <Download size={16} />
+            Export JSON
+          </Button>
+          <Button variant="outline">
+            <BarChart3 size={16} />
+            Export CSV
+          </Button>
+          <Button variant="outline">
+            <Download size={16} />
+            Export PDF
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   {/if}
 </main>
 
 <style>
-  :global(:root) {
-    --telemetry-accent: #2563eb;
-    --telemetry-accent-soft: rgba(37, 99, 235, 0.12);
-  }
-
-  .telemetry-shell {
+  .telemetry-workspace {
     height: 100%;
-    min-height: 0;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    box-sizing: border-box;
-    padding: 1.5rem clamp(1.25rem, 1.8vw, 2rem) 2.25rem;
-    display: grid;
-    align-content: start;
-    gap: 1.2rem;
-    color: var(--foreground);
+    display: flex;
+    flex-direction: column;
     background: var(--background);
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
-    cursor: default;
+    color: var(--foreground);
+    font-family: var(--font-body);
   }
 
-  .telemetry-shell,
-  .telemetry-shell * {
-    box-sizing: border-box;
+  .telemetry-header {
+    padding: 32px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
   }
 
-  .telemetry-shell :global(button) {
-    cursor: default;
-  }
-
-  .telemetry-shell::-webkit-scrollbar {
-    width: var(--shell-scrollbar-size);
-    height: var(--shell-scrollbar-size);
-  }
-
-  .telemetry-shell::-webkit-scrollbar-track {
-    background: var(--shell-scrollbar-track);
-  }
-
-  .telemetry-shell::-webkit-scrollbar-thumb {
-    border: 0.08rem solid transparent;
-    border-radius: 999px;
-    background: var(--shell-scrollbar-thumb);
-    background-clip: content-box;
-  }
-
-  .telemetry-toolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 1rem;
-    align-items: start;
-    min-width: 0;
-  }
-
-  .telemetry-context {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    flex-wrap: wrap;
-    color: var(--muted);
-  }
-
-  .telemetry-context span {
+  .telemetry-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
     color: var(--foreground);
   }
 
-  .telemetry-context small {
+  .telemetry-subtitle {
+    font-size: 14px;
     color: var(--muted);
-  }
-
-  .brain-state,
-  .mini-app-state {
-    min-height: 1.7rem;
-    padding-inline: 0.6rem;
-    border-radius: 999px;
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-  }
-
-  .brain-state--healthy,
-  .mini-app-state--idle,
-  .mini-app-state--active {
-    color: #34d399;
-    border-color: color-mix(in srgb, #10b981 45%, var(--border));
-    background: color-mix(in srgb, #10b981 10%, transparent);
-  }
-
-  .brain-state--watch,
-  .mini-app-state--degraded,
-  .mini-app-state--recovering {
-    color: #fbbf24;
-    border-color: color-mix(in srgb, #f59e0b 45%, var(--border));
-    background: color-mix(in srgb, #f59e0b 10%, transparent);
-  }
-
-  .brain-state--critical,
-  .mini-app-state--critical,
-  .mini-app-state--frozen {
-    color: #f87171;
-    border-color: color-mix(in srgb, #ef4444 45%, var(--border));
-    background: color-mix(in srgb, #ef4444 10%, transparent);
-  }
-
-  .telemetry-toolbar-right {
-    display: grid;
-    justify-items: end;
-    gap: 0.75rem;
-  }
-
-  .telemetry-range-switch,
-  .telemetry-actions {
-    display: flex;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-  }
-
-  .telemetry-range-switch button {
-    min-width: 4rem;
-    min-height: 2.8rem;
-    padding: 0 0.9rem;
-    border: 1px solid var(--border);
-    border-radius: 0.85rem;
-    background: color-mix(in srgb, var(--surface) 96%, var(--background));
-    color: var(--muted);
-    font-weight: 650;
-  }
-
-  .telemetry-range-switch button.selected {
-    color: var(--foreground);
-    border-color: color-mix(in srgb, var(--telemetry-accent) 55%, var(--border));
-    background: color-mix(in srgb, var(--telemetry-accent-soft) 68%, var(--surface));
-  }
-
-  .telemetry-button {
-    min-height: 2.8rem;
-    border-radius: 999px;
-    display: inline-flex;
-    gap: 0.6rem;
-    align-items: center;
-  }
-
-  .telemetry-error,
-  .telemetry-loading,
-  .flat-panel,
-  .telemetry-rail {
-    border: 1px solid var(--border);
-    border-radius: 0.8rem;
-    background: color-mix(in srgb, var(--surface) 96%, var(--background));
-    min-width: 0;
-  }
-
-  .flat-panel,
-  .telemetry-rail {
-    overflow: hidden;
-  }
-
-  .telemetry-error,
-  .telemetry-loading {
-    min-height: 4rem;
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    padding: 0 1rem;
-    color: var(--muted);
-  }
-
-  .telemetry-section {
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .brain-grid,
-  .detail-metrics {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-    min-width: 0;
-  }
-
-  .brain-card,
-  .detail-metrics article {
-    border: 1px solid var(--border);
-    border-radius: 0.8rem;
-    background: color-mix(in srgb, var(--surface) 98%, var(--background));
-    padding: 1rem;
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .brain-card span,
-  .detail-metrics span {
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.75rem;
-    font-weight: 700;
-  }
-
-  .brain-card strong,
-  .detail-metrics strong {
-    font-size: 1.5rem;
-    font-weight: 500;
-    letter-spacing: -0.04em;
-  }
-
-  .brain-card p {
     margin: 0;
-    color: var(--muted);
-    line-height: 1.45;
   }
 
-  .sparkline-row {
-    display: flex;
-    align-items: end;
-    gap: 0.2rem;
-    min-height: 3.25rem;
-  }
-
-  .sparkline-row i {
-    display: block;
+  .telemetry-content {
     flex: 1;
-    min-width: 0.25rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--telemetry-accent) 65%, var(--surface));
-  }
-
-  .section-head,
-  .rail-head {
+    overflow-y: auto;
+    padding: 32px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
     display: flex;
-    align-items: start;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem 1.1rem 0.95rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
-    min-width: 0;
+    flex-direction: column;
+    gap: 24px;
   }
 
-  .section-head h2,
-  .rail-head h2 {
-    margin: 0;
-    font-size: 1rem;
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .metric-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    color: var(--muted);
     font-weight: 600;
-    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  .section-head p,
-  .rail-head p {
-    margin: 0.35rem 0 0;
+  .metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .metric-unit {
+    font-size: 14px;
     color: var(--muted);
-    line-height: 1.5;
-  }
-
-  .mini-app-grid {
-    padding: 1rem;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.85rem;
-    min-width: 0;
-  }
-
-  .mini-app-tile {
-    display: grid;
-    gap: 0.45rem;
-    padding: 0.95rem;
-    border: 1px solid var(--border);
-    border-radius: 0.8rem;
-    background: color-mix(in srgb, var(--surface) 98%, var(--background));
-    text-align: left;
-    color: inherit;
-    min-width: 0;
-  }
-
-  .mini-app-tile.selected,
-  .mini-app-tile:hover,
-  .rail-list button.selected,
-  .rail-list button:hover,
-  .activity-item:hover,
-  .insight-item:hover {
-    background: color-mix(in srgb, var(--surface) 88%, var(--telemetry-accent-soft));
-  }
-
-  .mini-app-tile-top,
-  .insight-head {
-    display: flex;
-    align-items: start;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-
-  .mini-app-name {
-    font-size: 0.96rem;
-    font-weight: 650;
-    letter-spacing: -0.03em;
-  }
-
-  .mini-app-tile strong {
-    font-size: 1.35rem;
     font-weight: 500;
-    letter-spacing: -0.04em;
+    margin-left: 4px;
   }
 
-  .mini-app-tile p,
-  .activity-item p,
-  .insight-item p {
-    margin: 0;
-    color: var(--muted);
-    line-height: 1.5;
-  }
-
-  .mini-app-meta {
+  .chart-bars {
     display: flex;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 8px;
+    height: 180px;
+    margin: 24px 0;
+  }
+
+  .bar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bar {
+    width: 100%;
+    background: linear-gradient(180deg, var(--primary), var(--accent));
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+  }
+
+  .bar-label {
+    font-size: 11px;
     color: var(--muted);
-    font-size: 0.82rem;
   }
 
-  .activity-feed,
-  .insight-list {
-    padding: 1rem;
-    display: grid;
-    gap: 0.75rem;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .activity-item,
-  .insight-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 1rem;
-    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-    border-radius: 0.8rem;
-    padding: 0.95rem 1rem;
-    background: color-mix(in srgb, var(--surface) 98%, var(--background));
-    min-width: 0;
-  }
-
-  .activity-item > div,
-  .insight-item > div {
-    min-width: 0;
-  }
-
-  .activity-item strong,
-  .insight-item strong,
-  .activity-item p,
-  .insight-item p {
-    overflow-wrap: anywhere;
-  }
-
-  .activity-item span,
-  .insight-item small {
-    color: var(--muted);
-    justify-self: end;
-    text-align: right;
-  }
-
-  .telemetry-split {
-    display: grid;
-    grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr);
-    gap: 1rem;
-    min-width: 0;
-  }
-
-  .telemetry-rail {
-    display: grid;
-    align-content: start;
+  .progress-bar {
+    height: 6px;
+    background: var(--muted-surface);
+    border-radius: 3px;
     overflow: hidden;
   }
 
-  .rail-list {
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table thead {
+    background: var(--muted-surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 12px;
+    text-align: left;
+  }
+
+  .data-table th {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .data-table td {
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table tr:hover {
+    background: var(--muted-surface);
+  }
+
+  code {
+    background: var(--muted-surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  .telemetry-app {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: inherit;
+    display: flex;
+    justify-content: center;
+  }
+  .telemetry-container {
+    width: 100%;
+    max-width: 800px;
+    padding: 0;
     display: flex;
     flex-direction: column;
   }
 
-  .rail-list button {
-    display: grid;
-    gap: 0.2rem;
-    padding: 0.95rem 1rem;
-    border: 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
-    background: transparent;
-    text-align: left;
-    color: inherit;
-  }
-
-  .rail-list span {
+  /* STATUS BANNER */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 56px;
     font-weight: 600;
-    letter-spacing: -0.03em;
+    font-size: 15px;
+    color: #fff;
+    letter-spacing: 0.5px;
   }
+  .status-banner.ok { background: #059669; }
+  .status-banner.warn { background: #d97706; cursor: pointer; }
+  .status-banner.crit { background: #dc2626; cursor: pointer; }
 
-  .rail-list small,
-  .empty-copy {
-    color: var(--muted);
-  }
+/* METRICS GRID */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 24px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.metric-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.metric-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.num {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+.unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.sparkline {
+  opacity: 0.8;
+}
 
-  .telemetry-main-panel {
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
-    max-width: 100%;
-  }
+/* SESSION CARD */
+.session-card {
+  margin: 0 24px 24px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.session-info h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 4px;
+  letter-spacing: 0.5px;
+}
+.session-info p {
+  font-size: 14px;
+  margin: 0;
+}
+.expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.expand-btn:hover { color: var(--foreground); }
 
-  @media (max-width: 1220px) {
-    .telemetry-toolbar,
-    .telemetry-split,
-    .brain-grid,
-    .detail-metrics,
-    .mini-app-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .telemetry-toolbar-right {
-      justify-items: start;
-    }
-  }
-
-  @media (max-width: 860px) {
-    .telemetry-shell {
-      padding-inline: 1rem;
-    }
-  }
+/* LOG SECTION */
+.log-section {
+  flex: 1;
+  padding: 0 24px 24px;
+}
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.log-header h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--foreground);
+  margin: 0;
+  letter-spacing: 1px;
+}
+.log-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.log-list {
+  display: flex;
+  flex-direction: column;
+}
+.log-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+.log-row:last-child {
+  border-bottom: none;
+}
+.log-time {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 65px;
+}
+.log-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.log-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.log-module {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--foreground);
+  background: var(--surface);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.badge.resolved {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+.badge.unresolved {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.log-event {
+  font-size: 14px;
+  color: var(--muted);
+}
+.log-indicator {
+  display: flex;
+  align-items: center;
+}
+.log-indicator .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
 </style>
+
+
+

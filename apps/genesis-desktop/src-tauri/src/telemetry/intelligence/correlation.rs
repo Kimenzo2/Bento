@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::telemetry::{humanize_identifier, module_display_name, InsightRecord};
+use crate::telemetry::InsightRecord;
 
 const MIN_SAMPLES: usize = 100;
 const STRONG_CORRELATION: f32 = 0.7;
@@ -30,19 +30,13 @@ impl CorrelationEngine {
         now_ms: i64,
     ) -> Option<InsightRecord> {
         let key = (format!("{module_id}:{action}"), metric.to_string());
-        let module_name = module_display_name(module_id);
-        let action_name = humanize_identifier(action);
-        let metric_name = humanize_identifier(metric);
-        let display_action = format!("{module_name} {action_name}");
         let pair = self.pairs.entry(key.clone()).or_insert(CorrelationPair {
-            action: display_action.clone(),
+            action: key.0.clone(),
             metric: key.1.clone(),
             samples: Vec::with_capacity(128),
             pearson: 0.0,
             last_emitted_sample_len: 0,
         });
-        pair.action = display_action.clone();
-        pair.metric = metric_name.clone();
 
         pair.samples.push((action_frequency, metric_delta));
         if pair.samples.len() > 512 {

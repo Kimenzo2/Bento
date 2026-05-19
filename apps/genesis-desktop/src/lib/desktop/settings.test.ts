@@ -19,7 +19,6 @@ describe('desktop settings contract', () => {
       migration: {
         legacyBrowserStorageMigrated: true,
         storeSettingsMigrated: true,
-        tabsSandboxMigrated: true,
       },
     });
 
@@ -33,10 +32,10 @@ describe('desktop settings contract', () => {
     });
 
     expect(parsed.success).toBe(true);
-    // `parsed.success` was asserted true above — test fails fast if not
-    expect(parsed.data!.migration.legacyBrowserStorageMigrated).toBe(false);
-    expect(parsed.data!.migration.storeSettingsMigrated).toBe(false);
-    expect(parsed.data!.migration.tabsSandboxMigrated).toBe(false);
+    if (parsed.success) {
+      expect(parsed.data.migration.legacyBrowserStorageMigrated).toBe(false);
+      expect(parsed.data.migration.storeSettingsMigrated).toBe(false);
+    }
   });
 
   it('defaults the desktop to Midnight Classic', () => {
@@ -54,7 +53,6 @@ describe('desktop settings contract', () => {
         ...defaultDesktopSettings,
         workspace: {
           sidebarCollapsed: true,
-          tabsEnabled: false,
         },
       });
 

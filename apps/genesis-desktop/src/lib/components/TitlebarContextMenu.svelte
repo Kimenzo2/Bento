@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
   import { goto } from "@mateothegreat/svelte5-router";
   import { toast } from "svelte-sonner";
-  import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
+  import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "$lib/components/ui/dropdown-menu";
 
   type MenuAction = () => Promise<void> | void;
 
@@ -26,10 +26,19 @@
   } = $props();
 
   let logoMenuOpen = $state(false);
-  let logoMenuRoot: HTMLElement | null = $state(null);
   const closeShortcut = $derived(isMac ? "" : "Alt+F4");
   const commandKey = $derived(isMac ? "⌘" : "Ctrl");
   const toggleLabel = $derived(isMaximized ? "Restore" : "Maximize");
+
+  const contentClass =
+    "data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ring-foreground/10 bg-popover text-popover-foreground min-w-44 rounded-[1rem] p-1.5 shadow-xl ring-1 duration-100 data-[side=inline-start]:slide-in-from-right-2 data-[side=inline-end]:slide-in-from-left-2 z-[140] overflow-x-hidden overflow-y-auto outline-none";
+  const appMenuContentClass = `${contentClass} min-w-64`;
+
+  function openLogoMenu(event: MouseEvent | PointerEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    logoMenuOpen = true;
+  }
 
   function openRoute(path: string) {
     logoMenuOpen = false;
@@ -39,22 +48,6 @@
   function openGlobalSettings() {
     logoMenuOpen = false;
     window.dispatchEvent(new CustomEvent("genesis:open-global-settings"));
-  }
-
-  function toggleTabsEnabled() {
-    logoMenuOpen = false;
-    void updateDesktopSettings((current) => ({
-      ...current,
-      workspace: {
-        ...current.workspace,
-        tabsEnabled: !current.workspace.tabsEnabled,
-      },
-    }));
-  }
-
-  function openNewTab() {
-    logoMenuOpen = false;
-    window.dispatchEvent(new CustomEvent("genesis:tabs:new"));
   }
 
   function showAbout() {
@@ -77,12 +70,6 @@
     if (key === ",") {
       event.preventDefault();
       openGlobalSettings();
-      return;
-    }
-
-    if (key === "t") {
-      event.preventDefault();
-      openNewTab();
       return;
     }
 
@@ -110,132 +97,93 @@
     }
   }
 
-  function handleWindowPointerDown(event: PointerEvent) {
-    if (!logoMenuOpen) {
-      return;
-    }
-
-    const target = event.target as Node | null;
-    if (!target || logoMenuRoot?.contains(target)) {
-      return;
-    }
-
-    logoMenuOpen = false;
-  }
-
-  function handleWindowKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      logoMenuOpen = false;
-    }
-  }
-
   onMount(() => {
     window.addEventListener("keydown", handleShortcut);
-    window.addEventListener("pointerdown", handleWindowPointerDown);
-    window.addEventListener("keydown", handleWindowKeyDown);
 
     return () => {
       window.removeEventListener("keydown", handleShortcut);
-      window.removeEventListener("pointerdown", handleWindowPointerDown);
-      window.removeEventListener("keydown", handleWindowKeyDown);
     };
   });
 </script>
 
 <div class="window-shell__titlebar">
-  <details bind:open={logoMenuOpen} bind:this={logoMenuRoot} class="window-shell__menu">
-    <summary
+  <DropdownMenu bind:open={logoMenuOpen}>
+    <DropdownMenuTrigger
       aria-label="Genesis app menu"
       class="window-shell__brand-trigger"
-      onclick={(event) => {
-        event.preventDefault();
-        logoMenuOpen = !logoMenuOpen;
-      }}
+      type="button"
+      onclick={openLogoMenu}
       onpointerdown={(event) => {
         if (event.button === 0) {
-          event.preventDefault();
+          openLogoMenu(event);
         }
       }}
     >
       <span class="window-shell__brand-mark" aria-hidden="true"></span>
-      <span class="sr-only">Open Genesis app menu</span>
-    </summary>
+    </DropdownMenuTrigger>
 
-    <div class="window-shell__menu-panel" role="menu" aria-label="Genesis app menu">
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => openRoute("/")}>
+    <DropdownMenuContent align="start" class={appMenuContentClass} sideOffset={8}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => openRoute("/")}>
         <span class="window-shell__menu-item-label">Dashboard</span>
-      </button>
+      </DropdownMenuItem>
 
-      {#if $desktopSettings.workspace.tabsEnabled}
-        <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={openNewTab}>
-          <span class="window-shell__menu-item-label">New Tab</span>
-          <span class="window-shell__menu-shortcut">{commandKey}+T</span>
-        </button>
-      {/if}
-
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={toggleTabsEnabled}>
-        <span class="window-shell__menu-item-label">
-          {$desktopSettings.workspace.tabsEnabled ? "Disable Tabs" : "Enable Tabs"}
-        </span>
-      </button>
-
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => openRoute("/project/local")}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => openRoute("/project/local")}>
         <span class="window-shell__menu-item-label">Open Project...</span>
-        <span class="window-shell__menu-shortcut">{commandKey}+O</span>
-      </button>
+        <DropdownMenuShortcut>{commandKey}+O</DropdownMenuShortcut>
+      </DropdownMenuItem>
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => openRoute("/visual-studio")}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => openRoute("/visual-studio")}>
         <span class="window-shell__menu-item-label">New AI Session</span>
-        <span class="window-shell__menu-shortcut">{commandKey}+N</span>
-      </button>
+        <DropdownMenuShortcut>{commandKey}+N</DropdownMenuShortcut>
+      </DropdownMenuItem>
 
-      <div class="window-shell__menu-separator" aria-hidden="true"></div>
+      <DropdownMenuSeparator class="window-shell__menu-separator" />
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={openGlobalSettings}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={openGlobalSettings}>
         <span class="window-shell__menu-item-label">Settings...</span>
-        <span class="window-shell__menu-shortcut">{commandKey}+,</span>
-      </button>
+        <DropdownMenuShortcut>{commandKey}+,</DropdownMenuShortcut>
+      </DropdownMenuItem>
 
-      <div class="window-shell__menu-separator" aria-hidden="true"></div>
+      <DropdownMenuSeparator class="window-shell__menu-separator" />
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => void onToggleMaximized()}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => void onToggleMaximized()}>
         {toggleLabel}
-      </button>
+      </DropdownMenuItem>
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => void onStartDragging()} disabled={isMaximized}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => void onStartDragging()} disabled={isMaximized}>
         Move
-      </button>
+      </DropdownMenuItem>
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => void onStartResize()} disabled={isMaximized}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => void onStartResize()} disabled={isMaximized}>
         Size
-      </button>
+      </DropdownMenuItem>
 
-      <div class="window-shell__menu-separator" aria-hidden="true"></div>
+      <DropdownMenuSeparator class="window-shell__menu-separator" />
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => void onMinimize()}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => void onMinimize()}>
         <span class="window-shell__menu-item-label">Minimize</span>
-        <span class="window-shell__menu-shortcut">{commandKey}+M</span>
-      </button>
+        <DropdownMenuShortcut>{commandKey}+M</DropdownMenuShortcut>
+      </DropdownMenuItem>
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => void onClose()}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => void onClose()}>
         <span class="window-shell__menu-item-label">Close Window</span>
-        <span class="window-shell__menu-shortcut">{commandKey}+W</span>
-      </button>
+        <DropdownMenuShortcut>{commandKey}+W</DropdownMenuShortcut>
+      </DropdownMenuItem>
 
-      <div class="window-shell__menu-separator" aria-hidden="true"></div>
+      <DropdownMenuSeparator class="window-shell__menu-separator" />
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={showAbout}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={showAbout}>
         <span class="window-shell__menu-item-label">About Genesis</span>
-      </button>
+      </DropdownMenuItem>
 
-      <button type="button" class="window-shell__menu-item window-shell__menu-button" onclick={() => void onClose()}>
+      <DropdownMenuItem class="window-shell__menu-item" onclick={() => void onClose()}>
         <span class="window-shell__menu-item-label">Exit</span>
         {#if closeShortcut}
-          <span class="window-shell__menu-shortcut">{closeShortcut}</span>
+          <DropdownMenuShortcut>{closeShortcut}</DropdownMenuShortcut>
         {/if}
-      </button>
-    </div>
-  </details>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
 
   <ContextMenuPrimitive.Root>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -251,7 +199,7 @@
       <span class="window-shell__title">Genesis</span>
     </ContextMenuPrimitive.Trigger>
 
-    <ContextMenuPrimitive.Content class="window-shell__context-menu" sideOffset={2}>
+    <ContextMenuPrimitive.Content class={contentClass} sideOffset={2}>
       <ContextMenuPrimitive.Item class="window-shell__menu-item" onclick={() => void onToggleMaximized()} disabled={false}>
         {toggleLabel}
       </ContextMenuPrimitive.Item>
@@ -279,64 +227,3 @@
     </ContextMenuPrimitive.Content>
   </ContextMenuPrimitive.Root>
 </div>
-
-<style>
-  .window-shell__menu {
-    position: relative;
-    pointer-events: auto;
-  }
-
-  .window-shell__menu > summary {
-    list-style: none;
-  }
-
-  .window-shell__menu > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .window-shell__menu-panel {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    left: 0;
-    z-index: 140;
-    display: grid;
-    min-width: 16rem;
-    padding: 0.375rem;
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    border-radius: 1rem;
-    background: var(--popover);
-    color: var(--popover-foreground);
-  }
-
-  .window-shell__menu-button {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    min-height: 2rem;
-    padding: 0.45rem 0.7rem;
-    appearance: none;
-    border: 0;
-    background: transparent;
-    font: inherit;
-    text-align: left;
-    color: inherit;
-    border-radius: 0.8rem;
-    cursor: default;
-    transition:
-      background-color 120ms ease,
-      color 120ms ease;
-  }
-
-  .window-shell__menu-button:hover:not(:disabled),
-  .window-shell__menu-button:focus-visible {
-    background: color-mix(in srgb, var(--foreground) 7%, transparent);
-    outline: none;
-  }
-
-  .window-shell__menu-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-</style>

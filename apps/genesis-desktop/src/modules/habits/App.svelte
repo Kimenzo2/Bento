@@ -9,12 +9,11 @@
   } from '$lib/stores/module-sections.store';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
-  import { miniAppAccent } from '$lib/modules/mini-app/index.js';
 
   type Habit = {
     id: string;
     name: string;
-    icon: unknown;
+    icon: any;
     color: string;
     streak: number;
     longestStreak: number;
@@ -23,6 +22,8 @@
   };
 
   export let moduleId: string = 'habits';
+  export let settings: any = {};
+  void settings;
 
   const sectionLabels = ["Today", "Heatmap", "Stacks", "Review", "Widgets", "Export"] as const;
   $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
@@ -32,11 +33,11 @@
   });
 
   let habits: Habit[] = [
-    { id: "1", name: "Read 10 pages", icon: null, color: miniAppAccent(0), streak: 14, longestStreak: 28, completedToday: false, completedDays: 18 },
-    { id: "2", name: "Workout", icon: null, color: miniAppAccent(1), streak: 3, longestStreak: 12, completedToday: true, completedDays: 12 },
-    { id: "3", name: "Drink Water", icon: null, color: miniAppAccent(2), streak: 21, longestStreak: 45, completedToday: false, completedDays: 26 },
-    { id: "4", name: "Write Code", icon: null, color: miniAppAccent(3), streak: 5, longestStreak: 8, completedToday: false, completedDays: 8 },
-    { id: "5", name: "Meditate", icon: null, color: miniAppAccent(4), streak: 0, longestStreak: 6, completedToday: false, completedDays: 3 }
+    { id: "1", name: "Read 10 pages", icon: null, color: "#6366F1", streak: 14, longestStreak: 28, completedToday: false, completedDays: 18 },
+    { id: "2", name: "Workout", icon: null, color: "#EF4444", streak: 3, longestStreak: 12, completedToday: true, completedDays: 12 },
+    { id: "3", name: "Drink Water", icon: null, color: "#06B6D4", streak: 21, longestStreak: 45, completedToday: false, completedDays: 26 },
+    { id: "4", name: "Write Code", icon: null, color: "#10B981", streak: 5, longestStreak: 8, completedToday: false, completedDays: 8 },
+    { id: "5", name: "Meditate", icon: null, color: "#8B5CF6", streak: 0, longestStreak: 6, completedToday: false, completedDays: 3 }
   ];
 
   $: completedCount = habits.filter((habit) => habit.completedToday).length;
@@ -166,7 +167,7 @@
               <div 
                 class="heatmap-cell {day.completed ? 'active' : ''}"
                 title={day.date}
-              ></div>
+              />
             {/each}
           </div>
           <div class="heatmap-legend">
@@ -390,3 +391,106 @@
     </div>
   {/if}
 </main>
+
+<style>
+  .habits-app-v2 {
+    display: flex;
+    justify-content: center;
+    min-height: 100%;
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  .ha-container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 72rem;
+    padding: 2rem;
+  }
+
+  .ha-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .ha-title {
+    margin: 0;
+    font-size: 2rem;
+  }
+
+  .ha-summary {
+    color: var(--muted);
+  }
+
+  .ha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 1rem;
+  }
+
+  .ha-tile {
+    position: relative;
+    display: grid;
+    gap: 0.875rem;
+    min-height: 12rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--surface) 94%, var(--background));
+    cursor: pointer;
+  }
+
+  .ha-tile.completed {
+    border-color: color-mix(in srgb, var(--habit-color) 44%, var(--border));
+  }
+
+  .ha-icon-wrapper {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--habit-color) 20%, var(--surface));
+    color: var(--habit-color);
+  }
+
+  .ha-check-overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--habit-color) 85%, var(--surface));
+    color: var(--background);
+  }
+
+  .ha-name {
+    font-weight: 600;
+  }
+
+  .ha-streak {
+    margin-top: auto;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .ha-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .ha-add-btn {
+    min-height: 2.75rem;
+    padding: 0 1.125rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 92%, var(--background));
+    color: var(--foreground);
+  }
+</style>

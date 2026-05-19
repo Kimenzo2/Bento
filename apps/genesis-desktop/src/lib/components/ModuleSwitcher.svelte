@@ -1,14 +1,14 @@
 <script lang="ts">
   import Grid2x2Icon from "@lucide/svelte/icons/grid-2x2";
-  import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import { activeModule, switchModule, type GenesisModuleId } from "$lib/desktop/modules";
   import { beginAppLaunch, signalAppLaunchError } from "$lib/stores/app-launch.store";
-  import { logger } from "$lib/utils/logger";
 
-  let switcherOpen = $state(false);
+  let expanded = $state(false);
+  let stackExpanded = $state(false);
   let switching = $state<GenesisModuleId | null>(null);
-  let switcherRoot: HTMLElement | null = $state(null);
+  let stackContainer: HTMLDivElement | null = $state(null);
+  let triggerButton: HTMLButtonElement | null = $state(null);
   const comingSoonModules = new Set<GenesisModuleId>(["notes", "ai"]);
 
   type SwitcherSlot = {
@@ -62,28 +62,54 @@
     { translateY: 26, scale: 0.86, opacity: 0.14 },
   ] as const;
 
+  const rowStep = 44;
+
+  function toggleSwitcher() {
+    expanded = !expanded;
+    stackExpanded = expanded;
+  }
+
   function rowStyle(index: number) {
     const collapsed = collapsedStack[index] ?? collapsedStack[collapsedStack.length - 1];
+    const translateY = stackExpanded ? index * rowStep : collapsed.translateY;
+    const scale = stackExpanded ? 1 : collapsed.scale;
+    const opacity = stackExpanded ? 1 : collapsed.opacity;
     const zIndex = rows.length - index;
-    return `--stack-collapsed-translate-y:${collapsed.translateY}px;--stack-collapsed-scale:${collapsed.scale};--stack-collapsed-opacity:${collapsed.opacity};--stack-row-index:${index};z-index:${zIndex};`;
+    const delay = stackExpanded ? index * 22 : (rows.length - index - 1) * 14;
+    return `--stack-translate-y:${translateY}px;--stack-scale:${scale};--stack-opacity:${opacity};--stack-row-index:${index};--stack-delay:${delay}ms;z-index:${zIndex};`;
+  }
+
+  function handleWindowPointerDown(event: PointerEvent) {
+    if (!expanded) {
+      return;
+    }
+    const target = event.target as Node | null;
+    if (!target) {
+      return;
+    }
+    if (stackContainer?.contains(target) || triggerButton?.contains(target)) {
+      return;
+    }
+    expanded = false;
+    stackExpanded = false;
   }
 
   async function selectModule(moduleId: GenesisModuleId) {
     if (comingSoonModules.has(moduleId)) {
       beginAppLaunch(moduleId);
       signalAppLaunchError(moduleId, new Error("Coming soon"));
-      switcherOpen = false;
+      expanded = false;
       return;
     }
 
     if (switching || moduleId === $activeModule) {
-      switcherOpen = false;
+      expanded = false;
       return;
     }
 
     switching = moduleId;
     beginAppLaunch(moduleId);
-    switcherOpen = false;
+    expanded = false;
 
     try {
       await switchModule(moduleId);
@@ -91,52 +117,42 @@
     } catch (error) {
       switching = null;
       signalAppLaunchError(moduleId, error);
-      logger.error("Module switch failed", error);
+      console.error("[Genesis Desktop] Module switch failed", error);
       toast.error(error instanceof Error ? error.message : "Module switch failed.");
     }
   }
-
-  function handleWindowPointerDown(event: PointerEvent) {
-    if (!switcherOpen) {
-      return;
-    }
-
-    const target = event.target as Node | null;
-    if (!target || switcherRoot?.contains(target)) {
-      return;
-    }
-
-    switcherOpen = false;
-  }
-
-  function handleWindowKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      switcherOpen = false;
-    }
-  }
-
-  onMount(() => {
-    window.addEventListener("pointerdown", handleWindowPointerDown);
-    window.addEventListener("keydown", handleWindowKeyDown);
-
-    return () => {
-      window.removeEventListener("pointerdown", handleWindowPointerDown);
-      window.removeEventListener("keydown", handleWindowKeyDown);
-    };
-  });
 </script>
 
-<details bind:open={switcherOpen} bind:this={switcherRoot} class="module-switcher">
-  <summary class="module-switcher__trigger" aria-label="Open Genesis modules" aria-expanded={switcherOpen}>
+<svelte:window onpointerdown={handleWindowPointerDown} />
+
+<div class="module-switcher">
+  <button
+    bind:this={triggerButton}
+    type="button"
+    class="module-switcher__trigger"
+    aria-label="Open Genesis modules"
+    aria-expanded={expanded}
+    onclick={toggleSwitcher}
+  >
     <Grid2x2Icon size={14} />
     <span>Apps</span>
-  </summary>
+  </button>
+</div>
 
+{#if expanded}
   <div
+    bind:this={stackContainer}
     class="module-switcher-stack"
+    class:module-switcher-stack--expanded={stackExpanded}
     role="menu"
     tabindex="-1"
     aria-label="Genesis modules"
+    onpointerenter={() => {
+      stackExpanded = true;
+    }}
+    onpointerleave={() => {
+      stackExpanded = false;
+    }}
   >
     <div class="module-switcher-stack__rows">
       {#each rows as row, rowIndex}
@@ -161,4 +177,4 @@
       {/each}
     </div>
   </div>
-</details>
+{/if}

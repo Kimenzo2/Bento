@@ -7,17 +7,12 @@
   import RuntimeBridge from "$lib/components/RuntimeBridge.svelte";
   import UpdateNotification from "$lib/components/UpdateNotification.svelte";
   import WindowShell from "$lib/components/WindowShell.svelte";
-  import WindowTabs from "$lib/components/WindowTabs.svelte";
   import { Toaster } from "$lib/components/ui/sonner/index.js";
   import { appRoutes } from "$lib/router/routes";
-  import { desktopSettings } from "$lib/desktop/settings";
 </script>
 
 <RuntimeBridge />
 <WindowShell />
-{#if $desktopSettings.workspace.tabsEnabled}
-  <WindowTabs />
-{/if}
 <ModuleSwitcher />
 <AppLaunchCanvas />
 <GlobalSettings />
@@ -28,4 +23,4 @@
 
 <UpdateNotification />
 <CrashDialog />
-<Toaster position="top-center" offset={56} />
+<Toaster richColors position="top-center" offset={56} />
