@@ -3,6 +3,9 @@
   "bundle": {
     "windows": {
       "signCommand": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& { $bundlePath = '%1'; $scriptCandidates = @('./src-tauri/scripts/sign-windows.ps1', './scripts/sign-windows.ps1'); foreach ($script in $scriptCandidates) { if (Test-Path $script) { & $script $bundlePath; exit $LASTEXITCODE } } throw 'Windows signing script not found.' }\""
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
     }
   }
 }
