@@ -1,667 +1,2551 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   TASKS APP — Refined Utilitarian Luxury
+   3-panel layout: Sidebar (220px) | Task List (380px, resizable) | Detail Pane (1fr)
+   Design: Linear meets Things 3 meets Focus Cards System
+
+   THEME-AWARE — All colors use color-mix() with var(--foreground) and
+   var(--background) so the same CSS works in both light and dark themes.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Layout Grid ─── */
 .tasks-app {
-  --tasks-bg: var(--background);
-  --tasks-surface: var(--surface);
-  --tasks-accent: var(--primary);
-  --tasks-accent-2: var(--accent);
-  --tasks-ink: var(--foreground);
-  --tasks-muted: var(--muted);
-  --tasks-border: var(--border);
-  
-  min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  padding: 0;
-  background: var(--tasks-bg);
-  color: var(--tasks-ink);
-  font-family: var(--font-body);
+  grid-template-columns: var(--tasks-sidebar-width, 220px) var(--tasks-list-width, 380px) 1px 1fr;
+  grid-template-rows: 100%;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--background);
+  box-sizing: border-box;
 }
 
-.tasks-sidebar { display: none; }
-
-.tasks-board {
+/* ─── Sidebar ─── */
+.tasks-sidebar {
+  grid-column: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  height: 100%;
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  border-right: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  padding: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 300ms;
+  user-select: none;
 }
 
-.tasks-topbar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 24px;
-  padding: 24px 32px;
-  border-bottom: 1px solid var(--tasks-border);
-  background: var(--tasks-surface);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.tasks-sidebar:hover {
+  scrollbar-color: color-mix(in srgb, var(--foreground) 8%, transparent) transparent;
 }
 
-.tasks-topbar label {
+.tasks-sidebar::-webkit-scrollbar { width: 3px; }
+.tasks-sidebar::-webkit-scrollbar-track { background: transparent; }
+.tasks-sidebar::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 99px; }
+
+.tasks-sidebar-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  height: 42px;
-  border-radius: 999px;
-  background: var(--muted-surface);
-  border: 1px solid var(--tasks-border);
+  gap: 10px;
+  padding: 18px 16px 14px;
+  flex-shrink: 0;
 }
 
-.tasks-topbar input {
-  height: 100%;
-  border: 0;
-  outline: 0;
+.tasks-sidebar-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--foreground);
+  color: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tasks-sidebar-wordmark {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: color-mix(in srgb, var(--foreground) 85%, transparent);
+  margin: 0;
+}
+
+.tasks-sidebar-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  padding: 16px 16px 6px;
+}
+
+.tasks-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px;
+}
+
+.tasks-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 470;
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  border: none;
   background: transparent;
-  font: inherit;
-  flex: 1;
-  min-width: 200px;
+  text-align: left;
+  width: 100%;
+  position: relative;
 }
 
-.tasks-topbar kbd {
-  margin-left: 12px;
-  color: var(--tasks-muted);
+.tasks-sidebar-item:hover {
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+}
+
+.tasks-sidebar-item.active {
+  color: color-mix(in srgb, var(--foreground) 90%, transparent);
+  background: color-mix(in srgb, var(--foreground) 7%, var(--background));
+}
+
+.tasks-sidebar-item-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.tasks-sidebar-item.active .tasks-sidebar-item-icon {
+  opacity: 0.85;
+}
+
+.tasks-sidebar-badge {
+  margin-left: auto;
   font-size: 12px;
-  font-family: var(--font-body);
-}
-
-.tasks-topbar > div {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.tasks-topbar > div button {
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--muted-surface);
-  color: var(--tasks-ink);
-  cursor: default;
-  transition: background 180ms ease;
-  display: grid;
-  place-items: center;
-}
-
-.tasks-topbar > div button:hover {
-  background: var(--border);
-}
-
-.tasks-avatar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: var(--primary);
-  color: var(--surface);
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.tasks-topbar p {
-  margin: 0;
-  display: grid;
-  gap: 2px;
-  font-size: 14px;
-}
-
-.tasks-topbar p strong {
   font-weight: 600;
-  color: var(--tasks-ink);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  min-width: 16px;
+  text-align: center;
 }
 
-.tasks-topbar p small {
-  color: var(--tasks-muted);
-  font-size: 12px;
+.tasks-sidebar-section {
+  padding: 4px 0;
 }
 
-.tasks-heading {
-  display: grid;
-  grid-template-columns: 1fr auto;
+.tasks-sidebar-project {
+  display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 32px;
-  border-bottom: 1px solid var(--tasks-border);
-}
-
-.tasks-heading h1 {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 700;
-  font-family: var(--font-heading);
-  line-height: 1.2;
-}
-
-.tasks-heading p {
-  margin: 8px 0 0;
+  gap: 10px;
+  padding: 7px 10px 7px 26px;
+  border-radius: 6px;
   font-size: 14px;
-  color: var(--tasks-muted);
+  font-weight: 460;
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
 }
 
-.tasks-heading nav {
-  display: flex;
-  gap: 12px;
+.tasks-sidebar-project:hover {
+  color: color-mix(in srgb, var(--foreground) 65%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
 }
 
-.tasks-heading nav button {
-  min-height: 44px;
-  padding: 0 20px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 999px;
-  background: var(--tasks-surface);
-  color: var(--tasks-ink);
-  cursor: default;
-  font-weight: 600;
-  transition: all 180ms ease;
+.tasks-sidebar-project.active {
+  color: color-mix(in srgb, var(--foreground) 85%, transparent);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--background));
+}
+
+.tasks-sidebar-project-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tasks-sidebar-footer {
+  margin-top: auto;
+  padding: 12px 8px;
+  border-top: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.tasks-sidebar-settings-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 460;
+  color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
 }
 
-.tasks-heading nav button:hover {
-  background: var(--muted-surface);
-  border-color: var(--tasks-border);
+.tasks-sidebar-settings-btn:hover {
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
 }
 
-.tasks-heading nav button:first-child {
-  background: var(--tasks-accent);
-  color: white;
-  border-color: var(--tasks-accent);
+/* ─── Task List Panel ─── */
+.tasks-list-panel {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: var(--background);
+  min-width: 0;
 }
 
-.tasks-heading nav button:first-child:hover {
-  background: var(--primary-hover);
+.tasks-list-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 8px;
+  flex-shrink: 0;
 }
 
-/* Main content container */
-.tasks-content {
+.tasks-list-panel-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: color-mix(in srgb, var(--foreground) 90%, transparent);
+  margin: 0;
+}
+
+.tasks-list-panel-count {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  font-weight: 450;
+}
+
+/* ─── Resize Handle ─── */
+.tasks-resize-handle {
+  grid-column: 3;
+  width: 4px;
+  cursor: col-resize;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  transition: background 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  align-self: stretch;
+  border: none;
+  padding: 0;
+}
+
+.tasks-resize-handle:hover,
+.tasks-resize-handle:active {
+  background: color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.tasks-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset: 0 -6px;
+}
+
+/* ─── Task List Content ─── */
+.tasks-list-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 32px;
-  display: grid;
-  gap: 32px;
+  padding: 0 12px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 300ms;
 }
 
-/* Stats row - smaller metric cards */
-.tasks-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+.tasks-list-scroll:hover {
+  scrollbar-color: color-mix(in srgb, var(--foreground) 8%, transparent) transparent;
 }
 
-.tasks-stats article {
-  padding: 24px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 28px;
-  background: var(--tasks-surface);
-  transition: all 180ms ease;
-}
+.tasks-list-scroll::-webkit-scrollbar { width: 3px; }
+.tasks-list-scroll::-webkit-scrollbar-track { background: transparent; }
+.tasks-list-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 99px; }
+.tasks-list-scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--foreground) 15%, transparent); }
 
-.tasks-stats article:hover {
-  border-color: var(--tasks-accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.tasks-stats article span {
-  display: block;
-  font-size: 12px;
-  color: var(--tasks-muted);
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* ─── Group Header ─── */
+.tasks-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 8px 6px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
 }
 
-.tasks-stats strong {
-  display: block;
-  font-size: 36px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  color: var(--tasks-ink);
+.tasks-group-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+/* ─── Stats Row ─── */
+.tasks-stats {
+  display: flex;
+  gap: 14px;
+  padding: 0 20px 10px;
+  flex-shrink: 0;
+}
+
+.tasks-stat {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  font-weight: 450;
+}
+
+.tasks-stat strong {
+  font-weight: 600;
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+}
+
+/* ─── Add Task Input ─── */
+.tasks-add {
+  margin: 0 12px 10px;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.tasks-add-input {
+  flex: 1;
+  padding: 11px 14px 11px 38px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 85%, transparent);
+  font-size: 15px;
+  font-weight: 450;
+  outline: none;
+  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  box-sizing: border-box;
+}
+
+.tasks-add-input::placeholder {
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+
+.tasks-add-input:focus {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+}
+
+.tasks-add-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+}
+
+.tasks-add-btn {
+  padding: 11px 16px;
+  border-radius: 8px;
+  border: none;
+  background: color-mix(in srgb, var(--foreground) 88%, transparent);
+  color: var(--background);
+  font-size: 14px;
+  font-weight: 550;
+  cursor: default;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+  flex-shrink: 0;
   line-height: 1;
 }
 
-.tasks-stats small {
-  font-size: 12px;
-  color: var(--tasks-muted);
+.tasks-add-btn:hover:not(:disabled) {
+  background: var(--foreground);
 }
 
-.tasks-stat-primary {
-  background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
-  color: white;
+.tasks-add-btn.inactive {
+  opacity: 0.35;
+}
+
+/* ─── Filter Pills ─── */
+.tasks-filters {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.tasks-filter-pill {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-filter-pill:hover {
+  color: color-mix(in srgb, var(--foreground) 65%, transparent);
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+}
+
+.tasks-filter-pill.active {
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.tasks-saved-views {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.tasks-custom-filter {
+  min-width: 220px;
+  flex: 1;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+  font-size: 13px;
+  padding: 0 10px;
+  outline: none;
+}
+
+/* ─── Task Card (uses Card component for base) ─── */
+.tasks-card {
+  margin-bottom: 3px;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  cursor: default;
+  border-left: 3px solid transparent;
+}
+
+.tasks-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px !important;
+}
+
+.tasks-card.selected {
+  outline: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+/* Priority left border */
+.tasks-card--priority-urgent { border-left-color: #ef4444; }
+.tasks-card--priority-high { border-left-color: #f59e0b; }
+.tasks-card--priority-medium { border-left-color: #6366f1; }
+.tasks-card--priority-none { border-left-color: transparent; }
+
+/* Overdue tint — warm hue that works in both themes */
+.tasks-card--overdue {
+  --card-bg: color-mix(in srgb, #fff8f0 3%, var(--background));
+}
+
+/* Completed state */
+.tasks-card--completed {
+  opacity: 1;
+}
+.tasks-card--completed:hover {
+  opacity: 1;
+}
+.tasks-card--completed .tasks-card-title {
+  text-decoration: line-through;
+  color: var(--foreground);
+}
+
+/* ─── Checkbox ─── */
+.tasks-checkbox {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  border: 1.5px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 250ms cubic-bezier(0.32, 0.72, 0, 1);
+  position: relative;
+}
+
+.tasks-checkbox:hover {
+  border-color: color-mix(in srgb, var(--foreground) 28%, transparent);
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+}
+
+.tasks-checkbox--checked {
+  background: color-mix(in srgb, var(--foreground) 88%, transparent);
+  border-color: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+/* Checkbox animation: circle → spinner (100ms) → checkmark */
+.tasks-checkbox--checking {
+  animation: checking-spinner 100ms ease-out both;
+}
+
+.tasks-checkbox--checked::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--background);
+  border-radius: 50%;
+  animation: checkbox-pop 250ms cubic-bezier(0.32, 0.72, 0, 1) 100ms both;
+}
+
+@keyframes checking-spinner {
+  0% { transform: rotate(0deg); border-color: color-mix(in srgb, var(--foreground) 14%, transparent); border-top-color: color-mix(in srgb, var(--foreground) 50%, transparent); }
+  100% { transform: rotate(180deg); border-color: color-mix(in srgb, var(--foreground) 14%, transparent); border-top-color: color-mix(in srgb, var(--foreground) 50%, transparent); }
+}
+
+@keyframes checkbox-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* ─── Task Content ─── */
+.tasks-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tasks-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  line-height: 1.4;
+  margin: 0;
+  word-break: break-word;
+}
+
+.tasks-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.tasks-card-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  letter-spacing: 0.01em;
+}
+
+.tasks-card-date {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  font-weight: 450;
+}
+
+.tasks-card-date--overdue {
+  color: var(--destructive);
+}
+
+/* ─── Hover Actions ─── */
+.tasks-card-actions {
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tasks-card:hover .tasks-card-actions,
+.tasks-card.selected .tasks-card-actions {
+  opacity: 1;
+}
+
+.tasks-card-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+  padding: 0;
+}
+
+.tasks-card-action-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+}
+
+.tasks-card-action-btn--delete:hover {
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+}
+
+/* ─── Empty State ─── */
+.tasks-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+
+.tasks-empty-icon {
+  width: 36px;
+  height: 36px;
+  color: color-mix(in srgb, var(--foreground) 6%, transparent);
+  margin-bottom: 10px;
+}
+
+.tasks-empty-text {
+  font-size: 14px;
+  font-weight: 470;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  margin: 0;
+}
+
+/* New task slide-in */
+@keyframes task-slide-in {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.tasks-card--new {
+  animation: task-slide-in 150ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* Completion removal animation */
+@keyframes task-remove {
+  0% { opacity: 1; transform: scale(1); max-height: 64px; margin-bottom: 2px; padding: 8px 10px; }
+  40% { opacity: 0.4; }
+  100% { opacity: 0; transform: scale(0.95); max-height: 0; margin-bottom: 0; padding: 0 10px; }
+}
+.tasks-card--removing {
+  animation: task-remove 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ─── Project Select ─── */
+.tasks-project-select {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  outline: none;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+  max-width: 70px;
+}
+
+.tasks-project-select:hover {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-project-select option {
+  background: var(--card);
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+/* ─── Focus rings ─── */
+.tasks-card:focus-visible,
+.tasks-add-input:focus-visible,
+.tasks-filter-pill:focus-visible,
+.tasks-sidebar-item:focus-visible,
+.tasks-sidebar-project:focus-visible,
+.tasks-detail-title-input:focus-visible,
+.tasks-detail-date-btn:focus-visible,
+.tasks-detail-priority-select:focus-visible,
+.tasks-detail-project-select:focus-visible,
+.tasks-detail-notes-area:focus-visible,
+.tasks-detail-tag-input:focus-visible,
+.tasks-subtask-add-text:focus-visible,
+.tasks-bulk-btn:focus-visible,
+.tasks-quick-add-input:focus-visible,
+.tasks-sidebar-settings-btn:focus-visible,
+.tasks-resize-handle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 50%, transparent);
+  outline-offset: 1px;
+}
+
+.tasks-checkbox:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 50%, transparent);
+  outline-offset: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DETAIL PANE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-detail {
+  grid-column: 4;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  background: color-mix(in srgb, var(--foreground) 1.5%, var(--background));
+  min-width: 0;
+  width: 100%;
+}
+
+.tasks-detail-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 28px 40px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 300ms;
+}
+
+.tasks-detail-scroll:hover {
+  scrollbar-color: color-mix(in srgb, var(--foreground) 8%, transparent) transparent;
+}
+
+.tasks-detail-scroll::-webkit-scrollbar { width: 3px; }
+.tasks-detail-scroll::-webkit-scrollbar-track { background: transparent; }
+.tasks-detail-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 99px; }
+
+/* ─── Detail Empty State ─── */
+.tasks-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
+}
+
+.tasks-detail-empty-icon {
+  width: 48px;
+  height: 48px;
+  color: color-mix(in srgb, var(--foreground) 4%, transparent);
+  margin-bottom: 14px;
+}
+
+.tasks-detail-empty-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  margin: 0 0 4px;
+}
+
+.tasks-detail-empty-desc {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  margin: 0 0 20px;
+}
+
+.tasks-detail-empty-shortcuts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tasks-detail-empty-shortcuts span {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasks-detail-empty-shortcuts kbd {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Detail Task Title ─── */
+.tasks-detail-header {
+  margin-bottom: 24px;
+}
+
+.tasks-detail-title-input {
+  width: 100%;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: color-mix(in srgb, var(--foreground) 90%, transparent);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.tasks-detail-title-input::placeholder {
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+}
+
+.tasks-detail-title-input:focus {
+  color: var(--foreground);
+}
+
+.tasks-detail-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.tasks-detail-priority-select {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  outline: none;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-detail-priority-select:hover {
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-detail-priority-select option {
+  background: var(--card);
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+.tasks-detail-project-select {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  outline: none;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-detail-project-select:hover {
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-detail-project-select option {
+  background: var(--card);
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+/* ─── Detail Sections ─── */
+.tasks-detail-section {
+  margin-bottom: 20px;
+}
+
+.tasks-detail-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  margin-bottom: 8px;
+}
+
+/* ─── Inline Date Input ─── */
+.tasks-detail-date-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tasks-detail-date-btn {
+  font-size: 13px;
+  font-weight: 480;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-detail-date-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 65%, transparent);
+}
+
+.tasks-detail-date-btn.active {
+  background: color-mix(in srgb, var(--foreground) 8%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+.tasks-detail-date-btn.clear {
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
   border-color: transparent;
 }
 
-.tasks-stat-primary span {
-  color: rgba(255, 255, 255, 0.8);
+.tasks-detail-date-btn.clear:hover {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 6%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 10%, transparent);
 }
 
-.tasks-stat-primary strong {
-  color: white;
+/* ─── Mini Calendar ─── */
+.tasks-detail-calendar {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
 }
 
-.tasks-stat-primary small {
-  color: rgba(255, 255, 255, 0.7);
+.tasks-detail-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
-/* Bento grid layout - 2 column base with variable card sizes */
-.tasks-grid {
+.tasks-detail-calendar-header button {
+  background: transparent;
+  border: none;
+  color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 150ms;
+  line-height: 0;
+}
+
+.tasks-detail-calendar-header button:hover {
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+}
+
+.tasks-detail-calendar-month {
+  font-size: 14px;
+  font-weight: 550;
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-detail-calendar-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  grid-auto-rows: auto;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
 }
 
-.tasks-grid article,
-.tasks-analytics,
-.tasks-reminder,
-.tasks-projects,
-.tasks-team,
-.tasks-progress,
-.tasks-timer {
-  padding: 28px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 28px;
-  background: var(--tasks-surface);
-  transition: all 180ms ease;
+.tasks-detail-calendar-day-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tasks-detail-calendar-day {
+  font-size: 13px;
+  font-weight: 450;
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  padding: 5px 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 120ms cubic-bezier(0.32, 0.72, 0, 1);
+  border: none;
+  background: transparent;
+}
+
+.tasks-detail-calendar-day:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-detail-calendar-day.today {
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-detail-calendar-day.selected {
+  background: color-mix(in srgb, var(--foreground) 88%, transparent);
+  color: var(--background);
+  font-weight: 600;
+}
+
+.tasks-detail-calendar-day.other-month {
+  color: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+/* ─── Tags Input ─── */
+.tasks-detail-tags-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  min-height: 28px;
+  cursor: text;
+}
+
+.tasks-detail-tag-chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tasks-detail-tag-chip span {
+  cursor: pointer;
+  opacity: 0.4;
+  margin-left: 2px;
+  transition: opacity 150ms;
+}
+
+.tasks-detail-tag-chip span:hover {
+  opacity: 1;
+}
+
+.tasks-detail-tag-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  min-width: 60px;
+  flex: 1;
+  padding: 2px 0;
+}
+
+.tasks-detail-tag-input::placeholder {
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+}
+
+/* ─── Subtask Section ─── */
+.tasks-subtask-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.tasks-subtask-add:hover {
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+}
+
+.tasks-subtask-add-icon {
+  width: 14px;
+  height: 14px;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  flex-shrink: 0;
+}
+
+.tasks-subtask-add-text {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  padding: 0;
+}
+
+.tasks-subtask-add-text::placeholder {
+  color: color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.tasks-subtask-add-text:focus {
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+}
+
+.tasks-subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  transition: background 150ms;
+}
+
+.tasks-subtask-item:hover {
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+}
+
+.tasks-subtask-checkbox {
+  width: 13px;
+  height: 13px;
+  border: 1.3px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 200ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.tasks-subtask-checkbox:hover {
+  border-color: color-mix(in srgb, var(--foreground) 25%, transparent);
+}
+
+.tasks-subtask-checkbox.checked {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  border-color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+.tasks-subtask-title {
+  font-size: 14px;
+  font-weight: 450;
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  flex: 1;
+  min-width: 0;
+}
+
+.tasks-subtask-title.done {
+  text-decoration: line-through;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+
+.tasks-subtask-delete {
+  opacity: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  cursor: pointer;
+  transition: all 150ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tasks-subtask-item:hover .tasks-subtask-delete {
+  opacity: 1;
+}
+
+.tasks-subtask-delete:hover {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+}
+
+.tasks-subtask-progress {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  margin: 0 8px 6px;
+  font-weight: 450;
+}
+
+/* ─── Notes (Description) ─── */
+.tasks-detail-notes-area {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  background: color-mix(in srgb, var(--foreground) 1.5%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  font-size: 14px;
+  font-weight: 440;
+  outline: none;
+  resize: vertical;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.tasks-detail-notes-area::placeholder {
+  color: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.tasks-detail-notes-area:focus {
+  border-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+/* ─── Activity Log ─── */
+.tasks-detail-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 2%, transparent);
+}
+
+.tasks-detail-activity-item:last-child {
+  border-bottom: none;
+}
+
+.tasks-detail-activity-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-top: 6px;
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  flex-shrink: 0;
+}
+
+.tasks-detail-activity-text {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 25%, transparent);
+  flex: 1;
+  line-height: 1.4;
+}
+
+.tasks-detail-activity-time {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  flex-shrink: 0;
+}
+
+/* ─── Quick Add Overlay ─── */
+.tasks-quick-add-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #000 60%, transparent);
+}
+
+.tasks-quick-add-dialog {
+  width: 520px;
+  max-width: 90vw;
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--background);
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.tasks-quick-add-dialog h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  margin: 0 0 14px;
+}
+
+.tasks-quick-add-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 85%, transparent);
+  font-size: 16px;
+  font-weight: 450;
+  outline: none;
+  transition: border-color 200ms;
+  box-sizing: border-box;
+}
+
+.tasks-quick-add-input:focus {
+  border-color: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.tasks-quick-add-hint {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  margin-top: 10px;
+}
+
+/* ─── Quick Add Templates ─── */
+.tasks-quick-add-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.tasks-quick-add-template-btn {
+  font-size: 12px;
+  font-weight: 470;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 25%, transparent);
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-quick-add-template-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+}
+
+/* ─── Bulk Action Bar ─── */
+.tasks-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  border-top: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  flex-shrink: 0;
+}
+
+.tasks-bulk-count {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  font-weight: 450;
+  margin-right: auto;
+}
+
+.tasks-bulk-btn {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.tasks-bulk-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-bulk-btn--danger:hover {
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BOARD / KANBAN VIEW
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-view-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  border-radius: 6px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.tasks-view-switcher-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-view-switcher-btn:hover {
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-view-switcher-btn.active {
+  background: color-mix(in srgb, var(--foreground) 8%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+/* Board layout */
+.tasks-board {
+  display: flex;
+  gap: 12px;
+  padding: 0 12px 16px;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 300ms;
+}
+
+.tasks-board:hover {
+  scrollbar-color: color-mix(in srgb, var(--foreground) 8%, transparent) transparent;
+}
+
+.tasks-board::-webkit-scrollbar { width: 3px; height: 3px; }
+.tasks-board::-webkit-scrollbar-track { background: transparent; }
+.tasks-board::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 99px; }
+
+.tasks-board-column {
+  min-width: 240px;
+  max-width: 300px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--foreground) 1.5%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.tasks-board-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  font-size: 13px;
+  font-weight: 550;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 3%, transparent);
+  flex-shrink: 0;
+}
+
+.tasks-board-column-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+}
+
+.tasks-board-column-list {
+  flex: 1;
+  padding: 6px;
+  overflow-y: auto;
+  min-height: 100px;
+}
+
+.tasks-board-card {
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+  border-left: 3px solid transparent;
+}
+
+.tasks-board-card-content {
+  padding: 8px 10px !important;
+}
+
+.tasks-board-card:hover {
+  border-color: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+
+.tasks-board-card--priority-urgent { border-left-color: #ef4444; }
+.tasks-board-card--priority-high { border-left-color: #f59e0b; }
+.tasks-board-card--priority-medium { border-left-color: #6366f1; }
+
+.tasks-board-card-title {
+  font-size: 13px;
+  font-weight: 470;
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.tasks-board-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tasks-board-card-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 30%, transparent);
+}
+
+.tasks-calendar-view,
+.tasks-timeline-view,
+.tasks-mind-view,
+.tasks-table-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.tasks-calendar-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  align-content: start;
+  gap: 10px;
+}
+
+.tasks-calendar-day-card {
+  overflow: hidden;
+}
+
+.tasks-calendar-card-content {
+  padding: 0 !important;
+}
+
+.tasks-mind-branch {
+  border: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+}
+
+.tasks-calendar-day-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+}
+
+.tasks-mini-row,
+.tasks-timeline-item,
+.tasks-mind-branch button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tasks-priority-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tasks-table th,
+.tasks-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  text-align: left;
+}
+
+.tasks-table th {
+  color: color-mix(in srgb, var(--foreground) 36%, transparent);
+  font-weight: 600;
+}
+
+.tasks-table tr {
+  cursor: pointer;
+}
+
+.tasks-timeline-group {
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.tasks-timeline-group-content {
+  display: grid !important;
+  grid-template-columns: 110px 1fr;
+  padding: 0 !important;
+}
+
+.tasks-timeline-date {
+  padding: 12px;
+  border-right: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 48%, transparent);
+  display: flex;
+  align-items: center;
+}
+
+.tasks-focus-view {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.tasks-focus-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 32%, transparent);
+}
+
+.tasks-focus-view h3 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 650;
+}
+
+.tasks-focus-meta,
+.tasks-focus-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.tasks-focus-meta span {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 48%, transparent);
+}
+
+.tasks-mind-root {
+  width: fit-content;
+  margin: 0 auto 18px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+  font-size: 15px;
+}
+
+.tasks-mind-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-content: start;
+  gap: 10px;
+}
+
+.tasks-mind-branch {
+  border-left: 3px solid var(--branch);
+}
+
+.tasks-mind-branch h3 {
+  margin: 0;
+  padding: 10px;
+  font-size: 14px;
+  color: color-mix(in srgb, var(--foreground) 65%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RIGHT-CLICK CONTEXT MENU
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-context-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 160px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.tasks-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 450;
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  cursor: pointer;
+  transition: all 100ms;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.tasks-context-menu-item:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 85%, transparent);
+}
+
+.tasks-context-menu-item--danger:hover {
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+  color: var(--destructive);
+}
+
+.tasks-context-menu-separator {
+  height: 1px;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  margin: 4px 8px;
+}
+
+.tasks-context-menu-shortcut {
+  margin-left: auto;
+  font-size: 9px;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   START DATE, TIME ESTIMATE, RECURRENCE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-detail-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tasks-detail-field-input {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  outline: none;
+  transition: all 150ms;
+  width: auto;
+  min-width: 60px;
+}
+
+.tasks-detail-field-input:focus {
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-detail-field-input::placeholder {
+  color: color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.tasks-detail-field-label {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  font-weight: 460;
+}
+
+.tasks-detail-recurrence-select {
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  outline: none;
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.tasks-detail-recurrence-select:hover {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 65%, transparent);
+}
+
+.tasks-detail-recurrence-select option {
+  background: var(--card);
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+/* ─── Time Tracking Timer ─── */
+.tasks-timer-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.tasks-timer-btn:hover {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-timer-btn--active {
+  border-color: color-mix(in srgb, #22c55e 20%, transparent);
+  background: color-mix(in srgb, #22c55e 4%, transparent);
+  color: #22c55e;
+}
+
+.tasks-timer-btn--active:hover {
+  border-color: color-mix(in srgb, #22c55e 30%, transparent);
+  background: color-mix(in srgb, #22c55e 6%, transparent);
+}
+
+.tasks-timer-display {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  min-width: 40px;
+}
+
+/* ─── Inline Calendar toggle for start date ─── */
+.tasks-detail-date-btn {
+  font-size: 13px;
+  font-weight: 480;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-detail-date-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 65%, transparent);
+}
+
+.tasks-detail-date-btn.active {
+  background: color-mix(in srgb, var(--foreground) 8%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+.tasks-detail-date-btn.clear {
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  border-color: transparent;
+}
+
+.tasks-detail-date-btn.clear:hover {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 6%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 10%, transparent);
+}
+
+/* ─── Archive action button ─── */
+.tasks-card-action-btn--archive:hover {
+  background: color-mix(in srgb, #6366f1 8%, transparent);
+  color: #6366f1;
+}
+
+.tasks-card-action-btn--archive:active {
+  background: color-mix(in srgb, #6366f1 12%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UNDO TOASTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-undo-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.tasks-undo-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--foreground) 8%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+  animation: tasks-undo-in 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  font-size: 14px;
+  min-width: 220px;
+  justify-content: space-between;
+}
+
+.tasks-undo-toast-msg {
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+  font-weight: 500;
+}
+
+.tasks-undo-toast-btn {
+  background: none;
+  border: none;
+  color: var(--primary, #6366f1);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.tasks-undo-toast-btn:hover {
+  background: color-mix(in srgb, var(--primary, #6366f1) 12%, transparent);
+}
+
+@keyframes tasks-undo-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OVERDUE RESCHEDULE DIALOG
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-reschedule-dialog {
+  width: 520px;
+  max-width: 90vw;
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--background);
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
 }
 
-.tasks-grid article:hover {
-  border-color: var(--tasks-accent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.tasks-grid h2 {
-  margin: 0 0 20px;
-  font-size: 18px;
-  font-weight: 600;
-  font-family: var(--font-heading);
-  color: var(--tasks-ink);
-}
-
-/* Analytics card - takes full width */
-.tasks-analytics {
-  grid-column: 1 / -1;
-  min-height: 280px;
-}
-
-.tasks-analytics canvas {
-  width: 100% !important;
-  height: 200px !important;
-  margin-top: 16px;
-}
-
-/* Reminder card */
-.tasks-reminder {
-  min-height: 260px;
-}
-
-.tasks-reminder strong {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--tasks-accent);
-  line-height: 1.2;
-}
-
-.tasks-reminder p {
-  margin: 12px 0 20px;
-  font-size: 13px;
-  color: var(--tasks-muted);
+.tasks-reschedule-list {
   flex: 1;
-}
-
-.tasks-reminder button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--tasks-accent);
-  color: white;
-  cursor: default;
-  font-weight: 600;
-  transition: all 180ms ease;
-  width: fit-content;
-}
-
-.tasks-reminder button:hover {
-  background: var(--primary-hover);
-  transform: translateY(-2px);
-}
-
-/* Projects card */
-.tasks-projects {
-  min-height: 260px;
   overflow-y: auto;
-}
-
-.tasks-projects header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--tasks-border);
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  max-height: 400px;
+  padding: 2px 0;
 }
 
-.tasks-projects header h2 {
-  margin: 0;
-}
-
-.tasks-projects header button {
-  padding: 8px 14px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--tasks-accent);
-  cursor: default;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 180ms ease;
-}
-
-.tasks-projects header button:hover {
-  background: var(--muted-surface);
-  border-color: var(--tasks-accent);
-}
-
-.tasks-projects p {
+.tasks-reschedule-row {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin: 16px 0;
-  font-size: 13px;
-}
-
-.tasks-projects i {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: var(--tasks-accent);
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.tasks-projects span {
-  display: grid;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.tasks-projects span strong {
-  font-weight: 600;
-  color: var(--tasks-ink);
-  line-height: 1.3;
-}
-
-.tasks-projects small {
-  color: var(--tasks-muted);
-  font-size: 12px;
-}
-
-/* Team collaboration card */
-.tasks-team {
-  min-height: 260px;
-  overflow-y: auto;
-}
-
-.tasks-team header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--tasks-border);
-}
-
-.tasks-team header h2 {
-  margin: 0;
-}
-
-.tasks-team header button {
-  padding: 8px 14px;
-  border: 1px solid var(--tasks-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--tasks-accent);
-  cursor: default;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 180ms ease;
-}
-
-.tasks-team header button:hover {
-  background: var(--muted-surface);
-  border-color: var(--tasks-accent);
-}
-
-.tasks-team p {
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
   align-items: center;
   gap: 12px;
-  margin: 16px 0;
-  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.tasks-team p > span {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: var(--muted-surface);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--foreground);
-  flex-shrink: 0;
+.tasks-reschedule-row:hover {
+  background: color-mix(in srgb, var(--foreground) 3.5%, var(--background));
+  border-color: color-mix(in srgb, var(--foreground) 6%, transparent);
 }
 
-.tasks-team b {
-  display: grid;
-  gap: 3px;
+.tasks-reschedule-info {
+  flex: 1;
   min-width: 0;
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.tasks-team b strong {
-  color: var(--tasks-ink);
-  line-height: 1.2;
-}
-
-.tasks-team small {
-  color: var(--tasks-muted);
-  font-size: 12px;
+.tasks-reschedule-title {
+  font-size: 12.5px;
+  font-weight: 480;
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tasks-team em {
-  padding: 6px 12px;
+.tasks-reschedule-due {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tasks-reschedule-priority {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+}
+
+.tasks-reschedule-select {
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 5px 10px;
   border-radius: 6px;
-  background: var(--muted-surface);
-  color: var(--tasks-accent);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 140px;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-reschedule-select:hover {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-reschedule-select option {
+  background: var(--card);
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+/* ─── Focus Mode ─── */
+.tasks-app.focus-mode .tasks-sidebar,
+.tasks-app.focus-mode .tasks-detail,
+.tasks-app.focus-mode .tasks-resize-handle {
+  display: none;
+}
+
+.tasks-app.focus-mode .tasks-list-panel {
+  grid-column: 1 / -1;
+}
+
+/* ─── Overdue Banner ─── */
+.tasks-overdue-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px 10px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--destructive) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destructive) 6%, transparent);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 30%, transparent);
   flex-shrink: 0;
 }
 
-/* Progress card */
-.tasks-progress {
-  min-height: 260px;
-  text-align: center;
-  justify-content: space-between;
+.tasks-overdue-banner strong {
+  color: var(--destructive);
+  font-weight: 550;
 }
 
-.tasks-progress div {
-  position: relative;
-  min-height: 140px;
+.tasks-overdue-banner-btn {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--destructive) 8%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--destructive) 50%, transparent);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.tasks-overdue-banner-btn:hover {
+  background: color-mix(in srgb, var(--destructive) 6%, transparent);
+  color: var(--destructive);
+}
+
+/* ─── Shortcuts Overlay ─── */
+.tasks-shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  margin: 20px 0;
+  background: color-mix(in srgb, #000 60%, transparent);
 }
 
-.tasks-progress canvas {
-  width: 100% !important;
-  height: 120px !important;
+.tasks-shortcuts-dialog {
+  width: 520px;
+  max-width: 90vw;
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: var(--background);
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.tasks-progress strong {
-  position: absolute;
-  font-size: 40px;
-  font-weight: 700;
-  color: var(--tasks-ink);
-  line-height: 1;
+.tasks-shortcuts-dialog h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  margin: 0 0 16px;
 }
 
-.tasks-progress small {
-  display: block;
-  font-size: 12px;
-  color: var(--tasks-muted);
-  margin-top: 8px;
-}
-
-.tasks-progress footer {
-  display: flex;
-  justify-content: center;
-  gap: 28px;
-  font-size: 12px;
-  color: var(--tasks-muted);
-}
-
-/* Timer card */
-.tasks-timer {
-  min-height: 260px;
-  text-align: center;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-color: transparent;
-  color: white;
-  justify-content: center;
-}
-
-.tasks-timer h2 {
-  margin: 0 0 20px;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.tasks-timer strong {
-  display: block;
-  font-size: 56px;
-  color: white;
-  line-height: 1;
-  margin: 20px 0;
-}
-
-.tasks-timer p {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.tasks-timer button {
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 999px;
-  background: white;
-  color: var(--tasks-accent);
-  cursor: default;
+.tasks-shortcuts-grid {
   display: grid;
-  place-items: center;
-  transition: all 180ms ease;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 2px 24px;
 }
 
-.tasks-timer button:hover {
-  background: rgba(255, 255, 255, 0.95);
-  transform: scale(1.1);
+.tasks-shortcuts-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  margin-top: 12px;
+  margin-bottom: 6px;
+  grid-column: 1 / -1;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .tasks-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tasks-analytics {
-    grid-column: 1;
-  }
+.tasks-shortcuts-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 2%, transparent);
 }
 
-@media (max-width: 768px) {
-  .tasks-topbar {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px 24px;
-  }
+.tasks-shortcuts-item-label {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+}
 
-  .tasks-topbar label {
-    width: 100%;
-  }
+.tasks-shortcuts-item-key {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  letter-spacing: 0.02em;
+}
 
-  .tasks-topbar > div {
-    width: 100%;
-    flex-wrap: wrap;
-  }
+/* ═══════════════════════════════════════════════════════════════════════
+   IMPORT DIALOG
+   ═══════════════════════════════════════════════════════════════════════ */
 
-  .tasks-heading {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 24px;
-  }
+.tasks-import-dialog {
+  width: 640px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
 
-  .tasks-heading h1 {
-    font-size: 24px;
-  }
+.tasks-import-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  text-align: center;
+}
 
-  .tasks-heading nav {
-    flex-wrap: wrap;
-  }
+.tasks-import-format-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  line-height: 1.8;
+}
 
-  .tasks-content {
-    padding: 24px;
-    gap: 24px;
-  }
+.tasks-import-format-list li {
+  padding: 0;
+}
 
-  .tasks-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
+.tasks-import-format-list li strong {
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  font-weight: 500;
+}
 
-  .tasks-stats article {
-    padding: 20px;
-    border-radius: 24px;
-  }
+.tasks-import-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
-  .tasks-grid {
-    gap: 20px;
-  }
+.tasks-import-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 
-  .tasks-grid article,
-  .tasks-analytics,
-  .tasks-reminder,
-  .tasks-projects,
-  .tasks-team,
-  .tasks-progress,
-  .tasks-timer {
-    padding: 24px;
-    border-radius: 24px;
-  }
+.tasks-import-preview-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #6366f1 8%, transparent);
+  color: #818cf8;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Import conflicts ─── */
+.tasks-import-conflicts {
+  padding: 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #f59e0b 3%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 6%, transparent);
+  margin-bottom: 12px;
+}
+
+.tasks-import-conflicts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.tasks-import-conflict-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+}
+
+.tasks-import-conflict-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tasks-import-conflict-select {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tasks-import-conflict-select:hover {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-import-conflict-select option {
+  background: var(--card);
+  color: color-mix(in srgb, var(--foreground) 75%, transparent);
+}
+
+/* ─── Import preview table ─── */
+.tasks-import-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  min-height: 0;
+}
+
+.tasks-import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tasks-import-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+  position: sticky;
+  top: 0;
+  background: var(--background);
+}
+
+.tasks-import-table td {
+  padding: 6px 10px;
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 2%, transparent);
+  vertical-align: middle;
+}
+
+.tasks-import-table tr:hover td {
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+}
+
+.tasks-import-cell-title {
+  font-weight: 470;
+  color: color-mix(in srgb, var(--foreground) 50%, transparent) !important;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tasks-import-priority-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.tasks-import-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 450;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 25%, transparent);
+  margin-right: 2px;
+}
+
+.tasks-import-result {
+  padding: 12px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EXPORT DIALOG
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tasks-export-format-grid {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.tasks-export-format-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  text-align: center;
+}
+
+.tasks-export-format-card:hover {
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+}
+
+.tasks-export-format-card.active {
+  border-color: color-mix(in srgb, var(--foreground) 15%, transparent);
+  background: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 85%, transparent);
+}
+
+.tasks-export-format-card strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tasks-export-format-card span {
+  font-size: 12px;
+  font-weight: 440;
+  color: inherit;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.tasks-export-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.tasks-export-btn {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tasks-export-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+
+.tasks-export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tasks-export-btn--confirm {
+  background: color-mix(in srgb, var(--foreground) 88%, transparent);
+  color: var(--background);
+  border-color: transparent;
+}
+
+.tasks-export-btn--confirm:hover:not(:disabled) {
+  background: var(--foreground);
+}
+
+.tasks-export-result {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #22c55e 6%, transparent);
+  border: 1px solid color-mix(in srgb, #22c55e 8%, transparent);
+  word-break: break-all;
+}
+
+/* ─── Someday indicator ─── */
+.tasks-someday-area {
+  margin: 0 12px 10px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  background: color-mix(in srgb, #a855f7 3%, transparent);
+  border: 1px solid color-mix(in srgb, #a855f7 4%, transparent);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--foreground) 25%, transparent);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasks-someday-btn {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, #a855f7 6%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, #a855f7 45%, transparent);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.tasks-someday-btn:hover {
+  background: color-mix(in srgb, #a855f7 6%, transparent);
+  color: #a855f7;
+}
+
+/* ─── Density: Comfortable (default) ─── */
+/* No overrides needed — this IS comfortable */
+
+/* ─── Density: Compact ─── */
+.tasks-app.density-compact .tasks-card {
+  padding: 5px 8px;
+  margin-bottom: 1px;
+}
+
+.tasks-app.density-compact .tasks-card-title {
+  font-size: 11.5px;
+}
+
+.tasks-app.density-compact .tasks-sidebar-item {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.tasks-app.density-compact .tasks-list-panel-header {
+  padding: 12px 16px 4px;
+}
+
+.tasks-app.density-compact .tasks-list-panel-header h2 {
+  font-size: 15px;
+}
+
+.tasks-app.density-compact .tasks-detail-scroll {
+  padding: 20px 20px 32px;
+}
+
+.tasks-app.density-compact .tasks-detail-title-input {
+  font-size: 17px;
+}
+
+/* ─── Density: Spacious ─── */
+.tasks-app.density-spacious .tasks-card {
+  padding: 12px 14px;
+  margin-bottom: 4px;
+}
+
+.tasks-app.density-spacious .tasks-card-title {
+  font-size: 14px;
+}
+
+.tasks-app.density-spacious .tasks-sidebar-item {
+  padding: 9px 12px;
+  font-size: 14px;
+}
+
+.tasks-app.density-spacious .tasks-list-panel-header {
+  padding: 24px 24px 12px;
+}
+
+.tasks-app.density-spacious .tasks-list-panel-header h2 {
+  font-size: 22px;
+}
+
+.tasks-app.density-spacious .tasks-detail-scroll {
+  padding: 36px 36px 48px;
+}
+
+.tasks-app.density-spacious .tasks-detail-title-input {
+  font-size: 24px;
 }

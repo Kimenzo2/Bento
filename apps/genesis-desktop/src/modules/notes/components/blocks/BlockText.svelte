@@ -1,72 +1,136 @@
 <script lang="ts">
-  import { onMount, afterUpdate, createEventDispatcher } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import type { Block, TextStyle, Mark, TextRange, ContentText } from '$lib/local-store/block';
   import { TextStyle as TS, MarkType, DivStyle } from '$lib/local-store/block';
   import { isTextBlock, isTextCode, isTextTitle, isTextDescription, isTextHeader, isTextToggle, canHaveMarks } from '$lib/local-store/block';
+  import { editorStore } from '$lib/local-store/store';
+  import { Link2, Unlink2 } from 'lucide-svelte';
 
-  export let block: Block;
-  export let rootId: string;
-  export let readonly: boolean = false;
-  export let blockIndex: number = 0;
-  export let onUpdate: (blockId: string, text: string, marks: Mark[]) => void = () => {};
-  export let onFocus: (e?: any) => void = () => {};
-  export let onBlur: (e?: any) => void = () => {};
-  export let onKeyDown: (e: any, value: string, marks: Mark[], range: any, props: any) => void = () => {};
-  export let onKeyUp: (e: any, value: string, marks: Mark[], range: any, props: any) => void = () => {};
-  export let onToggle: (e?: any) => void = () => {};
-  export let onStyleConvert: (blockId: string, style: TextStyle) => void = () => {};
-
-  const dispatch = createEventDispatcher();
+  let { block, rootId, readonly = false, blockIndex = 0, onUpdate = () => {}, onFocus = () => {}, onBlur = () => {}, onKeyDown = () => {}, onKeyUp = () => {}, onToggle = () => {}, onStyleConvert = () => {}, onOpenLinkDialog = () => {} }: {
+    block: Block;
+    rootId: string;
+    readonly?: boolean;
+    blockIndex?: number;
+    onUpdate?: (blockId: string, text: string, marks: Mark[]) => void;
+    onFocus?: (e?: any) => void;
+    onBlur?: (e?: any) => void;
+    onKeyDown?: (e: any, value: string, marks: Mark[], range: any, props: any) => void;
+    onKeyUp?: (e: any, value: string, marks: Mark[], range: any, props: any) => void;
+    onToggle?: (e?: any) => void;
+    onStyleConvert?: (blockId: string, style: TextStyle) => void;
+    onOpenLinkDialog?: (blockId: string) => void;
+  } = $props();
 
   // ── Derived from block content (reactive to prop changes) ───────────
   let textValue: string = '';
   let marks: Mark[] = [];
-  let style: TextStyle = TS.Paragraph;
-  let checked: boolean = false;
-  let color: string | undefined;
+  let style: TextStyle = $state(TS.Paragraph);
+  let checked: boolean = $state(false);
   let iconEmoji: string | undefined;
   let iconImage: string | undefined;
 
   let isFocused = false;
+  let isSyncing = false;
   let editableEl: HTMLDivElement;
 
   // Sync local state from block prop (skip during active editing to avoid cursor jumps)
-  $: if (block && block.content && !isFocused) {
+  $effect(() => {
+    if (!block || !block.content) return;
     const ct = block.content as ContentText;
-    textValue = ct.text ?? '';
-    marks = ct.marks ?? [];
+    // Always sync style/checked (affects chrome, not cursor)
     style = ct.style ?? TS.Paragraph;
     checked = ct.checked ?? false;
-    if (editableEl) syncEditable();
-  }
+    if (!isFocused) {
+      const newText = ct.text ?? '';
+      const newMarks = ct.marks ?? [];
+      textValue = newText;
+      marks = newMarks;
+      // Only sync innerHTML if text actually changed — avoids expensive
+      // innerHTML reset on every keystroke to other blocks.
+      if (editableEl && !isSyncing) {
+        const currentText = editableEl.innerText || '';
+        if (currentText !== newText) {
+          try {
+            isSyncing = true;
+            syncEditable();
+          } finally {
+            isSyncing = false;
+          }
+        }
+      }
+    }
+  });
 
-  $: if (block && block.content && isFocused) {
-    // Still sync style/checked even during editing (they affect the chrome)
-    const ct = block.content as ContentText;
-    style = ct.style ?? style;
-    checked = ct.checked ?? checked;
-  }
+  $effect(() => {
+    if (block && block.content && isFocused) {
+      // Still sync style/checked even during editing (they affect the chrome)
+      const ct = block.content as ContentText;
+      style = ct.style ?? style;
+      checked = ct.checked ?? checked;
+    }
+  });
+
+  // ── Color + bgColor + align derived from block ────────────────────
+  // color lives in content; bgColor and hAlign live on the block root / fields.
+  // All three are reactive to the block prop so they update when the store
+  // pushes a new block object after an action-menu change.
+  let color    = $derived<string>((block.content as ContentText)?.color ?? '');
+  let bgColor  = $derived<string>(block.bgColor ?? '');
+  let hAlign   = $derived<string>((block.fields as any)?.hAlign ?? 'left');
+
+  // Map palette IDs → CSS custom properties defined in app.css / the theme.
+  // We never hardcode hex — every value is a var() so all themes work.
+  const COLOR_MAP: Record<string, string> = {
+    default: 'var(--foreground)',
+    grey:    'color-mix(in srgb, var(--foreground) 55%, var(--background))',
+    yellow:  'var(--block-color-yellow,  #e2b631)',
+    amber:   'var(--block-color-amber,   #e07b2a)',
+    red:     'var(--block-color-red,     #e05c5c)',
+    pink:    'var(--block-color-pink,    #e05090)',
+    purple:  'var(--block-color-purple,  #9c4de0)',
+    blue:    'var(--block-color-blue,    #4a90e0)',
+    sky:     'var(--block-color-sky,     #2ab8d4)',
+    teal:    'var(--block-color-teal,    #27ae8f)',
+    green:   'var(--block-color-green,   #4caf50)',
+  };
+
+  const BG_MAP: Record<string, string> = {
+    default: 'transparent',
+    grey:    'color-mix(in srgb, var(--foreground) 8%,  var(--background))',
+    yellow:  'color-mix(in srgb, var(--block-color-yellow,  #e2b631) 14%, var(--background))',
+    amber:   'color-mix(in srgb, var(--block-color-amber,   #e07b2a) 14%, var(--background))',
+    red:     'color-mix(in srgb, var(--block-color-red,     #e05c5c) 14%, var(--background))',
+    pink:    'color-mix(in srgb, var(--block-color-pink,    #e05090) 14%, var(--background))',
+    purple:  'color-mix(in srgb, var(--block-color-purple,  #9c4de0) 14%, var(--background))',
+    blue:    'color-mix(in srgb, var(--block-color-blue,    #4a90e0) 14%, var(--background))',
+    sky:     'color-mix(in srgb, var(--block-color-sky,     #2ab8d4) 14%, var(--background))',
+    teal:    'color-mix(in srgb, var(--block-color-teal,    #27ae8f) 14%, var(--background))',
+    green:   'color-mix(in srgb, var(--block-color-green,   #4caf50) 14%, var(--background))',
+  };
+
+  let resolvedColor   = $derived(color   && color   !== 'default' ? (COLOR_MAP[color]  ?? 'var(--foreground)') : '');
+  let resolvedBg      = $derived(bgColor && bgColor !== 'default' ? (BG_MAP[bgColor]   ?? 'transparent')       : 'transparent');
+  let resolvedAlign   = $derived(hAlign || 'left');
+
+  let blockStyle = $derived([
+    resolvedColor ? `color:${resolvedColor}` : '',
+    resolvedBg    ? `background:${resolvedBg}` : '',
+  ].filter(Boolean).join(';'));
 
   // ── Placeholder text based on style ────────────────────────────────
-  let placeholder = 'Type / for commands';
-  $: {
-    if (style === TS.Title) {
-      placeholder = 'Untitled';
-    } else if (style === TS.Description) {
-      placeholder = 'Add a description...';
-    } else if (style === TS.Callout) {
-      placeholder = 'Type something...';
-    } else if (style === TS.Code) {
-      placeholder = 'Write code...';
-    } else {
-      placeholder = 'Type / for commands';
-    }
-  }
+  let placeholder = $derived.by(() => {
+    if (style === TS.Title) return 'Untitled';
+    if (style === TS.Description) return 'Add a description...';
+    if (style === TS.Callout) return 'Type something...';
+    if (style === TS.Code) return 'Write code...';
+    return 'Type / for commands';
+  });
+
+  // ── Link dialog state ──────────────────────────────────────────────
+  let showLinkDialog = $state(false);
+  let linkUrl = $state('');
 
   // ── Markdown trigger map ────────────────────────────────────────────
-  // Keys include the trailing space; triggered when textValue starts with one
-  // and the user hasn't gone far (<= 2 extra chars) to avoid re-triggering
-  // after the user has already started typing meaningful content.
   const MARKDOWN_MAP: Record<string, TextStyle> = {
     '# ': TS.Header1,
     '## ': TS.Header2,
@@ -121,49 +185,63 @@
   }
 
   // ── ContentEditable sync ────────────────────────────────────────────
+  // Build HTML from plain text + marks.
+  // Marks are applied in sorted order on the PLAIN TEXT (not on growing HTML),
+  // then the result is HTML-encoded. This avoids offset shifting.
+  function buildHtml(text: string, marksArr: Mark[]): string {
+    if (!text) return '';
+
+    // Collect all open/close events sorted by position
+    type Evt = { pos: number; order: number; tag: string };
+    const events: Evt[] = [];
+    const sorted = [...marksArr].sort((a, b) => a.range.from - b.range.from || b.range.to - a.range.to);
+
+    sorted.forEach((m, i) => {
+      const { from, to } = m.range;
+      if (from >= to || from < 0 || to > text.length) return;
+      const [open, close] = markToTags(m);
+      events.push({ pos: from, order: i,     tag: open  });
+      events.push({ pos: to,   order: -i - 1, tag: close });
+    });
+
+    // Sort: by position, then closes before opens at same pos
+    events.sort((a, b) => a.pos - b.pos || a.order - b.order);
+
+    let html = '';
+    let pos = 0;
+    for (const ev of events) {
+      if (ev.pos > pos) {
+        html += escHtml(text.slice(pos, ev.pos));
+        pos = ev.pos;
+      }
+      html += ev.tag;
+    }
+    if (pos < text.length) html += escHtml(text.slice(pos));
+    return html;
+  }
+
+  function escHtml(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function markToTags(m: Mark): [string, string] {
+    switch (m.type) {
+      case MarkType.Bold:      return ['<strong>', '</strong>'];
+      case MarkType.Italic:    return ['<em>', '</em>'];
+      case MarkType.Code:      return ['<code>', '</code>'];
+      case MarkType.Strike:    return ['<s>', '</s>'];
+      case MarkType.Underline: return ['<u>', '</u>'];
+      case MarkType.Link:      return [`<a href="${m.param || '#'}" rel="noopener">`, '</a>'];
+      default:                 return ['<span>', '</span>'];
+    }
+  }
+
   function syncEditable() {
     if (!editableEl) return;
-    let html = textValue
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br/>');
-
-    // Apply mark rendering (simplified — bold, italic, code, link)
-    if (marks.length > 0) {
-      // Sort marks by range.from descending so we don't shift positions
-      const sorted = [...marks].sort((a, b) => b.range.from - a.range.from);
-      for (const mark of sorted) {
-        const before = html.slice(0, mark.range.from);
-        const mid = html.slice(mark.range.from, mark.range.to);
-        const after = html.slice(mark.range.to);
-
-        switch (mark.type) {
-          case MarkType.Bold:
-            html = before + `<strong>${mid}</strong>` + after;
-            break;
-          case MarkType.Italic:
-            html = before + `<em>${mid}</em>` + after;
-            break;
-          case MarkType.Code:
-            html = before + `<code>${mid}</code>` + after;
-            break;
-          case MarkType.Strike:
-            html = before + `<s>${mid}</s>` + after;
-            break;
-          case MarkType.Underline:
-            html = before + `<u>${mid}</u>` + after;
-            break;
-          case MarkType.Link:
-            html = before + `<a href="${mark.param || '#'}">${mid}</a>` + after;
-            break;
-          default:
-            break;
-        }
-      }
+    const html = buildHtml(textValue, marks);
+    if (editableEl.innerHTML !== html) {
+      editableEl.innerHTML = html;
     }
-
-    editableEl.innerHTML = html;
   }
 
   // ── Event handlers ──────────────────────────────────────────────────
@@ -185,15 +263,83 @@
 
   function handleKeyDown(e: KeyboardEvent) {
     const range = { from: getCaretPosition(editableEl), to: getCaretPosition(editableEl) };
+    const blockId = block.id;
 
-    // Enter: split block or handle shift+enter
+    // ── Mark shortcuts (Ctrl/Cmd + key) ────────────────────────────
+    const isCmd = e.metaKey || e.ctrlKey;
+
+    if (isCmd && e.key === 'b') {
+      e.preventDefault();
+      if (blockId) editorStore.applyMarkToSelection(blockId, MarkType.Bold);
+      return;
+    }
+    if (isCmd && e.key === 'i') {
+      e.preventDefault();
+      if (blockId) editorStore.applyMarkToSelection(blockId, MarkType.Italic);
+      return;
+    }
+    if (isCmd && e.key === 'u') {
+      e.preventDefault();
+      if (blockId) editorStore.applyMarkToSelection(blockId, MarkType.Underline);
+      return;
+    }
+    if (isCmd && e.shiftKey && e.key === 'S') {
+      e.preventDefault();
+      if (blockId) editorStore.applyMarkToSelection(blockId, MarkType.Strike);
+      return;
+    }
+    if (isCmd && e.key === 'e') {
+      e.preventDefault();
+      if (blockId) editorStore.applyMarkToSelection(blockId, MarkType.Code);
+      return;
+    }
+    if (isCmd && e.key === 'k') {
+      e.preventDefault();
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && blockId) {
+        // Check if selection already has a link mark
+        const hasLink = editorStore.hasMarkAtSelection(blockId, MarkType.Link);
+        if (hasLink) {
+          // Remove link
+          const range = sel.getRangeAt(0);
+          const el = document.querySelector(`[data-block-id="${blockId}"] .editable`);
+          if (el) {
+            const pre = document.createRange();
+            pre.selectNodeContents(el);
+            pre.setEnd(range.startContainer, range.startOffset);
+            const from = pre.toString().length;
+            const to = from + range.toString().length;
+            editorStore.toggleMark(blockId, MarkType.Link, { from, to });
+          }
+        } else {
+          // Show link dialog
+          showLinkDialog = true;
+          linkUrl = 'https://';
+          setTimeout(() => document.getElementById('link-url-input')?.focus(), 50);
+        }
+      }
+      return;
+    }
+
+    // ── Tab indent/outdent for bullet/numbered blocks ──────────────
+    if (e.key === 'Tab' && (style === TS.Bulleted || style === TS.Numbered || style === TS.Checkbox || style === TS.Toggle)) {
+      e.preventDefault();
+      // Toggle between bullet styles or indent — delegate to parent
+      // For now, insert a tab-indented block below
+      if (blockId) {
+        onKeyDown(e, textValue, marks, { from: range.from, to: range.from }, { block, rootId, readonly });
+      }
+      return;
+    }
+
+    // ── Enter: split block or handle shift+enter ────────────────────
     if (e.key === 'Enter' && !e.shiftKey && !isTextCode(style)) {
       e.preventDefault();
       onKeyDown(e, textValue, marks, range, { block, rootId, readonly });
       return;
     }
 
-    // Shift+Enter: insert newline
+    // ── Shift+Enter: insert newline ────────────────────────────────
     if (e.key === 'Enter' && e.shiftKey && !isTextCode(style)) {
       e.preventDefault();
       const insertAt = getCaretPosition(editableEl);
@@ -204,7 +350,19 @@
       return;
     }
 
-    // Backspace at start: merge with previous block
+    // ── Arrow up/down: navigate between blocks ─────────────────────
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const pos = getCaretPosition(editableEl);
+      const atStart = pos === 0;
+      const atEnd = pos === textValue.length;
+      if ((e.key === 'ArrowUp' && atStart) || (e.key === 'ArrowDown' && atEnd)) {
+        e.preventDefault();
+        onKeyDown(e, textValue, marks, range, { block, rootId, readonly });
+        return;
+      }
+    }
+
+    // ── Backspace at start: merge with previous block ──────────────
     if (e.key === 'Backspace') {
       const pos = getCaretPosition(editableEl);
       if (pos === 0) {
@@ -214,7 +372,7 @@
       }
     }
 
-    // Tab in code: insert tab character
+    // ── Tab in code: insert tab character ──────────────────────────
     if (e.key === 'Tab' && isTextCode(style)) {
       e.preventDefault();
       const pos = getCaretPosition(editableEl);
@@ -272,23 +430,36 @@
   function handleCheckboxToggle() {
     if (readonly) return;
     checked = !checked;
-    dispatch('togglecheck', { checked });
+    onToggle();
+  }
+
+  // ── Link dialog handlers ────────────────────────────────────────────
+  function confirmLink() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !block.id) return;
+    const el = document.querySelector(`[data-block-id="${block.id}"] .editable`);
+    if (!el) return;
+    const range = sel.getRangeAt(0);
+    const pre = document.createRange();
+    pre.selectNodeContents(el);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const from = pre.toString().length;
+    const to = from + range.toString().length;
+    if (from < to && linkUrl.trim()) {
+      editorStore.toggleMark(block.id, MarkType.Link, { from, to }, linkUrl.trim());
+    }
+    showLinkDialog = false;
+    linkUrl = '';
+  }
+
+  function cancelLink() {
+    showLinkDialog = false;
+    linkUrl = '';
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────
   onMount(() => {
     syncEditable();
-  });
-
-  afterUpdate(() => {
-    if (!editableEl) return;
-    // During active editing, only sync if the editable content doesn't match.
-    // This handles cases where the store updated textValue (e.g. after Enter split)
-    // while user was focused on an unrelated block.
-    const currentText = editableEl.innerText || '';
-    if (currentText !== textValue && !isFocused) {
-      syncEditable();
-    }
   });
 
   // ── CSS class helpers ──────────────────────────────────────────────
@@ -312,20 +483,20 @@
     [TS.ToggleHeader3]: 'style-toggle-h3',
   };
 
-  $: styleClass = styleClassMap[style] || 'style-paragraph';
+  let styleClass = $derived(styleClassMap[style] || 'style-paragraph');
 </script>
 
 <div
   class="block-text {styleClass}"
   class:is-readonly={readonly}
   class:is-checked={checked && style === TS.Checkbox}
-  class:has-color={!!color}
   data-block-id={block.id}
+  style="{blockStyle}{blockStyle ? ';' : ''}text-align:{resolvedAlign}"
 >
   {#if style === TS.Checkbox}
     <button
       class="checkbox-toggle"
-      on:click={handleCheckboxToggle}
+      onclick={handleCheckboxToggle}
       aria-label={checked ? 'Uncheck' : 'Check'}
     >
       {#if checked}
@@ -350,7 +521,7 @@
   {/if}
 
   {#if style === TS.Toggle || style === TS.ToggleHeader1 || style === TS.ToggleHeader2 || style === TS.ToggleHeader3}
-    <button class="toggle-arrow" on:click={() => onToggle()} aria-label="Toggle">
+    <button class="toggle-arrow" onclick={() => onToggle()} aria-label="Toggle">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <path d="M4 2.5L7.5 6L4 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -365,14 +536,14 @@
     bind:this={editableEl}
     class="editable"
     contenteditable={!readonly}
-    spellcheck={!isTextCode(style)}
+    spellcheck={true}
     data-placeholder={placeholder}
-    on:input={handleInput}
-    on:focus={handleFocus}
-    on:blur={handleBlur}
-    on:keydown={handleKeyDown}
-    on:keyup={handleKeyUp}
-    on:paste={handlePaste}
+    oninput={handleInput}
+    onfocus={handleFocus}
+    onblur={handleBlur}
+    onkeydown={handleKeyDown}
+    onkeyup={handleKeyUp}
+    onpaste={handlePaste}
     tabindex="0"
     role="textbox"
     aria-multiline="true"
@@ -380,18 +551,49 @@
   ></div>
 </div>
 
+{#if showLinkDialog}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="link-dialog-overlay" onclick={cancelLink}>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="link-dialog" onclick={(e) => e.stopPropagation()}>
+      <div class="link-dialog-header">Add link</div>
+      <div class="link-dialog-body">
+        <input
+          id="link-url-input"
+          type="url"
+          class="link-dialog-input"
+          placeholder="https://..."
+          bind:value={linkUrl}
+          onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmLink(); } if (e.key === 'Escape') { e.preventDefault(); cancelLink(); } }}
+        />
+      </div>
+      <div class="link-dialog-actions">
+        <button class="link-dialog-btn secondary" onclick={cancelLink}>Cancel</button>
+        <button class="link-dialog-btn primary" onclick={confirmLink}>Apply</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .block-text {
     display: flex;
     align-items: flex-start;
     gap: 6px;
-    padding: 2px 0;
+    padding: 2px 4px;
     width: 100%;
     min-height: 28px;
+    border-radius: 4px;
+    /* color and background are applied via inline style — not classes —
+       so they respond correctly to the global theme token system */
   }
 
-  .block-text.is-readonly {
-    cursor: default;
+  /* Give coloured-background blocks visible padding */
+  .block-text[style*="background:color-mix"],
+  .block-text[style*="background:rgb"],
+  .block-text[style*="background:#"] {
+    padding: 4px 8px;
+    border-radius: 6px;
   }
 
   /* ── Style variants ──────────────────────────────────────────────── */
@@ -607,5 +809,84 @@
 
   .has-color .editable {
     color: var(--block-text-color, inherit);
+  }
+
+  /* ── Link Dialog ───────────────────────────────────────────────── */
+  .link-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--background) 60%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  .link-dialog {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    width: 320px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .link-dialog-header {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--foreground);
+  }
+
+  .link-dialog-body {
+    margin-bottom: 12px;
+  }
+
+  .link-dialog-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .link-dialog-input:focus {
+    border-color: var(--primary);
+  }
+
+  .link-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .link-dialog-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .link-dialog-btn.primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+  }
+
+  .link-dialog-btn.secondary {
+    background: transparent;
+    color: var(--foreground);
+  }
+
+  .link-dialog-btn:hover {
+    opacity: 0.9;
   }
 </style>

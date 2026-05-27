@@ -1,4 +1,7 @@
-use std::{path::Path, time::Instant};
+use std::time::Instant;
+
+#[cfg(not(target_os = "windows"))]
+use std::path::Path;
 
 use sysinfo::{
     Disk, Disks, MemoryRefreshKind, Networks, ProcessRefreshKind, ProcessesToUpdate, RefreshKind,
@@ -20,14 +23,15 @@ pub struct SystemCollector {
 impl SystemCollector {
     pub fn new() -> Result<Self, String> {
         let networks = Networks::new_with_refreshed_list();
-        let (initial_rx, initial_tx) = networks
-            .iter()
-            .fold((0, 0), |(current_rx, current_tx), (_, data)| {
-                (
-                    current_rx + data.total_received(),
-                    current_tx + data.total_transmitted(),
-                )
-            });
+        let (initial_rx, initial_tx) =
+            networks
+                .iter()
+                .fold((0, 0), |(current_rx, current_tx), (_, data)| {
+                    (
+                        current_rx + data.total_received(),
+                        current_tx + data.total_transmitted(),
+                    )
+                });
 
         Ok(Self {
             sys: System::new_all(),
@@ -84,15 +88,15 @@ impl SystemCollector {
     }
 
     fn calculate_network_stats(&mut self) -> (u64, u64) {
-        let (current_rx, current_tx) = self.networks.iter().fold(
-            (0, 0),
-            |(current_rx, current_tx), (_, data)| {
-                (
-                    current_rx + data.total_received(),
-                    current_tx + data.total_transmitted(),
-                )
-            },
-        );
+        let (current_rx, current_tx) =
+            self.networks
+                .iter()
+                .fold((0, 0), |(current_rx, current_tx), (_, data)| {
+                    (
+                        current_rx + data.total_received(),
+                        current_tx + data.total_transmitted(),
+                    )
+                });
 
         let elapsed = self.last_network_update.0.elapsed().as_secs_f64();
         if elapsed <= f64::EPSILON {

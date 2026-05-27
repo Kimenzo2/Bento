@@ -1,29 +1,26 @@
-use std::{
-    env,
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{env, sync::Arc};
 
-use chrono::{DateTime, Utc};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use chrono::{DateTime, Utc};
 use keyring::Entry;
 use rand::{RngCore, thread_rng};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
-use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_oauth::{OauthConfig, start_with_config};
+use tauri_plugin_opener::OpenerExt;
 use tokio::{
     sync::Mutex,
     time::{Duration, sleep},
 };
 use url::Url;
 
-use crate::window_bounds::restore_main_window;
+// window_bounds::transition_to_shell is imported locally in prepare_shell_window
 
-const AUTH_KEYRING_SERVICE: &str = "Genesis Desktop";
+const AUTH_KEYRING_SERVICE: &str = "Bento Desktop";
 const AUTH_KEYRING_ACCOUNT: &str = "supabase-session";
 const SUPABASE_REDIRECT_STATE_TTL_MS: i64 = 5 * 60 * 1000;
 const SUPABASE_REFRESH_CHECK_INTERVAL_MS: u64 = 5 * 60 * 1000;
@@ -31,6 +28,178 @@ const SUPABASE_REFRESH_WINDOW_MS: i64 = 10 * 60 * 1000;
 const SUPABASE_OAUTH_PORT: u16 = 47831;
 const LOGIN_WINDOW_WIDTH: f64 = 400.0;
 const LOGIN_WINDOW_HEIGHT: f64 = 480.0;
+
+// ── Keyring accounts ───────────────────────────────────────────
+const AUTH_KEYRING_SERVICE_ROLE_ACCOUNT: &str = "supabase-service-role";
+
+// ── Billing cache & refresh (Anytype patterns) ────────────────
+const BILLING_CACHE_TTL: Duration = Duration::from_secs(600); // 10m
+const BILLING_NORMAL_INTERVAL: Duration = Duration::from_secs(60); // 60s
+const BILLING_FORCE_INTERVAL: Duration = Duration::from_secs(10); // 10s
+const BILLING_FORCE_WINDOW: Duration = Duration::from_secs(1800); // 30min
+
+// ── Cache version pinning (Anytype cache.go 1:1) ────────────
+// Anytype uses a format-version constant. When the cache data structure
+// changes, bump this constant and all old cached data auto-invalidates.
+// See: anytype-heart/core/payments/cache/cache.go → cacheLastVersion = 8
+const BILLING_CACHE_LAST_VERSION: u64 = 1;
+
+/// In-memory billing profile cache with TTL + format version pinning.
+/// Anytype cache.go pattern: every cached entry has a CurrentVersion field.
+/// On CacheGet(): if stored.CurrentVersion != cacheLastVersion → ErrUnsupportedCacheVersion.
+struct BillingCache {
+    data: Option<BillingProfilePayload>,
+    cached_at: Option<Instant>,
+    /// Format version (Anytype: CurrentVersion uint16). Initialized to BILLING_CACHE_LAST_VERSION
+    /// in the constructor (like newStorageStruct() sets CurrentVersion: cacheLastVersion).
+    /// If this mismatches the constant, get() returns None.
+    format_version: u64,
+}
+
+impl BillingCache {
+    /// newStorageStruct() in Anytype: sets CurrentVersion = cacheLastVersion.
+    fn new() -> Self {
+        Self {
+            data: None,
+            cached_at: None,
+            format_version: BILLING_CACHE_LAST_VERSION,
+        }
+    }
+
+    /// CacheGet() in Anytype: checks CurrentVersion == cacheLastVersion.
+    /// If mismatch → returns ErrUnsupportedCacheVersion (we return None).
+    fn get(&self) -> Option<&BillingProfilePayload> {
+        // Version pin check (Anytype cache.go:58-65)
+        if self.format_version != BILLING_CACHE_LAST_VERSION {
+            return None;
+        }
+        let cached_at = self.cached_at?;
+        // TTL check (Anytype: getExpireTime)
+        if cached_at.elapsed() > BILLING_CACHE_TTL {
+            return None;
+        }
+        self.data.as_ref()
+    }
+
+    /// CacheSet() in Anytype: updates data, restores format version so future get() succeeds.
+    /// Anytype: CacheSet preserves CurrentVersion (stays at cacheLastVersion).
+    /// After invalidate(), this restores the version so the cache is usable again.
+    fn set(&mut self, profile: BillingProfilePayload) {
+        // Restore format version so get() works again after invalidate()
+        self.format_version = BILLING_CACHE_LAST_VERSION;
+        self.data = Some(profile);
+        self.cached_at = Some(Instant::now());
+    }
+
+    /// Invalidate cache by setting version to a non-matching value.
+    /// Anytype equivalent: CacheClear() creates newStorageStruct() with CurrentVersion = cacheLastVersion
+    /// but we want more aggressive invalidation: future get() returns None until set() is called.
+    /// BUG FIX: BillingCache::invalidate() used to set format_version = 0 without restoring it in set().
+    /// Now set() always restores format_version to BILLING_CACHE_LAST_VERSION, so invalidate-then-set
+    /// produces a valid cache entry.
+    fn invalidate(&mut self) {
+        self.data = None;
+        self.cached_at = None;
+        self.format_version = 0;
+    }
+}
+
+/// RefreshController modeled exactly after Anytype's refresh.go.
+/// Normally polls every 60s. After `force()`, polls every 10s for 30min.
+struct BillingRefreshController {
+    shutdown_tx: tokio::sync::oneshot::Sender<()>,
+    force_tx: tokio::sync::mpsc::UnboundedSender<std::time::Duration>,
+}
+
+impl BillingRefreshController {
+    /// Spawn the refresh loop. The `fetch` callback is called on each tick.
+    /// Anytype refresh.go 1:1 pattern.
+    /// Returns `(changed: bool, err: Option<String>)`.
+    /// - `changed = true` → exits force mode (data updated)
+    /// - `err = Some(...)` → logged, force mode continues (anytype: log.Warn + continue)
+    fn spawn<F, Fut>(app: AppHandle, manager: AuthManager, fetch: F) -> Self
+    where
+        F: Fn(AppHandle, AuthManager) -> Fut + Send + 'static,
+        Fut: std::future::Future<Output = (bool, Option<String>)> + Send,
+    {
+        let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+        let (force_tx, mut force_rx) = tokio::sync::mpsc::unbounded_channel::<Duration>();
+
+        tokio::spawn(async move {
+            let mut force_active = false;
+            let mut force_deadline = Instant::now();
+            let mut first = true;
+
+            loop {
+                // Determine next interval (Anytype: resetTimer)
+                let interval = if first {
+                    first = false;
+                    Duration::ZERO
+                } else if force_active {
+                    BILLING_FORCE_INTERVAL
+                } else {
+                    BILLING_NORMAL_INTERVAL
+                };
+
+                // Anytype: timer.Reset(interval) in the loop
+                tokio::select! {
+                    _ = &mut shutdown_rx => break,  // Anytype: <-rc.ctx.Done()
+                    force_duration = force_rx.recv() => {
+                        // Anytype: Force(duration) → extend deadline
+                        let now = Instant::now();
+                        let extend = force_duration.unwrap_or(BILLING_FORCE_WINDOW);
+                        if !force_active {
+                            force_active = true;
+                            force_deadline = now + extend;
+                        } else {
+                            let new_deadline = now + extend;
+                            if new_deadline > force_deadline {
+                                force_deadline = new_deadline;
+                            }
+                        }
+                        // Fall through to fetch immediately (anytype: resetTimer(timer, 0))
+                    }
+                    _ = tokio::time::sleep(interval) => {}
+                }
+
+                // Execute fetch (Anytype: rc.fetch(rc.ctx, forceActive))
+                let (changed, fetch_err) = fetch(app.clone(), manager.clone()).await;
+
+                // Anytype pattern: log.Warn on error, force mode continues
+                if let Some(err) = fetch_err {
+                    eprintln!("[BillingRefresh] fetch failed (force={force_active}): {err}");
+                }
+
+                // Update force mode (Anytype: switch { case changed: ... case deadline: ... })
+                if force_active {
+                    if changed {
+                        force_active = false;
+                    } else if Instant::now() >= force_deadline {
+                        eprintln!("[BillingRefresh] force window expired before data changed");
+                        force_active = false;
+                    }
+                }
+            }
+        });
+
+        Self {
+            shutdown_tx,
+            force_tx,
+        }
+    }
+
+    /// Enter force-refresh mode. Modeled after Anytype's `Force(duration)`.
+    /// Pass a custom duration, or None for the default 30min window.
+    fn force(&self, duration: Option<Duration>) {
+        let d = duration.unwrap_or(BILLING_FORCE_WINDOW);
+        let _ = self.force_tx.send(d);
+    }
+
+    /// Stop the refresh loop. Modeled after Anytype's `Stop()`.
+    fn stop(self) {
+        let _ = self.shutdown_tx.send(());
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -93,6 +262,12 @@ pub struct BillingProfilePayload {
     pub has_active_subscription: bool,
     pub subscription_end_date: Option<String>,
     pub cancel_at_period_end: Option<bool>,
+    /// Anytype finalization pattern: payment succeeded but user must complete setup.
+    #[serde(default)]
+    pub requires_finalization: bool,
+    /// Monotonic version counter for cache invalidation detection.
+    #[serde(default)]
+    pub cache_version: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -163,9 +338,9 @@ impl BillingTier {
             .map(str::to_lowercase)
             .as_deref()
         {
-            Some("creator") => BillingTier::Core,
-            Some("studio") => BillingTier::Pro,
-            Some("empire") => BillingTier::Power,
+            Some("creator") | Some("core") => BillingTier::Core,
+            Some("studio") | Some("pro") => BillingTier::Pro,
+            Some("empire") | Some("power") => BillingTier::Power,
             _ => BillingTier::Free,
         }
     }
@@ -181,7 +356,6 @@ pub struct AuthErrorPayload {
 struct AuthConfig {
     supabase_url: String,
     supabase_anon_key: String,
-    service_role_key: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -213,6 +387,8 @@ impl Default for AuthRuntimeState {
 struct AuthInner {
     config: AuthConfig,
     state: Mutex<AuthRuntimeState>,
+    billing_cache: Mutex<BillingCache>, // cached billing profile
+    refresh_controller: Mutex<Option<BillingRefreshController>>, // background poller
 }
 
 #[derive(Clone)]
@@ -222,10 +398,13 @@ pub struct AuthManager {
 
 impl AuthManager {
     pub fn new() -> Result<Self, String> {
+        migrate_service_role_key_to_keyring();
         Ok(Self {
             inner: Arc::new(AuthInner {
                 config: AuthConfig::from_env()?,
                 state: Mutex::new(AuthRuntimeState::default()),
+                billing_cache: Mutex::new(BillingCache::new()),
+                refresh_controller: Mutex::new(None),
             }),
         })
     }
@@ -235,9 +414,9 @@ impl AuthManager {
             let state = self.inner.state.lock().await;
             match state.bootstrap {
                 AuthBootstrapState::LoginRequired => None,
-                AuthBootstrapState::Restored { ref user } => Some(AuthBootstrapState::Restored {
-                    user: user.clone(),
-                }),
+                AuthBootstrapState::Restored { ref user } => {
+                    Some(AuthBootstrapState::Restored { user: user.clone() })
+                }
             }
         };
 
@@ -281,13 +460,14 @@ impl AuthManager {
         let state = self.inner.state.lock().await;
         match &state.bootstrap {
             AuthBootstrapState::LoginRequired => AuthBootstrapState::LoginRequired,
-            AuthBootstrapState::Restored { user } => AuthBootstrapState::Restored {
-                user: user.clone(),
-            },
+            AuthBootstrapState::Restored { user } => {
+                AuthBootstrapState::Restored { user: user.clone() }
+            }
         }
     }
 
     pub async fn start_google_login(&self, app: AppHandle) -> Result<(), String> {
+        let config = self.inner.config.clone();
         let flow = self.new_flow();
 
         {
@@ -324,7 +504,7 @@ impl AuthManager {
             }
         }
 
-        let auth_url = self.build_authorize_url(&flow)?;
+        let auth_url = self.build_authorize_url(&flow, &config)?;
         app.opener()
             .open_url(auth_url.as_str(), None::<&str>)
             .map_err(|error| error.to_string())?;
@@ -347,46 +527,150 @@ impl AuthManager {
     }
 
     pub async fn prepare_shell_window(window: WebviewWindow) -> Result<(), String> {
-        restore_main_window(&window).map_err(|error| error.to_string())?;
-        Ok(())
+        use crate::window_bounds::transition_to_shell;
+        transition_to_shell(&window).map_err(|error| error.to_string())
     }
 
     pub async fn sign_out(&self) -> Result<(), String> {
         self.clear_session().await;
         self.delete_session_from_keyring();
-        self.set_bootstrap(AuthBootstrapState::login_required()).await;
+        self.set_bootstrap(AuthBootstrapState::login_required())
+            .await;
         Ok(())
     }
 
-    pub async fn begin_dodo_checkout(&self, app: AppHandle, plan: String) -> Result<(), String> {
-        let session = self
-            .current_session()
-            .await
-            .ok_or_else(|| "Sign in before starting checkout.".to_string())?;
+    /// Fetch billing profile with caching. Returns cached data if fresh, otherwise fetches from API.
+    /// After fetching, broadcasts event to frontend (Anytype sendMembershipUpdateEvent pattern).
+    pub async fn get_billing_profile_cached(&self) -> Result<BillingProfilePayload, String> {
+        // Check cache first (Anytype cache.go: CacheGet pattern)
+        {
+            let cache = self.inner.billing_cache.lock().await;
+            if let Some(cached) = cache.get() {
+                return Ok(cached.clone());
+            }
+        }
 
-        let checkout_url = self.create_dodo_checkout(&session, &plan).await?;
-        app.opener()
-            .open_url(checkout_url.as_str(), None::<&str>)
-            .map_err(|error| error.to_string())
+        // Cache miss or expired — fetch fresh
+        let session = self.current_valid_session().await?;
+        let profile = self.fetch_billing_profile(&session).await?;
+
+        // Update cache (Anytype cache.go: CacheSet pattern)
+        {
+            let mut cache = self.inner.billing_cache.lock().await;
+            cache.set(profile.clone());
+        }
+
+        Ok(profile)
     }
 
-    pub async fn begin_dodo_portal(&self, app: AppHandle) -> Result<(), String> {
-        let session = self
-            .current_session()
-            .await
-            .ok_or_else(|| "Sign in before opening billing management.".to_string())?;
+    /// Force-invalidate the billing cache so the next call fetches fresh data.
+    pub async fn invalidate_billing_cache(&self) {
+        let mut cache = self.inner.billing_cache.lock().await;
+        cache.invalidate();
+    }
 
-        let portal_url = self.create_dodo_portal(&session).await?;
-        app.opener()
-            .open_url(portal_url.as_str(), None::<&str>)
-            .map_err(|error| error.to_string())
+    /// Broadcast a billing status change event to the frontend.
+    /// Anytype pattern: sendMembershipUpdateEvent() / sendMembershipV2UpdateEvent()
+    /// uses eventSender.Broadcast() to push real-time updates to subscribers.
+    /// Here we emit via Tauri's event system which the frontend EventBus picks up.
+    pub async fn broadcast_billing_event(&self, app: &AppHandle) {
+        // Fetch FRESH data (not cached) to avoid broadcasting stale state.
+        // Anytype: fetchAndUpdate fetches first, then broadcasts with the fresh data.
+        if let Ok(profile) = self.get_billing_profile().await {
+            let _ = app.emit("billing:status-changed", &profile);
+        }
+    }
+
+    /// Broadcast a tiers/products change event to the frontend.
+    /// Anytype pattern: sendTiersUpdateEvent() / sendMembershipV2ProductsUpdateEvent()
+    /// This is separate from the subscription status event so the UI can update
+    /// pricing/feature lists without re-rendering the subscription card.
+    pub async fn broadcast_tiers_event(&self, app: &AppHandle) {
+        if let Ok(profile) = self.get_billing_profile().await {
+            let _ = app.emit("billing:tiers-changed", &profile);
+        }
+    }
+
+    /// Start (or ensure) the background billing refresh loop.
+    /// If `force`, enter aggressive polling mode (10s for 30min).
+    pub(crate) async fn start_billing_refresh(&self, app: AppHandle, force: bool) {
+        // Invalidate cache on any payment action (Anytype cache invalidation pattern)
+        self.invalidate_billing_cache().await;
+
+        let mut rc_lock = self.inner.refresh_controller.lock().await;
+
+        if rc_lock.is_none() {
+            let app_for_fetch = app.clone();
+            let fetch = move |_app: AppHandle, mgr: AuthManager| {
+                let app = app_for_fetch.clone();
+                async move {
+                    // fetchAndUpdate pattern (Anytype payments.go: fetchAndUpdate / fetchAndUpdateV2).
+                    // 1) Fetch profile from network
+                    // 2) Compare with cached data
+                    // 3) If changed → broadcast event + return changed=true
+                    // 4) If same → just update cache (refresh TTL), no broadcast, return changed=false
+                    // 5) On error → log, return changed=false to keep force mode alive
+                    let session = mgr.current_session().await;
+                    let Some(session) = session else {
+                        return (false, Some("No active session".to_string()));
+                    };
+
+                    // Step 1: Fetch fresh data
+                    match mgr.fetch_billing_profile(&session).await {
+                        Ok(new_profile) => {
+                            // Step 2: Compare with cached data (Anytype: fetchAndUpdate does deep comparison)
+                            let changed = {
+                                let cache = mgr.inner.billing_cache.lock().await;
+                                match cache.get() {
+                                    Some(cached) => {
+                                        // Compare relevant fields (subscription status, plan, tier)
+                                        cached.subscription_status
+                                            != new_profile.subscription_status
+                                            || cached.subscription_plan_code
+                                                != new_profile.subscription_plan_code
+                                            || cached.billing_tier != new_profile.billing_tier
+                                            || cached.requires_finalization
+                                                != new_profile.requires_finalization
+                                    }
+                                    None => true, // No cache → always changed
+                                }
+                            };
+
+                            // Step 3-4: Update cache always (refreshes TTL)
+                            {
+                                let mut cache = mgr.inner.billing_cache.lock().await;
+                                cache.set(new_profile.clone());
+                            }
+
+                            // Step 5: Only broadcast if data actually changed (Anytype pattern)
+                            if changed {
+                                let _ = app.emit("billing:status-changed", &new_profile);
+                            }
+
+                            (changed, None) // Anytype: fetch returns (changed, error)
+                        }
+                        Err(err) => {
+                            // Anytype: log.Warn on error, force mode continues
+                            (false, Some(err))
+                        }
+                    }
+                }
+            };
+
+            let controller = BillingRefreshController::spawn(app.clone(), self.clone(), fetch);
+            *rc_lock = Some(controller);
+        }
+
+        if force {
+            if let Some(ref controller) = *rc_lock {
+                // Anytype: Force(duration) pattern — pass default 30min window
+                controller.force(None);
+            }
+        }
     }
 
     pub async fn get_billing_profile(&self) -> Result<BillingProfilePayload, String> {
-        let session = self
-            .current_session()
-            .await
-            .ok_or_else(|| "Sign in to view billing.".to_string())?;
+        let session = self.current_valid_session().await?;
         self.fetch_billing_profile(&session).await
     }
 
@@ -433,15 +717,7 @@ impl AuthManager {
             .await
             .ok_or_else(|| "Sign in to delete your account.".to_string())?;
 
-        let service_role_key = self
-            .inner
-            .config
-            .service_role_key
-            .as_ref()
-            .ok_or_else(|| {
-                "Deleting an account requires SUPABASE_SERVICE_ROLE_KEY to be configured."
-                    .to_string()
-            })?;
+        let service_role_key = get_service_role_key()?;
 
         if session.user.id.trim().is_empty() {
             return Err("Authenticated session is missing a user id.".to_string());
@@ -456,7 +732,7 @@ impl AuthManager {
 
         let response = client
             .delete(url)
-            .header("apikey", service_role_key)
+            .header("apikey", &service_role_key)
             .header("Authorization", format!("Bearer {service_role_key}"))
             .send()
             .await
@@ -469,7 +745,8 @@ impl AuthManager {
 
         self.clear_session().await;
         self.delete_session_from_keyring();
-        self.set_bootstrap(AuthBootstrapState::login_required()).await;
+        self.set_bootstrap(AuthBootstrapState::login_required())
+            .await;
         Ok(())
     }
 
@@ -481,6 +758,43 @@ impl AuthManager {
     pub async fn current_session(&self) -> Option<StoredAuthSession> {
         let state = self.inner.state.lock().await;
         state.session.clone()
+    }
+
+    async fn current_valid_session(&self) -> Result<StoredAuthSession, String> {
+        let session = self
+            .current_session()
+            .await
+            .ok_or_else(|| "Sign in before continuing.".to_string())?;
+
+        if session.expires_at_ms - unix_ms() > 60_000 {
+            return Ok(session);
+        }
+
+        match self.refresh_session(&session.refresh_token).await {
+            Ok(refreshed) => {
+                self.persist_session(&refreshed)?;
+                self.set_session(refreshed.clone()).await;
+                self.set_bootstrap(AuthBootstrapState::restored(refreshed.user.clone()))
+                    .await;
+                self.spawn_profile_sync(refreshed.clone());
+                Ok(refreshed)
+            }
+            Err(error) => {
+                self.clear_session().await;
+                self.delete_session_from_keyring();
+                Err(format!(
+                    "Session expired. Sign in again before continuing: {error}"
+                ))
+            }
+        }
+    }
+
+    /// Returns (supabase_url, anon_key) for use in sync calls.
+    pub fn supabase_config(&self) -> (String, String) {
+        (
+            self.inner.config.supabase_url.clone(),
+            self.inner.config.supabase_anon_key.clone(),
+        )
     }
 
     async fn clear_session(&self) {
@@ -498,6 +812,9 @@ impl AuthManager {
 
     async fn set_bootstrap(&self, bootstrap: AuthBootstrapState) {
         let mut state = self.inner.state.lock().await;
+        if matches!(bootstrap, AuthBootstrapState::LoginRequired) && state.session.is_some() {
+            return;
+        }
         state.bootstrap = bootstrap;
     }
 
@@ -595,10 +912,14 @@ impl AuthManager {
         }
     }
 
-    fn build_authorize_url(&self, flow: &ActiveAuthFlow) -> Result<Url, String> {
+    fn build_authorize_url(
+        &self,
+        flow: &ActiveAuthFlow,
+        config: &AuthConfig,
+    ) -> Result<Url, String> {
         let mut url = Url::parse(&format!(
             "{}/auth/v1/authorize",
-            self.inner.config.supabase_url.trim_end_matches('/')
+            config.supabase_url.trim_end_matches('/')
         ))
         .map_err(|error| error.to_string())?;
 
@@ -718,18 +1039,19 @@ impl AuthManager {
         code_verifier: &str,
         redirect_uri: &str,
     ) -> Result<StoredAuthSession, String> {
+        let config = self.inner.config.clone();
         let client = Client::new();
         let url = format!(
             "{}/auth/v1/token?grant_type=pkce",
-            self.inner.config.supabase_url.trim_end_matches('/')
+            config.supabase_url.trim_end_matches('/')
         );
 
         let response = client
             .post(url)
-            .header("apikey", &self.inner.config.supabase_anon_key)
+            .header("apikey", &config.supabase_anon_key)
             .header(
                 "Authorization",
-                format!("Bearer {}", self.inner.config.supabase_anon_key),
+                format!("Bearer {}", config.supabase_anon_key),
             )
             .header("Content-Type", "application/json")
             .json(&json!({
@@ -746,7 +1068,8 @@ impl AuthManager {
             return Err(format!("Supabase auth exchange failed: {text}"));
         }
 
-        let token: SupabaseTokenResponse = response.json().await.map_err(|error| error.to_string())?;
+        let token: SupabaseTokenResponse =
+            response.json().await.map_err(|error| error.to_string())?;
         Ok(StoredAuthSession {
             access_token: token.access_token,
             refresh_token: token.refresh_token,
@@ -763,10 +1086,11 @@ impl AuthManager {
             return Ok(());
         }
 
+        let config = self.inner.config.clone();
         let client = Client::new();
         let url = format!(
             "{}/rest/v1/profiles?on_conflict=id",
-            self.inner.config.supabase_url.trim_end_matches('/')
+            config.supabase_url.trim_end_matches('/')
         );
 
         let payload = json!({
@@ -784,10 +1108,13 @@ impl AuthManager {
 
         let response = client
             .post(url)
-            .header("apikey", &self.inner.config.supabase_anon_key)
+            .header("apikey", &config.supabase_anon_key)
             .header("Authorization", format!("Bearer {}", session.access_token))
             .header("Content-Type", "application/json")
-            .header("Prefer", "resolution=merge-duplicates,return=representation")
+            .header(
+                "Prefer",
+                "resolution=merge-duplicates,return=representation",
+            )
             .json(&payload)
             .send()
             .await
@@ -806,16 +1133,17 @@ impl AuthManager {
         session: &StoredAuthSession,
         display_name: &str,
     ) -> Result<(), String> {
+        let config = self.inner.config.clone();
         let client = Client::new();
         let url = format!(
             "{}/rest/v1/profiles?id=eq.{}",
-            self.inner.config.supabase_url.trim_end_matches('/'),
+            config.supabase_url.trim_end_matches('/'),
             session.user.id
         );
 
         let response = client
             .patch(url)
-            .header("apikey", &self.inner.config.supabase_anon_key)
+            .header("apikey", &config.supabase_anon_key)
             .header("Authorization", format!("Bearer {}", session.access_token))
             .header("Content-Type", "application/json")
             .header("Prefer", "return=representation")
@@ -836,18 +1164,19 @@ impl AuthManager {
     }
 
     async fn refresh_session(&self, refresh_token: &str) -> Result<StoredAuthSession, String> {
+        let config = self.inner.config.clone();
         let client = Client::new();
         let url = format!(
             "{}/auth/v1/token?grant_type=refresh_token",
-            self.inner.config.supabase_url.trim_end_matches('/')
+            config.supabase_url.trim_end_matches('/')
         );
 
         let response = client
             .post(url)
-            .header("apikey", &self.inner.config.supabase_anon_key)
+            .header("apikey", &config.supabase_anon_key)
             .header(
                 "Authorization",
-                format!("Bearer {}", self.inner.config.supabase_anon_key),
+                format!("Bearer {}", config.supabase_anon_key),
             )
             .header("Content-Type", "application/json")
             .json(&json!({
@@ -862,7 +1191,8 @@ impl AuthManager {
             return Err(format!("Supabase refresh failed: {text}"));
         }
 
-        let token: SupabaseTokenResponse = response.json().await.map_err(|error| error.to_string())?;
+        let token: SupabaseTokenResponse =
+            response.json().await.map_err(|error| error.to_string())?;
         Ok(StoredAuthSession {
             access_token: token.access_token,
             refresh_token: token.refresh_token,
@@ -874,73 +1204,11 @@ impl AuthManager {
         })
     }
 
-    async fn create_dodo_checkout(
-        &self,
-        session: &StoredAuthSession,
-        plan: &str,
-    ) -> Result<String, String> {
-        let base_url = app_base_url();
-        let plan_tier = plan
-            .split('_')
-            .next()
-            .map(str::to_lowercase)
-            .unwrap_or_else(|| "creator".to_string());
-        let response = Client::new()
-            .post(format!("{base_url}/api/dodo-checkout"))
-            .header("Authorization", format!("Bearer {}", session.access_token))
-            .header("Content-Type", "application/json")
-            .header("Origin", base_url.as_str())
-            .json(&json!({
-                "plan": plan,
-                "return_url": format!("genesis://payment-callback?plan={plan_tier}"),
-                "cancel_url": "genesis://pricing?status=cancelled",
-            }))
-            .send()
-            .await
-            .map_err(|error| error.to_string())?;
-
-        if !response.status().is_success() {
-            let text = response.text().await.unwrap_or_default();
-            return Err(format!("Desktop checkout failed: {text}"));
-        }
-
-        let payload: Value = response.json().await.map_err(|error| error.to_string())?;
-        payload
-            .get("checkout_url")
-            .and_then(Value::as_str)
-            .map(|value| value.to_string())
-            .ok_or_else(|| "Desktop checkout did not return a checkout URL.".to_string())
-    }
-
-    async fn create_dodo_portal(&self, session: &StoredAuthSession) -> Result<String, String> {
-        let base_url = app_base_url();
-        let response = Client::new()
-            .post(format!("{base_url}/api/dodo-portal"))
-            .header("Authorization", format!("Bearer {}", session.access_token))
-            .header("Content-Type", "application/json")
-            .header("Origin", base_url.as_str())
-            .json(&json!({}))
-            .send()
-            .await
-            .map_err(|error| error.to_string())?;
-
-        if !response.status().is_success() {
-            let text = response.text().await.unwrap_or_default();
-            return Err(format!("Desktop billing portal failed: {text}"));
-        }
-
-        let payload: Value = response.json().await.map_err(|error| error.to_string())?;
-        payload
-            .get("portal_url")
-            .and_then(Value::as_str)
-            .map(|value| value.to_string())
-            .ok_or_else(|| "Desktop billing portal did not return a portal URL.".to_string())
-    }
-
     async fn fetch_billing_profile(
         &self,
         session: &StoredAuthSession,
     ) -> Result<BillingProfilePayload, String> {
+        let config = self.inner.config.clone();
         if session.user.id.trim().is_empty() {
             let billing_tier = BillingTier::Free;
             return Ok(BillingProfilePayload {
@@ -960,18 +1228,20 @@ impl AuthManager {
                 has_active_subscription: false,
                 subscription_end_date: None,
                 cancel_at_period_end: None,
+                requires_finalization: false,
+                cache_version: BILLING_CACHE_LAST_VERSION,
             });
         }
 
         let url = format!(
             "{}/rest/v1/profiles?id=eq.{}&select=id,email,display_name,full_name,avatar_url,user_tier,payment_provider,subscription_status,subscription_plan_code,subscription_end_date,cancel_at_period_end",
-            self.inner.config.supabase_url.trim_end_matches('/'),
+            config.supabase_url.trim_end_matches('/'),
             session.user.id
         );
 
         let response = Client::new()
             .get(url)
-            .header("apikey", &self.inner.config.supabase_anon_key)
+            .header("apikey", &config.supabase_anon_key)
             .header("Authorization", format!("Bearer {}", session.access_token))
             .header("Accept", "application/json")
             .send()
@@ -986,7 +1256,9 @@ impl AuthManager {
         let profiles: Vec<SupabaseProfileRecord> =
             response.json().await.map_err(|error| error.to_string())?;
         let profile = profiles.into_iter().next();
-        let payment_provider = profile.as_ref().and_then(|value| value.payment_provider.clone());
+        let payment_provider = profile
+            .as_ref()
+            .and_then(|value| value.payment_provider.clone());
         let subscription_status = profile
             .as_ref()
             .and_then(|value| value.subscription_status.clone());
@@ -1015,6 +1287,12 @@ impl AuthManager {
                 .as_ref()
                 .and_then(|value| value.cancel_at_period_end),
         );
+
+        // Anytype finalization pattern
+        let requires_finalization = subscription_needs_finalization(subscription_status.as_deref());
+        // Cache version for frontend change detection (Anytype format version pattern).
+        // Uses the format version constant so the frontend can detect schema changes.
+        let cache_version = BILLING_CACHE_LAST_VERSION;
 
         Ok(BillingProfilePayload {
             id: profile
@@ -1068,6 +1346,8 @@ impl AuthManager {
             cancel_at_period_end: profile
                 .as_ref()
                 .and_then(|value| value.cancel_at_period_end),
+            requires_finalization,
+            cache_version, // format version (Anytype cache.go: CurrentVersion)
         })
     }
 }
@@ -1090,7 +1370,7 @@ fn resolve_active_plan_code(
 
     let plan_code = subscription_plan_code?.trim().to_lowercase();
     match plan_code.as_str() {
-        "creator" | "studio" | "empire" => Some(plan_code),
+        "creator" | "core" | "studio" | "pro" | "empire" | "power" => Some(plan_code),
         _ => None,
     }
 }
@@ -1145,7 +1425,11 @@ fn map_supabase_user(user: SupabaseUser) -> AuthUser {
         .get("full_name")
         .and_then(Value::as_str)
         .or_else(|| user.user_metadata.get("name").and_then(Value::as_str))
-        .or_else(|| user.user_metadata.get("display_name").and_then(Value::as_str))
+        .or_else(|| {
+            user.user_metadata
+                .get("display_name")
+                .and_then(Value::as_str)
+        })
         .or_else(|| user.email.as_deref())
         .unwrap_or(&user.id)
         .to_string();
@@ -1187,8 +1471,8 @@ pub(crate) fn module_required_tier(module_id: &str) -> BillingTier {
         "notes" | "journal" | "tasks" | "passwords" | "budget" => BillingTier::Core,
         "ai" => BillingTier::Pro,
         "telemetry" | "habits" | "focus" | "health" | "sleep" | "nutrition" | "mood"
-        | "flashcards" | "reading" | "grocery" | "recipes" | "time" | "goals"
-        | "clipboard" | "breathing" | "voice-memos" | "countdown" => BillingTier::Pro,
+        | "flashcards" | "reading" | "grocery" | "recipes" | "time" | "goals" | "clipboard"
+        | "breathing" | "voice-memos" | "countdown" => BillingTier::Pro,
         _ => BillingTier::Pro,
     }
 }
@@ -1221,14 +1505,24 @@ fn subscription_is_access_active(
 
     match subscription_status.map(|value| value.trim()) {
         Some("active") => true,
-        Some("cancelled") if cancel_at_period_end.unwrap_or(false) => {
-            subscription_end_date
-                .and_then(parse_rfc3339_to_utc)
-                .map(|end_date| end_date > Utc::now())
-                .unwrap_or(true)
-        }
+        // Anytype finalization pattern: payment succeeded but user must complete setup.
+        // During this window the tier is granted on a grace basis.
+        Some("finalization_required") => true,
+        Some("cancelled") if cancel_at_period_end.unwrap_or(false) => subscription_end_date
+            .and_then(parse_rfc3339_to_utc)
+            .map(|end_date| end_date > Utc::now())
+            .unwrap_or(true),
         _ => false,
     }
+}
+
+/// Returns true when the subscription status indicates finalization is needed.
+/// Anytype pattern: after payment success, user must complete finalization steps.
+fn subscription_needs_finalization(subscription_status: Option<&str>) -> bool {
+    matches!(
+        subscription_status.map(|v| v.trim()),
+        Some("finalization_required")
+    )
 }
 
 fn parse_rfc3339_to_utc(value: &str) -> Option<DateTime<Utc>> {
@@ -1255,14 +1549,6 @@ fn callback_url() -> String {
     format!("http://127.0.0.1:{SUPABASE_OAUTH_PORT}/auth/callback")
 }
 
-fn app_base_url() -> String {
-    env::var("APP_URL")
-        .or_else(|_| env::var("VITE_APP_URL"))
-        .unwrap_or_else(|_| "https://iamazeyou.me".to_string())
-        .trim_end_matches('/')
-        .to_string()
-}
-
 fn callback_url_with_state(flow_state: &str) -> Result<Url, String> {
     let mut redirect_to = Url::parse(&callback_url()).map_err(|error| error.to_string())?;
     redirect_to
@@ -1284,10 +1570,7 @@ fn pkce_challenge(code_verifier: &str) -> String {
 }
 
 fn unix_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis() as i64)
-        .unwrap_or(0)
+    crate::util::time::now_ms()
 }
 
 #[cfg(test)]
@@ -1307,8 +1590,37 @@ impl AuthConfig {
         Ok(Self {
             supabase_url,
             supabase_anon_key,
-            service_role_key: env::var("SUPABASE_SERVICE_ROLE_KEY").ok(),
         })
+    }
+}
+
+/// Retrieve the Supabase service role key from the OS keyring.
+/// Falls back to the SUPABASE_SERVICE_ROLE_KEY env var for migration.
+fn get_service_role_key() -> Result<String, String> {
+    let entry = Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_SERVICE_ROLE_ACCOUNT)
+        .map_err(|e| format!("Keyring error: {e}"))?;
+    match entry.get_password() {
+        Ok(key) => Ok(key),
+        Err(keyring::Error::NoEntry) => {
+            // Migration fallback: try env var
+            env::var("SUPABASE_SERVICE_ROLE_KEY")
+                .map_err(|_| "Service role key not configured. Set SUPABASE_SERVICE_ROLE_KEY env var or store it in the OS keychain.".to_string())
+        }
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Migrate SUPABASE_SERVICE_ROLE_KEY from env var into OS keyring on first launch.
+fn migrate_service_role_key_to_keyring() {
+    if let Ok(key) = env::var("SUPABASE_SERVICE_ROLE_KEY") {
+        if !key.is_empty() {
+            if let Ok(entry) = Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_SERVICE_ROLE_ACCOUNT) {
+                // Only store if no entry exists yet (first launch)
+                if entry.get_password().is_err() {
+                    let _ = entry.set_password(&key);
+                }
+            }
+        }
     }
 }
 
@@ -1352,20 +1664,15 @@ pub async fn sign_out(app: AppHandle, manager: State<'_, AuthManager>) -> Result
 }
 
 #[tauri::command]
-pub async fn begin_dodo_checkout(
-    app: AppHandle,
-    manager: State<'_, AuthManager>,
-    plan: String,
-) -> Result<(), String> {
-    manager.begin_dodo_checkout(app, plan).await
-}
+pub async fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
+    let parsed = Url::parse(url.trim()).map_err(|error| error.to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return Err("Only http(s) URLs can be opened externally.".to_string());
+    }
 
-#[tauri::command]
-pub async fn begin_dodo_portal(
-    app: AppHandle,
-    manager: State<'_, AuthManager>,
-) -> Result<(), String> {
-    manager.begin_dodo_portal(app).await
+    app.opener()
+        .open_url(parsed.as_str(), None::<&str>)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -1375,13 +1682,88 @@ pub async fn get_billing_profile(
     manager.get_billing_profile().await
 }
 
+/// Fetch billing profile with caching (Anytype cache.go pattern).
+#[tauri::command]
+pub async fn get_billing_profile_cached(
+    manager: State<'_, AuthManager>,
+) -> Result<BillingProfilePayload, String> {
+    manager.get_billing_profile_cached().await
+}
+
+/// Force-invalidate billing cache and trigger aggressive polling (Anytype ForceRefresh pattern).
+/// Also broadcasts event to frontend (Anytype sendMembershipUpdateEvent).
+#[tauri::command]
+pub async fn force_refresh_billing(
+    app: AppHandle,
+    manager: State<'_, AuthManager>,
+) -> Result<(), String> {
+    manager.invalidate_billing_cache().await;
+    manager.start_billing_refresh(app.clone(), true).await;
+
+    // Broadcast current status to frontend (Anytype: eventSender.Broadcast)
+    manager.broadcast_billing_event(&app).await;
+    Ok(())
+}
+
+/// Finalize subscription after successful payment (Anytype finalization pattern).
+/// Clears the `finalization_required` status on the user's profile.
+/// After finalization, broadcasts event to frontend (Anytype sendMembershipUpdateEvent).
+#[tauri::command]
+pub async fn finalize_subscription(
+    app: AppHandle,
+    manager: State<'_, AuthManager>,
+) -> Result<BillingProfilePayload, String> {
+    let session = manager
+        .current_session()
+        .await
+        .ok_or_else(|| "Sign in to finalize your subscription.".to_string())?;
+
+    // Update the subscription_status in Supabase to "active"
+    let client = Client::new();
+    let url = format!(
+        "{}/rest/v1/profiles?id=eq.{}",
+        manager.inner.config.supabase_url.trim_end_matches('/'),
+        session.user.id
+    );
+
+    let response = client
+        .patch(url)
+        .header("apikey", &manager.inner.config.supabase_anon_key)
+        .header("Authorization", format!("Bearer {}", session.access_token))
+        .header("Content-Type", "application/json")
+        .header("Prefer", "return=representation")
+        .json(&json!({
+            "subscription_status": "active",
+        }))
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+
+    if !response.status().is_success() {
+        let text = response.text().await.unwrap_or_default();
+        return Err(format!("Subscription finalization failed: {text}"));
+    }
+
+    // Invalidate cache so next fetch returns fresh data
+    manager.invalidate_billing_cache().await;
+
+    // Fetch and broadcast the updated profile (Anytype: sendMembershipUpdateEvent)
+    let profile = manager.get_billing_profile_cached().await?;
+    let _ = app.emit("billing:status-changed", &profile);
+
+    Ok(profile)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn login_required_is_the_default_bootstrap_state() {
-        assert_eq!(AuthBootstrapState::login_required(), AuthBootstrapState::LoginRequired);
+        assert_eq!(
+            AuthBootstrapState::login_required(),
+            AuthBootstrapState::LoginRequired
+        );
     }
 
     #[test]

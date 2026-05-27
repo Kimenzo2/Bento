@@ -6,7 +6,8 @@ param(
     [switch]$verbose = $false
 )
 
-$appRoot = "C:\Users\admin\.codex\worktrees\genesis-desktop\apps\genesis-desktop"
+$projectRoot = $PSScriptRoot
+$appRoot = Join-Path $projectRoot "apps\genesis-desktop"
 
 Set-Location $appRoot
 

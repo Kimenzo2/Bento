@@ -3,8 +3,8 @@
 
 $ErrorActionPreference = "Continue"
 
-$appRoot = "C:\Users\admin\.codex\worktrees\genesis-desktop\apps\genesis-desktop"
-$projectRoot = "C:\Users\admin\.codex\worktrees\genesis-desktop"
+$projectRoot = $PSScriptRoot
+$appRoot = Join-Path $projectRoot "apps\genesis-desktop"
 
 Write-Host "=== Genesis Desktop Launcher ===" -ForegroundColor Cyan
 Write-Host "App Root: $appRoot" -ForegroundColor Yellow

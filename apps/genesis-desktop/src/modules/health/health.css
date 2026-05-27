@@ -1,10 +1,12 @@
-/* Base container - using transparent background to utilize global theme */
+﻿/* Base container - using transparent background to utilize global theme */
 .health-app-container {
+  --mod-accent: #4CAF50;
   height: 100%;
   padding: 32px 40px;
   position: relative;
   animation: health-fade-in 0.3s ease;
-  color: var(--text-primary, #F9FAFB);
+  color: var(--foreground);
+  background: var(--mod-bg, var(--mod-bg-health));
 }
 
 @keyframes health-fade-in {
@@ -131,8 +133,9 @@
   display: flex;
   align-items: center;
   padding: 16px;
-  background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
-  border-radius: 16px;
+  border-radius: 20px;
+  border: none;
+  box-shadow: none;
 }
 .health-log-icon {
   width: 44px;
@@ -209,7 +212,7 @@
   align-items: center;
   justify-content: center;
   cursor: default;
-  box-shadow: 0 4px 20px rgba(200, 245, 53, 0.3);
+  box-shadow: none;
   transition: transform 0.2s ease;
   z-index: 10;
 }
@@ -236,13 +239,13 @@
   transform: translateX(-50%);
   width: calc(100% - 48px);
   max-width: 600px;
-  background: var(--bg-surface, #1C2128);
-  border-radius: 32px;
+  background: var(--surface);
+  border-radius: 20px;
   padding: 24px 32px 40px;
   z-index: 101;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  box-shadow: none;
   animation: health-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  border: none;
 }
 @keyframes health-slide-up {
   from { transform: translate(-50%, 100%); }
@@ -262,8 +265,9 @@
   gap: 20px;
 }
 .health-tile {
-  background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--card);
+  border: none;
+  box-shadow: none;
   border-radius: 20px;
   padding: 24px;
   display: flex;
@@ -274,7 +278,6 @@
   transition: all 0.2s ease;
 }
 .health-tile:hover {
-  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
   transform: translateY(-2px);
 }
 .health-tile-icon {
@@ -290,4 +293,32 @@
   font-size: 16px;
   font-weight: 500;
   color: var(--text-primary, white);
+}
+/* ── Card System Fix ──────────────────────────────────────────────── */
+.health-app-container [class*="-card"],
+.health-app-container [class*="-panel"],
+.health-app-container [class*="-block"],
+.health-app-container .metric-card,
+.health-app-container .log-item,
+.health-app-container .stat-block {
+  border: none !important;
+  box-shadow: none !important;
+  background: var(--card);
+  border-radius: 20px;
+}
+.dark .health-app-container [class*="-card"],
+.dark .health-app-container [class*="-panel"],
+.dark .health-app-container [class*="-block"],
+.dark .health-app-container .metric-card,
+.dark .health-app-container .log-item,
+.dark .health-app-container .stat-block {
+  background: var(--card);
+}
+/* Accent: daily goals progress */
+.health-app-container .goals-progress-card,
+.health-app-container .daily-summary {
+  background: var(--card) !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
 }

@@ -48,7 +48,7 @@
   </CardContent>
   <CardFooter class="gap-3">
     <Button class="rounded-full px-5" onclick={openProject}>Open project</Button>
-    <Button class="rounded-full px-5" variant="outline" onclick={() => goto("/editor")}>
+    <Button class="rounded-full px-5" variant="outline" onclick={() => goto("/notes")}>
       Continue editing
     </Button>
   </CardFooter>

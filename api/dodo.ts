@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 type SupabaseClient<T = any> = any;
 
@@ -89,8 +89,35 @@ const DODO_ENV: DodoEnvironment =
     ? 'test_mode'
     : 'live_mode';
 
-const SUPPORTED_TIERS = ['CREATOR', 'STUDIO', 'EMPIRE'] as const;
+const PUBLIC_PLAN_TIERS = ['CORE', 'PRO', 'POWER'] as const;
+const LEGACY_DB_TIERS = ['CREATOR', 'STUDIO', 'EMPIRE'] as const;
 const SUPPORTED_INTERVALS = ['MONTHLY', 'YEARLY'] as const;
+
+type PublicPlanTier = (typeof PUBLIC_PLAN_TIERS)[number];
+type LegacyDbTier = (typeof LEGACY_DB_TIERS)[number];
+type BillingInterval = (typeof SUPPORTED_INTERVALS)[number];
+
+type PlanResolution = {
+  productId: string;
+  publicTier: PublicPlanTier;
+  dbTier: LegacyDbTier;
+  interval: BillingInterval;
+};
+
+const PLAN_TIER_ALIASES: Record<string, { publicTier: PublicPlanTier; dbTier: LegacyDbTier }> = {
+  CORE: { publicTier: 'CORE', dbTier: 'CREATOR' },
+  CREATOR: { publicTier: 'CORE', dbTier: 'CREATOR' },
+  PRO: { publicTier: 'PRO', dbTier: 'STUDIO' },
+  STUDIO: { publicTier: 'PRO', dbTier: 'STUDIO' },
+  POWER: { publicTier: 'POWER', dbTier: 'EMPIRE' },
+  EMPIRE: { publicTier: 'POWER', dbTier: 'EMPIRE' },
+};
+
+const PRODUCT_ENV_TIERS: Record<PublicPlanTier, LegacyDbTier> = {
+  CORE: 'CREATOR',
+  PRO: 'STUDIO',
+  POWER: 'EMPIRE',
+};
 
 async function requireSupabaseAdmin(): Promise<SupabaseClient<any>> {
   await ensureSupabaseClientsLoaded();
@@ -222,31 +249,42 @@ function assertCheckoutUrlEnvironment(checkoutUrl: string, req: VercelRequest): 
   }
 }
 
-function parsePlan(plan: string): { tier: string; interval: string } | null {
-  const [tierRaw, intervalRaw] = plan.trim().toUpperCase().split('_');
+function parsePlan(
+  plan: string
+): { publicTier: PublicPlanTier; dbTier: LegacyDbTier; interval: BillingInterval } | null {
+  const parts = plan.trim().toUpperCase().split('_');
+  const tierRaw = parts[0];
+  const intervalRaw = parts.length >= 2 ? parts.slice(1).join('_') : 'MONTHLY';
+  const tier = PLAN_TIER_ALIASES[tierRaw];
 
-  if (!SUPPORTED_TIERS.includes(tierRaw as (typeof SUPPORTED_TIERS)[number])) {
+  if (!tier) {
     return null;
   }
 
-  if (!SUPPORTED_INTERVALS.includes(intervalRaw as (typeof SUPPORTED_INTERVALS)[number])) {
-    return null;
-  }
+  const interval = SUPPORTED_INTERVALS.includes(intervalRaw as BillingInterval)
+    ? (intervalRaw as BillingInterval)
+    : 'MONTHLY';
 
   return {
-    tier: tierRaw,
-    interval: intervalRaw,
+    publicTier: tier.publicTier,
+    dbTier: tier.dbTier,
+    interval,
   };
 }
 
-function resolveProductId(plan: string): { productId: string; tier: string; interval: string } | null {
+function resolveProductId(plan: string): PlanResolution | null {
   const parsedPlan = parsePlan(plan);
   if (!parsedPlan) {
     return null;
   }
 
-  const envKey = `DODO_PRODUCT_ID_${parsedPlan.tier}_${parsedPlan.interval}`;
-  const productId = process.env[envKey];
+  const envKeys = [
+    `DODO_PRODUCT_ID_${parsedPlan.publicTier}_${parsedPlan.interval}`,
+    `DODO_PRODUCT_ID_${parsedPlan.dbTier}_${parsedPlan.interval}`,
+    `DODO_PRODUCT_ID_${parsedPlan.publicTier}`,
+    `DODO_PRODUCT_ID_${parsedPlan.dbTier}`,
+  ];
+  const productId = envKeys.map((key) => process.env[key]).find(Boolean);
 
   if (!productId) {
     return null;
@@ -254,7 +292,8 @@ function resolveProductId(plan: string): { productId: string; tier: string; inte
 
   return {
     productId,
-    tier: parsedPlan.tier,
+    publicTier: parsedPlan.publicTier,
+    dbTier: parsedPlan.dbTier,
     interval: parsedPlan.interval,
   };
 }
@@ -262,11 +301,19 @@ function resolveProductId(plan: string): { productId: string; tier: string; inte
 function buildProductIdToTier(): Record<string, string> {
   const map: Record<string, string> = {};
 
-  for (const tier of SUPPORTED_TIERS) {
+  for (const publicTier of PUBLIC_PLAN_TIERS) {
+    const dbTier = PRODUCT_ENV_TIERS[publicTier];
     for (const interval of SUPPORTED_INTERVALS) {
-      const productId = process.env[`DODO_PRODUCT_ID_${tier}_${interval}`];
-      if (productId) {
-        map[productId] = tier;
+      for (const envKey of [
+        `DODO_PRODUCT_ID_${publicTier}_${interval}`,
+        `DODO_PRODUCT_ID_${dbTier}_${interval}`,
+        `DODO_PRODUCT_ID_${publicTier}`,
+        `DODO_PRODUCT_ID_${dbTier}`,
+      ]) {
+        const productId = process.env[envKey];
+        if (productId) {
+          map[productId] = dbTier;
+        }
       }
     }
   }
@@ -274,16 +321,25 @@ function buildProductIdToTier(): Record<string, string> {
   return map;
 }
 
-function productIdToTier(productId: string): string | null {
-  return buildProductIdToTier()[productId] ?? null;
+function productIdToTier(productId: string): LegacyDbTier | null {
+  return (buildProductIdToTier()[productId] as LegacyDbTier | undefined) ?? null;
+}
+
+function metadataPlanToDbTier(plan: string | undefined): LegacyDbTier | null {
+  if (!plan) {
+    return null;
+  }
+
+  return PLAN_TIER_ALIASES[plan.trim().toUpperCase()]?.dbTier ?? null;
 }
 
 function tierFromMetadataOrProduct(
   metadata?: Record<string, string>,
   productCart?: Array<{ product_id: string; quantity: number }>
-): string | null {
-  if (metadata?.plan) {
-    return metadata.plan.toUpperCase();
+): LegacyDbTier | null {
+  const metadataTier = metadataPlanToDbTier(metadata?.entitlement_tier || metadata?.plan);
+  if (metadataTier) {
+    return metadataTier;
   }
 
   if (productCart?.[0]?.product_id) {
@@ -394,11 +450,11 @@ function sanitizeCheckoutRedirectUrl(
   {
     appUrl,
     fallbackPath,
-    desktopPrefix,
+    desktopPrefixes,
   }: {
     appUrl: string;
     fallbackPath: string;
-    desktopPrefix: string;
+    desktopPrefixes: string[];
   }
 ): string {
   const fallbackUrl = `${appUrl}${fallbackPath}`;
@@ -407,7 +463,7 @@ function sanitizeCheckoutRedirectUrl(
   }
 
   const candidate = value.trim();
-  if (candidate.startsWith(desktopPrefix)) {
+  if (desktopPrefixes.some((prefix) => candidate.startsWith(prefix))) {
     return candidate;
   }
 
@@ -454,7 +510,8 @@ async function createCheckoutSession(params: {
   customerEmail: string;
   customerName: string;
   userId: string;
-  tier: string;
+  publicTier: PublicPlanTier;
+  dbTier: LegacyDbTier;
   returnUrl: string;
   cancelUrl?: string;
   req: VercelRequest;
@@ -485,7 +542,8 @@ async function createCheckoutSession(params: {
           metadata: {
             supabase_user_id: params.userId,
             supabase_email: params.customerEmail,
-            plan: params.tier,
+            plan: params.publicTier,
+            entitlement_tier: params.dbTier,
           },
         })
         .withResponse();
@@ -578,23 +636,24 @@ async function handleCheckout(req: VercelRequest, res: VercelResponse) {
 
     const customerName = authUser.name?.trim() || customerEmail;
     const appUrl = getAppUrl(req);
-    const tierSlug = resolvedPlan.tier.toLowerCase();
+    const tierSlug = resolvedPlan.publicTier.toLowerCase();
     const returnUrl = sanitizeCheckoutRedirectUrl(return_url, {
       appUrl,
       fallbackPath: `/payment-callback?plan=${tierSlug}`,
-      desktopPrefix: 'genesis://payment-callback',
+      desktopPrefixes: ['bento://payment-callback', 'genesis://payment-callback'],
     });
     const cancelUrl = sanitizeCheckoutRedirectUrl(cancel_url, {
       appUrl,
       fallbackPath: '/pricing',
-      desktopPrefix: 'genesis://pricing',
+      desktopPrefixes: ['bento://pricing', 'genesis://pricing'],
     });
     const session = await createCheckoutSession({
       productId: resolvedPlan.productId,
       customerEmail,
       customerName,
       userId: authUser.userId,
-      tier: resolvedPlan.tier,
+      publicTier: resolvedPlan.publicTier,
+      dbTier: resolvedPlan.dbTier,
       returnUrl,
       cancelUrl,
       req,
@@ -847,7 +906,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
               dodo_customer_id: data.customer?.customer_id ?? null,
               dodo_subscription_id: data.subscription_id ?? null,
               payment_provider: 'dodo',
-              subscription_status: 'active',
+              subscription_status: 'finalization_required',
               subscription_plan_code: tier.toLowerCase(),
               subscription_end_date: data.next_billing_date ?? null,
               updated_at: new Date().toISOString(),

@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { Activity, ServerCog, Database, AlertTriangle, CheckCircle2, TrendingUp, Download, BarChart3 } from 'lucide-svelte';
-  import { onMount } from 'svelte';
+  import { Activity, ServerCog, Database, AlertTriangle, CheckCircle2, Download, BarChart3 } from 'lucide-svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { activeBundle, createTranslator } from "$lib/i18n";
+  import { invoke, Channel, isTauri } from "@tauri-apps/api/core";
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
+
+  let t = (key: string, fallback?: string) => _t(key, fallback);
   import {
     getModuleSectionLabel,
-    setModuleSection,
     ensureModuleSection,
     moduleSectionStore,
   } from '$lib/stores/module-sections.store';
@@ -11,26 +16,144 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
 
-  export let moduleId: string = 'telemetry';
-  export let settings: any = {};
-  void settings;
+  let { moduleId = 'telemetry', settings = {} }: { moduleId?: string; settings?: any } = $props();
 
-  const sectionLabels = ["Overview", "Memory", "Performance", "Database", "Alerts", "Reports"] as const;
-  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
+  // ── Types matching Rust backend (camelCase as serialized) ──────────────
 
-  onMount(() => {
-    ensureModuleSection(moduleId, sectionLabels);
-  });
+  interface BrainOverviewPayload {
+    generatedAt: string;
+    overallState: string;
+    lastEvent: string;
+    cards: OverviewCard[];
+    miniApps: MiniAppTile[];
+    recentActivity: ActivityFeedItem[];
+  }
 
-  // Mock data
-  const metrics =  [
+  interface OverviewCard {
+    key: string;
+    label: string;
+    value: string;
+    status: string;
+    sparkline: number[];
+    note: string;
+  }
+
+  interface MiniAppTile {
+    miniAppId: string;
+    label: string;
+    state: string;
+    heapMb: number | null;
+    jsHeapMb: number | null;
+    anomalyCount: number;
+    lastAction: string;
+    lastSeenAt: string;
+    sparkline: number[];
+  }
+
+  interface ActivityFeedItem {
+    at: string;
+    title: string;
+    detail: string;
+    tone: string;
+  }
+
+  interface ModuleDetailPayload {
+    generatedAt: string;
+    selectedModuleId: string;
+    selectedLabel: string;
+    selectedState: string;
+    activeSince: string;
+    memoryPoints: GraphPoint[];
+    baselineHeapMb: number;
+    peakHeapMb: number;
+    rateMbPerMin: number;
+    projectedHeap5m: number;
+    projectionStatus: string;
+    ipcAvgMs: number;
+    ipcP95Ms: number;
+    dbAvgMs: number;
+    dbP95Ms: number;
+    stateHistory: StateHistoryEntry[];
+    insights: InsightCard[];
+    anomalyHistory: AnomalyHistoryEntry[];
+    availableModules: MiniAppPickerItem[];
+  }
+
+  interface GraphPoint {
+    label: string;
+    value: number;
+  }
+
+  interface StateHistoryEntry {
+    at: string;
+    state: string;
+  }
+
+  interface InsightCard {
+    title: string;
+    confidence: number;
+    observations: number;
+    description: string;
+  }
+
+  interface AnomalyHistoryEntry {
+    at: string;
+    severity: string;
+    kind: string;
+    message: string;
+    healAction: string | null;
+    resolvedInMs: number | null;
+  }
+
+  interface MiniAppPickerItem {
+    miniAppId: string;
+    label: string;
+    state: string;
+  }
+
+  interface InsightsPayload {
+    generatedAt: string;
+    newThisWeek: number;
+    insights: InsightCard[];
+    predictions: PredictionInsightCard[];
+    healings: HealingFeedItem[];
+  }
+
+  interface PredictionInsightCard {
+    miniAppId: string;
+    metric: string;
+    currentValue: number;
+    projectedValueIn5min: number;
+    timeToThresholdSecs: number;
+    wasCorrect: boolean | null;
+  }
+
+  interface HealingFeedItem {
+    at: string;
+    miniAppId: string;
+    action: string;
+    result: { status: string; message: string };
+    resolvedInMs: number;
+  }
+
+  // Brain events for real-time streaming
+  type BrainEvent =
+    | { type: "MetricsDelta"; module: string; heapMb: number | null; state: string | null; ipcMs: number | null }
+    | { type: "AnomalyDetected"; module: string; anomalyType: string; severity: string; message: string; projectedIfIgnored: string }
+    | { type: "HealingApplied"; module: string; actionTaken: string; result: { status: string; message: string }; msToResolve: number }
+    | { type: "InsightDiscovered"; correlation: string; confidence: number; observedNTimes: number }
+    | { type: "PredictiveWarning"; module: string; metric: string; currentValue: number; projectedValueIn5min: number; timeToThresholdSecs: number };
+
+  // ── Fallback mock data (non-Tauri) ─────────────────────────────────────
+
+  const fallbackMetrics = [
     { title: "Memory Usage", value: "248.5", unit: "MB", change: "+12.3%", icon: Database },
     { title: "API Latency", value: "2.4", unit: "ms", change: "-4.2%", icon: Activity },
     { title: "DB Queries", value: "142", unit: "/min", change: "+8.1%", icon: ServerCog },
     { title: "Active Users", value: "1", unit: "", change: "stable", icon: Activity },
   ];
 
-  const memoryData = [
+  const fallbackMemoryData = [
     { hour: '10:00', value: 186 },
     { hour: '11:00', value: 205 },
     { hour: '12:00', value: 198 },
@@ -40,267 +163,486 @@
     { hour: '16:00', value: 251 },
   ];
 
-  const processes = [
+  const fallbackProcesses = [
     { name: 'Tauri Runtime', memory: 142.3 },
     { name: 'WebView', memory: 85.6 },
     { name: 'Database', memory: 18.2 },
     { name: 'Renderer', memory: 12.4 },
   ];
 
-  const latencies = [
+  const fallbackLatencies = [
     { cmd: 'write_note', avg: 1.2, p95: 2.8, calls: 342 },
     { cmd: 'fetch_tasks', avg: 3.4, p95: 8.2, calls: 156 },
     { cmd: 'sync_calendar', avg: 5.1, p95: 14.3, calls: 48 },
     { cmd: 'get_health', avg: 0.3, p95: 0.6, calls: 4821 },
   ];
 
-  const tables = [
+  const fallbackTables = [
     { name: 'profiles', rows: '1.2K', size: '3.2 MB' },
     { name: 'payment_history', rows: '18.4K', size: '24.5 MB' },
     { name: 'processed_webhooks', rows: '3.3K', size: '5.1 MB' },
     { name: 'gamification_events', rows: '45.1K', size: '12.3 MB' },
   ];
 
-  const alerts = [
+  const fallbackAlerts: { time: string; severity: string; msg: string; resolved: boolean }[] = [
     { time: '14:22', severity: 'warning', msg: 'Memory spike detected', resolved: true },
     { time: '14:15', severity: 'critical', msg: 'IPC timeout on fetch', resolved: true },
     { time: '13:50', severity: 'info', msg: 'Query optimization applied', resolved: true },
   ];
 
-  const maxMem = Math.max(...memoryData.map(d => d.value));
-  const maxProc = Math.max(...processes.map(p => p.memory));
+  // ── State ──────────────────────────────────────────────────────────────
 
+  const canUseTauri = isTauri();
+
+  let loading = $state(true);
+  let error = $state<string | null>(null);
+
+  // Backend data
+  let overview = $state<BrainOverviewPayload | null>(null);
+  let moduleDetail = $state<ModuleDetailPayload | null>(null);
+  let insights = $state<InsightsPayload | null>(null);
+
+  // Live events feed
+  let liveEvents = $state<BrainEvent[]>([]);
+
+  // Derived values for sections (live data → fallback when null)
+  let metrics = $derived.by<{ title: string; value: string; unit: string; change: string; icon: any }[]>(() => {
+    if (overview?.cards) {
+      const cards = overview.cards;
+      const m: any[] = [];
+      const cardMap: Record<string, { title: string; unit: string }> = {
+        memory: { title: "Memory Usage", unit: "" },
+        ipc: { title: "API Latency", unit: "ms" },
+        db: { title: "DB Health", unit: "" },
+        network: { title: "Network", unit: "" },
+      };
+      for (const card of cards) {
+        const def = cardMap[card.key] ?? { title: card.label, unit: "" };
+        m.push({
+          title: def.title,
+          value: card.value.replace(/ MB$/, "").replace(/ ms$/, ""),
+          unit: def.unit || (card.value.includes("MB") ? "MB" : card.value.includes("ms") ? "ms" : ""),
+          change: card.status === "good" || card.status === "fast" ? "✓ healthy" : card.status === "watch" ? "⚠ watch" : card.status === "live" ? "live" : "idle",
+          icon: card.key === "memory" ? Database : card.key === "ipc" ? Activity : card.key === "db" ? ServerCog : Activity,
+        });
+      }
+      return m.slice(0, 4);
+    }
+    return fallbackMetrics;
+  });
+
+  let memoryData = $derived.by<{ hour: string; value: number }[]>(() => {
+    if (moduleDetail?.memoryPoints && moduleDetail.memoryPoints.length > 0) {
+      return moduleDetail.memoryPoints.map((p) => ({
+        hour: p.label.length > 5 ? p.label.slice(-5) : p.label,
+        value: p.value,
+      }));
+    }
+    return fallbackMemoryData;
+  });
+
+  let processes = $derived.by<{ name: string; memory: number }[]>(() => {
+    if (overview?.miniApps && overview.miniApps.length > 0) {
+      return overview.miniApps
+        .filter((a) => a.heapMb != null)
+        .sort((a, b) => (b.heapMb ?? 0) - (a.heapMb ?? 0))
+        .slice(0, 6)
+        .map((a) => ({ name: a.label, memory: a.heapMb ?? 0 }));
+    }
+    return fallbackProcesses;
+  });
+
+  let latencies = $derived.by<{ cmd: string; avg: number; p95: number; calls: number }[]>(() => {
+    if (moduleDetail) {
+      const items: { cmd: string; avg: number; p95: number; calls: number }[] = [];
+      items.push({ cmd: 'IPC (avg)', avg: moduleDetail.ipcAvgMs, p95: moduleDetail.ipcP95Ms, calls: 0 });
+      items.push({ cmd: 'DB (avg)', avg: moduleDetail.dbAvgMs, p95: moduleDetail.dbP95Ms, calls: 0 });
+      if (moduleDetail.availableModules.length > 0) {
+        for (const mod of moduleDetail.availableModules.slice(0, 4)) {
+          items.push({ cmd: mod.miniAppId, avg: 0, p95: 0, calls: 0 });
+        }
+      }
+      return items;
+    }
+    return fallbackLatencies;
+  });
+
+  let tables = $derived.by<{ name: string; rows: string; size: string }[]>(() => {
+    // Backend doesn't expose table-level info yet; keep fallback
+    return fallbackTables;
+  });
+
+  let alerts = $derived.by<{ time: string; severity: string; msg: string; resolved: boolean }[]>(() => {
+    const result: { time: string; severity: string; msg: string; resolved: boolean }[] = [];
+
+    // Live events first (most recent)
+    for (const event of liveEvents) {
+      if (event.type === "AnomalyDetected") {
+        result.push({
+          time: new Date().toLocaleTimeString(),
+          severity: event.severity,
+          msg: event.message,
+          resolved: false,
+        });
+      } else if (event.type === "HealingApplied") {
+        result.push({
+          time: new Date().toLocaleTimeString(),
+          severity: "info",
+          msg: `${event.actionTaken} on ${event.module}`,
+          resolved: true,
+        });
+      }
+    }
+
+    // Anomaly history from backend
+    if (moduleDetail?.anomalyHistory) {
+      for (const a of moduleDetail.anomalyHistory) {
+        result.push({
+          time: a.at,
+          severity: a.severity.toLowerCase(),
+          msg: a.message,
+          resolved: a.resolvedInMs != null,
+        });
+      }
+    }
+
+    // Predictions as alerts
+    if (insights?.predictions) {
+      for (const p of insights.predictions) {
+        result.push({
+          time: new Date().toLocaleTimeString(),
+          severity: "warning",
+          msg: `${p.miniAppId} ${p.metric}: ${p.currentValue.toFixed(1)} → ${p.projectedValueIn5min.toFixed(1)} in 5m`,
+          resolved: false,
+        });
+      }
+    }
+
+    if (result.length > 0) return result;
+    return fallbackAlerts as { time: string; severity: string; msg: string; resolved: boolean }[];
+  });
+
+  let maxMem = $derived(Math.max(...memoryData.map((d) => d.value)));
+  let maxProc = $derived(Math.max(...processes.map((p) => p.memory)));
+
+  // System status derived from overall state
+  let systemStatus = $derived.by<{ label: string; ok: boolean; detail: string }[]>(() => {
+    if (overview) {
+      const isHealthy = overview.overallState === "healthy";
+      return [
+        { label: "Runtime", ok: isHealthy, detail: `Uptime: monitoring active` },
+        { label: "Database", ok: !overview.cards.find((c) => c.key === "db")?.value.includes("Degraded"), detail: `Status: ${overview.cards.find((c) => c.key === "db")?.value ?? "Healthy"}` },
+        { label: "Memory", ok: !overview.cards.find((c) => c.key === "memory")?.status.includes("watch"), detail: `${overview.cards.find((c) => c.key === "memory")?.value ?? "N/A"}` },
+      ];
+    }
+    return [
+      { label: "Runtime", ok: true, detail: "Uptime: 14h 22m" },
+      { label: "Database", ok: true, detail: "4 connections active" },
+      { label: "Memory", ok: true, detail: "248.5 MB / 512 MB" },
+    ];
+  });
+
+  // ── Section tabs ───────────────────────────────────────────────────────
+
+  const sectionLabels = ["Overview", "Memory", "Performance", "Database", "Alerts", "Reports"] as const;
+  let selectedSection = $derived.by(() => getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+
+  onMount(() => {
+    ensureModuleSection(moduleId, sectionLabels);
+    initTelemetry();
+  });
+
+  onDestroy(() => {
+    cleanupTelemetry();
+  });
+
+  // ── Telemetry data loading ─────────────────────────────────────────────
+
+  let unlistenEvents: (() => void) | null = null;
+
+  async function initTelemetry() {
+    if (!canUseTauri) {
+      loading = false;
+      return;
+    }
+    await loadAllData();
+    subscribeToEvents();
+  }
+
+  function cleanupTelemetry() {
+    unlistenEvents?.();
+    unlistenEvents = null;
+  }
+
+  async function loadAllData() {
+    try {
+      const [ov, det, ins] = await Promise.all([
+        invoke<BrainOverviewPayload>("get_telemetry_brain_overview", { range: "24h" }),
+        invoke<ModuleDetailPayload>("get_telemetry_module_detail", { range: "24h", miniAppId: null }),
+        invoke<InsightsPayload>("get_telemetry_insights", { range: "24h" }),
+      ]);
+      overview = ov;
+      moduleDetail = det;
+      insights = ins;
+      error = null;
+    } catch (err) {
+      error = typeof err === "string" ? err : _t("moduleTelemetryErrorLoad", "Failed to load telemetry data");
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function subscribeToEvents() {
+    try {
+      const channel = new Channel<BrainEvent>();
+      channel.onmessage = (event: BrainEvent) => {
+        liveEvents = [event, ...liveEvents].slice(0, 50);
+      };
+      await invoke("subscribe_brain_events", { onEvent: channel });
+    } catch {
+      // Event subscription is non-critical; silent fail
+    }
+  }
+
+  async function handleRetry() {
+    loading = true;
+    error = null;
+    await loadAllData();
+  }
 </script>
 
-<main class="telemetry-workspace module-root">
+<main class="telemetry-workspace module-root" data-module="telemetry">
   <div class="telemetry-header">
-    <h1>System Monitor</h1>
-    <p class="telemetry-subtitle">Real-time system performance and health</p>
+    <h1>{_t("moduleTelemetryTitle", "System Monitor")}</h1>
+    <p class="telemetry-subtitle">{_t("moduleTelemetryDesc", "Real-time system performance and health")}</p>
   </div>
 
-  <!-- OVERVIEW SECTION -->
-  {#if selectedSection === 'Overview'}
-    <div class="telemetry-content">
-      <div class="metrics-grid">
-        {#each metrics as m}
-          <Card>
-            <CardContent class="metric-item">
-              <div class="metric-top">
-                <span class="metric-label">{m.title}</span>
-                <Badge variant="secondary">{m.change}</Badge>
-              </div>
-              <div class="metric-value">{m.value} <span class="metric-unit">{m.unit}</span></div>
-            </CardContent>
-          </Card>
-        {/each}
+  {#if loading}
+    <div class="telemetry-loading">
+      <div class="telemetry-spinner"></div>
+      <span>{_t("moduleTelemetryLoading", "Loading telemetry data...")}</span>
+    </div>
+  {:else if error && !overview}
+    <div class="telemetry-error">
+      <p>{error}</p>
+      <Button variant="outline" onclick={handleRetry}>{_t("commonRetry", "Retry")}</Button>
+    </div>
+  {:else}
+
+    <!-- OVERVIEW SECTION -->
+    {#if selectedSection === 'Overview'}
+      <div class="telemetry-content">
+        <div class="metrics-grid">
+          {#each metrics as m}
+            <Card>
+              <CardContent class="metric-item">
+                <div class="metric-top">
+                  <span class="metric-label">{m.title}</span>
+                  <Badge variant="secondary">{m.change}</Badge>
+                </div>
+                <div class="metric-value">{m.value} <span class="metric-unit">{m.unit}</span></div>
+              </CardContent>
+            </Card>
+          {/each}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetrySystemStatus", "System Status")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetrySystemStatusDesc", "Current health across all subsystems")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              {#each systemStatus as s}
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  {#if s.ok}
+                    <CheckCircle2 size={20} style="color: #10b981" />
+                  {:else}
+                    <AlertTriangle size={20} style="color: #f59e0b" />
+                  {/if}
+                  <div>
+                    <div style="font-weight: 600; font-size: 14px;">{s.label}</div>
+                    <div style="font-size: 12px; color: var(--muted);">{s.detail}</div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>System Status</CardTitle>
-          <CardDescription>Current health across all subsystems</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <CheckCircle2 size={20} style="color: #10b981" />
-              <div>
-                <div style="font-weight: 600; font-size: 14px;">Runtime</div>
-                <div style="font-size: 12px; color: var(--muted);">Uptime: 14h 22m</div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <CheckCircle2 size={20} style="color: #10b981" />
-              <div>
-                <div style="font-weight: 600; font-size: 14px;">Database</div>
-                <div style="font-size: 12px; color: var(--muted);">4 connections active</div>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <CheckCircle2 size={20} style="color: #10b981" />
-              <div>
-                <div style="font-weight: 600; font-size: 14px;">Memory</div>
-                <div style="font-size: 12px; color: var(--muted);">248.5 MB / 512 MB</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-  <!-- MEMORY SECTION -->
-  {:else if selectedSection === 'Memory'}
-    <div class="telemetry-content">
-      <Card>
-        <CardHeader>
-          <CardTitle>Memory Usage Timeline</CardTitle>
-          <CardDescription>Heap allocation over the last 7 hours</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="chart-bars">
-            {#each memoryData as d}
-              <div class="bar-item">
-                <div class="bar" style={`height: ${(d.value / maxMem) * 150}px`} />
-                <div class="bar-label">{d.hour}</div>
-              </div>
-            {/each}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Process Memory</CardTitle>
-          <CardDescription>Top memory-consuming processes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            {#each processes as p}
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="flex: 1;">
-                  <div style="font-weight: 500; font-size: 14px; margin-bottom: 6px;">{p.name}</div>
-                  <div class="progress-bar">
-                    <div class="progress-fill" style={`width: ${(p.memory / maxProc) * 100}%`} />
-                  </div>
+    <!-- MEMORY SECTION -->
+    {:else if selectedSection === 'Memory'}
+      <div class="telemetry-content">
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetryMemoryTimeline", "Memory Usage Timeline")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetryMemoryTimelineDesc", "Heap allocation over the last monitoring period")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="chart-bars">
+              {#each memoryData as d}
+                <div class="bar-item">
+                  <div class="bar" style={`height: ${(d.value / maxMem) * 150}px`}></div>
+                  <div class="bar-label">{d.hour}</div>
                 </div>
-                <div style="min-width: 70px; text-align: right; font-weight: 600; font-size: 14px;">{p.memory}MB</div>
-              </div>
-            {/each}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              {/each}
+            </div>
+          </CardContent>
+        </Card>
 
-  <!-- PERFORMANCE SECTION -->
-  {:else if selectedSection === 'Performance'}
-    <div class="telemetry-content">
-      <Card>
-        <CardHeader>
-          <CardTitle>API Latency Distribution</CardTitle>
-          <CardDescription>Command execution times at different percentiles</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div style="overflow-x: auto;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Command</th>
-                  <th>Avg (ms)</th>
-                  <th>P95 (ms)</th>
-                  <th>Calls</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each latencies as l}
-                  <tr>
-                    <td><code style="font-size: 12px;">{l.cmd}</code></td>
-                    <td>{l.avg}</td>
-                    <td>{l.p95}</td>
-                    <td>{l.calls}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-  <!-- DATABASE SECTION -->
-  {:else if selectedSection === 'Database'}
-    <div class="telemetry-content">
-      <Card>
-        <CardHeader>
-          <CardTitle>Database Tables</CardTitle>
-          <CardDescription>Table sizes and row counts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div style="overflow-x: auto;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Table</th>
-                  <th>Rows</th>
-                  <th>Size</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each tables as t}
-                  <tr>
-                    <td><code style="font-size: 12px;">
-{t.name}</code></td>
-                    <td>{t.rows}</td>
-                    <td>{t.size}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-  <!-- ALERTS SECTION -->
-  {:else if selectedSection === 'Alerts'}
-    <div class="telemetry-content">
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Alerts</CardTitle>
-          <CardDescription>System detected issues and resolutions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            {#each alerts as a}
-              <div style="display: flex; gap: 12px; padding: 12px; background: var(--muted-surface); border-radius: 8px; border-left: 3px solid {a.severity === 'critical' ? '#ef4444' : a.severity === 'warning' ? '#f59e0b' : '#3b82f6'};">
-                <div style="flex: 1;">
-                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-                    {a.severity === 'critical' ? '❌' : a.severity === 'warning' ? '⚠️' : 'ℹ️'} {a.msg}
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetryModuleMemory", "Module Memory")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetryModuleMemoryDesc", "Top memory-consuming mini-apps")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              {#each processes as p}
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 500; font-size: 14px; margin-bottom: 6px;">{p.name}</div>
+                    <div class="progress-bar">
+                      <div class="progress-fill" style={`width: ${(p.memory / maxProc) * 100}%`}></div>
+                    </div>
                   </div>
-                  <div style="font-size: 12px; color: var(--muted);">{a.time}</div>
+                  <div style="min-width: 70px; text-align: right; font-weight: 600; font-size: 14px;">{p.memory.toFixed(1)}MB</div>
                 </div>
-                {#if a.resolved}
-                  <Badge style="background: #10b981; height: fit-content;">Resolved</Badge>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              {/each}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-  <!-- REPORTS SECTION -->
-  {:else if selectedSection === 'Reports'}
-    <div class="telemetry-content">
-      <Card>
-        <CardHeader>
-          <CardTitle>Export Session Data</CardTitle>
-          <CardDescription>Download telemetry reports and logs</CardDescription>
-        </CardHeader>
-        <CardContent style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <Button variant="outline">
-            <Download size={16} />
-            Export JSON
-          </Button>
-          <Button variant="outline">
-            <BarChart3 size={16} />
-            Export CSV
-          </Button>
-          <Button variant="outline">
-            <Download size={16} />
-            Export PDF
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <!-- PERFORMANCE SECTION -->
+    {:else if selectedSection === 'Performance'}
+      <div class="telemetry-content">
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetryPerfMetrics", "Performance Metrics")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetryPerfMetricsDesc", "IPC and database execution times")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div style="overflow-x: auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Avg (ms)</th>
+                    <th>P95 (ms)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each latencies as l}
+                    <tr>
+                      <td><code style="font-size: 12px;">{l.cmd}</code></td>
+                      <td>{l.avg > 0 ? l.avg.toFixed(1) : '-'}</td>
+                      <td>{l.p95 > 0 ? l.p95.toFixed(1) : '-'}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+    <!-- DATABASE SECTION -->
+    {:else if selectedSection === 'Database'}
+      <div class="telemetry-content">
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetryDbTables", "Database Tables")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetryDbTablesDesc", "Table sizes and row counts")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div style="overflow-x: auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Table</th>
+                    <th>Rows</th>
+                    <th>Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each tables as t}
+                    <tr>
+                      <td><code style="font-size: 12px;">{t.name}</code></td>
+                      <td>{t.rows}</td>
+                      <td>{t.size}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+    <!-- ALERTS SECTION -->
+    {:else if selectedSection === 'Alerts'}
+      <div class="telemetry-content">
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetryRecentAlerts", "Recent Alerts")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetryRecentAlertsDesc", "System detected issues and resolutions")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              {#each alerts as a}
+                <div style="display: flex; gap: 12px; padding: 12px; background: var(--muted-surface); border-radius: 8px; border-left: 3px solid {a.severity === 'critical' ? '#ef4444' : a.severity === 'warning' ? '#f59e0b' : '#3b82f6'};">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                      {a.severity === 'critical' ? '❌' : a.severity === 'warning' ? '⚠️' : 'ℹ️'} {a.msg}
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted);">{a.time}</div>
+                  </div>
+                  {#if a.resolved}
+                    <Badge style="background: #10b981; height: fit-content;">{_t("moduleTelemetryResolved", "Resolved")}</Badge>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+    <!-- REPORTS SECTION -->
+    {:else if selectedSection === 'Reports'}
+      <div class="telemetry-content">
+        <Card>
+          <CardHeader>
+            <CardTitle>{_t("moduleTelemetryExportData", "Export Session Data")}</CardTitle>
+            <CardDescription>{_t("moduleTelemetryExportDataDesc", "Download telemetry reports and logs")}</CardDescription>
+          </CardHeader>
+          <CardContent style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <Button variant="outline">
+              <Download size={16} />
+              {_t("moduleTelemetryExportJSON", "Export JSON")}
+            </Button>
+            <Button variant="outline">
+              <BarChart3 size={16} />
+              {_t("moduleTelemetryExportCSV", "Export CSV")}
+            </Button>
+            <Button variant="outline">
+              <Download size={16} />
+              {_t("moduleTelemetryExportPDF", "Export PDF")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    {/if}
   {/if}
 </main>
 
 <style>
   .telemetry-workspace {
+    --mod-accent: #1565C0;
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--background);
+    background: var(--mod-bg, var(--mod-bg-telemetry));
     color: var(--foreground);
     font-family: var(--font-body);
   }
@@ -308,7 +650,7 @@
   .telemetry-header {
     padding: 32px 24px;
     border-bottom: 1px solid var(--border);
-    background: var(--background);
+    background: transparent;
   }
 
   .telemetry-header h1 {
@@ -322,6 +664,35 @@
     font-size: 14px;
     color: var(--muted);
     margin: 0;
+  }
+
+  .telemetry-loading,
+  .telemetry-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 64px 24px;
+    color: var(--muted);
+  }
+
+  .telemetry-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--foreground);
+    border-radius: 50%;
+    animation: telemetry-spin 800ms linear infinite;
+  }
+
+  @keyframes telemetry-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .telemetry-error p {
+    color: var(--destructive);
+    font-size: 14px;
   }
 
   .telemetry-content {
@@ -366,6 +737,10 @@
     font-size: 28px;
     font-weight: 700;
     color: var(--primary);
+    /* All metric values use JetBrains Mono — precision instrument feel */
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+    letter-spacing: -0.02em;
+    font-feature-settings: "tnum";
   }
 
   .metric-unit {
@@ -373,6 +748,7 @@
     color: var(--muted);
     font-weight: 500;
     margin-left: 4px;
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
   }
 
   .chart-bars {
@@ -402,6 +778,8 @@
   .bar-label {
     font-size: 11px;
     color: var(--muted);
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+    font-feature-settings: "tnum";
   }
 
   .progress-bar {
@@ -442,6 +820,11 @@
   .data-table td {
     color: var(--foreground);
     border-bottom: 1px solid var(--border);
+    /* Table cell data is all mono — timestamps, values, file paths */
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 400;
+    font-feature-settings: "tnum";
   }
 
   .data-table tr:hover {
@@ -452,220 +835,9 @@
     background: var(--muted-surface);
     padding: 2px 6px;
     border-radius: 4px;
-    font-family: monospace;
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+    font-size: 12px;
   }
 
-  .telemetry-app {
-    min-height: 100vh;
-    background: var(--background);
-    color: var(--foreground);
-    font-family: inherit;
-    display: flex;
-    justify-content: center;
-  }
-  .telemetry-container {
-    width: 100%;
-    max-width: 800px;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* STATUS BANNER */
-  .status-banner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    height: 56px;
-    font-weight: 600;
-    font-size: 15px;
-    color: #fff;
-    letter-spacing: 0.5px;
-  }
-  .status-banner.ok { background: #059669; }
-  .status-banner.warn { background: #d97706; cursor: pointer; }
-  .status-banner.crit { background: #dc2626; cursor: pointer; }
-
-/* METRICS GRID */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 24px;
-}
-.metric-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.metric-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.metric-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.metric-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-.metric-value {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-.num {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-}
-.unit {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.sparkline {
-  opacity: 0.8;
-}
-
-/* SESSION CARD */
-.session-card {
-  margin: 0 24px 24px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.session-info h3 {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 4px;
-  letter-spacing: 0.5px;
-}
-.session-info p {
-  font-size: 14px;
-  margin: 0;
-}
-.expand-btn {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-.expand-btn:hover { color: var(--foreground); }
-
-/* LOG SECTION */
-.log-section {
-  flex: 1;
-  padding: 0 24px 24px;
-}
-.log-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-.log-header h3 {
-  font-size: 14px;
-  text-transform: uppercase;
-  color: var(--foreground);
-  margin: 0;
-  letter-spacing: 1px;
-}
-.log-count {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-}
-.log-list {
-  display: flex;
-  flex-direction: column;
-}
-.log-row {
-  display: flex;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  gap: 16px;
-}
-.log-row:last-child {
-  border-bottom: none;
-}
-.log-time {
-  font-family: monospace;
-  font-size: 13px;
-  color: var(--muted);
-  min-width: 65px;
-}
-.log-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.log-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.log-module {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--foreground);
-  background: var(--surface);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-.badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-.badge.resolved {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-.badge.unresolved {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-.log-event {
-  font-size: 14px;
-  color: var(--muted);
-}
-.log-indicator {
-  display: flex;
-  align-items: center;
-}
-.log-indicator .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
+  /* (Unused legacy selectors removed to eliminate ~35+ unused-CSS warnings) */
 </style>
-
-
-

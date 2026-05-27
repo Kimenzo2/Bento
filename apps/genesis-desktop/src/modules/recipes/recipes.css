@@ -1,12 +1,10 @@
 .recipes-app {
-  --recipes-bg: var(--background);
-  --recipes-surface: color-mix(in srgb, var(--surface) 94%, var(--background));
-  --recipes-surface-strong: color-mix(in srgb, var(--surface) 82%, var(--background));
+  --mod-accent: #F6A623;
+  --recipes-bg: var(--mod-bg, var(--mod-bg-recipes));
   --recipes-ink: var(--foreground);
   --recipes-muted: var(--muted);
   --recipes-border: var(--border);
-  --recipes-accent: var(--primary);
-  --recipes-overlay: color-mix(in srgb, var(--background) 72%, transparent);
+  --recipes-accent: var(--mod-accent);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -86,18 +84,16 @@
   gap: 16px;
 }
 
+/* Surface card — no border, no shadow */
 .recipe-card {
-  background: var(--recipes-surface);
-  border: 1px solid var(--recipes-border);
-  border-radius: 12px;
+  background: var(--card);
+  border: none;
+  box-shadow: none;
+  border-radius: 20px;
   overflow: hidden;
   cursor: default;
   display: flex;
   flex-direction: column;
-}
-
-.recipe-card:hover {
-  border-color: var(--recipes-accent);
 }
 
 .card-image {
@@ -147,7 +143,6 @@
   font-size: 13px;
 }
 
-/* FAB Styling */
 .fab-container {
   position: absolute;
   bottom: 32px;
@@ -215,3 +210,13 @@
   z-index: 99;
 }
 
+/* ── Card System Fix ──────────────────────────────────────────────── */
+.recipes-app [class*="-card"],
+.recipes-app [class*="-panel"],
+.recipes-app [class*="-block"],
+.recipes-app .recipe-item {
+  border: none !important;
+  box-shadow: none !important;
+  background: var(--card);
+  border-radius: 20px;
+}

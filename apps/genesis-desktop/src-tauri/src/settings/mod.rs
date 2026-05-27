@@ -8,11 +8,14 @@ use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutEvent, ShortcutState,
 };
 
-use crate::{runtime::DesktopRuntime, window_bounds::restore_main_window};
+use crate::{
+    byok::ByokSettings, payments::PaymentReceipt, runtime::DesktopRuntime,
+    window_bounds::restore_main_window,
+};
 
 const SETTINGS_FILE_NAME: &str = "settings.json";
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopSettings {
     #[serde(default)]
@@ -37,6 +40,10 @@ pub struct DesktopSettings {
     pub files: FileSettings,
     #[serde(default)]
     pub migration: MigrationSettings,
+    #[serde(default)]
+    pub payment: PaymentSettings,
+    #[serde(default)]
+    pub byok: ByokSettings,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -55,13 +62,71 @@ pub struct AppearanceSettings {
 pub struct LanguageSettings {
     #[serde(default = "default_language_code")]
     pub code: LanguageCode,
+    #[serde(default = "default_date_format")]
+    pub date_format: DateFormat,
+    #[serde(default = "default_time_format")]
+    pub time_format: TimeFormat,
+    #[serde(default = "default_first_day")]
+    pub first_day: FirstDay,
 }
 
+/// Date format — mirrors Anytype's I.DateFormat enum values used in language.tsx.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum DateFormat {
+    /// MM/DD/YYYY  (Anytype default — DateFormat.Short / ShortUS)
+    #[default]
+    #[serde(rename = "MM/DD/YYYY")]
+    MmDdYyyy,
+    /// DD/MM/YYYY
+    #[serde(rename = "DD/MM/YYYY")]
+    DdMmYyyy,
+    /// YYYY-MM-DD  (ISO 8601)
+    #[serde(rename = "YYYY-MM-DD")]
+    YyyyMmDd,
+    /// DD.MM.YYYY
+    #[serde(rename = "DD.MM.YYYY")]
+    DdMmYyyyDot,
+    /// Long natural form: "May 22, 2026"
+    #[serde(rename = "MMMM D, YYYY")]
+    Long,
+}
+
+/// Time format — mirrors Anytype's I.TimeFormat (H12 = 0, H24 = 1).
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum TimeFormat {
+    #[default]
+    #[serde(rename = "12h")]
+    H12,
+    #[serde(rename = "24h")]
+    H24,
+}
+
+/// First day of week — mirrors Anytype's firstDayOptions (1 = Monday, 7 = Sunday).
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum FirstDay {
+    #[default]
+    #[serde(rename = "monday")]
+    Monday,
+    #[serde(rename = "sunday")]
+    Sunday,
+    #[serde(rename = "saturday")]
+    Saturday,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceSettings {
     #[serde(default)]
     pub sidebar_collapsed: bool,
+    #[serde(default)]
+    pub sidebar_hidden: bool,
+    #[serde(default = "default_sidebar_top")]
+    pub sidebar_top: f64,
+    #[serde(default)]
+    pub tabs_enabled: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -110,6 +175,14 @@ pub struct MigrationSettings {
     pub legacy_browser_storage_migrated: bool,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentSettings {
+    /// Locally-stored receipt for offline-first Pro unlocking.
+    #[serde(default)]
+    pub receipt: Option<PaymentReceipt>,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ThemeMode {
@@ -118,12 +191,146 @@ pub enum ThemeMode {
     Dark,
 }
 
+/**
+ * Language codes — full port of Anytype-ts src/json/lang.ts `enabled` list.
+ * 27 interface languages, with RTL correctly identified (Ar, Fa).
+ * The Rust enum is the canonical source for validation;
+ * the TypeScript schema mirrors it via z.enum([...]) in settings.ts.
+ */
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub enum LanguageCode {
     #[default]
+    #[serde(alias = "en", rename = "en")]
     En,
+    /// Right-to-left
+    #[serde(alias = "ar", rename = "ar")]
     Ar,
+    #[serde(alias = "be", rename = "be")]
+    Be,
+    #[serde(alias = "cs", rename = "cs")]
+    Cs,
+    #[serde(alias = "da", rename = "da")]
+    Da,
+    #[serde(alias = "de", rename = "de")]
+    De,
+    #[serde(alias = "es", rename = "es")]
+    Es,
+    /// Right-to-left
+    #[serde(alias = "fa", rename = "fa")]
+    Fa,
+    #[serde(alias = "fr", rename = "fr")]
+    Fr,
+    #[serde(alias = "hi", rename = "hi")]
+    Hi,
+    #[serde(alias = "id", rename = "id")]
+    Id,
+    #[serde(alias = "it", rename = "it")]
+    It,
+    #[serde(alias = "ja", rename = "ja")]
+    Ja,
+    #[serde(alias = "ko", rename = "ko")]
+    Ko,
+    #[serde(alias = "lt", rename = "lt")]
+    Lt,
+    #[serde(alias = "nl", rename = "nl")]
+    Nl,
+    #[serde(alias = "no", rename = "no")]
+    No,
+    #[serde(alias = "pl", rename = "pl")]
+    Pl,
+    #[serde(rename = "pt-BR")]
+    PtBr,
+    #[serde(rename = "pt-PT")]
+    PtPt,
+    #[serde(alias = "ro", rename = "ro")]
+    Ro,
+    #[serde(alias = "ru", rename = "ru")]
+    Ru,
+    #[serde(alias = "tr", rename = "tr")]
+    Tr,
+    #[serde(alias = "uk", rename = "uk")]
+    Uk,
+    #[serde(alias = "vi", rename = "vi")]
+    Vi,
+    #[serde(rename = "zh-CN")]
+    ZhCn,
+    #[serde(rename = "zh-TW")]
+    ZhTw,
+}
+
+impl LanguageCode {
+    /// Returns true for right-to-left languages.
+    pub fn is_rtl(&self) -> bool {
+        matches!(self, LanguageCode::Ar | LanguageCode::Fa)
+    }
+
+    /// Returns the BCP-47 locale string for Intl use.
+    pub fn locale(&self) -> &'static str {
+        match self {
+            LanguageCode::En => "en-US",
+            LanguageCode::Ar => "ar-SA",
+            LanguageCode::Be => "be-BY",
+            LanguageCode::Cs => "cs-CZ",
+            LanguageCode::Da => "da-DK",
+            LanguageCode::De => "de-DE",
+            LanguageCode::Es => "es-ES",
+            LanguageCode::Fa => "fa-IR",
+            LanguageCode::Fr => "fr-FR",
+            LanguageCode::Hi => "hi-IN",
+            LanguageCode::Id => "id-ID",
+            LanguageCode::It => "it-IT",
+            LanguageCode::Ja => "ja-JP",
+            LanguageCode::Ko => "ko-KR",
+            LanguageCode::Lt => "lt-LT",
+            LanguageCode::Nl => "nl-NL",
+            LanguageCode::No => "no-NO",
+            LanguageCode::Pl => "pl-PL",
+            LanguageCode::PtBr => "pt-BR",
+            LanguageCode::PtPt => "pt-PT",
+            LanguageCode::Ro => "ro-RO",
+            LanguageCode::Ru => "ru-RU",
+            LanguageCode::Tr => "tr-TR",
+            LanguageCode::Uk => "uk-UA",
+            LanguageCode::Vi => "vi-VN",
+            LanguageCode::ZhCn => "zh-CN",
+            LanguageCode::ZhTw => "zh-TW",
+        }
+    }
+
+    /// Returns the native-script label for this language.
+    pub fn label(&self) -> String {
+        match self {
+            LanguageCode::En => "English",
+            LanguageCode::Ar => "العربية",
+            LanguageCode::Be => "Беларуская",
+            LanguageCode::Cs => "Čeština",
+            LanguageCode::Da => "Dansk",
+            LanguageCode::De => "Deutsch",
+            LanguageCode::Es => "Español",
+            LanguageCode::Fa => "فارسی",
+            LanguageCode::Fr => "Français",
+            LanguageCode::Hi => "हिन्दी",
+            LanguageCode::Id => "Bahasa Indonesia",
+            LanguageCode::It => "Italiano",
+            LanguageCode::Ja => "日本語",
+            LanguageCode::Ko => "한국어",
+            LanguageCode::Lt => "Lietuvių",
+            LanguageCode::Nl => "Nederlands",
+            LanguageCode::No => "Norsk",
+            LanguageCode::Pl => "Polski",
+            LanguageCode::PtBr => "Português (Brasil)",
+            LanguageCode::PtPt => "Português (Portugal)",
+            LanguageCode::Ro => "Română",
+            LanguageCode::Ru => "Русский",
+            LanguageCode::Tr => "Türkçe",
+            LanguageCode::Uk => "Українська",
+            LanguageCode::Vi => "Tiếng Việt",
+            LanguageCode::ZhCn => "简体中文",
+            LanguageCode::ZhTw => "繁體中文",
+        }
+        .to_string()
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -173,8 +380,24 @@ fn default_language_code() -> LanguageCode {
     LanguageCode::En
 }
 
+fn default_date_format() -> DateFormat {
+    DateFormat::MmDdYyyy
+}
+
+fn default_time_format() -> TimeFormat {
+    TimeFormat::H12
+}
+
+fn default_first_day() -> FirstDay {
+    FirstDay::Monday
+}
+
 fn default_restore_on_launch() -> bool {
     true
+}
+
+fn default_sidebar_top() -> f64 {
+    54.0
 }
 
 fn default_reopen_shortcut_id() -> ReopenShortcutId {
@@ -188,7 +411,7 @@ fn default_background_alerts() -> bool {
 pub fn settings_file_path(app: &AppHandle) -> PathBuf {
     app.path()
         .app_data_dir()
-        .unwrap_or_else(|_| std::env::temp_dir().join("genesis-desktop"))
+        .unwrap_or_else(|_| std::env::temp_dir().join("bento-desktop"))
         .join(SETTINGS_FILE_NAME)
 }
 
@@ -200,7 +423,7 @@ pub fn resolve_export_directory(app: &AppHandle, settings: &DesktopSettings) -> 
     app.path()
         .download_dir()
         .unwrap_or_else(|_| std::env::temp_dir().join("Downloads"))
-        .join("Genesis")
+        .join("Bento")
         .join("exports")
 }
 
@@ -215,9 +438,15 @@ pub fn default_settings() -> DesktopSettings {
         },
         language: LanguageSettings {
             code: default_language_code(),
+            date_format: DateFormat::MmDdYyyy,
+            time_format: TimeFormat::H12,
+            first_day: FirstDay::Monday,
         },
         workspace: WorkspaceSettings {
             sidebar_collapsed: false,
+            sidebar_hidden: false,
+            sidebar_top: default_sidebar_top(),
+            tabs_enabled: false,
         },
         window: WindowSettings {
             restore_on_launch: true,
@@ -239,6 +468,8 @@ pub fn default_settings() -> DesktopSettings {
         migration: MigrationSettings {
             legacy_browser_storage_migrated: false,
         },
+        payment: PaymentSettings::default(),
+        byok: ByokSettings::default(),
     }
 }
 
@@ -369,9 +600,39 @@ pub fn normalize_font_pairing_id(font_pairing_id: &str) -> String {
     }
 }
 
+/// Normalize/validate a language code string — accepts all 27 Anytype-ported codes.
 pub fn normalize_language_code(language_code: &str) -> LanguageCode {
-    match language_code.to_ascii_lowercase().as_str() {
+    match language_code {
+        "en" => LanguageCode::En,
         "ar" => LanguageCode::Ar,
+        "be" => LanguageCode::Be,
+        "cs" => LanguageCode::Cs,
+        "da" => LanguageCode::Da,
+        "de" => LanguageCode::De,
+        "es" => LanguageCode::Es,
+        "fa" => LanguageCode::Fa,
+        "fr" => LanguageCode::Fr,
+        "hi" => LanguageCode::Hi,
+        "id" => LanguageCode::Id,
+        "it" => LanguageCode::It,
+        "ja" => LanguageCode::Ja,
+        "ko" => LanguageCode::Ko,
+        "lt" => LanguageCode::Lt,
+        "nl" => LanguageCode::Nl,
+        "no" => LanguageCode::No,
+        "pl" => LanguageCode::Pl,
+        "pt-BR" => LanguageCode::PtBr,
+        "pt-PT" => LanguageCode::PtPt,
+        "ro" => LanguageCode::Ro,
+        "ru" => LanguageCode::Ru,
+        "tr" => LanguageCode::Tr,
+        "uk" => LanguageCode::Uk,
+        "vi" => LanguageCode::Vi,
+        "zh-CN" => LanguageCode::ZhCn,
+        "zh-TW" => LanguageCode::ZhTw,
+        // Fuzzy prefix fallback
+        s if s.starts_with("pt") => LanguageCode::PtBr,
+        s if s.starts_with("zh") => LanguageCode::ZhCn,
         _ => LanguageCode::En,
     }
 }
@@ -478,10 +739,7 @@ pub fn format_reopen_shortcut(shortcut_id: &ReopenShortcutId) -> String {
 }
 
 pub fn parse_reopen_shortcut_combo(combo: &str) -> Option<ReopenShortcutId> {
-    let normalized = combo
-        .trim()
-        .replace(' ', "")
-        .to_ascii_lowercase();
+    let normalized = combo.trim().replace(' ', "").to_ascii_lowercase();
 
     match normalized.as_str() {
         "cmd+alt+g" | "ctrl+alt+g" => Some(ReopenShortcutId::CtrlAltG),
@@ -494,8 +752,8 @@ pub fn parse_reopen_shortcut_combo(combo: &str) -> Option<ReopenShortcutId> {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_settings, format_reopen_shortcut, normalize_settings, parse_reopen_shortcut_combo,
-        DesktopSettings, ReopenShortcutId,
+        DesktopSettings, ReopenShortcutId, default_settings, format_reopen_shortcut,
+        normalize_settings, parse_reopen_shortcut_combo,
     };
     use serde_json::json;
 
@@ -535,7 +793,8 @@ mod tests {
             "migration": { "legacyBrowserStorageMigrated": false }
         });
 
-        let parsed: DesktopSettings = serde_json::from_value(legacy).expect("legacy settings should parse");
+        let parsed: DesktopSettings =
+            serde_json::from_value(legacy).expect("legacy settings should parse");
         let reserialized = serde_json::to_value(&parsed).expect("settings should serialize");
 
         assert_eq!(reserialized["shortcuts"]["reopenId"], "ctrl-shift-g");

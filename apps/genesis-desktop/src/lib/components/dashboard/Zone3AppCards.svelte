@@ -2,7 +2,8 @@
   import AppIcon from "$lib/components/AppIcon.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import type { AppLaunchIconName } from "$lib/data/module-catalog";
-  import type { GenesisModuleId } from "$lib/desktop/modules";
+  import type { BentoModuleId } from "$lib/desktop/modules";
+  import { time } from "$lib/utils/time";
 
   interface RecentModule {
     id: string;
@@ -16,16 +17,7 @@
   export let openModule: (moduleId: string) => void | Promise<void>;
 
   function formatRelativeTime(timestampMs: number): string {
-    const diffMs = Date.now() - timestampMs;
-    const diffMinutes = Math.floor(diffMs / 60000);
-    if (diffMinutes < 1) return "Just now";
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 30) return `${diffDays}d ago`;
-    return `${Math.floor(diffDays / 30)}mo ago`;
+    return time.timeAgo(timestampMs);
   }
 </script>
 
@@ -37,7 +29,7 @@
       {#each recentModules.slice(0, 8) as mod}
         <button
           class="module-tile"
-          onclick={() => openModule(mod.id as GenesisModuleId)}
+          onclick={() => openModule(mod.id as BentoModuleId)}
           type="button"
           title={mod.name}
         >
@@ -62,7 +54,7 @@
   {:else}
     <div class="zone-3__empty">
       <p class="empty-desc">No apps installed</p>
-      <Button variant="outline" size="sm" onclick={() => openModule("settings" as GenesisModuleId)}>
+      <Button variant="outline" size="sm" onclick={() => openModule("settings" as BentoModuleId)}>
         Browse Apps
       </Button>
     </div>

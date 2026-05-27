@@ -20,25 +20,33 @@ import {
   type ReopenShortcutId,
 } from '$lib/data/preferences';
 
-const THEME_KEY = 'genesis_desktop_theme';
-const MODE_KEY = 'genesis_desktop_mode';
-const FONT_KEY = 'genesis_desktop_fonts';
-const LANGUAGE_KEY = 'genesis_desktop_language';
-const SIDEBAR_KEY = 'genesis_desktop_sidebar_collapsed';
-const SHORTCUT_KEY = 'genesis_desktop_shortcut';
-const NOTIFICATIONS_KEY = 'genesis_desktop_notifications';
-const TELEMETRY_KEY = 'genesis_desktop_telemetry';
-const EXPORT_DIRECTORY_KEY = 'genesis_desktop_export_directory';
-const SETTINGS_KEY = 'genesis_desktop_settings';
+const THEME_KEY = 'bento_desktop_theme';
+const MODE_KEY = 'bento_desktop_mode';
+const FONT_KEY = 'bento_desktop_fonts';
+const LANGUAGE_KEY = 'bento_desktop_language';
+const SIDEBAR_KEY = 'bento_desktop_sidebar_collapsed';
+const SIDEBAR_WIDTH_KEY = 'bento_desktop_sidebar_width';
+const SHORTCUT_KEY = 'bento_desktop_shortcut';
+const NOTIFICATIONS_KEY = 'bento_desktop_notifications';
+const TELEMETRY_KEY = 'bento_desktop_telemetry';
+const EXPORT_DIRECTORY_KEY = 'bento_desktop_export_directory';
+const SETTINGS_KEY = 'bento_desktop_settings';
 const STORE_PATH = 'settings.json';
-const THEME_SNAPSHOT_KEY = '__genesis_theme_snapshot';
+const THEME_SNAPSHOT_KEY = '__bento_theme_snapshot';
 
 const storeKeys = {
   themeId: 'appearance.themeId',
   mode: 'appearance.mode',
   fontPairingId: 'appearance.fontPairingId',
   languageCode: 'language.code',
+  dateFormat: 'language.dateFormat',
+  timeFormat: 'language.timeFormat',
+  firstDay: 'language.firstDay',
   sidebarCollapsed: 'workspace.sidebarCollapsed',
+  sidebarWidth: 'workspace.sidebarWidth',
+  sidebarTop: 'workspace.sidebarTop',
+  tabsEnabled: 'workspace.tabsEnabled',
+  sidebarHidden: 'workspace.sidebarHidden',
   restoreOnLaunch: 'window.restoreOnLaunch',
   startHidden: 'window.startHidden',
   reopenId: 'shortcuts.reopenId',
@@ -51,7 +59,20 @@ const storeKeys = {
 } as const;
 
 const themeModeSchema = z.enum(['light', 'dark']);
-const languageCodeSchema = z.enum(['en', 'ar']);
+// All 27 interface language codes — ported from Anytype-ts src/json/lang.ts
+const languageCodeSchema = z.enum([
+  'en', 'ar', 'be', 'cs', 'da', 'de', 'es', 'fa', 'fr', 'hi',
+  'id', 'it', 'ja', 'ko', 'lt', 'nl', 'no', 'pl', 'pt-BR', 'pt-PT',
+  'ro', 'ru', 'tr', 'uk', 'vi', 'zh-CN', 'zh-TW',
+]);
+// Mirrors Anytype's I.DateFormat options from language.tsx
+const dateFormatSchema = z.enum([
+  'MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD.MM.YYYY', 'MMMM D, YYYY',
+]).default('MM/DD/YYYY');
+// Mirrors Anytype's I.TimeFormat (H12 / H24)
+const timeFormatSchema = z.enum(['12h', '24h']).default('12h');
+// Mirrors Anytype's firstDayOptions
+const firstDaySchema = z.enum(['monday', 'sunday', 'saturday']).default('monday');
 const shortcutSchema = z.enum(['ctrl-alt-g', 'ctrl-shift-g', 'ctrl-shift-space']);
 
 const themeSchema = z
@@ -60,7 +81,7 @@ const themeSchema = z
     mode: themeModeSchema,
     fontPairingId: z.string().min(1),
   })
-  .strict();
+  .passthrough();
 
 const migrationSchema = z
   .object({
@@ -79,61 +100,78 @@ const desktopSettingsSchema = z
     language: z
       .object({
         code: languageCodeSchema,
+        dateFormat: dateFormatSchema,
+        timeFormat: timeFormatSchema,
+        firstDay: firstDaySchema,
       })
-      .strict(),
+      .passthrough(),
     workspace: z
       .object({
-        sidebarCollapsed: z.boolean(),
+        sidebarCollapsed: z.boolean().default(false),
+        sidebarHidden: z.boolean().default(false),
+        sidebarWidth: z.number().default(288),
+        sidebarTop: z.number().default(54),
+        tabsEnabled: z.boolean().default(false),
       })
-      .strict(),
+      .passthrough(),
     window: z
       .object({
         restoreOnLaunch: z.boolean(),
         startHidden: z.boolean(),
       })
-      .strict(),
+      .passthrough(),
     shortcuts: z
       .object({
         reopenId: shortcutSchema,
       })
-      .strict(),
+      .passthrough(),
     notifications: z
       .object({
         backgroundAlerts: z.boolean(),
       })
-      .strict(),
+      .passthrough(),
     telemetry: z
       .object({
         consented: z.boolean(),
         crashReports: z.boolean(),
       })
-      .strict(),
+      .passthrough(),
     files: z
       .object({
         exportDirectory: z.string(),
       })
-      .strict(),
+      .passthrough(),
     migration: migrationSchema,
   })
-  .strict();
+  .passthrough();
 
 export type DesktopSettings = z.infer<typeof desktopSettingsSchema>;
 export type DesktopThemeMode = ThemeMode;
 export type DesktopLanguageCode = z.infer<typeof languageCodeSchema>;
+export type DesktopDateFormat = z.infer<typeof dateFormatSchema>;
+export type DesktopTimeFormat = z.infer<typeof timeFormatSchema>;
+export type DesktopFirstDay = z.infer<typeof firstDaySchema>;
 export type DesktopShortcutId = ReopenShortcutId;
 
 export const defaultDesktopSettings: DesktopSettings = {
   schemaVersion: 1,
   appearance: {
     themeId: defaultThemeId,
-    mode: 'light',
+    mode: 'dark',
     fontPairingId: defaultFontPairingId,
   },
   language: {
     code: defaultLanguageCode,
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12h',
+    firstDay: 'monday',
   },
   workspace: {
     sidebarCollapsed: true,
+    sidebarHidden: false,
+    sidebarWidth: 288,
+    sidebarTop: 54,
+    tabsEnabled: true,
   },
   window: {
     restoreOnLaunch: true,
@@ -172,7 +210,13 @@ export function normalizeFontPairingId(fontPairingId: string): string {
 }
 
 export function normalizeLanguageCode(languageCode: string): DesktopLanguageCode {
-  return languages.find((entry) => entry.code === languageCode)?.code ?? defaultLanguageCode;
+  // Accept all 27 Anytype-ported language codes
+  const result = languageCodeSchema.safeParse(languageCode);
+  if (result.success) return result.data as DesktopLanguageCode;
+  // Fuzzy fallback: match by prefix (e.g. "pt" → "pt-BR")
+  const prefix = languageCode.toLowerCase().split('-')[0];
+  const byPrefix = languageCodeSchema.options.find((c) => c.toLowerCase().startsWith(prefix));
+  return (byPrefix as DesktopLanguageCode) ?? defaultLanguageCode;
 }
 
 export function normalizeShortcutId(shortcutId: string): DesktopShortcutId {
@@ -195,7 +239,13 @@ function storeDefaults() {
     [storeKeys.mode]: defaultDesktopSettings.appearance.mode,
     [storeKeys.fontPairingId]: defaultDesktopSettings.appearance.fontPairingId,
     [storeKeys.languageCode]: defaultDesktopSettings.language.code,
+    [storeKeys.dateFormat]: defaultDesktopSettings.language.dateFormat,
+    [storeKeys.timeFormat]: defaultDesktopSettings.language.timeFormat,
+    [storeKeys.firstDay]: defaultDesktopSettings.language.firstDay,
     [storeKeys.sidebarCollapsed]: defaultDesktopSettings.workspace.sidebarCollapsed,
+    [storeKeys.sidebarHidden]: defaultDesktopSettings.workspace.sidebarHidden,
+    [storeKeys.sidebarWidth]: defaultDesktopSettings.workspace.sidebarWidth,
+    [storeKeys.sidebarTop]: defaultDesktopSettings.workspace.sidebarTop,
     [storeKeys.restoreOnLaunch]: defaultDesktopSettings.window.restoreOnLaunch,
     [storeKeys.startHidden]: defaultDesktopSettings.window.startHidden,
     [storeKeys.reopenId]: defaultDesktopSettings.shortcuts.reopenId,
@@ -242,6 +292,9 @@ function persistBrowserSettings(settings: DesktopSettings) {
   }
 
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  window.localStorage.setItem(SIDEBAR_KEY, String(settings.workspace.sidebarCollapsed));
+  window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(settings.workspace.sidebarWidth));
+  window.localStorage.setItem('bento_desktop_sidebar_top', String(settings.workspace.sidebarTop));
   writeThemeSnapshot(settings);
 }
 
@@ -265,6 +318,19 @@ function readLegacyBrowserSettings() {
     },
     workspace: {
       sidebarCollapsed: window.localStorage.getItem(SIDEBAR_KEY) === 'true',
+      sidebarHidden: false,
+      sidebarWidth:
+        Number.parseInt(window.localStorage.getItem(SIDEBAR_WIDTH_KEY) ?? '', 10) ||
+        defaultDesktopSettings.workspace.sidebarWidth,
+      sidebarTop:
+        Number.parseInt(
+          window.localStorage.getItem('bento_desktop_sidebar_top') ??
+            window.localStorage.getItem('bento_desktop_sidebar_top') ??
+            '',
+          10
+        ) ||
+        defaultDesktopSettings.workspace.sidebarTop,
+      tabsEnabled: window.localStorage.getItem('bento_desktop_tabs_enabled') === 'true',
     },
     shortcuts: {
       reopenId: normalizeShortcutId(
@@ -297,10 +363,14 @@ function clearLegacyBrowserSettings() {
   window.localStorage.removeItem(FONT_KEY);
   window.localStorage.removeItem(LANGUAGE_KEY);
   window.localStorage.removeItem(SIDEBAR_KEY);
+  window.localStorage.removeItem(SIDEBAR_WIDTH_KEY);
+  window.localStorage.removeItem('bento_desktop_sidebar_top');
+  window.localStorage.removeItem('bento_desktop_sidebar_top');
   window.localStorage.removeItem(SHORTCUT_KEY);
   window.localStorage.removeItem(NOTIFICATIONS_KEY);
   window.localStorage.removeItem(TELEMETRY_KEY);
   window.localStorage.removeItem(EXPORT_DIRECTORY_KEY);
+  window.localStorage.removeItem('bento_desktop_tabs_enabled');
 }
 
 function normalizeSettings(settings: DesktopSettings): DesktopSettings {
@@ -312,10 +382,25 @@ function normalizeSettings(settings: DesktopSettings): DesktopSettings {
       fontPairingId: normalizeFontPairingId(settings.appearance.fontPairingId),
     },
     language: {
-      code: normalizeLanguageCode(settings.language.code),
+      code: normalizeLanguageCode(settings.language?.code ?? defaultLanguageCode),
+      dateFormat: settings.language?.dateFormat ?? defaultDesktopSettings.language.dateFormat,
+      timeFormat: settings.language?.timeFormat ?? defaultDesktopSettings.language.timeFormat,
+      firstDay: settings.language?.firstDay ?? defaultDesktopSettings.language.firstDay,
+    },
+    workspace: {
+      sidebarCollapsed:
+        settings.workspace?.sidebarCollapsed ?? defaultDesktopSettings.workspace.sidebarCollapsed,
+      sidebarHidden:
+        settings.workspace?.sidebarHidden ?? defaultDesktopSettings.workspace.sidebarHidden,
+      sidebarWidth:
+        settings.workspace?.sidebarWidth ?? defaultDesktopSettings.workspace.sidebarWidth,
+      sidebarTop:
+        settings.workspace?.sidebarTop ?? defaultDesktopSettings.workspace.sidebarTop,
+      tabsEnabled:
+        settings.workspace?.tabsEnabled ?? defaultDesktopSettings.workspace.tabsEnabled,
     },
     shortcuts: {
-      reopenId: normalizeShortcutId(settings.shortcuts.reopenId),
+      reopenId: normalizeShortcutId(settings.shortcuts?.reopenId ?? defaultReopenShortcutId),
     },
   });
 }
@@ -340,11 +425,38 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       code: normalizeLanguageCode(
         (await store.get<string>(storeKeys.languageCode)) ?? defaultDesktopSettings.language.code
       ),
+      dateFormat: (dateFormatSchema.safeParse(
+        await store.get<string>(storeKeys.dateFormat)
+      ).success
+        ? (await store.get<string>(storeKeys.dateFormat)) as DesktopDateFormat
+        : defaultDesktopSettings.language.dateFormat),
+      timeFormat: (timeFormatSchema.safeParse(
+        await store.get<string>(storeKeys.timeFormat)
+      ).success
+        ? (await store.get<string>(storeKeys.timeFormat)) as DesktopTimeFormat
+        : defaultDesktopSettings.language.timeFormat),
+      firstDay: (firstDaySchema.safeParse(
+        await store.get<string>(storeKeys.firstDay)
+      ).success
+        ? (await store.get<string>(storeKeys.firstDay)) as DesktopFirstDay
+        : defaultDesktopSettings.language.firstDay),
     },
     workspace: {
       sidebarCollapsed:
         (await store.get<boolean>(storeKeys.sidebarCollapsed)) ??
         defaultDesktopSettings.workspace.sidebarCollapsed,
+      sidebarHidden:
+        (await store.get<boolean>(storeKeys.sidebarHidden)) ??
+        defaultDesktopSettings.workspace.sidebarHidden,
+      sidebarWidth:
+        (await store.get<number>(storeKeys.sidebarWidth)) ??
+        defaultDesktopSettings.workspace.sidebarWidth,
+      sidebarTop:
+        (await store.get<number>(storeKeys.sidebarTop)) ??
+        defaultDesktopSettings.workspace.sidebarTop,
+      tabsEnabled:
+        (await store.get<boolean>(storeKeys.tabsEnabled)) ??
+        defaultDesktopSettings.workspace.tabsEnabled,
     },
     window: {
       restoreOnLaunch:
@@ -396,7 +508,13 @@ async function persistStoreSettings(settings: DesktopSettings) {
   await store.set(storeKeys.mode, settings.appearance.mode);
   await store.set(storeKeys.fontPairingId, settings.appearance.fontPairingId);
   await store.set(storeKeys.languageCode, settings.language.code);
+  await store.set(storeKeys.dateFormat, settings.language.dateFormat);
+  await store.set(storeKeys.timeFormat, settings.language.timeFormat);
+  await store.set(storeKeys.firstDay, settings.language.firstDay);
   await store.set(storeKeys.sidebarCollapsed, settings.workspace.sidebarCollapsed);
+  await store.set(storeKeys.sidebarHidden, settings.workspace.sidebarHidden);
+  await store.set(storeKeys.sidebarTop, settings.workspace.sidebarTop);
+  await store.set(storeKeys.tabsEnabled, settings.workspace.tabsEnabled);
   await store.set(storeKeys.restoreOnLaunch, settings.window.restoreOnLaunch);
   await store.set(storeKeys.startHidden, settings.window.startHidden);
   await store.set(storeKeys.reopenId, settings.shortcuts.reopenId);
@@ -434,7 +552,7 @@ async function syncNativeSettingsMirror(settings: DesktopSettings) {
   try {
     await invoke<unknown>('save_desktop_settings', { settings });
   } catch (error) {
-    console.warn('Genesis desktop settings were stored, but native mirror sync failed.', error);
+    console.warn('Bento desktop settings were stored, but native mirror sync failed.', error);
   }
 }
 
@@ -462,7 +580,7 @@ async function applyNativeTheme(settings: DesktopSettings) {
   try {
     await setNativeTheme(settings.appearance.mode);
   } catch (error) {
-    console.warn('Genesis native app theme failed to update.', error);
+    console.warn('Bento native app theme failed to update.', error);
   }
 }
 
@@ -483,7 +601,7 @@ export async function loadDesktopSettings(): Promise<DesktopSettings> {
   try {
     return await readStoreSettings();
   } catch (error) {
-    console.warn('Genesis desktop settings failed to load from Store; falling back.', error);
+    console.warn('Bento desktop settings failed to load from Store; falling back.', error);
     return (
       (await readNativeSettingsMirror()) ?? readBrowserSettingsBlob() ?? defaultDesktopSettings
     );
@@ -526,11 +644,11 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
           ...legacySettings.appearance,
         },
         language: { ...current.language, ...nativeMirror?.language, ...legacySettings.language },
-        workspace: {
-          ...current.workspace,
-          ...nativeMirror?.workspace,
-          ...legacySettings.workspace,
-        },
+    workspace: {
+      ...current.workspace,
+      ...nativeMirror?.workspace,
+      ...legacySettings.workspace,
+    },
         window: { ...current.window, ...nativeMirror?.window },
         shortcuts: {
           ...current.shortcuts,

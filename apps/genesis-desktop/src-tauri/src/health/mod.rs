@@ -1,350 +1,485 @@
-// ═══════════════════════════════════════════════════════════════════════
-// Health-Core Service — Unified Health Event Models & Trend Calculations
-// ═══════════════════════════════════════════════════════════════════════
-// This module provides provider-agnostic health data models that can be
-// populated by manual entry, passive inference, or future wearable adapters.
-// All timestamps use UTC internally. Calculations are local-only.
-// ═══════════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────────────────
+// Health Tauri Commands — SQLite-backed, no stubs
+// Tables used:
+//   health_logs   (id, type, value, unit, metadata, logged_at)
+//   health_vitals (id, bp, hr, weight_kg, temp_c, spo2, logged_at)
+//   health_meds   (id, name, dose, time_of_day, notes, active, created_at)
+//   health_doses  (id, med_id, taken_at, date_key)
+// ─────────────────────────────────────────────────────────────────────────────
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use tauri::State;
+use uuid::Uuid;
 
-// ─── Health Event Types ───────────────────────────────────────────────
+use crate::db::BentoAppState;
+use crate::util::time;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum HealthEventType {
-    SleepSession,
-    Hydration,
-    Meal,
-    Mood,
-    FocusSession,
-    Weight,
-    Energy,
-    Symptom,
-    Workout,
-    Mindfulness,
+// ── Shared date helper ────────────────────────────────────────────────────────
+
+fn today_key() -> String {
+    time::date_key(time::now_ms())
 }
 
-impl HealthEventType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::SleepSession => "sleep_session",
-            Self::Hydration => "hydration",
-            Self::Meal => "meal",
-            Self::Mood => "mood",
-            Self::FocusSession => "focus_session",
-            Self::Weight => "weight",
-            Self::Energy => "energy",
-            Self::Symptom => "symptom",
-            Self::Workout => "workout",
-            Self::Mindfulness => "mindfulness",
-        }
-    }
-
-    pub fn from_str(value: &str) -> Option<Self> {
-        match value {
-            "sleep_session" => Some(Self::SleepSession),
-            "hydration" => Some(Self::Hydration),
-            "meal" => Some(Self::Meal),
-            "mood" => Some(Self::Mood),
-            "focus_session" => Some(Self::FocusSession),
-            "weight" => Some(Self::Weight),
-            "energy" => Some(Self::Energy),
-            "symptom" => Some(Self::Symptom),
-            "workout" => Some(Self::Workout),
-            "mindfulness" => Some(Self::Mindfulness),
-            _ => None,
-        }
-    }
-}
-
-// ─── Health Event — Core Unified Record ───────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// DAILY LOG
+// ═════════════════════════════════════════════════════════════════════════════
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HealthEvent {
-    pub id: Option<i64>,
-    pub module_id: String,
-    pub event_type: String,
-    pub value: Option<f64>,
-    pub unit: Option<String>,
-    pub metadata: String,           // JSON blob
-    pub started_at: Option<i64>,    // UTC ms
-    pub ended_at: Option<i64>,      // UTC ms
-    pub logged_at: i64,             // UTC ms
-}
-
-impl HealthEvent {
-    pub fn new(module_id: &str, event_type: &str) -> Self {
-        Self {
-            id: None,
-            module_id: module_id.to_string(),
-            event_type: event_type.to_string(),
-            value: None,
-            unit: None,
-            metadata: "{}".to_string(),
-            started_at: None,
-            ended_at: None,
-            logged_at: now_ms(),
-        }
-    }
-
-    pub fn with_value(mut self, value: f64, unit: &str) -> Self {
-        self.value = Some(value);
-        self.unit = Some(unit.to_string());
-        self
-    }
-
-    pub fn with_range(mut self, start: i64, end: i64) -> Self {
-        self.started_at = Some(start);
-        self.ended_at = Some(end);
-        self
-    }
-
-    pub fn duration_minutes(&self) -> Option<f64> {
-        match (self.started_at, self.ended_at) {
-            (Some(start), Some(end)) if end > start => {
-                Some((end - start) as f64 / 60_000.0)
-            }
-            _ => None,
-        }
-    }
-}
-
-// ─── Sleep Event ──────────────────────────────────────────────────────
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SleepEvent {
-    pub bed_time: i64,          // UTC ms
-    pub wake_time: i64,         // UTC ms
-    pub quality: Option<u8>,    // 1-5
-    pub naps: Vec<NapEntry>,
-    pub notes: Option<String>,
+pub struct DailyLogEntry {
+    pub id: Option<String>,
+    pub mood: String,
+    pub energy: u8,
+    pub water_glasses: u8,
+    pub sleep_hours: f64,
+    pub symptoms: Vec<String>,
+    pub note: Option<String>,
+    pub logged_at: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NapEntry {
-    pub start: i64,
-    pub end: i64,
-}
-
-impl SleepEvent {
-    pub fn duration_hours(&self) -> f64 {
-        (self.wake_time - self.bed_time) as f64 / 3_600_000.0
-    }
-
-    pub fn nap_minutes(&self) -> f64 {
-        self.naps
-            .iter()
-            .map(|nap| (nap.end - nap.start) as f64 / 60_000.0)
-            .sum()
-    }
-
-    pub fn total_rest_hours(&self) -> f64 {
-        self.duration_hours() + (self.nap_minutes() / 60.0)
-    }
-}
-
-// ─── Hydration Entry ──────────────────────────────────────────────────
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HydrationEntry {
-    pub amount_ml: f64,
+pub struct DailyLogRow {
+    pub id: String,
+    pub mood: String,
+    pub energy: u8,
+    pub water_glasses: u8,
+    pub sleep_hours: f64,
+    pub symptoms: Vec<String>,
+    pub note: Option<String>,
     pub logged_at: i64,
-    pub source: Option<String>,  // "water", "tea", "coffee", etc.
+    pub date_key: String,
 }
 
-// ─── Mood Entry ───────────────────────────────────────────────────────
+/// Save or upsert today's daily check-in. One log per calendar day.
+#[tauri::command]
+pub async fn health_log_save(
+    state: State<'_, BentoAppState>,
+    entry: DailyLogEntry,
+) -> Result<DailyLogRow, String> {
+    ensure_health_tables(&state.db()).await?;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MoodEntry {
-    pub score: u8,               // 1-10
-    pub label: Option<String>,   // "great", "neutral", "low", etc.
-    pub activities: Vec<String>,
-    pub notes: Option<String>,
-    pub logged_at: i64,
+    let id = Uuid::new_v4().to_string();
+    let now = time::now_ms();
+    let date = today_key();
+    let symptoms_json = serde_json::to_string(&entry.symptoms).map_err(|e| e.to_string())?;
+
+    // Upsert by date_key — only one check-in per day
+    sqlx::query(
+        r#"
+        INSERT INTO health_daily_logs
+            (id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(date_key) DO UPDATE SET
+            mood         = excluded.mood,
+            energy       = excluded.energy,
+            water_glasses = excluded.water_glasses,
+            sleep_hours  = excluded.sleep_hours,
+            symptoms     = excluded.symptoms,
+            note         = excluded.note,
+            logged_at    = excluded.logged_at
+        "#,
+    )
+    .bind(&id)
+    .bind(&entry.mood)
+    .bind(entry.energy as i64)
+    .bind(entry.water_glasses as i64)
+    .bind(entry.sleep_hours)
+    .bind(&symptoms_json)
+    .bind(&entry.note)
+    .bind(now)
+    .bind(&date)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(DailyLogRow {
+        id,
+        mood: entry.mood,
+        energy: entry.energy,
+        water_glasses: entry.water_glasses,
+        sleep_hours: entry.sleep_hours,
+        symptoms: entry.symptoms,
+        note: entry.note,
+        logged_at: now,
+        date_key: date,
+    })
 }
 
-// ─── Focus Session ────────────────────────────────────────────────────
+/// Load today's check-in (if any).
+#[tauri::command]
+pub async fn health_log_today(
+    state: State<'_, BentoAppState>,
+) -> Result<Option<DailyLogRow>, String> {
+    ensure_health_tables(&state.db()).await?;
+    let date = today_key();
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FocusSession {
-    pub start: i64,
-    pub end: Option<i64>,
-    pub duration_minutes: Option<f64>,
-    pub quality: Option<u8>,     // 1-5
-    pub interruptions: u32,
-    pub tags: Vec<String>,
+    let row = sqlx::query(
+        "SELECT id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key
+         FROM health_daily_logs WHERE date_key = ?",
+    )
+    .bind(&date)
+    .fetch_optional(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let Some(row) = row else { return Ok(None) };
+
+    use sqlx::Row;
+    let symptoms_raw: String = row.try_get("symptoms").unwrap_or_else(|_| "[]".into());
+    let symptoms: Vec<String> = serde_json::from_str(&symptoms_raw).unwrap_or_default();
+
+    Ok(Some(DailyLogRow {
+        id: row.try_get("id").unwrap_or_default(),
+        mood: row.try_get("mood").unwrap_or_else(|_| "steady".into()),
+        energy: row.try_get::<i64, _>("energy").unwrap_or(7) as u8,
+        water_glasses: row.try_get::<i64, _>("water_glasses").unwrap_or(0) as u8,
+        sleep_hours: row.try_get("sleep_hours").unwrap_or(0.0),
+        symptoms,
+        note: row.try_get("note").unwrap_or(None),
+        logged_at: row.try_get("logged_at").unwrap_or(0),
+        date_key: row.try_get("date_key").unwrap_or(date),
+    }))
 }
 
-// ─── Trend Calculation ────────────────────────────────────────────────
+/// Last 7 days of check-ins for the weekly chart.
+#[tauri::command]
+pub async fn health_logs_week(state: State<'_, BentoAppState>) -> Result<Vec<DailyLogRow>, String> {
+    ensure_health_tables(&state.db()).await?;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrendPoint {
-    pub date: String,            // "2026-05-09"
-    pub value: f64,
-    pub count: u32,
-}
+    use sqlx::Row;
+    let rows = sqlx::query(
+        "SELECT id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key
+         FROM health_daily_logs
+         ORDER BY date_key DESC LIMIT 7",
+    )
+    .fetch_all(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrendResult {
-    pub points: Vec<TrendPoint>,
-    pub average: f64,
-    pub min: f64,
-    pub max: f64,
-    pub variance: f64,
-    pub direction: TrendDirection,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum TrendDirection {
-    Improving,
-    Declining,
-    Stable,
-    InsufficientData,
-}
-
-impl TrendResult {
-    pub fn calculate(values: &[(String, f64)]) -> Self {
-        if values.is_empty() {
-            return Self {
-                points: vec![],
-                average: 0.0,
-                min: 0.0,
-                max: 0.0,
-                variance: 0.0,
-                direction: TrendDirection::InsufficientData,
-            };
-        }
-
-        let points: Vec<TrendPoint> = values
-            .iter()
-            .map(|(date, value)| TrendPoint {
-                date: date.clone(),
-                value: *value,
-                count: 1,
-            })
-            .collect();
-
-        let sum: f64 = values.iter().map(|(_, v)| v).sum();
-        let count = values.len() as f64;
-        let average = sum / count;
-
-        let min = values.iter().map(|(_, v)| *v).fold(f64::INFINITY, f64::min);
-        let max = values.iter().map(|(_, v)| *v).fold(f64::NEG_INFINITY, f64::max);
-
-        let variance = values
-            .iter()
-            .map(|(_, v)| {
-                let diff = v - average;
-                diff * diff
-            })
-            .sum::<f64>()
-            / count;
-
-        // Simple linear direction: compare first third to last third
-        let direction = if count < 3.0 {
-            TrendDirection::InsufficientData
-        } else {
-            let third = (count / 3.0).ceil() as usize;
-            let first_avg = values.iter().take(third).map(|(_, v)| v).sum::<f64>() / third as f64;
-            let last_avg = values
-                .iter()
-                .rev()
-                .take(third)
-                .map(|(_, v)| v)
-                .sum::<f64>()
-                / third as f64;
-
-            let delta = last_avg - first_avg;
-            let threshold = average * 0.05; // 5% change threshold
-
-            if delta > threshold {
-                TrendDirection::Improving
-            } else if delta < -threshold {
-                TrendDirection::Declining
-            } else {
-                TrendDirection::Stable
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            let symptoms_raw: String = row.try_get("symptoms").unwrap_or_else(|_| "[]".into());
+            let symptoms: Vec<String> = serde_json::from_str(&symptoms_raw).unwrap_or_default();
+            DailyLogRow {
+                id: row.try_get("id").unwrap_or_default(),
+                mood: row.try_get("mood").unwrap_or_else(|_| "steady".into()),
+                energy: row.try_get::<i64, _>("energy").unwrap_or(7) as u8,
+                water_glasses: row.try_get::<i64, _>("water_glasses").unwrap_or(0) as u8,
+                sleep_hours: row.try_get("sleep_hours").unwrap_or(0.0),
+                symptoms,
+                note: row.try_get("note").unwrap_or(None),
+                logged_at: row.try_get("logged_at").unwrap_or(0),
+                date_key: row.try_get("date_key").unwrap_or_default(),
             }
-        };
-
-        Self {
-            points,
-            average,
-            min,
-            max,
-            variance,
-            direction,
-        }
-    }
-}
-
-// ─── Health Score ─────────────────────────────────────────────────────
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HealthScore {
-    pub score: u8,               // 0-100
-    pub sleep_score: Option<u8>,
-    pub hydration_score: Option<u8>,
-    pub mood_score: Option<u8>,
-    pub focus_score: Option<u8>,
-    pub activity_score: Option<u8>,
-    pub computed_at: i64,
-}
-
-// ─── Provider-Agnostic Adapter Interface ──────────────────────────────
-// Future wearable integrations implement this trait.
-
-pub trait HealthDataProvider: Send + Sync {
-    fn provider_name(&self) -> &'static str;
-    fn is_available(&self) -> bool;
-    fn fetch_recent_sleep(&self, since_ms: i64) -> Vec<SleepEvent>;
-    fn fetch_recent_steps(&self, since_ms: i64) -> Vec<f64>;
-    fn fetch_recent_heart_rate(&self, since_ms: i64) -> Vec<(i64, u8)>;
-}
-
-// ─── UTC Helpers ──────────────────────────────────────────────────────
-
-pub fn now_ms() -> i64 {
-    Utc::now().timestamp_millis()
-}
-
-pub fn date_key(ts_ms: i64) -> String {
-    DateTime::from_timestamp_millis(ts_ms)
-        .map(|dt| dt.format("%Y-%m-%d").to_string())
-        .unwrap_or_else(|| "unknown".to_string())
-}
-
-pub fn days_ago(days: i64) -> i64 {
-    now_ms() - (days * 24 * 60 * 60 * 1000)
-}
-
-pub fn hours_ago(hours: i64) -> i64 {
-    now_ms() - (hours * 60 * 60 * 1000)
-}
-
-pub fn is_today(ts_ms: i64) -> bool {
-    date_key(ts_ms) == date_key(now_ms())
-}
-
-pub fn start_of_day(ts_ms: i64) -> i64 {
-    DateTime::from_timestamp_millis(ts_ms)
-        .map(|dt| {
-            dt.date_naive()
-                .and_hms_opt(0, 0, 0)
-                .and_then(|naive| naive.and_local_timezone(Utc).single())
-                .map(|dt| dt.timestamp_millis())
-                .unwrap_or(ts_ms)
         })
-        .unwrap_or(ts_ms)
+        .collect())
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// VITALS
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VitalsEntry {
+    pub bp: Option<String>,
+    pub hr: Option<String>,
+    pub weight: Option<String>,
+    pub temp: Option<String>,
+    pub spo2: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VitalsRow {
+    pub id: String,
+    pub bp: Option<String>,
+    pub hr: Option<String>,
+    pub weight: Option<String>,
+    pub temp: Option<String>,
+    pub spo2: Option<String>,
+    pub logged_at: i64,
+    pub date_key: String,
+}
+
+#[tauri::command]
+pub async fn health_vitals_save(
+    state: State<'_, BentoAppState>,
+    entry: VitalsEntry,
+) -> Result<VitalsRow, String> {
+    ensure_health_tables(&state.db()).await?;
+
+    let id = Uuid::new_v4().to_string();
+    let now = time::now_ms();
+    let date = today_key();
+
+    sqlx::query(
+        r#"
+        INSERT INTO health_vitals (id, bp, hr, weight, temp, spo2, logged_at, date_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(&id)
+    .bind(&entry.bp)
+    .bind(&entry.hr)
+    .bind(&entry.weight)
+    .bind(&entry.temp)
+    .bind(&entry.spo2)
+    .bind(now)
+    .bind(&date)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(VitalsRow {
+        id,
+        bp: entry.bp,
+        hr: entry.hr,
+        weight: entry.weight,
+        temp: entry.temp,
+        spo2: entry.spo2,
+        logged_at: now,
+        date_key: date,
+    })
+}
+
+#[tauri::command]
+pub async fn health_vitals_list(state: State<'_, BentoAppState>) -> Result<Vec<VitalsRow>, String> {
+    ensure_health_tables(&state.db()).await?;
+
+    use sqlx::Row;
+    let rows = sqlx::query(
+        "SELECT id, bp, hr, weight, temp, spo2, logged_at, date_key
+         FROM health_vitals ORDER BY logged_at DESC LIMIT 30",
+    )
+    .fetch_all(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| VitalsRow {
+            id: row.try_get("id").unwrap_or_default(),
+            bp: row.try_get("bp").unwrap_or(None),
+            hr: row.try_get("hr").unwrap_or(None),
+            weight: row.try_get("weight").unwrap_or(None),
+            temp: row.try_get("temp").unwrap_or(None),
+            spo2: row.try_get("spo2").unwrap_or(None),
+            logged_at: row.try_get("logged_at").unwrap_or(0),
+            date_key: row.try_get("date_key").unwrap_or_default(),
+        })
+        .collect())
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MEDICATIONS
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MedRow {
+    pub id: String,
+    pub name: String,
+    pub dose: String,
+    pub time_of_day: String,
+    pub notes: String,
+    pub taken_today: bool,
+    pub created_at: i64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewMedEntry {
+    pub name: String,
+    pub dose: String,
+    pub time_of_day: String,
+    pub notes: String,
+}
+
+#[tauri::command]
+pub async fn health_meds_list(state: State<'_, BentoAppState>) -> Result<Vec<MedRow>, String> {
+    ensure_health_tables(&state.db()).await?;
+    let date = today_key();
+
+    use sqlx::Row;
+    let rows = sqlx::query(
+        r#"
+        SELECT m.id, m.name, m.dose, m.time_of_day, m.notes, m.created_at,
+               CASE WHEN d.med_id IS NOT NULL THEN 1 ELSE 0 END AS taken_today
+        FROM health_meds m
+        LEFT JOIN health_doses d ON d.med_id = m.id AND d.date_key = ?
+        WHERE m.active = 1
+        ORDER BY m.time_of_day, m.name
+        "#,
+    )
+    .bind(&date)
+    .fetch_all(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| MedRow {
+            id: row.try_get("id").unwrap_or_default(),
+            name: row.try_get("name").unwrap_or_default(),
+            dose: row.try_get("dose").unwrap_or_default(),
+            time_of_day: row.try_get("time_of_day").unwrap_or_default(),
+            notes: row.try_get("notes").unwrap_or_default(),
+            taken_today: row.try_get::<i64, _>("taken_today").unwrap_or(0) == 1,
+            created_at: row.try_get("created_at").unwrap_or(0),
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub async fn health_med_add(
+    state: State<'_, BentoAppState>,
+    entry: NewMedEntry,
+) -> Result<MedRow, String> {
+    ensure_health_tables(&state.db()).await?;
+
+    if entry.name.trim().is_empty() {
+        return Err("Medication name is required.".into());
+    }
+
+    let id = Uuid::new_v4().to_string();
+    let now = time::now_ms();
+
+    sqlx::query(
+        "INSERT INTO health_meds (id, name, dose, time_of_day, notes, active, created_at)
+         VALUES (?, ?, ?, ?, ?, 1, ?)",
+    )
+    .bind(&id)
+    .bind(entry.name.trim())
+    .bind(entry.dose.trim())
+    .bind(entry.time_of_day.trim())
+    .bind(entry.notes.trim())
+    .bind(now)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(MedRow {
+        id,
+        name: entry.name,
+        dose: entry.dose,
+        time_of_day: entry.time_of_day,
+        notes: entry.notes,
+        taken_today: false,
+        created_at: now,
+    })
+}
+
+#[tauri::command]
+pub async fn health_med_toggle(
+    state: State<'_, BentoAppState>,
+    med_id: String,
+) -> Result<bool, String> {
+    ensure_health_tables(&state.db()).await?;
+    let date = today_key();
+    let now = time::now_ms();
+
+    // Check if a dose record exists for today
+    let existing = sqlx::query("SELECT id FROM health_doses WHERE med_id = ? AND date_key = ?")
+        .bind(&med_id)
+        .bind(&date)
+        .fetch_optional(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if existing.is_some() {
+        // Remove — untake
+        sqlx::query("DELETE FROM health_doses WHERE med_id = ? AND date_key = ?")
+            .bind(&med_id)
+            .bind(&date)
+            .execute(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(false)
+    } else {
+        // Insert — mark taken
+        let dose_id = Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO health_doses (id, med_id, taken_at, date_key) VALUES (?, ?, ?, ?)",
+        )
+        .bind(&dose_id)
+        .bind(&med_id)
+        .bind(now)
+        .bind(&date)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+        Ok(true)
+    }
+}
+
+#[tauri::command]
+pub async fn health_med_delete(
+    state: State<'_, BentoAppState>,
+    med_id: String,
+) -> Result<(), String> {
+    ensure_health_tables(&state.db()).await?;
+
+    sqlx::query("UPDATE health_meds SET active = 0 WHERE id = ?")
+        .bind(&med_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// TABLE BOOTSTRAP
+// ═════════════════════════════════════════════════════════════════════════════
+
+pub async fn ensure_health_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    let migrations = [
+        r#"CREATE TABLE IF NOT EXISTS health_daily_logs (
+            id           TEXT    PRIMARY KEY,
+            mood         TEXT    NOT NULL DEFAULT 'steady',
+            energy       INTEGER NOT NULL DEFAULT 7,
+            water_glasses INTEGER NOT NULL DEFAULT 0,
+            sleep_hours  REAL    NOT NULL DEFAULT 0,
+            symptoms     TEXT    NOT NULL DEFAULT '[]',
+            note         TEXT,
+            logged_at    INTEGER NOT NULL,
+            date_key     TEXT    NOT NULL UNIQUE
+        )"#,
+        r#"CREATE TABLE IF NOT EXISTS health_vitals (
+            id        TEXT    PRIMARY KEY,
+            bp        TEXT,
+            hr        TEXT,
+            weight    TEXT,
+            temp      TEXT,
+            spo2      TEXT,
+            logged_at INTEGER NOT NULL,
+            date_key  TEXT    NOT NULL
+        )"#,
+        r#"CREATE TABLE IF NOT EXISTS health_meds (
+            id          TEXT    PRIMARY KEY,
+            name        TEXT    NOT NULL,
+            dose        TEXT    NOT NULL DEFAULT '',
+            time_of_day TEXT    NOT NULL DEFAULT '08:00',
+            notes       TEXT    NOT NULL DEFAULT '',
+            active      INTEGER NOT NULL DEFAULT 1,
+            created_at  INTEGER NOT NULL
+        )"#,
+        r#"CREATE TABLE IF NOT EXISTS health_doses (
+            id       TEXT    PRIMARY KEY,
+            med_id   TEXT    NOT NULL REFERENCES health_meds(id) ON DELETE CASCADE,
+            taken_at INTEGER NOT NULL,
+            date_key TEXT    NOT NULL,
+            UNIQUE(med_id, date_key)
+        )"#,
+    ];
+
+    for sql in migrations {
+        sqlx::query(sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

@@ -190,7 +190,7 @@ export type BrainEvent = z.infer<typeof brainEventSchema>;
 
 function requireDesktopTelemetry() {
   if (!isTauri()) {
-    throw new Error('Telemetry brain is only live inside the Genesis desktop runtime.');
+    throw new Error('Telemetry brain is only live inside the Bento desktop runtime.');
   }
 }
 

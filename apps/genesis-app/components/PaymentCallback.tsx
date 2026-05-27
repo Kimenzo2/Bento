@@ -33,6 +33,42 @@ export const PaymentCallback: React.FC = () => {
     };
   }, []);
 
+  const getDesktopReturnUrl = () => {
+    const params = new URLSearchParams(window.location.search);
+    const desktopReturnUrl = params.get('desktop_return_url')?.trim();
+    return desktopReturnUrl?.startsWith('bento://payment-callback') ? desktopReturnUrl : null;
+  };
+
+  const buildDesktopTargetUrl = () => {
+    const desktopReturnUrl = getDesktopReturnUrl();
+    if (!desktopReturnUrl) {
+      return null;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('desktop_return_url');
+
+    const target = new URL(desktopReturnUrl);
+    currentUrl.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
+
+    return target.toString();
+  };
+
+  const leaveCallback = () => {
+    const desktopTargetUrl = buildDesktopTargetUrl();
+    if (desktopTargetUrl) {
+      window.location.href = desktopTargetUrl;
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1200);
+      return;
+    }
+
+    window.location.href = '/';
+  };
+
   const pollForTierChange = async () => {
     const params = new URLSearchParams(window.location.search);
     const requestedTier = params.get('plan')?.trim().toUpperCase();
@@ -78,7 +114,7 @@ export const PaymentCallback: React.FC = () => {
       setStatus('success');
       setMessage('Your subscription is active. Redirecting to your dashboard...');
       setTimeout(() => {
-        window.location.href = '/';
+        leaveCallback();
       }, 1500);
       return;
     }
@@ -104,7 +140,7 @@ export const PaymentCallback: React.FC = () => {
         }
 
         setTimeout(() => {
-          window.location.href = '/';
+          leaveCallback();
         }, 1500);
         return;
       }
@@ -130,7 +166,16 @@ export const PaymentCallback: React.FC = () => {
 
       if (!user) {
         setStatus('no-reference');
-        setMessage('Sign in to finish activating your subscription.');
+        setMessage(
+          getDesktopReturnUrl()
+            ? 'Returning to Bento to finish activation.'
+            : 'Sign in to finish activating your subscription.'
+        );
+        if (getDesktopReturnUrl()) {
+          setTimeout(() => {
+            leaveCallback();
+          }, 1000);
+        }
         return;
       }
 
@@ -170,7 +215,7 @@ export const PaymentCallback: React.FC = () => {
         {(status === 'failed' || status === 'no-reference' || status === 'pending') && (
           <button
             onClick={() => {
-              window.location.href = '/';
+              leaveCallback();
             }}
             className="w-full py-3 px-6 bg-coral-burst text-white rounded-xl font-heading font-bold hover:bg-coral-burst/90 transition-all flex items-center justify-center gap-2"
           >

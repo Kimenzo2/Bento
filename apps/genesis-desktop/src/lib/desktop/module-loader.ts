@@ -1,8 +1,8 @@
 import { browser } from '$app/environment';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { mount, unmount } from 'svelte';
-import type { GenesisModuleId, ModuleContext } from './modules';
-import { activeModule, captureModuleContext, moduleFromPath, modules, switchModule } from './modules';
+import type { BentoModuleId, ModuleContext } from './modules';
+import { activeModule, captureModuleContext, moduleFromPath, modules, setWindowTitle, switchModule } from './modules';
 
 type MountedModule = Record<string, unknown>;
 
@@ -63,6 +63,7 @@ export async function loadInstalledModule(moduleId: string, target: HTMLElement,
   });
 
   activeModule.set(moduleId);
+  await setWindowTitle(moduleId);
   return currentInstalledModule;
 }
 
@@ -71,24 +72,24 @@ export function unloadInstalledModule() {
     unmount(currentInstalledModule);
   }
   currentInstalledModule = null;
-  document.getElementById('genesis-module-css')?.remove();
+  document.getElementById('bento-module-css')?.remove();
 }
 
-export async function loadBuiltinModule(moduleId: GenesisModuleId) {
+export async function loadBuiltinModule(moduleId: BentoModuleId) {
   unloadInstalledModule();
   return switchModule(moduleId);
 }
 
 function loadModuleCss(moduleId: string) {
-  document.getElementById('genesis-module-css')?.remove();
+  document.getElementById('bento-module-css')?.remove();
 
   const link = document.createElement('link');
-  link.id = 'genesis-module-css';
+  link.id = 'bento-module-css';
   link.rel = 'stylesheet';
   link.href = moduleAssetUrl(moduleId, 'index.css');
   document.head.appendChild(link);
 }
 
-export function isBuiltinModule(moduleId: string): moduleId is GenesisModuleId {
+export function isBuiltinModule(moduleId: string): moduleId is BentoModuleId {
   return modules.some((entry) => entry.id === moduleId);
 }

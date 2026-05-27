@@ -1,8 +1,24 @@
 $ErrorActionPreference = "Stop"
 
 $appRoot = Split-Path -Parent $PSScriptRoot
+
+# Load .env file into the current process environment so the Rust binary
+# (which does NOT auto-read .env like Vite does) can access VITE_SUPABASE_URL etc.
+$envFilePath = Join-Path $appRoot ".env"
+if (Test-Path $envFilePath) {
+  Get-Content $envFilePath | Where-Object { $_ -match "^\s*[^#]\S+=.+" } | ForEach-Object {
+    $parts = $_ -split "=", 2
+    if ($parts.Count -eq 2) {
+      $key   = $parts[0].Trim()
+      $value = $parts[1].Trim()
+      [System.Environment]::SetEnvironmentVariable($key, $value, "Process")
+    }
+  }
+  Write-Host "Loaded .env from $envFilePath" -ForegroundColor DarkGray
+}
 $srcTauri = Join-Path $appRoot "src-tauri"
 $cargoBin = Join-Path $HOME ".cargo\\bin"
+$gitUsrBin = "C:\\Program Files\\Git\\usr\\bin"
 $llvmBin = "C:\\Program Files\\LLVM\\bin"
 $isWindowsPlatform = $env:OS -eq "Windows_NT"
 $desktopBinary = Join-Path $srcTauri "target\\debug\\genesis-desktop.exe"
@@ -12,6 +28,10 @@ $isDev = ($args -contains "dev") -and (-not $isRelease)
 
 if (-not ($env:PATH -split ";" | Where-Object { $_ -eq $cargoBin })) {
   $env:PATH = "$cargoBin;$env:PATH"
+}
+
+if ((Test-Path $gitUsrBin) -and -not ($env:PATH -split ";" | Where-Object { $_ -eq $gitUsrBin })) {
+  $env:PATH = "$gitUsrBin;$env:PATH"
 }
 
 if ((Test-Path (Join-Path $llvmBin "lld-link.exe")) -and -not ($env:PATH -split ";" | Where-Object { $_ -eq $llvmBin })) {
@@ -84,7 +104,7 @@ if ($isDev -and -not $allowRustBuild) {
   }
 
   $effectiveTargetForCache = (& rustc --print host-tuple).Trim()
-  $cachedSidecarName = if ($isWindowsPlatform) { "genesis-mcp-$effectiveTargetForCache.exe" } else { "genesis-mcp-$effectiveTargetForCache" }
+  $cachedSidecarName = if ($isWindowsPlatform) { "bento-mcp-$effectiveTargetForCache.exe" } else { "bento-mcp-$effectiveTargetForCache" }
   $cachedSidecar = Join-Path $srcTauri "binaries\\$cachedSidecarName"
   Assert-CachedRustBinaryFresh -BinaryPath $desktopBinary
   Assert-CachedSidecarFresh -SidecarPath $cachedSidecar
@@ -102,13 +122,13 @@ $env:CARGO_BUILD_JOBS = if ($isRelease -and [string]::IsNullOrWhiteSpace($env:CA
   $env:CARGO_BUILD_JOBS
 }
 $effectiveTarget = if ($requestedTarget) { $requestedTarget } else { (& rustc --print host-tuple).Trim() }
-$binaryName = if ($isWindowsPlatform) { "genesis-mcp.exe" } else { "genesis-mcp" }
+$binaryName = if ($isWindowsPlatform) { "bento-mcp.exe" } else { "bento-mcp" }
 $targetDir = if ($isRelease) { "release" } else { "debug" }
 $outputDir = Join-Path $srcTauri "binaries"
 $outputBinary = if ($isWindowsPlatform) {
-  Join-Path $outputDir ("genesis-mcp-{0}.exe" -f $effectiveTarget)
+  Join-Path $outputDir ("bento-mcp-{0}.exe" -f $effectiveTarget)
 } else {
-  Join-Path $outputDir ("genesis-mcp-{0}" -f $effectiveTarget)
+  Join-Path $outputDir ("bento-mcp-{0}" -f $effectiveTarget)
 }
 $forceRebuild = $env:GENESIS_DESKTOP_FORCE_MCP_REBUILD -eq "1"
 $shouldBuildSidecar = $isRelease -or $forceRebuild -or -not (Test-Path $outputBinary)
@@ -125,7 +145,7 @@ if ($shouldBuildSidecar) {
     "--manifest-path",
     (Join-Path $srcTauri "Cargo.toml"),
     "--bin",
-    "genesis-mcp"
+    "bento-mcp"
   )
 
   if ($requestedTarget) {
@@ -138,7 +158,7 @@ if ($shouldBuildSidecar) {
 
   & cargo @cargoArgs
   if ($LASTEXITCODE -ne 0) {
-    throw "cargo build for genesis-mcp failed with exit code $LASTEXITCODE"
+    throw "cargo build for bento-mcp failed with exit code $LASTEXITCODE"
   }
 
   $builtBinary = if ($requestedTarget) {
@@ -163,7 +183,7 @@ if ($shouldBuildSidecar) {
     Copy-Item -LiteralPath $builtBinary -Destination $outputBinary -Force
   }
 } else {
-  Write-Host "Using cached genesis-mcp sidecar: $outputBinary" -ForegroundColor DarkGreen
+  Write-Host "Using cached bento-mcp sidecar: $outputBinary" -ForegroundColor DarkGreen
 }
 
 & bunx tauri @args

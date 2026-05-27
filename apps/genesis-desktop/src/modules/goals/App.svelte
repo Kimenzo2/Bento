@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Plus, Target, CheckCircle2, ChevronRight, TrendingUp, AlertCircle, Dumbbell, Book, CreditCard, ChevronDown, Check } from 'lucide-svelte';
+  import { activeBundle, createTranslator } from "$lib/i18n";
 
-  export let moduleId: string;
-  export let settings: any = {};
-  void moduleId;
-  void settings;
+  let { moduleId = "goals", settings = {} } = $props<{ moduleId?: string; settings?: any }>();
+  $effect(() => { void moduleId; });
+  $effect(() => { void settings; });
 
   const currentWeek = 19;
   const totalWeeks = 52;
@@ -52,7 +52,9 @@
     }
   ];
 
-  let showNewGoalForm = false;
+  let _t = $derived.by(() => createTranslator($activeBundle));
+
+  let showNewGoalForm = $state(false);
   const goalNameId = "goal-name";
   const goalTargetId = "goal-target";
   const goalUnitId = "goal-unit";
@@ -60,11 +62,11 @@
   const goalCategoryId = "goal-category";
 </script>
 
-<div class="goals-app-container module-root">
+<div class="goals-app-container module-root" data-module="goals">
   <!-- Header -->
   <div class="goals-header">
     <div class="header-text">
-      <h1>Your Goals</h1>
+      <h1>{_t('moduleGoalsTitle')}</h1>
       <p class="week-subtext">Week {currentWeek} of {totalWeeks}</p>
     </div>
     <div class="header-actions">
@@ -83,17 +85,18 @@
             <TrendingUp size={28} color="#ffffff" />
           </div>
           <div class="checkin-text">
-            <h2>Time for your weekly check-in</h2>
+            <h2>{_t('moduleGoalsWeeklyCheckin')}</h2>
             <p>Log your weekend progress to keep your streaks alive.</p>
           </div>
         </div>
-        <button class="checkin-cta">Start Check-in</button>
+        <button class="checkin-cta">{_t('moduleGoalsStartCheckin')}</button>
       </div>
     {/if}
 
     <!-- Goals List -->
     <div class="goals-list">
       {#each goals.sort((a, b) => (a.status === 'overdue' ? -1 : 1)) as goal}
+        {@const GoalIcon = goal.icon}
         <div class="goal-card {goal.status === 'overdue' ? 'status-overdue' : 'status-active'}">
           <!-- Top Row -->
           <div class="goal-top">
@@ -107,7 +110,7 @@
               </p>
             </div>
             <div class="goal-icon-box">
-              <svelte:component this={goal.icon} size={20} />
+              <GoalIcon size={20} />
             </div>
           </div>
 
@@ -144,7 +147,7 @@
   </div>
 
   <!-- Floating Action Button -->
-  <button class="fab-button" on:click={() => showNewGoalForm = true}>
+  <button class="fab-button" onclick={() => showNewGoalForm = true}>
     <Plus size={28} color="#ffffff" />
   </button>
 
@@ -153,43 +156,43 @@
     <div class="modal-backdrop">
       <div class="modal-surface panel-glass">
         <div class="modal-header">
-          <h2>Create New Goal</h2>
-          <button class="close-modal-btn" on:click={() => showNewGoalForm = false}>✕</button>
+          <h2>{_t('moduleGoalsCreateNew')}</h2>
+          <button class="close-modal-btn" onclick={() => showNewGoalForm = false}>✕</button>
         </div>
         <div class="modal-body">
           <div class="input-group">
-            <label for={goalNameId}>Goal Name</label>
-            <input id={goalNameId} type="text" placeholder="e.g. Learn Spanish" class="premium-input" />
+            <label for={goalNameId}>{_t('moduleGoalsNameLabel')}</label>
+            <input id={goalNameId} type="text" placeholder={_t('moduleGoalsPlaceholderName')} class="premium-input" />
           </div>
           <div class="input-row">
             <div class="input-group">
-              <label for={goalTargetId}>Target Number</label>
+              <label for={goalTargetId}>{_t('moduleGoalsTargetLabel')}</label>
               <input id={goalTargetId} type="number" placeholder="0" class="premium-input" />
             </div>
             <div class="input-group">
-              <label for={goalUnitId}>Unit</label>
-              <input id={goalUnitId} type="text" placeholder="e.g. hours, km" class="premium-input" />
+              <label for={goalUnitId}>{_t('moduleGoalsUnitLabel')}</label>
+              <input id={goalUnitId} type="text" placeholder={_t('moduleGoalsUnitPlaceholder')} class="premium-input" />
             </div>
           </div>
           <div class="input-group">
-            <label for={goalDeadlineId}>Deadline</label>
+            <label for={goalDeadlineId}>{_t('moduleGoalsDeadlineLabel')}</label>
             <input id={goalDeadlineId} type="date" class="premium-input" />
           </div>
           <div class="input-group">
-            <label for={goalCategoryId}>Category</label>
+            <label for={goalCategoryId}>{_t('commonCategory')}</label>
             <div class="premium-select-wrapper">
               <select id={goalCategoryId} class="premium-input select">
-                <option>Health & Fitness</option>
-                <option>Finance</option>
-                <option>Learning & Growth</option>
-                <option>Career</option>
+                <option>{_t('moduleGoalsCategoryFitness')}</option>
+                <option>{_t('moduleGoalsCategoryFinance')}</option>
+                <option>{_t('moduleGoalsCategoryLearning')}</option>
+                <option>{_t('moduleGoalsCategoryCareer')}</option>
               </select>
               <span class="select-indicator"><ChevronDown size={18} /></span>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-primary" on:click={() => showNewGoalForm = false}>Save Goal</button>
+          <button class="btn-primary" onclick={() => showNewGoalForm = false}>{_t('commonSaveGoal')}</button>
         </div>
       </div>
     </div>
@@ -267,7 +270,7 @@
   border-radius: 24px;
   padding: 32px;
   margin-bottom: 32px;
-  background: #1e293b;
+  background: var(--card);
   border: 1px solid #334155;
   display: flex;
   flex-direction: column;
@@ -325,15 +328,15 @@
 }
 
 .goal-card {
-  background: #18181b;
+  background: var(--card);
   border-radius: 20px;
   padding: 24px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--surface);
 }
 
 .goal-card.status-overdue {
   border-left: 4px solid #f43f5e;
-  background: #1f1115;
+  background: var(--card);
 }
 
 .goal-top {
@@ -364,7 +367,7 @@
 .goal-icon-box {
   width: 44px; height: 44px;
   border-radius: 12px;
-  background: #27272a;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,7 +406,7 @@
 .progress-track {
   width: 100%;
   height: 8px;
-  background: #27272a;
+  background: var(--surface);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -424,7 +427,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #27272a;
+  border-top: 1px solid var(--surface);
   padding-top: 16px;
 }
 
@@ -467,9 +470,9 @@
 .panel-glass {
   width: 100%;
   max-width: 500px;
-  background: #18181b;
+  background: var(--card);
   border-radius: 28px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--surface);
   overflow: hidden;
 }
 
@@ -478,7 +481,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px;
-  border-bottom: 1px solid #27272a;
+  border-bottom: 1px solid var(--surface);
 }
 
 .modal-header h2 {
@@ -488,7 +491,7 @@
 }
 
 .close-modal-btn {
-  background: #27272a;
+  background: var(--surface);
   border: none;
   width: 32px; height: 32px;
   border-radius: 16px;
@@ -523,8 +526,8 @@
 
 .premium-input {
   width: 100%;
-  background: #27272a;
-  border: 1px solid #3f3f46;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 16px;
   color: white;
@@ -554,8 +557,8 @@
 
 .modal-footer {
   padding: 24px 32px;
-  border-top: 1px solid #27272a;
-  background: #18181b;
+  border-top: 1px solid var(--surface);
+  background: var(--card);
 }
 
 .btn-primary {

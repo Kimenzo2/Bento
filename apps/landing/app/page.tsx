@@ -1,5 +1,5 @@
 const releaseNotes = [
-  'Windows 64-bit NSIS installer — v0.2.0',
+  'Windows 64-bit NSIS installer — v0.1.0',
   'Same-domain download route',
   'Starts immediately without a release-page hop',
 ];
@@ -25,7 +25,7 @@ export default function HomePage() {
               href="/download/windows"
               className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-transform duration-200 hover:scale-[1.02] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              Download for Windows v0.2.0
+              Download for Windows v0.1.0
             </a>
             <span className="text-sm leading-6 text-white/50">
               Direct installer, no extra release page.

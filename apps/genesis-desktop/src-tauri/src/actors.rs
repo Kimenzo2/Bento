@@ -56,8 +56,7 @@ pub fn spawn_module_actor(
         let mut is_foreground = false;
 
         // Initial interval = background (5 s)
-        let mut interval =
-            tokio::time::interval(tokio::time::Duration::from_millis(5000));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(5000));
         interval.tick().await; // consume the immediate first tick
 
         loop {

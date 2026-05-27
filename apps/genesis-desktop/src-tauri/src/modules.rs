@@ -1,18 +1,18 @@
-use std::{
-    path::{Component, Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use crate::util::time;
+use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::Row;
 use tauri::{
-    Manager, Runtime, UriSchemeContext,
+    AppHandle, Manager, Runtime, State, UriSchemeContext,
     http::{Request, Response, StatusCode},
     ipc::Channel,
 };
 
-use crate::db::{GenesisAppState, is_builtin_module_id};
+use crate::auth::AuthManager;
+use crate::commands::{DashboardCache, emit_main_window_event};
+use crate::db::{BentoAppState, is_builtin_module_id, write_runtime_state};
 
 const BUILTIN_MODULES: &[(&str, &str, &str, &str, f64, &str, &str)] = &[
     (
@@ -27,7 +27,7 @@ const BUILTIN_MODULES: &[(&str, &str, &str, &str, f64, &str, &str)] = &[
     (
         "notes",
         "Notes",
-        "Markdown-first note surface backed by the Genesis shell.",
+        "Markdown-first note surface backed by the Bento shell.",
         "0.1.0",
         1.2,
         "shell",
@@ -234,7 +234,7 @@ const BUILTIN_MODULES: &[(&str, &str, &str, &str, f64, &str, &str)] = &[
     (
         "settings",
         "Settings",
-        "Genesis shell preferences and local platform controls.",
+        "Bento shell preferences and local platform controls.",
         "0.1.0",
         0.6,
         "shell",
@@ -294,13 +294,6 @@ pub struct LocalModuleManifest {
     pub accent: Option<String>,
 }
 
-fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|value| value.as_secs() as i64)
-        .unwrap_or(0)
-}
-
 pub fn validate_module_id(module_id: &str) -> Result<(), String> {
     let len = module_id.len();
     if !(1..=48).contains(&len) {
@@ -319,14 +312,14 @@ pub fn validate_module_id(module_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-async fn is_installed(state: &GenesisAppState, module_id: &str) -> Result<bool, String> {
+pub(crate) async fn is_installed(state: &BentoAppState, module_id: &str) -> Result<bool, String> {
     if is_builtin_module_id(module_id) {
         return Ok(true);
     }
 
     let count: i64 = sqlx::query("SELECT COUNT(*) AS count FROM installed_modules WHERE id = ?")
         .bind(module_id)
-        .fetch_one(state.db())
+        .fetch_one(&state.db())
         .await
         .map_err(|error| error.to_string())?
         .try_get("count")
@@ -336,13 +329,16 @@ async fn is_installed(state: &GenesisAppState, module_id: &str) -> Result<bool, 
 }
 
 #[tauri::command]
-pub async fn get_active_module(state: tauri::State<'_, GenesisAppState>) -> Result<String, String> {
+pub async fn get_active_module(state: tauri::State<'_, BentoAppState>) -> Result<String, String> {
     Ok(state.active_module())
 }
 
 #[tauri::command]
 pub async fn set_active_module(
-    state: tauri::State<'_, GenesisAppState>,
+    app: AppHandle,
+    cache: State<'_, DashboardCache>,
+    auth: State<'_, AuthManager>,
+    state: tauri::State<'_, BentoAppState>,
     module_id: String,
 ) -> Result<String, String> {
     validate_module_id(&module_id)?;
@@ -351,13 +347,64 @@ pub async fn set_active_module(
         return Err(format!("Module is not installed: {module_id}"));
     }
 
+    let billing_profile = auth.get_billing_profile().await.ok();
+    let active_plan_rank = billing_profile
+        .as_ref()
+        .map(|profile| billing_rank_from_code(profile.billing_tier.as_str()))
+        .unwrap_or(0);
+    let has_active_subscription = billing_profile
+        .as_ref()
+        .map(|profile| profile.has_active_subscription)
+        .unwrap_or(false);
+
+    if !module_is_allowed_by_rank(&module_id, active_plan_rank, has_active_subscription) {
+        return Err(format!("Upgrade required to open {module_id}."));
+    }
+
+    write_runtime_state(&state.db(), "last_active_module", &module_id).await?;
     state.set_active_module(module_id.clone());
+    cache.invalidate();
+    let _ = emit_main_window_event(&app, "bento://dashboard-refresh", module_id.clone());
     Ok(module_id)
+}
+
+fn billing_rank_from_code(value: &str) -> u8 {
+    match value.trim().to_lowercase().as_str() {
+        "core" => 1,
+        "pro" => 2,
+        "power" => 3,
+        _ => 0,
+    }
+}
+
+fn module_is_allowed_by_rank(
+    module_id: &str,
+    active_plan_rank: u8,
+    has_active_subscription: bool,
+) -> bool {
+    if matches!(module_id, "dashboard" | "settings") {
+        return true;
+    }
+
+    if !has_active_subscription {
+        return false;
+    }
+
+    let required_rank = match module_id {
+        "notes" | "journal" | "tasks" | "passwords" | "budget" => 1,
+        "ai" => 2,
+        "telemetry" | "habits" | "focus" | "health" | "sleep" | "nutrition" | "mood"
+        | "flashcards" | "reading" | "grocery" | "recipes" | "time" | "goals" | "clipboard"
+        | "breathing" | "voice-memos" | "countdown" => 2,
+        _ => 2,
+    };
+
+    active_plan_rank >= required_rank
 }
 
 #[tauri::command]
 pub async fn get_installed_modules(
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
 ) -> Result<Vec<InstalledModule>, String> {
     let mut modules = BUILTIN_MODULES
         .iter()
@@ -382,7 +429,7 @@ pub async fn get_installed_modules(
     let rows = sqlx::query(
         "SELECT id, version, installed_at, builtin, manifest FROM installed_modules ORDER BY id",
     )
-    .fetch_all(state.db())
+    .fetch_all(&state.db())
     .await
     .map_err(|error| error.to_string())?;
 
@@ -414,7 +461,7 @@ pub async fn get_installed_modules(
 
 #[tauri::command]
 pub async fn fetch_module_registry(
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
 ) -> Result<Vec<ModuleRegistryEntry>, String> {
     let installed = get_installed_modules(state).await?;
     let installed_ids = installed
@@ -446,14 +493,14 @@ pub async fn fetch_module_registry(
 
 #[tauri::command]
 pub async fn get_module_settings(
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
     module_id: String,
 ) -> Result<Value, String> {
     validate_module_id(&module_id)?;
 
     let row = sqlx::query("SELECT data FROM module_settings WHERE module_id = ?")
         .bind(&module_id)
-        .fetch_optional(state.db())
+        .fetch_optional(&state.db())
         .await
         .map_err(|error| error.to_string())?;
 
@@ -465,7 +512,7 @@ pub async fn get_module_settings(
 
 #[tauri::command]
 pub async fn set_module_settings(
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
     module_id: String,
     data: Value,
 ) -> Result<Value, String> {
@@ -487,8 +534,8 @@ pub async fn set_module_settings(
     )
     .bind(&module_id)
     .bind(raw)
-    .bind(unix_now())
-    .execute(state.db())
+    .bind(time::now_secs())
+    .execute(&state.db())
     .await
     .map_err(|error| error.to_string())?;
 
@@ -498,7 +545,7 @@ pub async fn set_module_settings(
 #[tauri::command]
 pub async fn register_local_module(
     app: tauri::AppHandle,
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
     manifest: LocalModuleManifest,
 ) -> Result<InstalledModule, String> {
     validate_module_id(&manifest.id)?;
@@ -539,16 +586,16 @@ pub async fn register_local_module(
     )
     .bind(&manifest.id)
     .bind(&manifest.version)
-    .bind(unix_now())
+    .bind(time::now_secs())
     .bind(manifest_raw)
-    .execute(state.db())
+    .execute(&state.db())
     .await
     .map_err(|error| error.to_string())?;
 
     Ok(InstalledModule {
         id: manifest.id,
         version: manifest.version,
-        installed_at: unix_now(),
+        installed_at: time::now_secs(),
         builtin: false,
         manifest: manifest_value,
     })
@@ -570,13 +617,13 @@ pub async fn install_module(
         );
     }
 
-    Err("Remote module installation is intentionally disabled until the signed Genesis module registry is configured. Use register_local_module for trusted local bundles.".to_string())
+    Err("Remote module installation is intentionally disabled until the signed Bento module registry is configured. Use register_local_module for trusted local bundles.".to_string())
 }
 
 #[tauri::command]
 pub async fn uninstall_module(
     app: tauri::AppHandle,
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
     module_id: String,
 ) -> Result<(), String> {
     validate_module_id(&module_id)?;
@@ -598,7 +645,7 @@ pub async fn uninstall_module(
 
     sqlx::query("DELETE FROM installed_modules WHERE id = ?")
         .bind(&module_id)
-        .execute(state.db())
+        .execute(&state.db())
         .await
         .map_err(|error| error.to_string())?;
 

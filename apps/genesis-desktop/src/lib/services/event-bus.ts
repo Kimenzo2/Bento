@@ -13,11 +13,12 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { get, writable } from 'svelte/store';
+import { time } from '$lib/utils/time';
 
 // ─── Event Types ──────────────────────────────────────────────────────
 
 /** Canonical list of all cross-app events Bento modules can emit/receive. */
-export enum GenesisEventType {
+export enum BentoEventType {
   // Health → Life
   SleepLogged = 'health:sleep-logged',
   HydrationLogged = 'health:hydration-logged',
@@ -71,8 +72,8 @@ export enum GenesisEventType {
 
 // ─── Event Payloads ───────────────────────────────────────────────────
 
-export interface GenesisEvent {
-  type: GenesisEventType;
+export interface BentoEvent {
+  type: BentoEventType;
   source: string;        // module id, e.g. "sleep", "focus", "system"
   timestamp: number;     // UTC ms
   payload: Record<string, unknown>;
@@ -80,26 +81,26 @@ export interface GenesisEvent {
 
 /** Helper to build a typed event. */
 export function createEvent(
-  type: GenesisEventType,
+  type: BentoEventType,
   source: string,
   payload: Record<string, unknown> = {},
-): GenesisEvent {
-  return { type, source, timestamp: Date.now(), payload };
+): BentoEvent {
+  return { type, source, timestamp: time.now(), payload };
 }
 
 // ─── Event Bus ────────────────────────────────────────────────────────
 
-type Listener = (event: GenesisEvent) => void;
+type Listener = (event: BentoEvent) => void;
 
 class EventBus {
-  private listeners = new Map<GenesisEventType, Set<Listener>>();
+  private listeners = new Map<BentoEventType, Set<Listener>>();
   private allListeners = new Set<Listener>();
 
   /** History store for dashboard widgets (last 200 events). */
-  readonly history = writable<GenesisEvent[]>([]);
+  readonly history = writable<BentoEvent[]>([]);
 
   /** Subscribe to a specific event type. */
-  on(eventType: GenesisEventType, listener: Listener): () => void {
+  on(eventType: BentoEventType, listener: Listener): () => void {
     return this.add(eventType, listener);
   }
 
@@ -110,7 +111,7 @@ class EventBus {
   }
 
   /** Emit an event to all subscribers. */
-  emit(event: GenesisEvent): void {
+  emit(event: BentoEvent): void {
     // Notify type-specific listeners
     const typeListeners = this.listeners.get(event.type);
     if (typeListeners) {
@@ -136,9 +137,9 @@ class EventBus {
     });
   }
 
-  /** Emit without building a GenesisEvent manually. */
+  /** Emit without building a BentoEvent manually. */
   emitSimple(
-    type: GenesisEventType,
+    type: BentoEventType,
     source: string,
     payload: Record<string, unknown> = {},
   ): void {
@@ -159,7 +160,7 @@ class EventBus {
     return count;
   }
 
-  private add(eventType: GenesisEventType, listener: Listener): () => void {
+  private add(eventType: BentoEventType, listener: Listener): () => void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
@@ -189,9 +190,9 @@ export async function initEventBridge(): Promise<() => void> {
       scheduleId: string;
       moduleId: string;
       label: string;
-    }>('genesis://schedule-fire', (e) => {
+    }>('bento://schedule-fire', (e) => {
       eventBus.emitSimple(
-        GenesisEventType.ScheduleDue,
+        BentoEventType.ScheduleDue,
         'system',
         {
           scheduleId: e.payload.scheduleId,
@@ -206,9 +207,9 @@ export async function initEventBridge(): Promise<() => void> {
     const unlistenModuleSwitch = await listen<{
       from: string;
       to: string;
-    }>('genesis://module-switch', (e) => {
+    }>('bento://module-switch', (e) => {
       eventBus.emitSimple(
-        GenesisEventType.ModuleSwitched,
+        BentoEventType.ModuleSwitched,
         'system',
         {
           from: e.payload.from,

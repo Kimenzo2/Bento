@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::{self, BufRead, Write};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -48,7 +48,7 @@ pub struct McpResponse {
 
 fn handle_request(request: McpRequest) -> McpResponse {
     let result = match request.method.as_str() {
-        "ping" => Some(json!({ "message": "pong", "source": "genesis-mcp" })),
+        "ping" => Some(json!({ "message": "pong", "source": "bento-mcp" })),
         "creative.plan" => Some(json!({
             "status": "ready",
             "steps": [

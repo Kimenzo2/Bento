@@ -75,15 +75,13 @@ impl RingBufferStore {
         heal_action: &str,
         heal_ms: i64,
     ) -> Result<(), String> {
-        sqlx::query(
-            "UPDATE anomaly_log SET healed = 1, heal_action = ?, heal_ms = ? WHERE id = ?",
-        )
-        .bind(heal_action)
-        .bind(heal_ms)
-        .bind(anomaly_id)
-        .execute(&self.db)
-        .await
-        .map_err(|error| error.to_string())?;
+        sqlx::query("UPDATE anomaly_log SET healed = 1, heal_action = ?, heal_ms = ? WHERE id = ?")
+            .bind(heal_action)
+            .bind(heal_ms)
+            .bind(anomaly_id)
+            .execute(&self.db)
+            .await
+            .map_err(|error| error.to_string())?;
         Ok(())
     }
 
@@ -119,7 +117,11 @@ impl RingBufferStore {
         .bind(&prediction.metric)
         .bind(prediction.current_val)
         .bind(prediction.projected_5m)
-        .bind(prediction.was_correct.map(|value| if value { 1 } else { 0 }))
+        .bind(
+            prediction
+                .was_correct
+                .map(|value| if value { 1 } else { 0 }),
+        )
         .execute(&self.db)
         .await
         .map_err(|error| error.to_string())?;
@@ -136,7 +138,11 @@ impl RingBufferStore {
         Ok(())
     }
 
-    pub async fn count_anomalies_today(&self, module_id: &str, anomaly_type: &str) -> Result<i64, String> {
+    pub async fn count_anomalies_today(
+        &self,
+        module_id: &str,
+        anomaly_type: &str,
+    ) -> Result<i64, String> {
         let day_start = now_ms() - (24 * 60 * 60 * 1000);
         let row = sqlx::query(
             "SELECT COUNT(*) AS count FROM anomaly_log WHERE module_id = ? AND type = ? AND ts >= ?",
@@ -151,7 +157,11 @@ impl RingBufferStore {
         Ok(row.try_get::<i64, _>("count").unwrap_or(0))
     }
 
-    pub async fn recent_ticks(&self, module_id: Option<&str>, since_ms: i64) -> Result<Vec<TickRecord>, String> {
+    pub async fn recent_ticks(
+        &self,
+        module_id: Option<&str>,
+        since_ms: i64,
+    ) -> Result<Vec<TickRecord>, String> {
         let rows = if let Some(module_id) = module_id {
             sqlx::query(
                 "SELECT id, ts, module_id, heap_mb, state, ipc_ms, db_ms, last_action FROM telemetry_ticks WHERE module_id = ? AND ts >= ? ORDER BY ts ASC",
@@ -178,7 +188,11 @@ impl RingBufferStore {
                 ts: row.try_get("ts").unwrap_or_default(),
                 module_id: row.try_get("module_id").unwrap_or_default(),
                 heap_mb: row.try_get("heap_mb").unwrap_or_default(),
-                state: parse_module_state(row.try_get::<String, _>("state").unwrap_or_else(|_| "OFFLINE".to_string()).as_str()),
+                state: parse_module_state(
+                    row.try_get::<String, _>("state")
+                        .unwrap_or_else(|_| "OFFLINE".to_string())
+                        .as_str(),
+                ),
                 ipc_ms: row.try_get("ipc_ms").ok(),
                 db_ms: row.try_get("db_ms").ok(),
                 last_action: row.try_get("last_action").ok(),
@@ -216,11 +230,23 @@ impl RingBufferStore {
                 id: row.try_get("id").unwrap_or_default(),
                 ts: row.try_get("ts").unwrap_or_default(),
                 module_id: row.try_get("module_id").unwrap_or_default(),
-                kind: parse_anomaly_type(row.try_get::<String, _>("type").unwrap_or_else(|_| "memory_spike".to_string()).as_str()),
-                severity: parse_severity(row.try_get::<String, _>("severity").unwrap_or_else(|_| "INFO".to_string()).as_str()),
+                kind: parse_anomaly_type(
+                    row.try_get::<String, _>("type")
+                        .unwrap_or_else(|_| "memory_spike".to_string())
+                        .as_str(),
+                ),
+                severity: parse_severity(
+                    row.try_get::<String, _>("severity")
+                        .unwrap_or_else(|_| "INFO".to_string())
+                        .as_str(),
+                ),
                 message: row.try_get("message").unwrap_or_default(),
                 healed: row.try_get::<i64, _>("healed").unwrap_or(0) == 1,
-                heal_action: row.try_get::<Option<String>, _>("heal_action").ok().flatten().map(|value| parse_heal_action(&value)),
+                heal_action: row
+                    .try_get::<Option<String>, _>("heal_action")
+                    .ok()
+                    .flatten()
+                    .map(|value| parse_heal_action(&value)),
                 heal_ms: row.try_get("heal_ms").ok(),
             })
             .collect())
@@ -301,7 +327,11 @@ impl RingBufferStore {
             .await
             .map_err(|error| error.to_string())?;
 
-            let max_heap = tick.try_get::<Option<f32>, _>("max_heap").ok().flatten().unwrap_or(0.0);
+            let max_heap = tick
+                .try_get::<Option<f32>, _>("max_heap")
+                .ok()
+                .flatten()
+                .unwrap_or(0.0);
             let was_correct = if max_heap >= projected_5m { 1 } else { 0 };
 
             sqlx::query("UPDATE predictions SET was_correct = ? WHERE id = ?")
@@ -320,7 +350,15 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
     ensure_table_columns(
         db,
         "telemetry_ticks",
-        &["ts", "module_id", "heap_mb", "state", "ipc_ms", "db_ms", "last_action"],
+        &[
+            "ts",
+            "module_id",
+            "heap_mb",
+            "state",
+            "ipc_ms",
+            "db_ms",
+            "last_action",
+        ],
         r#"
         CREATE TABLE telemetry_ticks (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -341,7 +379,16 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
     ensure_table_columns(
         db,
         "anomaly_log",
-        &["ts", "module_id", "type", "severity", "message", "healed", "heal_action", "heal_ms"],
+        &[
+            "ts",
+            "module_id",
+            "type",
+            "severity",
+            "message",
+            "healed",
+            "heal_action",
+            "heal_ms",
+        ],
         r#"
         CREATE TABLE anomaly_log (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -363,7 +410,14 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
     ensure_table_columns(
         db,
         "insights",
-        &["discovered_at", "action", "metric", "pearson", "n_samples", "description"],
+        &[
+            "discovered_at",
+            "action",
+            "metric",
+            "pearson",
+            "n_samples",
+            "description",
+        ],
         r#"
         CREATE TABLE insights (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -382,7 +436,14 @@ async fn ensure_telemetry_schema_compatibility(db: &SqlitePool) -> Result<(), St
     ensure_table_columns(
         db,
         "predictions",
-        &["ts", "module_id", "metric", "current_val", "projected_5m", "was_correct"],
+        &[
+            "ts",
+            "module_id",
+            "metric",
+            "current_val",
+            "projected_5m",
+            "was_correct",
+        ],
         r#"
         CREATE TABLE predictions (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -408,11 +469,12 @@ async fn ensure_table_columns(
     required_columns: &[&str],
     recreate_sql: &str,
 ) -> Result<(), String> {
-    let exists_row = sqlx::query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
-        .bind(table_name)
-        .fetch_optional(db)
-        .await
-        .map_err(|error| error.to_string())?;
+    let exists_row =
+        sqlx::query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+            .bind(table_name)
+            .fetch_optional(db)
+            .await
+            .map_err(|error| error.to_string())?;
 
     if exists_row.is_none() {
         sqlx::raw_sql(recreate_sql)

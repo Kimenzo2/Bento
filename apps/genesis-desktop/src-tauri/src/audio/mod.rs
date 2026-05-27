@@ -6,17 +6,18 @@
 // All durations are tracked with real timestamps, not frontend timers.
 // ═══════════════════════════════════════════════════════════════════════
 
+use crate::util::time;
+use cpal::traits::{DeviceTrait, HostTrait};
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
-use cpal::traits::{DeviceTrait, HostTrait};
+use std::path::PathBuf;
 use std::sync::{
+    Arc, Mutex,
     atomic::{AtomicBool, Ordering},
     mpsc,
-    Arc, Mutex,
 };
-use std::path::PathBuf;
 use std::thread;
-use crate::health::now_ms;
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 // ─── Recording State ──────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ pub struct RecordingMeta {
     pub channels: u16,
     pub tags: Vec<String>,
     pub transcribed: bool,
+    pub transcript: Option<String>,
 }
 
 // ─── Recording Engine ─────────────────────────────────────────────────
@@ -119,13 +121,17 @@ impl RecordingEngine {
     }
 
     pub fn get_status(&self) -> RecordingStatus {
-        self.status.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.status
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     /// Enumerate available input audio devices.
     pub fn list_devices() -> Result<Vec<AudioDevice>, String> {
         let host = cpal::default_host();
-        let default_id = host.default_input_device()
+        let default_id = host
+            .default_input_device()
             .map(|d| d.name().unwrap_or_default());
 
         let devices = host.input_devices().map_err(|e| e.to_string())?;
@@ -184,16 +190,19 @@ impl RecordingEngine {
 
         let host = cpal::default_host();
         let device = match device_name {
-            Some(name) => host.input_devices()
+            Some(name) => host
+                .input_devices()
                 .map_err(|e| e.to_string())?
                 .find(|d| d.name().unwrap_or_default() == name)
                 .ok_or_else(|| format!("Audio device not found: {name}")),
-            None => host.default_input_device()
+            None => host
+                .default_input_device()
                 .ok_or_else(|| "No default input device available.".to_string()),
         }?;
 
         let device_name = device.name().unwrap_or_else(|_| "unknown".to_string());
-        let config = device.default_input_config()
+        let config = device
+            .default_input_config()
             .map_err(|e| format!("Failed to get default config: {e}"))?;
 
         let sample_rate = config.sample_rate().0;
@@ -218,6 +227,9 @@ impl RecordingEngine {
         let file = std::fs::File::create(&file_path).map_err(|e| e.to_string())?;
         let writer = hound::WavWriter::new(std::io::BufWriter::new(file), spec)
             .map_err(|e| e.to_string())?;
+
+        // Capture runtime handle so the background thread can persist metadata
+        let rt_handle = tokio::runtime::Handle::current();
 
         // Spawn the recording stream on a background thread
         let finalized_arc = self.finalized.clone();
@@ -250,7 +262,9 @@ impl RecordingEngine {
                 &config.into(),
                 move |data: &[f32], _: &cpal::InputCallbackInfo| {
                     // Check if we should still be recording
-                    let s = status_arc_for_callback.lock().unwrap_or_else(|e| e.into_inner());
+                    let s = status_arc_for_callback
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
                     let s_clone = s.clone();
                     drop(s);
 
@@ -259,7 +273,9 @@ impl RecordingEngine {
                     }
 
                     // Write samples to WAV
-                    let mut guard = session_arc_for_callback.lock().unwrap_or_else(|e| e.into_inner());
+                    let mut guard = session_arc_for_callback
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
                     if let Some(ref mut inner) = *guard {
                         for &sample in data {
                             // Convert f32 [-1.0, 1.0] to i16
@@ -300,35 +316,35 @@ impl RecordingEngine {
                         let id = inner.id.clone();
                         let mid = inner.module_id.clone();
                         let dur = inner.start_time.elapsed() - inner.paused_duration;
-                        let start_ts = now_ms() - dur.as_millis() as i64;
+                        let start_ts = time::now_ms() - dur.as_millis() as i64;
                         let fpath = inner.file_path.to_string_lossy().to_string();
                         let srate = inner.sample_rate as i64;
                         let ch = inner.channels as i64;
                         let db = db_clone.clone();
                         let dev = device_name_clone.clone();
 
-                        // Use Handle try_current to block_on the SQL write synchronously
-                        if let Ok(rt) = tokio::runtime::Handle::try_current() {
-                            let _ = rt.block_on(async {
-                                sqlx::query(
-                                    r#"INSERT INTO recording_metadata 
-                                    (id, title, duration_secs, file_path, file_size_bytes, module_id, 
-                                     created_at, device_name, sample_rate, channels, transcribed)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"#
-                                )
-                                .bind(&id)
-                                .bind(&format!("Recording {}", &id[..8]))
-                                .bind(dur.as_secs_f64())
-                                .bind(&fpath)
-                                .bind(size as i64)
-                                .bind(&mid)
-                                .bind(start_ts)
-                                .bind(&dev)
-                                .bind(srate)
-                                .bind(ch)
-                                .execute(&db)
-                                .await
-                            });
+                        // Persist metadata to SQLite synchronously on this background thread
+                        if let Err(e) = rt_handle.block_on(async {
+                            sqlx::query(
+                                r#"INSERT INTO recording_metadata 
+                                (id, title, duration_secs, file_path, file_size_bytes, module_id, 
+                                 created_at, device_name, sample_rate, channels, transcribed)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"#,
+                            )
+                            .bind(&id)
+                            .bind(&format!("Recording {}", &id[..8]))
+                            .bind(dur.as_secs_f64())
+                            .bind(&fpath)
+                            .bind(size as i64)
+                            .bind(&mid)
+                            .bind(start_ts)
+                            .bind(&dev)
+                            .bind(srate)
+                            .bind(ch)
+                            .execute(&db)
+                            .await
+                        }) {
+                            eprintln!("[audio] Failed to persist recording metadata: {e}");
                         }
                     }
                     drop(guard);
@@ -344,7 +360,7 @@ impl RecordingEngine {
         Ok(RecordingSession {
             id: session_id,
             status: "recording".to_string(),
-            start_time: now_ms(),
+            start_time: time::now_ms(),
             elapsed_ms: 0,
             paused_duration_ms: 0,
             file_path: Some(file_path.to_string_lossy().to_string()),
@@ -375,29 +391,38 @@ impl RecordingEngine {
         // Extract session data before clearing
         let mut guard = self.session.lock().map_err(|e| e.to_string())?;
         let session_data = guard.take();
-        let elapsed = session_data.as_ref()
+        let elapsed = session_data
+            .as_ref()
             .map(|s| {
                 let total = s.start_time.elapsed() - s.paused_duration;
-                let pause_deduction = s.pause_start
-                .map(|ps| s.start_time.elapsed() - ps.elapsed())
-                .unwrap_or(std::time::Duration::ZERO);
+                let pause_deduction = s
+                    .pause_start
+                    .map(|ps| s.start_time.elapsed() - ps.elapsed())
+                    .unwrap_or(std::time::Duration::ZERO);
                 total - pause_deduction
             })
             .unwrap_or(std::time::Duration::ZERO);
 
         let result = RecordingSession {
-            id: session_data.as_ref().map(|s| s.id.clone()).unwrap_or_default(),
+            id: session_data
+                .as_ref()
+                .map(|s| s.id.clone())
+                .unwrap_or_default(),
             status: "completed".to_string(),
-            start_time: session_data.as_ref()
-                .map(|s| now_ms() - s.start_time.elapsed().as_millis() as i64)
-                .unwrap_or(now_ms()),
+            start_time: session_data
+                .as_ref()
+                .map(|s| time::now_ms() - s.start_time.elapsed().as_millis() as i64)
+                .unwrap_or(time::now_ms()),
             elapsed_ms: elapsed.as_millis() as i64,
-            paused_duration_ms: session_data.as_ref()
+            paused_duration_ms: session_data
+                .as_ref()
                 .map(|s| s.paused_duration.as_millis() as i64)
                 .unwrap_or(0),
-            file_path: session_data.as_ref()
+            file_path: session_data
+                .as_ref()
                 .map(|s| s.file_path.to_string_lossy().to_string()),
-            module_id: session_data.as_ref()
+            module_id: session_data
+                .as_ref()
                 .map(|s| s.module_id.clone())
                 .unwrap_or_default(),
             device_name: session_data.as_ref().map(|s| s.device_name.clone()),
@@ -420,23 +445,28 @@ impl RecordingEngine {
             inner.pause_start = Some(std::time::Instant::now());
         }
 
-        let elapsed = guard.as_ref()
+        let elapsed = guard
+            .as_ref()
             .map(|s| (s.start_time.elapsed() - s.paused_duration).as_millis() as i64)
             .unwrap_or(0);
 
         Ok(RecordingSession {
             id: guard.as_ref().map(|s| s.id.clone()).unwrap_or_default(),
             status: "paused".to_string(),
-            start_time: guard.as_ref()
-                .map(|s| now_ms() - s.start_time.elapsed().as_millis() as i64)
-                .unwrap_or(now_ms()),
+            start_time: guard
+                .as_ref()
+                .map(|s| time::now_ms() - s.start_time.elapsed().as_millis() as i64)
+                .unwrap_or(time::now_ms()),
             elapsed_ms: elapsed,
-            paused_duration_ms: guard.as_ref()
+            paused_duration_ms: guard
+                .as_ref()
                 .map(|s| s.paused_duration.as_millis() as i64)
                 .unwrap_or(0),
-            file_path: guard.as_ref()
+            file_path: guard
+                .as_ref()
                 .map(|s| s.file_path.to_string_lossy().to_string()),
-            module_id: guard.as_ref()
+            module_id: guard
+                .as_ref()
                 .map(|s| s.module_id.clone())
                 .unwrap_or_default(),
             device_name: guard.as_ref().map(|s| s.device_name.clone()),
@@ -458,23 +488,28 @@ impl RecordingEngine {
             }
         }
 
-        let elapsed = guard.as_ref()
+        let elapsed = guard
+            .as_ref()
             .map(|s| (s.start_time.elapsed() - s.paused_duration).as_millis() as i64)
             .unwrap_or(0);
 
         Ok(RecordingSession {
             id: guard.as_ref().map(|s| s.id.clone()).unwrap_or_default(),
             status: "recording".to_string(),
-            start_time: guard.as_ref()
-                .map(|s| now_ms() - s.start_time.elapsed().as_millis() as i64)
-                .unwrap_or(now_ms()),
+            start_time: guard
+                .as_ref()
+                .map(|s| time::now_ms() - s.start_time.elapsed().as_millis() as i64)
+                .unwrap_or(time::now_ms()),
             elapsed_ms: elapsed,
-            paused_duration_ms: guard.as_ref()
+            paused_duration_ms: guard
+                .as_ref()
                 .map(|s| s.paused_duration.as_millis() as i64)
                 .unwrap_or(0),
-            file_path: guard.as_ref()
+            file_path: guard
+                .as_ref()
                 .map(|s| s.file_path.to_string_lossy().to_string()),
-            module_id: guard.as_ref()
+            module_id: guard
+                .as_ref()
                 .map(|s| s.module_id.clone())
                 .unwrap_or_default(),
             device_name: guard.as_ref().map(|s| s.device_name.clone()),
@@ -487,15 +522,20 @@ impl RecordingEngine {
         let guard = self.session.lock().map_err(|e| e.to_string())?;
         Ok(guard.as_ref().map(|inner| {
             let total = inner.start_time.elapsed() - inner.paused_duration;
-            let pause_deduction = inner.pause_start
+            let pause_deduction = inner
+                .pause_start
                 .map(|ps| inner.start_time.elapsed() - ps.elapsed())
                 .unwrap_or(std::time::Duration::ZERO);
             let actual = total - pause_deduction;
 
             RecordingSession {
                 id: inner.id.clone(),
-                status: self.status.lock().map(|s| s.to_string()).unwrap_or_default(),
-                start_time: now_ms() - inner.start_time.elapsed().as_millis() as i64,
+                status: self
+                    .status
+                    .lock()
+                    .map(|s| s.to_string())
+                    .unwrap_or_default(),
+                start_time: time::now_ms() - inner.start_time.elapsed().as_millis() as i64,
                 elapsed_ms: actual.as_millis() as i64,
                 paused_duration_ms: inner.paused_duration.as_millis() as i64,
                 file_path: Some(inner.file_path.to_string_lossy().to_string()),
@@ -506,7 +546,11 @@ impl RecordingEngine {
     }
 
     /// List all persisted recordings from the database.
-    pub fn list_recordings(&self, module_id: Option<&str>, limit: i64) -> Result<Vec<RecordingMeta>, String> {
+    pub fn list_recordings(
+        &self,
+        module_id: Option<&str>,
+        limit: i64,
+    ) -> Result<Vec<RecordingMeta>, String> {
         let rt = tokio::runtime::Handle::try_current()
             .map_err(|_| "No Tokio runtime available.".to_string())?;
 
@@ -515,42 +559,153 @@ impl RecordingEngine {
 
         let rows = rt.block_on(async {
             match module_id_owned.as_deref() {
-                Some(mid) => {
-                    sqlx::query(
-                        "SELECT * FROM recording_metadata WHERE module_id = ? ORDER BY created_at DESC LIMIT ?"
-                    )
-                    .bind(mid)
-                    .bind(limit)
-                    .fetch_all(&db)
-                    .await
-                        .map_err(|e| e.to_string())
-                }
-                None => {
-                    sqlx::query(
-                        "SELECT * FROM recording_metadata ORDER BY created_at DESC LIMIT ?"
-                    )
-                    .bind(limit)
-                    .fetch_all(&db)
-                    .await
-                        .map_err(|e| e.to_string())
-                }
+                Some(mid) => sqlx::query(
+                    r#"
+                        SELECT m.*, t.transcript AS transcript
+                        FROM recording_metadata m
+                        LEFT JOIN recording_transcripts t ON t.recording_id = m.id
+                        WHERE m.module_id = ?
+                        ORDER BY m.created_at DESC
+                        LIMIT ?
+                        "#,
+                )
+                .bind(mid)
+                .bind(limit)
+                .fetch_all(&db)
+                .await
+                .map_err(|e| e.to_string()),
+                None => sqlx::query(
+                    r#"
+                        SELECT m.*, t.transcript AS transcript
+                        FROM recording_metadata m
+                        LEFT JOIN recording_transcripts t ON t.recording_id = m.id
+                        ORDER BY m.created_at DESC
+                        LIMIT ?
+                        "#,
+                )
+                .bind(limit)
+                .fetch_all(&db)
+                .await
+                .map_err(|e| e.to_string()),
             }
         })?;
 
-        Ok(rows.into_iter().map(|r| RecordingMeta {
-            id: r.try_get("id").unwrap_or_default(),
-            title: r.try_get("title").unwrap_or_default(),
-            duration_secs: r.try_get("duration_secs").unwrap_or(0.0),
-            file_path: r.try_get("file_path").unwrap_or_default(),
-            file_size_bytes: r.try_get::<i64, _>("file_size_bytes").unwrap_or(0) as u64,
-            module_id: r.try_get("module_id").unwrap_or_default(),
-            created_at: r.try_get("created_at").unwrap_or(0),
-            device_name: r.try_get("device_name").ok(),
-            sample_rate: r.try_get::<i64, _>("sample_rate").unwrap_or(44100) as u32,
-            channels: r.try_get::<i64, _>("channels").unwrap_or(1) as u16,
-            tags: Vec::new(),
-            transcribed: r.try_get::<i64, _>("transcribed").unwrap_or(0) == 1,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| RecordingMeta {
+                id: r.try_get("id").unwrap_or_default(),
+                title: r.try_get("title").unwrap_or_default(),
+                duration_secs: r.try_get("duration_secs").unwrap_or(0.0),
+                file_path: r.try_get("file_path").unwrap_or_default(),
+                file_size_bytes: r.try_get::<i64, _>("file_size_bytes").unwrap_or(0) as u64,
+                module_id: r.try_get("module_id").unwrap_or_default(),
+                created_at: r.try_get("created_at").unwrap_or(0),
+                device_name: r.try_get("device_name").ok(),
+                sample_rate: r.try_get::<i64, _>("sample_rate").unwrap_or(44100) as u32,
+                channels: r.try_get::<i64, _>("channels").unwrap_or(1) as u16,
+                tags: Vec::new(),
+                transcribed: r.try_get::<i64, _>("transcribed").unwrap_or(0) == 1,
+                transcript: r.try_get::<String, _>("transcript").ok(),
+            })
+            .collect())
+    }
+
+    pub async fn transcribe_recording(
+        &self,
+        recording_id: &str,
+        model_path: &str,
+        language: Option<&str>,
+    ) -> Result<String, String> {
+        let row = sqlx::query("SELECT file_path, module_id FROM recording_metadata WHERE id = ?")
+            .bind(recording_id)
+            .fetch_optional(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let Some(row) = row else {
+            return Err("Recording not found.".to_string());
+        };
+
+        let file_path: String = row.try_get("file_path").map_err(|e| e.to_string())?;
+        let model_path = model_path.to_string();
+        let language = language.unwrap_or("en").to_string();
+        let model_path_for_db = model_path.clone();
+        let language_for_db = language.clone();
+
+        let transcript = tokio::task::spawn_blocking(move || {
+            let mut reader = hound::WavReader::open(&file_path).map_err(|e| e.to_string())?;
+            let spec = reader.spec();
+            let sample_rate = spec.sample_rate.max(1);
+            let channels = spec.channels.max(1);
+
+            let samples = reader
+                .samples::<i16>()
+                .map(|sample| sample.map_err(|e| e.to_string()))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let mono = downmix_to_mono_f32(&samples, channels);
+            let audio = resample_linear(&mono, sample_rate, 16_000);
+
+            let context =
+                WhisperContext::new_with_params(&model_path, WhisperContextParameters::default())
+                    .map_err(|e| e.to_string())?;
+
+            let mut state = context.create_state().map_err(|e| e.to_string())?;
+            let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+            params.set_language(Some(&language));
+            params.set_translate(false);
+            params.set_print_special(false);
+            params.set_print_progress(false);
+            params.set_print_realtime(false);
+            params.set_print_timestamps(false);
+
+            state.full(params, &audio).map_err(|e| e.to_string())?;
+
+            let mut transcript = String::new();
+            for segment in state.as_iter() {
+                let text = segment.to_string();
+                if !text.trim().is_empty() {
+                    if !transcript.is_empty() {
+                        transcript.push(' ');
+                    }
+                    transcript.push_str(text.trim());
+                }
+            }
+
+            Ok::<String, String>(transcript.trim().to_string())
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+
+        let now = time::now_ms();
+        sqlx::query(
+            r#"
+            INSERT INTO recording_transcripts (
+                recording_id, transcript, language, model_path, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(recording_id) DO UPDATE SET
+                transcript = excluded.transcript,
+                language = excluded.language,
+                model_path = excluded.model_path,
+                updated_at = excluded.updated_at
+            "#,
+        )
+        .bind(recording_id)
+        .bind(&transcript)
+        .bind(&language_for_db)
+        .bind(&model_path_for_db)
+        .bind(now)
+        .bind(now)
+        .execute(&self.db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query("UPDATE recording_metadata SET transcribed = 1 WHERE id = ?")
+            .bind(recording_id)
+            .execute(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(transcript)
     }
 
     /// Delete a recording by ID (removes file + metadata).
@@ -577,6 +732,11 @@ impl RecordingEngine {
         }
 
         rt.block_on(async {
+            sqlx::query("DELETE FROM recording_transcripts WHERE recording_id = ?")
+                .bind(&id_owned)
+                .execute(&db)
+                .await
+                .map_err(|e| e.to_string())?;
             sqlx::query("DELETE FROM recording_metadata WHERE id = ?")
                 .bind(&id_owned)
                 .execute(&db)
@@ -671,6 +831,51 @@ impl RecordingEngine {
     }
 }
 
+fn downmix_to_mono_f32(samples: &[i16], channels: u16) -> Vec<f32> {
+    if channels <= 1 {
+        return samples
+            .iter()
+            .map(|sample| (*sample as f32) / i16::MAX as f32)
+            .collect();
+    }
+
+    let channels = channels as usize;
+    let mut mono = Vec::with_capacity(samples.len() / channels.max(1));
+    for frame in samples.chunks(channels) {
+        if frame.is_empty() {
+            continue;
+        }
+        let sum: f32 = frame
+            .iter()
+            .map(|sample| *sample as f32 / i16::MAX as f32)
+            .sum();
+        mono.push(sum / frame.len() as f32);
+    }
+    mono
+}
+
+fn resample_linear(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
+    if samples.is_empty() || from_rate == 0 || to_rate == 0 || from_rate == to_rate {
+        return samples.to_vec();
+    }
+
+    let ratio = to_rate as f64 / from_rate as f64;
+    let target_len = ((samples.len() as f64) * ratio).ceil().max(1.0) as usize;
+    let mut out = Vec::with_capacity(target_len);
+
+    for i in 0..target_len {
+        let source_pos = (i as f64) / ratio;
+        let left = source_pos.floor() as usize;
+        let right = (left + 1).min(samples.len().saturating_sub(1));
+        let frac = (source_pos - left as f64) as f32;
+        let left_sample = samples.get(left).copied().unwrap_or(0.0);
+        let right_sample = samples.get(right).copied().unwrap_or(left_sample);
+        out.push(left_sample + (right_sample - left_sample) * frac);
+    }
+
+    out
+}
+
 // ─── Playback Engine ──────────────────────────────────────────────────
 
 enum PlaybackCommand {
@@ -720,7 +925,10 @@ impl PlaybackEngine {
                 };
 
                 match command {
-                    PlaybackCommand::Play { file_path, respond_to } => {
+                    PlaybackCommand::Play {
+                        file_path,
+                        respond_to,
+                    } => {
                         let result = (|| -> Result<(), String> {
                             sink = None;
                             output_stream = None;
@@ -781,7 +989,9 @@ impl PlaybackEngine {
     }
 
     fn request(&self, command: PlaybackCommand) -> Result<(), String> {
-        self.command_tx.send(command).map_err(|error| error.to_string())
+        self.command_tx
+            .send(command)
+            .map_err(|error| error.to_string())
     }
 
     /// Play a WAV file from the given path.
@@ -845,7 +1055,9 @@ pub async fn start_recording(
     module_id: String,
     device_name: Option<String>,
 ) -> Result<RecordingSession, String> {
-    state.engine.start_recording(&module_id, device_name.as_deref())
+    state
+        .engine
+        .start_recording(&module_id, device_name.as_deref())
 }
 
 #[tauri::command]
@@ -870,9 +1082,7 @@ pub async fn resume_recording(
 }
 
 #[tauri::command]
-pub async fn get_recording_status(
-    state: tauri::State<'_, AudioState>,
-) -> Result<String, String> {
+pub async fn get_recording_status(state: tauri::State<'_, AudioState>) -> Result<String, String> {
     Ok(state.engine.get_status().to_string())
 }
 
@@ -884,8 +1094,7 @@ pub async fn get_current_session(
 }
 
 #[tauri::command]
-pub async fn list_audio_devices(
-) -> Result<Vec<AudioDevice>, String> {
+pub async fn list_audio_devices() -> Result<Vec<AudioDevice>, String> {
     RecordingEngine::list_devices()
 }
 
@@ -895,7 +1104,9 @@ pub async fn list_recordings(
     module_id: Option<String>,
     limit: Option<i64>,
 ) -> Result<Vec<RecordingMeta>, String> {
-    state.engine.list_recordings(module_id.as_deref(), limit.unwrap_or(50))
+    state
+        .engine
+        .list_recordings(module_id.as_deref(), limit.unwrap_or(50))
 }
 
 #[tauri::command]
@@ -924,37 +1135,27 @@ pub async fn playback_start(
 }
 
 #[tauri::command]
-pub async fn playback_pause(
-    state: tauri::State<'_, AudioState>,
-) -> Result<(), String> {
+pub async fn playback_pause(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.playback.pause()
 }
 
 #[tauri::command]
-pub async fn playback_resume(
-    state: tauri::State<'_, AudioState>,
-) -> Result<(), String> {
+pub async fn playback_resume(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.playback.resume()
 }
 
 #[tauri::command]
-pub async fn playback_stop(
-    state: tauri::State<'_, AudioState>,
-) -> Result<(), String> {
+pub async fn playback_stop(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.playback.stop()
 }
 
 #[tauri::command]
-pub async fn playback_is_playing(
-    state: tauri::State<'_, AudioState>,
-) -> Result<bool, String> {
+pub async fn playback_is_playing(state: tauri::State<'_, AudioState>) -> Result<bool, String> {
     Ok(state.playback.is_playing())
 }
 
 #[tauri::command]
-pub async fn cancel_recording(
-    state: tauri::State<'_, AudioState>,
-) -> Result<(), String> {
+pub async fn cancel_recording(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.engine.cancel_recording()
 }
 
@@ -964,10 +1165,25 @@ pub async fn retry_recording(
     module_id: String,
     device_name: Option<String>,
 ) -> Result<RecordingSession, String> {
-    state.engine.retry_recording(&module_id, device_name.as_deref())
+    state
+        .engine
+        .retry_recording(&module_id, device_name.as_deref())
 }
 
 #[tauri::command]
 pub async fn check_microphone_permission() -> Result<bool, String> {
     RecordingEngine::check_microphone_permission()
+}
+
+#[tauri::command]
+pub async fn transcribe_recording(
+    state: tauri::State<'_, AudioState>,
+    recording_id: String,
+    model_path: String,
+    language: Option<String>,
+) -> Result<String, String> {
+    state
+        .engine
+        .transcribe_recording(&recording_id, &model_path, language.as_deref())
+        .await
 }

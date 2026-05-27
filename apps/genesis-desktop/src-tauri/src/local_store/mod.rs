@@ -3,7 +3,7 @@
 // Source: local_store-ts Interface layer (interface/block/*.ts, interface/object.ts)
 // ═══════════════════════════════════════════════════════════════════════
 // This module mirrors LocalStore's block + object type system for use in
-// the Genesis Desktop Notes, Tasks, Journal, and other content modules.
+// the Bento Desktop Notes, Tasks, Journal, and other content modules.
 //
 // TypeScript → Rust migration strategy:
 //   - Enums → Rust enums with serde (rename_all/camelCase)
@@ -25,4 +25,5 @@ pub use operations::*;
 // This constant provides the SQL as a single string for documentation
 // and potential test database initialization.
 
-pub const LOCALSTORE_SCHEMA_SQL: &str = include_str!("../../migrations/0002_local_store_schema.sql");
+pub const LOCALSTORE_SCHEMA_SQL: &str =
+    include_str!("../../migrations/0002_local_store_schema.sql");

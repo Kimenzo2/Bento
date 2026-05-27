@@ -633,12 +633,10 @@ pub fn can_have_marks(block: &Block) -> bool {
         return false;
     }
     match &block.content {
-        BlockContent::Text(text) => {
-            !matches!(
-                text.style,
-                TextStyle::Title | TextStyle::Description | TextStyle::Code
-            )
-        }
+        BlockContent::Text(text) => !matches!(
+            text.style,
+            TextStyle::Title | TextStyle::Description | TextStyle::Code
+        ),
         _ => false,
     }
 }

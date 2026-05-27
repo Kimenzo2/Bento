@@ -2,8 +2,7 @@
   import type { Block } from '$lib/local-store/block';
   import { FileState, FileType, EmbedProcessor } from '$lib/local-store/block';
 
-  export let block: Block;
-  // rootId and readonly accepted via $$restProps
+  let { block }: { block: Block } = $props();
 
   let content = block.content as any;
   let fileState: FileState = content?.state ?? FileState.Empty;

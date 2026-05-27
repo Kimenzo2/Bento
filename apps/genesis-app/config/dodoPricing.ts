@@ -12,6 +12,12 @@ import { UserTier } from '../types';
 
 /** Available Dodo subscription plans */
 export const DODO_PLANS = {
+  core_monthly: 'CREATOR',
+  core_yearly: 'CREATOR',
+  pro_monthly: 'STUDIO',
+  pro_yearly: 'STUDIO',
+  power_monthly: 'EMPIRE',
+  power_yearly: 'EMPIRE',
   creator_monthly: 'CREATOR',
   creator_yearly: 'CREATOR',
   studio_monthly: 'STUDIO',
@@ -40,11 +46,11 @@ export function tierToDodoPlan(
 
   switch (tier) {
     case UserTier.CREATOR:
-      return normalizedInterval === 'yearly' ? 'creator_yearly' : 'creator_monthly';
+      return normalizedInterval === 'yearly' ? 'core_yearly' : 'core_monthly';
     case UserTier.STUDIO:
-      return normalizedInterval === 'yearly' ? 'studio_yearly' : 'studio_monthly';
+      return normalizedInterval === 'yearly' ? 'pro_yearly' : 'pro_monthly';
     case UserTier.EMPIRE:
-      return normalizedInterval === 'yearly' ? 'empire_yearly' : 'empire_monthly';
+      return normalizedInterval === 'yearly' ? 'power_yearly' : 'power_monthly';
     default:
       return null;
   }

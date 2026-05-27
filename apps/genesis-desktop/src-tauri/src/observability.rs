@@ -37,7 +37,7 @@ pub fn write_crash_log(
     let crash_dir = if let Some(app) = app {
         app.path().app_data_dir().ok()?.join("crash")
     } else {
-        std::env::temp_dir().join("genesis-desktop").join("crash")
+        std::env::temp_dir().join("bento-desktop").join("crash")
     };
 
     fs::create_dir_all(&crash_dir).ok()?;
@@ -56,7 +56,7 @@ pub fn write_crash_log(
 }
 
 fn telemetry_endpoint() -> Option<String> {
-    std::env::var("GENESIS_DESKTOP_TELEMETRY_ENDPOINT")
+    std::env::var("BENTO_DESKTOP_TELEMETRY_ENDPOINT")
         .ok()
         .filter(|value| !value.trim().is_empty())
 }
@@ -113,7 +113,7 @@ pub fn install_runtime_panic_hook(app: AppHandle) {
 
 fn try_emit_crash_event(app: &AppHandle, payload: &CrashPayload) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window("main") {
-        window.emit("genesis://crash", payload.clone())?;
+        window.emit("bento://crash", payload.clone())?;
     }
 
     Ok(())

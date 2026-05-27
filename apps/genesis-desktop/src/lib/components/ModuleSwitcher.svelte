@@ -1,18 +1,21 @@
 <script lang="ts">
   import Grid2x2Icon from "@lucide/svelte/icons/grid-2x2";
   import { toast } from "svelte-sonner";
-  import { activeModule, switchModule, type GenesisModuleId } from "$lib/desktop/modules";
+  import { activeModule, switchModule, type BentoModuleId } from "$lib/desktop/modules";
   import { beginAppLaunch, signalAppLaunchError } from "$lib/stores/app-launch.store";
+  import { activeBundle, createTranslator } from "$lib/i18n";
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
 
   let expanded = $state(false);
   let stackExpanded = $state(false);
-  let switching = $state<GenesisModuleId | null>(null);
+  let switching = $state<BentoModuleId | null>(null);
   let stackContainer: HTMLDivElement | null = $state(null);
   let triggerButton: HTMLButtonElement | null = $state(null);
-  const comingSoonModules = new Set<GenesisModuleId>(["notes", "ai"]);
+  const comingSoonModules = new Set<BentoModuleId>(["ai"]);
 
   type SwitcherSlot = {
-    id: GenesisModuleId;
+    id: BentoModuleId;
     label: string;
   } | null;
 
@@ -94,10 +97,10 @@
     stackExpanded = false;
   }
 
-  async function selectModule(moduleId: GenesisModuleId) {
+  async function selectModule(moduleId: BentoModuleId) {
     if (comingSoonModules.has(moduleId)) {
       beginAppLaunch(moduleId);
-      signalAppLaunchError(moduleId, new Error("Coming soon"));
+      signalAppLaunchError(moduleId, new Error(_t('switcherComingSoon')));
       expanded = false;
       return;
     }
@@ -117,8 +120,8 @@
     } catch (error) {
       switching = null;
       signalAppLaunchError(moduleId, error);
-      console.error("[Genesis Desktop] Module switch failed", error);
-      toast.error(error instanceof Error ? error.message : "Module switch failed.");
+      console.error("[Bento Desktop] Module switch failed", error);
+      toast.error(error instanceof Error ? error.message : _t('switcherSwitchFailed'));
     }
   }
 </script>
@@ -130,12 +133,12 @@
     bind:this={triggerButton}
     type="button"
     class="module-switcher__trigger"
-    aria-label="Open Genesis modules"
+    aria-label={_t('switcherOpenModules')}
     aria-expanded={expanded}
     onclick={toggleSwitcher}
   >
     <Grid2x2Icon size={14} />
-    <span>Apps</span>
+    <span>{_t('switcherApps')}</span>
   </button>
 </div>
 
@@ -146,7 +149,7 @@
     class:module-switcher-stack--expanded={stackExpanded}
     role="menu"
     tabindex="-1"
-    aria-label="Genesis modules"
+    aria-label={_t('switcherModulesLabel')}
     onpointerenter={() => {
       stackExpanded = true;
     }}

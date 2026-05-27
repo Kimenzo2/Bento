@@ -1,5 +1,5 @@
 /**
- * Genesis Desktop structured logger.
+ * Bento Desktop structured logger.
  *
  * Provides consistent log formatting, production-silenceable levels,
  * and a single place to redirect logs (e.g. to telemetry or a file).
@@ -13,7 +13,7 @@
 
 /* eslint-disable no-console -- this is the single intentional console wrapper */
 
-const PREFIX = '[Genesis Desktop]';
+const PREFIX = '[Bento Desktop]';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

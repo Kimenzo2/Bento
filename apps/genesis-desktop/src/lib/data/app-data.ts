@@ -105,7 +105,7 @@ export const legalDocuments = [
   {
     id: "privacy",
     title: "Privacy",
-    summary: "How Genesis stores project metadata, exports, and local AI traces.",
+    summary: "How Bento stores project metadata, exports, and local AI traces.",
   },
   {
     id: "terms",

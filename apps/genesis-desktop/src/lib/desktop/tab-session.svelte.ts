@@ -1,6 +1,7 @@
 import { browser } from "$app/environment";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { time } from '$lib/utils/time';
 
 // ── Types matching Rust backend (session.rs) ─────────────────────────────
 
@@ -38,19 +39,21 @@ export interface ModuleContext {
 
 // ── Reactive state ──────────────────────────────────────────────────────
 
-let tabs = $state<TabInfo[]>([]);
-let activeTabId = $state<string>("");
-let initialized = $state(false);
+export const tabState = $state({
+  tabs: [] as TabInfo[],
+  activeTabId: "",
+  initialized: false,
+});
 
 /** Read-only getters for Svelte components (avoids direct mutation of $state). */
 export function getTabs(): TabInfo[] {
-  return tabs;
+  return tabState.tabs;
 }
 export function getActiveTabId(): string {
-  return activeTabId;
+  return tabState.activeTabId;
 }
 export function isSessionInitialized(): boolean {
-  return initialized;
+  return tabState.initialized;
 }
 
 let cleanupFns: UnlistenFn[] = [];
@@ -64,7 +67,7 @@ let cleanupFns: UnlistenFn[] = [];
  * Safe to call multiple times (no‑op after first success).
  */
 export async function initTabSession(): Promise<void> {
-  if (initialized || !browser || !isTauri()) return;
+  if (tabState.initialized || !browser || !isTauri()) return;
 
   try {
     const [existingTabs, foregroundTab] = await Promise.all([
@@ -72,25 +75,21 @@ export async function initTabSession(): Promise<void> {
       invoke<TabInfo | null>("tab_get_foreground"),
     ]);
 
-    tabs = existingTabs;
+    tabState.tabs = existingTabs;
     if (foregroundTab) {
-      activeTabId = foregroundTab.id;
+      tabState.activeTabId = foregroundTab.id;
     }
 
-    // Listen for sync events from the Rust telemetry / sync layer
     const unlistenSync = await listen<{ moduleId: string }>(
-      "genesis://tab:sync-update",
+      "bento://tab:sync-update",
       (_event) => {
-        // The frontend should refresh data for the notified module.
-        // Actual refresh logic lives in the per-module components.
-        // Sync update received — actual refresh logic lives in per-module components
+        // Actual refresh logic lives in per-module components
       },
     );
     cleanupFns.push(unlistenSync);
 
-    initialized = true;
+    tabState.initialized = true;
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn("[TabSession] Could not sync with Rust backend:", error);
   }
 }
@@ -101,58 +100,129 @@ export function destroyTabSession(): void {
     fn();
   }
   cleanupFns = [];
-  initialized = false;
-  tabs = [];
-  activeTabId = "";
+  tabState.initialized = false;
+  tabState.tabs = [];
+  tabState.activeTabId = "";
+}
+
+// ── Local ID generation ────────────────────────────────────────────────
+
+let idCounter = 0;
+
+function generateTabId(): string {
+  return `tab_${time.now()}_${++idCounter}`;
 }
 
 // ── Tab CRUD ────────────────────────────────────────────────────────────
 
 /**
+ * Open a new tab for `moduleId` — works client‑side (no Rust backend required).
+ * If the Tauri backend is available, it also syncs with the Rust side.
+ *
+ * Returns the created `TabInfo`, or `null` if the moduleId is empty.
+ */
+export function addTab(moduleId: string): TabInfo | null {
+  if (!moduleId) return null;
+
+  // If this module already has a tab, switch to it instead of creating a new one
+  const existing = tabState.tabs.find((t) => t.moduleId === moduleId);
+  if (existing) {
+    tabState.activeTabId = existing.id;
+    tabState.tabs = tabState.tabs.map((t) => ({
+      ...t,
+      isForeground: t.id === existing.id,
+      state: t.id === existing.id ? ("Active" as const) : ("Background" as const),
+    }));
+    return existing;
+  }
+
+  // Deactivate all current tabs
+  const updatedTabs = tabState.tabs.map((t) => ({
+    ...t,
+    isForeground: false,
+    state: "Background" as const,
+  }));
+
+  const tab: TabInfo = {
+    id: generateTabId(),
+    moduleId,
+    openedAt: time.now(),
+    isForeground: true,
+    state: "Active" as const,
+  };
+
+  tabState.tabs = [...updatedTabs, tab];
+  tabState.activeTabId = tab.id;
+
+  // Try backend if available (don't fail if not)
+  if (browser && isTauri()) {
+    invoke("tab_open", { moduleId }).catch(() => {});
+  }
+
+  return tab;
+}
+
+/**
  * Open a new tab for `moduleId` on the Rust backend.
  *
- * Returns the `TabInfo` from the backend, or `null` if the operation failed
- * (e.g. module not installed — Gap 11).
+ * Returns the `TabInfo` from the backend, or `null` if the operation failed.
+ * Prefer `addTab()` for client‑first usage.
  */
 export async function openTab(moduleId: string): Promise<TabInfo | null> {
-  if (!browser || !isTauri()) return null;
+  if (!browser || !isTauri()) {
+    return addTab(moduleId);
+  }
 
   try {
     const tabInfo = await invoke<TabInfo>("tab_open", { moduleId });
-
-    // Merge into local state (Rust deduplicates, but we keep local sync)
-    if (!tabs.some((t) => t.id === tabInfo.id)) {
-      tabs = [...tabs, tabInfo];
+    if (!tabState.tabs.some((t) => t.id === tabInfo.id)) {
+      tabState.tabs = [...tabState.tabs, tabInfo];
     }
     return tabInfo;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`[TabSession] Failed to open tab for "${moduleId}":`, error);
-    return null;
+    console.warn(`[TabSession] Backend tab_open failed, falling back to client‑side:`, error);
+    return addTab(moduleId);
   }
 }
 
 /**
- * Close a tab on the Rust backend (Gap 10: explicit actor shutdown).
+ * Close a tab — works client‑side first, syncs with the Rust backend if available.
  *
  * Returns `true` on success, `false` on failure.
  */
 export async function closeTab(tabId: string): Promise<boolean> {
-  if (!browser || !isTauri()) return false;
+  if (!browser) return false;
 
-  try {
-    await invoke("tab_close", { tabId });
-    tabs = tabs.filter((t) => t.id !== tabId);
-    if (activeTabId === tabId) {
-      // Pick the last remaining tab as active, or clear
-      activeTabId = tabs.length > 0 ? tabs[tabs.length - 1]?.id ?? "" : "";
+  const tabToClose = tabState.tabs.find((t) => t.id === tabId);
+  if (!tabToClose) return false;
+
+  // Record the index BEFORE filtering — used to pick the fallback tab
+  const closingIndex = tabState.tabs.indexOf(tabToClose);
+
+  tabState.tabs = tabState.tabs.filter((t) => t.id !== tabId);
+
+  if (tabState.activeTabId === tabId) {
+    if (tabState.tabs.length === 0) {
+      tabState.activeTabId = "";
+    } else {
+      // Prefer the tab to the left of the closed one;
+      // if we closed the first tab, use the new first tab.
+      const fallbackIndex = Math.min(closingIndex, tabState.tabs.length - 1);
+      tabState.activeTabId =
+        tabState.tabs[fallbackIndex]?.id ?? tabState.tabs[0]?.id ?? "";
     }
-    return true;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`[TabSession] Failed to close tab "${tabId}":`, error);
-    return false;
   }
+
+  // Try backend if available
+  if (browser && isTauri()) {
+    try {
+      await invoke("tab_close", { tabId });
+    } catch (error) {
+      console.warn(`[TabSession] Backend tab_close failed, tab closed client‑side:`, error);
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -169,15 +239,12 @@ export async function switchTab(tabId: string): Promise<TabSwitchPayload | null>
 
   try {
     const payload = await invoke<TabSwitchPayload>("tab_switch", { tabId });
-    activeTabId = tabId;
-
-    // Mirror foreground/background state locally
-    tabs = tabs.map((t) => ({
+    tabState.activeTabId = tabId;
+    tabState.tabs = tabState.tabs.map((t) => ({
       ...t,
       isForeground: t.id === tabId,
       state: t.id === tabId ? ("Active" as const) : ("Background" as const),
     }));
-
     return payload;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -195,14 +262,12 @@ export async function setForegroundTab(tabId: string): Promise<boolean> {
 
   try {
     await invoke("tab_set_foreground", { tabId });
-    activeTabId = tabId;
-
-    tabs = tabs.map((t) => ({
+    tabState.activeTabId = tabId;
+    tabState.tabs = tabState.tabs.map((t) => ({
       ...t,
       isForeground: t.id === tabId,
       state: t.id === tabId ? ("Active" as const) : ("Background" as const),
     }));
-
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -229,12 +294,30 @@ export async function isModuleOpen(moduleId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Persist a reordered tab list to the Rust backend.
+ *
+ * Called after a drag‑reorder completes so the session order
+ * survives app restart.
+ */
+export async function reorderTabs(tabIds: string[]): Promise<boolean> {
+  if (!browser || !isTauri()) return false;
+
+  try {
+    await invoke("tab_reorder", { tabIds });
+    return true;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("[TabSession] tab_reorder not yet implemented in backend:", error);
+    return false;
+  }
+}
+
 /** Re‑fetch the full tab list from the Rust backend. */
 export async function refreshTabs(): Promise<void> {
   if (!browser || !isTauri()) return;
-
   try {
-    tabs = await invoke<TabInfo[]>("tab_list");
+    tabState.tabs = await invoke<TabInfo[]>("tab_list");
   } catch {
     // Session may not be ready yet — silent no‑op
   }

@@ -5,7 +5,8 @@ use sqlx::Row;
 use tauri::{AppHandle, Emitter, State, ipc::Channel};
 
 use crate::auth::AuthManager;
-use crate::db::GenesisAppState;
+use crate::byok::{self, ByokProvider};
+use crate::db::BentoAppState;
 use crate::settings;
 
 // ──────────────────────────────────────────────────────────
@@ -61,22 +62,6 @@ pub struct TelemetrySummary {
     pub snapshots: Vec<serde_json::Value>,
     pub anomalies: Vec<serde_json::Value>,
     pub insights: Vec<serde_json::Value>,
-}
-
-fn normalize_plan_label(plan_code: Option<&str>, user_tier: Option<&str>) -> String {
-    let raw = plan_code
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .or_else(|| user_tier.map(str::trim).filter(|value| !value.is_empty()));
-
-    match raw.map(|value| value.to_uppercase()) {
-        Some(ref value) if value == "CREATOR" || value == "CORE" => "Core".to_string(),
-        Some(ref value) if value == "STUDIO" || value == "PRO" => "Pro".to_string(),
-        Some(ref value) if value == "EMPIRE" || value == "POWER" => "Power".to_string(),
-        Some(ref value) if value == "SPARK" || value == "FREE" => "Free".to_string(),
-        Some(value) => value,
-        None => "Free".to_string(),
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -343,10 +328,12 @@ pub async fn get_account_info(
 
     let plan = billing_profile
         .as_ref()
-        .map(|profile| normalize_plan_label(
-            profile.subscription_plan_code.as_deref(),
-            Some(profile.user_tier.as_str()),
-        ))
+        .map(|profile| match profile.billing_tier.as_str() {
+            "core" => "Core".to_string(),
+            "pro" => "Pro".to_string(),
+            "power" => "Power".to_string(),
+            _ => "Free".to_string(),
+        })
         .unwrap_or_else(|| "Free".to_string());
 
     let renewal_date = billing_profile
@@ -394,10 +381,7 @@ pub async fn update_display_name(
 }
 
 #[tauri::command]
-pub async fn revoke_device(
-    auth: State<'_, AuthManager>,
-    device_id: String,
-) -> Result<(), String> {
+pub async fn revoke_device(auth: State<'_, AuthManager>, device_id: String) -> Result<(), String> {
     let session = auth
         .current_session()
         .await
@@ -489,12 +473,12 @@ pub async fn set_privacy_settings(app: AppHandle, patch: PrivacySettings) -> Res
 
 #[tauri::command]
 pub async fn get_telemetry_summary(
-    state: State<'_, GenesisAppState>,
+    state: State<'_, BentoAppState>,
 ) -> Result<TelemetrySummary, String> {
     let snapshots = sqlx::query(
         "SELECT id, ts, module_id, heap_mb, state, ipc_ms, db_ms, last_action FROM telemetry_ticks ORDER BY ts DESC LIMIT 25",
     )
-    .fetch_all(state.db())
+    .fetch_all(&state.db())
     .await
     .map_err(|error| error.to_string())?
     .into_iter()
@@ -515,7 +499,7 @@ pub async fn get_telemetry_summary(
     let anomalies = sqlx::query(
         "SELECT id, ts, module_id, type, severity, message, healed, heal_action, heal_ms FROM anomaly_log ORDER BY ts DESC LIMIT 25",
     )
-    .fetch_all(state.db())
+    .fetch_all(&state.db())
     .await
     .map_err(|error| error.to_string())?
     .into_iter()
@@ -537,7 +521,7 @@ pub async fn get_telemetry_summary(
     let insights = sqlx::query(
         "SELECT id, discovered_at, action, metric, pearson, n_samples, description FROM insights ORDER BY discovered_at DESC LIMIT 25",
     )
-    .fetch_all(state.db())
+    .fetch_all(&state.db())
     .await
     .map_err(|error| error.to_string())?
     .into_iter()
@@ -562,8 +546,12 @@ pub async fn get_telemetry_summary(
 }
 
 #[tauri::command]
-pub async fn clear_telemetry_data(state: State<'_, GenesisAppState>) -> Result<(), String> {
-    let mut tx = state.db().begin().await.map_err(|error| error.to_string())?;
+pub async fn clear_telemetry_data(state: State<'_, BentoAppState>) -> Result<(), String> {
+    let mut tx = state
+        .db()
+        .begin()
+        .await
+        .map_err(|error| error.to_string())?;
     for query in [
         "DELETE FROM telemetry_ticks",
         "DELETE FROM anomaly_log",
@@ -609,7 +597,7 @@ pub async fn check_biometric_support() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 pub async fn get_installed_modules_list(
-    state: State<'_, GenesisAppState>,
+    state: State<'_, BentoAppState>,
 ) -> Result<Vec<InstalledModuleEntry>, String> {
     let active_module = state.active_module();
     let modules = crate::modules::get_installed_modules(state).await?;
@@ -654,7 +642,7 @@ pub async fn get_installed_modules_list(
 
 #[tauri::command]
 pub async fn get_available_modules(
-    state: State<'_, GenesisAppState>,
+    state: State<'_, BentoAppState>,
 ) -> Result<Vec<AvailableModuleEntry>, String> {
     Ok(crate::modules::fetch_module_registry(state)
         .await?
@@ -673,7 +661,7 @@ pub async fn get_available_modules(
 #[tauri::command]
 pub async fn install_module_v2(
     _app: AppHandle,
-    state: State<'_, GenesisAppState>,
+    state: State<'_, BentoAppState>,
     module_id: String,
     bundle_url: String,
     checksum: String,
@@ -687,7 +675,7 @@ pub async fn install_module_v2(
 #[tauri::command]
 pub async fn uninstall_module_v2(
     app: AppHandle,
-    state: State<'_, GenesisAppState>,
+    state: State<'_, BentoAppState>,
     module_id: String,
 ) -> Result<(), String> {
     crate::modules::uninstall_module(app, state, module_id).await
@@ -710,11 +698,13 @@ pub async fn set_default_launch_module(module_id: String) -> Result<(), String> 
 // ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn get_sync_status(
-    auth: State<'_, AuthManager>,
-) -> Result<SyncStatus, String> {
+pub async fn get_sync_status(auth: State<'_, AuthManager>) -> Result<SyncStatus, String> {
     let session = auth.current_session().await;
-    let status = if session.is_some() { "synced" } else { "signed_out" };
+    let status = if session.is_some() {
+        "synced"
+    } else {
+        "signed_out"
+    };
 
     Ok(SyncStatus {
         last_synced: None,
@@ -768,44 +758,25 @@ pub async fn clear_local_data() -> Result<(), String> {
 // ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn save_api_key(provider: String, _key: String) -> Result<(), String> {
-    // Stub: store in OS keychain
-    let supported = ["anthropic", "openai", "ollama", "groq"];
-    if !supported.contains(&provider.as_str()) {
-        return Err(format!("Unknown provider: {provider}"));
-    }
-    Ok(())
+pub async fn save_api_key(provider: String, key: String) -> Result<(), String> {
+    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    byok::save_api_key(&provider, key.trim())
 }
-
 #[tauri::command]
 pub async fn get_api_key_status(provider: String) -> Result<ApiKeyStatus, String> {
-    let _ = provider;
-    Ok(ApiKeyStatus { is_set: false })
+    let parsed =
+        ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    let is_set = !parsed.requires_key() || byok::has_api_key(&provider);
+    Ok(ApiKeyStatus { is_set })
 }
 
 #[tauri::command]
 pub async fn test_ai_connection(provider: String) -> Result<ConnectionTestResult, String> {
-    let models = match provider.as_str() {
-        "anthropic" => vec![
-            "claude-sonnet-4-20250514".to_string(),
-            "claude-opus-4-5".to_string(),
-            "claude-haiku-4-5-20251001".to_string(),
-        ],
-        "openai" => vec![
-            "gpt-4o".to_string(),
-            "gpt-4o-mini".to_string(),
-            "o3-mini".to_string(),
-        ],
-        "ollama" => vec![],
-        "groq" => vec![
-            "llama-3.3-70b-versatile".to_string(),
-            "mixtral-8x7b-32768".to_string(),
-        ],
-        _ => vec![],
-    };
+    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    let result = byok::test_connection(&provider).await;
     Ok(ConnectionTestResult {
-        ok: !models.is_empty(),
-        model_list: models,
+        ok: result.ok,
+        model_list: result.available_models,
     })
 }
 
@@ -837,7 +808,9 @@ pub async fn get_system_fonts() -> Result<Vec<String>, String> {
 #[tauri::command]
 pub async fn download_font(font_id: String) -> Result<String, String> {
     // Stub: pretend to download font
-    let path = std::env::temp_dir().join("fonts").join(format!("{font_id}.woff2"));
+    let path = std::env::temp_dir()
+        .join("fonts")
+        .join(format!("{font_id}.woff2"));
     std::fs::create_dir_all(path.parent().unwrap()).ok();
     Ok(path.to_string_lossy().to_string())
 }
@@ -864,7 +837,7 @@ pub async fn send_test_notification(app: AppHandle) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
     app.notification()
         .builder()
-        .title("Genesis")
+        .title("Bento")
         .body("This is a test notification from your settings.")
         .show()
         .map_err(|e| e.to_string())?;
@@ -893,8 +866,30 @@ pub async fn set_startup_config(config: StartupConfig) -> Result<(), String> {
 // ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn set_locale_config(config: LocaleConfig) -> Result<(), String> {
-    let _ = config;
+pub async fn set_locale_config(app: AppHandle, config: LocaleConfig) -> Result<(), String> {
+    let normalized_lang = settings::normalize_language_code(&config.language);
+    let date_fmt = match config.date_format.as_str() {
+        "DD/MM/YYYY" => settings::DateFormat::DdMmYyyy,
+        "YYYY-MM-DD" => settings::DateFormat::YyyyMmDd,
+        "DD.MM.YYYY" => settings::DateFormat::DdMmYyyyDot,
+        "MMMM D, YYYY" => settings::DateFormat::Long,
+        _ => settings::DateFormat::MmDdYyyy,
+    };
+    let time_fmt = match config.time_format.as_str() {
+        "24h" => settings::TimeFormat::H24,
+        _ => settings::TimeFormat::H12,
+    };
+    let first_day = match config.week_starts_on.as_str() {
+        "sunday" => settings::FirstDay::Sunday,
+        "saturday" => settings::FirstDay::Saturday,
+        _ => settings::FirstDay::Monday,
+    };
+    settings::update_desktop_settings(&app, |next| {
+        next.language.code = normalized_lang;
+        next.language.date_format = date_fmt;
+        next.language.time_format = time_fmt;
+        next.language.first_day = first_day;
+    })?;
     Ok(())
 }
 
@@ -914,9 +909,7 @@ pub async fn check_for_updates() -> Result<UpdateInfo, String> {
 }
 
 #[tauri::command]
-pub async fn download_and_install_update(
-    _on_progress: Channel<f32>,
-) -> Result<(), String> {
+pub async fn download_and_install_update(_on_progress: Channel<f32>) -> Result<(), String> {
     Ok(())
 }
 
@@ -998,7 +991,10 @@ pub async fn get_keyboard_shortcuts() -> Result<Vec<ShortcutEntry>, String> {
 }
 
 #[tauri::command]
-pub async fn set_keyboard_shortcut(_action: String, _combo: String) -> Result<KeyShortcutResult, String> {
+pub async fn set_keyboard_shortcut(
+    _action: String,
+    _combo: String,
+) -> Result<KeyShortcutResult, String> {
     // Stub: accept shortcut
     Ok(KeyShortcutResult {
         success: true,
@@ -1019,4 +1015,120 @@ pub async fn reset_all_shortcuts() -> Result<(), String> {
 pub async fn set_accessibility_config(config: AccessibilityConfig) -> Result<(), String> {
     let _ = config;
     Ok(())
+}
+
+// ──────────────────────────────────────────────────────────
+// SECTION 12 — LANGUAGE (extended Tauri commands)
+// Port of Anytype's Action.setInterfaceLang pattern.
+// The heavy lifting (bundle loading, HTML dir) is done in the frontend;
+// Rust is responsible for validation and persistence only.
+// ──────────────────────────────────────────────────────────
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageInfo {
+    pub code: String,
+    pub label: String,
+    pub direction: String,
+    pub locale: String,
+    pub is_rtl: bool,
+}
+
+/// Returns metadata for the currently active interface language.
+/// Matches Anytype's S.Common.interfaceLang getter.
+#[tauri::command]
+pub async fn get_active_language(app: AppHandle) -> Result<LanguageInfo, String> {
+    let settings = settings::current_settings(&app);
+    let lang = &settings.language.code;
+    Ok(LanguageInfo {
+        code: serde_json::to_value(lang)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_string))
+            .unwrap_or_else(|| "en".to_string()),
+        label: lang.label(),
+        direction: if lang.is_rtl() {
+            "rtl".to_string()
+        } else {
+            "ltr".to_string()
+        },
+        locale: lang.locale().to_string(),
+        is_rtl: lang.is_rtl(),
+    })
+}
+
+/// Persist the chosen interface language code.
+/// Mirrors Anytype's Action.setInterfaceLang (Renderer.send side).
+#[tauri::command]
+pub async fn set_interface_language(app: AppHandle, code: String) -> Result<LanguageInfo, String> {
+    let normalized = settings::normalize_language_code(&code);
+    settings::update_desktop_settings(&app, |next| {
+        next.language.code = normalized.clone();
+    })?;
+    Ok(LanguageInfo {
+        code: serde_json::to_value(&normalized)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_string))
+            .unwrap_or_else(|| "en".to_string()),
+        label: normalized.label(),
+        direction: if normalized.is_rtl() {
+            "rtl".to_string()
+        } else {
+            "ltr".to_string()
+        },
+        locale: normalized.locale().to_string(),
+        is_rtl: normalized.is_rtl(),
+    })
+}
+
+/// Returns the full list of supported interface languages.
+/// Matches Anytype's U.Menu.getInterfaceLanguages().
+#[tauri::command]
+pub async fn get_supported_languages() -> Result<Vec<LanguageInfo>, String> {
+    use settings::LanguageCode;
+    let all: &[LanguageCode] = &[
+        LanguageCode::En,
+        LanguageCode::Ar,
+        LanguageCode::Be,
+        LanguageCode::Cs,
+        LanguageCode::Da,
+        LanguageCode::De,
+        LanguageCode::Es,
+        LanguageCode::Fa,
+        LanguageCode::Fr,
+        LanguageCode::Hi,
+        LanguageCode::Id,
+        LanguageCode::It,
+        LanguageCode::Ja,
+        LanguageCode::Ko,
+        LanguageCode::Lt,
+        LanguageCode::Nl,
+        LanguageCode::No,
+        LanguageCode::Pl,
+        LanguageCode::PtBr,
+        LanguageCode::PtPt,
+        LanguageCode::Ro,
+        LanguageCode::Ru,
+        LanguageCode::Tr,
+        LanguageCode::Uk,
+        LanguageCode::Vi,
+        LanguageCode::ZhCn,
+        LanguageCode::ZhTw,
+    ];
+    Ok(all
+        .iter()
+        .map(|lang| LanguageInfo {
+            code: serde_json::to_value(lang)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_string))
+                .unwrap_or_default(),
+            label: lang.label(),
+            direction: if lang.is_rtl() {
+                "rtl".to_string()
+            } else {
+                "ltr".to_string()
+            },
+            locale: lang.locale().to_string(),
+            is_rtl: lang.is_rtl(),
+        })
+        .collect())
 }

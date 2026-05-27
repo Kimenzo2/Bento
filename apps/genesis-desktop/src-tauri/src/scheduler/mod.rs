@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use tauri::{Emitter, Manager};
 
-use crate::health::now_ms;
+use crate::util::time;
 
 // ─── Schedule Types ───────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ pub struct Schedule {
 
 impl Schedule {
     pub fn new(module_id: &str, label: &str, schedule_type: &str) -> Self {
-        let now = now_ms();
+        let now = time::now_ms();
         Self {
             id: None,
             module_id: module_id.to_string(),
@@ -96,14 +96,14 @@ impl Schedule {
 
     /// Calculate and advance the next fire time after firing
     pub fn advance(&mut self) {
-        self.last_fired_at = Some(now_ms());
+        self.last_fired_at = Some(time::now_ms());
 
         // Check end_at boundary — disable if past end
         if let Some(end) = self.end_at {
-            if now_ms() >= end {
+            if time::now_ms() >= end {
                 self.enabled = false;
                 self.next_fire_at = None;
-                self.updated_at = now_ms();
+                self.updated_at = time::now_ms();
                 return;
             }
         }
@@ -126,13 +126,13 @@ impl Schedule {
             }
             Some(ScheduleType::Custom) => {
                 if let Some(interval) = self.interval_seconds {
-                    let now = now_ms();
+                    let now = time::now_ms();
                     self.next_fire_at = Some(now + interval * 1000);
                 }
             }
             None => {}
         }
-        self.updated_at = now_ms();
+        self.updated_at = time::now_ms();
     }
 }
 
@@ -230,31 +230,29 @@ impl ScheduleStore {
     }
 
     pub async fn list_by_module(&self, module_id: &str) -> Result<Vec<Schedule>, String> {
-        let rows = sqlx::query(
-            "SELECT * FROM schedules WHERE module_id = ? ORDER BY next_fire_at ASC",
-        )
-        .bind(module_id)
-        .fetch_all(&self.db)
-        .await
-        .map_err(|e| e.to_string())?;
+        let rows =
+            sqlx::query("SELECT * FROM schedules WHERE module_id = ? ORDER BY next_fire_at ASC")
+                .bind(module_id)
+                .fetch_all(&self.db)
+                .await
+                .map_err(|e| e.to_string())?;
 
         Ok(rows.into_iter().map(Self::row_to_schedule).collect())
     }
 
     pub async fn list_all_enabled(&self) -> Result<Vec<Schedule>, String> {
-        let rows = sqlx::query(
-            "SELECT * FROM schedules WHERE enabled = 1 ORDER BY next_fire_at ASC",
-        )
-        .fetch_all(&self.db)
-        .await
-        .map_err(|e| e.to_string())?;
+        let rows =
+            sqlx::query("SELECT * FROM schedules WHERE enabled = 1 ORDER BY next_fire_at ASC")
+                .fetch_all(&self.db)
+                .await
+                .map_err(|e| e.to_string())?;
 
         Ok(rows.into_iter().map(Self::row_to_schedule).collect())
     }
 
     /// Find all schedules that are due (next_fire_at <= now)
     pub async fn get_due(&self) -> Result<Vec<Schedule>, String> {
-        let now = now_ms();
+        let now = time::now_ms();
         let rows = sqlx::query(
             "SELECT * FROM schedules WHERE enabled = 1 AND next_fire_at IS NOT NULL AND next_fire_at <= ? ORDER BY next_fire_at ASC",
         )
@@ -267,16 +265,14 @@ impl ScheduleStore {
     }
 
     pub async fn mark_fired(&self, id: &str) -> Result<(), String> {
-        let now = now_ms();
-        sqlx::query(
-            "UPDATE schedules SET last_fired_at = ?, updated_at = ? WHERE id = ?",
-        )
-        .bind(now)
-        .bind(now)
-        .bind(id)
-        .execute(&self.db)
-        .await
-        .map_err(|e| e.to_string())?;
+        let now = time::now_ms();
+        sqlx::query("UPDATE schedules SET last_fired_at = ?, updated_at = ? WHERE id = ?")
+            .bind(now)
+            .bind(now)
+            .bind(id)
+            .execute(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -300,16 +296,15 @@ impl ScheduleStore {
 
 // ─── Background Scheduler Worker ──────────────────────────────────────
 
-pub fn spawn_scheduler_worker(
-    db: SqlitePool,
-    app_handle: tauri::AppHandle,
-) {
+pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let store = ScheduleStore::new(db.clone());
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
 
         loop {
             interval.tick().await;
+
+            let db = state.db();
+            let store = ScheduleStore::new(db.clone());
 
             // Check for due schedules
             let due = match store.get_due().await {
@@ -332,10 +327,7 @@ pub fn spawn_scheduler_worker(
                             "moduleId": sched_clone.module_id,
                             "label": sched_clone.label,
                         });
-                        let _ = window.emit(
-                            "genesis://schedule-fire",
-                            payload,
-                        );
+                        let _ = window.emit("bento://schedule-fire", payload);
                     }
 
                     // Advance schedule (respects end_at, disables if past end)
@@ -354,9 +346,7 @@ pub fn spawn_scheduler_worker(
                         for n in pending {
                             if let Some(_nid) = n.id {
                                 let _ = crate::notifications::dispatch_notification(
-                                    &app,
-                                    &n.title,
-                                    &n.body,
+                                    &app, &n.title, &n.body,
                                 );
                             }
                         }
@@ -371,7 +361,7 @@ pub fn spawn_scheduler_worker(
 
 #[tauri::command]
 pub async fn create_schedule(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     schedule: Schedule,
 ) -> Result<String, String> {
     let store = ScheduleStore::new(db.db().clone());
@@ -380,7 +370,7 @@ pub async fn create_schedule(
 
 #[tauri::command]
 pub async fn update_schedule(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     schedule: Schedule,
 ) -> Result<(), String> {
     let store = ScheduleStore::new(db.db().clone());
@@ -389,7 +379,7 @@ pub async fn update_schedule(
 
 #[tauri::command]
 pub async fn delete_schedule(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     id: String,
 ) -> Result<(), String> {
     let store = ScheduleStore::new(db.db().clone());
@@ -398,7 +388,7 @@ pub async fn delete_schedule(
 
 #[tauri::command]
 pub async fn get_schedules(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: Option<String>,
 ) -> Result<Vec<Schedule>, String> {
     let store = ScheduleStore::new(db.db().clone());
@@ -410,7 +400,7 @@ pub async fn get_schedules(
 
 #[tauri::command]
 pub async fn get_due_schedules(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
 ) -> Result<Vec<Schedule>, String> {
     let store = ScheduleStore::new(db.db().clone());
     store.get_due().await

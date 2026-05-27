@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import MoonStarIcon from "@lucide/svelte/icons/moon-star";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
@@ -11,14 +11,29 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  import { activeBundle, createTranslator } from "$lib/i18n";
   import {
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "sleep";
-  const sectionLabels = ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export"] as const;
-  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
+  const sectionLabels = ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export", "Log"] as const;
+  let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
+
+  let displaySection = $derived.by(() => {
+    const labels: Record<string, string> = {
+      Tonight: _t("moduleSleepSectionTonight"),
+      Score: _t("moduleSleepSectionScore"),
+      Routine: _t("moduleSleepSectionRoutine"),
+      Trends: _t("moduleSleepSectionTrends"),
+      Alarm: _t("moduleSleepSectionAlarm"),
+      Export: _t("moduleSleepSectionExport"),
+    };
+    return labels[selectedSection] ?? selectedSection;
+  });
 
   const tonightFocus = [
     { label: "Wind-down", value: "22:15", note: "Reading lamp and no inbox after 10pm." },
@@ -61,54 +76,76 @@
     { title: "CSV stages", detail: "Nightly deep, REM, and wake events for external analysis." },
     { title: "Shareable recap", detail: "A one-page summary for coach or clinician review." },
   ];
+
+  // ── Log section (ported exactly from Journal's Sleep section) ────────
+  let logSleepHours = $state(7.2);
+  let logSleepQuality = $state(4);
+  let logSleepData = $state([
+    { date: 'May 21', hours: 7.2, quality: 4, bedtime: '11:10 PM', wake: '6:22 AM' },
+    { date: 'May 20', hours: 6.8, quality: 3, bedtime: '11:45 PM', wake: '6:35 AM' },
+    { date: 'May 19', hours: 8.1, quality: 5, bedtime: '10:30 PM', wake: '6:36 AM' },
+    { date: 'May 18', hours: 7.5, quality: 4, bedtime: '11:00 PM', wake: '6:30 AM' },
+    { date: 'May 17', hours: 5.9, quality: 2, bedtime: '12:15 AM', wake: '6:10 AM' },
+  ]);
+
+  let logAvgHours = $derived(
+    logSleepData.length > 0
+      ? (logSleepData.reduce((s, r) => s + r.hours, 0) / logSleepData.length).toFixed(1)
+      : '7.0'
+  );
+
+  function toggleLogStar(star: number) {
+    logSleepQuality = star;
+  }
 </script>
 
-<main class="sleep-workspace module-root">
+<main class="sleep-workspace module-root" data-module="sleep">
   <section class="sleep-shell">
     <header class="sleep-shell__header">
       <div class="sleep-shell__intro">
         <div class="sleep-shell__eyebrow">
-          <span>Somna</span>
-          <Badge variant="outline">{selectedSection}</Badge>
+          <span>{_t('moduleSleepSomna')}</span>
+          <Badge variant="outline">{displaySection}</Badge>
         </div>
-        <h1>Sleep score, routine, and alarm planning stay inside one calm desktop surface.</h1>
-        <p>Tonight’s setup, last night’s quality, and the weekly pattern all fit without leaving the shell.</p>
+        <h1>{_t('moduleSleepDesc')}</h1>
+        <p>{_t('moduleSleepHeaderDesc')}</p>
       </div>
 
       <div class="sleep-shell__actions">
         <Button variant="outline">
           <MoonStarIcon data-icon="inline-start" />
-          Night mode
+          {_t('moduleSleepNightMode')}
         </Button>
         <Button>
           <SparklesIcon data-icon="inline-start" />
-          AI bedtime
+          {_t('moduleSleepAIBedtime')}
         </Button>
       </div>
     </header>
 
+    {#if selectedSection === "Tonight"}
     <section class="sleep-hero-grid">
       <Card class="sleep-orb-card">
         <CardHeader>
-          <CardTitle>Last night</CardTitle>
-          <CardDescription>7h 42m total sleep with a strong recovery curve.</CardDescription>
+          <CardTitle>{_t('moduleSleepLastNight')}</CardTitle>
+          <CardDescription>{_t('moduleSleepLastNightDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="sleep-orb-card__content">
           <div class="sleep-orb">
             <strong>82</strong>
-            <small>score</small>
+            <small>{_t('moduleSleepScore')}</small>
           </div>
           <div class="sleep-meta">
-            <div><strong>+11%</strong><span>better than weekly average</span></div>
-            <div><strong>06:35</strong><span>smart wake target</span></div>
+            <div><strong>+11%</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
+            <div><strong>06:35</strong><span>{_t('moduleSleepSmartWake')}</span></div>
           </div>
         </CardContent>
       </Card>
 
       <Card class="sleep-summary-card">
         <CardHeader>
-          <CardTitle>Recovery outlook</CardTitle>
-          <CardDescription>Energy forecast before tomorrow begins.</CardDescription>
+          <CardTitle>{_t('moduleSleepRecoveryOutlook')}</CardTitle>
+          <CardDescription>{_t('moduleSleepRecoveryOutlookDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="sleep-summary-list">
           {#each tonightFocus as item}
@@ -121,14 +158,74 @@
         </CardContent>
       </Card>
     </section>
+    {/if}
+
+    {#if selectedSection === "Log"}
+    <section class="sl-bento">
+      <!-- SLEEP HERO CARD (accent) — ported exactly from Journal -->
+      <div class="sl-card sl-card--accent sl-card--hero">
+        <div class="sl-card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          {_t('moduleJournalLastNight')}
+        </div>
+        <div class="sl-hero-num">{logSleepHours}<span class="sl-unit">{_t('moduleJournalHrs')}</span></div>
+        <!-- Quality stars -->
+        <div class="sl-stars">
+          {#each [1,2,3,4,5] as star}
+            <button class="sl-star" class:sl-star--on={star <= logSleepQuality} onclick={() => toggleLogStar(star)}>
+              <svg viewBox="0 0 24 24" fill={star <= logSleepQuality ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </button>
+          {/each}
+        </div>
+        <p class="sl-card-hint">{_t('moduleJournalQualityRating')}</p>
+      </div>
+
+      <!-- SLEEP LOG LIST CARD (surface) — ported exactly from Journal -->
+      <div class="sl-card sl-card--surface sl-card--log">
+        <div class="sl-card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+          {_t('moduleJournal5DayLog')}
+        </div>
+        {#each logSleepData as row}
+        <div class="sl-log-row">
+          <span class="sl-log-date">{row.date}</span>
+          <div class="sl-bar-wrap">
+            <div class="sl-bar" style="width:{(row.hours / 9) * 100}%;background:color-mix(in srgb, #8b5cf6 {Math.round((row.quality/5)*100)}%, #3b82f6)"></div>
+          </div>
+          <span class="sl-log-hrs">{row.hours}{_t('moduleJournalH')}</span>
+          <div class="sl-stars-mini">
+            {#each [1,2,3,4,5] as s}
+              <svg viewBox="0 0 24 24" fill={s<=row.quality?'#8b5cf6':'none'} stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sl-star-mini"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            {/each}
+          </div>
+        </div>
+        {/each}
+      </div>
+
+      <!-- SLEEP AVG CARD (dark) — ported exactly from Journal -->
+      <div class="sl-card sl-card--dark sl-card--avg">
+        <div class="sl-card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          {_t('moduleJournalAvgThisWeek')}
+        </div>
+        <div class="sl-stat-big">{logAvgHours}<span class="sl-unit">{_t('moduleJournalHrs')}</span></div>
+        <p class="sl-card-hint" style="color:#22c55e">{_t('moduleJournalAvgIncrease')}</p>
+        <div class="sl-tips">
+          <span class="sl-tip">{_t('moduleJournalGoal7')}</span>
+          <span class="sl-tip">{_t('moduleJournalBedtime')}</span>
+        </div>
+      </div>
+
+    </section>
+    {/if}
 
     <section class="sleep-shell__body">
       {#if selectedSection === "Tonight"}
         <div class="sleep-grid sleep-grid--tonight">
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>Tonight plan</CardTitle>
-              <CardDescription>Keep the current module’s bedtime flow, but expand it into a full nightly brief.</CardDescription>
+              <CardTitle>{_t('moduleSleepTonightPlan')}</CardTitle>
+              <CardDescription>{_t('moduleSleepTonightPlanDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-list">
               {#each tonightFocus as item}
@@ -143,8 +240,8 @@
 
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>Pre-sleep checklist</CardTitle>
-              <CardDescription>Routine steps remain visible before you close the app.</CardDescription>
+              <CardTitle>{_t('moduleSleepPreSleepChecklist')}</CardTitle>
+              <CardDescription>{_t('moduleSleepPreSleepChecklistDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-routine-list">
               {#each routine as step}
@@ -153,7 +250,7 @@
                     <strong>{step.title}</strong>
                     <p>{step.note}</p>
                   </div>
-                  <Badge variant={step.status === "Done" ? "default" : "secondary"}>{step.status}</Badge>
+                  <Badge variant={step.status === 'Done' ? 'default' : 'secondary'}>{_t('moduleSleep' + step.status)}</Badge>
                 </article>
               {/each}
             </CardContent>
@@ -163,8 +260,8 @@
         <div class="sleep-grid sleep-grid--score">
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>Stage balance</CardTitle>
-              <CardDescription>Break the score into the parts that actually drove it.</CardDescription>
+              <CardTitle>{_t('moduleSleepStageBalance')}</CardTitle>
+              <CardDescription>{_t('moduleSleepStageBalanceDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-stage-list">
               {#each sleepStages as stage}
@@ -181,22 +278,22 @@
 
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>Score breakdown</CardTitle>
-              <CardDescription>Sleep timing, duration, and wake consistency mapped into one panel.</CardDescription>
+              <CardTitle>{_t('moduleSleepScoreBreakdown')}</CardTitle>
+              <CardDescription>{_t('moduleSleepScoreBreakdownDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-breakdown">
-              <div><span>Duration</span><strong>88</strong></div>
-              <div><span>Consistency</span><strong>79</strong></div>
-              <div><span>Recovery</span><strong>84</strong></div>
-              <div><span>Wake stability</span><strong>81</strong></div>
+              <div><span>{_t('moduleSleepDuration')}</span><strong>88</strong></div>
+              <div><span>{_t('moduleSleepConsistency')}</span><strong>79</strong></div>
+              <div><span>{_t('moduleSleepRecovery')}</span><strong>84</strong></div>
+              <div><span>{_t('moduleSleepWakeStability')}</span><strong>81</strong></div>
             </CardContent>
           </Card>
         </div>
       {:else if selectedSection === "Routine"}
         <Card class="sleep-panel sleep-panel--full">
           <CardHeader>
-            <CardTitle>Bedtime routine</CardTitle>
-            <CardDescription>The original routine card now expands into a full sequence with status and coaching.</CardDescription>
+            <CardTitle>{_t('moduleSleepBedtimeRoutine')}</CardTitle>
+            <CardDescription>{_t('moduleSleepBedtimeRoutineDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="sleep-routine-board">
             {#each routine as step, index}
@@ -206,7 +303,7 @@
                   <strong>{step.title}</strong>
                   <p>{step.note}</p>
                 </div>
-                <Badge variant={step.status === "Done" ? "default" : "outline"}>{step.status}</Badge>
+                <Badge variant={step.status === 'Done' ? 'default' : 'outline'}>{_t('moduleSleep' + step.status)}</Badge>
               </article>
             {/each}
           </CardContent>
@@ -215,8 +312,8 @@
         <div class="sleep-grid sleep-grid--trends">
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>Weekly trend</CardTitle>
-              <CardDescription>The original bar chart becomes a full-width trend view.</CardDescription>
+              <CardTitle>{_t('moduleSleepWeeklyTrend')}</CardTitle>
+              <CardDescription>{_t('moduleSleepWeeklyTrendDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-trend-chart">
               {#each weeklyTrend as item}
@@ -231,21 +328,21 @@
 
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>Pattern notes</CardTitle>
-              <CardDescription>Simple takeaways instead of another dashboard layer.</CardDescription>
+              <CardTitle>{_t('moduleSleepPatternNotes')}</CardTitle>
+              <CardDescription>{_t('moduleSleepPatternNotesDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-list">
-              <article><span>Best night</span><strong>Thursday</strong><p>Longest deep sleep after screens cut off by 9:30 PM.</p></article>
-              <article><span>Weakest night</span><strong>Wednesday</strong><p>Late caffeine and short recovery window pulled the score down.</p></article>
-              <article><span>Trend</span><strong>Rising</strong><p>Average score is up 6 points compared with the previous week.</p></article>
+              <article><span>{_t('moduleSleepBestNight')}</span><strong>{_t('moduleSleepBestNightValue')}</strong><p>{_t('moduleSleepBestNightDesc')}</p></article>
+              <article><span>{_t('moduleSleepWeakestNight')}</span><strong>{_t('moduleSleepWeakestNightValue')}</strong><p>{_t('moduleSleepWeakestNightDesc')}</p></article>
+              <article><span>{_t('moduleSleepTrend')}</span><strong>{_t('moduleSleepRising')}</strong><p>{_t('moduleSleepTrendDesc')}</p></article>
             </CardContent>
           </Card>
         </div>
       {:else if selectedSection === "Alarm"}
         <Card class="sleep-panel sleep-panel--full">
           <CardHeader>
-            <CardTitle>Alarm orchestration</CardTitle>
-            <CardDescription>Smart wake presets, travel backup, and routine tie-ins stay in one screen.</CardDescription>
+            <CardTitle>{_t('moduleSleepAlarmOrch')}</CardTitle>
+            <CardDescription>{_t('moduleSleepAlarmOrchDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="sleep-alarm-list">
             {#each alarms as alarm}
@@ -260,11 +357,27 @@
             {/each}
           </CardContent>
         </Card>
+      {:else if selectedSection === "Log"}
+        <Card class="sleep-panel sleep-panel--full">
+          <CardHeader>
+            <CardTitle>Sleep schedule details</CardTitle>
+            <CardDescription>Bedtime and wake time for the last 5 nights.</CardDescription>
+          </CardHeader>
+          <CardContent class="sleep-breakdown">
+            {#each logSleepData as row}
+              <div>
+                <span>{row.date}</span>
+                <strong>{row.hours}h</strong>
+                <span>Bed: {row.bedtime} · Wake: {row.wake}</span>
+              </div>
+            {/each}
+          </CardContent>
+        </Card>
       {:else}
         <Card class="sleep-panel sleep-panel--full">
           <CardHeader>
-            <CardTitle>Export sleep data</CardTitle>
-            <CardDescription>Prepare coach-ready or archive-ready files without breaking the desktop flow.</CardDescription>
+            <CardTitle>{_t('moduleSleepExportTitle')}</CardTitle>
+            <CardDescription>{_t('moduleSleepExportDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="sleep-export-list">
             {#each exportOptions as option}
@@ -275,7 +388,7 @@
                 </div>
                 <Button variant="outline">
                   <DownloadIcon data-icon="inline-start" />
-                  Export
+                  {_t('moduleSleepExportBtn')}
                 </Button>
               </article>
             {/each}
@@ -301,7 +414,7 @@
     background: var(--sleep-bg);
     color: var(--sleep-ink);
     overflow: hidden;
-    font-family: "Satoshi", "Manrope", sans-serif;
+    font-family: var(--font-body);
   }
 
   :global(.sleep-shell) {
@@ -391,7 +504,7 @@
     aspect-ratio: 1;
     border-radius: 999px;
     background: conic-gradient(var(--sleep-accent) 82%, color-mix(in srgb, var(--border) 80%, transparent) 0);
-    box-shadow: inset 0 0 0 28px var(--sleep-surface);
+    box-shadow: none;
   }
 
   :global(.sleep-orb) strong {
@@ -624,5 +737,188 @@
     gap: 16px;
     align-items: center;
     padding: 16px 18px;
+  }
+  /* ── Log section (ported exactly from Journal's Sleep bento cards) ── */
+  .sl-bento {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: 16px;
+  }
+
+  .sl-card {
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: all 0.2s ease;
+  }
+
+  .sl-card--accent {
+    background: var(--sleep-accent, var(--primary));
+    color: #fff;
+    align-items: center;
+    text-align: center;
+  }
+
+  .sl-card--surface {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  .sl-card--dark {
+    background: var(--surface);
+    color: var(--surface-foreground, #fff);
+  }
+
+  .sl-card-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .sl-card-label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .sl-card-hint {
+    font-size: 12px;
+    opacity: 0.65;
+    margin: 0;
+  }
+
+  .sl-hero-num {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .sl-unit {
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.6;
+  }
+
+  .sl-stars {
+    display: flex;
+    gap: 6px;
+  }
+
+  .sl-star {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.15s;
+  }
+
+  .sl-star:hover {
+    transform: scale(1.15);
+  }
+
+  .sl-star--on {
+    color: #fbbf24;
+  }
+
+  .sl-star svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .sl-card--log {
+    padding: 18px;
+  }
+
+  .sl-log-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sl-log-row:last-child {
+    border-bottom: none;
+  }
+
+  .sl-log-date {
+    width: 60px;
+    font-size: 12px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .sl-bar-wrap {
+    flex: 1;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--muted-surface);
+    overflow: hidden;
+  }
+
+  .sl-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+
+  .sl-log-hrs {
+    width: 36px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .sl-stars-mini {
+    display: flex;
+    gap: 2px;
+  }
+
+  .sl-star-mini {
+    width: 12px;
+    height: 12px;
+  }
+
+  .sl-card--avg {
+    padding: 22px;
+  }
+
+  .sl-stat-big {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .sl-tips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sl-tip {
+    font-size: 12px;
+    opacity: 0.7;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+  }
+
+  @media (max-width: 860px) {
+    .sl-bento { grid-template-columns: 1fr; }
   }
 </style>

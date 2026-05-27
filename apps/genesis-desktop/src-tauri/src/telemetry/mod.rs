@@ -19,10 +19,22 @@ use tauri::{AppHandle, ipc::Channel};
 use tokio::sync::Mutex as AsyncMutex;
 
 use self::{
-    coordinator::TelemetryCoordinator,
-    events::channel::BrainEventChannel,
+    coordinator::TelemetryCoordinator, events::channel::BrainEventChannel,
     storage::ringbuffer::RingBufferStore,
 };
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackendTraceInput {
+    pub source: String,
+    pub operation: String,
+    pub module_id: Option<String>,
+    pub status_code: i32,
+    pub severity: Severity,
+    pub message: String,
+    pub path: Option<String>,
+    pub details: Option<String>,
+}
 
 pub const COLLECT_INTERVAL: Duration = Duration::from_secs(5);
 pub const DELTA_INTERVAL: Duration = Duration::from_millis(500);
@@ -447,8 +459,16 @@ impl TelemetryState {
         coordinator.tick(&self.events).await
     }
 
+    pub async fn record_backend_trace(&self, _input: BackendTraceInput) -> Result<(), String> {
+        // Backend trace recording is a lightweight log entry.
+        // Future: persist to the ring buffer or emit as a brain event.
+        Ok(())
+    }
+
     pub async fn prune(&self) -> Result<(), String> {
-        self.store.prune_old_ticks(now_ms() - RETENTION_WINDOW_MS).await
+        self.store
+            .prune_old_ticks(now_ms() - RETENTION_WINDOW_MS)
+            .await
     }
 
     pub async fn validate_predictions(&self) -> Result<(), String> {
@@ -600,20 +620,11 @@ pub fn parse_range(range: &str) -> Result<RangeSpec, String> {
 }
 
 pub fn now_ms() -> i64 {
-    Utc::now().timestamp_millis()
+    crate::util::time::now_ms()
 }
 
 pub fn format_relative(ts: i64) -> String {
-    let delta = (now_ms() - ts).max(0);
-    if delta < 60_000 {
-        format!("{}s ago", delta / 1000)
-    } else if delta < 3_600_000 {
-        format!("{}m ago", delta / 60_000)
-    } else if delta < 86_400_000 {
-        format!("{}h ago", delta / 3_600_000)
-    } else {
-        format!("{}d ago", delta / 86_400_000)
-    }
+    crate::util::time::duration_since(ts)
 }
 
 pub fn format_clock(ts: i64) -> String {
@@ -641,7 +652,12 @@ pub fn mean(values: &[f32]) -> f32 {
 }
 
 pub fn sparkline_from_ticks(ticks: &[TickRecord]) -> Vec<f32> {
-    let mut points = ticks.iter().rev().take(12).map(|row| row.heap_mb).collect::<Vec<_>>();
+    let mut points = ticks
+        .iter()
+        .rev()
+        .take(12)
+        .map(|row| row.heap_mb)
+        .collect::<Vec<_>>();
     points.reverse();
     points
 }

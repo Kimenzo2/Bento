@@ -6,7 +6,6 @@
   import { check } from "@tauri-apps/plugin-updater";
   import { goto } from "@mateothegreat/svelte5-router";
   import { hydrateDesktopSettings } from "$lib/desktop/settings";
-  import { fontStore } from "$lib/stores/font.store";
   import { setLifecycleState, type DesktopLifecycleState } from "$lib/stores/lifecycle.store";
   import { languageStore } from "$lib/stores/language.store";
   import { showCrash } from "$lib/stores/crash.store";
@@ -57,14 +56,8 @@
     root.setAttribute("data-theme", $activeTheme.id);
   });
 
-  $effect(() => {
-    if (!browser) {
-      return;
-    }
-
-    document.documentElement.style.setProperty("--font-heading", `'${$fontStore.heading}', sans-serif`);
-    document.documentElement.style.setProperty("--font-body", `'${$fontStore.body}', system-ui, sans-serif`);
-  });
+  // Fonts are defined via CSS custom properties in app.css :root.
+  // RuntimeBridge does NOT override fonts — the CSS owns the font system.
 
   $effect(() => {
     if (!browser) {
@@ -88,7 +81,7 @@
   const routeDeepLink = (payload: string) => {
     try {
       const url = new URL(payload);
-      if (url.protocol !== "genesis:") {
+      if (url.protocol !== "bento:") {
         goto("/");
         return;
       }
@@ -126,7 +119,7 @@
       const appWindow = getCurrentWebviewWindow();
 
       void hydrateDesktopSettings().catch((error) => {
-        console.error("Genesis desktop settings failed to hydrate.", error);
+        console.error("Bento desktop settings failed to hydrate.", error);
       });
 
       void invoke<DesktopLifecycleState>("get_lifecycle_state")
@@ -138,26 +131,28 @@
         });
 
       void (async () => {
-        while (true) {
-          const payload = await invoke<string | null>("consume_pending_deep_link");
-          if (!payload) {
-            break;
-          }
-
+        let safety = 0;
+        while (safety < 10) {
+          safety++;
+          const payload = await invoke<string | null>('consume_pending_deep_link');
+          if (!payload) break;
           routeDeepLink(payload);
+        }
+        if (safety >= 10) {
+          console.warn('[RuntimeBridge] Deep link loop exceeded safety limit — possible backend bug');
         }
       })().catch(() => {
         // Normal launches do not have a pending deep link.
       });
 
       unlistenPromises.push(
-        appWindow.listen<string>("genesis://deep-link", ({ payload }) => {
+        appWindow.listen<string>("bento://deep-link", ({ payload }) => {
           routeDeepLink(payload);
         })
       );
 
       unlistenPromises.push(
-        appWindow.listen<string>("genesis://navigate", ({ payload }) => {
+        appWindow.listen<string>("bento://navigate", ({ payload }) => {
           if (payload.startsWith("/")) {
             goto(payload);
           }
@@ -165,8 +160,18 @@
       );
 
       unlistenPromises.push(
+        appWindow.listen<string>("bento://dashboard-refresh", ({ payload }) => {
+          window.dispatchEvent(
+            new CustomEvent("bento:dashboard-refresh", {
+              detail: payload,
+            })
+          );
+        })
+      );
+
+      unlistenPromises.push(
         appWindow.listen<{ message: string; logPath: string; timestamp: string }>(
-          "genesis://crash",
+          "bento://crash",
           ({ payload }) => {
             showCrash(payload);
           }
@@ -174,7 +179,7 @@
       );
 
       unlistenPromises.push(
-        appWindow.listen<string>("genesis://lifecycle", ({ payload }) => {
+        appWindow.listen<string>("bento://lifecycle", ({ payload }) => {
           setLifecycleState(payload as DesktopLifecycleState);
         })
       );

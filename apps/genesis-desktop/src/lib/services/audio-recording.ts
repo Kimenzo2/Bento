@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { invoke } from '@tauri-apps/api/core';
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -46,6 +46,7 @@ export interface RecordingMeta {
   channels: number;
   tags: string[];
   transcribed: boolean;
+  transcript: string | null;
 }
 
 // ─── Reactive Stores ──────────────────────────────────────────────────
@@ -125,10 +126,11 @@ export async function startRecording(
  */
 export async function stopRecording(): Promise<RecordingSession> {
   const session = await invoke<RecordingSession>('stop_recording');
+  const moduleId = session.moduleId;
   recordingStatus.set('idle');
   stopPolling();
   currentSession.set(null);
-  await refreshRecordings(get(currentSession)?.moduleId ?? 'voice-memos');
+  await refreshRecordings(moduleId ?? 'voice-memos');
   return session;
 }
 
@@ -191,6 +193,22 @@ export async function retryRecording(
  */
 export async function checkMicrophonePermission(): Promise<boolean> {
   return invoke<boolean>('check_microphone_permission');
+}
+
+export async function pickTranscriptionModel(): Promise<string | null> {
+  return invoke<string | null>('pick_transcription_model');
+}
+
+export async function transcribeRecording(
+  recordingId: string,
+  modelPath: string,
+  language?: string,
+): Promise<string> {
+  return invoke<string>('transcribe_recording', {
+    recording_id: recordingId,
+    model_path: modelPath,
+    language,
+  });
 }
 
 /**

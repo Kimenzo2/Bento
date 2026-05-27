@@ -26,7 +26,11 @@ impl DeltaTracker {
                     state: Some(slot.state.clone()),
                     ipc_ms: slot.last_report.as_ref().map(|report| report.ipc_last_ms),
                 };
-                let previous = self.last_emitted.get(module_id).cloned().unwrap_or_default();
+                let previous = self
+                    .last_emitted
+                    .get(module_id)
+                    .cloned()
+                    .unwrap_or_default();
 
                 let heap_changed = values_changed(previous.heap_mb, current.heap_mb);
                 let state_changed = previous.state != current.state;

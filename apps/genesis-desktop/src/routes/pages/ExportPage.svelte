@@ -61,7 +61,7 @@
         },
       }));
 
-      toast.success(`Genesis export folder set to ${directory}`);
+      toast.success(`Bento export folder set to ${directory}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update the export folder.");
     } finally {
@@ -105,7 +105,7 @@
       <div class="rounded-2xl app-surface p-4">
         <p class="font-semibold text-[var(--foreground)]">Current export folder</p>
         <p class="mt-1 break-all text-sm text-[var(--muted)]">
-          {$desktopSettings.files.exportDirectory || "Downloads/Genesis/exports"}
+          {$desktopSettings.files.exportDirectory || "Downloads/Bento/exports"}
         </p>
       </div>
       {#each ["Print PDF bundle", "Viewer image sequence", "Asset pack manifest"] as task}

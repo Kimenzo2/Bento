@@ -1,0 +1,370 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GENESIS CARD SYSTEM
+   Rule: NO borders. NO shadows. NO rings. Contrast comes from
+   background color alone. This applies everywhere — mini-apps,
+   dashboard, modals, dialogs, sheets, settings, pricing, upgrade.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Module tint backgrounds — use global theme variables ──────────── */
+:root {
+  --mod-bg-tasks:       var(--background);
+  --mod-bg-notes:       var(--background);
+  --mod-bg-habits:      var(--background);
+  --mod-bg-focus:       var(--background);
+  --mod-bg-health:      var(--background);
+  --mod-bg-budget:      var(--background);
+  --mod-bg-journal:     var(--background);
+  --mod-bg-flashcards:  var(--background);
+  --mod-bg-reading:     var(--background);
+  --mod-bg-goals:       var(--background);
+  --mod-bg-time:        var(--background);
+  --mod-bg-mood:        var(--background);
+  --mod-bg-grocery:     var(--background);
+  --mod-bg-recipes:     var(--background);
+  --mod-bg-countdown:   var(--background);
+  --mod-bg-voice-memos: var(--background);
+  --mod-bg-clipboard:   var(--background);
+  --mod-bg-nutrition:   var(--background);
+  --mod-bg-sleep:       var(--background);
+  --mod-bg-breathing:   var(--background);
+  --mod-bg-passwords:   var(--background);
+  --mod-bg-water:       var(--background);
+  --mod-bg-telemetry:   var(--background);
+}
+
+/* Dark mode — same as light, uses global theme */
+.dark {
+  --mod-bg-tasks:       var(--background);
+  --mod-bg-notes:       var(--background);
+  --mod-bg-habits:      var(--background);
+  --mod-bg-focus:       var(--background);
+  --mod-bg-health:      var(--background);
+  --mod-bg-budget:      var(--background);
+  --mod-bg-journal:     var(--background);
+  --mod-bg-flashcards:  var(--background);
+  --mod-bg-reading:     var(--background);
+  --mod-bg-goals:       var(--background);
+  --mod-bg-time:        var(--background);
+  --mod-bg-mood:        var(--background);
+  --mod-bg-grocery:     var(--background);
+  --mod-bg-recipes:     var(--background);
+  --mod-bg-countdown:   var(--background);
+  --mod-bg-voice-memos: var(--background);
+  --mod-bg-clipboard:   var(--background);
+  --mod-bg-nutrition:   var(--background);
+  --mod-bg-breathing:   var(--background);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   THREE CARD TYPES — used everywhere, no exceptions
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* TYPE A — Surface card. White floats on tinted bg. */
+.card-surface {
+  background: var(--card);
+  border: none;
+  box-shadow: none;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+/* TYPE B — Accent card. Filled with module accent. */
+.card-accent {
+  background: var(--mod-accent, var(--primary));
+  border: none;
+  box-shadow: none;
+  border-radius: 20px;
+  padding: 24px;
+  color: #FFFFFF;
+}
+.card-accent .label,
+.card-accent span:not([class]),
+.card-accent small { color: rgba(255,255,255,0.75); }
+.card-accent strong,
+.card-accent .value,
+.card-accent .count { color: #FFFFFF; }
+
+/* TYPE C — Dark card. Maximum contrast. One per app, optional. */
+.card-dark {
+  background: var(--card);
+  border: none;
+  box-shadow: none;
+  border-radius: 20px;
+  padding: 24px;
+  color: var(--foreground);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SHADCN CARD COMPONENT — strip ring and shadow, use bg contrast
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot="card"] {
+  background: var(--card);
+  border: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-shadow: none !important;
+  border-radius: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIALOGS — background = var(--background) so it matches the active
+   theme exactly. No border. No shadow. No ring. Floating is achieved
+   by the overlay darkening everything else.
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot="dialog-content"] {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  border: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-shadow: none !important;
+  border-radius: 24px !important;
+}
+
+/* Overlay dims everything behind the dialog — that contrast IS the
+   dialog's visual separation. No border needed. */
+[data-slot="dialog-overlay"] {
+  background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
+  backdrop-filter: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SHEETS — same rule. Background = var(--background). No border.
+   Sheet slides in from the edge, the overlay creates the separation.
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot="sheet-content"] {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  border: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-shadow: none !important;
+}
+
+[data-slot="sheet-overlay"] {
+  background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
+  backdrop-filter: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DROPDOWN / SELECT / TOOLTIP — floating UI
+   These sit above content so they DO need separation. They get it
+   from background contrast + the overlay. Still no shadow or ring.
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"] {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  border: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-shadow: none !important;
+  border-radius: 16px !important;
+}
+
+/* Tooltip inverts: dark bg with light text — highest contrast possible */
+[data-slot="tooltip-content"] {
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+  border: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-shadow: none !important;
+  border-radius: 8px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL SETTINGS PANEL — var(--background), no border, no shadow
+   ═══════════════════════════════════════════════════════════════════ */
+.global-settings__overlay {
+  background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
+}
+.global-settings__panel {
+  background: var(--background) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Inner cards inside settings — Type A surface cards */
+.global-settings__info-card,
+.global-settings__preview-card,
+.global-settings__danger-zone,
+.global-settings__about-card,
+.global-settings__app-card,
+.global-settings__density-card,
+.global-settings__radius-pill,
+.global-settings__theme-grid button {
+  background: var(--surface, color-mix(in srgb, var(--foreground) 5%, var(--background))) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Active state gets foreground fill — accent treatment */
+.global-settings__theme-active,
+.global-settings__theme-grid button:hover,
+.global-settings__app-card:hover,
+.global-settings__segment-active {
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+  border: none !important;
+}
+/* Toggle row — sits on background, NOT a card */
+.global-settings__toggle {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Segmented control — NOT a card, just a row of buttons */
+.global-settings__segmented {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRICING / UPGRADE PAGE — surface cards on var(--background)
+   ═══════════════════════════════════════════════════════════════════ */
+.pricing-shell__card,
+.pricing-shell__current {
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background)) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 32px !important;
+}
+/* Featured plan — Type B accent treatment */
+.pricing-shell__card--featured {
+  background: color-mix(in srgb, var(--primary) 10%, var(--background)) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CRASH DIALOG & DOWNGRADE DIALOG inner info blocks
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot="dialog-content"] .grid.rounded-3xl,
+[data-slot="dialog-content"] .grid.gap-3.rounded-3xl {
+  background: color-mix(in srgb, var(--foreground) 5%, var(--background)) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   UPDATE NOTIFICATION — card-surface, bottom-right, no border/shadow
+   Class: .update-notification (replaces old .update-toast)
+   ═══════════════════════════════════════════════════════════════════ */
+.update-notification {
+  background: var(--card) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 20px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD CARDS — Type A surface cards on var(--background)
+   ═══════════════════════════════════════════════════════════════════ */
+.dashboard__card {
+  background: var(--card) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 20px !important;
+}
+
+/* Priority card gets a barely-there tint from the module accent */
+.dashboard__card--priority {
+  background: color-mix(in srgb, var(--card) 96%, var(--card-accent, var(--accent))) !important;
+}
+
+/* Stats card is split vertically — needs clip */
+.dashboard__card--stats {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Module chips are NOT cards — they sit on bg as pills */
+.dashboard__module-chip {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--background)) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.dashboard__module-chip:hover {
+  background: color-mix(in srgb, var(--chip-accent, var(--accent)) 12%, var(--background)) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   METRIC / PROJECT / ASSET CARDS — Type A surface
+   ═══════════════════════════════════════════════════════════════════ */
+.metric-card,
+.project-card,
+.asset-card {
+  background: var(--card) !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 20px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   NUCLEAR STRIP — remove every stray shadow/ring from any element
+   that bits-ui or Tailwind might inject globally
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot] {
+  --tw-shadow: none !important;
+  --tw-ring-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SONNER TOAST — card system alignment
+   Borders and background colours are intentionally left untouched
+   (Sonner owns those via --normal-bg / --normal-border CSS vars set
+   in sonner.svelte). Everything else follows the card system rules:
+   no box-shadow, correct border-radius, General Sans font, system
+   type scale, and no size inflation.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Toaster viewport — strip any default shadow Sonner injects */
+[data-sonner-toaster] {
+  --tw-shadow: none !important;
+  --tw-ring-shadow: none !important;
+}
+
+/* Individual toast — shape, shadow, font */
+[data-sonner-toast] {
+  border-radius: 20px !important;
+  box-shadow: none !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--font-size-sm) !important;          /* 13px — compact, not oversized */
+  line-height: var(--line-height-normal) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  /* Width/height intentionally not set — no size inflation */
+}
+
+/* Toast title — semibold, body font, no extra size bump */
+[data-sonner-toast] [data-title] {
+  font-family: var(--font-body) !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  line-height: var(--line-height-tight) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+}
+
+/* Toast description — muted weight, same scale */
+[data-sonner-toast] [data-description] {
+  font-family: var(--font-body) !important;
+  font-size: var(--font-size-xs) !important;          /* 11px — clearly secondary */
+  font-weight: var(--font-weight-regular) !important;
+  line-height: var(--line-height-normal) !important;
+  opacity: 0.72;
+}
+
+/* Toast action buttons — body font, correct weight */
+[data-sonner-toast] [data-button] {
+  font-family: var(--font-body) !important;
+  font-size: var(--font-size-xs) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+/* Close button — no shadow */
+[data-sonner-toast] [data-close-button] {
+  box-shadow: none !important;
+  border-radius: 999px !important;
+}

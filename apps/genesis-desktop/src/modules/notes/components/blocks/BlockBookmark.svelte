@@ -1,9 +1,8 @@
-<script lang="ts">
+﻿<script lang="ts">
   import type { Block } from '$lib/local-store/block';
   import { BookmarkState } from '$lib/local-store/block';
 
-  export let block: Block;
-  // rootId and readonly accepted via $$restProps
+  let { block }: { block: Block } = $props();
 
   let content = block.content as any;
   let state: BookmarkState = content?.state ?? BookmarkState.Empty;
@@ -96,7 +95,7 @@
   }
 
   .bookmark-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: none;
   }
 
   .bookmark-body {

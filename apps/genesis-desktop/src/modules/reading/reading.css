@@ -1,10 +1,11 @@
-.reading-app-container {
+﻿.reading-app-container {
+  --mod-accent: #E53935;
   height: 100%;
   position: relative;
   display: flex;
   flex-direction: column;
-  background-color: transparent;
-  color: var(--text-primary, #F9FAFB);
+  background: var(--mod-bg, var(--mod-bg-reading));
+  color: var(--foreground);
 }
 
 .reading-scroll-content {
@@ -36,10 +37,11 @@
 .current-book-card {
   display: flex;
   gap: 24px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--card);
+  border: none;
+  box-shadow: none;
   padding: 24px;
-  border-radius: 24px;
+  border-radius: 20px;
 }
 
 .book-cover {
@@ -47,7 +49,7 @@
   height: 180px;
   border-radius: 8px;
   object-fit: cover;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: none;
 }
 
 .book-info {
@@ -152,10 +154,11 @@
   display: flex;
   align-items: center;
   gap: 32px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--card);
+  border: none;
+  box-shadow: none;
   padding: 24px;
-  border-radius: 24px;
+  border-radius: 20px;
 }
 
 .circular-progress {
@@ -241,7 +244,7 @@
   height: 150px;
   border-radius: 8px;
   object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: none;
   transition: transform 0.2s;
   cursor: default;
 }
@@ -272,16 +275,15 @@
 /* Floating Bottom Areas */
 .stats-strip {
   position: absolute;
-  bottom: 64px; /* Above nav */
+  bottom: 64px;
   left: 0; right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
   padding: 12px 32px;
-  background: var(--bg-overlay, rgba(20, 20, 20, 0.9));
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--card);
+  border-top: 1px solid var(--border);
   font-size: 13px;
   font-weight: 500;
 }
@@ -305,7 +307,7 @@
   display: flex;
   justify-content: space-around;
   padding: 12px 32px 16px;
-  background: var(--bg-surface, #1C2128); /* Opaque for bottom nav */
+  background: var(--surface); /* Opaque for bottom nav */
 }
 
 .nav-item {
@@ -331,4 +333,23 @@
 .nav-item span {
   font-size: 11px;
   font-weight: 500;
+}
+/* ── Card System Fix ──────────────────────────────────────────────── */
+.reading-app-container [class*="-card"],
+.reading-app-container [class*="-panel"],
+.reading-app-container [class*="-block"],
+.reading-app-container .book-card,
+.reading-app-container .book-item {
+  border: none !important;
+  box-shadow: none !important;
+  background: var(--card);
+  border-radius: 20px;
+}
+/* Accent: current book hero */
+.reading-app-container .current-book-hero,
+.reading-app-container .hero-card {
+  background: var(--mod-accent) !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
 }

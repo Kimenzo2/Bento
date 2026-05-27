@@ -31,7 +31,7 @@ export type DesktopTheme = {
   modes: Record<ThemeMode, ThemeTokens>;
 };
 
-export type ThemeId = 'genesis' | 'aurora' | 'ocean' | 'forest' | 'nebula' | 'sunset' | 'midnight';
+export type ThemeId = 'bento' | 'aurora' | 'ocean' | 'forest' | 'nebula' | 'sunset' | 'midnight';
 
 const createThemeTokens = (tokens: {
   background: string;
@@ -74,8 +74,8 @@ const createThemeTokens = (tokens: {
 
 export const desktopThemes: DesktopTheme[] = [
   {
-    id: 'genesis',
-    name: 'Genesis Classic',
+    id: 'bento',
+    name: 'Bento Classic',
     description: 'Original warm and cozy theme.',
     preview: ['#FF9B71', '#FFD93D', '#FFF8E7'],
     modes: {

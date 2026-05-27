@@ -1,10 +1,8 @@
 <script lang="ts">
-  import DownloadIcon from "@lucide/svelte/icons/download";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
-  import Volume2Icon from "@lucide/svelte/icons/volume-2";
-  import WindIcon from "@lucide/svelte/icons/wind";
+  import { onMount, onDestroy } from "svelte";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
+  import { activeBundle, createTranslator } from "$lib/i18n";
   import {
     Card,
     CardContent,
@@ -12,218 +10,258 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  import { time } from "$lib/utils/time";
   import {
+    ensureModuleSection,
     getModuleSectionLabel,
     moduleSectionStore,
+    setModuleSection,
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "breathing";
-  const sectionLabels = ["Breathe", "Sessions", "Sounds", "Check-ins", "Streaks", "Export"] as const;
-  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
+  const sectionLabels = ["Breathe", "Exercises", "History"] as const;
+  let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
-  const modes = [
-    { title: "Box 4-4-4-4", detail: "Steady reset before work blocks" },
-    { title: "4-7-8 reset", detail: "Long exhale for evening downshift" },
-    { title: "Physiological sigh", detail: "Fast de-stress after sharp spikes" },
-    { title: "Coherent breathing", detail: "Five breaths per minute for calm focus" },
+  let _t = $derived.by(() => createTranslator($activeBundle));
+
+  onMount(() => {
+    ensureModuleSection(moduleId, sectionLabels);
+  });
+
+  type Exercise = {
+    id: string;
+    name: string;
+    pattern: number[];
+    totalSeconds: number;
+  };
+
+  type Session = {
+    id: string;
+    exerciseId: string;
+    duration: number;
+    completed: number;
+  };
+
+  const exercises: Exercise[] = [
+    { id: "box", name: "Box Breathing", pattern: [4, 4, 4, 4], totalSeconds: 16 },
+    { id: "478", name: "4-7-8 Breathing", pattern: [4, 7, 8], totalSeconds: 19 },
+    { id: "sigh", name: "Physiological Sigh", pattern: [2, 1, 4], totalSeconds: 7 },
+    { id: "relax", name: "Progressive Relaxation", pattern: [4, 2, 6], totalSeconds: 12 },
   ];
 
-  const sessions = [
-    { title: "Lunch reset", duration: "6 min", outcome: "Stress dropped from 5.1 to 2.9" },
-    { title: "Pre-call calm", duration: "3 min", outcome: "Voice steadier, heart rate eased" },
-    { title: "Bedtime downshift", duration: "8 min", outcome: "Sleep routine adherence improved" },
-  ];
+  let sessions = $state<Session[]>([]);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
+  let activeExercise = $state<Exercise | null>(null);
+  let activePhase = $state(0);
+  let phaseRemaining = $state(0);
+  let activeTimer: ReturnType<typeof setInterval> | undefined;
+  let activeRunning = $state(false);
+  let sessionStartTime = $state(0);
 
-  const sounds = [
-    { title: "Warm air", detail: "Soft filtered noise", active: true },
-    { title: "Rain room", detail: "Muted roof ambience", active: false },
-    { title: "Ocean pulse", detail: "Long low swells", active: false },
-  ];
+  const STORAGE_KEY = "bento_breathing";
+  const phaseLabels = ["Breathe In", "Hold", "Breathe Out", "Hold"];
 
-  const checkIns = [
-    { prompt: "Current level", value: "3.2 / 10", note: "Mild background tension" },
-    { prompt: "Target after session", value: "1.8 / 10", note: "Return to steady baseline" },
-    { prompt: "Body cue", value: "Jaw + shoulders", note: "Most tension sits high today" },
-  ];
+  function load() {
+    try {
+      const raw = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+      sessions = raw ? JSON.parse(raw) : [];
+    } catch {
+      error = "Failed to load session history";
+      sessions = [];
+    } finally {
+      loading = false;
+    }
+  }
 
-  const streaks = [
-    { label: "Current streak", value: "18 days" },
-    { label: "Best week", value: "6 sessions" },
-    { label: "Night reset rate", value: "82%" },
-  ];
+  function save() {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    }
+  }
 
-  const exportOptions = [
-    { title: "Breathing recap PDF", detail: "Sessions, streaks, and before/after check-ins." },
-    { title: "CSV session log", detail: "Technique, duration, and subjective stress shift." },
-    { title: "Calm share card", detail: "A one-page summary for coaching or therapy review." },
-  ];
+  function startExercise(ex: Exercise) {
+    if (activeRunning) return;
+    activeExercise = ex;
+    activePhase = 0;
+    phaseRemaining = ex.pattern[0];
+    activeRunning = true;
+    sessionStartTime = time.now();
+
+    let phaseIdx = 0;
+    let currentRemaining = ex.pattern[0];
+
+    activeTimer = setInterval(() => {
+      currentRemaining--;
+      phaseRemaining = currentRemaining;
+      if (currentRemaining <= 0) {
+        phaseIdx++;
+        if (phaseIdx >= ex.pattern.length) {
+          phaseIdx = 0;
+          currentRemaining = ex.pattern[0];
+        } else {
+          currentRemaining = ex.pattern[phaseIdx];
+        }
+        activePhase = phaseIdx;
+        phaseRemaining = currentRemaining;
+      }
+    }, 1000);
+
+    setTimeout(() => {
+      stopExercise();
+    }, 300000);
+  }
+
+  function stopExercise() {
+    if (activeTimer) clearInterval(activeTimer);
+    activeTimer = undefined;
+
+    if (activeExercise && activeRunning) {
+      const session: Session = {
+        id: crypto.randomUUID(),
+        exerciseId: activeExercise.id,
+        duration: Math.floor((time.now() - sessionStartTime) / 1000),
+        completed: time.now(),
+      };
+      sessions = [session, ...sessions];
+      save();
+    }
+
+    activeRunning = false;
+    activePhase = 0;
+    phaseRemaining = 0;
+    activeExercise = null;
+  }
+
+  function getPhaseLabel(idx: number): string {
+    switch (idx) {
+      case 0: return "Breathe In";
+      case 1: return phaseLabels[1];
+      case 2: return "Breathe Out";
+      case 3: return phaseLabels[3];
+      default: return "";
+    }
+  }
+
+  function sessionCount(exId: string) {
+    return sessions.filter((s) => s.exerciseId === exId).length;
+  }
+
+  onMount(() => load());
+  onDestroy(() => {
+    if (activeTimer) clearInterval(activeTimer);
+  });
 </script>
 
-<main class="breathing-workspace module-root">
+<main class="breathing-workspace module-root" data-module="breathing">
   <section class="breathing-shell">
     <header class="breathing-shell__header">
       <div class="breathing-shell__intro">
         <div class="breathing-shell__eyebrow">
-          <span>Calm lab</span>
+          <span>{_t('moduleBreathingTitle')}</span>
           <Badge variant="outline">{selectedSection}</Badge>
         </div>
-        <h1>Keep the breathing orb and extend it into sessions, sounds, check-ins, streaks, and export.</h1>
-        <p>The module stays gentle and focused while using the shell-controlled section state.</p>
+        <h1>{_t('moduleBreathingDesc')}</h1>
+        <p>{_t('moduleBreathingChoosePattern')}</p>
       </div>
 
       <div class="breathing-shell__actions">
-        <Button variant="outline">
-          <Volume2Icon data-icon="inline-start" />
-          Sounds
-        </Button>
-        <Button>
-          <SparklesIcon data-icon="inline-start" />
-          AI calm
+        <Button variant="outline" onclick={() => load()}>
+          {_t('commonRefresh')}
         </Button>
       </div>
     </header>
 
-    <section class="breathing-hero-grid">
-      <Card class="breathing-orb-card">
-        <CardHeader>
-          <CardTitle>Box breathing</CardTitle>
-          <CardDescription>Four counts in, hold, out, hold.</CardDescription>
-        </CardHeader>
-        <CardContent class="breathing-orb-card__content">
-          <div class="breathing-orb">
-            <strong>04</strong>
-            <small>inhale</small>
-          </div>
-          <Button>
-            <WindIcon data-icon="inline-start" />
-            Start session
-          </Button>
+    {#if loading}
+      <div class="breathing-loading">
+        {#each [1, 2] as _}
+          <div class="breathing-skeleton"></div>
+        {/each}
+      </div>
+
+    {:else if error}
+      <Card class="breathing-panel">
+        <CardContent>
+          <p>{error}</p>
+          <Button variant="outline" onclick={() => { error = null; load(); }}>{_t('commonRetry')}</Button>
         </CardContent>
       </Card>
 
-      <Card class="breathing-hero-card">
-        <CardHeader>
-          <CardTitle>Calm state</CardTitle>
-          <CardDescription>Immediate context without opening another panel.</CardDescription>
-        </CardHeader>
-        <CardContent class="breathing-hero-list">
-          <article><span>Streak</span><strong>18 days</strong></article>
-          <article><span>Best time</span><strong>Before sleep</strong></article>
-          <article><span>Preferred sound</span><strong>Warm air</strong></article>
-        </CardContent>
-      </Card>
-    </section>
+    {:else}
+      {#if activeRunning && activeExercise}
+        <section class="breathing-hero-grid">
+          <Card class="breathing-active-card">
+            <CardContent class="breathing-active-card__content">
+              <div class="breathing-ring" class:inhale={activePhase === 0} class:hold={activePhase === 1 || activePhase === 3} class:exhale={activePhase === 2}>
+                <div class="breathing-ring__inner"></div>
+                <strong class="breathing-ring__label">{getPhaseLabel(activePhase)}</strong>
+                <span class="breathing-ring__count">{phaseRemaining}s</span>
+              </div>
+              <p class="breathing-active-name">{activeExercise.name}</p>
+              <Button variant="outline" onclick={stopExercise}>{_t('commonStop')}</Button>
+            </CardContent>
+          </Card>
 
-    <section class="breathing-shell__body">
-      {#if selectedSection === "Breathe"}
-        <Card class="breathing-panel breathing-panel--full">
-          <CardHeader>
-            <CardTitle>Exercise library</CardTitle>
-            <CardDescription>The original exercise list gets its own proper screen.</CardDescription>
-          </CardHeader>
-          <CardContent class="breathing-mode-list">
-            {#each modes as mode}
-              <article>
-                <div>
-                  <strong>{mode.title}</strong>
-                  <p>{mode.detail}</p>
-                </div>
-                <Button variant="outline">Open</Button>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-      {:else if selectedSection === "Sessions"}
-        <Card class="breathing-panel breathing-panel--full">
-          <CardHeader>
-            <CardTitle>Recent sessions</CardTitle>
-            <CardDescription>Duration and subjective outcome in a fixed-height timeline.</CardDescription>
-          </CardHeader>
-          <CardContent class="breathing-session-list">
-            {#each sessions as session}
-              <article>
-                <div>
-                  <strong>{session.title}</strong>
-                  <p>{session.outcome}</p>
-                </div>
-                <span>{session.duration}</span>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-      {:else if selectedSection === "Sounds"}
-        <Card class="breathing-panel breathing-panel--full">
-          <CardHeader>
-            <CardTitle>Sound bed</CardTitle>
-            <CardDescription>Ambient support, kept lightweight and calm.</CardDescription>
-          </CardHeader>
-          <CardContent class="breathing-sound-list">
-            {#each sounds as sound}
-              <article>
-                <Volume2Icon size={18} />
-                <div>
-                  <strong>{sound.title}</strong>
-                  <p>{sound.detail}</p>
-                </div>
-                <Badge variant={sound.active ? "default" : "outline"}>{sound.active ? "Active" : "Ready"}</Badge>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-      {:else if selectedSection === "Check-ins"}
-        <Card class="breathing-panel breathing-panel--full">
-          <CardHeader>
-            <CardTitle>Anxiety check-ins</CardTitle>
-            <CardDescription>The original before/after check now grows into a full check-in panel.</CardDescription>
-          </CardHeader>
-          <CardContent class="breathing-check-list">
-            {#each checkIns as item}
-              <article>
-                <span>{item.prompt}</span>
-                <strong>{item.value}</strong>
-                <p>{item.note}</p>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-      {:else if selectedSection === "Streaks"}
-        <Card class="breathing-panel breathing-panel--full">
-          <CardHeader>
-            <CardTitle>Streaks and rhythm</CardTitle>
-            <CardDescription>Compact streak stats that still feel like part of Calm Lab.</CardDescription>
-          </CardHeader>
-          <CardContent class="breathing-streak-list">
-            {#each streaks as streak}
-              <article>
-                <span>{streak.label}</span>
-                <strong>{streak.value}</strong>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
+          <Card class="breathing-panel">
+            <CardHeader>
+              <CardTitle>{_t('moduleBreathingSessionInfo')}</CardTitle>
+              <CardDescription>{_t('moduleBreathingSessionInfoDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent class="breathing-info-list">
+              <article><span>{_t('moduleBreathingPattern')}</span><strong>{activeExercise.pattern.join("-")}s</strong></article>
+              <article><span>{_t('moduleBreathingTotalCycles')}</span><strong>{Math.floor((time.now() - sessionStartTime) / 1000 / activeExercise.totalSeconds)}</strong></article>
+            </CardContent>
+          </Card>
+        </section>
+
       {:else}
-        <Card class="breathing-panel breathing-panel--full">
-          <CardHeader>
-            <CardTitle>Export calm history</CardTitle>
-            <CardDescription>Session summaries and check-ins packaged without leaving the shell.</CardDescription>
-          </CardHeader>
-          <CardContent class="breathing-export-list">
-            {#each exportOptions as option}
-              <article>
-                <div>
-                  <strong>{option.title}</strong>
-                  <p>{option.detail}</p>
-                </div>
-                <Button variant="outline">
-                  <DownloadIcon data-icon="inline-start" />
-                  Export
-                </Button>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
+        <section class="breathing-hero-grid">
+          {#each exercises as ex}
+            <Card class="breathing-exercise-card">
+              <CardHeader>
+                <CardTitle>{ex.name}</CardTitle>
+                <CardDescription>{ex.pattern.join("-")}s pattern</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>{sessionCount(ex.id)} {_t('moduleBreathingSessionsCompleted')}</p>
+                <Button onclick={() => startExercise(ex)}>{_t('commonStart')}</Button>
+              </CardContent>
+            </Card>
+          {/each}
+        </section>
+
+        {#if sessions.length > 0}
+          <section class="breathing-shell__body">
+            <Card class="breathing-panel breathing-panel--full">
+              <CardHeader>
+                <CardTitle>{_t('moduleBreathingRecentSessions')}</CardTitle>
+                <CardDescription>{_t('moduleBreathingRecentSessionsDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent class="breathing-session-list">
+                {#each sessions.slice(0, 10) as session (session.id)}
+                  <article>
+                    <div>
+                      <strong>{exercises.find((e) => e.id === session.exerciseId)?.name ?? session.exerciseId}</strong>
+                      <p>{new Date(session.completed).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                    </div>
+                    <span>{Math.floor(session.duration / 60)}m {session.duration % 60}s</span>
+                  </article>
+                {/each}
+              </CardContent>
+            </Card>
+          </section>
+        {:else}
+          <section class="breathing-shell__body">
+            <Card class="breathing-panel breathing-panel--full">
+              <CardHeader>
+                <CardTitle>{_t('commonWelcome')}</CardTitle>
+                <CardDescription>{_t('moduleBreathingWelcomeDesc')}</CardDescription>
+              </CardHeader>
+            </Card>
+          </section>
+        {/if}
       {/if}
-    </section>
+    {/if}
   </section>
 </main>
 
@@ -236,13 +274,12 @@
     --breathing-ink: var(--foreground);
     --breathing-muted: var(--muted);
     --breathing-accent: var(--primary);
-    --breathing-accent-soft: color-mix(in srgb, var(--accent) 36%, var(--primary));
     height: 100%;
     padding: 28px 30px;
     background: var(--breathing-bg);
     color: var(--breathing-ink);
     overflow: hidden;
-    font-family: "Outfit", sans-serif;
+    font-family: var(--font-body);
   }
 
   :global(.breathing-shell) {
@@ -294,13 +331,13 @@
 
   :global(.breathing-hero-grid) {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 16px;
   }
 
-  :global(.breathing-orb-card),
-  :global(.breathing-hero-card),
-  :global(.breathing-panel) {
+  :global(.breathing-exercise-card),
+  :global(.breathing-panel),
+  :global(.breathing-active-card) {
     border-color: var(--breathing-border);
     background:
       linear-gradient(
@@ -310,68 +347,78 @@
       );
   }
 
-  :global(.breathing-orb-card__content) {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 20px;
-    align-items: center;
+  :global(.breathing-active-card) {
+    grid-column: 1 / -1;
   }
 
-  :global(.breathing-orb) {
+  :global(.breathing-active-card__content) {
     display: grid;
     place-items: center;
-    width: 210px;
+    gap: 16px;
+    padding: 32px;
+  }
+
+  :global(.breathing-ring) {
+    position: relative;
+    width: 140px;
     aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  :global(.breathing-ring__inner) {
+    position: absolute;
+    inset: 0;
     border-radius: 999px;
-    background:
-      radial-gradient(
-        circle,
-        var(--breathing-surface) 0 42%,
-        color-mix(in srgb, var(--breathing-accent) 72%, var(--breathing-surface)) 43% 45%,
-        color-mix(in srgb, var(--breathing-accent) 16%, var(--breathing-surface)) 46%
-      );
+    background: color-mix(in srgb, var(--breathing-accent) 16%, transparent);
+    transition: transform 0.6s ease, opacity 0.6s ease;
   }
 
-  :global(.breathing-orb) strong {
-    display: block;
-    font-size: 3rem;
-    line-height: 1;
+  :global(.breathing-ring.inhale .breathing-ring__inner) {
+    transform: scale(1.35);
+    opacity: 0.3;
   }
 
-  :global(.breathing-orb) small,
-  :global(.breathing-hero-list) span,
-  :global(.breathing-mode-list) p,
-  :global(.breathing-session-list) p,
-  :global(.breathing-sound-list) p,
-  :global(.breathing-check-list) p,
-  :global(.breathing-export-list) p {
+  :global(.breathing-ring.exhale .breathing-ring__inner) {
+    transform: scale(0.65);
+    opacity: 0.1;
+  }
+
+  :global(.breathing-ring__label) {
+    z-index: 1;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--breathing-accent);
+  }
+
+  :global(.breathing-ring__count) {
+    z-index: 1;
+    font-size: 2.4rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :global(.breathing-active-name) {
     color: var(--breathing-muted);
+    font-size: 0.9rem;
   }
 
-  :global(.breathing-hero-list),
-  :global(.breathing-mode-list),
-  :global(.breathing-session-list),
-  :global(.breathing-sound-list),
-  :global(.breathing-check-list),
-  :global(.breathing-export-list) {
+  :global(.breathing-info-list) {
     display: grid;
     gap: 12px;
   }
 
-  :global(.breathing-hero-list) article,
-  :global(.breathing-mode-list) article,
-  :global(.breathing-session-list) article,
-  :global(.breathing-sound-list) article,
-  :global(.breathing-check-list) article,
-  :global(.breathing-streak-list) article,
-  :global(.breathing-export-list) article {
+  :global(.breathing-info-list) article {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 18px;
     border: 1px solid color-mix(in srgb, var(--breathing-border) 92%, transparent);
     border-radius: 20px;
     background: color-mix(in srgb, var(--breathing-surface-strong) 92%, transparent);
   }
 
-  :global(.breathing-hero-list) article {
-    padding: 16px 18px;
+  :global(.breathing-info-list) span {
+    color: var(--breathing-muted);
   }
 
   :global(.breathing-shell__body),
@@ -389,55 +436,47 @@
     height: 100%;
   }
 
-  :global(.breathing-mode-list),
-  :global(.breathing-session-list),
-  :global(.breathing-sound-list),
-  :global(.breathing-check-list),
-  :global(.breathing-streak-list),
-  :global(.breathing-export-list) {
+  :global(.breathing-session-list) {
+    display: grid;
+    gap: 12px;
     min-height: 0;
     overflow: auto;
   }
 
-  :global(.breathing-mode-list) article,
-  :global(.breathing-session-list) article,
-  :global(.breathing-sound-list) article,
-  :global(.breathing-export-list) article {
+  :global(.breathing-session-list) article {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 14px;
     align-items: center;
     padding: 16px 18px;
+    border: 1px solid color-mix(in srgb, var(--breathing-border) 92%, transparent);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--breathing-surface-strong) 92%, transparent);
   }
 
-  :global(.breathing-sound-list) article {
-    grid-template-columns: 18px 1fr auto;
-  }
-
-  :global(.breathing-check-list) article,
-  :global(.breathing-streak-list) article {
-    padding: 16px 18px;
-  }
-
-  :global(.breathing-check-list) span,
-  :global(.breathing-streak-list) span {
-    display: block;
-    font-size: 0.82rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
+  :global(.breathing-session-list) p {
     color: var(--breathing-muted);
   }
 
-  :global(.breathing-check-list) strong,
-  :global(.breathing-streak-list) strong {
-    display: block;
-    margin-top: 8px;
-    font-size: 1.25rem;
+  :global(.breathing-session-list) span {
+    color: var(--breathing-muted);
+    font-variant-numeric: tabular-nums;
   }
 
-  :global(.breathing-streak-list) {
+  :global(.breathing-loading) {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  :global(.breathing-skeleton) {
+    height: 100px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--breathing-border) 72%, transparent);
+    animation: breathing-pulse 1.5s infinite;
+  }
+
+  @keyframes breathing-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
 </style>

@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-export const genesisMastraConfig = {
+export const bentoMastraConfig = {
   app: {
-    id: "genesis-desktop",
-    name: "Genesis Desktop",
+    id: "bento-desktop",
+    name: "Bento Desktop",
   },
   memory: {
     provider: "local-first",
@@ -11,8 +11,8 @@ export const genesisMastraConfig = {
   },
   agents: {
     creativeDirector: {
-      name: "Genesis Creative Director",
-      description: "Coordinates local-first story, visual, and export workflows for Genesis Desktop.",
+      name: "Bento Creative Director",
+      description: "Coordinates local-first story, visual, and export workflows for Bento Desktop.",
       model: "local-orchestrator",
       instructions: [
         "Prefer local tools and cached assets before network access.",
@@ -39,4 +39,4 @@ export const genesisMastraConfig = {
   },
 } as const;
 
-export type GenesisMastraConfig = typeof genesisMastraConfig;
+export type BentoMastraConfig = typeof bentoMastraConfig;

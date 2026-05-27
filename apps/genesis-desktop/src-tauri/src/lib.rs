@@ -1,41 +1,60 @@
+pub mod actors;
+pub mod audio;
+pub mod auth;
+pub mod byok;
 pub mod commands;
+pub mod crypto;
+pub mod crypto_commands;
 pub mod db;
+pub mod health;
+pub mod local_store;
 pub mod mcp;
 pub mod modules;
+pub mod mood;
+pub mod notes;
+pub mod notifications;
+pub mod payments;
+pub mod recipes;
 pub mod runtime;
+pub mod scheduler;
+pub mod search;
+pub mod session;
 pub mod settings;
+pub mod telemetry;
+pub mod util;
 pub mod window_bounds;
 
 use chrono::Utc;
 use serde::Serialize;
-use std::{
-    fs,
-    panic::PanicHookInfo,
-    thread,
-    time::Duration,
-};
+use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::Duration};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_deep_link::DeepLinkExt;
+#[cfg(not(debug_assertions))]
 use tauri_plugin_window_state::StateFlags;
-use window_bounds::restore_main_window;
 
+use crate::auth::AuthManager;
 use crate::commands::{
-    backup_desktop_settings, begin_background_task, consume_pending_deep_link,
-    emit_main_window_event, finish_background_task, get_lifecycle_state, load_desktop_settings,
-    pick_export_directory, quit_app, restore_desktop_settings_backup, restore_window,
-    save_desktop_settings, save_export_manifest, send_mcp_request, start_mcp_sidecar,
-    McpManager, PendingDeepLink,
+    DashboardCache, McpManager, PendingDeepLink, backup_desktop_settings, begin_background_task,
+    consume_pending_deep_link, emit_main_window_event, export_content_to_file,
+    finish_background_task, get_dashboard_data, get_feedback_by_id, get_feedback_realtime_config,
+    get_lifecycle_state, get_my_feedback, load_desktop_settings, pick_export_directory,
+    pick_import_file, pick_transcription_model, quit_app, restore_desktop_settings_backup,
+    restore_window, save_desktop_settings, save_export_manifest, send_mcp_request,
+    start_mcp_sidecar, submit_feedback, write_debug_log,
 };
+use crate::crypto::CryptoService;
 use crate::db::{
-    flush_module_state, get_module_context, get_module_fonts, save_module_context,
-    set_module_fonts, stream_ai_response, GenesisAppState,
+    BentoAppState, create_quick_task, enforce_auth_user_boundary, flush_module_state,
+    get_module_context, get_module_fonts, save_module_context, set_module_fonts,
 };
 use crate::modules::{
     fetch_module_registry, get_active_module, get_installed_modules, get_module_settings,
     install_module, register_local_module, set_active_module, set_module_settings,
     uninstall_module,
 };
+use crate::notes::undo::HistoryRegistry;
 use crate::runtime::DesktopRuntime;
+use crate::search::SearchService;
+use crate::session::ManagedTabSession;
 
 #[derive(Clone, Serialize)]
 struct CrashPayload {
@@ -54,7 +73,11 @@ fn panic_message(info: &PanicHookInfo<'_>) -> String {
     }
 }
 
-fn write_crash_log(app: Option<&AppHandle>, message: &str, info: &PanicHookInfo<'_>) -> Option<CrashPayload> {
+fn write_crash_log(
+    app: Option<&AppHandle>,
+    message: &str,
+    info: &PanicHookInfo<'_>,
+) -> Option<CrashPayload> {
     let timestamp = Utc::now().to_rfc3339();
     let location = info
         .location()
@@ -64,16 +87,14 @@ fn write_crash_log(app: Option<&AppHandle>, message: &str, info: &PanicHookInfo<
     let crash_dir = if let Some(app) = app {
         app.path().app_data_dir().ok()?.join("crash")
     } else {
-        std::env::temp_dir().join("genesis-desktop").join("crash")
+        std::env::temp_dir().join("bento-desktop").join("crash")
     };
 
     fs::create_dir_all(&crash_dir).ok()?;
 
     let filename = format!("crash-{}.log", Utc::now().format("%Y%m%dT%H%M%SZ"));
     let log_path = crash_dir.join(filename);
-    let payload = format!(
-        "timestamp: {timestamp}\nlocation: {location}\nmessage: {message}\n"
-    );
+    let payload = format!("timestamp: {timestamp}\nlocation: {location}\nmessage: {message}\n");
 
     fs::write(&log_path, payload).ok()?;
 
@@ -94,38 +115,111 @@ pub fn install_panic_bootstrap() {
 fn install_runtime_panic_hook(app: AppHandle) {
     std::panic::set_hook(Box::new(move |info| {
         let message = panic_message(info);
+        let location = info
+            .location()
+            .map(|value| format!("{}:{}:{}", value.file(), value.line(), value.column()))
+            .unwrap_or_else(|| "unknown".to_string());
+
+        eprintln!("[panic] {location}: {message}");
 
         if let Some(payload) = write_crash_log(Some(&app), &message, info) {
-            let _ = emit_main_window_event(&app, "genesis://crash", payload.clone());
+            let _ = emit_main_window_event(&app, "bento://crash", payload.clone());
         }
 
         thread::sleep(Duration::from_millis(200));
     }));
 }
 
-fn extract_deep_link(args: impl IntoIterator<Item = String>) -> Option<String> {
-    args.into_iter()
-        .find(|value| value.starts_with("genesis://"))
+#[cfg(windows)]
+fn configure_webview2_user_data_folder() {
+    if env::var_os("WEBVIEW2_USER_DATA_FOLDER").is_some() {
+        return;
+    }
+
+    let base = env::var_os("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| env::temp_dir());
+    let folder = base.join("Bento").join("WebView2").join("User Data");
+
+    if let Err(error) = fs::create_dir_all(&folder) {
+        eprintln!(
+            "[startup] failed to create WebView2 user data folder {}: {error}",
+            folder.display()
+        );
+        return;
+    }
+
+    env::set_var("WEBVIEW2_USER_DATA_FOLDER", &folder);
 }
 
+#[cfg(not(windows))]
+fn configure_webview2_user_data_folder() {}
+
+fn load_desktop_env() {
+    let mut candidates = Vec::new();
+
+    if let Ok(cwd) = env::current_dir() {
+        candidates.push(cwd.join(".env"));
+        candidates.push(cwd.join(".env.local"));
+        candidates.push(cwd.join("apps").join("genesis-desktop").join(".env"));
+        candidates.push(cwd.join("apps").join("genesis-desktop").join(".env.local"));
+    }
+
+    if let Ok(exe) = env::current_exe() {
+        for ancestor in exe.ancestors() {
+            candidates.push(ancestor.join(".env.local"));
+            candidates.push(ancestor.join(".env"));
+        }
+    }
+
+    for path in candidates {
+        if !path.exists() {
+            continue;
+        }
+
+        if dotenvy::from_path(&path).is_ok() {
+            eprintln!("[startup] loaded env from {}", path.display());
+            if env::var("VITE_SUPABASE_URL").is_ok() && env::var("VITE_SUPABASE_ANON_KEY").is_ok() {
+                break;
+            }
+        }
+    }
+}
+
+#[allow(dead_code)]
+fn extract_deep_link(args: impl IntoIterator<Item = String>) -> Option<String> {
+    args.into_iter().find(|value| value.starts_with("bento://"))
+}
+
+#[allow(dead_code)]
 fn queue_deep_link(app: &AppHandle, pending: &PendingDeepLink, url: String) {
     pending.set(url.clone());
-    let _ = emit_main_window_event(app, "genesis://deep-link", url);
+    let _ = emit_main_window_event(app, "bento://deep-link", url);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let window_state_plugin = tauri_plugin_window_state::Builder::new()
-        .with_state_flags(StateFlags::all())
-        .skip_initial_state("main")
-        .build();
+    configure_webview2_user_data_folder();
+    load_desktop_env();
 
     let mut builder = tauri::Builder::default()
-        .plugin(window_state_plugin)
         .manage(McpManager::default())
-        .manage(PendingDeepLink::default());
+        .manage(PendingDeepLink::default())
+        .manage(DashboardCache::new())
+        .manage(Arc::new(HistoryRegistry::new()))
+        .manage(ManagedTabSession::new());
 
-    #[cfg(desktop)]
+    #[cfg(not(debug_assertions))]
+    {
+        let window_state_plugin = tauri_plugin_window_state::Builder::new()
+            .with_state_flags(StateFlags::all())
+            .skip_initial_state("main")
+            .build();
+
+        builder = builder.plugin(window_state_plugin);
+    }
+
+    #[cfg(all(desktop, not(debug_assertions)))]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             let pending = app.state::<PendingDeepLink>().inner().clone();
@@ -135,7 +229,7 @@ pub fn run() {
         }));
     }
 
-    builder
+    builder = builder
         .register_uri_scheme_protocol("module", modules::module_protocol)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -143,37 +237,64 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_oauth::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_store::Builder::default().build())
-        .setup(|app| {
-            install_runtime_panic_hook(app.handle().clone());
+        .plugin(tauri_plugin_store::Builder::default().build());
 
-            let settings = settings::load_desktop_settings(app.handle());
-            app.manage(DesktopRuntime::new(settings.clone()));
-            let _ = settings::apply_configured_shortcuts(app.handle(), &settings);
+    #[cfg(not(debug_assertions))]
+    {
+        builder = builder.plugin(tauri_plugin_deep_link::init());
+    }
 
-            let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
-                Ok(db) => db,
-                Err(error) => {
-                    return Err(std::io::Error::new(std::io::ErrorKind::Other, error).into());
-                }
-            };
-            app.manage(GenesisAppState::new(db));
+    builder = builder.setup(|app| {
+        install_runtime_panic_hook(app.handle().clone());
 
-            if let Some(window) = app.get_webview_window("main") {
-                restore_main_window(&window)?;
+        let settings = settings::load_desktop_settings(app.handle());
+        app.manage(DesktopRuntime::new(settings.clone()));
+        let _ = settings::apply_configured_shortcuts(app.handle(), &settings);
+
+        // ── Encryption service ────────────────────────────────────────
+        let data_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        let crypto = CryptoService::new(data_dir.clone());
+        app.manage(crypto.clone());
+
+        let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
+            Ok(db) => db,
+            Err(error) => {
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, error).into());
             }
+        };
+        app.manage(BentoAppState::new(db));
 
+        let search_base_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
+        let search_service = SearchService::new(search_base_dir)
+            .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
+        app.manage(search_service);
+
+        let auth_manager =
+            AuthManager::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        app.manage(auth_manager);
+
+        #[cfg(not(debug_assertions))]
+        {
             #[cfg(any(windows, target_os = "linux"))]
-            app.deep_link().register_all()?;
+            if let Err(error) = app.deep_link().register_all() {
+                eprintln!("deep-link registration skipped: {error}");
+            }
 
             let pending = app.state::<PendingDeepLink>().inner().clone();
 
-            if let Some(urls) = app.deep_link().get_current()? {
+            if let Ok(Some(urls)) = app.deep_link().get_current() {
                 if let Some(url) = urls.first() {
-                    queue_deep_link(app.handle(), &pending, url.to_string());
+                    queue_deep_link(app.handle(), &pending, url.as_str().to_string());
                 }
             }
 
@@ -188,31 +309,42 @@ pub fn run() {
             if let Some(url) = extract_deep_link(std::env::args().collect::<Vec<_>>()) {
                 queue_deep_link(app.handle(), &pending, url);
             }
-            
-            // Show window immediately after setup to minimize time to first paint
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-            }
+        }
 
-            Ok(())
-        })
+        // Spawn background scheduler worker
+        crate::scheduler::spawn_scheduler_worker(
+            app.state::<BentoAppState>().inner().clone(),
+            app.handle().clone(),
+        );
+
+        Ok(())
+    });
+
+    builder
         .invoke_handler(tauri::generate_handler![
             load_desktop_settings,
             save_desktop_settings,
             backup_desktop_settings,
             restore_desktop_settings_backup,
+            write_debug_log,
             pick_export_directory,
+            pick_transcription_model,
             save_export_manifest,
             get_lifecycle_state,
             begin_background_task,
             finish_background_task,
             restore_window,
             quit_app,
+            get_dashboard_data,
             get_module_context,
             save_module_context,
             flush_module_state,
             get_module_fonts,
             set_module_fonts,
+            export_content_to_file,
+            pick_import_file,
+            create_quick_task,
+            enforce_auth_user_boundary,
             get_active_module,
             set_active_module,
             get_installed_modules,
@@ -222,11 +354,231 @@ pub fn run() {
             register_local_module,
             install_module,
             uninstall_module,
-            stream_ai_response,
             start_mcp_sidecar,
             send_mcp_request,
-            consume_pending_deep_link
+            crate::search::service::index_content,
+            crate::search::service::search_in_module,
+            crate::search::service::rebuild_index,
+            crate::search::service::delete_from_index,
+            consume_pending_deep_link,
+            // Anytype-style local store
+            crate::local_store::operations::local_store_block_add,
+            crate::local_store::operations::local_store_block_update,
+            crate::local_store::operations::local_store_block_delete,
+            crate::local_store::operations::local_store_block_move,
+            crate::local_store::operations::local_store_block_split,
+            crate::local_store::operations::local_store_block_merge,
+            crate::local_store::operations::local_store_get_blocks,
+            crate::local_store::operations::local_store_get_block_children,
+            crate::local_store::operations::local_store_create_object,
+            crate::local_store::operations::local_store_get_object,
+            crate::local_store::operations::local_store_get_objects,
+            crate::local_store::operations::local_store_update_object,
+            crate::local_store::operations::local_store_delete_object,
+            crate::local_store::operations::local_store_search_objects,
+            crate::local_store::operations::local_store_get_recent_objects,
+            crate::local_store::operations::local_store_get_favorite_objects,
+            crate::local_store::operations::local_store_toggle_favorite,
+            crate::local_store::operations::local_store_set_relation,
+            crate::local_store::operations::local_store_get_relations,
+            crate::local_store::operations::local_store_get_objects_by_relation,
+            crate::local_store::operations::local_store_delete_relation,
+            // Notes Anytype-heart CRUD port
+            crate::notes::commands::notes_object_create,
+            crate::notes::commands::notes_object_get,
+            crate::notes::commands::notes_object_full,
+            crate::notes::commands::notes_list,
+            crate::notes::commands::notes_object_update,
+            crate::notes::commands::notes_object_delete,
+            crate::notes::commands::notes_object_duplicate,
+            crate::notes::commands::notes_block_create,
+            crate::notes::commands::notes_block_unlink,
+            crate::notes::commands::notes_block_split,
+            crate::notes::commands::notes_block_merge,
+            crate::notes::commands::notes_block_replace,
+            crate::notes::commands::notes_block_duplicate,
+            crate::notes::commands::notes_block_move,
+            crate::notes::commands::notes_set_text_content,
+            crate::notes::commands::notes_set_text_style,
+            crate::notes::commands::notes_set_text_checked,
+            crate::notes::commands::notes_set_text_color,
+            crate::notes::commands::notes_set_text_mark,
+            crate::notes::commands::notes_clear_text_style,
+            crate::notes::commands::notes_clear_text_content,
+            crate::notes::commands::notes_set_background_color,
+            crate::notes::commands::notes_set_align,
+            crate::notes::commands::notes_turn_into,
+            crate::notes::commands::notes_set_layout,
+            crate::notes::commands::notes_undo,
+            crate::notes::commands::notes_redo,
+            crate::notes::commands::notes_set_icon,
+            crate::notes::commands::notes_get_blocks,
+            crate::notes::commands::notes_search,
+            crate::auth::bootstrap_auth_state,
+            crate::auth::get_auth_bootstrap_state,
+            crate::auth::begin_google_auth,
+            crate::auth::prepare_login_window,
+            crate::auth::prepare_shell_window,
+            crate::auth::sign_out,
+            crate::payments::create_checkout,
+            crate::payments::save_payment_receipt,
+            crate::payments::get_payment_receipt,
+            crate::payments::handle_payment_callback,
+            crate::auth::open_external_url,
+            crate::auth::get_billing_profile,
+            crate::auth::get_billing_profile_cached,
+            crate::auth::force_refresh_billing,
+            crate::auth::finalize_subscription,
+            // BYOK — Bring Your Own Key
+            crate::byok::commands::byok_save_key,
+            crate::byok::commands::byok_get_key_preview,
+            crate::byok::commands::byok_list_providers,
+            crate::byok::commands::byok_delete_key,
+            crate::byok::commands::byok_test_connection,
+            crate::byok::commands::byok_get_settings,
+            crate::byok::commands::byok_update_settings,
+            crate::byok::commands::byok_toggle_enabled,
+            crate::byok::commands::byok_dismiss_onboarding,
+            // Audio recording & playback
+            crate::audio::start_recording,
+            crate::audio::stop_recording,
+            crate::audio::pause_recording,
+            crate::audio::resume_recording,
+            crate::audio::get_recording_status,
+            crate::audio::get_current_session,
+            crate::audio::list_audio_devices,
+            crate::audio::list_recordings,
+            crate::audio::delete_recording,
+            crate::audio::update_recording_title,
+            crate::audio::playback_start,
+            crate::audio::playback_pause,
+            crate::audio::playback_resume,
+            crate::audio::playback_stop,
+            crate::audio::playback_is_playing,
+            crate::audio::cancel_recording,
+            crate::audio::retry_recording,
+            crate::audio::check_microphone_permission,
+            crate::audio::transcribe_recording,
+            // Scheduler
+            crate::scheduler::create_schedule,
+            crate::scheduler::update_schedule,
+            crate::scheduler::delete_schedule,
+            crate::scheduler::get_schedules,
+            crate::scheduler::get_due_schedules,
+            // Notifications
+            crate::notifications::send_module_notification,
+            crate::notifications::dismiss_notification,
+            crate::notifications::snooze_notification,
+            crate::notifications::get_notification_history,
+            // Health tracker
+            crate::health::health_log_save,
+            crate::health::health_log_today,
+            crate::health::health_logs_week,
+            crate::health::health_vitals_save,
+            crate::health::health_vitals_list,
+            crate::health::health_meds_list,
+            crate::health::health_med_add,
+            crate::health::health_med_toggle,
+            crate::health::health_med_delete,
+            // Mood tracker
+            crate::mood::mood_checkin_save,
+            crate::mood::mood_checkins_today,
+            crate::mood::mood_checkins_month,
+            crate::mood::mood_checkins_recent,
+            crate::mood::mood_checkin_delete,
+            crate::mood::mood_stats,
+            crate::mood::mood_activity_library,
+            crate::mood::mood_activity_add,
+            crate::mood::mood_activity_delete,
+            crate::mood::mood_patterns,
+            crate::mood::mood_private_note_save,
+            crate::mood::mood_private_notes_list,
+            crate::mood::mood_private_note_delete,
+            // Recipes
+            crate::recipes::recipes_list,
+            crate::recipes::recipe_save,
+            crate::recipes::recipe_delete,
+            crate::recipes::recipe_toggle_favorite,
+            crate::recipes::recipe_rate,
+            crate::recipes::recipe_add_to_collection,
+            crate::recipes::recipe_toggle_ingredient,
+            crate::recipes::collections_list,
+            crate::recipes::collection_create,
+            crate::recipes::collection_delete,
+            crate::recipes::pantry_list,
+            crate::recipes::pantry_upsert,
+            crate::recipes::pantry_toggle,
+            crate::recipes::shopping_list,
+            crate::recipes::shopping_add,
+            crate::recipes::shopping_toggle,
+            crate::recipes::shopping_delete,
+            crate::recipes::shopping_clear_checked,
+            crate::recipes::shopping_add_from_recipe,
+            crate::recipes::meal_plan_get,
+            crate::recipes::meal_plan_set,
+            crate::recipes::meal_plan_clear_slot,
+            crate::recipes::diet_profile_get,
+            crate::recipes::diet_profile_save,
+            crate::recipes::cook_history_list,
+            crate::recipes::cook_history_add,
+            crate::recipes::recipes_seed_if_empty,
+            // Tab session
+            crate::session::tab_open,
+            crate::session::tab_close,
+            crate::session::tab_switch,
+            crate::session::tab_set_foreground,
+            crate::session::tab_list,
+            crate::session::tab_get_foreground,
+            crate::session::tab_get,
+            crate::session::tab_is_module_open,
+            crate::session::tab_handle_sync_event,
+            // Journal
+            crate::commands::journal::save_journal_entry,
+            crate::commands::journal::get_journal_entry,
+            crate::commands::journal::list_journal_entries,
+            crate::commands::journal::delete_journal_entry,
+            // Tasks
+            crate::commands::tasks::save_task,
+            crate::commands::tasks::update_task,
+            crate::commands::tasks::toggle_task,
+            crate::commands::tasks::get_task,
+            crate::commands::tasks::list_tasks,
+            crate::commands::tasks::delete_task,
+            crate::commands::tasks::log_activity_entry,
+            crate::commands::tasks::list_activity_for_task,
+            crate::commands::tasks::archive_task,
+            crate::commands::tasks::duplicate_task,
+            crate::commands::tasks::save_subtask,
+            crate::commands::tasks::delete_subtask,
+            crate::commands::tasks::list_subtasks_for_task,
+            crate::commands::tasks::update_subtask_status,
+            crate::commands::tasks::reorder_tasks,
+            // Passwords Vault (E2EE SQLCipher)
+            crate::commands::passwords::passwords_list,
+            crate::commands::passwords::passwords_save,
+            crate::commands::passwords::passwords_delete,
+            crate::commands::passwords::passwords_migrate_from_storage,
+            // Language & Region
+            crate::settings::commands::get_active_language,
+            crate::settings::commands::set_interface_language,
+            crate::settings::commands::get_supported_languages,
+            // Feedback & Bug Reports
+            submit_feedback,
+            get_my_feedback,
+            get_feedback_by_id,
+            get_feedback_realtime_config,
+            // Database encryption
+            crate::crypto_commands::crypto_get_status,
+            crate::crypto_commands::crypto_setup_master_password,
+            crate::crypto_commands::crypto_unlock_database,
+            crate::crypto_commands::crypto_lock_database,
+            crate::crypto_commands::crypto_change_master_password,
+            crate::crypto_commands::crypto_migrate_unencrypted_db,
+            crate::crypto_commands::crypto_create_backup,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .unwrap_or_else(|error| {
+            eprintln!("[startup] error while running tauri application: {error}");
+            std::process::exit(1);
+        });
 }

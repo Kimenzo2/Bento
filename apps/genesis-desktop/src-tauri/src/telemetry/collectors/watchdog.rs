@@ -1,5 +1,5 @@
-use crate::telemetry::{AnomalyType, ModuleState, Severity, StoredAnomaly, now_ms};
 use crate::telemetry::registry::ModuleSlot;
+use crate::telemetry::{AnomalyType, ModuleState, Severity, StoredAnomaly, now_ms};
 
 const FROZEN_AFTER_MS: i64 = 15_000;
 

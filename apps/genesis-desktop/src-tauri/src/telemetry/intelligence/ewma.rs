@@ -35,12 +35,15 @@ impl EwmaBaselineEngine {
     }
 
     pub fn update(&mut self, module_id: &str, report: &MiniReport, now_ms: i64) -> EwmaBaseline {
-        let entry = self.baselines.entry(module_id.to_string()).or_insert(EwmaBaseline {
-            heap_mb: DEFAULT_HEAP_BASELINE_MB,
-            ipc_ms: DEFAULT_IPC_BASELINE_MS,
-            db_ms: DEFAULT_DB_BASELINE_MS,
-            started_at_ms: now_ms,
-        });
+        let entry = self
+            .baselines
+            .entry(module_id.to_string())
+            .or_insert(EwmaBaseline {
+                heap_mb: DEFAULT_HEAP_BASELINE_MB,
+                ipc_ms: DEFAULT_IPC_BASELINE_MS,
+                db_ms: DEFAULT_DB_BASELINE_MS,
+                started_at_ms: now_ms,
+            });
 
         if now_ms - entry.started_at_ms < WARMUP_MS {
             return entry.clone();

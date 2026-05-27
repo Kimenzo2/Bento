@@ -157,9 +157,9 @@ export function isTierAtLeast(tierA: TierName, tierB: TierName): boolean {
  */
 export const DODO_PRODUCT_IDS: Record<string, TierName> = (() => {
   const map: Record<string, TierName> = {};
-  const creatorId = import.meta.env.VITE_DODO_PRODUCT_CREATOR;
-  const studioId = import.meta.env.VITE_DODO_PRODUCT_STUDIO;
-  const empireId = import.meta.env.VITE_DODO_PRODUCT_EMPIRE;
+  const creatorId = import.meta.env.VITE_DODO_PRODUCT_CORE || import.meta.env.VITE_DODO_PRODUCT_CREATOR;
+  const studioId = import.meta.env.VITE_DODO_PRODUCT_PRO || import.meta.env.VITE_DODO_PRODUCT_STUDIO;
+  const empireId = import.meta.env.VITE_DODO_PRODUCT_POWER || import.meta.env.VITE_DODO_PRODUCT_EMPIRE;
   if (creatorId) map[creatorId] = 'CREATOR';
   if (studioId) map[studioId] = 'STUDIO';
   if (empireId) map[empireId] = 'EMPIRE';

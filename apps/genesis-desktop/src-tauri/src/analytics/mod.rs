@@ -9,7 +9,8 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 
-use crate::health::{self, now_ms, TrendResult};
+use crate::health::{self, TrendResult};
+use crate::util::time;
 
 // ─── Streak ───────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ impl StreakCalculator {
         let (current, longest, last_date) = Self::compute_streak(activity_dates);
 
         // Upsert into database
-        let now = now_ms();
+        let now = time::now_ms();
         let last_activity_date = last_date.clone();
 
         sqlx::query(
@@ -105,7 +106,7 @@ impl StreakCalculator {
             return (0, 0, None);
         }
 
-        let today = health::date_key(health::now_ms());
+        let today = time::date_key(health::time::now_ms());
         let yesterday = NaiveDate::parse_from_str(&today, "%Y-%m-%d")
             .ok()
             .and_then(|d| d.pred_opt())
@@ -240,7 +241,7 @@ impl HealthAggregator {
 
     /// Get daily sleep hours for the last N days
     pub async fn daily_sleep_hours(&self, days: i64) -> Result<TrendResult, String> {
-        let since = now_ms() - (days * 24 * 60 * 60 * 1000);
+        let since = time::now_ms() - (days * 24 * 60 * 60 * 1000);
         let rows = sqlx::query(
             r#"
             SELECT started_at, ended_at, metadata
@@ -263,7 +264,7 @@ impl HealthAggregator {
             let end: i64 = row.try_get("ended_at").unwrap_or(0);
             if end > start {
                 let hours = (end - start) as f64 / 3_600_000.0;
-                let date = health::date_key(start);
+                let date = time::date_key(start);
                 *by_date.entry(date).or_insert(0.0) += hours;
             }
         }
@@ -274,7 +275,7 @@ impl HealthAggregator {
 
     /// Get daily hydration total in ml
     pub async fn daily_hydration_ml(&self, days: i64) -> Result<TrendResult, String> {
-        let since = now_ms() - (days * 24 * 60 * 60 * 1000);
+        let since = time::now_ms() - (days * 24 * 60 * 60 * 1000);
         let rows = sqlx::query(
             r#"
             SELECT value, logged_at
@@ -295,7 +296,7 @@ impl HealthAggregator {
         for row in rows {
             let value: f64 = row.try_get("value").unwrap_or(0.0);
             let logged_at: i64 = row.try_get("logged_at").unwrap_or(0);
-            let date = health::date_key(logged_at);
+            let date = time::date_key(logged_at);
             *by_date.entry(date).or_insert(0.0) += value;
         }
 
@@ -305,7 +306,7 @@ impl HealthAggregator {
 
     /// Get daily mood averages
     pub async fn daily_mood_score(&self, days: i64) -> Result<TrendResult, String> {
-        let since = now_ms() - (days * 24 * 60 * 60 * 1000);
+        let since = time::now_ms() - (days * 24 * 60 * 60 * 1000);
         let rows = sqlx::query(
             r#"
             SELECT value, logged_at
@@ -326,7 +327,7 @@ impl HealthAggregator {
         for row in rows {
             let value: f64 = row.try_get("value").unwrap_or(0.0);
             let logged_at: i64 = row.try_get("logged_at").unwrap_or(0);
-            let date = health::date_key(logged_at);
+            let date = time::date_key(logged_at);
             by_date.entry(date).or_default().push(value);
         }
 
@@ -343,7 +344,7 @@ impl HealthAggregator {
 
     /// Get daily focus minutes total
     pub async fn daily_focus_minutes(&self, days: i64) -> Result<TrendResult, String> {
-        let since = now_ms() - (days * 24 * 60 * 60 * 1000);
+        let since = time::now_ms() - (days * 24 * 60 * 60 * 1000);
         let rows = sqlx::query(
             r#"
             SELECT started_at, ended_at, value, metadata
@@ -368,7 +369,7 @@ impl HealthAggregator {
                 _ => row.try_get::<f64, _>("value").unwrap_or(0.0), // fallback to stored value
             };
             let logged_at: i64 = row.try_get("logged_at").unwrap_or(0);
-            let date = health::date_key(logged_at);
+            let date = time::date_key(logged_at);
             *by_date.entry(date).or_insert(0.0) += minutes;
         }
 
@@ -378,7 +379,7 @@ impl HealthAggregator {
 
     /// Get daily energy score average
     pub async fn daily_energy_score(&self, days: i64) -> Result<TrendResult, String> {
-        let since = now_ms() - (days * 24 * 60 * 60 * 1000);
+        let since = time::now_ms() - (days * 24 * 60 * 60 * 1000);
         let rows = sqlx::query(
             r#"
             SELECT value, logged_at
@@ -399,7 +400,7 @@ impl HealthAggregator {
         for row in rows {
             let val: f64 = row.try_get("value").unwrap_or(0.0);
             let logged_at: i64 = row.try_get("logged_at").unwrap_or(0);
-            let date = health::date_key(logged_at);
+            let date = time::date_key(logged_at);
             by_date.entry(date).or_default().push(val);
         }
 
@@ -446,7 +447,7 @@ impl HealthAggregator {
         since: Option<i64>,
         limit: i64,
     ) -> Result<Vec<health::HealthEvent>, String> {
-        let since = since.unwrap_or_else(|| now_ms() - (30 * 24 * 60 * 60 * 1000));
+        let since = since.unwrap_or_else(|| time::now_ms() - (30 * 24 * 60 * 60 * 1000));
 
         let rows = match (module_id, event_type) {
             (Some(mid), Some(et)) => {
@@ -513,7 +514,7 @@ impl HealthAggregator {
 
     /// Compute a composite wellness score based on recent data
     pub async fn compute_wellness_score(&self, days: i64) -> Result<health::HealthScore, String> {
-        let _since = now_ms() - (days * 24 * 60 * 60 * 1000);
+        let _since = time::now_ms() - (days * 24 * 60 * 60 * 1000);
 
         // Sleep score: 7-9 hours target
         let sleep_trend = self.daily_sleep_hours(days).await?;
@@ -568,7 +569,7 @@ impl HealthAggregator {
             mood_score,
             focus_score,
             activity_score: None,
-            computed_at: now_ms(),
+            computed_at: time::now_ms(),
         })
     }
 
@@ -597,7 +598,7 @@ impl HealthAggregator {
 
 #[tauri::command]
 pub async fn log_health_event(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     event: health::HealthEvent,
 ) -> Result<i64, String> {
     let agg = HealthAggregator::new(db.db().clone());
@@ -606,14 +607,14 @@ pub async fn log_health_event(
 
 #[tauri::command]
 pub async fn get_health_events(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: Option<String>,
     event_type: Option<String>,
     days: Option<i64>,
     limit: Option<i64>,
 ) -> Result<Vec<health::HealthEvent>, String> {
     let since = days
-        .map(|d| now_ms() - (d * 24 * 60 * 60 * 1000));
+        .map(|d| time::now_ms() - (d * 24 * 60 * 60 * 1000));
     let agg = HealthAggregator::new(db.db().clone());
     agg.get_events(module_id.as_deref(), event_type.as_deref(), since, limit.unwrap_or(100))
         .await
@@ -621,7 +622,7 @@ pub async fn get_health_events(
 
 #[tauri::command]
 pub async fn get_health_trends(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     metric: String,
     days: i64,
 ) -> Result<TrendResult, String> {
@@ -638,7 +639,7 @@ pub async fn get_health_trends(
 
 #[tauri::command]
 pub async fn get_wellness_score(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     days: Option<i64>,
 ) -> Result<health::HealthScore, String> {
     let agg = HealthAggregator::new(db.db().clone());
@@ -647,7 +648,7 @@ pub async fn get_wellness_score(
 
 #[tauri::command]
 pub async fn get_streak(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: String,
     streak_type: String,
 ) -> Result<Option<Streak>, String> {
@@ -657,7 +658,7 @@ pub async fn get_streak(
 
 #[tauri::command]
 pub async fn get_all_streaks(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
 ) -> Result<Vec<Streak>, String> {
     let calc = StreakCalculator::new(db.db().clone());
     calc.get_all_streaks().await
@@ -665,7 +666,7 @@ pub async fn get_all_streaks(
 
 #[tauri::command]
 pub async fn update_streak(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: String,
     streak_type: String,
     activity_dates: Vec<String>,

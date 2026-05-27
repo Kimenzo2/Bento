@@ -1,4 +1,4 @@
-export type DesktopPlanCode = "free" | "creator" | "studio" | "empire";
+export type DesktopPlanCode = "free" | "creator" | "studio" | "empire" | "power";
 
 const coreAnchorModules = new Set([
   "notes",
@@ -14,6 +14,8 @@ export function planRankFromCode(value: string | null | undefined): number {
       return 1;
     case "studio":
       return 2;
+    case "power":
+      return 3;
     case "empire":
       return 3;
     default:

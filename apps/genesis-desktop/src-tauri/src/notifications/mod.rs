@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use tauri::AppHandle;
 
-use crate::health::now_ms;
+use crate::util::time;
 
 // ─── Notification Record ──────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ impl NotificationStore {
         .bind(module_id)
         .bind(title)
         .bind(body)
-        .bind(now_ms())
+        .bind(time::now_ms())
         .execute(&self.db)
         .await
         .map_err(|e| e.to_string())?;
@@ -65,7 +65,7 @@ impl NotificationStore {
 
     pub async fn mark_dismissed(&self, id: i64) -> Result<(), String> {
         sqlx::query("UPDATE notification_history SET dismissed_at = ? WHERE id = ?")
-            .bind(now_ms())
+            .bind(time::now_ms())
             .bind(id)
             .execute(&self.db)
             .await
@@ -74,15 +74,13 @@ impl NotificationStore {
     }
 
     pub async fn mark_snoozed(&self, id: i64, snooze_minutes: i64) -> Result<(), String> {
-        let snoozed_until = now_ms() + (snooze_minutes * 60 * 1000);
-        sqlx::query(
-            "UPDATE notification_history SET snoozed_until = ? WHERE id = ?",
-        )
-        .bind(snoozed_until)
-        .bind(id)
-        .execute(&self.db)
-        .await
-        .map_err(|e| e.to_string())?;
+        let snoozed_until = time::now_ms() + (snooze_minutes * 60 * 1000);
+        sqlx::query("UPDATE notification_history SET snoozed_until = ? WHERE id = ?")
+            .bind(snoozed_until)
+            .bind(id)
+            .execute(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -127,7 +125,7 @@ impl NotificationStore {
     }
 
     pub async fn get_pending_snoozed(&self) -> Result<Vec<NotificationRecord>, String> {
-        let now = now_ms();
+        let now = time::now_ms();
         let rows = sqlx::query(
             "SELECT * FROM notification_history WHERE snoozed_until IS NOT NULL AND snoozed_until <= ? AND dismissed_at IS NULL",
         )
@@ -157,11 +155,7 @@ impl NotificationStore {
 // ─── Notification Dispatch ────────────────────────────────────────────
 // Uses tauri-plugin-notification to show native OS notifications.
 
-pub fn dispatch_notification(
-    app: &AppHandle,
-    title: &str,
-    body: &str,
-) -> Result<(), String> {
+pub fn dispatch_notification(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
 
     app.notification()
@@ -196,17 +190,17 @@ pub async fn notify_and_record(
 #[tauri::command]
 pub async fn send_module_notification(
     app: AppHandle,
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: String,
     title: String,
     body: String,
 ) -> Result<i64, String> {
-    notify_and_record(&app, db.db(), &module_id, &title, &body, None).await
+    notify_and_record(&app, &db.db(), &module_id, &title, &body, None).await
 }
 
 #[tauri::command]
 pub async fn dismiss_notification(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     notification_id: i64,
 ) -> Result<(), String> {
     let store = NotificationStore::new(db.db().clone());
@@ -215,7 +209,7 @@ pub async fn dismiss_notification(
 
 #[tauri::command]
 pub async fn snooze_notification(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     notification_id: i64,
     snooze_minutes: i64,
 ) -> Result<(), String> {
@@ -225,7 +219,7 @@ pub async fn snooze_notification(
 
 #[tauri::command]
 pub async fn get_notification_history(
-    db: tauri::State<'_, crate::db::GenesisAppState>,
+    db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: Option<String>,
     limit: Option<i64>,
 ) -> Result<Vec<NotificationRecord>, String> {

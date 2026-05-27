@@ -66,7 +66,7 @@ export function setMode(nextMode: ThemeMode) {
 }
 
 export function getThemeTokens(
-  state = { themeId: defaultThemeId, mode: 'light' as ThemeMode }
+  state = { themeId: defaultThemeId, mode: 'dark' as ThemeMode }
 ): ThemeTokens {
   const theme =
     desktopThemes.find((entry) => entry.id === state.themeId) ??

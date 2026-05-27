@@ -2,17 +2,31 @@
   import { onDestroy, onMount } from 'svelte';
   import Chart from 'chart.js/auto';
 
-  export let title: string;
-  export let value: string;
-  export let trend: string;
-  export let note: string;
-  export let periodLabel: string;
-  export let labels: string[] = [];
-  export let current: Array<number | null> = [];
-  export let previous: Array<number | null> = [];
-  export let unit: string = '';
-  export let featured = false;
-  export let live = false;
+  let {
+    title,
+    value,
+    trend,
+    note,
+    periodLabel,
+    labels = [],
+    current = [],
+    previous = [],
+    unit = '',
+    featured = false,
+    live = false,
+  }: {
+    title: string;
+    value: string;
+    trend: string;
+    note: string;
+    periodLabel: string;
+    labels?: string[];
+    current?: Array<number | null>;
+    previous?: Array<number | null>;
+    unit?: string;
+    featured?: boolean;
+    live?: boolean;
+  } = $props();
 
   let canvas: HTMLCanvasElement | null = null;
   let chart: Chart<'line'> | null = null;
@@ -203,9 +217,11 @@
     chart?.destroy();
   });
 
-  $: if (canvas) {
-    buildOrUpdateChart();
-  }
+  $effect(() => {
+    if (canvas) {
+      buildOrUpdateChart();
+    }
+  });
 </script>
 
 <article class={`polar-panel ${featured ? 'polar-panel--featured' : ''}`}>

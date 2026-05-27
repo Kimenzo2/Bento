@@ -1,4 +1,6 @@
-use crate::telemetry::{AnomalyType, HealAction, StoredAnomaly, storage::ringbuffer::RingBufferStore};
+use crate::telemetry::{
+    AnomalyType, HealAction, StoredAnomaly, storage::ringbuffer::RingBufferStore,
+};
 
 #[derive(Clone)]
 pub struct HealingRules {

@@ -4,12 +4,11 @@
   import LaunchReadyReporter from "$lib/components/LaunchReadyReporter.svelte";
   import ShellLayout from "$lib/components/ShellLayout.svelte";
   import { getStarterModuleEntry } from "$lib/data/module-catalog";
+  import GlobalSettings from "$lib/components/GlobalSettings.svelte";
   import StarterModuleHost from "$lib/modules/StarterModuleHost.svelte";
   import type { PageKey } from "$lib/router/routes";
   import DashboardPage from "../../routes/pages/DashboardPage.svelte";
-  import EditorPage from "../../routes/pages/EditorPage.svelte";
   import LifeInColourPage from "../../routes/pages/LifeInColourPage.svelte";
-  import ProjectViewPage from "../../routes/pages/ProjectViewPage.svelte";
 
   let {
     page,
@@ -19,9 +18,6 @@
     route?: RouteResult;
   } = $props();
 
-  const projectId = $derived(
-    ((route?.result.path.params as Record<string, string> | undefined)?.projectId ?? "")
-  );
   const appId = $derived(
     ((route?.result.path.params as Record<string, string> | undefined)?.appId ?? "")
   );
@@ -29,30 +25,27 @@
   const routeLaunchModuleId = $derived(resolveLaunchModuleId(page, appId));
 
   type SecondaryPageKey =
-    | "visualStudio"
-    | "export"
-    | "settings"
     | "pricing"
     | "gamification"
     | "account"
     | "infographics"
     | "legal"
-    | "viewer";
+    | "viewer"
+    | "settings";
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type SecondaryPageModule = {
-    default: Component<Record<string, never>>;
+    default: Component<any>;
   };
 
   const secondaryPageLoaders = {
-    visualStudio: () => import("../../routes/pages/VisualStudioPage.svelte"),
-    export: () => import("../../routes/pages/ExportPage.svelte"),
-    settings: () => import("../../routes/pages/SettingsPage.svelte"),
     pricing: () => import("../../routes/pages/PricingPage.svelte"),
     gamification: () => import("../../routes/pages/GamificationPage.svelte"),
     account: () => import("../../routes/pages/AccountPage.svelte"),
     infographics: () => import("../../routes/pages/InfographicsPage.svelte"),
     legal: () => import("../../routes/pages/LegalPage.svelte"),
     viewer: () => import("../../routes/pages/ViewerPage.svelte"),
+    settings: () => Promise.resolve({ default: GlobalSettings }),
   } satisfies Record<SecondaryPageKey, () => Promise<SecondaryPageModule>>;
 
   const secondaryPageCache = new Map<SecondaryPageKey, Promise<SecondaryPageModule>>();
@@ -75,10 +68,6 @@
 
   function resolveLaunchModuleId(currentPage: PageKey, currentAppId: string) {
     if (currentPage === "starterApp") return currentAppId;
-    if (currentPage === "editor") return "notes";
-    if (currentPage === "visualStudio") return "ai";
-    if (currentPage === "settings") return "settings";
-    if (currentPage === "project") return "tasks";
     if (currentPage === "gamification") return "habits";
     return currentPage;
   }
@@ -87,20 +76,14 @@
 <ShellLayout
   page={page}
   activeAppId={page === "starterApp" ? appId : undefined}
-  title={page === "starterApp" ? (starterApp?.name ?? "Genesis App") : undefined}
+  title={page === "starterApp" ? (starterApp?.name ?? "Bento App") : undefined}
   subtitle={page === "starterApp" ? (starterApp?.subtitle ?? "Focused offline-first personal tool.") : undefined}
 >
   {#if page === "dashboard"}
     <DashboardPage />
     <LaunchReadyReporter moduleId={routeLaunchModuleId} />
-  {:else if page === "project"}
-    <ProjectViewPage projectId={projectId} />
-    <LaunchReadyReporter moduleId={routeLaunchModuleId} />
   {:else if page === "lifeInColour"}
     <LifeInColourPage />
-    <LaunchReadyReporter moduleId={routeLaunchModuleId} />
-  {:else if page === "editor"}
-    <EditorPage />
     <LaunchReadyReporter moduleId={routeLaunchModuleId} />
   {:else if page === "starterApp"}
     <StarterModuleHost {appId} />
@@ -110,7 +93,12 @@
         <p class="text-sm font-medium text-[var(--muted)]">Loading page…</p>
       </section>
     {:then module}
-      <module.default />
+      {@const Cmp = module.default as any}
+      {#if page === "settings"}
+        <Cmp surface="page" />
+      {:else}
+        <Cmp />
+      {/if}
       <LaunchReadyReporter moduleId={routeLaunchModuleId} />
     {:catch}
       <section class="desktop-loading-shell surface-card">

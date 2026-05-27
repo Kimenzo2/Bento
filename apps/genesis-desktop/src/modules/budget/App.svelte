@@ -1,8 +1,11 @@
 <script lang="ts">
   import { Wallet, ChevronLeft, ChevronRight, Settings, Plus, PiggyBank, Coffee, Home, Car, ChevronDown } from 'lucide-svelte';
-  
-  export let moduleId: string;
-  void moduleId;
+  import { activeBundle, createTranslator } from "$lib/i18n";
+
+  let { moduleId = "budget" } = $props<{ moduleId?: string }>();
+  $effect(() => { void moduleId; });
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
 
   let currentMonth = 'May 2026';
   let toAssign = 340.00;
@@ -31,16 +34,16 @@
     }
   ];
 
-  let showTransactionForm = false;
-  let txAmount = '';
-  let txCategory = '';
-  let txNote = '';
+  let showTransactionForm = $state(false);
+  let txAmount = $state('');
+  let txCategory = $state('');
+  let txNote = $state('');
   const txCategoryId = "budget-tx-category";
   const txNoteId = "budget-tx-note";
   const txDateId = "budget-tx-date";
 </script>
 
-<div class="budget-app-container module-root">
+<div class="budget-app-container module-root" data-module="budget">
   <div class="budget-header">
     <div class="month-selector">
       <button class="icon-btn"><ChevronLeft size={20} /></button>
@@ -63,10 +66,11 @@
         
         <div class="category-list">
           {#each group.items as item}
+            {@const ItemIcon = item.icon}
             <div class="category-card">
               <div class="category-info">
                 <div class="category-name">
-                  <svelte:component this={item.icon} size={16} />
+                  <ItemIcon size={16} />
                   <span>{item.name}</span>
                 </div>
                 <div class="category-amount {item.left < 0 ? 'negative' : 'positive'}">
@@ -88,30 +92,30 @@
 
   <div class="budget-summary">
     <div class="summary-col">
-      <span class="summary-label">Assigned</span>
+      <span class="summary-label">{_t('moduleBudgetAssigned')}</span>
       <span class="summary-value">€2,850</span>
     </div>
     <div class="summary-col">
-      <span class="summary-label">Spent</span>
+      <span class="summary-label">{_t('moduleBudgetSpent')}</span>
       <span class="summary-value">€790</span>
     </div>
     <div class="summary-col">
-      <span class="summary-label">Remaining</span>
+      <span class="summary-label">{_t('moduleBudgetRemaining')}</span>
       <span class="summary-value">€2,060</span>
     </div>
   </div>
 
-  <button class="budget-fab" on:click={() => showTransactionForm = true}>
+  <button class="budget-fab" onclick={() => showTransactionForm = true}>
     <Plus size={24} />
   </button>
 
   {#if showTransactionForm}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="transaction-overlay" on:click={() => showTransactionForm = false}>
-      <div class="transaction-sheet" on:click|stopPropagation>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="transaction-overlay" onclick={() => showTransactionForm = false}>
+      <div class="transaction-sheet" onclick={(e) => e.stopPropagation()}>
         <div class="sheet-handle"></div>
-        <h3>Log Transaction</h3>
+        <h3>{_t('moduleBudgetLogTransaction')}</h3>
         
         <div class="form-group amount-group">
           <span class="currency-symbol">€</span>
@@ -119,7 +123,7 @@
         </div>
         
         <div class="form-group">
-          <label for={txCategoryId}>Category</label>
+          <label for={txCategoryId}>{_t('commonCategory')}</label>
           <div class="select-wrapper">
             <select id={txCategoryId} bind:value={txCategory}>
               <option value="" disabled selected>Select category...</option>
@@ -136,27 +140,38 @@
         </div>
         
         <div class="form-group">
-          <label for={txNoteId}>Note (Optional)</label>
+          <label for={txNoteId}>{_t('moduleBudgetNoteOptional')}</label>
           <input id={txNoteId} type="text" bind:value={txNote} placeholder="What was this for?" />
         </div>
         
         <div class="form-group">
-          <label for={txDateId}>Date</label>
+          <label for={txDateId}>{_t('commonDate')}</label>
           <input id={txDateId} type="date" value="2026-05-11" />
         </div>
         
-        <button class="save-tx-btn" on:click={() => showTransactionForm = false}>Save Transaction</button>
+        <button class="save-tx-btn" onclick={() => showTransactionForm = false}>{_t('moduleBudgetSaveTransaction')}</button>
       </div>
     </div>
   {/if}
 </div>
 <style>
 .budget-app-container {
+  --budget-surface: var(--card);
+  --budget-surface-soft: color-mix(in srgb, var(--surface) 94%, var(--background));
+  --budget-surface-hover: color-mix(in srgb, var(--foreground) 8%, var(--card));
+  --budget-border: color-mix(in srgb, var(--border) 86%, transparent);
+  --budget-ink: var(--foreground);
+  --budget-muted: var(--muted);
+  --budget-accent: var(--primary);
+  --budget-accent-foreground: var(--primary-foreground, var(--background));
+  --budget-success: var(--success, var(--primary));
+  --budget-warning: var(--warning, var(--primary));
+  --budget-danger: var(--destructive, var(--primary));
   height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
-  color: var(--text-primary, #F9FAFB);
+  color: var(--budget-ink);
   animation: fade-in 0.3s ease;
 }
 
@@ -187,7 +202,7 @@
 .icon-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--budget-muted);
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
@@ -198,8 +213,8 @@
 }
 
 .icon-btn:hover {
-  background: var(--bg-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text-primary, #F9FAFB);
+  background: var(--budget-surface-hover);
+  color: var(--budget-ink);
 }
 
 .assign-banner {
@@ -215,14 +230,14 @@
   transform: translateY(-2px);
 }
 .needs-assignment {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #FCD34D;
+  background: color-mix(in srgb, var(--budget-warning) 12%, var(--budget-surface));
+  border: 1px solid color-mix(in srgb, var(--budget-warning) 34%, var(--budget-border));
+  color: var(--budget-warning);
 }
 .all-assigned {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  color: #86EFAC;
+  background: color-mix(in srgb, var(--budget-success) 12%, var(--budget-surface));
+  border: 1px solid color-mix(in srgb, var(--budget-success) 34%, var(--budget-border));
+  color: var(--budget-success);
 }
 
 .banner-icon { font-size: 20px; margin-right: 12px; }
@@ -239,7 +254,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--budget-muted);
   margin: 0 0 16px 8px;
 }
 
@@ -250,14 +265,16 @@
 }
 
 .category-card {
-  background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
-  border-radius: 12px;
+  background: var(--budget-surface);
+  border: 1px solid var(--budget-border);
+  border-radius: 20px;
   padding: 16px;
   cursor: pointer;
   transition: background 0.2s;
+  box-shadow: none;
 }
 .category-card:hover {
-  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  background: var(--budget-surface-hover);
 }
 
 .category-info {
@@ -279,23 +296,23 @@
   font-weight: 600;
   font-size: 15px;
 }
-.category-amount.positive { color: #4ADE80; }
-.category-amount.negative { color: #F87171; }
+.category-amount.positive { color: var(--budget-success); }
+.category-amount.negative { color: var(--budget-danger); }
 
 .progress-bar-container {
   height: 6px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.1));
+  background: var(--budget-surface-soft);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #22C55E;
+  background: var(--budget-success);
   border-radius: 3px;
 }
 .progress-fill.overspent {
-  background: #EF4444;
+  background: var(--budget-danger);
 }
 
 .budget-summary {
@@ -303,9 +320,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--bg-overlay, rgba(20, 20, 20, 0.8));
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--budget-surface);
+  border-top: 1px solid var(--budget-border);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   padding: 16px 32px;
@@ -320,7 +336,7 @@
 
 .summary-label {
   font-size: 12px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--budget-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -337,14 +353,14 @@
   width: 56px;
   height: 56px;
   border-radius: 28px;
-  background: #E05A3A;
-  color: white;
+  background: var(--budget-accent);
+  color: var(--budget-accent-foreground);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(224, 90, 58, 0.4);
+  box-shadow: none;
   z-index: 10;
   transition: transform 0.2s;
 }
@@ -355,34 +371,29 @@
 .transaction-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--background) 72%, transparent);
   z-index: 100;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   animation: fade-in 0.2s;
 }
 
 .transaction-sheet {
-  background: var(--bg-surface, #1C2128);
-  width: 100%;
-  max-width: 500px;
-  border-radius: 24px 24px 0 0;
+  background: var(--budget-surface);
+  width: min(440px, 90vw);
+  max-height: 80vh;
+  border-radius: 24px;
   padding: 24px 32px 40px;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
-  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--budget-border);
+  box-shadow: none;
 }
 
-@keyframes slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
+
 
 .sheet-handle {
   width: 40px; height: 5px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--budget-border);
   border-radius: 3px;
   margin: 0 auto 24px;
 }
@@ -402,22 +413,22 @@
 
 .form-group label {
   font-size: 14px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--budget-muted);
   font-weight: 500;
 }
 
 .form-group input, .form-group select {
-  background: var(--bg-elevated, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: var(--budget-surface-soft);
+  border: 1px solid var(--budget-border);
   padding: 12px 16px;
   border-radius: 12px;
-  color: white;
+  color: var(--budget-ink);
   font-size: 15px;
   width: 100%;
   outline: none;
 }
 .form-group input:focus, .form-group select:focus {
-  border-color: #E05A3A;
+  border-color: var(--budget-accent);
 }
 
 .amount-group {
@@ -431,7 +442,7 @@
   transform: translateY(-50%);
   font-size: 32px;
   font-weight: bold;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--budget-muted);
   z-index: 10;
 }
 .amount-group .amount-input {
@@ -451,7 +462,7 @@
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--budget-muted);
 }
 select {
   appearance: none;
@@ -459,8 +470,8 @@ select {
 
 .save-tx-btn {
   width: 100%;
-  background: #E05A3A;
-  color: white;
+  background: var(--budget-accent);
+  color: var(--budget-accent-foreground);
   border: none;
   padding: 16px;
   border-radius: 12px;
@@ -471,7 +482,7 @@ select {
   transition: background 0.2s;
 }
 .save-tx-btn:hover {
-  background: #CD5134;
+  background: color-mix(in srgb, var(--budget-accent) 86%, var(--foreground));
 }
 </style>
 

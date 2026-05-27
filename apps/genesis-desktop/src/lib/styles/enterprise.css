@@ -1,0 +1,216 @@
+/* ═══════════════════════════════════════════════
+   ENTERPRISE POLISH — GENESIS / BENTO
+   Single source of truth for all 25 native-feel rules.
+   Imported once at root. Never import elsewhere.
+   ═══════════════════════════════════════════════ */
+
+/* ─── 1. TEXT SELECTION ─────────────────────────
+   Off on all UI chrome. On only where user types or reads content. */
+
+*, *::before, *::after {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea,
+[contenteditable], [contenteditable="true"],
+.notes-editor, .note-body, .block-text, .block-content, .prose-content,
+.journal-editor, .journal-note-input, .entry-body,
+.task-description, .task-note-body,
+.password-revealed, .vault-copy-field,
+.ai-message-content, .user-message-content, .ai-response-body,
+.telemetry-log-text, .insight-description, .anomaly-message,
+pre, code, .code-block, .code-content,
+kbd,
+.error-message, .error-detail,
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ─── 2. CURSOR ──────────────────────────────────
+   Default everywhere. The app intentionally does not use hand pointers.
+   Text cursor only on inputs/editors. */
+
+* { cursor: default !important; }
+
+button, a, [role="button"],
+[role="tab"], [role="menuitem"],
+label, summary,
+.clickable, .app-tile,
+.nav-item, .sidebar-item,
+.module-tile, .pill-btn,
+.task-item, .habit-tile,
+.card-accent, .item-card,
+.sound-pill, .filter-pill,
+.close-btn, .action-btn,
+[data-clickable] {
+  cursor: default !important;
+}
+
+input[type="text"], input[type="email"],
+input[type="password"], input[type="search"],
+input[type="url"], input[type="number"],
+textarea, [contenteditable="true"] {
+  cursor: text !important;
+}
+
+input[type="range"]  { cursor: default !important; }
+input[type="color"]  { cursor: default !important; }
+
+[disabled], [aria-disabled="true"] {
+  cursor: default !important;
+  opacity: 0.5;
+}
+
+/* ─── 3. IMAGE DRAG PREVENTION ───────────────────
+   Prevents dragging app images onto the desktop. */
+
+img, svg, canvas {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
+/* Re-enable pointer events on images that need clicks */
+img.clickable, svg.clickable,
+button img, button svg,
+a img, a svg,
+.app-icon img, .app-icon svg,
+.module-icon, .nav-icon {
+  pointer-events: auto;
+}
+
+/* ─── 4. FOCUS RINGS ─────────────────────────────
+   Mouse clicks: no outline.
+   Keyboard navigation: visible ring using :focus-visible. */
+
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent, #6366F1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── 5. CARET COLOR ─────────────────────────────
+   Blinking cursor inside inputs matches app accent. */
+
+input, textarea, [contenteditable] {
+  caret-color: var(--accent, #6366F1);
+}
+
+/* ─── 6. TAP HIGHLIGHT ───────────────────────────
+   Remove gray flash on tap for Windows touch screens. */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── 7. TEXTAREA RESIZE ─────────────────────────
+   Vertical resize only. Never horizontal or both. */
+
+textarea {
+  resize: vertical;
+}
+
+/* ─── 8. FONT RENDERING ──────────────────────────
+   Sharpest text on all platforms. */
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── 9. OVERSCROLL ──────────────────────────────
+   No rubber-band bounce on macOS.
+   No scroll chaining on Windows. */
+
+html, body, .module-root {
+  overscroll-behavior: none;
+}
+
+/* ─── 10. CUSTOM SELECTION COLOR ─────────────────
+   Visible on both dark and light themes. */
+
+::selection {
+  background: rgba(99, 102, 241, 0.30);
+  color: inherit;
+}
+
+::-webkit-selection {
+  background: rgba(99, 102, 241, 0.30);
+  color: inherit;
+}
+
+/* ─── 11. SCROLLBAR ──────────────────────────────
+   Hidden everywhere by default.
+   Re-enabled in editors via .scrollable class. */
+
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollable,
+.notes-editor,
+.journal-editor,
+.ai-response-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.scrollable::-webkit-scrollbar,
+.notes-editor::-webkit-scrollbar,
+.journal-editor::-webkit-scrollbar,
+.ai-response-body::-webkit-scrollbar {
+  display: block;
+  width: 4px;
+}
+
+.scrollable::-webkit-scrollbar-thumb,
+.notes-editor::-webkit-scrollbar-thumb,
+.journal-editor::-webkit-scrollbar-thumb,
+.ai-response-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
+
+/* ─── 12. NO HORIZONTAL OVERFLOW ─────────────────
+   Enterprise apps never show unexpected horizontal scroll. */
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* ─── 13. TOOLTIP DELAY ──────────────────────────
+   Tooltips appear after 400ms — not instantly (that feels cheap),
+   not after 1s (that's too slow).
+   Apply to any element using the [title] attribute as a fallback. */
+
+[title] {
+  position: relative;
+}
+
+/* ─── 14. SMOOTH TRANSITIONS ON INTERACTIVE ──────
+   Buttons and nav items transition color/opacity.
+   Not background — that can look cheap if overdone. */
+
+button, a, [role="button"],
+.nav-item, .sidebar-item {
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+/* ─── 15. PRINT PREVENTION ───────────────────────
+   Enterprise apps are not meant to be printed. */
+
+@media print {
+  body { display: none; }
+}

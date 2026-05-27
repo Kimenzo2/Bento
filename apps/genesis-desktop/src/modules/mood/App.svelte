@@ -1,163 +1,456 @@
 <script lang="ts">
+  import { invoke } from "@tauri-apps/api/core";
   import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import HeartHandshakeIcon from "@lucide/svelte/icons/heart-handshake";
   import PlusIcon from "@lucide/svelte/icons/plus";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
+  import CheckIcon from "@lucide/svelte/icons/check";
+  import Loader2Icon from "@lucide/svelte/icons/loader-2";
+  import TrashIcon from "@lucide/svelte/icons/trash-2";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+    Card, CardContent, CardDescription, CardHeader, CardTitle,
   } from "$lib/components/ui/card/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import {
-    getModuleSectionLabel,
-    moduleSectionStore,
+    getModuleSectionLabel, moduleSectionStore,
   } from "$lib/stores/module-sections.store";
+  import { activeBundle, createTranslator } from "$lib/i18n";
+  import { onMount } from "svelte";
 
   const moduleId = "mood";
   const sectionLabels = ["Check-in", "Calendar", "Activities", "Patterns", "Therapist", "Export"] as const;
-  const selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+  let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
+
+  // ── Types ────────────────────────────────────────────────────────────────
+  type CheckinRow = {
+    id: string; mood: string; intensity: number; note: string | null;
+    activities: string[]; loggedAt: number; dateKey: string;
+  };
+  type MoodStats     = { streak: number; total: number; greatDays: number; calmDays: number; };
+  type ActivityRow   = { id: string; name: string; createdAt: number; };
+  type MoodPattern   = { label: string; value: number; note: string; positive: boolean; };
+  type PrivateNote   = { id: string; content: string; createdAt: number; };
+
+  // ── Static mood definitions ───────────────────────────────────────────────
+  const journalMoods = [
+    { id: 'awful', label: 'Awful', color: '#ef4444' },
+    { id: 'low',   label: 'Low',   color: '#f97316' },
+    { id: 'okay',  label: 'Okay',  color: '#eab308' },
+    { id: 'good',  label: 'Good',  color: '#22c55e' },
+    { id: 'great', label: 'Great', color: '#8b5cf6' },
+  ];
 
   const moods = [
-    { id: "drained", label: "Drained", emoji: "😞", intensity: 24 },
-    { id: "restless", label: "Restless", emoji: "😕", intensity: 39 },
-    { id: "steady", label: "Steady", emoji: "🙂", intensity: 64 },
-    { id: "bright", label: "Bright", emoji: "😊", intensity: 82 },
+    { id: "drained",   label: "Drained",   emoji: "😞", intensity: 24 },
+    { id: "restless",  label: "Restless",  emoji: "😕", intensity: 39 },
+    { id: "steady",    label: "Steady",    emoji: "🙂", intensity: 64 },
+    { id: "bright",    label: "Bright",    emoji: "😊", intensity: 82 },
     { id: "energized", label: "Energized", emoji: "🤩", intensity: 91 },
   ] as const;
 
-  const activityLibrary = [
-    "Deep work",
-    "Exercise",
-    "Family time",
-    "Reading",
-    "Outside walk",
-    "Journaling",
-    "Meals",
-    "Meetings",
-  ];
+  // ── Reactive state ───────────────────────────────────────────────────────
+  let selectedMood       = $state("steady");
+  let selectedJournalMood = $state('good');
+  let noteText           = $state("");
+  let selectedActivities: string[] = $state([]);
 
-  const checkIns = [
-    { time: "08:10", mood: "Steady", note: "Started the day focused after a quiet morning." },
-    { time: "11:45", mood: "Bright", note: "Good energy after shipping the planning deck." },
-    { time: "15:20", mood: "Restless", note: "Too many context switches during meetings." },
-    { time: "20:40", mood: "Steady", note: "Recovered after a walk and an early dinner." },
-  ];
+  // DB data
+  let stats:           MoodStats   = $state({ streak: 0, total: 0, greatDays: 0, calmDays: 0 });
+  let todayCheckins:   CheckinRow[] = $state([]);
+  let monthCheckins:   CheckinRow[] = [];
+  let activityLibrary: ActivityRow[] = $state([]);
+  let patterns:        MoodPattern[] = $state([]);
+  let privateNotes:    PrivateNote[] = [];
 
-  const patterns = [
-    { label: "Exercise days", value: 88, note: "Best emotional stability after movement." },
-    { label: "Meeting-heavy days", value: 42, note: "Energy dips sharply after 3+ calls." },
-    { label: "Sleep over 7h", value: 79, note: "Usually correlates with calmer afternoons." },
-    { label: "Weekend resets", value: 93, note: "Strongest mood rebounds happen on Sundays." },
-  ];
+  // UI state
+  let saving          = $state(false);
+  let saved           = $state(false);
+  let saveError       = $state("");
+  let appLoading      = true;
+  let newActivityName = $state("");
+  let addingActivity  = $state(false);
+  let newNoteText     = "";
+  let savingNote      = false;
+  let noteSaved       = false;
+  let currentMonth    = new Date().toISOString().slice(0, 7); // "2026-05"
 
-  const therapistCards = [
-    { title: "Share summary", description: "Export a monthly overview with check-ins, triggers, and trends." },
-    { title: "Flag patterns", description: "Surface recurring low-mood days and suggest questions for therapy." },
-    { title: "Private notes", description: "Keep sensitive reflection snippets separate from the main timeline." },
-  ];
+  let selectedMoodEntry = $derived(moods.find(m => m.id === selectedMood) ?? moods[2]);
 
-  const exportOptions = [
-    { label: "Therapist PDF", detail: "Calendar + pattern summary + selected notes" },
-    { label: "CSV timeline", detail: "All check-ins with activity tags and intensity" },
-    { label: "Weekly recap", detail: "Short AI summary for your private archive" },
-  ];
-
-  let selectedMood = $state("steady");
-  let noteText = $state("");
-  let selectedActivities = $state(["Deep work", "Reading"]);
-
-  function toggleActivity(activity: string) {
-    selectedActivities = selectedActivities.includes(activity)
-      ? selectedActivities.filter((entry) => entry !== activity)
-      : [...selectedActivities, activity];
+  function journalMoodColor(id: string | null) {
+    return journalMoods.find(m => m.id === id)?.color ?? '#666';
   }
 
-  const selectedMoodEntry = $derived(moods.find((mood) => mood.id === selectedMood) ?? moods[2]);
+  // ── Calendar helpers ──────────────────────────────────────────────────────
+  let calendarMap = $derived.by(() => {
+    const m = new Map<string, CheckinRow>();
+    for (const c of monthCheckins) m.set(c.dateKey, c);
+    return m;
+  });
+
+  let daysInMonth = $derived.by(() => {
+    const [y, mo] = currentMonth.split("-").map(Number);
+    return new Date(y, mo, 0).getDate();
+  });
+
+  function moodEmoji(mood: string) {
+    return moods.find(m => m.id === mood)?.emoji ?? "·";
+  }
+
+  // ── Activity helpers ──────────────────────────────────────────────────────
+  function toggleActivity(name: string) {
+    selectedActivities = selectedActivities.includes(name)
+      ? selectedActivities.filter(a => a !== name)
+      : [...selectedActivities, name];
+  }
+
+  // ── Activity correlations (computed from month data) ─────────────────────
+  let activityCorrelations = $derived.by(() => {
+    const map = new Map<string, number[]>();
+    for (const c of monthCheckins) {
+      for (const a of c.activities) {
+        if (!map.has(a)) map.set(a, []);
+        map.get(a)!.push(c.intensity);
+      }
+    }
+    return [...map.entries()]
+      .filter(([, v]) => v.length >= 2)
+      .map(([name, scores]) => ({
+        name,
+        avg: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+        count: scores.length,
+      }))
+      .sort((a, b) => b.avg - a.avg);
+  });
+
+  // ── Data loaders ─────────────────────────────────────────────────────────
+  async function loadAll() {
+    appLoading = true;
+    await Promise.all([
+      loadStats(),
+      loadTodayCheckins(),
+      loadMonthCheckins(),
+      loadActivityLibrary(),
+      loadPatterns(),
+      loadPrivateNotes(),
+    ]);
+    appLoading = false;
+  }
+
+  async function loadStats() {
+    try { stats = await invoke("mood_stats"); }
+    catch (e) { console.error("mood_stats:", e); }
+  }
+
+  async function loadTodayCheckins() {
+    try { todayCheckins = await invoke("mood_checkins_today"); }
+    catch (e) { console.error("mood_checkins_today:", e); }
+  }
+
+  async function loadMonthCheckins() {
+    try { monthCheckins = await invoke("mood_checkins_month", { month: currentMonth }); }
+    catch (e) { console.error("mood_checkins_month:", e); }
+  }
+
+  async function loadActivityLibrary() {
+    try { activityLibrary = await invoke("mood_activity_library"); }
+    catch (e) { console.error("mood_activity_library:", e); }
+  }
+
+  async function loadPatterns() {
+    try { patterns = await invoke("mood_patterns"); }
+    catch (e) { console.error("mood_patterns:", e); }
+  }
+
+  async function loadPrivateNotes() {
+    try { privateNotes = await invoke("mood_private_notes_list"); }
+    catch (e) { console.error("mood_private_notes_list:", e); }
+  }
+
+  // ── Check-in save ─────────────────────────────────────────────────────────
+  async function saveCheckin() {
+    saving = true; saveError = "";
+    try {
+      const row: CheckinRow = await invoke("mood_checkin_save", {
+        entry: {
+          mood:       selectedMood,
+          intensity:  selectedMoodEntry.intensity,
+          note:       noteText.trim() || null,
+          activities: selectedActivities,
+        },
+      });
+      todayCheckins = [...todayCheckins, row];
+      monthCheckins = [...monthCheckins, row];
+      noteText = ""; selectedActivities = [];
+      saved = true; setTimeout(() => (saved = false), 2500);
+      await loadStats();
+    } catch (e: any) {
+      saveError = String(e);
+      console.error("mood_checkin_save:", e);
+    } finally { saving = false; }
+  }
+
+  async function deleteCheckin(id: string) {
+    if (!confirm(_t('moduleMoodDeleteConfirm'))) return;
+    try {
+      await invoke("mood_checkin_delete", { id });
+      todayCheckins  = todayCheckins.filter(c => c.id !== id);
+      monthCheckins  = monthCheckins.filter(c => c.id !== id);
+      await loadStats();
+    } catch (e) { console.error("mood_checkin_delete:", e); }
+  }
+
+  // ── Activity management ───────────────────────────────────────────────────
+  async function addActivity() {
+    if (!newActivityName.trim()) return;
+    addingActivity = true;
+    try {
+      const row: ActivityRow = await invoke("mood_activity_add", { name: newActivityName.trim() });
+      activityLibrary = [...activityLibrary.filter(a => a.id !== row.id), row]
+        .sort((a, b) => a.name.localeCompare(b.name));
+      newActivityName = "";
+    } catch (e) { console.error("mood_activity_add:", e); }
+    finally { addingActivity = false; }
+  }
+
+  async function deleteActivity(id: string) {
+    try {
+      await invoke("mood_activity_delete", { id });
+      activityLibrary = activityLibrary.filter(a => a.id !== id);
+    } catch (e) { console.error("mood_activity_delete:", e); }
+  }
+
+  // ── Private notes ─────────────────────────────────────────────────────────
+  async function savePrivateNote() {
+    if (!newNoteText.trim()) return;
+    savingNote = true;
+    try {
+      const row: PrivateNote = await invoke("mood_private_note_save", { content: newNoteText.trim() });
+      privateNotes = [row, ...privateNotes];
+      newNoteText = "";
+      noteSaved = true; setTimeout(() => (noteSaved = false), 2000);
+    } catch (e) { console.error("mood_private_note_save:", e); }
+    finally { savingNote = false; }
+  }
+
+  async function deletePrivateNote(id: string) {
+    try {
+      await invoke("mood_private_note_delete", { id });
+      privateNotes = privateNotes.filter(n => n.id !== id);
+    } catch (e) { console.error("mood_private_note_delete:", e); }
+  }
+
+  // ── Export helpers ────────────────────────────────────────────────────────
+  let exportingCsv  = false;
+  let exportingPdf  = false;
+  let exportingRecap = false;
+
+  async function doExport(type: "csv" | "pdf" | "recap") {
+    if (type === "csv")   exportingCsv   = true;
+    if (type === "pdf")   exportingPdf   = true;
+    if (type === "recap") exportingRecap = true;
+    try {
+      const dir: string | null = await invoke("pick_export_directory");
+      if (!dir) return;
+
+      let content = "";
+      let filename = "";
+
+      if (type === "csv") {
+        const rows = monthCheckins.map(c =>
+          [c.dateKey, c.mood, c.intensity, c.activities.join("|"), c.note ?? ""].join(",")
+        );
+        content  = ["date,mood,intensity,activities,note", ...rows].join("\n");
+        filename = `mood-timeline-${currentMonth}.csv`;
+      } else if (type === "pdf") {
+        const lines = [
+          "MOOD REPORT — " + new Date().toLocaleDateString(),
+          "",
+          `Streak: ${stats.streak} days | Total entries: ${stats.total}`,
+          `Great days: ${stats.greatDays} | Calm days: ${stats.calmDays}`,
+          "",
+          "== CHECK-INS ==",
+          ...monthCheckins.map(c =>
+            `${c.dateKey}  ${c.mood} (${c.intensity}%)  [${c.activities.join(",")}]${c.note ? "  "+c.note : ""}`
+          ),
+          "",
+          "== PATTERNS ==",
+          ...patterns.map(p => `${p.label}: ${p.value}% — ${p.note}`),
+        ];
+        content  = lines.join("\n");
+        filename = `mood-therapist-report-${currentMonth}.txt`;
+      } else {
+        const avg = monthCheckins.length
+          ? Math.round(monthCheckins.reduce((a, b) => a + b.intensity, 0) / monthCheckins.length)
+          : 0;
+        content = [
+          "WEEKLY MOOD RECAP",
+          `Generated: ${new Date().toLocaleDateString()}`,
+          "",
+          `Check-ins this period: ${monthCheckins.length}`,
+          `Average intensity: ${avg}%`,
+          `Streak: ${stats.streak} days`,
+          "",
+          patterns.length ? "Top pattern: " + patterns[0].label : "Log more to surface patterns.",
+        ].join("\n");
+        filename = `mood-recap-${new Date().toISOString().slice(0,10)}.txt`;
+      }
+
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      await writeTextFile(`${dir}/${filename}`, content);
+    } catch (e) { console.error("export failed:", e); }
+    finally {
+      exportingCsv   = false;
+      exportingPdf   = false;
+      exportingRecap = false;
+    }
+  }
+
+  const therapistCards = $derived.by(() => [
+    { title: _t('moduleMoodSleepPatterns'), description: _t('moduleMoodSleepPatternsDesc') },
+    { title: _t('moduleMoodActivityImpact'), description: _t('moduleMoodActivityImpactDesc') },
+    { title: _t('moduleMoodSocialConnections'), description: _t('moduleMoodSocialConnectionsDesc') },
+    { title: _t('moduleMoodWorkStress'), description: _t('moduleMoodWorkStressDesc') },
+  ]);
+
+  const exportOptions = $derived.by(() => [
+    { label: _t('moduleMoodExportCSVTitle'), detail: _t('moduleMoodExportCSVDetail') },
+    { label: _t('moduleMoodExportPDFTitle'), detail: _t('moduleMoodExportPDFDetail') },
+    { label: _t('moduleMoodExportRecapTitle'), detail: _t('moduleMoodExportRecapDetail') },
+  ]);
+
+  onMount(loadAll);
 </script>
 
-<main class="mood-workspace module-root">
+<main class="mood-workspace module-root" data-module="mood">
   <section class="mood-shell">
     <header class="mood-shell__header">
       <div class="mood-shell__intro">
         <div class="mood-shell__eyebrow">
-          <span>Mood studio</span>
+          <span>{_t('moduleMoodTitle')}</span>
           <Badge variant="outline">{selectedSection}</Badge>
         </div>
-        <h1>Track how the day feels without breaking the flow of the desktop app.</h1>
+        <h1>
+          {#if selectedSection === "Check-in"}{_t('moduleMoodHeadingCheckin')}
+          {:else if selectedSection === "Calendar"}{_t('moduleMoodHeadingCalendar')}
+          {:else if selectedSection === "Activities"}{_t('moduleMoodHeadingActivities')}
+          {:else if selectedSection === "Patterns"}{_t('moduleMoodHeadingPatterns')}
+          {:else if selectedSection === "Therapist"}{_t('moduleMoodHeadingTherapist')}
+          {:else if selectedSection === "Export"}{_t('moduleMoodHeadingExport')}
+          {/if}
+        </h1>
         <p>
-          One-tap check-ins, activity context, therapist-ready summaries, and patterns that stay private.
+          {#if selectedSection === "Check-in"}{_t('moduleMoodDescCheckin')}
+          {:else if selectedSection === "Calendar"}{_t('moduleMoodDescCalendar')}
+          {:else if selectedSection === "Activities"}{_t('moduleMoodDescActivities')}
+          {:else if selectedSection === "Patterns"}{_t('moduleMoodDescPatterns')}
+          {:else if selectedSection === "Therapist"}{_t('moduleMoodDescTherapist')}
+          {:else if selectedSection === "Export"}{_t('moduleMoodDescExport')}
+          {/if}
         </p>
       </div>
 
       <div class="mood-shell__actions">
         <Button variant="outline">
           <CalendarDaysIcon data-icon="inline-start" />
-          View month
+          {_t('moduleMoodViewMonth')}
         </Button>
         <Button>
           <SparklesIcon data-icon="inline-start" />
-          AI recap
+          {_t('moduleMoodAIRecap')}
         </Button>
       </div>
     </header>
 
+    {#if selectedSection === "Check-in"}
     <section class="mood-hero-grid">
+      <!-- Journal-ported mood checker card -->
+      <Card class="mood-bento-card mood-bento-card--accent mood-bento-mood">
+        <CardContent class="mood-bento-mood__content">
+          <div class="mood-bento-mood__label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mood-bento-icon"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            Quick Mood Check
+          </div>
+          <div class="mood-bento-mood__grid">
+            {#each journalMoods as mood}
+              <button
+                class="mood-bento-mood__btn"
+                class:mood-bento-mood__btn--active={selectedJournalMood === mood.id}
+                style="--m-color: {mood.color}"
+                onclick={() => { selectedJournalMood = mood.id; }}
+              >
+                <span class="mood-bento-mood__dot" style="background: {mood.color}"></span>
+                {mood.label}
+              </button>
+            {/each}
+          </div>
+          <div class="mood-bento-mood__selected">
+            <span class="mood-bento-mood__big" style="color: {journalMoodColor(selectedJournalMood)}">{journalMoods.find(m=>m.id===selectedJournalMood)?.label}</span>
+            <span class="mood-bento-hint">How are you feeling today?</span>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card class="mood-profile-card">
         <CardHeader>
-          <CardTitle>Maya Simmons</CardTitle>
-          <CardDescription>Your personal mood dashboard</CardDescription>
+          <CardTitle>{_t('moduleMoodProfileTitle')}</CardTitle>
+          <CardDescription>{_t('moduleMoodProfileDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="mood-profile-card__content">
-          <div class="mood-avatar">MS</div>
+          <div class="mood-avatar">
+            {selectedMoodEntry.emoji}
+          </div>
           <div class="mood-profile-card__stats">
-            <div><strong>11</strong><span>streak</span></div>
-            <div><strong>56</strong><span>entries</span></div>
-            <div><strong>12</strong><span>great days</span></div>
+            <div><strong>{stats.streak}</strong><span>{_t('moduleMoodStreak')}</span></div>
+            <div><strong>{stats.total}</strong><span>{_t('moduleMoodEntries')}</span></div>
+            <div><strong>{stats.greatDays}</strong><span>{_t('moduleMoodGreatDays')}</span></div>
           </div>
         </CardContent>
       </Card>
 
       <Card class="mood-gradient-card mood-gradient-card--warm">
         <CardHeader>
-          <CardTitle>Great days</CardTitle>
-          <CardDescription>Highest consistency this month</CardDescription>
+          <CardTitle>{_t('moduleMoodGreatDaysTitle')}</CardTitle>
+          <CardDescription>{_t('moduleMoodGreatDaysDesc')}</CardDescription>
         </CardHeader>
-        <CardContent><strong>83%</strong></CardContent>
+        <CardContent><strong>{stats.greatDays}</strong></CardContent>
       </Card>
 
       <Card class="mood-gradient-card mood-gradient-card--cool">
         <CardHeader>
-          <CardTitle>Calm days</CardTitle>
-          <CardDescription>Stable afternoons after routines</CardDescription>
+          <CardTitle>{_t('moduleMoodCalmDays')}</CardTitle>
+          <CardDescription>{_t('moduleMoodCalmDaysDesc')}</CardDescription>
         </CardHeader>
-        <CardContent><strong>56%</strong></CardContent>
+        <CardContent><strong>{stats.calmDays}</strong></CardContent>
       </Card>
 
       <Card class="mood-tools-card">
         <CardHeader>
-          <CardTitle>Connected apps</CardTitle>
-          <CardDescription>3 active wellness signals supporting the timeline</CardDescription>
+          <CardTitle>{_t('moduleMoodTodayCheckins')}</CardTitle>
+          <CardDescription>{_t('moduleMoodTodayCheckinsDesc').replace('{count}', String(todayCheckins.length))}</CardDescription>
         </CardHeader>
         <CardContent class="mood-chip-row">
-          <Badge variant="secondary">Sleep</Badge>
-          <Badge variant="secondary">Steps</Badge>
-          <Badge variant="secondary">Journal</Badge>
+          {#each todayCheckins as c}
+            <Badge variant="secondary">{moodEmoji(c.mood)} {c.mood}</Badge>
+          {/each}
+          {#if todayCheckins.length === 0}
+            <span style="color:var(--mood-muted);font-size:0.85rem">{_t('moduleMoodNoCheckinsYet')}</span>
+          {/if}
         </CardContent>
       </Card>
     </section>
+    {/if}
 
     {#if selectedSection === "Check-in"}
       <section class="mood-two-column">
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>How are you feeling right now?</CardTitle>
-            <CardDescription>Quick emotional capture with enough detail to be useful later.</CardDescription>
+            <CardTitle>{_t('moduleMoodFeelingTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodFeelingDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-checkin">
             <div class="mood-picker">
@@ -169,21 +462,23 @@
                   onclick={() => (selectedMood = mood.id)}
                 >
                   <span>{mood.emoji}</span>
-                  <strong>{mood.label}</strong>
+                  <strong>{_t('moduleMoodMood' + (mood.id.charAt(0).toUpperCase() + mood.id.slice(1)))}</strong>
                 </button>
               {/each}
             </div>
-            <Input bind:value={noteText} placeholder="What influenced this feeling?" />
+            <Input bind:value={noteText} placeholder={_t('moduleMoodNotePlaceholder')} />
             <div class="mood-chip-row">
               {#each selectedActivities as activity}
                 <Badge variant="outline">{activity}</Badge>
               {/each}
             </div>
+            {#if saveError}<p style="color:color-mix(in srgb,red 70%,var(--mood-muted));font-size:0.82rem">{saveError}</p>{/if}
             <div class="mood-checkin__footer">
-              <span>Selected intensity {selectedMoodEntry.intensity}%</span>
-              <Button>
-                <PlusIcon data-icon="inline-start" />
-                Save check-in
+              <span>{_t('moduleMoodIntensity').replace('{value}', String(selectedMoodEntry.intensity))}</span>
+              <Button onclick={saveCheckin} disabled={saving}>
+                {#if saving}<Loader2Icon data-icon="inline-start" style="animation:spin 0.8s linear infinite"/>{_t('moduleMoodSaving')}
+                {:else if saved}<CheckIcon data-icon="inline-start"/>{_t('moduleMoodSaved')}
+                {:else}<PlusIcon data-icon="inline-start"/>{_t('moduleMoodSaveCheckin')}{/if}
               </Button>
             </div>
           </CardContent>
@@ -191,70 +486,98 @@
 
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>Today’s timeline</CardTitle>
-            <CardDescription>Recent emotional snapshots you can revisit or edit.</CardDescription>
+            <CardTitle>{_t('moduleMoodTimelineTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodTimelineDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-timeline">
-            {#each checkIns as entry}
+            {#each todayCheckins as entry}
               <article class="mood-timeline__item">
-                <span>{entry.time}</span>
+                <span>{new Date(entry.loggedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
                 <div>
-                  <strong>{entry.mood}</strong>
-                  <p>{entry.note}</p>
+                  <strong>{moodEmoji(entry.mood)} {entry.mood} ({entry.intensity}%)</strong>
+                  {#if entry.note}<p>{entry.note}</p>{/if}
+                  {#if entry.activities.length > 0}
+                    <p style="font-size:0.78rem;color:var(--mood-muted)">{entry.activities.join(" · ")}</p>
+                  {/if}
                 </div>
+                <button onclick={() => deleteCheckin(entry.id)} style="background:none;border:none;cursor:pointer;color:var(--mood-muted);opacity:0.5;padding:4px" title={_t('commonDelete')}>×</button>
               </article>
             {/each}
+            {#if todayCheckins.length === 0}
+              <p style="color:var(--mood-muted);text-align:center;padding:20px 0;font-size:0.88rem">{_t('moduleMoodNoTimelineYet')}</p>
+            {/if}
           </CardContent>
         </Card>
       </section>
     {:else if selectedSection === "Calendar"}
-      <Card class="mood-panel">
-        <CardHeader>
-          <CardTitle>Calendar view</CardTitle>
-          <CardDescription>Month-at-a-glance logging so mood capture does not stay locked to one day.</CardDescription>
-        </CardHeader>
-        <CardContent class="mood-calendar">
-          {#each Array.from({ length: 30 }, (_, index) => index + 1) as day}
-            <button class="mood-calendar__day" type="button">
-              <small>{day}</small>
-              <span>{moods[day % moods.length].emoji}</span>
-            </button>
-          {/each}
-        </CardContent>
-      </Card>
-    {:else if selectedSection === "Activities"}
-      <section class="mood-two-column">
+      <div class="mood-calendar-wrapper">
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>Activity tags</CardTitle>
-            <CardDescription>Tag the patterns that shape mood without needing a second app.</CardDescription>
+            <CardTitle>{_t('moduleMoodCalendarTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodCalendarDesc')}</CardDescription>
           </CardHeader>
-          <CardContent class="mood-activity-grid">
-            {#each activityLibrary as activity}
-              <button
-                class:mood-activity-grid__item--selected={selectedActivities.includes(activity)}
-                class="mood-activity-grid__item"
-                type="button"
-                onclick={() => toggleActivity(activity)}
-              >
-                {activity}
+          <CardContent class="mood-calendar">
+            {#each Array.from({ length: daysInMonth }, (_, i) => i + 1) as day}
+              {@const key = `${currentMonth}-${String(day).padStart(2,"0")}`}
+              {@const entry = calendarMap.get(key)}
+              <button class="mood-calendar__day" type="button" style={entry ? "border-color:color-mix(in srgb,var(--primary) 40%,var(--mood-border))" : ""}>
+                <small>{day}</small>
+                <span>{entry ? moodEmoji(entry.mood) : "·"}</span>
+                {#if entry}<small style="font-size:0.65rem;color:var(--mood-muted)">{entry.intensity}%</small>{/if}
               </button>
             {/each}
           </CardContent>
         </Card>
+      </div>
+    {:else if selectedSection === "Activities"}
+      <section class="mood-two-column">
+        <Card class="mood-panel">
+          <CardHeader>
+            <CardTitle>{_t('moduleMoodActivityTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodActivityDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent class="mood-activity-grid">
+            {#each activityLibrary as activity}
+              <div style="position:relative">
+                <button
+                  class:mood-activity-grid__item--selected={selectedActivities.includes(activity.name)}
+                  class="mood-activity-grid__item"
+                  type="button"
+                  onclick={() => toggleActivity(activity.name)}
+                >{activity.name}</button>
+                <button onclick={() => deleteActivity(activity.id)}
+                  style="position:absolute;top:4px;right:4px;background:none;border:none;cursor:pointer;color:var(--mood-muted);font-size:0.7rem;opacity:0.4;line-height:1"
+                  title={_t('moduleMoodActivityRemove')}>×</button>
+              </div>
+            {/each}
+          </CardContent>
+          <div style="padding:16px 24px;border-top:1px solid var(--mood-border);display:flex;gap:10px">
+            <Input bind:value={newActivityName} placeholder={_t('moduleMoodActivityPlaceholder')} style="flex:1"/>
+            <Button onclick={addActivity} disabled={addingActivity} variant="outline">
+              {#if addingActivity}<Loader2Icon data-icon="inline-start"/>{_t('moduleMoodAdding')}
+              {:else}<PlusIcon data-icon="inline-start"/>{_t('moduleMoodAdd')}{/if}
+            </Button>
+          </div>
+        </Card>
 
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>Context summary</CardTitle>
-            <CardDescription>Selected activities connected to the strongest emotional shifts.</CardDescription>
+            <CardTitle>{_t('moduleMoodContextTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodContextDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-summary-list">
-            {#each selectedActivities as activity}
-              <article>
-                <strong>{activity}</strong>
-                <p>Appears most often on steady and bright days this month.</p>
-              </article>
-            {/each}
+            {#if activityCorrelations.length > 0}
+              {#each activityCorrelations as c}
+                <article>
+                  <strong>{c.name}</strong>
+                  <p>{_t('moduleMoodAvgIntensity').replace('{avg}', String(c.avg)).replace('{count}', String(c.count)).replace('{s}', c.count > 1 ? 's' : '')}</p>
+                </article>
+              {/each}
+            {:else}
+              <p style="color:var(--mood-muted);font-size:0.85rem;padding:10px 0">
+                {_t('moduleMoodNoCorrelations')}
+              </p>
+            {/if}
           </CardContent>
         </Card>
       </section>
@@ -262,35 +585,38 @@
       <section class="mood-two-column">
         <Card class="mood-panel mood-panel--wide">
           <CardHeader>
-            <CardTitle>Pattern review</CardTitle>
-            <CardDescription>Correlations surfaced from repeated check-ins, not guesswork.</CardDescription>
+            <CardTitle>{_t('moduleMoodPatternReview')}</CardTitle>
+            <CardDescription>{_t('moduleMoodPatternReviewDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-pattern-list">
-            {#each patterns as pattern}
-              <article class="mood-pattern-list__item">
-                <div>
-                  <strong>{pattern.label}</strong>
-                  <p>{pattern.note}</p>
-                </div>
-                <div class="mood-pattern-list__metric">
-                  <div style={`--fill:${pattern.value}%`}></div>
-                  <span>{pattern.value}%</span>
-                </div>
-              </article>
-            {/each}
+            {#if patterns.length > 0}
+              {#each patterns as pattern}
+                <article class="mood-pattern-list__item">
+                  <div>
+                    <strong>{pattern.label}</strong>
+                    <p>{pattern.note}</p>
+                  </div>
+                  <div class="mood-pattern-list__metric">
+                    <div style={`--fill:${pattern.value}%`}></div>
+                    <span>{pattern.value}%</span>
+                  </div>
+                </article>
+              {/each}
+            {:else}
+              <p style="color:var(--mood-muted);font-size:0.88rem;padding:12px 0">
+                {_t('moduleMoodNoPatternsYet')}
+              </p>
+            {/if}
           </CardContent>
         </Card>
 
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>AI pattern note</CardTitle>
-            <CardDescription>A plain-language interpretation before you export or share.</CardDescription>
+            <CardTitle>{_t('moduleMoodAINote')}</CardTitle>
+            <CardDescription>{_t('moduleMoodAINoteDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-ai-note">
-            <p>
-              Your strongest mood days cluster around movement, quiet mornings, and fewer than three meetings.
-              The biggest dips happen after long meeting blocks without a reset window.
-            </p>
+            <p>{_t('moduleMoodAINoteText')}</p>
           </CardContent>
         </Card>
       </section>
@@ -298,8 +624,8 @@
       <section class="mood-two-column">
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>Therapy prep</CardTitle>
-            <CardDescription>Gather the important emotional signals before your next session.</CardDescription>
+            <CardTitle>{_t('moduleMoodTherapyTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodTherapyDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-summary-list">
             {#each therapistCards as card}
@@ -313,46 +639,48 @@
 
         <Card class="mood-panel">
           <CardHeader>
-            <CardTitle>Suggested talking points</CardTitle>
-            <CardDescription>High-signal prompts generated from the current month.</CardDescription>
+            <CardTitle>{_t('moduleMoodTalkPointsTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodTalkPointsDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-summary-list">
             <article>
-              <strong>Meeting overload</strong>
-              <p>Explore why stacked calls create anxiety faster than solo workload.</p>
+              <strong>{_t('moduleMoodTalkMeetingOverload')}</strong>
+              <p>{_t('moduleMoodTalkMeetingOverloadDesc')}</p>
             </article>
             <article>
-              <strong>Weekend reset effect</strong>
-              <p>Understand which rituals are actually producing the Sunday rebound.</p>
+              <strong>{_t('moduleMoodTalkWeekendReset')}</strong>
+              <p>{_t('moduleMoodTalkWeekendResetDesc')}</p>
             </article>
             <article>
-              <strong>Sleep and patience</strong>
-              <p>Notice how shorter sleep windows correlate with irritability before lunch.</p>
+              <strong>{_t('moduleMoodTalkSleepPatience')}</strong>
+              <p>{_t('moduleMoodTalkSleepPatienceDesc')}</p>
             </article>
           </CardContent>
         </Card>
       </section>
     {:else if selectedSection === "Export"}
-      <Card class="mood-panel">
-        <CardHeader>
-          <CardTitle>Export</CardTitle>
-          <CardDescription>Move your data out cleanly without losing the context behind it.</CardDescription>
-        </CardHeader>
-        <CardContent class="mood-export-list">
-          {#each exportOptions as option}
-            <article class="mood-export-list__item">
-              <div>
-                <strong>{option.label}</strong>
-                <p>{option.detail}</p>
-              </div>
-              <Button variant="outline">
-                <DownloadIcon data-icon="inline-start" />
-                Export
-              </Button>
-            </article>
-          {/each}
-        </CardContent>
-      </Card>
+      <div class="mood-export-wrapper">
+        <Card class="mood-panel">
+          <CardHeader>
+            <CardTitle>{_t('moduleMoodExportTitle')}</CardTitle>
+            <CardDescription>{_t('moduleMoodExportDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent class="mood-export-list">
+            {#each exportOptions as option}
+              <article class="mood-export-list__item">
+                <div>
+                  <strong>{option.label}</strong>
+                  <p>{option.detail}</p>
+                </div>
+                <Button variant="outline">
+                  <DownloadIcon data-icon="inline-start" />
+                  {_t('moduleMoodExportBtn')}
+                </Button>
+              </article>
+            {/each}
+          </CardContent>
+        </Card>
+      </div>
     {/if}
   </section>
 </main>
@@ -636,6 +964,103 @@
 
   :global(.mood-ai-note) {
     line-height: 1.6;
+  }
+
+  /* ── Ported Journal mood bento card ─────────────────────────────── */
+  .mood-bento-card {
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: all 0.2s ease;
+  }
+
+  .mood-bento-card--accent {
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    color: #fff;
+  }
+
+  .mood-bento-mood {
+    grid-column: span 2;
+  }
+
+  .mood-bento-mood__content {
+    display: grid;
+    gap: 14px;
+  }
+
+  .mood-bento-mood__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mood-bento-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .mood-bento-mood__grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mood-bento-mood__btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .mood-bento-mood__btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .mood-bento-mood__btn--active {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.5);
+    color: #fff;
+  }
+
+  .mood-bento-mood__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .mood-bento-mood__selected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .mood-bento-mood__big {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .mood-bento-hint {
+    font-size: 12px;
+    opacity: 0.65;
+    margin: 0;
   }
 
   @media (max-width: 1180px) {

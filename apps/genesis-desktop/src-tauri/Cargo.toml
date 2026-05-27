@@ -1,13 +1,13 @@
 [package]
-name = "genesis-desktop"
+name = "bento-desktop"
 version = "0.1.0"
-description = "Genesis Desktop application"
+description = "Bento Desktop application"
 authors = ["Lorenzo Otieno"]
 edition = "2021"
-default-run = "genesis-desktop"
+default-run = "bento-desktop"
 
 [lib]
-name = "genesis_desktop_lib"
+name = "bento_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -15,10 +15,25 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+dotenvy = "0.15"
 rmcp = { version = "1.6.0", features = ["transport-io"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "macros"] }
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate"] }
+libsqlite3-sys = { version = "0.30", features = [
+    "bundled-sqlcipher",
+    "bundled-sqlcipher-vendored-openssl",
+] }
+
+# Cryptography
+argon2   = { version = "0.5", features = ["std"] }
+zeroize  = { version = "1.8", features = ["derive"] }
+secrecy  = { version = "0.8", features = ["alloc"] }
+rand     = "0.8"
+hex      = "0.4"
+
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-deep-link = "2"
@@ -32,23 +47,67 @@ tauri-plugin-shell = "2"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
 tokio = { version = "1", features = ["sync", "time"] }
+base64 = "0.22"
+keyring = "3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+sha2 = "0.10"
+tauri-plugin-oauth = "2"
+tauri-plugin-opener = "2"
+url = "2"
+cpal = "0.15"
+hound = "3.5"
+rodio = "0.19"
+sysinfo = "0.33"
+whisper-rs = "0.16"
+uuid = { version = "1", features = ["v4"] }
+tantivy = "0.26"
 
 [target."cfg(any(target_os = \"macos\", target_os = \"linux\", windows))".dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
-# Release profile optimized for production binaries
+# ---------------------------------------------------------------------------
+# Profiles
+# ---------------------------------------------------------------------------
+
 [profile.release]
 codegen-units = 1
-opt-level = "z"
-debug = false
-incremental = false
-panic = "abort"
-strip = true
-lto = true
+opt-level     = "z"
+debug         = false
+incremental   = false
+panic         = "abort"
+strip         = true
+lto           = true
 
-# Fast dev builds with full debug info and incremental compilation
 [profile.dev]
 codegen-units = 256
-opt-level = 0
-debug = true
-incremental = true
+opt-level     = 0
+debug         = 1
+incremental   = true
+split-debuginfo = "unpacked"
+
+# All C/C++ dependency crates: compile at opt-level 1 even in dev.
+# C code is slower at -O0 (no builtin inlining). This only affects
+# first compile, not incremental Rust rebuilds.
+[profile.dev.package."*"]
+opt-level = 1
+
+# Biggest compile bottlenecks -- pure C/C++, always opt-level 3
+[profile.dev.package.libsqlite3-sys]
+opt-level = 3
+[profile.dev.package.sqlcipher-sys]
+opt-level = 3
+[profile.dev.package.openssl-sys]
+opt-level = 3
+[profile.dev.package.ring]
+opt-level = 3
+[profile.dev.package.whisper-rs-sys]
+opt-level = 3
+[profile.dev.package.tantivy]
+opt-level = 2
+
+# CI profile: no debug info, no incremental (cold CI starts)
+[profile.ci]
+inherits      = "dev"
+debug         = 0
+incremental   = false
+codegen-units = 64

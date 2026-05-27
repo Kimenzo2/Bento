@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import BellIcon from "@lucide/svelte/icons/bell";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import DropletsIcon from "@lucide/svelte/icons/droplets";
@@ -13,14 +13,18 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  import { activeBundle, createTranslator } from "$lib/i18n";
+  import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
   import {
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "nutrition";
-  const sectionLabels = ["Today", "Water", "Meals", "Macros", "Reminders", "Export"] as const;
-  $: selectedSection = getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels);
+  const sectionLabels = ["Today", "Water", "Meals", "Macros", "Reminders", "Export", "Journal"] as const;
+  let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
 
   const drinks = [
     { time: "07:20", amount: "250 ml" },
@@ -52,37 +56,54 @@
     { title: "Macro CSV", detail: "Daily totals for coaching or spreadsheet tracking." },
     { title: "Reminder log", detail: "Prompt timing and response completion history." },
   ];
+  // ── Journal section (ported exactly from Journal's Nutrition section) ──
+  let journalCalories = $state(1840);
+  let journalWater = $state(6);
+  let journalMacros = $state({ protein: 98, carbs: 210, fat: 62 });
+  let journalMeals = $state([
+    { name: 'Breakfast', kcal: 380, items: 'Oats, berries, coffee' },
+    { name: 'Lunch', kcal: 620, items: 'Chicken salad, sourdough' },
+    { name: 'Snack', kcal: 180, items: 'Almonds, apple' },
+    { name: 'Dinner', kcal: 660, items: 'Salmon, quinoa, greens' },
+  ]);
+
+  function updateJournalNut() {
+    // placeholder for persistence
+  }
+
+  let journalProgress = $derived((journalCalories / 2200) * 100);
 </script>
 
-<main class="nutrition-workspace module-root">
+<main class="nutrition-workspace module-root" data-module="nutrition">
   <section class="nutrition-shell">
     <header class="nutrition-shell__header">
       <div class="nutrition-shell__intro">
         <div class="nutrition-shell__eyebrow">
-          <span>Nutrition</span>
+          <span>{_t('moduleNutritionTitle')}</span>
           <Badge variant="outline">{selectedSection}</Badge>
         </div>
-        <h1>Hydration remains the anchor, with meals, macros, reminders, and exports added around it.</h1>
-        <p>The module keeps its crisp ring-first layout and expands into shell-driven nutrition sections.</p>
+        <h1>{_t('moduleNutritionDesc')}</h1>
+        <p>{_t('moduleNutritionSubtitle')}</p>
       </div>
 
       <div class="nutrition-shell__actions">
         <Button variant="outline">
           <DropletsIcon data-icon="inline-start" />
-          Quick add
+          {_t('moduleNutritionQuickAdd')}
         </Button>
         <Button>
           <SparklesIcon data-icon="inline-start" />
-          Meal insight
+          {_t('moduleNutritionMealInsight')}
         </Button>
       </div>
     </header>
 
+    {#if selectedSection === "Today"}
     <section class="nutrition-hero-grid">
       <Card class="nutrition-ring-card">
         <CardHeader>
-          <CardTitle>Hydration</CardTitle>
-          <CardDescription>0.7L of 2.4L target</CardDescription>
+          <CardTitle>{_t('moduleNutritionHydration')}</CardTitle>
+          <CardDescription>{_t('moduleNutritionHydrationDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="nutrition-ring-card__content">
           <div class="nutrition-ring">
@@ -94,24 +115,25 @@
 
       <Card class="nutrition-hero-card">
         <CardHeader>
-          <CardTitle>Today’s target</CardTitle>
-          <CardDescription>Structure meals around focus hours and recovery training.</CardDescription>
+          <CardTitle>{_t('moduleNutritionTodaysTarget')}</CardTitle>
+          <CardDescription>{_t('moduleNutritionTodaysTargetDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="nutrition-hero-list">
-          <article><span>Calories</span><strong>1,860 / 2,300</strong></article>
-          <article><span>Meals logged</span><strong>3 so far</strong></article>
-          <article><span>Next cue</span><strong>Water reminder at 16:30</strong></article>
+          <article><span>{_t('moduleNutritionCalories')}</span><strong>1,860 / 2,300</strong></article>
+          <article><span>{_t('moduleNutritionMealsLogged')}</span><strong>3 so far</strong></article>
+          <article><span>{_t('moduleNutritionNextCue')}</span><strong>{_t('moduleNutritionWaterReminder')}</strong></article>
         </CardContent>
       </Card>
     </section>
+    {/if}
 
     <section class="nutrition-shell__body">
       {#if selectedSection === "Today"}
         <div class="nutrition-grid nutrition-grid--today">
           <Card class="nutrition-panel">
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
-              <CardDescription>Meals and hydration in one compact day view.</CardDescription>
+              <CardTitle>{_t('moduleNutritionTimeline')}</CardTitle>
+              <CardDescription>{_t('moduleNutritionTimelineDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-timeline">
               {#each [...drinks.map((drink) => ({ type: "Water", title: drink.amount, detail: drink.time })), ...meals.map((meal, index) => ({ type: `Meal ${index + 1}`, title: meal.title, detail: meal.kcal }))] as entry}
@@ -126,11 +148,11 @@
 
           <Card class="nutrition-panel">
             <CardHeader>
-              <CardTitle>Quick add</CardTitle>
-              <CardDescription>Keep the original add buttons, but make them part of a larger day board.</CardDescription>
+              <CardTitle>{_t('moduleNutritionQuickAdd')}</CardTitle>
+              <CardDescription>{_t('moduleNutritionQuickAddDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-quick-add">
-              {#each ["150 ml", "250 ml", "500 ml", "Snack", "Meal", "Custom"] as item}
+              {#each ["150 ml", "250 ml", "500 ml", _t('moduleNutritionSnack'), _t('moduleNutritionMeal'), _t('moduleNutritionCustom')] as item}
                 <button type="button">{item}</button>
               {/each}
             </CardContent>
@@ -140,8 +162,8 @@
         <div class="nutrition-grid nutrition-grid--water">
           <Card class="nutrition-panel">
             <CardHeader>
-              <CardTitle>Water log</CardTitle>
-              <CardDescription>The existing hydration timeline becomes its own panel.</CardDescription>
+              <CardTitle>{_t('moduleNutritionWaterLog')}</CardTitle>
+              <CardDescription>{_t('moduleNutritionWaterLogDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-water-log">
               {#each drinks as drink}
@@ -155,21 +177,21 @@
 
           <Card class="nutrition-panel">
             <CardHeader>
-              <CardTitle>Hydration stats</CardTitle>
-              <CardDescription>Streaks and averages without adding another sidebar.</CardDescription>
+              <CardTitle>{_t('moduleNutritionHydrationStats')}</CardTitle>
+              <CardDescription>{_t('moduleNutritionHydrationStatsDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-stat-list">
-              <article><span>Streak</span><strong>12 days</strong></article>
-              <article><span>Weekly average</span><strong>1.9L</strong></article>
-              <article><span>Best day</span><strong>2.8L</strong></article>
+              <article><span>{_t('moduleNutritionStreak')}</span><strong>12 days</strong></article>
+              <article><span>{_t('moduleNutritionWeeklyAvg')}</span><strong>1.9L</strong></article>
+              <article><span>{_t('moduleNutritionBestDay')}</span><strong>2.8L</strong></article>
             </CardContent>
           </Card>
         </div>
       {:else if selectedSection === "Meals"}
         <Card class="nutrition-panel nutrition-panel--full">
           <CardHeader>
-            <CardTitle>Meals</CardTitle>
-            <CardDescription>Food logging joins the hydration view without becoming a generic tracker dashboard.</CardDescription>
+            <CardTitle>{_t('moduleNutritionMeals')}</CardTitle>
+            <CardDescription>{_t('moduleNutritionMealsDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="nutrition-meal-list">
             {#each meals as meal}
@@ -189,8 +211,8 @@
       {:else if selectedSection === "Macros"}
         <Card class="nutrition-panel nutrition-panel--full">
           <CardHeader>
-            <CardTitle>Macro breakdown</CardTitle>
-            <CardDescription>Protein, carbs, and fats fit in a simple fixed-height layout.</CardDescription>
+            <CardTitle>{_t('moduleNutritionMacroBreakdown')}</CardTitle>
+            <CardDescription>{_t('moduleNutritionMacroBreakdownDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="nutrition-macro-list">
             {#each macros as macro}
@@ -207,8 +229,8 @@
       {:else if selectedSection === "Reminders"}
         <Card class="nutrition-panel nutrition-panel--full">
           <CardHeader>
-            <CardTitle>Reminder cadence</CardTitle>
-            <CardDescription>Hydration and meal nudges aligned to the workday.</CardDescription>
+            <CardTitle>{_t('moduleNutritionReminderCadence')}</CardTitle>
+            <CardDescription>{_t('moduleNutritionReminderCadenceDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="nutrition-reminder-list">
             {#each reminders as reminder}
@@ -225,11 +247,70 @@
             {/each}
           </CardContent>
         </Card>
+      {:else if selectedSection === "Journal"}
+    <section class="nj-bento">
+      <!-- CALORIE RING CARD (accent, focus-ring style) -->
+      <div class="nj-card nj-card--accent nj-card--calring">
+        <div class="nj-card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          {_t('moduleNutritionCaloriesToday')}
+        </div>
+        <div class="nj-ring-wrap">
+          <PremiumRing
+            size={156}
+            thickness={12}
+            segments={[{ value: journalProgress, color: "white", label: "Calories" }]}
+            centerLabel={_t('moduleNutritionCaloriesToday')}
+            centerValue={String(journalCalories)}
+            centerNote={`/ 2200 ${_t('moduleNutritionKcal')}`}
+          />
+        </div>
+        <div class="nj-macro-row">
+          <span class="nj-macro"><b>{journalMacros.protein}g</b><span>{_t('moduleNutritionProtein')}</span></span>
+          <span class="nj-macro"><b>{journalMacros.carbs}g</b><span>{_t('moduleNutritionCarbs')}</span></span>
+          <span class="nj-macro"><b>{journalMacros.fat}g</b><span>{_t('moduleNutritionFat')}</span></span>
+        </div>
+      </div>
+
+      <!-- MEALS LIST CARD (surface) -->
+      <div class="nj-card nj-card--surface nj-card--meals">
+        <div class="nj-card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+          {_t('moduleNutritionMeals')}
+        </div>
+        {#each journalMeals as meal}
+        <div class="nj-meal-row">
+          <div class="nj-meal-info">
+            <span class="nj-meal-name">{meal.name}</span>
+            <span class="nj-meal-items">{meal.items}</span>
+          </div>
+          <span class="nj-meal-kcal">{meal.kcal} kcal</span>
+        </div>
+        {/each}
+      </div>
+
+      <!-- WATER CARD (dark) -->
+      <div class="nj-card nj-card--dark nj-card--water">
+        <div class="nj-card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          {_t('moduleNutritionWater')}
+        </div>
+        <div class="nj-stat-big" style="color:#3b82f6">{journalWater}<span class="nj-stat-unit">{_t('moduleNutritionGlasses')}</span></div>
+        <div class="nj-water-dots">
+          {#each [1,2,3,4,5,6,7,8] as g}
+            <button class="nj-water-dot" class:nj-water-dot--filled={g <= journalWater} onclick={() => { journalWater = g; updateJournalNut(); }}>
+              <svg viewBox="0 0 24 24" fill={g<=journalWater?'#3b82f6':'none'} stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            </button>
+          {/each}
+        </div>
+        <p class="nj-card-hint">{_t('moduleNutritionGoalGlasses')}</p>
+      </div>
+    </section>
       {:else}
         <Card class="nutrition-panel nutrition-panel--full">
           <CardHeader>
-            <CardTitle>Export nutrition data</CardTitle>
-            <CardDescription>Hydration and meal history packaged for review.</CardDescription>
+            <CardTitle>{_t('moduleNutritionExportData')}</CardTitle>
+            <CardDescription>{_t('moduleNutritionExportDataDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="nutrition-export-list">
             {#each exportOptions as option}
@@ -240,7 +321,7 @@
                 </div>
                 <Button variant="outline">
                   <DownloadIcon data-icon="inline-start" />
-                  Export
+                  {_t('moduleNutritionExport')}
                 </Button>
               </article>
             {/each}
@@ -345,7 +426,7 @@
     aspect-ratio: 1;
     border-radius: 999px;
     background: conic-gradient(var(--nutrition-accent) 29%, color-mix(in srgb, var(--border) 80%, transparent) 0);
-    box-shadow: inset 0 0 0 28px var(--nutrition-surface);
+    box-shadow: none;
   }
 
   :global(.nutrition-ring) strong {
@@ -541,5 +622,209 @@
 
   :global(.nutrition-export-list) article {
     grid-template-columns: 1fr auto;
+  }
+
+  /* ── Journal section (ported from Journal's Nutrition bento cards) ── */
+  .nj-bento {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 16px;
+  }
+
+  .nj-card {
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: all 0.2s ease;
+  }
+
+  .nj-card--accent {
+    background: var(--nutrition-accent, var(--primary));
+    color: #fff;
+    align-items: center;
+    text-align: center;
+  }
+
+  .nj-card--surface {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  .nj-card--dark {
+    background: var(--surface);
+    color: var(--surface-foreground, #fff);
+  }
+
+  .nj-card-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .nj-card-label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .nj-card-hint {
+    font-size: 12px;
+    opacity: 0.65;
+    margin: 0;
+  }
+
+  /* Calorie ring */
+  .nj-ring-wrap {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto;
+  }
+
+  .nj-ring-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .nj-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nj-ring-num {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .nj-ring-sub {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .nj-macro-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .nj-macro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+  }
+
+  .nj-macro b {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* Meals list */
+  .nj-card--meals {
+    padding: 18px;
+  }
+
+  .nj-meal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+
+  .nj-meal-row:last-child {
+    border-bottom: none;
+  }
+
+  .nj-meal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nj-meal-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .nj-meal-items {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .nj-meal-kcal {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* Water card */
+  .nj-card--water {
+    padding: 22px;
+  }
+
+  .nj-stat-big {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .nj-stat-unit {
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.6;
+  }
+
+  .nj-water-dots {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .nj-water-dot {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    opacity: 0.3;
+    transition: all 0.15s;
+  }
+
+  .nj-water-dot:hover {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+
+  .nj-water-dot--filled {
+    opacity: 1;
+  }
+
+  .nj-water-dot svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  @media (max-width: 860px) {
+    .nj-bento { grid-template-columns: 1fr; }
   }
 </style>

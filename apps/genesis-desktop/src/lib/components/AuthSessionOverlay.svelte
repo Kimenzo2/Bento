@@ -2,6 +2,9 @@
   import LoaderCircleIcon from "@lucide/svelte/icons/loader-circle";
   import { invoke } from "@tauri-apps/api/core";
   import { authStore, setAuthLoginLoading } from "$lib/stores/auth.store";
+  import { activeBundle, createTranslator } from "$lib/i18n";
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
 
   async function signIn() {
     setAuthLoginLoading(true);
@@ -18,8 +21,8 @@
   <div class="auth-session-overlay" role="status" aria-live="polite">
     <section class="auth-session-overlay__card surface-card">
       <div class="auth-session-overlay__copy">
-        <h2>Session expired</h2>
-        <p>{$authStore.message ?? "Sign in again to continue."}</p>
+        <h2>{_t('shellSessionExpired')}</h2>
+        <p>{$authStore.message ?? _t('shellSessionExpiredDesc')}</p>
       </div>
       <button
         type="button"
@@ -30,7 +33,7 @@
         {#if $authStore.loginLoading}
           <LoaderCircleIcon class="animate-spin" size={16} />
         {/if}
-        <span>Sign In</span>
+        <span>{_t('commonSignIn')}</span>
       </button>
     </section>
   </div>

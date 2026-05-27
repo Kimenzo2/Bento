@@ -86,10 +86,10 @@ export const moduleIdValues = [
 
 export type ShellNativeModuleId = (typeof shellNativeModuleIds)[number];
 export type StarterModuleId = (typeof starterModuleIds)[number];
-export type GenesisModuleId = (typeof moduleIdValues)[number];
+export type BentoModuleId = (typeof moduleIdValues)[number];
 
 export type AppLaunchIdentity = {
-  id: GenesisModuleId;
+  id: BentoModuleId;
   name: string;
   tagline: string;
   icon: AppLaunchIconName;
@@ -103,7 +103,7 @@ type SidebarSpec = {
 };
 
 export type ModuleCatalogEntry = {
-  id: GenesisModuleId;
+  id: BentoModuleId;
   name: string;
   navLabel: string;
   subtitle: string;
@@ -117,11 +117,11 @@ export type ModuleCatalogEntry = {
 const starterSidebarSpecs = {
   journal: {
     sectionLabel: "Journal",
-    items: ["Today", "Timeline", "Mood", "Photos", "Recap", "Export"],
+    items: ["Write", "Timeline", "Mood", "Photos", "Recap", "Export"],
   },
   tasks: {
     sectionLabel: "Tasks",
-    items: ["Board", "Today", "Upcoming", "Recurring", "Filters", "Archive"],
+    items: ["Today", "Inbox", "Upcoming", "Projects", "Board", "Recurring", "Search", "Completed"],
   },
   habits: {
     sectionLabel: "Habits",
@@ -129,7 +129,7 @@ const starterSidebarSpecs = {
   },
   focus: {
     sectionLabel: "Focus",
-    items: ["Timer", "Sessions", "Sounds", "Blocking", "History", "Review"],
+    items: ["Timer", "Sessions", "Sounds", "Blocking", "History", "Review", "Quick Timer"],
   },
   passwords: {
     sectionLabel: "Vault",
@@ -137,15 +137,15 @@ const starterSidebarSpecs = {
   },
   health: {
     sectionLabel: "Health",
-    items: ["Dashboard", "Workouts", "Metrics", "Photos", "Insights", "Export"],
+    items: ["Dashboard", "Daily Log", "Vitals", "Insights", "Medications"],
   },
   sleep: {
     sectionLabel: "Sleep",
-    items: ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export"],
+    items: ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export", "Log"],
   },
   nutrition: {
     sectionLabel: "Nutrition",
-    items: ["Today", "Water", "Meals", "Macros", "Reminders", "Export"],
+    items: ["Today", "Water", "Meals", "Macros", "Reminders", "Export", "Journal"],
   },
   mood: {
     sectionLabel: "Mood",
@@ -224,8 +224,8 @@ const shellModules = [
     id: "notes",
     name: "Notes",
     navLabel: "Notes",
-    subtitle: "Capture everything with the shell-native editor and local context.",
-    route: "/editor",
+    subtitle: "Capture everything in a standalone local notes app with rich blocks and sync-safe context.",
+    route: "/notes",
     host: "shell-native",
     installKind: "builtin",
     launch: {
@@ -461,7 +461,7 @@ const starterModules = [
     id: "flashcards",
     name: "Flashcards / Study",
     navLabel: "Flashcards",
-    subtitle: "Spaced repetition, AI card generation, cram mode, and deck progress.",
+    subtitle: "Bento-native cue cards for Focus, Recipes, Health, and everyday memory.",
     route: "/apps/flashcards",
     host: "starter",
     installKind: "builtin",
@@ -665,7 +665,7 @@ export const moduleCatalog = [
   shellModules[3],
 ] as const satisfies readonly ModuleCatalogEntry[];
 
-const moduleCatalogById = new Map<GenesisModuleId, ModuleCatalogEntry>(
+const moduleCatalogById = new Map<BentoModuleId, ModuleCatalogEntry>(
   moduleCatalog.map((entry) => [entry.id, entry]),
 );
 
@@ -677,7 +677,7 @@ export function getModuleCatalogEntry(moduleId: string | undefined) {
     return null;
   }
 
-  return moduleCatalogById.get(moduleId as GenesisModuleId) ?? null;
+  return moduleCatalogById.get(moduleId as BentoModuleId) ?? null;
 }
 
 export function getStarterModuleEntry(moduleId: string | undefined) {
@@ -697,7 +697,7 @@ export function getAppLaunchIdentity(moduleId: string): AppLaunchIdentity {
   return (
     getModuleCatalogEntry(moduleId)?.launch ?? {
       id: "dashboard",
-      name: "Genesis",
+      name: "Bento",
       tagline: "Desktop module",
       icon: "layout-grid",
       accentColor: "#f8fafc",

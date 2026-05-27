@@ -8,3 +8,11 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Junk / accidental files
+nul
+check_output*.txt
+warnings_output.txt
+C:\\Users\\admin\\Downloads\\svcheck.txt
+C:\\Users\\admin\\Downloads\\svelte-check-output.txt
+bento-build-setup.cmd

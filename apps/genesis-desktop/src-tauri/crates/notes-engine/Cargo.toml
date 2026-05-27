@@ -1,0 +1,21 @@
+[package]
+name        = "notes-engine"
+version     = "0.1.0"
+edition     = "2021"
+
+[lib]
+name = "notes_engine"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde        = { version = "1", features = ["derive"] }
+serde_json   = "1"
+uuid         = { version = "1", features = ["v4"] }
+chrono       = { version = "0.4", features = ["serde"] }
+thiserror    = "1"
+anyhow       = "1"
+tokio        = { version = "1", features = ["full"] }
+parking_lot  = "0.12"
+dashmap      = "5"
+rusqlite     = { version = "0.31", features = ["bundled", "serde_json"] }
+tracing      = "0.1"

@@ -7,20 +7,20 @@
   const currentMode = $derived($mode);
 
   const selectTheme = async (themeId: ThemeId) => {
-    console.info("[Genesis Desktop] Theme card selected", { themeId });
+    console.info("[Bento Desktop] Theme card selected", { themeId });
 
     try {
       await setTheme(themeId);
       toast.success(`Theme switched to ${desktopThemes.find((theme) => theme.id === themeId)?.name ?? themeId}.`);
     } catch (error) {
-      console.error("[Genesis Desktop] Theme card selection failed", error);
+      console.error("[Bento Desktop] Theme card selection failed", error);
       toast.error(error instanceof Error ? error.message : "Theme selection failed.");
     }
   };
 
   const toggleThemeWithLog = async () => {
     const nextMode = currentMode === "dark" ? "light" : "dark";
-    console.info("[Genesis Desktop] Settings theme toggle clicked", {
+    console.info("[Bento Desktop] Settings theme toggle clicked", {
       currentMode,
       nextMode,
     });
@@ -29,7 +29,7 @@
       await toggleMode();
       toast.success(`Theme switched to ${nextMode}.`);
     } catch (error) {
-      console.error("[Genesis Desktop] Settings theme toggle failed", error);
+      console.error("[Bento Desktop] Settings theme toggle failed", error);
       toast.error(error instanceof Error ? error.message : "Theme toggle failed.");
     }
   };

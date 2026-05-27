@@ -9,7 +9,8 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { writable, derived, get } from 'svelte/store';
-import { eventBus, GenesisEventType } from './event-bus';
+import { eventBus, BentoEventType } from './event-bus';
+import { time } from '$lib/utils/time';
 
 // ─── Configuration ────────────────────────────────────────────────────
 
@@ -71,18 +72,18 @@ export interface BurnoutSignal {
 
 class PassiveIntelligenceEngine {
   private config: PassiveIntelligenceConfig;
-  private lastActivityTime = Date.now();
+  private lastActivityTime = time.now();
   private idleStartedAt: number | null = null;
   private isIdle = false;
   private activityLog: ActivityEvent[] = [];
   private currentFocusSession: FocusSession | null = null;
   private focusSessions: FocusSession[] = [];
   private userIdleTimer: ReturnType<typeof setTimeout> | null = null;
-  private moduleEnterTime = Date.now();
+  private moduleEnterTime = time.now();
   private currentModule = 'dashboard';
   private dailyInputCount = 0;
   private dailyFocusMinutes = 0;
-  private currentDateKey = new Date().toISOString().split('T')[0];
+  private currentDateKey = time.dateKey(time.now());
 
   /** Current idle state (reactive). */
   readonly idleState = writable<boolean>(false);
@@ -102,7 +103,7 @@ class PassiveIntelligenceEngine {
     score: 0,
     signals: [],
     insight: 'Insufficient data to assess burnout risk.',
-    since: Date.now(),
+    since: time.now(),
   });
 
   constructor(config: Partial<PassiveIntelligenceConfig> = {}) {
@@ -117,7 +118,7 @@ class PassiveIntelligenceEngine {
   recordInput(moduleId?: string): void {
     if (!this.config.enabled) return;
 
-    const now = Date.now();
+    const now = time.now();
     this.checkDayRollover();
     this.dailyInputCount++;
 
@@ -127,7 +128,7 @@ class PassiveIntelligenceEngine {
       this.idleStartedAt = null;
       this.idleState.set(false);
       this.logEvent('idle_end', moduleId, idleDuration);
-      eventBus.emitSimple(GenesisEventType.ActiveSessionStarted, 'passive', {
+      eventBus.emitSimple(BentoEventType.ActiveSessionStarted, 'passive', {
         moduleId: moduleId ?? this.currentModule,
         idleDurationMs: idleDuration,
       });
@@ -139,7 +140,7 @@ class PassiveIntelligenceEngine {
 
   /** Notify engine of module switch. */
   onModuleSwitch(moduleId: string): void {
-    const now = Date.now();
+    const now = time.now();
     const duration = now - this.moduleEnterTime;
 
     // If user spent meaningful time in previous module, record it
@@ -169,7 +170,7 @@ class PassiveIntelligenceEngine {
 
   /** Get recent activity events for dashboard display. */
   getRecentActivity(minutes: number = 60): ActivityEvent[] {
-    const since = Date.now() - minutes * 60 * 1000;
+    const since = time.now() - minutes * 60 * 1000;
     return this.activityLog.filter((e) => e.timestamp >= since);
   }
 
@@ -214,10 +215,10 @@ class PassiveIntelligenceEngine {
   // ─── Internal ───────────────────────────────────────────────────────
 
   private setupEventListeners(): void {
-    eventBus.on(GenesisEventType.FocusStarted, (e) => {
+    eventBus.on(BentoEventType.FocusStarted, (e) => {
       this.currentFocusSession = {
         id: crypto.randomUUID(),
-        start: Date.now(),
+        start: time.now(),
         end: null,
         durationMinutes: 0,
         quality: null,
@@ -227,9 +228,9 @@ class PassiveIntelligenceEngine {
       this.activeFocusSession.set(this.currentFocusSession);
     });
 
-    eventBus.on(GenesisEventType.FocusEnded, (_e) => {
+    eventBus.on(BentoEventType.FocusEnded, (_e) => {
       if (this.currentFocusSession) {
-        const now = Date.now();
+        const now = time.now();
         this.currentFocusSession.end = now;
         this.currentFocusSession.durationMinutes =
           (now - this.currentFocusSession.start) / 60_000;
@@ -245,7 +246,7 @@ class PassiveIntelligenceEngine {
       }
     });
 
-    eventBus.on(GenesisEventType.FocusInterrupted, () => {
+    eventBus.on(BentoEventType.FocusInterrupted, () => {
       if (this.currentFocusSession) {
         this.currentFocusSession.interruptions++;
         this.currentFocusSession.quality = Math.max(
@@ -271,18 +272,18 @@ class PassiveIntelligenceEngine {
   private onUserIdle(): void {
     if (!this.config.enabled) return;
     this.isIdle = true;
-    this.idleStartedAt = Date.now();
+    this.idleStartedAt = time.now();
     this.idleState.set(true);
     this.logEvent('idle_start', this.currentModule);
 
-    eventBus.emitSimple(GenesisEventType.IdleDetected, 'passive', {
+    eventBus.emitSimple(BentoEventType.IdleDetected, 'passive', {
       idleDurationMs: this.config.idleThresholdSeconds * 1000,
       moduleId: this.currentModule,
     });
 
     // If there was an active focus session, end it
     if (this.currentFocusSession) {
-      eventBus.emitSimple(GenesisEventType.FocusEnded, 'passive', {
+      eventBus.emitSimple(BentoEventType.FocusEnded, 'passive', {
         moduleId: this.currentModule,
         reason: 'idle_timeout',
       });
@@ -292,7 +293,7 @@ class PassiveIntelligenceEngine {
   }
 
   private checkDayRollover(): void {
-    const todayKey = new Date().toISOString().split('T')[0];
+    const todayKey = time.dateKey(time.now());
     if (todayKey !== this.currentDateKey) {
       // Reset daily counters on day boundary
       this.dailyInputCount = 0;
@@ -325,7 +326,7 @@ class PassiveIntelligenceEngine {
     this.dailyFocusMinutes += minutes;
     this.updateTodayRhythm();
 
-    eventBus.emitSimple(GenesisEventType.ActiveSessionEnded, 'passive', {
+    eventBus.emitSimple(BentoEventType.ActiveSessionEnded, 'passive', {
       moduleId,
       durationMinutes: minutes,
     });
@@ -333,37 +334,37 @@ class PassiveIntelligenceEngine {
 
   private logEvent(type: ActivityEvent['type'], moduleId?: string, duration?: number): void {
     this.activityLog.push({
-      timestamp: Date.now(),
+      timestamp: time.now(),
       type,
       moduleId,
       duration,
     });
 
     // Trim old events (keep 7 days)
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff = time.now() - 7 * 24 * 60 * 60 * 1000;
     this.activityLog = this.activityLog.filter((e) => e.timestamp >= cutoff);
   }
 
   private updateTodayRhythm(): void {
-    const today = new Date().toISOString().split('T')[0];
+    const today = time.dateKey(time.now());
     today: {
       ts: this.todayRhythm;
     }
 
     const focusSessions = this.focusSessions.filter((s) => {
-      const d = new Date(s.start).toISOString().split('T')[0];
+      const d = time.dateKey(s.start);
       return d === today;
     });
 
     const activityTimes = this.activityLog
       .filter((e) => {
-        const d = new Date(e.timestamp).toISOString().split('T')[0];
+        const d = time.dateKey(e.timestamp);
         return d === today;
       })
       .map((e) => e.timestamp);
 
     const totalIdle = this.activityLog
-      .filter((e) => e.type === 'idle_start' && new Date(e.timestamp).toISOString().split('T')[0] === today)
+      .filter((e) => e.type === 'idle_start' && time.dateKey(e.timestamp) === today)
       .reduce((sum, e) => sum + (e.duration ?? 0), 0);
 
     const firstActive = activityTimes.length > 0 ? Math.min(...activityTimes) : null;
@@ -448,7 +449,7 @@ class PassiveIntelligenceEngine {
 
     // Signal: Consistent late-night pattern (>3 days)
     const uniqueLateDays = new Set(
-      lateNightActivity.map((e) => new Date(e.timestamp).toISOString().split('T')[0]),
+      lateNightActivity.map((e) => time.dateKey(e.timestamp)),
     );
     if (uniqueLateDays.size >= 3) {
       signals.push('consistent_late_nights');
@@ -475,11 +476,11 @@ class PassiveIntelligenceEngine {
       score: Math.min(score, 100),
       signals,
       insight,
-      since: Date.now(),
+      since: time.now(),
     });
 
     if (detected) {
-      eventBus.emitSimple(GenesisEventType.BurnoutRisk, 'passive', {
+      eventBus.emitSimple(BentoEventType.BurnoutRisk, 'passive', {
         score: Math.min(score, 100),
         signals,
         insight,
@@ -489,7 +490,7 @@ class PassiveIntelligenceEngine {
 
   private emptyRhythm(): DailyRhythm {
     return {
-      date: new Date().toISOString().split('T')[0],
+      date: time.dateKey(time.now()),
       sessionCount: 0,
       totalActiveMinutes: 0,
       totalIdleMinutes: 0,

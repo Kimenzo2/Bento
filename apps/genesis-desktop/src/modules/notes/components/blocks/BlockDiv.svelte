@@ -2,12 +2,13 @@
   import type { Block } from '$lib/local-store/block';
   import { DivStyle } from '$lib/local-store/block';
 
-  export let block: Block;
-  export let rootId: string;
-  export let readonly: boolean = false;
-
-  export let onKeyDown: (e: any, value: string, marks: any[], range: any, props: any) => void = () => {};
-  export let onKeyUp: (e: any, value: string, marks: any[], range: any, props: any) => void = () => {};
+  let { block, rootId, readonly = false, onKeyDown = () => {}, onKeyUp = () => {} }: {
+    block: Block;
+    rootId: string;
+    readonly?: boolean;
+    onKeyDown?: (e: any, value: string, marks: any[], range: any, props: any) => void;
+    onKeyUp?: (e: any, value: string, marks: any[], range: any, props: any) => void;
+  } = $props();
 
   let content = block.content as any;
   let style: DivStyle = content?.style ?? DivStyle.Line;
@@ -19,10 +20,6 @@
   function handleKeyUp(e: KeyboardEvent) {
     onKeyUp(e, '', [], { from: 0, to: 0 }, { block, rootId, readonly });
   }
-
-  function handleFocus() {
-    // Focus this block
-  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
@@ -33,9 +30,8 @@
   tabindex="0"
   role="separator"
   aria-orientation="horizontal"
-  on:keydown={handleKeyDown}
-  on:keyup={handleKeyUp}
-  on:focus={handleFocus}
+  onkeydown={handleKeyDown}
+  onkeyup={handleKeyUp}
 >
   {#if style === DivStyle.Line}
     <div class="div-line"></div>

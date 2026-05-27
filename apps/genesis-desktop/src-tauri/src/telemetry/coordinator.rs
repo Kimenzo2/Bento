@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::telemetry::{
-    ActivityFeedItem, ActiveJsHeapInput, AnomalyHistoryEntry, AnomalyType, BrainEvent,
+    ActiveJsHeapInput, ActivityFeedItem, AnomalyHistoryEntry, AnomalyType, BrainEvent,
     BrainOverviewPayload, GraphPoint, HealAction, HealingFeedItem, InsightCard, InsightsPayload,
     MiniAppPickerItem, MiniAppTile, ModuleDetailPayload, ModuleState, OverviewCard,
     PredictionInsightCard, RangeSpec, Severity, StateHistoryEntry, StoredAnomaly, TickRecord,
@@ -49,7 +49,10 @@ pub struct TelemetryCoordinator {
 }
 
 impl TelemetryCoordinator {
-    pub fn new(active_mini_app: Arc<Mutex<String>>, store: RingBufferStore) -> Result<Self, String> {
+    pub fn new(
+        active_mini_app: Arc<Mutex<String>>,
+        store: RingBufferStore,
+    ) -> Result<Self, String> {
         let db = store.db().clone();
         Ok(Self {
             active_mini_app,
@@ -77,7 +80,10 @@ impl TelemetryCoordinator {
         self.registry.apply_active_js_heap(input);
     }
 
-    pub async fn tick(&mut self, _events: &super::events::channel::BrainEventChannel) -> Result<(), String> {
+    pub async fn tick(
+        &mut self,
+        _events: &super::events::channel::BrainEventChannel,
+    ) -> Result<(), String> {
         let now = now_ms();
         let active_module = self
             .active_mini_app
@@ -167,7 +173,9 @@ impl TelemetryCoordinator {
                 )
             };
 
-            let has_warn = anomalies.iter().any(|anomaly| matches!(anomaly.severity, Severity::Warn));
+            let has_warn = anomalies
+                .iter()
+                .any(|anomaly| matches!(anomaly.severity, Severity::Warn));
             let has_critical = anomalies
                 .iter()
                 .any(|anomaly| matches!(anomaly.severity, Severity::Critical));
@@ -300,14 +308,29 @@ impl TelemetryCoordinator {
                         .last_seen_ms
                         .map(format_relative)
                         .unwrap_or_else(|| "No snapshot yet".to_string()),
-                    sparkline: slot.heap_history.iter().rev().take(12).map(|(_, value)| *value).collect::<Vec<_>>().into_iter().rev().collect(),
+                    sparkline: slot
+                        .heap_history
+                        .iter()
+                        .rev()
+                        .take(12)
+                        .map(|(_, value)| *value)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .rev()
+                        .collect(),
                 }
             })
             .collect::<Vec<_>>();
 
-        let overall_state = if mini_apps.iter().any(|item| matches!(item.state, ModuleState::Critical | ModuleState::Frozen)) {
+        let overall_state = if mini_apps
+            .iter()
+            .any(|item| matches!(item.state, ModuleState::Critical | ModuleState::Frozen))
+        {
             "critical".to_string()
-        } else if mini_apps.iter().any(|item| matches!(item.state, ModuleState::Degraded)) {
+        } else if mini_apps
+            .iter()
+            .any(|item| matches!(item.state, ModuleState::Degraded))
+        {
             "watch".to_string()
         } else {
             "healthy".to_string()
@@ -324,46 +347,88 @@ impl TelemetryCoordinator {
             })
             .collect::<Vec<_>>();
 
-        let memory_values = mini_apps.iter().filter_map(|item| item.heap_mb).collect::<Vec<_>>();
+        let memory_values = mini_apps
+            .iter()
+            .filter_map(|item| item.heap_mb)
+            .collect::<Vec<_>>();
         let ipc_values = self
             .registry
             .order()
             .iter()
-            .filter_map(|id| self.registry.get(id).and_then(|slot| slot.last_report.as_ref().map(|report| report.ipc_last_ms)))
+            .filter_map(|id| {
+                self.registry
+                    .get(id)
+                    .and_then(|slot| slot.last_report.as_ref().map(|report| report.ipc_last_ms))
+            })
             .collect::<Vec<_>>();
         let db_values = self
             .registry
             .order()
             .iter()
-            .filter_map(|id| self.registry.get(id).and_then(|slot| slot.last_report.as_ref().map(|report| report.db_last_ms)))
+            .filter_map(|id| {
+                self.registry
+                    .get(id)
+                    .and_then(|slot| slot.last_report.as_ref().map(|report| report.db_last_ms))
+            })
             .collect::<Vec<_>>();
 
         Ok(BrainOverviewPayload {
             generated_at: format_clock(now_ms()),
             overall_state,
-            last_event: recent_activity.first().map(|item| item.title.clone()).unwrap_or_else(|| "No anomalies in range".to_string()),
+            last_event: recent_activity
+                .first()
+                .map(|item| item.title.clone())
+                .unwrap_or_else(|| "No anomalies in range".to_string()),
             cards: vec![
                 OverviewCard {
                     key: "memory".to_string(),
                     label: "App Memory".to_string(),
                     value: format!("{:.1} MB", self.last_system_memory_mb),
-                    status: if self.last_system_memory_mb > 256.0 { "watch" } else { "good" }.to_string(),
-                    sparkline: memory_values.iter().rev().take(12).copied().collect::<Vec<_>>().into_iter().rev().collect(),
+                    status: if self.last_system_memory_mb > 256.0 {
+                        "watch"
+                    } else {
+                        "good"
+                    }
+                    .to_string(),
+                    sparkline: memory_values
+                        .iter()
+                        .rev()
+                        .take(12)
+                        .copied()
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .rev()
+                        .collect(),
                     note: "Process plus WebView memory from the live Rust collector.".to_string(),
                 },
                 OverviewCard {
                     key: "ipc".to_string(),
                     label: "IPC Speed".to_string(),
                     value: format!("{:.1} ms", mean(&ipc_values)),
-                    status: if percentile(&ipc_values, 0.95) > 50.0 { "watch" } else { "fast" }.to_string(),
+                    status: if percentile(&ipc_values, 0.95) > 50.0 {
+                        "watch"
+                    } else {
+                        "fast"
+                    }
+                    .to_string(),
                     sparkline: ipc_values,
                     note: "Command roundtrip latency across recent active sessions.".to_string(),
                 },
                 OverviewCard {
                     key: "db".to_string(),
                     label: "DB Health".to_string(),
-                    value: if percentile(&db_values, 0.95) > 25.0 { "Degraded" } else { "Healthy" }.to_string(),
-                    status: if percentile(&db_values, 0.95) > 25.0 { "watch" } else { "good" }.to_string(),
+                    value: if percentile(&db_values, 0.95) > 25.0 {
+                        "Degraded"
+                    } else {
+                        "Healthy"
+                    }
+                    .to_string(),
+                    status: if percentile(&db_values, 0.95) > 25.0 {
+                        "watch"
+                    } else {
+                        "good"
+                    }
+                    .to_string(),
                     sparkline: db_values,
                     note: "SQLite ring buffer and module persistence timings.".to_string(),
                 },
@@ -404,7 +469,9 @@ impl TelemetryCoordinator {
                         .as_ref()
                         .map(|snapshot| {
                             snapshot.disk_total_bytes > 0
-                                && (snapshot.disk_free_bytes as f64 / snapshot.disk_total_bytes as f64) < 0.15
+                                && (snapshot.disk_free_bytes as f64
+                                    / snapshot.disk_total_bytes as f64)
+                                    < 0.15
                         })
                         .unwrap_or(false)
                     {
@@ -423,7 +490,9 @@ impl TelemetryCoordinator {
                                 format_bytes(snapshot.disk_total_bytes)
                             )
                         })
-                        .unwrap_or_else(|| "Persistent disk inventory from the collector.".to_string()),
+                        .unwrap_or_else(|| {
+                            "Persistent disk inventory from the collector.".to_string()
+                        }),
                 },
             ],
             mini_apps: mini_apps
@@ -447,7 +516,10 @@ impl TelemetryCoordinator {
             .current_selection(mini_app_id)
             .ok_or_else(|| "No tracked mini app available.".to_string())?;
         let since = now_ms() - range.range_ms;
-        let ticks = self.store.recent_ticks(Some(&selected.manifest.module_id), since).await?;
+        let ticks = self
+            .store
+            .recent_ticks(Some(&selected.manifest.module_id), since)
+            .await?;
         let anomalies = self
             .store
             .recent_anomalies(Some(&selected.manifest.module_id), since)
@@ -460,8 +532,14 @@ impl TelemetryCoordinator {
             .unwrap_or_default();
 
         let memory_values = ticks.iter().map(|tick| tick.heap_mb).collect::<Vec<_>>();
-        let ipc_values = ticks.iter().filter_map(|tick| tick.ipc_ms).collect::<Vec<_>>();
-        let db_values = ticks.iter().filter_map(|tick| tick.db_ms).collect::<Vec<_>>();
+        let ipc_values = ticks
+            .iter()
+            .filter_map(|tick| tick.ipc_ms)
+            .collect::<Vec<_>>();
+        let db_values = ticks
+            .iter()
+            .filter_map(|tick| tick.db_ms)
+            .collect::<Vec<_>>();
 
         Ok(ModuleDetailPayload {
             generated_at: format_clock(now_ms()),
@@ -630,7 +708,11 @@ impl TelemetryCoordinator {
             anomalies.push(make_anomaly(
                 &slot.manifest.module_id,
                 AnomalyType::SlowIpc,
-                if report.ipc_last_ms > baseline_ipc * 6.0 { Severity::Critical } else { Severity::Warn },
+                if report.ipc_last_ms > baseline_ipc * 6.0 {
+                    Severity::Critical
+                } else {
+                    Severity::Warn
+                },
                 format!(
                     "{} IPC hit {:.1} ms against a {:.1} ms baseline.",
                     slot.manifest.label, report.ipc_last_ms, baseline_ipc
@@ -643,7 +725,11 @@ impl TelemetryCoordinator {
             anomalies.push(make_anomaly(
                 &slot.manifest.module_id,
                 AnomalyType::SlowDb,
-                if report.db_last_ms > baseline_db * 6.0 { Severity::Critical } else { Severity::Warn },
+                if report.db_last_ms > baseline_db * 6.0 {
+                    Severity::Critical
+                } else {
+                    Severity::Warn
+                },
                 format!(
                     "{} database work hit {:.1} ms against a {:.1} ms baseline.",
                     slot.manifest.label, report.db_last_ms, baseline_db
@@ -697,7 +783,8 @@ impl TelemetryCoordinator {
             anomaly_type: anomaly.kind.clone(),
             severity: anomaly.severity.clone(),
             message: anomaly.message.clone(),
-            projected_if_ignored: "Condition likely worsens over the next five minutes.".to_string(),
+            projected_if_ignored: "Condition likely worsens over the next five minutes."
+                .to_string(),
         });
         self.immediate_events.push(BrainEvent::HealingApplied {
             module: anomaly.module_id,

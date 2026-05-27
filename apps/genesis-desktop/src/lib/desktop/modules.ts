@@ -2,16 +2,20 @@ import { browser } from '$app/environment';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { goto } from '@mateothegreat/svelte5-router';
 import { writable } from 'svelte/store';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { z } from 'zod';
 import {
   getModuleCatalogEntry,
   moduleCatalog,
   moduleIdValues,
-  type GenesisModuleId,
+  type BentoModuleId,
 } from '$lib/data/module-catalog';
+import { canAccessModuleByPlan } from '$lib/desktop/billing-access';
+import { ensureBillingProfile } from '$lib/stores/billing.store';
+import { time } from '$lib/utils/time';
 
 export const moduleIdSchema = z.enum(moduleIdValues);
-export type { GenesisModuleId } from '$lib/data/module-catalog';
+export type { BentoModuleId } from '$lib/data/module-catalog';
 
 export const moduleContextSchema = z
   .object({
@@ -34,20 +38,20 @@ const switchReceiptSchema = z
 export type ModuleContext = z.infer<typeof moduleContextSchema>;
 export type ModuleSwitchReceipt = z.infer<typeof switchReceiptSchema>;
 
-export const modules: Array<{ id: GenesisModuleId; label: string; route: string }> = moduleCatalog.map((entry) => ({
+export const modules: Array<{ id: BentoModuleId; label: string; route: string }> = moduleCatalog.map((entry) => ({
   id: entry.id,
   label: entry.navLabel,
   route: entry.route,
 }));
 
-export function moduleFromPath(pathname: string): GenesisModuleId {
+export function moduleFromPath(pathname: string): BentoModuleId {
   if (pathname.startsWith('/apps/')) {
     const [, , moduleId] = pathname.split('/');
     if (moduleIdSchema.safeParse(moduleId).success) {
-      return moduleId as GenesisModuleId;
+      return moduleId as BentoModuleId;
     }
   }
-  if (pathname.startsWith('/editor')) return 'notes';
+  if (pathname.startsWith('/notes')) return 'notes';
   if (pathname.startsWith('/project') || pathname.startsWith('/create')) return 'tasks';
   if (pathname.startsWith('/gamification')) return 'habits';
   if (pathname.startsWith('/visual-studio')) return 'ai';
@@ -59,7 +63,7 @@ export const activeModule = writable<string>(
   moduleFromPath(browser ? window.location.pathname : '/')
 );
 
-export function captureModuleContext(module: GenesisModuleId): ModuleContext {
+export function captureModuleContext(module: BentoModuleId): ModuleContext {
   if (!browser) {
     return { module, scrollPosition: 0, lastOpenId: null, cursorPosition: null, extra: {} };
   }
@@ -81,7 +85,7 @@ export function captureModuleContext(module: GenesisModuleId): ModuleContext {
   };
 }
 
-export async function getModuleContext(module: GenesisModuleId): Promise<ModuleContext | null> {
+export async function getModuleContext(module: BentoModuleId): Promise<ModuleContext | null> {
   if (!browser || !isTauri()) {
     return null;
   }
@@ -107,10 +111,29 @@ export async function saveModuleContext(context: ModuleContext): Promise<ModuleC
   return moduleContextSchema.parse(result);
 }
 
-export async function switchModule(toModule: GenesisModuleId): Promise<ModuleSwitchReceipt> {
+export async function switchModule(toModule: BentoModuleId): Promise<ModuleSwitchReceipt> {
   const target = getModuleCatalogEntry(toModule);
   if (!target) {
-    throw new Error(`Unsupported Genesis module: ${toModule}`);
+    throw new Error(`Unsupported Bento module: ${toModule}`);
+  }
+
+  if (browser && isTauri()) {
+    const billingProfile = await ensureBillingProfile();
+    const hasAccess = canAccessModuleByPlan(
+      billingProfile?.activePlanCode,
+      toModule,
+      billingProfile?.hasActiveSubscription ?? false,
+    );
+    if (!hasAccess) {
+      try {
+        await Promise.resolve(goto('/pricing'));
+      } catch {}
+      return {
+        fromModule: moduleFromPath(window.location.pathname),
+        toModule,
+        committed: false,
+      };
+    }
   }
 
   const fromModule = moduleFromPath(browser ? window.location.pathname : '/');
@@ -124,8 +147,13 @@ export async function switchModule(toModule: GenesisModuleId): Promise<ModuleSwi
         context,
       });
       const receipt = switchReceiptSchema.parse(result);
+      try {
+        localStorage.setItem('bento:lastModule', toModule);
+        localStorage.setItem('bento:lastModuleAt', String(time.now()));
+      } catch {}
       activeModule.set(toModule);
       await Promise.resolve(goto(target.route));
+      await setWindowTitle(toModule);
       return receipt;
     } catch (error) {
       if (!isRecoverableDesktopSwitchError(error)) {
@@ -133,15 +161,20 @@ export async function switchModule(toModule: GenesisModuleId): Promise<ModuleSwi
       }
 
       console.warn(
-        '[Genesis Desktop] Falling back to frontend-only module switch; restart the desktop shell to refresh the Rust module catalog.',
+        '[Bento Desktop] Falling back to frontend-only module switch; restart the desktop shell to refresh the Rust module catalog.',
         error,
       );
     }
   }
 
   if (browser) {
+    try {
+      localStorage.setItem('bento:lastModule', toModule);
+      localStorage.setItem('bento:lastModuleAt', String(time.now()));
+    } catch {}
     activeModule.set(toModule);
     await Promise.resolve(goto(target.route));
+    await setWindowTitle(toModule);
   }
 
   return {
@@ -149,6 +182,31 @@ export async function switchModule(toModule: GenesisModuleId): Promise<ModuleSwi
     toModule,
     committed: !isTauri(),
   };
+}
+
+/* ─── Window title helpers ─────────────────────────────────────── */
+const MODULE_TITLES: Record<string, string> = {
+  tasks:     'Tasks — Bento',
+  notes:     'Notes — Bento',
+  habits:    'Habits — Bento',
+  journal:   'Journal — Bento',
+  focus:     'Focus — Bento',
+  health:    'Health — Bento',
+  budget:    'Budget — Bento',
+  reading:   'Reading — Bento',
+  grocery:   'Grocery — Bento',
+  passwords: 'Vault — Bento',
+  telemetry: 'System — Bento',
+};
+
+export async function setWindowTitle(moduleId: string) {
+  if (!browser || !isTauri()) return;
+  try {
+    const title = MODULE_TITLES[moduleId] ?? 'Bento';
+    await getCurrentWindow().setTitle(title);
+  } catch {
+    // Silently ignore — non-critical
+  }
 }
 
 function isRecoverableDesktopSwitchError(error: unknown) {
@@ -162,7 +220,7 @@ function isRecoverableDesktopSwitchError(error: unknown) {
           : '';
 
   return (
-    message.includes('Unsupported Genesis module') ||
+    message.includes('Unsupported Bento module') ||
     message.includes('Module is not installed') ||
     message.includes('invalid args `toModule`') ||
     message.includes('invalid args `fromModule`')

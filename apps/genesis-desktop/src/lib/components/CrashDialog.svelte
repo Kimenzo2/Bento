@@ -20,7 +20,7 @@
   <Dialog.Content class="max-w-xl rounded-[28px] border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[var(--surface)]">
     <Dialog.Header>
       <Dialog.Title class="font-[var(--font-heading)] text-2xl text-[var(--foreground)]">
-        Genesis recovered from a crash
+        Bento recovered from a crash
       </Dialog.Title>
       <Dialog.Description class="text-[var(--muted)]">
         {$crashStore?.message ?? "The Rust backend reported an unrecoverable error."}

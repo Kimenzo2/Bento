@@ -1,7 +1,8 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { browser } from "$app/environment";
   import AppIcon from "$lib/components/AppIcon.svelte";
   import { appLaunch, clearAppLaunch } from "$lib/stores/app-launch.store";
+  import { time } from "$lib/utils/time";
 
   type Phase = "entering" | "holding" | "exiting" | "gone";
 
@@ -83,7 +84,7 @@
     }
 
     exitScheduledFor = launch.launchId;
-    const elapsed = Date.now() - launch.startedAt;
+    const elapsed = time.now() - launch.startedAt;
     const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
     const exitTimer = window.setTimeout(() => {
       beginExit(launch.launchId);
@@ -137,8 +138,8 @@
     align-items: center;
     justify-content: center;
     gap: 24px;
-    background: #ffffff;
-    color: #1F1C1A;
+    background: var(--background);
+    color: var(--foreground);
   }
 
   .launch-canvas__icon-stage {
@@ -153,13 +154,13 @@
     width: 2.65rem;
     height: 2.65rem;
     place-items: center;
-    border: 1px solid color-mix(in srgb, white 26%, transparent);
+    border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
     border-radius: 0.95rem;
     background:
-      linear-gradient(145deg, color-mix(in srgb, white 16%, transparent), transparent),
+      linear-gradient(145deg, color-mix(in srgb, var(--foreground) 8%, transparent), transparent),
       var(--app-launch-bg);
-    color: white;
-    box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
+    color: var(--foreground);
+    box-shadow: none;
     position: absolute;
     cursor: default;
   }
@@ -169,15 +170,15 @@
     z-index: 1;
     display: grid;
     place-items: center;
-    color: white;
+    color: var(--foreground);
   }
 
   .launch-canvas__name {
     font-size: 28px;
     font-weight: 750;
     letter-spacing: 0;
-    color: #1F1C1A;
-    text-shadow: 0 1px 4px rgba(31, 28, 26, 0.1);
+    color: var(--foreground);
+    text-shadow: 0 1px 4px color-mix(in srgb, var(--background) 92%, transparent);
   }
 
   .launch-canvas__dots {
@@ -189,6 +190,6 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(31, 28, 26, 0.5);
+    background: color-mix(in srgb, var(--foreground) 50%, transparent);
   }
 </style>

@@ -1,6 +1,7 @@
 import { browser } from "$app/environment";
 import { writable } from "svelte/store";
 import { getAppLaunchIdentity, type AppLaunchIconName } from "$lib/data/module-catalog";
+import { time } from "$lib/utils/time";
 
 export type AppLaunchState = {
   launchId: number;
@@ -34,7 +35,7 @@ export function beginAppLaunch(moduleId: string) {
     icon: identity.icon,
     accentColor: identity.accentColor,
     launchBg: identity.launchBg,
-    startedAt: Date.now(),
+    startedAt: time.now(),
     readyAt: null,
     errorMessage: null,
   });
@@ -52,7 +53,7 @@ export function signalAppLaunchReady(moduleId: string) {
 
     return {
       ...current,
-      readyAt: Date.now(),
+      readyAt: time.now(),
     };
   });
 }
@@ -71,7 +72,7 @@ export function signalAppLaunchError(moduleId: string, error: unknown) {
     return {
       ...current,
       errorMessage: message,
-      readyAt: Date.now(),
+      readyAt: time.now(),
     };
   });
 }

@@ -3,7 +3,7 @@ import { starterModuleIds } from "$lib/data/module-catalog";
 import { starterModuleLoaders } from "$lib/modules/starter-module-registry";
 import { routePatterns } from "$lib/router/route-patterns";
 
-describe("Genesis app module routing", () => {
+describe("Bento app module routing", () => {
   it("matches launcher app URLs with a named appId route parameter", () => {
     const match = routePatterns.starterApp.exec("/apps/tasks");
     expect(match?.groups?.appId).toBe("tasks");

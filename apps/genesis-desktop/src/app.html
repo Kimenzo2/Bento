@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" spellcheck="false">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>Genesis</title>
+    <title>Bento</title>
     <script>
       (function () {
         const fallback = { themeId: "default", mode: "light", tokens: {} };
         let snapshot = fallback;
 
         try {
-          const raw = sessionStorage.getItem("__genesis_theme_snapshot");
+          const raw = sessionStorage.getItem("__bento_theme_snapshot");
           if (raw) {
             const parsed = JSON.parse(raw);
             if (

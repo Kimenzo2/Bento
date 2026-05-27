@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Genesis",
+  "productName": "Bento",
   "version": "0.1.0",
-  "identifier": "me.iamazeyou.genesisdesktop",
+  "identifier": "me.iamazeyou.bentodesktop",
   "build": {
     "beforeDevCommand": "bun run dev:frontend",
     "devUrl": "http://localhost:1420",
@@ -13,13 +13,13 @@
     "windows": [
       {
         "label": "main",
-        "title": "Genesis",
+        "title": "Bento",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
         "minHeight": 680,
         "decorations": false,
-        "shadow": true,
+        "shadow": false,
         "transparent": false,
         "resizable": true,
         "visible": false,
@@ -36,7 +36,7 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
-    "externalBin": ["binaries/genesis-mcp"],
+    "externalBin": ["binaries/bento-mcp"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -53,12 +53,12 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["genesis"]
+        "schemes": ["bento"]
       }
     },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZCNEQyRjUxRjhEODI4Q0MKUldUTUtOajRVUzlOYS8vV1pjR3NOcXpUZzB4STRncDNDVFJEVURLL1FPbCt0SUVKODA5VTVIUDQK",
-      "endpoints": ["https://updates.iamazeyou.me/genesis-desktop"],
+      "endpoints": ["https://updates.iamazeyou.me/bento-desktop"],
       "windows": {
         "installMode": "passive"
       }

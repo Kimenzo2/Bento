@@ -6,12 +6,14 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
 
 use crate::actors::{self, ModuleActorHandle};
-use crate::db::{GenesisAppState, ModuleContext};
+use crate::commands::{DashboardCache, emit_main_window_event};
+use crate::db::{BentoAppState, ModuleContext, record_dashboard_event, write_runtime_state};
 use crate::modules::is_installed;
 use crate::telemetry::{BackendTraceInput, Severity, TelemetryState};
 
@@ -114,7 +116,7 @@ impl TabSessionManager {
         app: &AppHandle,
     ) -> Result<TabInfo, String> {
         // Gap 11: verify module is installed before creating anything
-        let state = app.state::<GenesisAppState>();
+        let state = app.state::<BentoAppState>();
         if !crate::modules::is_installed(state.inner(), &module_id).await? {
             return Err(format!(
                 "Cannot open tab: module \"{module_id}\" is not installed."
@@ -130,11 +132,7 @@ impl TabSessionManager {
         let opened_at = unix_ms();
 
         // Spawn the backend actor immediately (the moment the tab is added)
-        let actor = actors::spawn_module_actor(
-            module_id.clone(),
-            db.clone(),
-            telemetry,
-        );
+        let actor = actors::spawn_module_actor(module_id.clone(), db.clone(), telemetry);
 
         let info = TabInfo {
             id: tab_id.clone(),
@@ -159,9 +157,10 @@ impl TabSessionManager {
     ///
     /// **Gap 10** – sends explicit shutdown signal before dropping the handle.
     pub async fn close_tab(&mut self, tab_id: &str) -> Result<(), String> {
-        let mut session = self.tabs.remove(tab_id).ok_or_else(|| {
-            format!("Cannot close tab: \"{tab_id}\" not found.")
-        })?;
+        let mut session = self
+            .tabs
+            .remove(tab_id)
+            .ok_or_else(|| format!("Cannot close tab: \"{tab_id}\" not found."))?;
 
         // Explicit actor shutdown (Gap 10)
         if let Some(actor) = session.actor.take() {
@@ -243,7 +242,8 @@ impl TabSessionManager {
 
         // ── Phase 3: telemetry handover ──────────────────────────────────
         if let Some(ref telemetry) = telemetry {
-            let _ = telemetry                    .record_backend_trace(BackendTraceInput {
+            let _ = telemetry
+                .record_backend_trace(BackendTraceInput {
                     source: "tab_session".into(),
                     operation: "switch_tab".into(),
                     module_id: Some(to_module.clone()),
@@ -295,11 +295,7 @@ impl TabSessionManager {
     /// Return info for all open tabs.
     pub fn list_tabs(&self) -> Vec<TabInfo> {
         let mut tabs: Vec<TabInfo> = self.tabs.values().map(|s| s.info.clone()).collect();
-        tabs.sort_by(|a, b| {
-            a.opened_at
-                .cmp(&b.opened_at)
-                .then_with(|| a.id.cmp(&b.id))
-        });
+        tabs.sort_by(|a, b| a.opened_at.cmp(&b.opened_at).then_with(|| a.id.cmp(&b.id)));
         tabs
     }
 
@@ -341,7 +337,7 @@ impl TabSessionManager {
             if foreground.module_id == module_id {
                 // Foreground — tell the frontend to refresh
                 let _ = app.emit(
-                    "genesis://tab:sync-update",
+                    "bento://tab:sync-update",
                     serde_json::json!({ "moduleId": module_id }),
                 );
                 return Ok(());
@@ -382,7 +378,8 @@ impl ManagedTabSession {
 pub async fn tab_open(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
-    state: tauri::State<'_, GenesisAppState>,
+    cache: tauri::State<'_, DashboardCache>,
+    state: tauri::State<'_, BentoAppState>,
     module_id: String,
 ) -> Result<TabInfo, String> {
     // Validate module_id format
@@ -390,12 +387,41 @@ pub async fn tab_open(
 
     // Gap 11: check installed
     if !is_installed(state.inner(), &module_id).await? {
-        return Err(format!("Cannot open tab: module \"{module_id}\" is not installed."));
+        return Err(format!(
+            "Cannot open tab: module \"{module_id}\" is not installed."
+        ));
     }
 
     let telemetry: Option<TelemetryState> = app.try_state::<TelemetryState>().as_deref().cloned();
     let mut manager = session.inner.lock().await;
-    manager.open_tab(module_id, state.db(), telemetry, &app).await
+    let tab_info = manager
+        .open_tab(module_id, &state.db(), telemetry, &app)
+        .await?;
+    let opened_module_id = tab_info.module_id.clone();
+    let opened_tab_id = tab_info.id.clone();
+    let opened_module_id_json = opened_module_id.clone();
+    let opened_tab_id_json = opened_tab_id.clone();
+
+    write_runtime_state(&state.db(), "last_active_module", opened_module_id.as_str()).await?;
+    record_dashboard_event(
+        &state.db(),
+        "module-open",
+        opened_module_id.as_str(),
+        None,
+        &format!("Opened {}", opened_module_id.as_str()),
+        json!({
+            "moduleId": opened_module_id_json,
+            "tabId": opened_tab_id_json,
+            "openedAt": tab_info.opened_at,
+        }),
+    )
+    .await?;
+
+    state.set_active_module(opened_module_id.as_str());
+    cache.invalidate();
+    let _ = emit_main_window_event(&app, "bento://dashboard-refresh", opened_module_id.clone());
+
+    Ok(tab_info)
 }
 
 #[tauri::command]
@@ -411,14 +437,47 @@ pub async fn tab_close(
 pub async fn tab_switch(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
-    state: tauri::State<'_, GenesisAppState>,
+    cache: tauri::State<'_, DashboardCache>,
+    state: tauri::State<'_, BentoAppState>,
     tab_id: String,
 ) -> Result<TabSwitchPayload, String> {
     let telemetry = app.try_state::<TelemetryState>();
     let mut manager = session.inner.lock().await;
-    manager
-        .switch_tab(&tab_id, state.db(), telemetry.as_deref(), &app)
-        .await
+    let payload = manager
+        .switch_tab(&tab_id, &state.db(), telemetry.as_deref(), &app)
+        .await?;
+    let from_module = payload.from_module.clone();
+    let from_tab_id = payload.from_tab_id.clone();
+    let to_tab_id = payload.to_tab_id.clone();
+    let to_module = payload.to_module.clone();
+    let to_module_json = to_module.clone();
+    let from_module_json = from_module.clone();
+    let to_tab_id_json = to_tab_id.clone();
+    let from_tab_id_json = from_tab_id.clone();
+
+    write_runtime_state(&state.db(), "last_active_module", to_module.as_str()).await?;
+    record_dashboard_event(
+        &state.db(),
+        "module-switch",
+        to_module.as_str(),
+        from_module.as_deref(),
+        &format!("Switched to {}", to_module.as_str()),
+        json!({
+            "fromModule": from_module_json,
+            "toModule": to_module_json,
+            "tabId": to_tab_id_json,
+            "fromTabId": from_tab_id_json,
+            "committed": payload.committed,
+            "source": "tabs",
+        }),
+    )
+    .await?;
+
+    state.set_active_module(to_module.as_str());
+    cache.invalidate();
+    let _ = emit_main_window_event(&app, "bento://dashboard-refresh", to_module.clone());
+
+    Ok(payload)
 }
 
 #[tauri::command]
@@ -468,9 +527,11 @@ pub async fn tab_is_module_open(
 pub async fn tab_handle_sync_event(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
     module_id: String,
 ) -> Result<(), String> {
     let manager = session.inner.lock().await;
-    manager.handle_sync_event(&module_id, state.db(), &app).await
+    manager
+        .handle_sync_event(&module_id, &state.db(), &app)
+        .await
 }

@@ -6,10 +6,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use tauri::Manager;
 
-use crate::db::GenesisAppState;
-use crate::db::read_runtime_state;
 use crate::auth::{AuthBootstrapState, AuthManager};
+use crate::commands::sync::sync_user_data;
+use crate::db::BentoAppState;
+use crate::db::read_runtime_state;
 use crate::runtime::DesktopRuntime;
+use crate::util::time;
 
 // ---------------------------------------------------------------------------
 // DashboardCache — 30-second TTL cache
@@ -174,25 +176,15 @@ fn module_meta(id: &str) -> (&'static str, &'static str, &'static str) {
 // ---------------------------------------------------------------------------
 
 fn now_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
+    time::now_ms()
 }
 
 fn today_start_ms() -> i64 {
-    let now = chrono::Utc::now();
-    let naive = now.date_naive();
-    let start = naive
-        .and_hms_opt(0, 0, 0)
-        .expect("midnight is always valid");
-    start.and_utc().timestamp_millis()
+    time::start_of_today()
 }
 
 fn today_end_ms() -> i64 {
-    let now = chrono::Utc::now();
-    let naive = now.date_naive();
-    let end = naive
-        .and_hms_opt(23, 59, 59)
-        .expect("end-of-day is always valid");
-    end.and_utc().timestamp_millis()
+    time::start_of_today() + 86_399_999
 }
 
 fn compute_greeting(name: &str) -> String {
@@ -210,20 +202,7 @@ fn compute_greeting(name: &str) -> String {
 }
 
 fn relative_time(ts_ms: i64) -> String {
-    let diff_ms = now_ms() - ts_ms;
-    if diff_ms < 60_000 {
-        let secs = (diff_ms / 1000).max(1);
-        format!("{secs}s ago")
-    } else if diff_ms < 3_600_000 {
-        let mins = diff_ms / 60_000;
-        format!("{mins}m ago")
-    } else if diff_ms < 86_400_000 {
-        let hrs = diff_ms / 3_600_000;
-        format!("{hrs}h ago")
-    } else {
-        let days = diff_ms / 86_400_000;
-        format!("{days}d ago")
-    }
+    time::duration_since(ts_ms)
 }
 
 // ---------------------------------------------------------------------------
@@ -268,21 +247,26 @@ async fn query_featured_module(
                         dt
                     }
                 });
-                DashboardItem { text: title, secondary }
+                DashboardItem {
+                    text: title,
+                    secondary,
+                }
             })
             .collect();
 
-        *insight = format!("You have {count} task{} due today", if count == 1 { "" } else { "s" });
+        *insight = format!(
+            "You have {count} task{} due today",
+            if count == 1 { "" } else { "s" }
+        );
 
-        let done_today: i64 = sqlx::query(
-            "SELECT COUNT(*) AS c FROM tasks WHERE done = 1 AND updated_at >= ?",
-        )
-        .bind(today_start)
-        .fetch_one(db)
-        .await
-        .map_err(|e| e.to_string())?
-        .try_get("c")
-        .unwrap_or(0);
+        let done_today: i64 =
+            sqlx::query("SELECT COUNT(*) AS c FROM tasks WHERE done = 1 AND updated_at >= ?")
+                .bind(today_start)
+                .fetch_one(db)
+                .await
+                .map_err(|e| e.to_string())?
+                .try_get("c")
+                .unwrap_or(0);
 
         if done_today > 0 && insight.is_empty() {
             *insight = format!(
@@ -299,7 +283,11 @@ async fn query_featured_module(
             icon: "layout-grid".to_string(),
             accent_hex: "#52b788".to_string(),
             primary_count: count,
-            primary_label: if count == 1 { "task due today".to_string() } else { "tasks due today".to_string() },
+            primary_label: if count == 1 {
+                "task due today".to_string()
+            } else {
+                "tasks due today".to_string()
+            },
             descriptor_label: "Open Tasks →".to_string(),
             items,
         });
@@ -321,7 +309,10 @@ async fn query_featured_module(
         .map_err(|e| e.to_string())?;
 
         let pending_count = rows.len() as i32;
-        *insight = format!("{pending_count} pending task{}", if pending_count == 1 { "" } else { "s" });
+        *insight = format!(
+            "{pending_count} pending task{}",
+            if pending_count == 1 { "" } else { "s" }
+        );
 
         let items: Vec<DashboardItem> = rows
             .into_iter()
@@ -330,16 +321,21 @@ async fn query_featured_module(
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
                 let secondary = due_at.map(|ts| {
                     let diff = ts - now_ms();
-                    if diff < 0 { "Overdue".to_string() }
-                    else if diff < 86_400_000 { "Today".to_string() }
-                    else {
+                    if diff < 0 {
+                        "Overdue".to_string()
+                    } else if diff < 86_400_000 {
+                        "Today".to_string()
+                    } else {
                         let dt = chrono::DateTime::from_timestamp_millis(ts)
                             .map(|d| d.format("%b %d").to_string())
                             .unwrap_or_default();
                         dt
                     }
                 });
-                DashboardItem { text: title, secondary }
+                DashboardItem {
+                    text: title,
+                    secondary,
+                }
             })
             .collect();
 
@@ -349,7 +345,11 @@ async fn query_featured_module(
             icon: "layout-grid".to_string(),
             accent_hex: "#52b788".to_string(),
             primary_count: pending_count,
-            primary_label: if pending_count == 1 { "pending task".to_string() } else { "pending tasks".to_string() },
+            primary_label: if pending_count == 1 {
+                "pending task".to_string()
+            } else {
+                "pending tasks".to_string()
+            },
             descriptor_label: "Open Tasks →".to_string(),
             items,
         })
@@ -375,10 +375,15 @@ async fn query_featured_module(
 // Query: recent activity (UNION of tasks, notes, habits, health)
 // ---------------------------------------------------------------------------
 
-async fn query_recent_activity(db: &SqlitePool, insight: &mut String) -> Result<Vec<ActivityEntry>, String> {
+async fn query_recent_activity(
+    db: &SqlitePool,
+    insight: &mut String,
+) -> Result<Vec<ActivityEntry>, String> {
     let rows = sqlx::query(
         r#"
         SELECT module_id, ts, action FROM (
+            SELECT module_id, created_at AS ts, action FROM dashboard_events
+            UNION ALL
             SELECT 'tasks' AS module_id, created_at AS ts, 'Created: ' || title AS action FROM tasks
             UNION ALL
             SELECT 'tasks', updated_at, 'Completed: ' || title FROM tasks WHERE done = 1
@@ -557,15 +562,14 @@ async fn query_featured_metric(
 ) -> Result<MetricInfo, String> {
     let yesterday_start = today_start - 86_400_000;
 
-    let done_today: i64 = sqlx::query(
-        "SELECT COUNT(*) AS c FROM tasks WHERE done = 1 AND updated_at >= ?",
-    )
-    .bind(today_start)
-    .fetch_one(db)
-    .await
-    .map_err(|e| e.to_string())?
-    .try_get("c")
-    .unwrap_or(0);
+    let done_today: i64 =
+        sqlx::query("SELECT COUNT(*) AS c FROM tasks WHERE done = 1 AND updated_at >= ?")
+            .bind(today_start)
+            .fetch_one(db)
+            .await
+            .map_err(|e| e.to_string())?
+            .try_get("c")
+            .unwrap_or(0);
 
     let done_yesterday: i64 = sqlx::query(
         "SELECT COUNT(*) AS c FROM tasks WHERE done = 1 AND updated_at >= ? AND updated_at < ?",
@@ -578,46 +582,77 @@ async fn query_featured_metric(
     .try_get("c")
     .unwrap_or(0);
 
-    let health_today: i64 = sqlx::query(
-        "SELECT COUNT(*) AS c FROM health_logs WHERE logged_at >= ?",
-    )
-    .bind(today_start)
-    .fetch_one(db)
-    .await
-    .map_err(|e| e.to_string())?
-    .try_get("c")
-    .unwrap_or(0);
+    let health_today: i64 =
+        sqlx::query("SELECT COUNT(*) AS c FROM health_logs WHERE logged_at >= ?")
+            .bind(today_start)
+            .fetch_one(db)
+            .await
+            .map_err(|e| e.to_string())?
+            .try_get("c")
+            .unwrap_or(0);
 
     if done_today > 0 || done_yesterday > 0 {
         let trend = if done_yesterday > 0 {
             let pct = ((done_today as f32 - done_yesterday as f32) / done_yesterday as f32) * 100.0;
             Some(TrendInfo {
-                direction: if pct >= 0.0 { "up".to_string() } else { "down".to_string() },
+                direction: if pct >= 0.0 {
+                    "up".to_string()
+                } else {
+                    "down".to_string()
+                },
                 percentage: pct.abs(),
             })
         } else {
             None
         };
 
-        let value = if done_today > 60 { format!("{}h", done_today / 60) } else { format!("{done_today}") };
-        let label = if done_today == 1 { "task done today".to_string() } else { "tasks done today".to_string() };
+        let value = if done_today > 60 {
+            format!("{}h", done_today / 60)
+        } else {
+            format!("{done_today}")
+        };
+        let label = if done_today == 1 {
+            "task done today".to_string()
+        } else {
+            "tasks done today".to_string()
+        };
 
         if insight.is_empty() {
-            *insight = format!("{done_today} task{} done today", if done_today == 1 { "" } else { "s" });
+            *insight = format!(
+                "{done_today} task{} done today",
+                if done_today == 1 { "" } else { "s" }
+            );
         }
 
-        return Ok(MetricInfo { label, value, module_id: "tasks".to_string(), trend });
+        return Ok(MetricInfo {
+            label,
+            value,
+            module_id: "tasks".to_string(),
+            trend,
+        });
     }
 
     if health_today > 0 {
         let value = format!("{health_today}");
-        let label = if health_today == 1 { "health log today".to_string() } else { "health logs today".to_string() };
+        let label = if health_today == 1 {
+            "health log today".to_string()
+        } else {
+            "health logs today".to_string()
+        };
 
         if insight.is_empty() {
-            *insight = format!("{health_today} health {} today", if health_today == 1 { "log" } else { "logs" });
+            *insight = format!(
+                "{health_today} health {} today",
+                if health_today == 1 { "log" } else { "logs" }
+            );
         }
 
-        return Ok(MetricInfo { label, value, module_id: "health".to_string(), trend: None });
+        return Ok(MetricInfo {
+            label,
+            value,
+            module_id: "health".to_string(),
+            trend: None,
+        });
     }
 
     let total_tasks: i64 = sqlx::query("SELECT COUNT(*) AS c FROM tasks")
@@ -648,6 +683,8 @@ async fn query_recent_modules(
     let timestamps = sqlx::query(
         r#"
         SELECT module_id, MAX(ts) AS ts FROM (
+            SELECT module_id, MAX(created_at) AS ts FROM dashboard_events GROUP BY module_id
+            UNION ALL
             SELECT 'tasks' AS module_id, MAX(updated_at) AS ts FROM tasks
             UNION ALL
             SELECT 'notes', MAX(updated_at) FROM notes
@@ -675,7 +712,9 @@ async fn query_recent_modules(
         .into_iter()
         .filter_map(|row| {
             let mid: String = row.try_get("module_id").ok()?;
-            if !is_valid_module_id(&mid) { return None; }
+            if !is_valid_module_id(&mid) {
+                return None;
+            }
             let ts: Option<i64> = row.try_get("ts").ok().flatten();
             Some((mid, ts.unwrap_or(0)))
         })
@@ -683,7 +722,9 @@ async fn query_recent_modules(
 
     for row in ctx_rows {
         let mid: String = row.try_get("module").unwrap_or_default();
-        if !is_valid_module_id(&mid) { continue; }
+        if !is_valid_module_id(&mid) {
+            continue;
+        }
         if !module_scores.iter().any(|(id, _)| id == &mid) {
             module_scores.push((mid, now));
         }
@@ -693,7 +734,10 @@ async fn query_recent_modules(
         if is_valid_module_id(preferred_module)
             && !matches!(preferred_module, "dashboard" | "ai" | "settings" | "notes")
         {
-            if let Some(index) = module_scores.iter().position(|(id, _)| id == preferred_module) {
+            if let Some(index) = module_scores
+                .iter()
+                .position(|(id, _)| id == preferred_module)
+            {
                 let preferred = module_scores.remove(index);
                 module_scores.insert(0, (preferred.0, i64::MAX));
             } else {
@@ -702,9 +746,8 @@ async fn query_recent_modules(
         }
     }
 
-    module_scores.retain(|(id, _)| {
-        !matches!(id.as_str(), "dashboard" | "ai" | "settings" | "notes")
-    });
+    module_scores
+        .retain(|(id, _)| !matches!(id.as_str(), "dashboard" | "ai" | "settings" | "notes"));
 
     module_scores.sort_by(|a, b| b.1.cmp(&a.1));
     let top = &module_scores[..module_scores.len().min(8)];
@@ -724,17 +767,23 @@ async fn query_recent_modules(
         .collect();
 
     if modules.is_empty() {
-        let starter_ids = ["tasks", "journal", "habits", "focus", "health", "mood", "budget", "reading"];
-        Ok(starter_ids.iter().enumerate().map(|(i, id)| {
-            let (name, icon, accent) = module_meta(id);
-            RecentModule {
-                id: id.to_string(),
-                name: name.to_string(),
-                icon: icon.to_string(),
-                accent_hex: accent.to_string(),
-                last_used_ms: now - (i as i64 * 86_400_000),
-            }
-        }).collect())
+        let starter_ids = [
+            "tasks", "journal", "habits", "focus", "health", "mood", "budget", "reading",
+        ];
+        Ok(starter_ids
+            .iter()
+            .enumerate()
+            .map(|(i, id)| {
+                let (name, icon, accent) = module_meta(id);
+                RecentModule {
+                    id: id.to_string(),
+                    name: name.to_string(),
+                    icon: icon.to_string(),
+                    accent_hex: accent.to_string(),
+                    last_used_ms: now - (i as i64 * 86_400_000),
+                }
+            })
+            .collect())
     } else {
         Ok(modules)
     }
@@ -743,10 +792,27 @@ async fn query_recent_modules(
 fn is_valid_module_id(id: &str) -> bool {
     matches!(
         id,
-        "tasks" | "notes" | "journal" | "habits" | "focus" | "passwords"
-            | "health" | "sleep" | "nutrition" | "mood" | "budget"
-            | "flashcards" | "reading" | "grocery" | "recipes" | "time"
-            | "goals" | "clipboard" | "breathing" | "voice-memos" | "countdown"
+        "tasks"
+            | "notes"
+            | "journal"
+            | "habits"
+            | "focus"
+            | "passwords"
+            | "health"
+            | "sleep"
+            | "nutrition"
+            | "mood"
+            | "budget"
+            | "flashcards"
+            | "reading"
+            | "grocery"
+            | "recipes"
+            | "time"
+            | "goals"
+            | "clipboard"
+            | "breathing"
+            | "voice-memos"
+            | "countdown"
             | "telemetry"
     )
 }
@@ -758,7 +824,7 @@ fn is_valid_module_id(id: &str) -> bool {
 #[tauri::command]
 pub async fn get_dashboard_data(
     app: tauri::AppHandle,
-    state: tauri::State<'_, GenesisAppState>,
+    state: tauri::State<'_, BentoAppState>,
     cache: tauri::State<'_, DashboardCache>,
 ) -> Result<DashboardPayload, String> {
     // Check cache first
@@ -767,6 +833,18 @@ pub async fn get_dashboard_data(
     }
 
     let db = state.db();
+
+    // Pull live data from Supabase into local SQLite before running queries.
+    // Keep this below the startup interaction budget; stale local data is safer
+    // than blocking the dashboard on network or SQLite pool contention.
+    if let Some(auth) = app.try_state::<AuthManager>() {
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            sync_user_data(&db, &auth),
+        )
+        .await;
+    }
+
     let today_start = today_start_ms();
     let today_end = today_end_ms();
 
@@ -787,12 +865,12 @@ pub async fn get_dashboard_data(
 
     let mut insight = String::new();
 
-    let featured_module = query_featured_module(db, today_start, today_end, &mut insight).await?;
-    let recent_activity = query_recent_activity(db, &mut insight).await?;
-    let streak = query_streak(db, &mut insight).await?;
-    let featured_metric = query_featured_metric(db, today_start, &mut insight).await?;
-    let preferred_module = read_runtime_state(db, "last_active_module").await?;
-    let recent_modules = query_recent_modules(db, preferred_module.as_deref()).await?;
+    let featured_module = query_featured_module(&db, today_start, today_end, &mut insight).await?;
+    let recent_activity = query_recent_activity(&db, &mut insight).await?;
+    let streak = query_streak(&db, &mut insight).await?;
+    let featured_metric = query_featured_metric(&db, today_start, &mut insight).await?;
+    let preferred_module = read_runtime_state(&db, "last_active_module").await?;
+    let recent_modules = query_recent_modules(&db, preferred_module.as_deref()).await?;
 
     if insight.is_empty() {
         insight = String::from("Welcome back! Open a module to get started");
@@ -895,6 +973,15 @@ mod tests {
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             )",
+            "CREATE TABLE IF NOT EXISTS dashboard_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT NOT NULL,
+                module_id TEXT NOT NULL,
+                related_module_id TEXT,
+                action TEXT NOT NULL,
+                payload TEXT NOT NULL DEFAULT '{}',
+                created_at INTEGER NOT NULL
+            )",
         ];
 
         for migration in &migrations {
@@ -944,24 +1031,40 @@ mod tests {
 
         // Habits — 2 habits
         sqlx::query("INSERT INTO habits (id, name, frequency, created_at) VALUES (?, ?, ?, ?)")
-            .bind("habit-1").bind("Exercise").bind("daily").bind(now - 604800_000)
-            .execute(pool).await.unwrap();
+            .bind("habit-1")
+            .bind("Exercise")
+            .bind("daily")
+            .bind(now - 604800_000)
+            .execute(pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO habits (id, name, frequency, created_at) VALUES (?, ?, ?, ?)")
-            .bind("habit-2").bind("Read").bind("daily").bind(now - 604800_000)
-            .execute(pool).await.unwrap();
+            .bind("habit-2")
+            .bind("Read")
+            .bind("daily")
+            .bind(now - 604800_000)
+            .execute(pool)
+            .await
+            .unwrap();
 
         // Habit completions — 5-day streak for habit-1, 3-day for habit-2
         for day_offset in 0..5 {
             let ts = today_start - (day_offset as i64 * 86400_000);
             sqlx::query("INSERT INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
-                .bind("habit-1").bind(ts)
-                .execute(pool).await.unwrap();
+                .bind("habit-1")
+                .bind(ts)
+                .execute(pool)
+                .await
+                .unwrap();
         }
         for day_offset in 0..3 {
             let ts = today_start - (day_offset as i64 * 86400_000);
             sqlx::query("INSERT INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
-                .bind("habit-2").bind(ts)
-                .execute(pool).await.unwrap();
+                .bind("habit-2")
+                .bind(ts)
+                .execute(pool)
+                .await
+                .unwrap();
         }
 
         // Health logs — 2 today
@@ -974,11 +1077,19 @@ mod tests {
 
         // Module settings — tasks and health have recent updates
         sqlx::query("INSERT INTO module_settings (module_id, data, updated_at) VALUES (?, ?, ?)")
-            .bind("tasks").bind("{}").bind(now - 300_000)
-            .execute(pool).await.unwrap();
+            .bind("tasks")
+            .bind("{}")
+            .bind(now - 300_000)
+            .execute(pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO module_settings (module_id, data, updated_at) VALUES (?, ?, ?)")
-            .bind("health").bind("{}").bind(now - 600_000)
-            .execute(pool).await.unwrap();
+            .bind("health")
+            .bind("{}")
+            .bind(now - 600_000)
+            .execute(pool)
+            .await
+            .unwrap();
     }
 
     // ── Tests ──────────────────────────────────────────────────────────────
@@ -991,7 +1102,9 @@ mod tests {
         let te = today_end_ms();
         let mut insight = String::new();
 
-        let result = query_featured_module(&pool, ts, te, &mut insight).await.unwrap();
+        let result = query_featured_module(&pool, ts, te, &mut insight)
+            .await
+            .unwrap();
 
         assert_eq!(result.primary_count, 3, "should find 3 tasks due today");
         assert_eq!(result.items.len(), 3, "should return 3 items");
@@ -1006,7 +1119,9 @@ mod tests {
         let te = today_end_ms();
         let mut insight = String::new();
 
-        let result = query_featured_module(&pool, ts, te, &mut insight).await.unwrap();
+        let result = query_featured_module(&pool, ts, te, &mut insight)
+            .await
+            .unwrap();
 
         assert_eq!(result.primary_count, 0, "should have 0 tasks");
         assert!(insight.contains("No tasks yet"));
@@ -1065,10 +1180,15 @@ mod tests {
         let ts = today_start_ms();
         let mut insight = String::new();
 
-        let result = query_featured_metric(&pool, ts, &mut insight).await.unwrap();
+        let result = query_featured_metric(&pool, ts, &mut insight)
+            .await
+            .unwrap();
 
         assert_eq!(result.value, "2", "2 tasks done today");
-        assert!(result.trend.is_some(), "should have trend since yesterday had tasks");
+        assert!(
+            result.trend.is_some(),
+            "should have trend since yesterday had tasks"
+        );
         let trend = result.trend.unwrap();
         assert_eq!(trend.direction, "up");
     }
@@ -1084,7 +1204,10 @@ mod tests {
         // tasks and health should be in the list (have recent data)
         let ids: Vec<&str> = result.iter().map(|m| m.id.as_str()).collect();
         assert!(ids.contains(&"tasks"), "tasks should be in recent modules");
-        assert!(ids.contains(&"health"), "health should be in recent modules");
+        assert!(
+            ids.contains(&"health"),
+            "health should be in recent modules"
+        );
     }
 
     #[tokio::test]
@@ -1123,11 +1246,17 @@ mod tests {
     #[tokio::test]
     async fn test_compute_greeting_with_and_without_name() {
         let greeting_no_name = compute_greeting("");
-        assert!(!greeting_no_name.contains(','), "no comma when name is empty");
+        assert!(
+            !greeting_no_name.contains(','),
+            "no comma when name is empty"
+        );
 
         let greeting_with_name = compute_greeting("Alex");
         assert!(greeting_with_name.contains("Alex"), "should include name");
-        assert!(greeting_with_name.contains("Good "), "should start with Good");
+        assert!(
+            greeting_with_name.contains("Good "),
+            "should start with Good"
+        );
     }
 
     #[tokio::test]

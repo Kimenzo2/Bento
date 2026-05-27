@@ -1,13 +1,13 @@
 use std::{
     collections::HashSet,
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
         Mutex,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
 };
 
 use serde::{Deserialize, Serialize};
-use tauri::{tray::TrayIcon, AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, tray::TrayIcon};
 
 use crate::settings::DesktopSettings;
 
@@ -200,7 +200,7 @@ impl DesktopRuntime {
 
     pub fn emit_lifecycle_state(app: &AppHandle, state: LifecycleState) -> tauri::Result<()> {
         if let Some(window) = app.get_webview_window("main") {
-            window.emit("genesis://lifecycle", state)?;
+            window.emit("bento://lifecycle", state)?;
         }
 
         Ok(())

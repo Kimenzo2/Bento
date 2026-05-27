@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const WINDOWS_INSTALLER_FILENAME = 'Bento_0.2.0_x64-setup.exe';
+const WINDOWS_INSTALLER_FILENAME = 'Bento_0.1.0_x64-setup.exe';
 const FALLBACK_INSTALLER_URL =
   'https://github.com/Kimenzo/Genesis/releases/latest/download/Genesis_Windows_x64-setup.exe';
 

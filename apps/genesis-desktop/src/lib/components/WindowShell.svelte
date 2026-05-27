@@ -5,21 +5,24 @@
   import MinusIcon from "@lucide/svelte/icons/minus";
   import SquareIcon from "@lucide/svelte/icons/square";
   import XIcon from "@lucide/svelte/icons/x";
+  import { activeBundle, createTranslator } from "$lib/i18n";
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
   import TitlebarContextMenu from "./TitlebarContextMenu.svelte";
   import { isDark } from "$lib/stores/theme.store";
+  import { authStore } from "$lib/stores/auth.store";
   import { getShellTokens } from "$lib/shell-theme";
 
   const isMac = browser && /mac/i.test(navigator.userAgent);
   const canUseTauri = browser && "__TAURI_INTERNALS__" in window;
   let isMaximized = $state(false);
   let appWindow: WebviewWindow | null = null;
+  const isAuthShell = $derived($authStore.status !== "restored");
   const shellStyle = $derived(
     Object.entries(getShellTokens($isDark))
       .map(([key, value]) => `${key}:${value}`)
       .join(";")
   );
-  const maximizeLabel = $derived(isMaximized ? "Restore Genesis" : "Maximize Genesis");
-
   async function minimize() {
     if (!canUseTauri || !appWindow) {
       return;
@@ -114,23 +117,45 @@
 
 <header class:window-shell--mac={isMac} class="window-shell" style={shellStyle}>
   <div class="window-shell__frame">
-    <TitlebarContextMenu
-      {isMac}
-      {isMaximized}
-      onClose={close}
-      onMinimize={minimize}
-      onStartDragging={startDragging}
-      onStartResize={startResize}
-      onToggleMaximized={toggleMaximized}
-    />
+    {#if isAuthShell}
+      <div class="window-shell__titlebar" aria-label={_t('windowAuthControls')}>
+        <div class="window-shell__drag" data-tauri-drag-region></div>
 
-    {#if !isMac}
-      <div class="window-shell__controls" aria-label="Window controls">
-        <button aria-label="Minimize Genesis" class="window-shell__control" type="button" onclick={() => void minimize()}>
+        {#if !isMac}
+          <div class="window-shell__controls" aria-label={_t('windowWindowControls')}>
+            <button aria-label={_t('windowMinimize')} class="window-shell__control" type="button" onclick={() => void minimize()}>
+              <MinusIcon />
+            </button>
+            <button
+              aria-label={_t('windowClose')}
+              class="window-shell__control window-shell__control--close"
+              type="button"
+              onclick={() => void close()}
+            >
+              <XIcon />
+            </button>
+          </div>
+        {/if}
+      </div>
+    {:else}
+      <TitlebarContextMenu
+        {isMac}
+        {isMaximized}
+        onClose={close}
+        onMinimize={minimize}
+        onStartDragging={startDragging}
+        onStartResize={startResize}
+        onToggleMaximized={toggleMaximized}
+      />
+    {/if}
+
+    {#if !isAuthShell && !isMac}
+      <div class="window-shell__controls" aria-label={_t('windowWindowControls')}>
+        <button aria-label={_t('windowMinimize')} class="window-shell__control" type="button" onclick={() => void minimize()}>
           <MinusIcon />
         </button>
         <button
-          aria-label={maximizeLabel}
+          aria-label={_t(isMaximized ? 'windowRestore' : 'windowMaximize')}
           aria-pressed={isMaximized}
           class="window-shell__control"
           type="button"
@@ -152,7 +177,7 @@
           {/if}
         </button>
         <button
-          aria-label="Close Genesis"
+          aria-label={_t('windowClose')}
           class="window-shell__control window-shell__control--close"
           type="button"
           onclick={() => void close()}

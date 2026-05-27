@@ -53,6 +53,10 @@ describe('desktop settings contract', () => {
         ...defaultDesktopSettings,
         workspace: {
           sidebarCollapsed: true,
+          sidebarHidden: false,
+          sidebarWidth: 288,
+          sidebarTop: 54,
+          tabsEnabled: false,
         },
       });
 

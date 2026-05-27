@@ -5,17 +5,24 @@
   import GlobalSettings from "$lib/components/GlobalSettings.svelte";
   import ModuleSwitcher from "$lib/components/ModuleSwitcher.svelte";
   import RuntimeBridge from "$lib/components/RuntimeBridge.svelte";
+  import VoiceDock from "$lib/components/VoiceDock.svelte";
   import UpdateNotification from "$lib/components/UpdateNotification.svelte";
   import WindowShell from "$lib/components/WindowShell.svelte";
+  import WindowTabs from "$lib/components/WindowTabs.svelte";
   import { Toaster } from "$lib/components/ui/sonner/index.js";
   import { appRoutes } from "$lib/router/routes";
+  import { desktopSettings } from "$lib/desktop/settings";
 </script>
 
 <RuntimeBridge />
 <WindowShell />
-<ModuleSwitcher />
+<WindowTabs />
+{#if !$desktopSettings.workspace.tabsEnabled}
+  <ModuleSwitcher />
+{/if}
 <AppLaunchCanvas />
 <GlobalSettings />
+<VoiceDock />
 
 <div class="desktop-app-root">
   <Router routes={appRoutes} />

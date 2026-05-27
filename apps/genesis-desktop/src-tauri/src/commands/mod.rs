@@ -1,9 +1,20 @@
+pub mod dashboard;
+pub mod feedback;
+pub mod journal;
+pub mod passwords;
+pub mod sync;
+pub mod tasks;
+pub use dashboard::{DashboardCache, get_dashboard_data};
+pub use feedback::{
+    get_feedback_by_id, get_feedback_realtime_config, get_my_feedback, submit_feedback,
+};
+
 use std::{
     collections::{HashMap, VecDeque},
     fs,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
@@ -12,10 +23,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::{
-    process::{CommandChild, CommandEvent},
     ShellExt,
+    process::{CommandChild, CommandEvent},
 };
-use tokio::sync::{oneshot, Mutex as AsyncMutex};
+use tokio::sync::{Mutex as AsyncMutex, oneshot};
 
 use crate::{
     mcp::{McpError, McpRequest, McpResponse},
@@ -143,7 +154,7 @@ async fn spawn_mcp_sidecar(
             return Ok(McpSidecarStatus {
                 started: true,
                 pid: Some(process.pid),
-                command: "genesis-mcp".to_string(),
+                command: "bento-mcp".to_string(),
             });
         }
 
@@ -154,13 +165,13 @@ async fn spawn_mcp_sidecar(
         return Ok(McpSidecarStatus {
             started: true,
             pid: None,
-            command: "genesis-mcp".to_string(),
+            command: "bento-mcp".to_string(),
         });
     }
 
     let sidecar = app
         .shell()
-        .sidecar("genesis-mcp")
+        .sidecar("bento-mcp")
         .map_err(|error| format!("Failed to prepare MCP sidecar: {error}"))?;
 
     let (mut receiver, child) = sidecar
@@ -195,7 +206,7 @@ async fn spawn_mcp_sidecar(
                     } else {
                         let _ = emit_main_window_event(
                             &app_handle,
-                            "genesis://mcp-log",
+                            "bento://mcp-log",
                             format!("Unparsed MCP output: {line}"),
                         );
                     }
@@ -203,7 +214,7 @@ async fn spawn_mcp_sidecar(
                 CommandEvent::Stderr(bytes) => {
                     let line = String::from_utf8_lossy(&bytes).trim().to_string();
                     if !line.is_empty() {
-                        let _ = emit_main_window_event(&app_handle, "genesis://mcp-log", line);
+                        let _ = emit_main_window_event(&app_handle, "bento://mcp-log", line);
                     }
                 }
                 CommandEvent::Error(error) => {
@@ -252,7 +263,7 @@ async fn spawn_mcp_sidecar(
     Ok(McpSidecarStatus {
         started: true,
         pid: Some(pid),
-        command: "genesis-mcp".to_string(),
+        command: "bento-mcp".to_string(),
     })
 }
 
@@ -285,6 +296,24 @@ fn validate_mcp_request(request: &McpRequest) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn write_debug_log(app: AppHandle, msg: String) {
+    let log_path = app
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("debug.log");
+    let line = format!("[{}] {}\n", chrono::Utc::now().format("%H:%M:%S%.3f"), msg);
+    let _ = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .and_then(|mut f| {
+            use std::io::Write;
+            f.write_all(line.as_bytes())
+        });
+}
+
+#[tauri::command]
 pub fn load_desktop_settings(app: AppHandle) -> Result<DesktopSettings, String> {
     Ok(settings::current_settings(&app))
 }
@@ -309,8 +338,8 @@ pub fn backup_desktop_settings(app: AppHandle) -> Result<Option<String>, String>
         let path = app
             .dialog()
             .file()
-            .set_title("Back up Genesis settings")
-            .set_file_name("genesis-desktop-settings-backup.json")
+            .set_title("Back up Bento settings")
+            .set_file_name("bento-desktop-settings-backup.json")
             .blocking_save_file();
 
         let Some(path) = path else {
@@ -336,8 +365,8 @@ pub fn restore_desktop_settings_backup(app: AppHandle) -> Result<Option<DesktopS
         let path = app
             .dialog()
             .file()
-            .add_filter("Genesis settings", &["json"])
-            .set_title("Restore Genesis settings")
+            .add_filter("Bento settings", &["json"])
+            .set_title("Restore Bento settings")
             .blocking_pick_file();
 
         let Some(path) = path else {
@@ -363,8 +392,88 @@ pub fn pick_export_directory(app: AppHandle) -> Result<Option<String>, String> {
     let path = app
         .dialog()
         .file()
-        .set_title("Choose Genesis export folder")
+        .set_title("Choose Bento export folder")
         .blocking_pick_folder();
+
+    Ok(path.map(|value| value.to_string()))
+}
+
+/// Open a file dialog and read the selected file's content.
+#[tauri::command]
+pub fn pick_import_file(app: AppHandle) -> Result<Option<ImportFileResult>, String> {
+    let path = app
+        .dialog()
+        .file()
+        .add_filter("Todoist JSON", &["json"])
+        .add_filter("CSV files", &["csv"])
+        .add_filter("All supported", &["json", "csv"])
+        .set_title("Select an import file")
+        .blocking_pick_file();
+
+    let Some(path) = path else {
+        return Ok(None);
+    };
+
+    let file_path = path.into_path().map_err(|e| e.to_string())?;
+    let file_name = file_path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+    let ext = file_path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_else(|| "".to_string());
+    let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+
+    Ok(Some(ImportFileResult {
+        content,
+        file_name,
+        extension: ext,
+    }))
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportFileResult {
+    pub content: String,
+    pub file_name: String,
+    pub extension: String,
+}
+
+#[tauri::command]
+pub fn export_content_to_file(
+    app: AppHandle,
+    content: String,
+    default_name: String,
+    extension: String,
+    filter_name: String,
+) -> Result<Option<String>, String> {
+    let path = app
+        .dialog()
+        .file()
+        .set_title("Save export file")
+        .add_filter(&filter_name, &[&extension])
+        .set_file_name(default_name)
+        .blocking_save_file();
+
+    let Some(path) = path else {
+        return Ok(None);
+    };
+
+    let path = path.into_path().map_err(|e| e.to_string())?;
+    fs::write(&path, &content).map_err(|e| e.to_string())?;
+
+    Ok(Some(path.to_string_lossy().to_string()))
+}
+
+#[tauri::command]
+pub fn pick_transcription_model(app: AppHandle) -> Result<Option<String>, String> {
+    let path = app
+        .dialog()
+        .file()
+        .add_filter("Whisper model", &["bin", "gguf", "ggml"])
+        .set_title("Choose a local Whisper model")
+        .blocking_pick_file();
 
     Ok(path.map(|value| value.to_string()))
 }
@@ -451,14 +560,14 @@ pub fn save_export_manifest(
     let result = (|| -> Result<Option<String>, String> {
         let default_directory = settings::resolve_export_directory(&app, &runtime.settings());
         let default_name = format!(
-            "genesis-export-{}.json",
+            "bento-export-{}.json",
             manifest.created_at.replace(':', "-").replace('.', "-")
         );
 
         let path = app
             .dialog()
             .file()
-            .set_title("Save Genesis export manifest")
+            .set_title("Save Bento export manifest")
             .set_directory(default_directory)
             .set_file_name(default_name)
             .blocking_save_file();
@@ -543,11 +652,11 @@ mod tests {
     fn pending_deep_links_are_consumed_in_fifo_order() {
         let pending = PendingDeepLink::default();
 
-        pending.set("genesis://auth".to_string());
-        pending.set("genesis://shared?id=one".to_string());
+        pending.set("bento://auth".to_string());
+        pending.set("bento://shared?id=one".to_string());
 
-        assert_eq!(pending.take().as_deref(), Some("genesis://auth"));
-        assert_eq!(pending.take().as_deref(), Some("genesis://shared?id=one"));
+        assert_eq!(pending.take().as_deref(), Some("bento://auth"));
+        assert_eq!(pending.take().as_deref(), Some("bento://shared?id=one"));
         assert_eq!(pending.take(), None);
     }
 }

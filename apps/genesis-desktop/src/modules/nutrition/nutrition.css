@@ -1,1 +1,95 @@
-.water-app{min-height:100%;padding:40px;background:#111318;color:#f6f7f2;font-family:"Space Grotesk",sans-serif;animation:water-in .35s}.water-app h1{font-size:48px}.water-app section{display:grid;grid-template-columns:1.2fr .8fr .8fr 1fr;gap:18px}.water-app article{border-radius:28px;background:#1c2128;padding:28px;transition:transform .2s}.water-app article:hover{transform:translateY(-3px)}.water-ring{display:grid;place-items:center;grid-row:span 2}.water-ring div{display:grid;place-items:center;width:320px;height:320px;border-radius:50%;background:conic-gradient(#c8f535 29%,#333 0);box-shadow:inset 0 0 0 56px #1c2128;font-size:58px}.water-ring small{font-size:16px}.water-add button{display:block;width:100%;margin:12px 0;padding:16px;border:0;border-radius:999px;background:#c8f535;cursor:default}.water-log p,.water-stats p{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #313832}.water-reminders{grid-column:span 3}.water-reminders i{display:block;height:18px;margin-top:38px;border-radius:999px;background:linear-gradient(90deg,#c8f535 62%,#fff 0)}@keyframes water-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+﻿.water-app {
+  --mod-accent: #1565C0;
+  min-height: 100%;
+  padding: 40px;
+  background: var(--mod-bg, var(--mod-bg-water));
+  color: var(--foreground);
+  font-family: var(--font-body);
+  animation: water-in .35s;
+}
+
+.water-app h1 {
+  font-size: 48px;
+}
+
+.water-app section {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr .8fr 1fr;
+  gap: 18px;
+}
+
+/* Surface cards — no borders, no shadows, float on dark bg */
+.water-app article {
+  border-radius: 20px;
+  background: var(--card);
+  border: none;
+  box-shadow: none;
+  padding: 28px;
+}
+
+.water-ring {
+  display: grid;
+  place-items: center;
+  grid-row: span 2;
+}
+
+.water-ring div {
+  display: grid;
+  place-items: center;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: conic-gradient(#c8f535 29%, #333 0);
+  box-shadow: none;
+  font-size: 58px;
+}
+
+.water-ring small {
+  font-size: 16px;
+}
+
+.water-add button {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  padding: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #c8f535;
+  cursor: default;
+}
+
+.water-log p,
+.water-stats p {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid #313832;
+}
+
+.water-reminders {
+  grid-column: span 3;
+}
+
+.water-reminders i {
+  display: block;
+  height: 18px;
+  margin-top: 38px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c8f535 62%, #fff 0);
+}
+
+@keyframes water-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Card System Fix ──────────────────────────────────────────────── */
+.water-app [class*="-card"],
+.water-app [class*="-panel"],
+.water-app article {
+  border: none !important;
+  box-shadow: none !important;
+  background: var(--card);
+  border-radius: 20px;
+}

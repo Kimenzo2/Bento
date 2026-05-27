@@ -27,7 +27,11 @@ impl ProjectionEngine {
         total_ram_mb: f32,
         now_ms: i64,
     ) -> (ProjectionSignal, Option<PredictionRecord>) {
-        let current_heap = slot.last_report.as_ref().map(|report| report.heap_mb).unwrap_or(0.0);
+        let current_heap = slot
+            .last_report
+            .as_ref()
+            .map(|report| report.heap_mb)
+            .unwrap_or(0.0);
         let projected_heap_60s = current_heap + rate.mb_per_min.max(0.0);
         let projected_heap_300s = current_heap + (rate.mb_per_min.max(0.0) * 5.0);
         let threshold = total_ram_mb * RAM_THRESHOLD_RATIO;
@@ -49,9 +53,14 @@ impl ProjectionEngine {
         };
 
         let prediction = if projected_heap_300s > threshold && threshold > 0.0 {
-            let last_emitted = self.last_prediction_at.get(&slot.manifest.module_id).copied().unwrap_or_default();
+            let last_emitted = self
+                .last_prediction_at
+                .get(&slot.manifest.module_id)
+                .copied()
+                .unwrap_or_default();
             if now_ms - last_emitted >= 5 * 60 * 1000 {
-                self.last_prediction_at.insert(slot.manifest.module_id.clone(), now_ms);
+                self.last_prediction_at
+                    .insert(slot.manifest.module_id.clone(), now_ms);
                 Some(PredictionRecord {
                     id: 0,
                     ts: now_ms,

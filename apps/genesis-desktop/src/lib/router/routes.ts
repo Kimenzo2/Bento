@@ -4,6 +4,7 @@ import AuthPage from "../../routes/pages/AuthPage.svelte";
 import PaymentCallbackPage from "../../routes/pages/PaymentCallbackPage.svelte";
 import SharedViewerPage from "../../routes/pages/SharedViewerPage.svelte";
 import { routePatterns } from "$lib/router/route-patterns";
+import NotesPage from "../../routes/pages/NotesPage.svelte";
 
 export const pageMeta = {
   dashboard: {
@@ -17,10 +18,6 @@ export const pageMeta = {
   lifeInColour: {
     title: "Life in Colour",
     subtitle: "Turn photo-driven inputs into soft line-art stories and colouring flows.",
-  },
-  editor: {
-    title: "Canvas Editor",
-    subtitle: "Compose pages, chapters, and direction without leaving the desktop shell.",
   },
   visualStudio: {
     title: "Visual Studio",
@@ -59,7 +56,7 @@ export const pageMeta = {
     subtitle: "Immersive playback and shared-reader previews.",
   },
   starterApp: {
-    title: "Genesis Apps",
+    title: "Bento Apps",
     subtitle: "Focused offline-first personal tools inside the desktop shell.",
   },
 } as const;
@@ -80,29 +77,13 @@ export const appRoutes = [
     component: SharedViewerPage,
   },
   {
-    path: "/create",
-    component: ShellRoute,
-    props: { page: "project" satisfies PageKey },
-  },
-  {
-    path: routePatterns.project,
-    component: ShellRoute,
-    props: { page: "project" satisfies PageKey },
-  },
-  {
     path: "/life-in-colour",
     component: ShellRoute,
     props: { page: "lifeInColour" satisfies PageKey },
   },
   {
-    path: "/editor",
-    component: ShellRoute,
-    props: { page: "editor" satisfies PageKey },
-  },
-  {
-    path: "/visual-studio",
-    component: ShellRoute,
-    props: { page: "visualStudio" satisfies PageKey },
+    path: "/notes",
+    component: NotesPage,
   },
   {
     path: "/export",
