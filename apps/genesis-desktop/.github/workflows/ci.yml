@@ -6,9 +6,19 @@ on:
   pull_request:
     branches: ['**']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_DIR: apps/genesis-desktop
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,7 +32,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles(format('{0}/bun.lock', env.APP_DIR)) }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -31,9 +41,6 @@ jobs:
 
       - name: Svelte Check
         run: bun run check
-        # svelte-check catches Svelte 5 compilation errors
-        # (e.g. component_invalid_directive, missing imports,
-        #  type errors in .svelte files)
 
       - name: Lint
         run: bun run lint
@@ -44,3 +51,66 @@ jobs:
 
       - name: Unit Tests
         run: bun run test
+
+  rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}/src-tauri
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+        with:
+          cache-key: ${{ runner.os }}-cargo-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
+
+      - name: Install Tauri system dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev
+
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable --component rustfmt --component clippy
+          rustup default stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: cargo check
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo check --profile ci --workspace --bins --tests
+
+      - name: cargo clippy
+        continue-on-error: true
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: cargo build
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo build --profile ci --workspace --bins
+
+      - name: cargo test
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo test --profile ci --workspace --no-fail-fast
