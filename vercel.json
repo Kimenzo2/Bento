@@ -166,6 +166,10 @@
       "destination": "/api/delete-account"
     },
     {
+      "source": "/bento-desktop",
+      "destination": "/api/updates/bento-desktop"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
