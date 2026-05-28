@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Plus, Target, CheckCircle2, ChevronRight, TrendingUp, AlertCircle, Dumbbell, Book, CreditCard, ChevronDown, Check } from 'lucide-svelte';
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import * as Select from "$lib/components/ui/select/index.js";
 
   let { moduleId = "goals", settings = {} } = $props<{ moduleId?: string; settings?: any }>();
   $effect(() => { void moduleId; });
@@ -55,6 +56,7 @@
   let _t = $derived.by(() => createTranslator($activeBundle));
 
   let showNewGoalForm = $state(false);
+  let selectedCategory = $state("Fitness");
   const goalNameId = "goal-name";
   const goalTargetId = "goal-target";
   const goalUnitId = "goal-unit";
@@ -180,15 +182,17 @@
           </div>
           <div class="input-group">
             <label for={goalCategoryId}>{_t('commonCategory')}</label>
-            <div class="premium-select-wrapper">
-              <select id={goalCategoryId} class="premium-input select">
-                <option>{_t('moduleGoalsCategoryFitness')}</option>
-                <option>{_t('moduleGoalsCategoryFinance')}</option>
-                <option>{_t('moduleGoalsCategoryLearning')}</option>
-                <option>{_t('moduleGoalsCategoryCareer')}</option>
-              </select>
-              <span class="select-indicator"><ChevronDown size={18} /></span>
-            </div>
+            <Select.Root type="single" bind:value={selectedCategory}>
+              <Select.Trigger class="premium-input">
+                <span>{selectedCategory}</span>
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="Fitness">{_t('moduleGoalsCategoryFitness')}</Select.Item>
+                <Select.Item value="Finance">{_t('moduleGoalsCategoryFinance')}</Select.Item>
+                <Select.Item value="Learning">{_t('moduleGoalsCategoryLearning')}</Select.Item>
+                <Select.Item value="Career">{_t('moduleGoalsCategoryCareer')}</Select.Item>
+              </Select.Content>
+            </Select.Root>
           </div>
         </div>
         <div class="modal-footer">

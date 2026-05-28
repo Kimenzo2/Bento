@@ -15,6 +15,7 @@
   import { Badge } from '$lib/components/ui/badge/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+  import * as Table from '$lib/components/ui/table/index.js';
 
   let { moduleId = 'telemetry', settings = {} }: { moduleId?: string; settings?: any } = $props();
 
@@ -523,26 +524,24 @@
             <CardDescription>{_t("moduleTelemetryPerfMetricsDesc", "IPC and database execution times")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div style="overflow-x: auto;">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Metric</th>
-                    <th>Avg (ms)</th>
-                    <th>P95 (ms)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each latencies as l}
-                    <tr>
-                      <td><code style="font-size: 12px;">{l.cmd}</code></td>
-                      <td>{l.avg > 0 ? l.avg.toFixed(1) : '-'}</td>
-                      <td>{l.p95 > 0 ? l.p95.toFixed(1) : '-'}</td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
+            <Table.Root>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>Metric</Table.Head>
+                  <Table.Head>Avg (ms)</Table.Head>
+                  <Table.Head>P95 (ms)</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each latencies as l}
+                  <Table.Row>
+                    <Table.Cell><code style="font-size: 12px;">{l.cmd}</code></Table.Cell>
+                    <Table.Cell>{l.avg > 0 ? l.avg.toFixed(1) : '-'}</Table.Cell>
+                    <Table.Cell>{l.p95 > 0 ? l.p95.toFixed(1) : '-'}</Table.Cell>
+                  </Table.Row>
+                {/each}
+              </Table.Body>
+            </Table.Root>
           </CardContent>
         </Card>
       </div>
@@ -556,26 +555,24 @@
             <CardDescription>{_t("moduleTelemetryDbTablesDesc", "Table sizes and row counts")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div style="overflow-x: auto;">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Table</th>
-                    <th>Rows</th>
-                    <th>Size</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each tables as t}
-                    <tr>
-                      <td><code style="font-size: 12px;">{t.name}</code></td>
-                      <td>{t.rows}</td>
-                      <td>{t.size}</td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
+            <Table.Root>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>Table</Table.Head>
+                  <Table.Head>Rows</Table.Head>
+                  <Table.Head>Size</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each tables as t}
+                  <Table.Row>
+                    <Table.Cell><code style="font-size: 12px;">{t.name}</code></Table.Cell>
+                    <Table.Cell>{t.rows}</Table.Cell>
+                    <Table.Cell>{t.size}</Table.Cell>
+                  </Table.Row>
+                {/each}
+              </Table.Body>
+            </Table.Root>
           </CardContent>
         </Card>
       </div>

@@ -26,6 +26,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource-variable/noto-sans-arabic": "^5.2.10",
     "@fontsource/fredoka": "^5.2.10",
     "@fontsource/instrument-serif": "^5.2.8",
@@ -53,6 +54,7 @@
     "@tauri-apps/plugin-window-state": "2.4.1",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "layerchart": "^1.0.13",
     "lucide-svelte": "^1.0.1",
     "marked": "^18.0.3",
     "sortablejs": "^1.15.7",

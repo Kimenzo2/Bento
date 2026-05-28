@@ -22,6 +22,7 @@
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
+  import * as Select from "$lib/components/ui/select/index.js";
   import {
     Card,
     CardContent,
@@ -463,16 +464,26 @@
                 </div>
                 <div class="grocery-add-form__row">
                   <Input bind:value={newItemQty} placeholder={_t('moduleGroceryQtyPlaceholder')} class="grocery-input--qty" />
-                  <select bind:value={newItemUnit} class="grocery-select">
-                    {#each ["pc", "g", "kg", "ml", "L", "bag", "box", "bunch", "bottle", "loaf", "can"] as u}
-                      <option value={u}>{u}</option>
-                    {/each}
-                  </select>
-                  <select bind:value={newItemCategory} class="grocery-select grocery-select--cat">
-                    {#each categories as cat}
-                      <option value={cat}>{cat}</option>
-                    {/each}
-                  </select>
+                  <Select.Root type="single" bind:value={newItemUnit}>
+                    <Select.Trigger class="grocery-select">
+                      <span>{newItemUnit}</span>
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each ["pc", "g", "kg", "ml", "L", "bag", "box", "bunch", "bottle", "loaf", "can"] as u}
+                        <Select.Item value={u}>{u}</Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
+                  <Select.Root type="single" bind:value={newItemCategory}>
+                    <Select.Trigger class="grocery-select grocery-select--cat">
+                      <span>{newItemCategory}</span>
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each categories as cat}
+                        <Select.Item value={cat}>{cat}</Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
                 </div>
                 <Button type="submit" class="grocery-add-btn">
                   <PlusIcon data-icon="inline-start" />
@@ -878,11 +889,16 @@
                   <strong>{_t('moduleGroceryDietaryProfile')}</strong>
                   <p>{_t('moduleGroceryDietaryProfileDesc')}</p>
                 </div>
-                <select bind:value={activeDiet} class="grocery-select">
-                  {#each dietaryProfiles as d}
-                    <option value={d}>{d}</option>
-                  {/each}
-                </select>
+                <Select.Root type="single" bind:value={activeDiet}>
+                  <Select.Trigger class="grocery-select">
+                    <span>{activeDiet}</span>
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each dietaryProfiles as d}
+                      <Select.Item value={d}>{d}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
               </article>
 
               <article class="grocery-setting-row">
@@ -890,11 +906,16 @@
                   <strong>{_t('moduleGroceryDefaultStore')}</strong>
                   <p>{_t('moduleGroceryDefaultStoreDesc')}</p>
                 </div>
-                <select bind:value={defaultStore} class="grocery-select">
-                  {#each stores as s}
-                    <option value={s}>{s}</option>
-                  {/each}
-                </select>
+                <Select.Root type="single" bind:value={defaultStore}>
+                  <Select.Trigger class="grocery-select">
+                    <span>{defaultStore}</span>
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each stores as s}
+                      <Select.Item value={s}>{s}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
               </article>
 
               <article class="grocery-setting-row">

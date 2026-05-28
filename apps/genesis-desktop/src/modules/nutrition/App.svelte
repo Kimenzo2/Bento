@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import BellIcon from "@lucide/svelte/icons/bell";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import DropletsIcon from "@lucide/svelte/icons/droplets";
@@ -15,6 +15,7 @@
   } from "$lib/components/ui/card/index.js";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
+  import HydrationPieChart from "$lib/components/charts/HydrationPieChart.svelte";
   import {
     getModuleSectionLabel,
     moduleSectionStore,
@@ -25,6 +26,11 @@
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   let _t = $derived.by(() => createTranslator($activeBundle));
+
+  // Hydration tracking
+  let hydrationCurrent = $state(0.7); // in Liters
+  let hydrationGoal = $state(2.4); // in Liters
+  let hydrationPercentage = $derived(Math.round((hydrationCurrent / hydrationGoal) * 100));
 
   const drinks = [
     { time: "07:20", amount: "250 ml" },
@@ -100,15 +106,18 @@
 
     {#if selectedSection === "Today"}
     <section class="nutrition-hero-grid">
-      <Card class="nutrition-ring-card">
+<Card class="nutrition-ring-card">
         <CardHeader>
           <CardTitle>{_t('moduleNutritionHydration')}</CardTitle>
           <CardDescription>{_t('moduleNutritionHydrationDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="nutrition-ring-card__content">
-          <div class="nutrition-ring">
-            <strong>0.7L</strong>
-            <small>29%</small>
+          <div class="nutrition-hydration-chart">
+            <HydrationPieChart percentage={hydrationPercentage} height={200} />
+            <div class="nutrition-hydration-overlay">
+              <strong>{hydrationCurrent}L</strong>
+              <small>of {hydrationGoal}L</small>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -160,18 +169,27 @@
         </div>
       {:else if selectedSection === "Water"}
         <div class="nutrition-grid nutrition-grid--water">
-          <Card class="nutrition-panel">
+          <Card class="nutrition-panel nutrition-panel--chart">
             <CardHeader>
               <CardTitle>{_t('moduleNutritionWaterLog')}</CardTitle>
               <CardDescription>{_t('moduleNutritionWaterLogDesc')}</CardDescription>
             </CardHeader>
-            <CardContent class="nutrition-water-log">
-              {#each drinks as drink}
-                <article>
-                  <span>{drink.time}</span>
-                  <strong>{drink.amount}</strong>
-                </article>
-              {/each}
+            <CardContent class="nutrition-water-chart-content">
+              <div class="nutrition-hydration-chart nutrition-hydration-chart--large">
+                <HydrationPieChart percentage={hydrationPercentage} height={260} segments={80} />
+                <div class="nutrition-hydration-overlay nutrition-hydration-overlay--large">
+                  <strong>{hydrationCurrent}L</strong>
+                  <small>of {hydrationGoal}L ({hydrationPercentage}%)</small>
+                </div>
+              </div>
+              <div class="nutrition-water-log-list">
+                {#each drinks as drink}
+                  <article>
+                    <span>{drink.time}</span>
+                    <strong>{drink.amount}</strong>
+                  </article>
+                {/each}
+              </div>
             </CardContent>
           </Card>
 
@@ -417,6 +435,121 @@
   :global(.nutrition-ring-card__content) {
     display: grid;
     place-items: center;
+  }
+
+  :global(.nutrition-hydration-chart) {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :global(.nutrition-hydration-chart--large) {
+    width: 260px;
+    height: 260px;
+  }
+
+  :global(.nutrition-hydration-overlay) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    text-align: center;
+    z-index: 10;
+  }
+
+  :global(.nutrition-hydration-overlay) strong {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--nutrition-ink);
+  }
+
+  :global(.nutrition-hydration-overlay) small {
+    font-size: 0.85rem;
+    color: var(--nutrition-muted);
+    margin-top: 4px;
+  }
+
+  :global(.nutrition-hydration-overlay--large) strong {
+    font-size: 2.5rem;
+  }
+
+  :global(.nutrition-hydration-overlay--large) small {
+    font-size: 0.95rem;
+  }
+
+  :global(.nutrition-water-chart-content) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  :global(.nutrition-water-log-list) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  :global(.nutrition-water-log-list) article {
+    padding: 10px 14px;
+    border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  :global(.nutrition-water-log-list) span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--nutrition-muted);
+  }
+
+  :global(.nutrition-water-log-list) strong {
+    font-size: 1rem;
+    margin-top: 4px;
+  }
+
+  :global(.nutrition-panel--chart) :global(.card-content) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  :global(.nutrition-hydration-label) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  :global(.nutrition-hydration-label) strong {
+    font-size: 1.8rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  :global(.nutrition-hydration-label) small {
+    font-size: 0.9rem;
+    color: var(--nutrition-muted);
+    margin-top: 4px;
   }
 
   :global(.nutrition-ring) {

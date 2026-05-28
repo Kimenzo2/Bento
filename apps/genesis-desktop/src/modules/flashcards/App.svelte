@@ -5,6 +5,7 @@
   import { activeBundle, createTranslator, defaultBundle } from "$lib/i18n";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Card } from "$lib/components/ui/card/index.js";
+  import * as Select from "$lib/components/ui/select/index.js";
   import {
     deleteFromIndex,
     indexContent,
@@ -1311,14 +1312,19 @@
                   <span>{_t('moduleFlashcardsDeckTitle')}</span>
                   <input bind:value={newDeckTitle} placeholder={_t('moduleFlashcardsDeckNamePlaceholder')} />
                 </label>
-                <label class="recall-field">
-                  <span>{_t('moduleFlashcardsContextLabel')}</span>
-                  <select bind:value={newDeckContext}>
-                    {#each contextOrder as context}
-                      <option value={context}>{context}</option>
-                    {/each}
-                  </select>
-                </label>
+<label class="recall-field">
+            <span>{_t('moduleFlashcardsContextLabel')}</span>
+            <Select.Root type="single" bind:value={newDeckContext}>
+              <Select.Trigger class="recall-select-trigger">
+                <span>{newDeckContext}</span>
+              </Select.Trigger>
+              <Select.Content>
+                {#each contextOrder as context}
+                  <Select.Item value={context}>{context}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </label>
                 <label class="recall-field recall-field--full">
                   <span>{_t('moduleFlashcardsDeckNote')}</span>
                   <input bind:value={newDeckNote} placeholder={_t('moduleFlashcardsDeckNotePlaceholder')} />
@@ -1353,19 +1359,29 @@
                 </label>
                 <label class="recall-field">
                   <span>{_t('moduleFlashcardsContextLabel')}</span>
-                  <select bind:value={newCueContext}>
-                    {#each contextOrder as context}
-                      <option value={context}>{context}</option>
-                    {/each}
-                  </select>
+                  <Select.Root type="single" bind:value={newCueContext}>
+                    <Select.Trigger class="recall-select-trigger">
+                      <span>{newCueContext}</span>
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each contextOrder as context}
+                        <Select.Item value={context}>{context}</Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
                 </label>
                 <label class="recall-field">
                   <span>{_t('moduleFlashcardsDeckSelect')}</span>
-                  <select bind:value={captureDeckId}>
-                    {#each decks as deck (deck.id)}
-                      <option value={deck.id}>{deck.title}</option>
-                    {/each}
-                  </select>
+                  <Select.Root type="single" bind:value={captureDeckId}>
+                    <Select.Trigger class="recall-select-trigger">
+                      <span>{decks.find(d => d.id === captureDeckId)?.title ?? 'Select deck...'}</span>
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each decks as deck (deck.id)}
+                        <Select.Item value={deck.id}>{deck.title}</Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
                 </label>
               </div>
 

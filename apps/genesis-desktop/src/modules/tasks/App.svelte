@@ -10,6 +10,8 @@
   import Sortable from 'sortablejs';
   import Card from '$lib/components/ui/card/card.svelte';
   import CardContent from '$lib/components/ui/card/card-content.svelte';
+  import * as Select from '$lib/components/ui/select/index.js';
+  import * as Table from '$lib/components/ui/table/index.js';
   import { saveTask, updateTask, toggleTask as toggleTaskBackend, deleteTask as deleteTaskBackend, listTasks, archiveTask, duplicateTask, logActivityEntry, listActivityForTask, exportContentToFile, pickImportFile, saveSubtask, deleteSubtask, listSubtasksForTask, reorderTasks, updateSubtaskBackend, type ReorderItem } from '$lib/services/task-service';
   import { parseImportContent, detectConflicts, executeImport } from '$lib/services/task-import-service';
   import type { ImportPreview, ImportPreviewEntry, ConflictEntry } from '$lib/services/task-import-service';
@@ -612,7 +614,7 @@
 
   /* ═══════════════════════════════════════════════════════════════════
      DETAIL PANE — UPDATE HANDLERS
-     ═══════════════════════════════════════════════════════════════════ */
+     ══════════════════════════════════════════════��════════════════════ */
   async function updateField(changes: Partial<UpdateTaskParams>) {
     if (!selectedTaskId) return;
     try {
@@ -673,8 +675,18 @@
     updateField({ priority: val });
   }
 
+  function onPriorityChangeValue(val: Priority) {
+    editPriority = val;
+    updateField({ priority: val });
+  }
+
   function onProjectChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
+    editProject = val;
+    updateField({ project: val });
+  }
+
+  function onProjectChangeValue(val: string) {
     editProject = val;
     updateField({ project: val });
   }
@@ -803,7 +815,7 @@
 
   /* ═══════════════════════════════════════════════════════════════════
      CALENDAR PICKER
-     ═══════════════════════════════════════════════════════════════════ */
+     ════════════��══════════════════════════════════════════════════════ */
   function calendarDays() {
     const first = new Date(calendarYear, calendarMonth, 1);
     const last = new Date(calendarYear, calendarMonth + 1, 0);
@@ -1190,7 +1202,7 @@
 
   /* ═══════════════════════════════════════════════════════════════════
      QUICK ADD & DUPLICATE
-     ═══════════════════════════════════════════════════════════════════ */
+     ═══════════════════════════════════��═══════════════════════════════ */
   async function submitQuickAdd() {
     const title = quickAddTitle.trim();
     if (!title) return;
@@ -1758,17 +1770,16 @@
 
               <!-- Hover Actions -->
               <div class="tasks-card-actions">
-                <select
-                  class="tasks-project-select"
-                  value={task.project}
-                  onchange={(e) => moveTask(task.id, (e.target as HTMLSelectElement).value)}
-                  onclick={(e) => e.stopPropagation()}
-                  title="Move to project"
-                >
-                  {#each projects as p}
-                    <option value={p.id}>{p.name}</option>
-                  {/each}
-                </select>
+                <Select.Root type="single" value={task.project} onValueChange={(v) => { if (v) moveTask(task.id, v); }}>
+                  <Select.Trigger class="tasks-project-select" onclick={(e) => e.stopPropagation()}>
+                    <span>{projects.find(p => p.id === task.project)?.name ?? task.project}</span>
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each projects as p}
+                      <Select.Item value={p.id}>{p.name}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
                 <button
                   class="tasks-card-action-btn tasks-card-action-btn--archive"
                   onclick={(e) => { e.stopPropagation(); archiveTaskAction(task.id); }}
@@ -1864,23 +1875,30 @@
 
     {#if viewMode === 'table'}
       <div class="tasks-table-wrap">
-        <table class="tasks-table">
-          <thead>
-            <tr><th>Task</th><th>Priority</th><th>Project</th><th>Due</th><th>Estimate</th><th>Tracked</th></tr>
-          </thead>
-          <tbody>
+        <Table.Root class="tasks-table">
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Task</Table.Head>
+              <Table.Head>Priority</Table.Head>
+              <Table.Head>Project</Table.Head>
+              <Table.Head>Due</Table.Head>
+              <Table.Head>Estimate</Table.Head>
+              <Table.Head>Tracked</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {#each visibleTasks as task}
-              <tr onclick={() => selectedTaskId = task.id}>
-                <td>{task.title}</td>
-                <td>{priorityLabel(task.priority)}</td>
-                <td>{projects.find(p => p.id === task.project)?.name ?? task.project}</td>
-                <td>{formatDueDate(task.dueAt) ?? '-'}</td>
-                <td>{task.estimatedMinutes ?? '-'}</td>
-                <td>{task.trackedMinutes}</td>
-              </tr>
+              <Table.Row class="tasks-table-row" onclick={() => selectedTaskId = task.id}>
+                <Table.Cell>{task.title}</Table.Cell>
+                <Table.Cell>{priorityLabel(task.priority)}</Table.Cell>
+                <Table.Cell>{projects.find(p => p.id === task.project)?.name ?? task.project}</Table.Cell>
+                <Table.Cell>{formatDueDate(task.dueAt) ?? '-'}</Table.Cell>
+                <Table.Cell>{task.estimatedMinutes ?? '-'}</Table.Cell>
+                <Table.Cell>{task.trackedMinutes}</Table.Cell>
+              </Table.Row>
             {/each}
-          </tbody>
-        </table>
+          </Table.Body>
+        </Table.Root>
       </div>
     {/if}
 
@@ -1952,16 +1970,17 @@
         <button class="tasks-bulk-btn" onclick={() => { selectedIds = new Set(); bulkMode = false; }}>Deselect</button>
         <button class="tasks-bulk-btn" onclick={bulkComplete}>Complete</button>
         <button class="tasks-bulk-btn" onclick={() => bulkMoveTo('inbox')}>To Inbox</button>
-        <select
-          class="tasks-bulk-btn"
-          onchange={(e) => bulkSetPriority((e.target as HTMLSelectElement).value as Priority)}
-        >
-          <option value="">Priority</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="none">None</option>
-        </select>
+        <Select.Root type="single" onValueChange={(v) => { if (v) bulkSetPriority(v as Priority); }}>
+          <Select.Trigger class="tasks-bulk-btn">
+            <span>Priority</span>
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="urgent">Urgent</Select.Item>
+            <Select.Item value="high">High</Select.Item>
+            <Select.Item value="medium">Medium</Select.Item>
+            <Select.Item value="none">None</Select.Item>
+          </Select.Content>
+        </Select.Root>
         <button class="tasks-bulk-btn tasks-bulk-btn--danger" onclick={bulkDelete}>Delete</button>
       </div>
     {/if}
@@ -1997,17 +2016,27 @@
             spellcheck="false"
           />
           <div class="tasks-detail-meta-row">
-            <select class="tasks-detail-priority-select" value={editPriority} onchange={onPriorityChange}>
-              <option value="urgent">🔴 Urgent</option>
-              <option value="high">🟠 High</option>
-              <option value="medium">🔵 Medium</option>
-              <option value="none">None</option>
-            </select>
-            <select class="tasks-detail-project-select" value={editProject} onchange={onProjectChange}>
-              {#each projects as p}
-                <option value={p.id}>{p.name}</option>
-              {/each}
-            </select>
+            <Select.Root type="single" value={editPriority} onValueChange={(v) => { if (v) onPriorityChangeValue(v as Priority); }}>
+              <Select.Trigger class="tasks-detail-priority-select">
+                <span>{editPriority === 'urgent' ? '🔴 Urgent' : editPriority === 'high' ? '🟠 High' : editPriority === 'medium' ? '🔵 Medium' : 'None'}</span>
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="urgent">🔴 Urgent</Select.Item>
+                <Select.Item value="high">🟠 High</Select.Item>
+                <Select.Item value="medium">🔵 Medium</Select.Item>
+                <Select.Item value="none">None</Select.Item>
+              </Select.Content>
+            </Select.Root>
+            <Select.Root type="single" value={editProject} onValueChange={(v) => { if (v) onProjectChangeValue(v); }}>
+              <Select.Trigger class="tasks-detail-project-select">
+                <span>{projects.find(p => p.id === editProject)?.name ?? editProject}</span>
+              </Select.Trigger>
+              <Select.Content>
+                {#each projects as p}
+                  <Select.Item value={p.id}>{p.name}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
             {#if editDueAt}
               <span class="tasks-card-date" style="font-size: 12px; color: {isOverdue(editDueAt) ? 'var(--destructive)' : 'rgba(255,255,255,0.50)'}">
                 {formatDate(editDueAt)}
@@ -2145,20 +2174,21 @@
         <!-- Recurrence Rule -->
         <div class="tasks-detail-section">
           <div class="tasks-detail-section-label">Recurrence</div>
-          <select
-            class="tasks-detail-recurrence-select"
-            bind:value={editRecurrenceRule}
-            onchange={() => { if (selectedTaskId) updateField({ recurrenceRule: editRecurrenceRule }); }}
-          >
-            <option value={undefined}>No recurring</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="biweekly">Every 2 weeks</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-            <option value="every weekday">Every weekday</option>
-            <option value="every weekend">Every weekend</option>
-          </select>
+          <Select.Root type="single" value={editRecurrenceRule ?? ''} onValueChange={(v) => { editRecurrenceRule = v || null; if (selectedTaskId) updateField({ recurrenceRule: editRecurrenceRule }); }}>
+            <Select.Trigger class="tasks-detail-recurrence-select">
+              <span>{editRecurrenceRule === 'daily' ? 'Daily' : editRecurrenceRule === 'weekly' ? 'Weekly' : editRecurrenceRule === 'biweekly' ? 'Every 2 weeks' : editRecurrenceRule === 'monthly' ? 'Monthly' : editRecurrenceRule === 'yearly' ? 'Yearly' : editRecurrenceRule === 'every weekday' ? 'Every weekday' : editRecurrenceRule === 'every weekend' ? 'Every weekend' : 'No recurring'}</span>
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="">No recurring</Select.Item>
+              <Select.Item value="daily">Daily</Select.Item>
+              <Select.Item value="weekly">Weekly</Select.Item>
+              <Select.Item value="biweekly">Every 2 weeks</Select.Item>
+              <Select.Item value="monthly">Monthly</Select.Item>
+              <Select.Item value="yearly">Yearly</Select.Item>
+              <Select.Item value="every weekday">Every weekday</Select.Item>
+              <Select.Item value="every weekend">Every weekend</Select.Item>
+            </Select.Content>
+          </Select.Root>
         </div>
 
         <!-- Time Tracking -->
@@ -2353,22 +2383,25 @@
                 {/if}
               </span>
             </div>
-            <select
-              class="tasks-reschedule-select"
-              value={currentAction}
-              onchange={(e) => {
+            <Select.Root type="single" value={currentAction} onValueChange={(v) => {
+              if (v) {
                 const next = new Map(rescheduleActions);
-                next.set(task.id, (e.target as HTMLSelectElement).value as typeof currentAction);
+                next.set(task.id, v as typeof currentAction);
                 rescheduleActions = next;
-              }}
-            >
-              <option value="leave">Leave as-is</option>
-              <option value="tomorrow">Reschedule → Tomorrow</option>
-              <option value="next-week">Reschedule → Next Week</option>
-              <option value="next-month">Reschedule → Next Month</option>
-              <option value="someday">Move → Someday</option>
-              <option value="archive">Archive (complete & hide)</option>
-            </select>
+              }
+            }}>
+              <Select.Trigger class="tasks-reschedule-select">
+                <span>{currentAction === 'leave' ? 'Leave as-is' : currentAction === 'tomorrow' ? 'Reschedule → Tomorrow' : currentAction === 'next-week' ? 'Reschedule → Next Week' : currentAction === 'next-month' ? 'Reschedule → Next Month' : currentAction === 'someday' ? 'Move → Someday' : 'Archive (complete & hide)'}</span>
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="leave">Leave as-is</Select.Item>
+                <Select.Item value="tomorrow">Reschedule → Tomorrow</Select.Item>
+                <Select.Item value="next-week">Reschedule → Next Week</Select.Item>
+                <Select.Item value="next-month">Reschedule → Next Month</Select.Item>
+                <Select.Item value="someday">Move → Someday</Select.Item>
+                <Select.Item value="archive">Archive (complete & hide)</Select.Item>
+              </Select.Content>
+            </Select.Root>
           </div>
         {/each}
       </div>
@@ -2498,17 +2531,18 @@
                         matches existing task
                         {#if conflict.existingDone}✅{/if}
                       </span>
-                    </div>
-                    <select
-                      class="tasks-import-conflict-select"
-                      value={importConflictResolutions.get(conflict.rowIndex) ?? 'skip'}
-                      onchange={(e) => setConflictResolution(conflict.rowIndex, (e.target as HTMLSelectElement).value as 'skip' | 'overwrite' | 'duplicate')}
-                    >
-                      <option value="skip">Skip</option>
-                      <option value="duplicate">Add anyway</option>
-                      <option value="overwrite">Overwrite</option>
-                    </select>
-                  </div>
+</div>
+              <Select.Root type="single" value={importConflictResolutions.get(conflict.rowIndex) ?? 'skip'} onValueChange={(v) => { if (v) setConflictResolution(conflict.rowIndex, v as 'skip' | 'overwrite' | 'duplicate'); }}>
+                <Select.Trigger class="tasks-import-conflict-select">
+                  <span>{(importConflictResolutions.get(conflict.rowIndex) ?? 'skip') === 'skip' ? 'Skip' : (importConflictResolutions.get(conflict.rowIndex) ?? 'skip') === 'duplicate' ? 'Add anyway' : 'Overwrite'}</span>
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="skip">Skip</Select.Item>
+                  <Select.Item value="duplicate">Add anyway</Select.Item>
+                  <Select.Item value="overwrite">Overwrite</Select.Item>
+                </Select.Content>
+              </Select.Root>
+            </div>
                 {/each}
               </div>
             </div>
@@ -2516,56 +2550,56 @@
 
           <!-- Preview table -->
           <div class="tasks-import-table-wrap">
-            <table class="tasks-import-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Priority</th>
-                  <th>Project</th>
-                  <th>Due</th>
-                  <th>Tags</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table.Root class="tasks-import-table">
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>Title</Table.Head>
+                  <Table.Head>Priority</Table.Head>
+                  <Table.Head>Project</Table.Head>
+                  <Table.Head>Due</Table.Head>
+                  <Table.Head>Tags</Table.Head>
+                  <Table.Head>Status</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
                 {#each importPreview.entries.slice(0, 100) as entry, i}
-                  <tr class:tasks-import-conflict-row={importPreview.conflicts.some(c => c.rowIndex === i)}>
-                    <td class="tasks-import-cell-title">
+                  <Table.Row class={importPreview.conflicts.some(c => c.rowIndex === i) ? 'tasks-import-conflict-row' : ''}>
+                    <Table.Cell class="tasks-import-cell-title">
                       {#if entry.done}<span style="color: #22c55e; margin-right: 4px;">✓</span>{/if}
                       {entry.title}
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       {#if entry.priority !== 'none'}
                         <span class="tasks-import-priority-dot" style="background: {entry.priority === 'urgent' ? '#ef4444' : entry.priority === 'high' ? '#f59e0b' : '#6366f1'}"></span>
                       {/if}
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       {#if entry.project !== 'inbox'}
                         <span style="font-size: 10px; color: rgba(255,255,255,0.50);">{entry.project}</span>
                       {/if}
-                    </td>
-                    <td style="font-size: 10px; color: rgba(255,255,255,0.50);">
+                    </Table.Cell>
+                    <Table.Cell style="font-size: 10px; color: rgba(255,255,255,0.50);">
                       {entry.dueDate ? new Date(parseInt(entry.dueDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       {#each entry.tags.slice(0, 3) as tag}
                         <span class="tasks-import-tag">{tag}</span>
                       {/each}
-                    </td>
-                    <td style="font-size: 10px;">
+                    </Table.Cell>
+                    <Table.Cell style="font-size: 10px;">
                       {#if entry.done}<span style="color: var(--primary);">Done</span>{:else}<span style="color: rgba(255,255,255,0.50);">Open</span>{/if}
-                    </td>
-                  </tr>
+                    </Table.Cell>
+                  </Table.Row>
                 {/each}
                 {#if importPreview.entries.length > 100}
-                  <tr>
-                    <td colspan="6" style="font-size: 11px; color: rgba(255,255,255,0.50); text-align: center; padding: 12px;">
+                  <Table.Row>
+                    <Table.Cell colspan={6} style="font-size: 11px; color: rgba(255,255,255,0.50); text-align: center; padding: 12px;">
                       … and {importPreview.entries.length - 100} more
-                    </td>
-                  </tr>
+                    </Table.Cell>
+                  </Table.Row>
                 {/if}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table.Root>
           </div>
 
           <div class="tasks-export-actions" style="margin-top: 12px;">
