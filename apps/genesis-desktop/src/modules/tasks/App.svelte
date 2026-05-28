@@ -10,6 +10,7 @@
   import Sortable from 'sortablejs';
   import Card from '$lib/components/ui/card/card.svelte';
   import CardContent from '$lib/components/ui/card/card-content.svelte';
+  import * as Select from '$lib/components/ui/select/index.js';
   import { saveTask, updateTask, toggleTask as toggleTaskBackend, deleteTask as deleteTaskBackend, listTasks, archiveTask, duplicateTask, logActivityEntry, listActivityForTask, exportContentToFile, pickImportFile, saveSubtask, deleteSubtask, listSubtasksForTask, reorderTasks, updateSubtaskBackend, type ReorderItem } from '$lib/services/task-service';
   import { parseImportContent, detectConflicts, executeImport } from '$lib/services/task-import-service';
   import type { ImportPreview, ImportPreviewEntry, ConflictEntry } from '$lib/services/task-import-service';
@@ -673,8 +674,18 @@
     updateField({ priority: val });
   }
 
+  function onPriorityChangeValue(val: Priority) {
+    editPriority = val;
+    updateField({ priority: val });
+  }
+
   function onProjectChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
+    editProject = val;
+    updateField({ project: val });
+  }
+
+  function onProjectChangeValue(val: string) {
     editProject = val;
     updateField({ project: val });
   }
@@ -803,7 +814,7 @@
 
   /* ═══════════════════════════════════════════════════════════════════
      CALENDAR PICKER
-     ═══════════════════════════════════════════════════════════════════ */
+     ════════════��══════════════════════════════════════════════════════ */
   function calendarDays() {
     const first = new Date(calendarYear, calendarMonth, 1);
     const last = new Date(calendarYear, calendarMonth + 1, 0);
@@ -1758,17 +1769,16 @@
 
               <!-- Hover Actions -->
               <div class="tasks-card-actions">
-                <select
-                  class="tasks-project-select"
-                  value={task.project}
-                  onchange={(e) => moveTask(task.id, (e.target as HTMLSelectElement).value)}
-                  onclick={(e) => e.stopPropagation()}
-                  title="Move to project"
-                >
-                  {#each projects as p}
-                    <option value={p.id}>{p.name}</option>
-                  {/each}
-                </select>
+                <Select.Root type="single" value={task.project} onValueChange={(v) => { if (v) moveTask(task.id, v); }}>
+                  <Select.Trigger class="tasks-project-select" onclick={(e) => e.stopPropagation()}>
+                    <span>{projects.find(p => p.id === task.project)?.name ?? task.project}</span>
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each projects as p}
+                      <Select.Item value={p.id}>{p.name}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
                 <button
                   class="tasks-card-action-btn tasks-card-action-btn--archive"
                   onclick={(e) => { e.stopPropagation(); archiveTaskAction(task.id); }}
@@ -1952,16 +1962,17 @@
         <button class="tasks-bulk-btn" onclick={() => { selectedIds = new Set(); bulkMode = false; }}>Deselect</button>
         <button class="tasks-bulk-btn" onclick={bulkComplete}>Complete</button>
         <button class="tasks-bulk-btn" onclick={() => bulkMoveTo('inbox')}>To Inbox</button>
-        <select
-          class="tasks-bulk-btn"
-          onchange={(e) => bulkSetPriority((e.target as HTMLSelectElement).value as Priority)}
-        >
-          <option value="">Priority</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="none">None</option>
-        </select>
+        <Select.Root type="single" onValueChange={(v) => { if (v) bulkSetPriority(v as Priority); }}>
+          <Select.Trigger class="tasks-bulk-btn">
+            <span>Priority</span>
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="urgent">Urgent</Select.Item>
+            <Select.Item value="high">High</Select.Item>
+            <Select.Item value="medium">Medium</Select.Item>
+            <Select.Item value="none">None</Select.Item>
+          </Select.Content>
+        </Select.Root>
         <button class="tasks-bulk-btn tasks-bulk-btn--danger" onclick={bulkDelete}>Delete</button>
       </div>
     {/if}
@@ -1997,17 +2008,27 @@
             spellcheck="false"
           />
           <div class="tasks-detail-meta-row">
-            <select class="tasks-detail-priority-select" value={editPriority} onchange={onPriorityChange}>
-              <option value="urgent">🔴 Urgent</option>
-              <option value="high">🟠 High</option>
-              <option value="medium">🔵 Medium</option>
-              <option value="none">None</option>
-            </select>
-            <select class="tasks-detail-project-select" value={editProject} onchange={onProjectChange}>
-              {#each projects as p}
-                <option value={p.id}>{p.name}</option>
-              {/each}
-            </select>
+            <Select.Root type="single" value={editPriority} onValueChange={(v) => { if (v) onPriorityChangeValue(v as Priority); }}>
+              <Select.Trigger class="tasks-detail-priority-select">
+                <span>{editPriority === 'urgent' ? '🔴 Urgent' : editPriority === 'high' ? '🟠 High' : editPriority === 'medium' ? '🔵 Medium' : 'None'}</span>
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="urgent">🔴 Urgent</Select.Item>
+                <Select.Item value="high">🟠 High</Select.Item>
+                <Select.Item value="medium">🔵 Medium</Select.Item>
+                <Select.Item value="none">None</Select.Item>
+              </Select.Content>
+            </Select.Root>
+            <Select.Root type="single" value={editProject} onValueChange={(v) => { if (v) onProjectChangeValue(v); }}>
+              <Select.Trigger class="tasks-detail-project-select">
+                <span>{projects.find(p => p.id === editProject)?.name ?? editProject}</span>
+              </Select.Trigger>
+              <Select.Content>
+                {#each projects as p}
+                  <Select.Item value={p.id}>{p.name}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
             {#if editDueAt}
               <span class="tasks-card-date" style="font-size: 12px; color: {isOverdue(editDueAt) ? 'var(--destructive)' : 'rgba(255,255,255,0.50)'}">
                 {formatDate(editDueAt)}
@@ -2145,20 +2166,21 @@
         <!-- Recurrence Rule -->
         <div class="tasks-detail-section">
           <div class="tasks-detail-section-label">Recurrence</div>
-          <select
-            class="tasks-detail-recurrence-select"
-            bind:value={editRecurrenceRule}
-            onchange={() => { if (selectedTaskId) updateField({ recurrenceRule: editRecurrenceRule }); }}
-          >
-            <option value={undefined}>No recurring</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="biweekly">Every 2 weeks</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-            <option value="every weekday">Every weekday</option>
-            <option value="every weekend">Every weekend</option>
-          </select>
+          <Select.Root type="single" value={editRecurrenceRule ?? ''} onValueChange={(v) => { editRecurrenceRule = v || null; if (selectedTaskId) updateField({ recurrenceRule: editRecurrenceRule }); }}>
+            <Select.Trigger class="tasks-detail-recurrence-select">
+              <span>{editRecurrenceRule === 'daily' ? 'Daily' : editRecurrenceRule === 'weekly' ? 'Weekly' : editRecurrenceRule === 'biweekly' ? 'Every 2 weeks' : editRecurrenceRule === 'monthly' ? 'Monthly' : editRecurrenceRule === 'yearly' ? 'Yearly' : editRecurrenceRule === 'every weekday' ? 'Every weekday' : editRecurrenceRule === 'every weekend' ? 'Every weekend' : 'No recurring'}</span>
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="">No recurring</Select.Item>
+              <Select.Item value="daily">Daily</Select.Item>
+              <Select.Item value="weekly">Weekly</Select.Item>
+              <Select.Item value="biweekly">Every 2 weeks</Select.Item>
+              <Select.Item value="monthly">Monthly</Select.Item>
+              <Select.Item value="yearly">Yearly</Select.Item>
+              <Select.Item value="every weekday">Every weekday</Select.Item>
+              <Select.Item value="every weekend">Every weekend</Select.Item>
+            </Select.Content>
+          </Select.Root>
         </div>
 
         <!-- Time Tracking -->
@@ -2353,22 +2375,25 @@
                 {/if}
               </span>
             </div>
-            <select
-              class="tasks-reschedule-select"
-              value={currentAction}
-              onchange={(e) => {
+            <Select.Root type="single" value={currentAction} onValueChange={(v) => {
+              if (v) {
                 const next = new Map(rescheduleActions);
-                next.set(task.id, (e.target as HTMLSelectElement).value as typeof currentAction);
+                next.set(task.id, v as typeof currentAction);
                 rescheduleActions = next;
-              }}
-            >
-              <option value="leave">Leave as-is</option>
-              <option value="tomorrow">Reschedule → Tomorrow</option>
-              <option value="next-week">Reschedule → Next Week</option>
-              <option value="next-month">Reschedule → Next Month</option>
-              <option value="someday">Move → Someday</option>
-              <option value="archive">Archive (complete & hide)</option>
-            </select>
+              }
+            }}>
+              <Select.Trigger class="tasks-reschedule-select">
+                <span>{currentAction === 'leave' ? 'Leave as-is' : currentAction === 'tomorrow' ? 'Reschedule → Tomorrow' : currentAction === 'next-week' ? 'Reschedule → Next Week' : currentAction === 'next-month' ? 'Reschedule → Next Month' : currentAction === 'someday' ? 'Move → Someday' : 'Archive (complete & hide)'}</span>
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="leave">Leave as-is</Select.Item>
+                <Select.Item value="tomorrow">Reschedule → Tomorrow</Select.Item>
+                <Select.Item value="next-week">Reschedule → Next Week</Select.Item>
+                <Select.Item value="next-month">Reschedule → Next Month</Select.Item>
+                <Select.Item value="someday">Move → Someday</Select.Item>
+                <Select.Item value="archive">Archive (complete & hide)</Select.Item>
+              </Select.Content>
+            </Select.Root>
           </div>
         {/each}
       </div>
@@ -2498,17 +2523,18 @@
                         matches existing task
                         {#if conflict.existingDone}✅{/if}
                       </span>
-                    </div>
-                    <select
-                      class="tasks-import-conflict-select"
-                      value={importConflictResolutions.get(conflict.rowIndex) ?? 'skip'}
-                      onchange={(e) => setConflictResolution(conflict.rowIndex, (e.target as HTMLSelectElement).value as 'skip' | 'overwrite' | 'duplicate')}
-                    >
-                      <option value="skip">Skip</option>
-                      <option value="duplicate">Add anyway</option>
-                      <option value="overwrite">Overwrite</option>
-                    </select>
-                  </div>
+</div>
+              <Select.Root type="single" value={importConflictResolutions.get(conflict.rowIndex) ?? 'skip'} onValueChange={(v) => { if (v) setConflictResolution(conflict.rowIndex, v as 'skip' | 'overwrite' | 'duplicate'); }}>
+                <Select.Trigger class="tasks-import-conflict-select">
+                  <span>{(importConflictResolutions.get(conflict.rowIndex) ?? 'skip') === 'skip' ? 'Skip' : (importConflictResolutions.get(conflict.rowIndex) ?? 'skip') === 'duplicate' ? 'Add anyway' : 'Overwrite'}</span>
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="skip">Skip</Select.Item>
+                  <Select.Item value="duplicate">Add anyway</Select.Item>
+                  <Select.Item value="overwrite">Overwrite</Select.Item>
+                </Select.Content>
+              </Select.Root>
+            </div>
                 {/each}
               </div>
             </div>

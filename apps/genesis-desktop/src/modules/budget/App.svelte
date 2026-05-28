@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Wallet, ChevronLeft, ChevronRight, Settings, Plus, PiggyBank, Coffee, Home, Car, ChevronDown } from 'lucide-svelte';
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import * as Select from "$lib/components/ui/select/index.js";
 
   let { moduleId = "budget" } = $props<{ moduleId?: string }>();
   $effect(() => { void moduleId; });
@@ -124,19 +125,21 @@
         
         <div class="form-group">
           <label for={txCategoryId}>{_t('commonCategory')}</label>
-          <div class="select-wrapper">
-            <select id={txCategoryId} bind:value={txCategory}>
-              <option value="" disabled selected>Select category...</option>
+          <Select.Root type="single" bind:value={txCategory}>
+            <Select.Trigger class="budget-category-trigger">
+              <span>{txCategory || 'Select category...'}</span>
+            </Select.Trigger>
+            <Select.Content>
               {#each categories as group}
-                <optgroup label={group.group}>
+                <Select.Group>
+                  <Select.GroupHeading>{group.group}</Select.GroupHeading>
                   {#each group.items as item}
-                    <option value={item.name}>{item.name}</option>
+                    <Select.Item value={item.name}>{item.name}</Select.Item>
                   {/each}
-                </optgroup>
+                </Select.Group>
               {/each}
-            </select>
-            <span class="select-icon"><ChevronDown size={16} /></span>
-          </div>
+            </Select.Content>
+          </Select.Root>
         </div>
         
         <div class="form-group">
