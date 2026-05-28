@@ -53,6 +53,7 @@
     "@tauri-apps/plugin-window-state": "2.4.1",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "layerchart": "^1.0.13",
     "lucide-svelte": "^1.0.1",
     "marked": "^18.0.3",
     "sortablejs": "^1.15.7",
