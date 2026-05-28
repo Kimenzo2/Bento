@@ -26,6 +26,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource-variable/noto-sans-arabic": "^5.2.10",
     "@fontsource/fredoka": "^5.2.10",
     "@fontsource/instrument-serif": "^5.2.8",

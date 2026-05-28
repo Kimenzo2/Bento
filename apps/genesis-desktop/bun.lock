@@ -5,6 +5,7 @@
     "": {
       "name": "@genesis/desktop",
       "dependencies": {
+        "@fontsource-variable/jetbrains-mono": "^5.2.8",
         "@fontsource-variable/noto-sans-arabic": "^5.2.10",
         "@fontsource/fredoka": "^5.2.10",
         "@fontsource/instrument-serif": "^5.2.8",
@@ -180,6 +181,8 @@
     "@floating-ui/dom": ["@floating-ui/dom@1.7.6", "", { "dependencies": { "@floating-ui/core": "^1.7.5", "@floating-ui/utils": "^0.2.11" } }, "sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
+
+    "@fontsource-variable/jetbrains-mono": ["@fontsource-variable/jetbrains-mono@5.2.8", "", {}, "sha512-WBA9elru6Jdp5df2mES55wuOO0WIrn3kpXnI4+W2ek5u3ZgLS9XS4gmIlcQhiZOWEKl95meYdvK7xI+ETLCq/Q=="],
 
     "@fontsource-variable/noto-sans-arabic": ["@fontsource-variable/noto-sans-arabic@5.2.10", "", {}, "sha512-6vP9gU5yQQE/4ClrVoS92rjwc3qUnSkoxaw/Hkrha1Nqn9UEwuh3WVxT2+DMlMdV49uxvxUKVauSd2nwLu/WBA=="],
 
