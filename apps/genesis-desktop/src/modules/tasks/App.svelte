@@ -11,6 +11,7 @@
   import Card from '$lib/components/ui/card/card.svelte';
   import CardContent from '$lib/components/ui/card/card-content.svelte';
   import * as Select from '$lib/components/ui/select/index.js';
+  import * as Table from '$lib/components/ui/table/index.js';
   import { saveTask, updateTask, toggleTask as toggleTaskBackend, deleteTask as deleteTaskBackend, listTasks, archiveTask, duplicateTask, logActivityEntry, listActivityForTask, exportContentToFile, pickImportFile, saveSubtask, deleteSubtask, listSubtasksForTask, reorderTasks, updateSubtaskBackend, type ReorderItem } from '$lib/services/task-service';
   import { parseImportContent, detectConflicts, executeImport } from '$lib/services/task-import-service';
   import type { ImportPreview, ImportPreviewEntry, ConflictEntry } from '$lib/services/task-import-service';
@@ -613,7 +614,7 @@
 
   /* ═══════════════════════════════════════════════════════════════════
      DETAIL PANE — UPDATE HANDLERS
-     ═══════════════════════════════════════════════════════════════════ */
+     ══════════════════════════════════════════════��════════════════════ */
   async function updateField(changes: Partial<UpdateTaskParams>) {
     if (!selectedTaskId) return;
     try {
@@ -1201,7 +1202,7 @@
 
   /* ═══════════════════════════════════════════════════════════════════
      QUICK ADD & DUPLICATE
-     ═══════════════════════════════════════════════════════════════════ */
+     ═══════════════════════════════════��═══════════════════════════════ */
   async function submitQuickAdd() {
     const title = quickAddTitle.trim();
     if (!title) return;
@@ -1874,23 +1875,30 @@
 
     {#if viewMode === 'table'}
       <div class="tasks-table-wrap">
-        <table class="tasks-table">
-          <thead>
-            <tr><th>Task</th><th>Priority</th><th>Project</th><th>Due</th><th>Estimate</th><th>Tracked</th></tr>
-          </thead>
-          <tbody>
+        <Table.Root class="tasks-table">
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Task</Table.Head>
+              <Table.Head>Priority</Table.Head>
+              <Table.Head>Project</Table.Head>
+              <Table.Head>Due</Table.Head>
+              <Table.Head>Estimate</Table.Head>
+              <Table.Head>Tracked</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {#each visibleTasks as task}
-              <tr onclick={() => selectedTaskId = task.id}>
-                <td>{task.title}</td>
-                <td>{priorityLabel(task.priority)}</td>
-                <td>{projects.find(p => p.id === task.project)?.name ?? task.project}</td>
-                <td>{formatDueDate(task.dueAt) ?? '-'}</td>
-                <td>{task.estimatedMinutes ?? '-'}</td>
-                <td>{task.trackedMinutes}</td>
-              </tr>
+              <Table.Row class="tasks-table-row" onclick={() => selectedTaskId = task.id}>
+                <Table.Cell>{task.title}</Table.Cell>
+                <Table.Cell>{priorityLabel(task.priority)}</Table.Cell>
+                <Table.Cell>{projects.find(p => p.id === task.project)?.name ?? task.project}</Table.Cell>
+                <Table.Cell>{formatDueDate(task.dueAt) ?? '-'}</Table.Cell>
+                <Table.Cell>{task.estimatedMinutes ?? '-'}</Table.Cell>
+                <Table.Cell>{task.trackedMinutes}</Table.Cell>
+              </Table.Row>
             {/each}
-          </tbody>
-        </table>
+          </Table.Body>
+        </Table.Root>
       </div>
     {/if}
 
@@ -2542,56 +2550,56 @@
 
           <!-- Preview table -->
           <div class="tasks-import-table-wrap">
-            <table class="tasks-import-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Priority</th>
-                  <th>Project</th>
-                  <th>Due</th>
-                  <th>Tags</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table.Root class="tasks-import-table">
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>Title</Table.Head>
+                  <Table.Head>Priority</Table.Head>
+                  <Table.Head>Project</Table.Head>
+                  <Table.Head>Due</Table.Head>
+                  <Table.Head>Tags</Table.Head>
+                  <Table.Head>Status</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
                 {#each importPreview.entries.slice(0, 100) as entry, i}
-                  <tr class:tasks-import-conflict-row={importPreview.conflicts.some(c => c.rowIndex === i)}>
-                    <td class="tasks-import-cell-title">
+                  <Table.Row class={importPreview.conflicts.some(c => c.rowIndex === i) ? 'tasks-import-conflict-row' : ''}>
+                    <Table.Cell class="tasks-import-cell-title">
                       {#if entry.done}<span style="color: #22c55e; margin-right: 4px;">✓</span>{/if}
                       {entry.title}
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       {#if entry.priority !== 'none'}
                         <span class="tasks-import-priority-dot" style="background: {entry.priority === 'urgent' ? '#ef4444' : entry.priority === 'high' ? '#f59e0b' : '#6366f1'}"></span>
                       {/if}
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       {#if entry.project !== 'inbox'}
                         <span style="font-size: 10px; color: rgba(255,255,255,0.50);">{entry.project}</span>
                       {/if}
-                    </td>
-                    <td style="font-size: 10px; color: rgba(255,255,255,0.50);">
+                    </Table.Cell>
+                    <Table.Cell style="font-size: 10px; color: rgba(255,255,255,0.50);">
                       {entry.dueDate ? new Date(parseInt(entry.dueDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       {#each entry.tags.slice(0, 3) as tag}
                         <span class="tasks-import-tag">{tag}</span>
                       {/each}
-                    </td>
-                    <td style="font-size: 10px;">
+                    </Table.Cell>
+                    <Table.Cell style="font-size: 10px;">
                       {#if entry.done}<span style="color: var(--primary);">Done</span>{:else}<span style="color: rgba(255,255,255,0.50);">Open</span>{/if}
-                    </td>
-                  </tr>
+                    </Table.Cell>
+                  </Table.Row>
                 {/each}
                 {#if importPreview.entries.length > 100}
-                  <tr>
-                    <td colspan="6" style="font-size: 11px; color: rgba(255,255,255,0.50); text-align: center; padding: 12px;">
+                  <Table.Row>
+                    <Table.Cell colspan={6} style="font-size: 11px; color: rgba(255,255,255,0.50); text-align: center; padding: 12px;">
                       … and {importPreview.entries.length - 100} more
-                    </td>
-                  </tr>
+                    </Table.Cell>
+                  </Table.Row>
                 {/if}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table.Root>
           </div>
 
           <div class="tasks-export-actions" style="margin-top: 12px;">

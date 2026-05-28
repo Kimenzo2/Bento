@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MoreHorizontal } from 'lucide-svelte';
   import { Badge } from '$lib/components/ui/badge/index.js';
+  import * as Table from '$lib/components/ui/table/index.js';
   import {
     DropdownMenu,
     DropdownMenuContent,
@@ -32,9 +33,9 @@
   export let dense = false;
 
   function alignClass(align: TelemetryTableColumn['align']) {
-    if (align === 'end') return 'telemetry-table-cell--end';
-    if (align === 'center') return 'telemetry-table-cell--center';
-    return 'telemetry-table-cell--start';
+    if (align === 'end') return 'text-right';
+    if (align === 'center') return 'text-center';
+    return 'text-left';
   }
 
   function toneForValue(value: string | number) {
@@ -58,27 +59,27 @@
 </script>
 
 <div class={`telemetry-table-shell ${dense ? 'telemetry-table-shell--dense' : ''}`}>
-  <table class="telemetry-table">
-    <thead>
-      <tr>
+  <Table.Root class="telemetry-table">
+    <Table.Header>
+      <Table.Row class="telemetry-table-header-row">
         {#each columns as column}
-          <th class={alignClass(column.align)}>{column.label}</th>
+          <Table.Head class={alignClass(column.align)}>{column.label}</Table.Head>
         {/each}
         {#if rows.some((row) => (row.actions?.length ?? 0) > 0)}
-          <th class="telemetry-table-cell--end">Actions</th>
+          <Table.Head class="text-right">Actions</Table.Head>
         {/if}
-      </tr>
-    </thead>
-    <tbody>
+      </Table.Row>
+    </Table.Header>
+    <Table.Body>
       {#if rows.length === 0}
-        <tr>
-          <td class="telemetry-table-empty" colspan={columns.length + 1}>{emptyLabel}</td>
-        </tr>
+        <Table.Row>
+          <Table.Cell class="telemetry-table-empty" colspan={columns.length + 1}>{emptyLabel}</Table.Cell>
+        </Table.Row>
       {:else}
         {#each rows as row}
-          <tr>
+          <Table.Row class="telemetry-table-body-row">
             {#each columns as column}
-              <td class={alignClass(column.align)}>
+              <Table.Cell class={alignClass(column.align)}>
                 {#if column.key === 'status' || column.key === 'severity' || toneForValue(row.cells[column.key])}
                   {#if toneForValue(row.cells[column.key])}
                     <Badge variant="outline" class={badgeClass(row.cells[column.key])}>
@@ -94,10 +95,10 @@
                 {:else}
                   {row.cells[column.key]}
                 {/if}
-              </td>
+              </Table.Cell>
             {/each}
             {#if rows.some((item) => (item.actions?.length ?? 0) > 0)}
-              <td class="telemetry-table-cell--end">
+              <Table.Cell class="text-right">
                 {#if row.actions?.length}
                   <div class="telemetry-table-actions">
                     <DropdownMenu>
@@ -122,13 +123,13 @@
                     </DropdownMenu>
                   </div>
                 {/if}
-              </td>
+              </Table.Cell>
             {/if}
-          </tr>
+          </Table.Row>
         {/each}
       {/if}
-    </tbody>
-  </table>
+    </Table.Body>
+  </Table.Root>
 </div>
 
 <style>
@@ -137,54 +138,20 @@
     overflow-x: auto;
     overflow-y: hidden;
     border: 1px solid var(--border);
-    border-radius: 0.95rem;
+    border-radius: 0.75rem;
     background: color-mix(in srgb, var(--surface) 98%, transparent);
   }
 
-  .telemetry-table {
-    width: 100%;
-    min-width: 1100px;
-    border-collapse: collapse;
-    table-layout: fixed;
+  :global(.telemetry-table) {
+    min-width: 800px;
   }
 
-  .telemetry-table thead th {
-    height: 3rem;
-    padding: 0 1rem;
-    border-bottom: 1px solid var(--border);
+  :global(.telemetry-table-header-row) {
     background: color-mix(in srgb, var(--surface) 90%, var(--background));
-    color: var(--muted);
-    font-size: 0.82rem;
-    font-weight: 500;
-    white-space: nowrap;
   }
 
-  .telemetry-table tbody td {
-    padding: 1rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
-    color: var(--foreground);
-    font-size: 0.92rem;
-    vertical-align: middle;
-  }
-
-  .telemetry-table tbody tr:last-child td {
-    border-bottom: 0;
-  }
-
-  .telemetry-table tbody tr:hover td {
+  :global(.telemetry-table-body-row:hover) {
     background: color-mix(in srgb, var(--surface) 94%, var(--telemetry-accent-soft));
-  }
-
-  .telemetry-table-cell--start {
-    text-align: left;
-  }
-
-  .telemetry-table-cell--end {
-    text-align: right;
-  }
-
-  .telemetry-table-cell--center {
-    text-align: center;
   }
 
   .telemetry-table-actions {
@@ -234,7 +201,7 @@
     opacity: 0.88;
   }
 
-  .telemetry-table-badge {
+  :global(.telemetry-table-badge) {
     min-height: 1.55rem;
     padding-inline: 0.55rem;
     border-radius: 999px;
@@ -243,25 +210,25 @@
     text-transform: capitalize;
   }
 
-  .telemetry-table-badge--success {
+  :global(.telemetry-table-badge--success) {
     border-color: color-mix(in srgb, #10b981 40%, var(--border));
     color: #34d399;
     background: color-mix(in srgb, #10b981 10%, transparent);
   }
 
-  .telemetry-table-badge--warning {
+  :global(.telemetry-table-badge--warning) {
     border-color: color-mix(in srgb, #f59e0b 40%, var(--border));
     color: #fbbf24;
     background: color-mix(in srgb, #f59e0b 10%, transparent);
   }
 
-  .telemetry-table-badge--danger {
+  :global(.telemetry-table-badge--danger) {
     border-color: color-mix(in srgb, #ef4444 40%, var(--border));
     color: #f87171;
     background: color-mix(in srgb, #ef4444 10%, transparent);
   }
 
-  .telemetry-table-shell--dense .telemetry-table tbody td {
-    padding-block: 0.8rem;
+  .telemetry-table-shell--dense :global([data-slot="table-cell"]) {
+    padding-block: 0.5rem;
   }
 </style>
