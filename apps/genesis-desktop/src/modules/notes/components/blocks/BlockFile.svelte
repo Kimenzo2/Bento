@@ -4,14 +4,14 @@
 
   let { block }: { block: Block } = $props();
 
-  let content = block.content as any;
-  let fileState: FileState = content?.state ?? FileState.Empty;
-  let fileType: FileType = content?.type ?? FileType.None;
-  let targetObjectId: string = content?.targetObjectId ?? '';
-  let fileName: string = content?.name ?? '';
-  let fileSize: number = content?.size ?? 0;
-  let fileMime: string = content?.mime ?? '';
-  let processor: EmbedProcessor = content?.processor ?? (0 as EmbedProcessor);
+  let content = $derived(block.content as any);
+  let fileState: FileState = $derived(content?.state ?? FileState.Empty);
+  let fileType: FileType = $derived(content?.type ?? FileType.None);
+  let targetObjectId: string = $derived(content?.targetObjectId ?? '');
+  let fileName: string = $derived(content?.name ?? '');
+  let fileSize: number = $derived(content?.size ?? 0);
+  let fileMime: string = $derived(content?.mime ?? '');
+  let processor: EmbedProcessor = $derived(content?.processor ?? (0 as EmbedProcessor));
 
   // Format file size
   function formatSize(bytes: number): string {

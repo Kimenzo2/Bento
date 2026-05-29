@@ -8,8 +8,8 @@
 
   let { block }: { block: Block } = $props();
 
-  let content = block.content as any;
-  let style: LayoutStyle = content?.style ?? LayoutStyle.Row;
+  let content = $derived(block.content as any);
+  let style: LayoutStyle = $derived(content?.style ?? LayoutStyle.Row);
 </script>
 
 {#if style === LayoutStyle.Div}

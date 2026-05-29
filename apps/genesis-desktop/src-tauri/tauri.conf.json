@@ -58,7 +58,10 @@
     },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI4M0UwRkY2NDk2RTJFRjYKUldUMkxtNUo5ZzgrS09ObHB2LzhPMkZvOGtGUHZPUlVndmRQYWIrWHRyVG9LOGNielJPQjh1aW0K",
-      "endpoints": ["https://updates.iamazeyou.me/bento-desktop"],
+      "endpoints": [
+        "https://genesis.vercel.app/api/updates/bento-desktop",
+        "https://updates.iamazeyou.me/bento-desktop"
+      ],
       "windows": {
         "installMode": "passive"
       }

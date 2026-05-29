@@ -510,13 +510,13 @@ pub async fn recipes_list(state: State<'_, BentoAppState>) -> Result<Vec<RecipeR
     Ok(result)
 }
 
-#[tauri::command]
-pub async fn recipe_save(
-    state: State<'_, BentoAppState>,
-    search: State<'_, SearchService>,
+/// Internal save function — callable from both the Tauri command and meal_db import.
+pub async fn recipe_save_internal(
+    pool: &sqlx::SqlitePool,
+    search: &SearchService,
     payload: NewRecipePayload,
 ) -> Result<RecipeRow, String> {
-    ensure_recipes_tables(&state.db()).await?;
+    ensure_recipes_tables(pool).await?;
     if payload.title.trim().is_empty() {
         return Err("Recipe title is required.".into());
     }
@@ -548,7 +548,7 @@ pub async fn recipe_save(
     .bind(&payload.notes)
     .bind(now)
     .bind(now)
-    .execute(&state.db())
+    .execute(pool)
     .await
     .map_err(|e| e.to_string())?;
 
@@ -566,7 +566,7 @@ pub async fn recipe_save(
         .bind(&ing.amount_imperial)
         .bind(serde_json::to_string(&ing.substitutes).unwrap_or_else(|_| "[]".into()))
         .bind(i as i64)
-        .execute(&state.db())
+        .execute(pool)
         .await
         .map_err(|e| e.to_string())?;
     }
@@ -584,13 +584,13 @@ pub async fn recipe_save(
         .bind(&step.instruction)
         .bind(step.duration_min)
         .bind(&step.video_url)
-        .execute(&state.db())
+        .execute(pool)
         .await
         .map_err(|e| e.to_string())?;
     }
 
-    let ingredients = fetch_ingredients(&state.db(), &id).await?;
-    let steps = fetch_steps(&state.db(), &id).await?;
+    let ingredients = fetch_ingredients(pool, &id).await?;
+    let steps = fetch_steps(pool, &id).await?;
     let recipe = RecipeRow {
         id,
         title: payload.title,
@@ -624,6 +624,15 @@ pub async fn recipe_save(
     }
 
     Ok(recipe)
+}
+
+#[tauri::command]
+pub async fn recipe_save(
+    state: State<'_, BentoAppState>,
+    search: State<'_, SearchService>,
+    payload: NewRecipePayload,
+) -> Result<RecipeRow, String> {
+    recipe_save_internal(&state.db(), &search, payload).await
 }
 
 #[tauri::command]

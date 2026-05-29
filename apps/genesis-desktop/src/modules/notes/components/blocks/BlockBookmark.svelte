@@ -4,13 +4,13 @@
 
   let { block }: { block: Block } = $props();
 
-  let content = block.content as any;
-  let state: BookmarkState = content?.state ?? BookmarkState.Empty;
-  let url: string = content?.url ?? '';
-  let title: string = content?.title ?? '';
-  let description: string = content?.description ?? '';
-  let faviconUrl: string = content?.faviconUrl ?? '';
-  let imageUrl: string = content?.imageUrl ?? '';
+  let content = $derived(block.content as any);
+  let state: BookmarkState = $derived(content?.state ?? BookmarkState.Empty);
+  let url: string = $derived(content?.url ?? '');
+  let title: string = $derived(content?.title ?? '');
+  let description: string = $derived(content?.description ?? '');
+  let faviconUrl: string = $derived(content?.faviconUrl ?? '');
+  let imageUrl: string = $derived(content?.imageUrl ?? '');
 
   // Extract domain from URL for display
   function getDomain(u: string): string {

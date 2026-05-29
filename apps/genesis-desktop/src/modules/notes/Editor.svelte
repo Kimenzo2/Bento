@@ -105,6 +105,9 @@
   $effect(() => {
     if (!objectId || objectId === loadedObjectId) return;
     loadedObjectId = objectId;
+    // The store's _pendingInitId guard handles stale responses;
+    // if the user switches notes before init completes, the store
+    // silently drops the stale result — no store corruption.
     void editorStore.init(objectId);
   });
 
@@ -144,7 +147,7 @@
 
   // ── Local click: close floating menus when clicking outside ──────
   function handleEditorMouseDown(e: MouseEvent) {
-    const target = e.target as Node;
+    const target = e.target as Element;
     // Only process clicks within the editor
     if (!editorEl?.contains(target)) {
       // Click outside editor — close all floating UIs
@@ -168,10 +171,13 @@
     editorStore.blurBlock();
   }
 
-  /** Persist text changes to the store (and thus to SQLite). */
+  /** Persist text changes — debounced backend save + live text cache.
+   *  Does NOT update the writable store, which prevents the cascading
+   *  derived-store re-evaluations that were causing the editor freeze.
+   *  The store is only synced on blur or structural operations (split/merge). */
   function handleUpdate(blockId: string, text: string, marks: Mark[]) {
     if (!blockId) return;
-    editorStore.setBlockText(blockId, text, marks);
+    editorStore.persistBlockText(blockId, text, marks);
     // If this is the title block, notify the parent (sidebar list update)
     if ($titleBlock?.id === blockId && onTitleChange) {
       onTitleChange(objectId, text);
@@ -205,8 +211,9 @@
       const before = text.slice(0, range.from);
       const after = text.slice(range.from);
 
-      // Save text before cursor
-      await editorStore.setBlockText(blockId, before);
+      // Save text before cursor — sync to store so the template reflects the split
+      await editorStore.persistBlockText(blockId, before);
+      editorStore.syncBlockTextToStore(blockId);
 
       // Create new block after current one
       const newId = await editorStore.addBlock(blockId, after, (block.content as ContentText)?.style);
@@ -230,7 +237,8 @@
       if (!prevId) return;
 
       const prevText = (prev.content as ContentText)?.text ?? '';
-      await editorStore.setBlockText(prevId, prevText + value);
+      await editorStore.persistBlockText(prevId, prevText + value);
+      editorStore.syncBlockTextToStore(prevId);
 
       await editorStore.deleteBlock(blockId);
       editorStore.focusBlock(prevId);

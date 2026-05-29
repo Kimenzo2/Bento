@@ -33,6 +33,15 @@
   let isSyncing = false;
   let editableEl: HTMLDivElement;
 
+  // No debounce — call onUpdate immediately on every keystroke.
+  // This matches the original Anytype-ts text.tsx behavior where
+  // onInput just calls onUpdate?.() directly.
+  // Debouncing the store update created a race window where text
+  // typed right before a note switch was silently lost because
+  // the deferred onUpdate would fire after the store had been
+  // reset for the new note, and setBlockText couldn't find the
+  // old blockId in the new note's blockMap.
+
   // Sync local state from block prop (skip during active editing to avoid cursor jumps)
   $effect(() => {
     if (!block || !block.content) return;
@@ -248,6 +257,8 @@
   function handleInput() {
     if (!editableEl) return;
     textValue = editableEl.innerText || '';
+    // Call onUpdate immediately — matches Anytype-ts text.tsx original
+    // where onInput() just calls onUpdate?.() with no debounce.
     onUpdate(block.id || '', textValue, marks);
   }
 
@@ -257,6 +268,11 @@
   }
 
   function handleBlur(e: FocusEvent) {
+    // CRITICAL: Sync live text to store BEFORE setting isFocused=false.
+    // The $effect re-runs when isFocused changes, and if the store has
+    // stale text, it will overwrite the contenteditable with old content,
+    // erasing the user's last typed characters.
+    if (block.id) editorStore.syncBlockTextToStore(block.id);
     isFocused = false;
     onBlur(e);
   }
@@ -461,6 +477,7 @@
   onMount(() => {
     syncEditable();
   });
+
 
   // ── CSS class helpers ──────────────────────────────────────────────
   const styleClassMap: Record<TextStyle, string> = {

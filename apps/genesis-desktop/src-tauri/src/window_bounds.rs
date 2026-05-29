@@ -168,18 +168,24 @@ fn clamp_to_monitor_area(window: &WebviewWindow, monitors: &[Monitor]) -> tauri:
 
 /// Transition from narrow login window → full shell.
 /// Dev builds: just maximize + show.
-/// Release builds: try to restore saved state first.
+/// Release builds: fit the shell to the active monitor work area.
 pub fn transition_to_shell(window: &WebviewWindow) -> tauri::Result<()> {
     #[cfg(not(debug_assertions))]
     {
-        let restore_flags = StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED;
-        let _ = window.restore_state(restore_flags);
-        let size = window.outer_size().unwrap_or(PhysicalSize::new(0, 0));
-        if size.width >= DEFAULT_SHELL_WIDTH && size.height >= DEFAULT_SHELL_HEIGHT {
-            let monitors = window.available_monitors().unwrap_or_default();
-            clamp_to_monitor_area(window, &monitors)?;
-            window.show()?;
-            window.set_focus()?;
+        let monitors = window.available_monitors().unwrap_or_default();
+        if let Ok(position) = window.outer_position() {
+            if let Ok(size) = window.outer_size() {
+                let window_bounds = bounds_from_position(position, size);
+                if let Some(monitor) =
+                    best_monitor(window_bounds, &monitors).or_else(|| monitors.first())
+                {
+                    fit_shell_to_monitor(window, monitor)?;
+                    return Ok(());
+                }
+            }
+        }
+        if let Some(monitor) = monitors.first() {
+            fit_shell_to_monitor(window, monitor)?;
             return Ok(());
         }
     }

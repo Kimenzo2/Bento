@@ -284,44 +284,54 @@ impl CryptoService {
     }
 
     /// Get a pool for a named module. Returns error if locked.
+    /// When no master password is configured, falls back to a plaintext pool.
     pub async fn pool(&self, module: &str) -> Result<SqlitePool, String> {
+        // First check: if unlocked and pool already exists, return it immediately
         {
             let inner = self.0.read().await;
-            match inner.status {
-                CryptoStatus::Locked => {
-                    return Err("Database is locked. Unlock with your master password.".to_string());
-                }
-                CryptoStatus::NotConfigured => {
-                    return Err("Master password not configured.".to_string());
-                }
-                CryptoStatus::Unlocked => {
-                    if let Some(pool) = inner.pools.get(module).cloned() {
-                        return Ok(pool);
-                    }
-                }
+            if inner.status == CryptoStatus::Locked {
+                return Err("Database is locked. Unlock with your master password.".to_string());
+            }
+            if let Some(pool) = inner.pools.get(module).cloned() {
+                return Ok(pool);
             }
         }
 
-        let (key, data_dir) = {
+        let (data_dir, is_unlocked) = {
             let inner = self.0.read().await;
-            let key = inner
-                .key
-                .as_ref()
-                .ok_or_else(|| {
-                    "Database is unlocked but the encryption key is missing.".to_string()
-                })?
-                .clone();
-            (key, inner.data_dir.clone())
+            (inner.data_dir.clone(), inner.status == CryptoStatus::Unlocked)
         };
 
-        let pool = open_module_pool(module, &data_dir, &key, pool_size_for_module(module)).await?;
+        if is_unlocked {
+            let key = {
+                let inner = self.0.read().await;
+                inner
+                    .key
+                    .as_ref()
+                    .ok_or_else(|| {
+                        "Database is unlocked but the encryption key is missing.".to_string()
+                    })?
+                    .clone()
+            };
+            let pool = open_module_pool(module, &data_dir, &key, pool_size_for_module(module)).await?;
 
-        let mut inner = self.0.write().await;
-        if let Some(existing) = inner.pools.get(module).cloned() {
-            return Ok(existing);
+            let mut inner = self.0.write().await;
+            if let Some(existing) = inner.pools.get(module).cloned() {
+                return Ok(existing);
+            }
+            inner.pools.insert(module.to_string(), pool.clone());
+            Ok(pool)
+        } else {
+            // Not configured — open a plaintext (unencrypted) pool
+            let pool = open_plaintext_module_pool(module, &data_dir, pool_size_for_module(module)).await?;
+
+            let mut inner = self.0.write().await;
+            if let Some(existing) = inner.pools.get(module).cloned() {
+                return Ok(existing);
+            }
+            inner.pools.insert(module.to_string(), pool.clone());
+            Ok(pool)
         }
-        inner.pools.insert(module.to_string(), pool.clone());
-        Ok(pool)
     }
 
     /// Convenience: get the main pool (used by BentoAppState).
@@ -468,14 +478,46 @@ async fn open_module_pool(
     key: &DerivedKey,
     max_connections: u32,
 ) -> Result<SqlitePool, String> {
+    let path = module_db_path(module, data_dir)?;
+    open_encrypted_pool(&path, key, max_connections).await
+}
+
+async fn open_plaintext_module_pool(
+    module: &str,
+    data_dir: &Path,
+    max_connections: u32,
+) -> Result<SqlitePool, String> {
+    let path = module_db_path(module, data_dir)?;
+    let options = SqliteConnectOptions::new()
+        .filename(&path)
+        .create_if_missing(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .foreign_keys(true)
+        .pragma("journal_size_limit", "67108864")
+        .pragma("busy_timeout", "5000");
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(max_connections)
+        .min_connections(1)
+        .acquire_timeout(DB_ACQUIRE_TIMEOUT)
+        .acquire_slow_threshold(DB_ACQUIRE_SLOW_THRESHOLD)
+        .test_before_acquire(false)
+        .connect_with(options)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    Ok(pool)
+}
+
+fn module_db_path(module: &str, data_dir: &Path) -> Result<PathBuf, String> {
     let filename = MODULE_DB_FILES
         .iter()
         .find(|(name, _)| *name == module)
         .map(|(_, filename)| *filename)
         .ok_or_else(|| format!("Unknown module database: {module}"))?;
 
-    let path = data_dir.join(filename);
-    open_encrypted_pool(&path, key, max_connections).await
+    Ok(data_dir.join(filename))
 }
 
 fn backup_and_remove_plaintext_databases(data_dir: &Path) -> Result<(), String> {

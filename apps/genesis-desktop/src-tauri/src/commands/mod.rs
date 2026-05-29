@@ -29,6 +29,7 @@ use tauri_plugin_shell::{
 use tokio::sync::{Mutex as AsyncMutex, oneshot};
 
 use crate::{
+    auth::{AuthBootstrapState, AuthManager},
     mcp::{McpError, McpRequest, McpResponse},
     runtime::{DesktopRuntime, LifecycleState},
     settings::{self, DesktopSettings},
@@ -519,15 +520,29 @@ pub fn finish_background_task(app: AppHandle, task_id: String) -> Result<Lifecyc
 }
 
 #[tauri::command]
-pub fn restore_window(app: AppHandle) -> Result<LifecycleState, String> {
+pub async fn restore_window(app: AppHandle) -> Result<LifecycleState, String> {
     let runtime = app
         .try_state::<DesktopRuntime>()
         .ok_or_else(|| "Desktop runtime is unavailable.".to_string())?;
 
     runtime.clear_backgrounded();
 
+    let auth_state = if let Some(auth) = app.try_state::<AuthManager>() {
+        Some(auth.snapshot().await)
+    } else {
+        None
+    };
+
     if let Some(window) = app.get_webview_window("main") {
-        restore_main_window(&window).map_err(|error| error.to_string())?;
+        match auth_state {
+            Some(AuthBootstrapState::Restored { .. }) => {
+                crate::window_bounds::transition_to_shell(&window)
+                    .map_err(|error| error.to_string())?;
+            }
+            _ => {
+                restore_main_window(&window).map_err(|error| error.to_string())?;
+            }
+        }
     }
 
     let state = runtime.lifecycle_state();

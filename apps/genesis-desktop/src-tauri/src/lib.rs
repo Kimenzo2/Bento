@@ -2,6 +2,7 @@ pub mod actors;
 pub mod audio;
 pub mod auth;
 pub mod byok;
+pub mod cloud_backup;
 pub mod commands;
 pub mod crypto;
 pub mod crypto_commands;
@@ -9,16 +10,19 @@ pub mod db;
 pub mod health;
 pub mod local_store;
 pub mod mcp;
+pub mod meal_db;
 pub mod modules;
 pub mod mood;
 pub mod notes;
 pub mod notifications;
 pub mod payments;
 pub mod recipes;
+pub mod reading;
 pub mod runtime;
 pub mod scheduler;
 pub mod search;
 pub mod session;
+pub mod share;
 pub mod settings;
 pub mod telemetry;
 pub mod util;
@@ -32,6 +36,11 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_window_state::StateFlags;
 
 use crate::auth::AuthManager;
+use crate::cloud_backup::{
+    apply_pending_restore, backup_now, clear_service_role_key, delete_backup, get_key_state,
+    get_state, restore_backup, set_service_role_key,
+    spawn_cloud_backup_worker, test_connection,
+};
 use crate::commands::{
     DashboardCache, McpManager, PendingDeepLink, backup_desktop_settings, begin_background_task,
     consume_pending_deep_link, emit_main_window_event, export_content_to_file,
@@ -52,6 +61,7 @@ use crate::modules::{
     uninstall_module,
 };
 use crate::notes::undo::HistoryRegistry;
+use crate::reading::*;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
 use crate::session::ManagedTabSession;
@@ -251,15 +261,20 @@ pub fn run() {
     builder = builder.setup(|app| {
         install_runtime_panic_hook(app.handle().clone());
 
+        let data_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+        if let Err(error) = apply_pending_restore(app.handle()) {
+            eprintln!("[cloud-backup] pending restore skipped: {error}");
+        }
+
         let settings = settings::load_desktop_settings(app.handle());
         app.manage(DesktopRuntime::new(settings.clone()));
         let _ = settings::apply_configured_shortcuts(app.handle(), &settings);
 
         // ── Encryption service ────────────────────────────────────────
-        let data_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
         let crypto = CryptoService::new(data_dir.clone());
         app.manage(crypto.clone());
 
@@ -317,6 +332,8 @@ pub fn run() {
             app.handle().clone(),
         );
 
+        spawn_cloud_backup_worker(app.handle().clone());
+
         Ok(())
     });
 
@@ -324,6 +341,14 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_desktop_settings,
             save_desktop_settings,
+            get_state,
+            test_connection,
+            backup_now,
+            restore_backup,
+            delete_backup,
+            get_key_state,
+            set_service_role_key,
+            clear_service_role_key,
             backup_desktop_settings,
             restore_desktop_settings_backup,
             write_debug_log,
@@ -522,6 +547,45 @@ pub fn run() {
             crate::recipes::cook_history_list,
             crate::recipes::cook_history_add,
             crate::recipes::recipes_seed_if_empty,
+            // Reading
+            reading_list_books,
+            reading_get_book,
+            reading_save_book,
+            reading_delete_book,
+            reading_update_progress,
+            reading_list_collections,
+            reading_save_collection,
+            reading_delete_collection,
+            reading_set_book_collections,
+            reading_add_bookmark,
+            reading_delete_bookmark,
+            reading_add_highlight,
+            reading_delete_highlight,
+            reading_add_note,
+            reading_delete_note,
+            reading_start_session,
+            reading_end_session,
+            reading_list_sessions,
+            reading_list_bookmarks,
+            reading_list_highlights,
+            reading_list_notes,
+            reading_discover_categories,
+            reading_discover_search,
+            reading_discover_detail,
+            reading_discover_random,
+            reading_import_files,
+            reading_import_discover_book,
+            // TheMealDB Discover & Import
+            crate::meal_db::discover_search,
+            crate::meal_db::discover_random,
+            crate::meal_db::discover_meal_detail,
+            crate::meal_db::discover_categories,
+            crate::meal_db::discover_areas,
+            crate::meal_db::discover_ingredients,
+            crate::meal_db::discover_filter_by_category,
+            crate::meal_db::discover_filter_by_area,
+            crate::meal_db::discover_filter_by_ingredient,
+            crate::meal_db::discover_import_meal,
             // Tab session
             crate::session::tab_open,
             crate::session::tab_close,
@@ -562,6 +626,11 @@ pub fn run() {
             crate::settings::commands::get_active_language,
             crate::settings::commands::set_interface_language,
             crate::settings::commands::get_supported_languages,
+            // Share — central middle layer
+            crate::share::share_content,
+            crate::share::share_markdown,
+            crate::share::share_json_to_file,
+            crate::share::share_csv_to_file,
             // Feedback & Bug Reports
             submit_feedback,
             get_my_feedback,

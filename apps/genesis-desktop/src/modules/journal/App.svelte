@@ -43,10 +43,15 @@
   function nav(s: Section) { setModuleSection(moduleId, s, sectionLabels); }
 
   // ── Shared state ──────────────────────────────────────────────────────
-  const TODAY = new Date();
-  const todayLabel = TODAY.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const dayOfYear = Math.ceil((TODAY.getTime() - new Date(TODAY.getFullYear(), 0, 1).getTime()) / 86400000);
-  const todayDateStr = TODAY.toISOString().slice(0, 10);
+  let _now = $state(Date.now());
+  $effect(() => {
+    const interval = setInterval(() => { _now = Date.now(); }, 60_000);
+    return () => clearInterval(interval);
+  });
+  let todayDate = $derived(new Date(_now));
+  let todayLabel = $derived(todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
+  let dayOfYear = $derived(Math.ceil((todayDate.getTime() - new Date(todayDate.getFullYear(), 0, 1).getTime()) / 86400000));
+  let todayDateStr = $derived(todayDate.toISOString().slice(0, 10));
 
   // ── Mood definitions (used by Timeline & Mood pages) ───────────────
   const moods = [
@@ -62,6 +67,44 @@
   let saved = $state(false);
   let selectedMood = $state('');
   let loading = $state(true);
+
+  // ── Toast / save feedback ─────────────────────────────────────────
+  let toastMessage = $state('');
+  let toastVisible = $state(false);
+  let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function showToast(msg: string) {
+    toastMessage = msg;
+    toastVisible = true;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toastVisible = false; }, 3000);
+  }
+
+  // ── Historical entry viewing ──────────────────────────────────────
+  let viewingDate = $state<string | null>(null);
+  let viewingEntry = $state<JournalEntry & { id: string } | null>(null);
+
+  function openEntryInEditor(entry: JournalEntry & { id: string }) {
+    viewingDate = entry.date;
+    viewingEntry = entry;
+    nav('Write');
+  }
+
+  function backToToday() {
+    viewingDate = null;
+    viewingEntry = null;
+    nav('Write');
+  }
+
+  let editorObjectId = $derived(viewingDate ?? todayDateStr);
+  let editorLabel = $derived.by(() => {
+    if (viewingDate) {
+      const d = new Date(viewingDate + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    return todayLabel;
+  });
+  let isHistoricalView = $derived(viewingDate !== null);
 
   // ── All entries (loaded from SQLite via Tauri backend) ────────────────
   let entries = $state<(JournalEntry & { id: string })[]>([]);
@@ -136,21 +179,48 @@
   });
 
   let streak = $derived.by(() => {
-    let s = 0;
-    const checked = new Set<string>();
-    for (const e of entries) {
-      if (checked.has(e.date)) continue;
-      checked.add(e.date);
-      s++;
+    if (entries.length === 0) return 0;
+    const uniqueDates = [...new Set(entries.map(e => e.date))].sort().reverse();
+    if (uniqueDates.length === 0) return 0;
+
+    let count = 0;
+    const today = new Date(_now);
+    const todayStr = today.toISOString().slice(0, 10);
+
+    const mostRecent = new Date(uniqueDates[0] + 'T00:00:00');
+    const diffFromToday = Math.round((today.getTime() - mostRecent.getTime()) / 86400000);
+    if (diffFromToday > 1) return 0;
+
+    for (let i = 0; i < uniqueDates.length; i++) {
+      if (i === 0) { count++; continue; }
+      const curr = new Date(uniqueDates[i] + 'T00:00:00');
+      const prev = new Date(uniqueDates[i - 1] + 'T00:00:00');
+      const diff = Math.round((prev.getTime() - curr.getTime()) / 86400000);
+      if (diff === 1) count++;
+      else break;
     }
-    return s;
+    return count;
   });
 
   async function loadAll() {
     loading = true;
     try {
-      // Load all entries from backend for Timeline / Mood / Recap
-      const raw = await listJournalEntries(365);
+      let raw: Awaited<ReturnType<typeof listJournalEntries>>;
+      try {
+        raw = await listJournalEntries(365);
+      } catch {
+        // Fallback to localStorage if Tauri backend not available
+        raw = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('journal:')) {
+            try {
+              const entry = JSON.parse(localStorage.getItem(key)!);
+              raw.push(entry);
+            } catch { /* skip corrupt entries */ }
+          }
+        }
+      }
       entries = raw.map(e => ({
         id: e.id,
         date: e.date,
@@ -169,10 +239,14 @@
     }
   }
 
-  // ── MOOD stats (computed from real entries) ───────────────────────────
+  // ── MOOD stats (computed from real entries, current month only) ────────
+  let currentMonthPrefix = $derived(todayDate.getFullYear() + '-' + String(todayDate.getMonth() + 1).padStart(2, '0'));
+  let entriesThisMonth = $derived(entries.filter(e => e.date.startsWith(currentMonthPrefix)));
+  let daysInMonth = $derived(new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate());
+
   let moodCounts = $derived.by(() => {
     const counts: Record<string, number> = { great: 0, good: 0, okay: 0, low: 0, awful: 0 };
-    for (const e of entries) {
+    for (const e of entriesThisMonth) {
       if (counts[e.mood] !== undefined) counts[e.mood]++;
     }
     return counts;
@@ -180,8 +254,8 @@
 
   let moodMap = $derived.by(() => {
     const map: { day: number; mood: string | null }[] = [];
-    for (let d = 1; d <= 30; d++) {
-      const dateObj = new Date(TODAY.getFullYear(), TODAY.getMonth(), d);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(todayDate.getFullYear(), todayDate.getMonth(), d);
       const dateStr = dateObj.toISOString().slice(0, 10);
       const dayEntries = entries.filter(e => e.date === dateStr);
       map.push({
@@ -194,7 +268,6 @@
 
   let totalEntries = $derived(entries.length);
   let bestMood = $derived.by(() => {
-    const entriesThisMonth = entries.filter(e => e.date.startsWith(TODAY.getFullYear() + '-' + String(TODAY.getMonth() + 1).padStart(2, '0')));
     if (entriesThisMonth.length === 0) return { id: 'great', count: 0 };
     let best = { id: 'great', count: 0 };
     for (const mood of ['great', 'good', 'okay', 'low', 'awful']) {
@@ -210,23 +283,36 @@
   let recap = $derived.by(() => {
     const total = entries.length;
     const sorted = [...entries].sort((a, b) => b.createdAt - a.createdAt);
-    const recentEntries = sorted.slice(0, 14);      const streakCount = streak;
+    const recentEntries = sorted.slice(0, 14);
+    const streakCount = streak;
     const goodCount = recentEntries.filter(e => e.mood === 'great' || e.mood === 'good').length;
 
     const wins: string[] = [];
     if (streakCount > 0) wins.push(`${streakCount}-day streak`);
     if (total > 0) wins.push(`${total} total entries`);
 
+    // Calculate average entries per day over the active period
+    let avgPerDay: number | null = null;
+    if (total > 0 && sorted.length > 0) {
+      const oldest = sorted[sorted.length - 1];
+      const daysActive = Math.max(1, Math.ceil((time.now() - (oldest?.createdAt ?? time.now())) / 86400000));
+      avgPerDay = Math.round(total / daysActive);
+    }
+
     return {
-      summary: `You've written ${total} entries total with a ${streakCount}-day streak. ` +
-        `${goodCount} of your last 14 entries were positive moods. ` +
-        `Your journaling is strongest on weekdays.`,
+      summary: total > 0
+        ? `You've written ${total} entries total with a ${streakCount}-day streak. ` +
+          `${goodCount} of your last 14 entries were positive moods.` +
+          (total > 0 ? ` Your journaling is strongest on weekdays.` : ``)
+        : `No entries yet. Start writing to see your monthly recap.`,
       patterns: [
-        goodCount / Math.max(1, recentEntries.length) > 0.6
-          ? 'Most recent entries show positive mood'
-          : 'Recent entries show mixed moods — consider a check-in',
-        total > 10
-          ? `You average ${Math.round(total / Math.max(1, Math.ceil((time.now() - (sorted[sorted.length - 1]?.createdAt ?? time.now())) / 86400000)))} entries per day`
+        total === 0
+          ? 'Write your first entry to unlock insights'
+          : goodCount / Math.max(1, recentEntries.length) > 0.6
+            ? 'Most recent entries show positive mood'
+            : 'Recent entries show mixed moods — consider a check-in',
+        total > 10 && avgPerDay !== null
+          ? `You average ${avgPerDay} entries per day`
           : 'Keep writing to unlock pattern detection',
       ],
       wins,
@@ -641,9 +727,18 @@
   ═══════════════════════════════════════════════════════════════════ -->
   {#if selectedSection === 'Write'}
   <div class="j-page">
+    {#if isHistoricalView}
+      <div class="j-historical-banner">
+        <button class="j-back-btn" onclick={backToToday}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          {_t('moduleJournalBackToToday')}
+        </button>
+        <span class="j-historical-label">{_t('moduleJournalViewing')} {editorLabel}</span>
+      </div>
+    {/if}
     <JournalEditor
-      objectId={todayDateStr}
-      {todayLabel}
+      objectId={editorObjectId}
+      todayLabel={editorLabel}
       {dayOfYear}
       {streak}
       bind:isSaving
@@ -652,6 +747,7 @@
       t={_t}
       onsave={async () => {
         await loadAll();
+        showToast(isHistoricalView ? 'moduleJournalUpdated' : 'moduleJournalEntrySaved');
       }}
     />
   </div>
@@ -701,7 +797,8 @@
       <!-- Entries feed -->
       <div class="j-timeline-feed">
         {#each filteredEntries as entry}
-        <div class="j-timeline-item j-card j-card--surface">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div class="j-timeline-item j-card j-card--surface" onclick={() => openEntryInEditor(entry)} role="button" tabindex="0">
           <div class="j-tl-left">
             <div class="j-tl-dot" style="background:{moodColor(entry.mood)}"></div>
             <div class="j-tl-line"></div>
@@ -710,6 +807,7 @@
             <div class="j-tl-header">
               <span class="j-tl-date">{formatDate(entry.date)}</span>
               <span class="j-tl-mood" style="color:{moodColor(entry.mood)}">{moods.find(m=>m.id===entry.mood)?.label}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="j-tl-open-icon"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </div>
             <p class="j-tl-text">{extractPlainText(entry.text)}</p>
             <div class="j-tl-tags">
@@ -757,7 +855,7 @@
           {#each moodMap as cell}
             <div
               class="j-heat-cell"
-              class:j-heat-cell--today={cell.day === 22}
+              class:j-heat-cell--today={cell.day === todayDate.getDate()}
               style="background:{cell.mood ? moodColor(cell.mood) : 'var(--muted-surface)'};opacity:{cell.mood ? 0.85 : 0.25}"
               title={cell.mood ? `${_t('moduleJournalDayOfYear')} ${cell.day}: ${cell.mood}` : `${_t('moduleJournalDayOfYear')} ${cell.day}: ${_t('moduleJournalNoEntry')}`}
             >
@@ -978,6 +1076,14 @@
 
     </div>
   </div>
+  {/if}
+
+  <!-- ── Toast notification ──────────────────────────────────────── -->
+  {#if toastVisible}
+    <div class="j-toast" class:j-toast--show={toastVisible}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="j-toast-icon"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{toastMessage}</span>
+    </div>
   {/if}
 
 </main>
@@ -1962,6 +2068,112 @@
     color: var(--muted);
     font-weight: 500;
     flex-shrink: 0;
+  }
+
+  /* ── Toast ──────────────────────────────────────────────────────── */
+  .j-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    background: #22c55e;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    z-index: 10000;
+    animation: j-toast-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+
+  .j-toast-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  @keyframes j-toast-in {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+
+  /* ── Historical banner ─────────────────────────────────────────── */
+  .j-historical-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 14px;
+    background: var(--mod-accent, #818cf8);
+    color: #fff;
+  }
+
+  .j-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .j-back-btn:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .j-back-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .j-historical-label {
+    font-size: 12px;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Timeline item clickable ────────────────────────────────────── */
+  .j-timeline-item {
+    cursor: pointer !important;
+    text-align: left;
+    border: none;
+    width: 100%;
+    font: inherit;
+    transition: all 0.2s ease !important;
+  }
+
+  .j-timeline-item:hover {
+    background: var(--muted-surface) !important;
+    border-color: var(--mod-accent, #818cf8) !important;
+    transform: translateX(4px);
+  }
+
+  .j-tl-open-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--mod-accent, #818cf8);
+    opacity: 0;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  .j-timeline-item:hover .j-tl-open-icon {
+    opacity: 0.7;
   }
 
   /* ── Responsive ───────────────────────────────────────────────── */

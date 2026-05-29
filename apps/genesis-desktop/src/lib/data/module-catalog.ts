@@ -161,7 +161,7 @@ const starterSidebarSpecs = {
   },
   reading: {
     sectionLabel: "Reading",
-    items: ["Library", "Current", "Sessions", "Highlights", "Goals", "Export"],
+    items: ["Library", "Reader", "Discover", "Collections", "Sessions", "Bookmarks", "Highlights", "Notes", "Goals", "Export"],
   },
   grocery: {
     sectionLabel: "Grocery",
@@ -169,7 +169,7 @@ const starterSidebarSpecs = {
   },
   recipes: {
     sectionLabel: "Recipes",
-    items: ["Recipes", "Import", "Cook Mode", "Meal Plan", "Shopping", "Export"],
+    items: ["Recipes", "Discover", "Import", "Cook Mode", "Meal Plan", "Shopping", "Export"],
   },
   time: {
     sectionLabel: "Time",

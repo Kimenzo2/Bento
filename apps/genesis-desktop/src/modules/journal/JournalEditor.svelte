@@ -66,23 +66,47 @@
   async function handleSave() {
     isSaving = true;
     try {
-      // Serialize current blocks to JSON string
+      // CRITICAL: Flush live text cache into the store so blocks reflect
+      // what the user actually typed (not stale store content).
+      // The editor uses _liveTextContent to avoid render freezes.
+      for (const block of blocks) {
+        if (block.id) editorStore.syncBlockTextToStore(block.id);
+      }
+      // Re-read blocks AFTER flushing live text
+      const freshBlocks = blocks;
       const blocksJson = JSON.stringify(
-        blocks.map(b => ({
+        freshBlocks.map(b => ({
           id: b.id,
           type: b.type,
           content: b.content,
         }))
       );
-      const textContent = blocks.map(b => (b.content as any)?.text ?? '').join('\n').trim();
+      const textContent = freshBlocks.map(b => (b.content as any)?.text ?? '').join('\n').trim();
       const wc = textContent ? textContent.split(/\s+/).filter(Boolean).length : 0;
 
-      await saveJournalEntry({
-        date: objectId,
-        blocks: blocksJson,
-        wordCount: wc,
-        mood: selectedMood || null,
-      });
+      try {
+        // Try Tauri backend first
+        await saveJournalEntry({
+          date: objectId,
+          blocks: blocksJson,
+          wordCount: wc,
+          mood: selectedMood || null,
+        });
+      } catch {
+        // Fallback to localStorage if Tauri backend not available
+        const key = `journal:${objectId}`;
+        const existing = JSON.parse(localStorage.getItem(key) || 'null');
+        const entry = {
+          id: existing?.id ?? crypto.randomUUID(),
+          date: objectId,
+          blocks: blocksJson,
+          wordCount: wc,
+          mood: selectedMood || null,
+          createdAt: existing?.createdAt ?? Date.now(),
+          updatedAt: Date.now(),
+        };
+        localStorage.setItem(key, JSON.stringify(entry));
+      }
 
       saved = true;
       onsave();
@@ -97,6 +121,7 @@
   function handleClear() {
     editorStore.clearBlocks();
     selectedMood = '';
+    saved = false;
   }
 
   // ── Slash commands (same as Notes Editor) ───────────────────────
@@ -110,7 +135,7 @@
   let slashQuery = $state('');
   let slashMenuIndex = $state(0);
   let slashAnchorBlockId = $state<string | null>(null);
-  let editorEl: HTMLDivElement;
+  let editorEl: HTMLDivElement | undefined = $state();
 
   const SLASH_COMMANDS = [
     { type: 'paragraph', icon: Plus,          label: 'Text',          style: TextStyle.Paragraph },
@@ -138,7 +163,10 @@
   }
 
   function handleUpdate(blockId: string, text: string, marks: any[]) {
-    editorStore.setBlockText(blockId, text, marks);
+    // Store update is intentionally NOT called on every keystroke —
+    // only persist to backend (debounced) and cache in live text map.
+    // This prevents cascading derived-store re-evaluations (freeze).
+    editorStore.persistBlockText(blockId, text, marks);
   }
 
   async function handleKeyDown(e: any, value: string, marks: any[], range: any, props: any) {
@@ -149,7 +177,8 @@
       e.preventDefault();
       const before = value.slice(0, range.from);
       const after = value.slice(range.from);
-      await editorStore.setBlockText(blockId, before);
+      await editorStore.persistBlockText(blockId, before);
+      editorStore.syncBlockTextToStore(blockId);
       const newId = await editorStore.addBlock(blockId, after, (props.block.content as any)?.style);
       if (newId) { editorStore.focusBlock(newId); focusBlock(newId, 0); }
       return;
@@ -162,22 +191,22 @@
       if (idx <= 0) return;
       const prev = blocks[idx - 1];
       await editorStore.deleteBlock(blockId);
-      editorStore.focusBlock(prev.id);
-      focusBlock(prev.id);
+      editorStore.focusBlock(prev.id!);
+      focusBlock(prev.id!);
       return;
     }
 
     if (e.key === 'ArrowUp' && range.from === 0) {
       e.preventDefault();
       const idx = blocks.findIndex(b => b.id === blockId);
-      if (idx > 0) focusBlock(blocks[idx - 1].id, 999);
+      if (idx > 0) focusBlock(blocks[idx - 1].id!, 999);
       return;
     }
 
     if (e.key === 'ArrowDown' && range.from >= value.length) {
       e.preventDefault();
       const idx = blocks.findIndex(b => b.id === blockId);
-      if (idx < blocks.length - 1) focusBlock(blocks[idx + 1].id, 0);
+      if (idx < blocks.length - 1) focusBlock(blocks[idx + 1].id!, 0);
       return;
     }
 

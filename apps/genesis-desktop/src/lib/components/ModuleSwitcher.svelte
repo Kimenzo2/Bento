@@ -38,7 +38,7 @@
       { id: "reading", label: "Reading" },
       { id: "goals", label: "Goals" },
       { id: "time", label: "Time" },
-      { id: "sleep", label: "Calendar" },
+      { id: "sleep", label: "Sleep" },
       { id: "passwords", label: "Vault" },
     ],
     [

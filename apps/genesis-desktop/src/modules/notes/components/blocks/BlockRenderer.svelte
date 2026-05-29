@@ -93,7 +93,8 @@
       if (!b?.id || !block.id) return;
       const before = value.slice(0, range.from);
       const after = value.slice(range.from);
-      await editorStore.setBlockText(b.id, before);
+      await editorStore.persistBlockText(b.id, before);
+      editorStore.syncBlockTextToStore(b.id);
       const newId = await editorStore.addChildBlock(block.id, after);
       if (newId) {
         editorStore.focusBlock(newId);

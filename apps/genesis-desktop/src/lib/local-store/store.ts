@@ -164,7 +164,7 @@ function buildContentPayload(
 // ── Store ───────────────────────────────────────────────────────────
 
 function createEditorStore() {
-  const { subscribe, update } = writable<EditorStore>({
+  const { subscribe, update, set } = writable<EditorStore>({
     blocks: new Map(),
     rootChildren: [],
     focusedId: null,
@@ -175,30 +175,58 @@ function createEditorStore() {
     loading: false,
   });
 
+  // ── Toggle state — kept OUTSIDE the writable so toggling never
+  //    triggers rootBlocks / titleBlock derived stores (fixes freeze) ──
+  const toggleOpenState = new Map<string, boolean>();
+
+  let _pendingInitId: string | null = null;
+
   // ── Init / Load ─────────────────────────────────────────────────
 
   async function init(objectId: string, source: 'notes' | 'journal' = 'notes'): Promise<void> {
-    update((s) => ({
-      ...s,
-      objectId,
-      loading: true,
-      loaded: false,
+    // Track the current request — ignore stale responses.
+    // This prevents the race condition where init(noteA) finishes AFTER
+    // init(noteB) has already started, overwriting the store with wrong data.
+    _pendingInitId = objectId;
+    const current = () => _pendingInitId === objectId;
+
+    if (!current()) return;
+
+    // Flush any pending text saves for the PREVIOUS note before resetting.
+    // This ensures text typed right before a note switch isn't lost.
+    // Because noteId was captured at schedule time, each save goes to its
+    // correct note — even if the store has already been reset for the new one.
+    _flushTextSaves();
+    // Clear the live text cache for the old note — prevents 
+    // unbounded memory growth across many note switches.
+    _liveTextContent.clear();
+
+    if (!current()) return;
+
+    // Always reset fully — never guard with loadedObjectId here.
+    // The guard in Editor.svelte ($effect) is the right place; the store
+    // itself must be stateless between note switches to avoid content bleed.
+    set({
       blocks: new Map(),
       rootChildren: [],
       focusedId: null,
       titleBlockId: null,
       descriptionBlockId: null,
-    }));
+      objectId,
+      loaded: false,
+      loading: true,
+    });
+
+    if (!current()) return;
+
     try {
       if (source === 'journal') {
-        // Journal entries are stored via journal-service, not notes_object_full.
-        // Load from the journal backend and reconstruct blocks from the JSON blob.
         const result = await invoke<{ blocks: string } | null>('get_journal_entry', { date: objectId });
-        if (result && result.blocks) {
+        if (!current()) return;
+        if (result?.blocks) {
           try {
             const parsed: any[] = JSON.parse(result.blocks);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              // Blocks are stored as {id, type, content} objects
               const fakeRows: BlockRow[] = parsed.map((b, i) => ({
                 id: b.id ?? crypto.randomUUID(),
                 objectId,
@@ -212,69 +240,56 @@ function createEditorStore() {
                 createdAt: 0,
                 updatedAt: 0,
               }));
-              applyLoadedRows(fakeRows);
+              if (!current()) return;
+              applyLoadedRows(objectId, fakeRows);
+              if (!current()) return;
               update((s) => ({ ...s, loading: false, loaded: true }));
               return;
             }
-          } catch { /* fall through to empty */ }
+          } catch { /* fall through */ }
         }
-        // No existing entry — start with one empty paragraph
-        initEmptyLocal();
+        if (!current()) return;
+        initEmptyLocal(objectId);
+        if (!current()) return;
         update((s) => ({ ...s, loading: false, loaded: true }));
         return;
       }
 
-      // Default: notes source
+      // Notes source — load from backend
       const full = await invoke<NoteWithBlocks>('notes_object_full', { noteId: objectId });
-      const rows = full.blocks;
-      if (rows.length === 0) {
-        await createInitialBlocks(objectId);
+      if (!current()) return;
+
+      // NEVER call createInitialBlocks here — if the DB returned no blocks the
+      // Rust create_note_object already wrote the title+paragraph stubs.
+      // Calling it again was creating N duplicate ghost blocks on every load.
+      // If rows are genuinely empty (corrupted note), show one empty paragraph
+      // without writing anything to the DB.
+      if (full.blocks.length === 0) {
+        initEmptyLocal(objectId);
       } else {
-        applyLoadedRows(rows);
+        applyLoadedRows(objectId, full.blocks);
       }
+      if (!current()) return;
       update((s) => ({ ...s, loading: false, loaded: true }));
     } catch (err) {
+      if (!current()) return;
       console.error('[local-store] init failed:', err);
-      initEmptyLocal();
+      initEmptyLocal(objectId);
+      if (!current()) return;
       update((s) => ({ ...s, loading: false, loaded: true }));
     }
   }
 
-  async function createInitialBlocks(objectId: string): Promise<void> {
-    const content = (text: string, style: TextStyle) => buildContentPayload(text, style);
-    // Match exactly what create_note_object in Rust creates:
-    // position 0 = Title, position 1 = Paragraph (no Description block)
-    const titleResult: BlockRow = await invoke('notes_block_create', {
-      params: { noteId: objectId, parentId: null, targetId: null, blockType: 'text',
-        content: content('', TS.Title), position: 0, align: 0, bgColor: null }
-    });
-    const paraResult: BlockRow = await invoke('notes_block_create', {
-      params: { noteId: objectId, parentId: null, targetId: null, blockType: 'text',
-        content: content('', TS.Paragraph), position: 1, align: 0, bgColor: null }
-    });
-
-    update((state) => {
-      const blocks = new Map<string, Block>();
-      const t = blockRowToBlock(titleResult); blocks.set(t.id!, t);
-      const p = blockRowToBlock(paraResult); blocks.set(p.id!, p);
-      return {
-        ...state, blocks,
-        rootChildren: [t.id!, p.id!],
-        titleBlockId: t.id!,
-        descriptionBlockId: null,
-      };
-    });
-  }
-
-  function applyLoadedRows(rows: BlockRow[]): void {
+  function applyLoadedRows(objectId: string, rows: BlockRow[]): void {
     const blocks = new Map<string, Block>();
     const rootChildren: string[] = [];
-    // parentId → childId[] map (to build childrenIds after all rows loaded)
     const childrenByParent = new Map<string, string[]>();
     let titleBlockId: string | null = null;
     let descriptionBlockId: string | null = null;
+    const posMap = new Map<string, number>();
 
     for (const row of rows) {
+      posMap.set(row.id, row.position);
       const block = blockRowToBlock(row);
       blocks.set(block.id!, block);
       if (!row.parentId) {
@@ -285,15 +300,12 @@ function createEditorStore() {
       }
       if (block.content && 'style' in block.content) {
         const ct = block.content as ContentText;
-        if (ct.style === TS.Title) titleBlockId = block.id!;
-        else if (ct.style === TS.Description) descriptionBlockId = block.id!;
+        if (ct.style === TS.Title && !titleBlockId) titleBlockId = block.id!;
+        else if (ct.style === TS.Description && !descriptionBlockId) descriptionBlockId = block.id!;
       }
     }
 
-    // Populate childrenIds on each block
-    const posMap = new Map<string, number>();
-    for (const row of rows) posMap.set(row.id, row.position);
-
+    // Wire childrenIds
     for (const [parentId, childIds] of childrenByParent) {
       const parent = blocks.get(parentId);
       if (parent) {
@@ -303,18 +315,63 @@ function createEditorStore() {
     }
 
     rootChildren.sort((a, b) => (posMap.get(a) ?? 0) - (posMap.get(b) ?? 0));
-    update((state) => ({ ...state, blocks, rootChildren, titleBlockId, descriptionBlockId }));
+
+    update((s) => ({
+      ...s,
+      blocks,
+      rootChildren,
+      titleBlockId,
+      descriptionBlockId,
+      objectId,
+    }));
   }
 
-  function initEmptyLocal(): void {
-    const titleId = crypto.randomUUID();
-    const descId = crypto.randomUUID();
-    const firstId = crypto.randomUUID();
+  async function initEmptyLocal(objectId: string): Promise<void> {
+    // First, create the stub blocks in the backend so they actually persist.
+    // Previously we created them only in memory with random UUIDs — the
+    // backend didn't know about them, so setBlockText's invoke() call would
+    // silently fail and the user's text would vanish on next navigation.
+    let titleId = crypto.randomUUID();
+    let firstId = crypto.randomUUID();
+    try {
+      const titleRow = await invoke<BlockRow>('notes_block_create', {
+        params: {
+          noteId: objectId, parentId: null, targetId: null,
+          blockType: 'text',
+          content: buildContentPayload('', TS.Title),
+          position: 0, align: 0, bgColor: null,
+        },
+      });
+      titleId = titleRow.id;
+      const paraRow = await invoke<BlockRow>('notes_block_create', {
+        params: {
+          noteId: objectId, parentId: null, targetId: titleId,
+          blockType: 'text',
+          content: buildContentPayload('', TS.Paragraph),
+          position: 1, align: 0, bgColor: null,
+        },
+      });
+      firstId = paraRow.id;
+    } catch (err) {
+      // Backend unavailable — fall back to local-only blocks (text won't persist across navigation)
+      console.warn('[local-store] initEmptyLocal backend create failed:', err);
+    }
     const blocks = new Map<string, Block>();
-    blocks.set(titleId, { id: titleId, type: BT.Text, content: { text: '', style: TS.Title, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText, childrenIds: [] });
-    blocks.set(descId, { id: descId, type: BT.Text, content: { text: '', style: TS.Description, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText, childrenIds: [] });
-    blocks.set(firstId, { id: firstId, type: BT.Text, content: { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText, childrenIds: [] });
-    update((state) => ({ ...state, blocks, rootChildren: [titleId, descId, firstId], titleBlockId: titleId, descriptionBlockId: descId }));
+    blocks.set(titleId, {
+      id: titleId, type: BT.Text, childrenIds: [],
+      content: { text: '', style: TS.Title, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText,
+    });
+    blocks.set(firstId, {
+      id: firstId, type: BT.Text, childrenIds: [],
+      content: { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText,
+    });
+    update((s) => ({
+      ...s, blocks,
+      rootChildren: [titleId, firstId],
+      titleBlockId: titleId,
+      descriptionBlockId: null,
+      objectId,
+    }));
   }
 
   // ── Focus ────────────────────────────────────────────────────────
@@ -418,31 +475,83 @@ function createEditorStore() {
   }
 
   // ── Text Mutations ───────────────────────────────────────────────
+  //
+  // DESIGN: Match Anytype-ts where text content is kept OUTSIDE the main
+  // store during active editing. Only the debounced backend persistence runs
+  // on every keystroke. The store is only updated on blur or note switch.
+  // This prevents cascading derived-store re-evaluations on every keystroke,
+  // which was the root cause of the editor freeze.
+  //
+  // Two separate maps:
+  //   _pendingTextSaves  — debounced backend persists (keyed by blockId)
+  //   _liveTextContent   — in-memory text state during editing (mirror of contenteditable)
+  //
 
-  async function setBlockText(blockId: string, text: string, marks?: Mark[]): Promise<void> {
+  // Coalesce pending persistence calls per block so we don't flood the
+  // backend with an invoke() on every single keystroke.
+  // CRITICAL: capture the noteId AT SCHEDULE TIME, not at flush time.
+  const _pendingTextSaves = new Map<string, { text: string; marks?: Mark[]; noteId: string }>();
+  let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function _flushTextSaves() {
+    _saveTimer = null;
+    const entries = [..._pendingTextSaves.entries()];
+    _pendingTextSaves.clear();
+    for (const [blockId, { text, marks, noteId }] of entries) {
+      invoke('notes_set_text_content', {
+        noteId,
+        blockId,
+        text,
+        marks: marks ? JSON.stringify(marks) : null,
+      }).catch((err) => console.error('[local-store] persistBlockText failed:', err));
+    }
+  }
+
+  function _scheduleTextSave(blockId: string, text: string, marks: Mark[] | undefined, noteId: string) {
+    _pendingTextSaves.set(blockId, { text, marks, noteId });
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(_flushTextSaves, 250);
+  }
+
+  // In-memory text cache during active editing — avoids touching the writable store
+  // on every keystroke, which was causing cascading derived-store re-evaluations (freeze).
+  const _liveTextContent = new Map<string, { text: string; marks: Mark[] }>();
+
+  /**
+   * Persist text to backend (debounced) and cache in the live map.
+   * Does NOT update the writable store — matching Anytype's approach where
+   * the block tree isn't re-rendered on every keystroke.
+   */
+  async function persistBlockText(blockId: string, text: string, marks?: Mark[]): Promise<void> {
+    _liveTextContent.set(blockId, { text, marks: marks ?? [] });
+    const currentNoteId = stateObjectId();
+    _scheduleTextSave(blockId, text, marks, currentNoteId);
+  }
+
+  /**
+   * Sync the live text cache into the writable store for a given block.
+   * Called on blur or note switch to make the text visible to derived stores.
+   */
+  function syncBlockTextToStore(blockId: string): void {
+    const live = _liveTextContent.get(blockId);
+    if (!live) return;
     let block: Block | undefined;
     const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
     unsub();
     if (!block || !isTextBlock(block)) return;
     const content = block.content as ContentText;
-    const contentPayload = buildContentPayload(text, content.style, marks ?? content.marks, content.checked);
-
+    if (content.text === live.text) return; // no change
     update((state) => {
       const newBlocks = new Map(state.blocks);
-      newBlocks.set(blockId, { ...block!, content: { ...content, text, marks: marks ?? content.marks } });
+      newBlocks.set(blockId, { ...block!, content: { ...content, text: live.text, marks: live.marks } });
       return { ...state, blocks: newBlocks };
     });
+  }
 
-    try {
-      await invoke('notes_set_text_content', {
-        noteId: stateObjectId(),
-        blockId,
-        text,
-        marks: marks ? JSON.stringify(marks ?? content.marks) : null,
-      });
-    } catch (err) {
-      console.error('[local-store] setBlockText failed:', err);
-    }
+  // Keep backward-compatible alias — now only persists, doesn't update the writable store.
+  // Use syncBlockTextToStore() when the store needs to reflect live text (on blur, split, merge).
+  async function setBlockText(blockId: string, text: string, marks?: Mark[]): Promise<void> {
+    await persistBlockText(blockId, text, marks);
   }
 
   async function setBlockChecked(blockId: string, checked: boolean): Promise<void> {
@@ -802,9 +911,6 @@ function createEditorStore() {
     }
   }
 
-  /** Toggle open/closed state of a toggle block (stored in-memory) */
-  const toggleOpenState = new Map<string, boolean>();
-
   function isToggleOpen(blockId: string): boolean {
     return toggleOpenState.get(blockId) ?? false;
   }
@@ -813,7 +919,7 @@ function createEditorStore() {
     const prev = toggleOpenState.get(blockId);
     if (prev === open) return;
     toggleOpenState.set(blockId, open);
-    // Spread to trigger subscribers — only when value actually changed
+    // Trigger reactive update so template re-renders with new toggle state
     update((s) => ({ ...s }));
   }
 
@@ -837,6 +943,8 @@ function createEditorStore() {
     setBlockBgColor,
     setBlockAlign,
     clearBlockStyle,
+    persistBlockText,
+    syncBlockTextToStore,
     getBlock,
     getChildren,
     getBlockChildren,

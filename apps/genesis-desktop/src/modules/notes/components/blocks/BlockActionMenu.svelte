@@ -22,8 +22,8 @@
   let filter   = $state('');
   let menuX    = $state(0);
   let menuY    = $state(0);
-  let menuEl: HTMLDivElement;
-  let triggerEl: HTMLButtonElement;
+  let menuEl   = $state<HTMLDivElement | undefined>(undefined);
+  let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
 
   // ── Derived block data ─────────────────────────────────────────────
   let ct          = $derived((block.content ?? {}) as ContentText);
@@ -223,7 +223,7 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
-    <input class="bam-filter" type="text" placeholder="Filter actions..." bind:value={filter} autofocus />
+    <input class="bam-filter" type="text" placeholder="Filter actions..." bind:value={filter} />
   </div>
 
   <!-- ══ TEXT SECTION ════════════════════════════════════════════════ -->

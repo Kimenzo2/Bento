@@ -19,14 +19,14 @@
   // ── Table data ────────────────────────────────────────────────────
   // In Bento, table content stores { rows: [], columns: [] } directly.
   // Each row = { id, cells: Record<columnId, { text, marks }> }
-  let content = block.content as any;
+  let content = $derived(block.content as any);
 
   interface Cell { text: string; marks?: any[] }
   interface TableRow { id: string; isHeader?: boolean; cells: Record<string, Cell> }
   interface TableCol { id: string; width: number }
 
-  let rows: TableRow[] = $state(content?.rows ?? []);
-  let columns: TableCol[] = $state(content?.columns ?? []);
+  let rows: TableRow[] = $derived((block.content as any)?.rows ?? []);
+  let columns: TableCol[] = $derived((block.content as any)?.columns ?? []);
   let editingCell: string | null = $state(null); // `${rowId}-${colId}`
   let focusedCell: string | null = $state(null);
 

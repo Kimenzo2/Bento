@@ -8,29 +8,29 @@
 
   let { block, readonly = false }: { block: Block; readonly?: boolean } = $props();
 
-  let content = block.content as any;
-  let targetBlockId: string = content?.targetBlockId ?? '';
-  let cardStyle: LinkCardStyle = content?.cardStyle ?? LinkCardStyle.Card;
-  let description: LinkDescription = content?.description ?? LinkDescription.None;
-  let iconSize: LinkIconSize = content?.iconSize ?? LinkIconSize.Small;
-  let relations: string[] = content?.relations ?? [];
+  let content = $derived(block.content as any);
+  let targetBlockId: string = $derived(content?.targetBlockId ?? '');
+  let cardStyle: LinkCardStyle = $derived(content?.cardStyle ?? LinkCardStyle.Card);
+  let description: LinkDescription = $derived(content?.description ?? LinkDescription.None);
+  let iconSize: LinkIconSize = $derived(content?.iconSize ?? LinkIconSize.Small);
+  let relations: string[] = $derived(content?.relations ?? []);
 
   // In Bento, we don't have a full object store, so we display a simple
   // link card with the data from block.content (which stores resolved details)
-  let objectName: string = content?.objectName ?? content?.name ?? '';
-  let objectIcon: string = content?.objectIcon ?? content?.icon ?? '';
-  let objectDescription: string = content?.objectDescription ?? content?.description ?? '';
-  let objectLayout: string = content?.objectLayout ?? 'page';
-  let objectType: string = content?.objectTypeName ?? '';
-  let coverId: string = content?.coverId ?? '';
-  let coverType: number = content?.coverType ?? 0;
-  let isDeleted: boolean = content?.isDeleted ?? false;
-  let isArchived: boolean = content?.isArchived ?? false;
+  let objectName: string = $derived(content?.objectName ?? content?.name ?? '');
+  let objectIcon: string = $derived(content?.objectIcon ?? content?.icon ?? '');
+  let objectDescription: string = $derived(content?.objectDescription ?? content?.description ?? '');
+  let objectLayout: string = $derived(content?.objectLayout ?? 'page');
+  let objectType: string = $derived(content?.objectTypeName ?? '');
+  let coverId: string = $derived(content?.coverId ?? '');
+  let coverType: number = $derived(content?.coverType ?? 0);
+  let isDeleted: boolean = $derived(content?.isDeleted ?? false);
+  let isArchived: boolean = $derived(content?.isArchived ?? false);
 
-  const isText = cardStyle === LinkCardStyle.Text;
-  const isCard = cardStyle === LinkCardStyle.Card;
-  const isInline = cardStyle === LinkCardStyle.Inline;
-  const withIcon = iconSize !== LinkIconSize.None;
+  const isText    = $derived(cardStyle === LinkCardStyle.Text);
+  const isCard    = $derived(cardStyle === LinkCardStyle.Card);
+  const isInline  = $derived(cardStyle === LinkCardStyle.Inline);
+  const withIcon  = $derived(iconSize !== LinkIconSize.None);
 
   function handleClick(e: MouseEvent) {
     if (targetBlockId) {

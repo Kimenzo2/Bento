@@ -3769,39 +3769,35 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 /* ── Floating button (fixed bottom-left) ───────────────────────────── */
 .feedback-float-btn {
   position: fixed;
-  bottom: 28px;
-  left: 28px;
+  bottom: 8px;
+  left: 8px;
   z-index: 8500;
-  width: 44px;
-  height: 44px;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-  background: color-mix(in srgb, var(--surface) 96%, var(--background));
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  border: none;
+  background: transparent;
   color: var(--foreground);
-  display: grid;
+  display: inline-grid;
   place-items: center;
+  padding: 0;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition:
-    background 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 100ms ease;
+  box-shadow: none;
+  opacity: 0.48;
+  transition: opacity 120ms ease, color 120ms ease;
 }
 
 .feedback-float-btn:hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-  border-color: color-mix(in srgb, var(--border) 86%, transparent);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  opacity: 0.82;
 }
 
 .feedback-float-btn:active {
-  transform: scale(0.94);
+  opacity: 0.92;
 }
 
 .feedback-float-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 /* ── Picker overlay (click-outside catcher) ─────────────────────────── */
@@ -3815,16 +3811,14 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 /* ── Picker popup (above the button, left-aligned) ──────────────────── */
 .feedback-picker {
   position: fixed;
-  bottom: 82px;
-  left: 28px;
+  bottom: 34px;
+  left: 8px;
   z-index: 8501;
   width: 220px;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   background: var(--surface);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--foreground) 6%, transparent),
-    0 8px 30px rgba(0, 0, 0, 0.14);
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -3893,7 +3887,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border-radius: 20px;
   border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
   background: var(--surface);
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
   display: grid;
   gap: 0;
 }

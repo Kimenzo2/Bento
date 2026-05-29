@@ -1,213 +1,276 @@
-<script lang="ts">
-  type RingSegment = {
-    value: number;
-    color: string;
-    label?: string;
-  };
+<!--
+  PremiumRing — dual-mode radial progress ring.
 
+  MODE A — Segmented dots (hydration, habits):
+    Pass `value` (0–100). Renders layerchart PieChart with 60 dot segments.
+    <PremiumRing value={hydrationPct} count={60} size={250} label="580 / 2000 ml" />
+
+  MODE B — Smooth arc (journal calories, macros):
+    Pass `segments` array. Renders a pure SVG donut with center text.
+    No layerchart dependency — cleaner for small rings.
+    <PremiumRing
+      segments={[{ value: journalProgress, color: "white", label: "Calories" }]}
+      size={156} thickness={12}
+      centerValue="1840" centerLabel="kcal" centerNote="/ 2200"
+    />
+
+  Layerchart 1.x compatibility:
+    tooltipContext={false} is NOT valid (expects Writable store or undefined).
+    Removed. Tooltip is suppressed by not providing a tooltip prop instead.
+    Named slot content MUST use <svelte:fragment slot="aboveMarks">, NOT {#snippet}.
+-->
+<script lang="ts">
+  import { PieChart, Text } from 'layerchart';
+
+  // ── Segment definition (arc mode) ────────────────────────────────────────
+  interface Segment {
+    value: number;    // 0–100 progress
+    color: string;    // CSS colour for the filled arc
+    label?: string;   // unused currently, reserved for legend
+  }
+
+  // ── Props ─────────────────────────────────────────────────────────────────
   let {
-    segments = [] as RingSegment[],
-    size = 160,
-    thickness = 12,
-    gap = 8,
-    trackColor = "color-mix(in srgb, var(--border, rgba(255,255,255,0.16)) 84%, transparent)",
-    centerValue = "",
-    centerLabel = "",
-    centerNote = "",
-    showLegend = false,
-    class: className = "",
-  } = $props<{
-    segments?: RingSegment[];
-    size?: number;
-    thickness?: number;
-    gap?: number;
-    trackColor?: string;
+    // ── Shared ──────────────────────────────────────────────────────────────
+    size        = 260,
+
+    // ── MODE A: Segmented dots ───────────────────────────────────────────────
+    // Pass `value` to activate this mode.
+    value        = $bindable<number | undefined>(undefined),
+    count        = 60,
+    label        = "",            // small text beneath the number in the SVG
+    activeColor  = "var(--color-success, #52b788)",
+    trackColor   = "color-mix(in lch, currentColor 10%, transparent)",
+
+    // ── MODE B: Smooth arc + center text ─────────────────────────────────────
+    // Pass `segments` to activate this mode.
+    segments    = undefined as Segment[] | undefined,
+    thickness   = 14,            // stroke width in px
+    centerValue = undefined as string | undefined,   // large text in center
+    centerLabel = undefined as string | undefined,   // small label above value
+    centerNote  = undefined as string | undefined,   // tiny note below value
+  }: {
+    size?:        number;
+    value?:       number;
+    count?:       number;
+    label?:       string;
+    activeColor?: string;
+    trackColor?:  string;
+    segments?:    Segment[];
+    thickness?:   number;
     centerValue?: string;
     centerLabel?: string;
-    centerNote?: string;
-    showLegend?: boolean;
-    class?: string;
-  }>();
+    centerNote?:  string;
+  } = $props();
 
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+  // ── Mode detection ────────────────────────────────────────────────────────
+  const isArcMode = $derived(segments !== undefined);
 
-  const totalMax = 100;
-  const ringInsets = 18;
+  // ── MODE A — segmented dots data ──────────────────────────────────────────
+  const pct = $derived(Math.min(100, Math.max(0, value ?? 0)));
 
-  type NormalizedRingSegment = RingSegment & { order: number };
-
-  const normalizedSegments = $derived.by((): NormalizedRingSegment[] =>
-    segments
-      .filter((segment: RingSegment) => segment.value > 0)
-      .map((segment: RingSegment, index: number) => ({
-        ...segment,
-        value: clamp(segment.value, 0, totalMax),
-        order: index,
-      }))
+  const dotsData = $derived(
+    Array.from({ length: count }, (_, i) => ({
+      key:   i + 1,
+      value: 1,
+      color: (i / count) * 100 < pct ? activeColor : trackColor,
+    }))
   );
 
-  const ringLayers = $derived.by(() => {
-    const baseRadius = Math.max((size / 2) - ringInsets - thickness / 2, 12);
-    return normalizedSegments.map((segment: NormalizedRingSegment, index: number) => {
-      const radius = Math.max(baseRadius - index * (thickness + gap), 10);
-      const circumference = 2 * Math.PI * radius;
-      const sweep = circumference * (segment.value / totalMax);
+  // ── MODE B — SVG arc geometry ─────────────────────────────────────────────
+  // We draw on a square canvas of `size × size`. The arc ring sits centred.
+  const cx      = $derived(size / 2);
+  const cy      = $derived(size / 2);
+  const radius  = $derived(cx - thickness / 2 - 2);   // 2px safety margin
+  const circum  = $derived(2 * Math.PI * radius);
 
-      return {
-        ...segment,
-        radius,
-        circumference,
-        sweep,
-      };
-    });
-  });
+  // Build per-segment path data from the `segments` array.
+  // Each segment is a portion of the ring based on its `value` (0–100).
+  // Multiple segments stack sequentially (for stacked donut usage).
+  const arcSegs = $derived(
+    (segments ?? []).map((seg) => {
+      const filled  = (Math.min(100, Math.max(0, seg.value)) / 100) * circum;
+      // dasharray: filled arc length, then gap to complete the circle
+      const dash    = `${filled.toFixed(2)} ${(circum - filled).toFixed(2)}`;
+      // Start at 12 o'clock (-90°). strokeDashoffset rotates the arc origin.
+      const offset  = (circum * 0.25).toFixed(2);  // quarter-turn = top
+      return { ...seg, dash, offset };
+    })
+  );
 </script>
 
-<div class={`premium-ring ${className}`.trim()}>
-  <svg class="premium-ring__svg" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-    {#each ringLayers as ring}
-      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+{#if isArcMode}
+  <!-- ══════════════ MODE B — Pure SVG arc ring ══════════════ -->
+  <div class="pr-arc-wrap" style="width:{size}px;height:{size}px">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 {size} {size}"
+      aria-hidden="true"
+      class="pr-arc-svg"
+    >
+      <!-- Track (background ring) -->
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill="none"
+        stroke="color-mix(in srgb, currentColor 10%, transparent)"
+        stroke-width={thickness}
+        stroke-linecap="round"
+      />
+
+      <!-- Filled arc(s) -->
+      {#each arcSegs as seg}
         <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={ring.radius}
+          cx={cx}
+          cy={cy}
+          r={radius}
           fill="none"
-          stroke={trackColor}
-          stroke-width={thickness}
-          opacity="0.55"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={ring.radius}
-          fill="none"
-          stroke={ring.color}
+          stroke={seg.color}
           stroke-width={thickness}
           stroke-linecap="round"
-          stroke-dasharray={`${ring.sweep} ${ring.circumference - ring.sweep}`}
-          stroke-dashoffset={0}
-          style={`transition: stroke-dasharray 550ms cubic-bezier(0.16, 1, 0.3, 1);`}
+          stroke-dasharray={seg.dash}
+          stroke-dashoffset={seg.offset}
+          transform="rotate(-90 {cx} {cy})"
         />
-      </g>
-    {/each}
-  </svg>
+      {/each}
 
-  <div class="premium-ring__center">
-    {#if centerLabel}
-      <span class="premium-ring__label">{centerLabel}</span>
-    {/if}
-    {#if centerValue}
-      <strong class="premium-ring__value">{centerValue}</strong>
-    {/if}
-    {#if centerNote}
-      <small class="premium-ring__note">{centerNote}</small>
-    {/if}
+      <!-- Center text group -->
+      {#if centerLabel || centerValue || centerNote}
+        <g transform="translate({cx},{cy})">
+          {#if centerLabel}
+            <text
+              text-anchor="middle"
+              dominant-baseline="middle"
+              dy={centerValue ? "-1.6em" : "0"}
+              class="pr-arc-label"
+            >{centerLabel}</text>
+          {/if}
+
+          {#if centerValue}
+            <text
+              text-anchor="middle"
+              dominant-baseline="middle"
+              dy={centerLabel ? "0" : (centerNote ? "-0.6em" : "0")}
+              class="pr-arc-value"
+            >{centerValue}</text>
+          {/if}
+
+          {#if centerNote}
+            <text
+              text-anchor="middle"
+              dominant-baseline="middle"
+              dy={centerValue ? "1.4em" : "0"}
+              class="pr-arc-note"
+            >{centerNote}</text>
+          {/if}
+        </g>
+      {/if}
+    </svg>
   </div>
 
-  {#if showLegend && normalizedSegments.length > 1}
-    <div class="premium-ring__legend" aria-hidden="true">
-      {#each normalizedSegments as segment}
-        <span>
-          <i style={`background:${segment.color}`}></i>
-          {segment.label}
-        </span>
-      {/each}
-    </div>
-  {/if}
-</div>
+{:else}
+  <!-- ══════════════ MODE A — Layerchart segmented dots ══════════════ -->
+  <!--
+    tooltipContext is intentionally NOT passed.
+    layerchart 1.x types it as Writable<{...}> — passing false or null
+    is a TypeScript error. Omitting it leaves tooltips disabled by default
+    when no Tooltip component is provided as a child slot.
+  -->
+  <div class="pr-dots-wrap" style="--pr-size:{size}px">
+    <PieChart
+      data={dotsData}
+      key="key"
+      value="value"
+      c="color"
+      innerRadius={-20}
+      cornerRadius={4}
+      padAngle={0.02}
+      height={size}
+      props={{ tooltip: { context: { disabled: true } as any } }}
+    >
+      <!--
+        Svelte 4 named slot syntax. Do NOT use {#snippet} — layerchart@1.x
+        ignores Svelte 5 snippets entirely (they are NOT the same as slots).
+      -->
+      <svelte:fragment slot="aboveMarks">
+        {#if value !== undefined}
+          <Text
+            value={Math.round(pct)}
+            textAnchor="middle"
+            verticalAnchor="middle"
+            dy={label ? 4 : 16}
+            class="pr-dots-value tabular-nums fill-foreground"
+          />
+        {/if}
+        {#if label}
+          <Text
+            value={label}
+            textAnchor="middle"
+            verticalAnchor="middle"
+            dy={value !== undefined ? 28 : 16}
+            class="pr-dots-label fill-muted-foreground"
+          />
+        {/if}
+      </svelte:fragment>
+    </PieChart>
+  </div>
+{/if}
 
 <style>
-  .premium-ring {
+  /* ── Arc mode ──────────────────────────────────────────────────────── */
+  .pr-arc-wrap {
     position: relative;
-    display: grid;
-    place-items: center;
-    width: 100%;
-    height: 100%;
-    isolation: isolate;
+    flex-shrink: 0;
   }
 
-  .premium-ring::before {
-    content: "";
-    position: absolute;
-    inset: 10%;
-    border-radius: 50%;
-    background: transparent;
-    z-index: 0;
-    pointer-events: none;
-  }
-
-  .premium-ring__svg {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
+  .pr-arc-svg {
+    display: block;
     overflow: visible;
   }
 
-  .premium-ring__center {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    gap: 0.22rem;
-    padding: 0.6rem 0.75rem;
-    text-align: center;
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  .premium-ring__label {
-    display: block;
-    margin-bottom: 0.28rem;
-    letter-spacing: 0.12em;
+  .pr-arc-label {
+    font-size: 0.62rem;
+    font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.68rem;
-    color: color-mix(in srgb, currentColor 54%, transparent);
+    letter-spacing: 0.08em;
+    fill: var(--muted-foreground, currentColor);
+    opacity: 0.7;
   }
 
-  .premium-ring__value {
-    display: block;
-    font-size: clamp(1.28rem, 2vw, 1.82rem);
-    line-height: 0.95;
+  .pr-arc-value {
+    font-size: 1.55rem;
     font-weight: 700;
-    letter-spacing: -0.05em;
-    color: var(--foreground, #fff);
-    text-wrap: balance;
+    fill: var(--foreground, currentColor);
+    font-variant-numeric: tabular-nums;
   }
 
-  .premium-ring__note {
-    display: block;
-    margin-top: 0.35rem;
-    font-size: 0.82rem;
-    color: color-mix(in srgb, currentColor 52%, transparent);
+  .pr-arc-note {
+    font-size: 0.68rem;
+    font-weight: 500;
+    fill: var(--muted-foreground, currentColor);
+    opacity: 0.65;
   }
 
-  .premium-ring__legend {
-    position: absolute;
-    left: 50%;
-    bottom: -0.15rem;
-    transform: translateX(-50%);
+  /* ── Dots mode ─────────────────────────────────────────────────────── */
+  .pr-dots-wrap {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    white-space: nowrap;
-    z-index: 3;
-    pointer-events: none;
-    font-size: 0.72rem;
-    color: color-mix(in srgb, currentColor 58%, transparent);
+    justify-content: center;
+    width: 100%;
+    max-width: var(--pr-size, 260px);
+    margin-inline: auto;
   }
 
-  .premium-ring__legend span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
+  .pr-dots-wrap :global(.pr-dots-value) {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1;
   }
 
-  .premium-ring__legend i {
-    display: inline-block;
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 999px;
-    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
+  .pr-dots-wrap :global(.pr-dots-label) {
+    font-size: 0.85rem;
+    font-weight: 500;
   }
 </style>

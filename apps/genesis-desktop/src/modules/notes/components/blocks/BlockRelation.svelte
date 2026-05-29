@@ -19,9 +19,9 @@
   let relationFormat = $derived<string>(content?.relationFormat ?? 'text');
 
   // Mutable editing state — must be $state so updates trigger re-render
-  let value = $state<string>(content?.value ?? '');
+  let value = $derived<string>((block.content as any)?.value ?? '');
   let isEditing = $state(false);
-  let editValue = $state(value);
+  let editValue = $state('');
 
   async function saveRelation() {
     if (!objectId || !relationKey) return;

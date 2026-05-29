@@ -30,6 +30,7 @@ const SHORTCUT_KEY = 'bento_desktop_shortcut';
 const NOTIFICATIONS_KEY = 'bento_desktop_notifications';
 const TELEMETRY_KEY = 'bento_desktop_telemetry';
 const EXPORT_DIRECTORY_KEY = 'bento_desktop_export_directory';
+const CLOUD_BACKUP_KEY = 'bento_desktop_cloud_backup';
 const SETTINGS_KEY = 'bento_desktop_settings';
 const STORE_PATH = 'settings.json';
 const THEME_SNAPSHOT_KEY = '__bento_theme_snapshot';
@@ -54,6 +55,19 @@ const storeKeys = {
   telemetryConsented: 'telemetry.consented',
   telemetryCrashReports: 'telemetry.crashReports',
   exportDirectory: 'files.exportDirectory',
+  cloudBackupEnabled: 'cloudBackup.enabled',
+  cloudBackupProjectUrl: 'cloudBackup.projectUrl',
+  cloudBackupAnonKey: 'cloudBackup.anonKey',
+  cloudBackupBucketName: 'cloudBackup.bucketName',
+  cloudBackupScheduleEnabled: 'cloudBackup.scheduleEnabled',
+  cloudBackupSchedule: 'cloudBackup.schedule',
+  cloudBackupScope: 'cloudBackup.scope',
+  cloudBackupSelectedModules: 'cloudBackup.selectedModules',
+  cloudBackupLastBackupAt: 'cloudBackup.lastBackupAt',
+  cloudBackupLastBackupSizeBytes: 'cloudBackup.lastBackupSizeBytes',
+  cloudBackupLastBackupObjectPath: 'cloudBackup.lastBackupObjectPath',
+  cloudBackupLastBackupStatus: 'cloudBackup.lastBackupStatus',
+  cloudBackupStorageUsageBytes: 'cloudBackup.storageUsageBytes',
   legacyBrowserStorageMigrated: 'migration.legacyBrowserStorageMigrated',
   storeSettingsMigrated: 'migration.storeSettingsMigrated',
 } as const;
@@ -74,6 +88,8 @@ const timeFormatSchema = z.enum(['12h', '24h']).default('12h');
 // Mirrors Anytype's firstDayOptions
 const firstDaySchema = z.enum(['monday', 'sunday', 'saturday']).default('monday');
 const shortcutSchema = z.enum(['ctrl-alt-g', 'ctrl-shift-g', 'ctrl-shift-space']);
+const cloudBackupScopeSchema = z.enum(['all', 'selected']).default('all');
+const cloudBackupScheduleSchema = z.enum(['daily', 'weekly']).default('daily');
 
 const themeSchema = z
   .object({
@@ -141,6 +157,23 @@ const desktopSettingsSchema = z
         exportDirectory: z.string(),
       })
       .passthrough(),
+    cloudBackup: z
+      .object({
+        enabled: z.boolean().default(false),
+        projectUrl: z.string().default(''),
+        anonKey: z.string().default(''),
+        bucketName: z.string().default('bento-backups'),
+        scheduleEnabled: z.boolean().default(false),
+        schedule: cloudBackupScheduleSchema,
+        scope: cloudBackupScopeSchema,
+        selectedModules: z.array(z.string()).default([]),
+        lastBackupAt: z.string().nullable().default(null),
+        lastBackupSizeBytes: z.number().int().nonnegative().nullable().default(null),
+        lastBackupObjectPath: z.string().nullable().default(null),
+        lastBackupStatus: z.string().nullable().default(null),
+        storageUsageBytes: z.number().int().nonnegative().nullable().default(null),
+      })
+      .passthrough(),
     migration: migrationSchema,
   })
   .passthrough();
@@ -190,6 +223,21 @@ export const defaultDesktopSettings: DesktopSettings = {
   files: {
     exportDirectory: '',
   },
+  cloudBackup: {
+    enabled: false,
+    projectUrl: '',
+    anonKey: '',
+    bucketName: 'bento-backups',
+    scheduleEnabled: false,
+    schedule: 'daily',
+    scope: 'all',
+    selectedModules: [],
+    lastBackupAt: null,
+    lastBackupSizeBytes: null,
+    lastBackupObjectPath: null,
+    lastBackupStatus: null,
+    storageUsageBytes: null,
+  },
   migration: {
     legacyBrowserStorageMigrated: false,
     storeSettingsMigrated: false,
@@ -229,6 +277,19 @@ function desktopSettingsEquals(left: DesktopSettings, right: DesktopSettings) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function parseStringArray(value: string | null): string[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function isTauriRuntimeAvailable() {
   return browser && isTauri();
 }
@@ -253,6 +314,19 @@ function storeDefaults() {
     [storeKeys.telemetryConsented]: defaultDesktopSettings.telemetry.consented,
     [storeKeys.telemetryCrashReports]: defaultDesktopSettings.telemetry.crashReports,
     [storeKeys.exportDirectory]: defaultDesktopSettings.files.exportDirectory,
+    [storeKeys.cloudBackupEnabled]: defaultDesktopSettings.cloudBackup.enabled,
+    [storeKeys.cloudBackupProjectUrl]: defaultDesktopSettings.cloudBackup.projectUrl,
+    [storeKeys.cloudBackupAnonKey]: defaultDesktopSettings.cloudBackup.anonKey,
+    [storeKeys.cloudBackupBucketName]: defaultDesktopSettings.cloudBackup.bucketName,
+    [storeKeys.cloudBackupScheduleEnabled]: defaultDesktopSettings.cloudBackup.scheduleEnabled,
+    [storeKeys.cloudBackupSchedule]: defaultDesktopSettings.cloudBackup.schedule,
+    [storeKeys.cloudBackupScope]: defaultDesktopSettings.cloudBackup.scope,
+    [storeKeys.cloudBackupSelectedModules]: defaultDesktopSettings.cloudBackup.selectedModules,
+    [storeKeys.cloudBackupLastBackupAt]: defaultDesktopSettings.cloudBackup.lastBackupAt,
+    [storeKeys.cloudBackupLastBackupSizeBytes]: defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
+    [storeKeys.cloudBackupLastBackupObjectPath]: defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
+    [storeKeys.cloudBackupLastBackupStatus]: defaultDesktopSettings.cloudBackup.lastBackupStatus,
+    [storeKeys.cloudBackupStorageUsageBytes]: defaultDesktopSettings.cloudBackup.storageUsageBytes,
     [storeKeys.legacyBrowserStorageMigrated]:
       defaultDesktopSettings.migration.legacyBrowserStorageMigrated,
     [storeKeys.storeSettingsMigrated]: defaultDesktopSettings.migration.storeSettingsMigrated,
@@ -350,6 +424,29 @@ function readLegacyBrowserSettings() {
     files: {
       exportDirectory: window.localStorage.getItem(EXPORT_DIRECTORY_KEY) ?? '',
     },
+    cloudBackup: {
+      enabled: window.localStorage.getItem(CLOUD_BACKUP_KEY) === 'true',
+      projectUrl: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.projectUrl`) ?? '',
+      anonKey: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.anonKey`) ?? '',
+      bucketName: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.bucketName`) ?? 'bento-backups',
+      scheduleEnabled: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scheduleEnabled`) === 'true',
+      schedule: cloudBackupScheduleSchema.safeParse(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`)).success
+        ? (window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`) as DesktopSettings['cloudBackup']['schedule'])
+        : defaultDesktopSettings.cloudBackup.schedule,
+      scope: cloudBackupScopeSchema.safeParse(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`)).success
+        ? (window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`) as DesktopSettings['cloudBackup']['scope'])
+        : defaultDesktopSettings.cloudBackup.scope,
+      selectedModules: parseStringArray(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.selectedModules`)),
+      lastBackupAt: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupAt`),
+      lastBackupSizeBytes:
+        Number.parseInt(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupSizeBytes`) ?? '', 10) ||
+        null,
+      lastBackupObjectPath: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupObjectPath`),
+      lastBackupStatus: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupStatus`),
+      storageUsageBytes:
+        Number.parseInt(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`) ?? '', 10) ||
+        null,
+    },
   };
 }
 
@@ -370,6 +467,19 @@ function clearLegacyBrowserSettings() {
   window.localStorage.removeItem(NOTIFICATIONS_KEY);
   window.localStorage.removeItem(TELEMETRY_KEY);
   window.localStorage.removeItem(EXPORT_DIRECTORY_KEY);
+  window.localStorage.removeItem(CLOUD_BACKUP_KEY);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.projectUrl`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.anonKey`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.bucketName`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.scheduleEnabled`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.schedule`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.scope`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.selectedModules`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.lastBackupAt`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.lastBackupSizeBytes`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.lastBackupObjectPath`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.lastBackupStatus`);
+  window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`);
   window.localStorage.removeItem('bento_desktop_tabs_enabled');
 }
 
@@ -401,6 +511,32 @@ function normalizeSettings(settings: DesktopSettings): DesktopSettings {
     },
     shortcuts: {
       reopenId: normalizeShortcutId(settings.shortcuts?.reopenId ?? defaultReopenShortcutId),
+    },
+    cloudBackup: {
+      enabled: settings.cloudBackup?.enabled ?? defaultDesktopSettings.cloudBackup.enabled,
+      projectUrl: settings.cloudBackup?.projectUrl ?? defaultDesktopSettings.cloudBackup.projectUrl,
+      anonKey: settings.cloudBackup?.anonKey ?? defaultDesktopSettings.cloudBackup.anonKey,
+      bucketName: settings.cloudBackup?.bucketName ?? defaultDesktopSettings.cloudBackup.bucketName,
+      scheduleEnabled:
+        settings.cloudBackup?.scheduleEnabled ?? defaultDesktopSettings.cloudBackup.scheduleEnabled,
+      schedule: cloudBackupScheduleSchema.safeParse(settings.cloudBackup?.schedule).success
+        ? (settings.cloudBackup?.schedule as DesktopSettings['cloudBackup']['schedule'])
+        : defaultDesktopSettings.cloudBackup.schedule,
+      scope: cloudBackupScopeSchema.safeParse(settings.cloudBackup?.scope).success
+        ? (settings.cloudBackup?.scope as DesktopSettings['cloudBackup']['scope'])
+        : defaultDesktopSettings.cloudBackup.scope,
+      selectedModules: Array.isArray(settings.cloudBackup?.selectedModules)
+        ? Array.from(new Set(settings.cloudBackup.selectedModules.filter((value) => !!value.trim())))
+        : defaultDesktopSettings.cloudBackup.selectedModules,
+      lastBackupAt: settings.cloudBackup?.lastBackupAt ?? defaultDesktopSettings.cloudBackup.lastBackupAt,
+      lastBackupSizeBytes:
+        settings.cloudBackup?.lastBackupSizeBytes ?? defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
+      lastBackupObjectPath:
+        settings.cloudBackup?.lastBackupObjectPath ?? defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
+      lastBackupStatus:
+        settings.cloudBackup?.lastBackupStatus ?? defaultDesktopSettings.cloudBackup.lastBackupStatus,
+      storageUsageBytes:
+        settings.cloudBackup?.storageUsageBytes ?? defaultDesktopSettings.cloudBackup.storageUsageBytes,
     },
   });
 }
@@ -489,6 +625,49 @@ async function readStoreSettings(): Promise<DesktopSettings> {
         (await store.get<string>(storeKeys.exportDirectory)) ??
         defaultDesktopSettings.files.exportDirectory,
     },
+    cloudBackup: {
+      enabled:
+        (await store.get<boolean>(storeKeys.cloudBackupEnabled)) ??
+        defaultDesktopSettings.cloudBackup.enabled,
+      projectUrl:
+        (await store.get<string>(storeKeys.cloudBackupProjectUrl)) ??
+        defaultDesktopSettings.cloudBackup.projectUrl,
+      anonKey:
+        (await store.get<string>(storeKeys.cloudBackupAnonKey)) ??
+        defaultDesktopSettings.cloudBackup.anonKey,
+      bucketName:
+        (await store.get<string>(storeKeys.cloudBackupBucketName)) ??
+        defaultDesktopSettings.cloudBackup.bucketName,
+      scheduleEnabled:
+        (await store.get<boolean>(storeKeys.cloudBackupScheduleEnabled)) ??
+        defaultDesktopSettings.cloudBackup.scheduleEnabled,
+      schedule:
+        cloudBackupScheduleSchema.safeParse(await store.get<string>(storeKeys.cloudBackupSchedule)).success
+          ? ((await store.get<string>(storeKeys.cloudBackupSchedule)) as DesktopSettings['cloudBackup']['schedule'])
+          : defaultDesktopSettings.cloudBackup.schedule,
+      scope:
+        cloudBackupScopeSchema.safeParse(await store.get<string>(storeKeys.cloudBackupScope)).success
+          ? ((await store.get<string>(storeKeys.cloudBackupScope)) as DesktopSettings['cloudBackup']['scope'])
+          : defaultDesktopSettings.cloudBackup.scope,
+      selectedModules:
+        (await store.get<string[]>(storeKeys.cloudBackupSelectedModules)) ??
+        defaultDesktopSettings.cloudBackup.selectedModules,
+      lastBackupAt:
+        (await store.get<string | null>(storeKeys.cloudBackupLastBackupAt)) ??
+        defaultDesktopSettings.cloudBackup.lastBackupAt,
+      lastBackupSizeBytes:
+        (await store.get<number | null>(storeKeys.cloudBackupLastBackupSizeBytes)) ??
+        defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
+      lastBackupObjectPath:
+        (await store.get<string | null>(storeKeys.cloudBackupLastBackupObjectPath)) ??
+        defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
+      lastBackupStatus:
+        (await store.get<string | null>(storeKeys.cloudBackupLastBackupStatus)) ??
+        defaultDesktopSettings.cloudBackup.lastBackupStatus,
+      storageUsageBytes:
+        (await store.get<number | null>(storeKeys.cloudBackupStorageUsageBytes)) ??
+        defaultDesktopSettings.cloudBackup.storageUsageBytes,
+    },
     migration: {
       legacyBrowserStorageMigrated:
         (await store.get<boolean>(storeKeys.legacyBrowserStorageMigrated)) ??
@@ -522,6 +701,19 @@ async function persistStoreSettings(settings: DesktopSettings) {
   await store.set(storeKeys.telemetryConsented, settings.telemetry.consented);
   await store.set(storeKeys.telemetryCrashReports, settings.telemetry.crashReports);
   await store.set(storeKeys.exportDirectory, settings.files.exportDirectory);
+  await store.set(storeKeys.cloudBackupEnabled, settings.cloudBackup.enabled);
+  await store.set(storeKeys.cloudBackupProjectUrl, settings.cloudBackup.projectUrl);
+  await store.set(storeKeys.cloudBackupAnonKey, settings.cloudBackup.anonKey);
+  await store.set(storeKeys.cloudBackupBucketName, settings.cloudBackup.bucketName);
+  await store.set(storeKeys.cloudBackupScheduleEnabled, settings.cloudBackup.scheduleEnabled);
+  await store.set(storeKeys.cloudBackupSchedule, settings.cloudBackup.schedule);
+  await store.set(storeKeys.cloudBackupScope, settings.cloudBackup.scope);
+  await store.set(storeKeys.cloudBackupSelectedModules, settings.cloudBackup.selectedModules);
+  await store.set(storeKeys.cloudBackupLastBackupAt, settings.cloudBackup.lastBackupAt);
+  await store.set(storeKeys.cloudBackupLastBackupSizeBytes, settings.cloudBackup.lastBackupSizeBytes);
+  await store.set(storeKeys.cloudBackupLastBackupObjectPath, settings.cloudBackup.lastBackupObjectPath);
+  await store.set(storeKeys.cloudBackupLastBackupStatus, settings.cloudBackup.lastBackupStatus);
+  await store.set(storeKeys.cloudBackupStorageUsageBytes, settings.cloudBackup.storageUsageBytes);
   await store.set(
     storeKeys.legacyBrowserStorageMigrated,
     settings.migration.legacyBrowserStorageMigrated

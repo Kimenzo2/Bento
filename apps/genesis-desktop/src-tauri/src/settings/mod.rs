@@ -44,6 +44,8 @@ pub struct DesktopSettings {
     pub payment: PaymentSettings,
     #[serde(default)]
     pub byok: ByokSettings,
+    #[serde(default)]
+    pub cloud_backup: CloudBackupSettings,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -181,6 +183,53 @@ pub struct PaymentSettings {
     /// Locally-stored receipt for offline-first Pro unlocking.
     #[serde(default)]
     pub receipt: Option<PaymentReceipt>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum CloudBackupScope {
+    #[default]
+    All,
+    Selected,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum CloudBackupSchedule {
+    #[default]
+    Daily,
+    Weekly,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudBackupSettings {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub project_url: String,
+    #[serde(default)]
+    pub anon_key: String,
+    #[serde(default)]
+    pub bucket_name: String,
+    #[serde(default)]
+    pub schedule_enabled: bool,
+    #[serde(default)]
+    pub schedule: CloudBackupSchedule,
+    #[serde(default)]
+    pub scope: CloudBackupScope,
+    #[serde(default)]
+    pub selected_modules: Vec<String>,
+    #[serde(default)]
+    pub last_backup_at: Option<String>,
+    #[serde(default)]
+    pub last_backup_size_bytes: Option<u64>,
+    #[serde(default)]
+    pub last_backup_object_path: Option<String>,
+    #[serde(default)]
+    pub last_backup_status: Option<String>,
+    #[serde(default)]
+    pub storage_usage_bytes: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -470,6 +519,7 @@ pub fn default_settings() -> DesktopSettings {
         },
         payment: PaymentSettings::default(),
         byok: ByokSettings::default(),
+        cloud_backup: CloudBackupSettings::default(),
     }
 }
 

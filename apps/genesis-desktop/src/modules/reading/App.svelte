@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { fade } from 'svelte/transition';
   import { Search, Flame, BookText, BarChart2 } from 'lucide-svelte';
   import { activeBundle, createTranslator } from "$lib/i18n";

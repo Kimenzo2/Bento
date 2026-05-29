@@ -321,9 +321,9 @@
             <button
               type="button"
               class="byok-select-trigger"
-              onclick={() => (showProviderMenu = !showProviderMenu)}
+              onclick={() => (showProviderMenu = !showProviderMenu as any)}
               aria-haspopup="listbox"
-              aria-expanded={showProviderMenu}
+              aria-expanded={showProviderMenu ? 'true' : 'false'}
             >
               {#if $byokSettings.activeProvider}
                 {@const Icon = providerIcon($byokSettings.activeProvider)}

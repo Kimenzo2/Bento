@@ -122,6 +122,19 @@ function today(): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+/**
+ * Returns a "YYYY-MM-DD" string for a given timestamp (or now if omitted).
+ * Used throughout the app as a stable date key for maps/stores.
+ * Mirrors Anytype's UtilDate.dateKey().
+ */
+function dateKey(ts?: number): string {
+  const d = ts !== undefined ? new Date(ts) : new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** Start of the day for a given timestamp */
 function dayStart(ts: number): number {
   const d = new Date(ts);
@@ -506,7 +519,6 @@ function getCalendarMonth(
   const { year, month } = getCalendarDate(ts);
   const md = getMonthDays(year);
   const todayTs = today();
-  const today = new Date(todayTs);
 
   // First day of month: 0=Sun, 1=Mon, ... 6=Sat
   const firstOfMonth = new Date(year, month - 1, 1);
@@ -635,6 +647,7 @@ export const time = {
   dayStart,
   weekStart,
   monthStart,
+  dateKey,
 
   // Formatting
   format,

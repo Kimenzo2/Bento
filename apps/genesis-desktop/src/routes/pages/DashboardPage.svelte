@@ -90,7 +90,7 @@
       greeting,
       insightLine: "You have 3 tasks due today and a habit streak to protect.",
       featuredModule: {
-        id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#8b5cf6",
+        id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#3B82F6",
         primaryCount: 5, primaryLabel: "Pending tasks", descriptorLabel: "Open tasks",
         items: [
           { text: "Review Q2 project brief", secondary: "Today at 3pm" },
@@ -101,7 +101,7 @@
       },
       recentActivity: [
         { moduleId: "journal", moduleName: "Journal", moduleIcon: "file-text", moduleAccent: "#f59e0b", action: "Wrote a new entry", timestampRelative: "12 min ago", timestampMs: time.now() - 720_000 },
-        { moduleId: "tasks", moduleName: "Tasks", moduleIcon: "clipboard-list", moduleAccent: "#8b5cf6", action: "Completed 'Review draft'", timestampRelative: "34 min ago", timestampMs: time.now() - 2_040_000 },
+        { moduleId: "tasks", moduleName: "Tasks", moduleIcon: "clipboard-list", moduleAccent: "#3B82F6", action: "Completed 'Review draft'", timestampRelative: "34 min ago", timestampMs: time.now() - 2_040_000 },
         { moduleId: "focus", moduleName: "Focus", moduleIcon: "timer", moduleAccent: "#10b981", action: "Finished a 25-min session", timestampRelative: "1 hr ago", timestampMs: time.now() - 3_600_000 },
         { moduleId: "reading", moduleName: "Reading", moduleIcon: "book-heart", moduleAccent: "#ec4899", action: "Logged 12 pages", timestampRelative: "2 hr ago", timestampMs: time.now() - 7_200_000 },
         { moduleId: "water", moduleName: "Water", moduleIcon: "droplets", moduleAccent: "#3b82f6", action: "Logged 2 glasses", timestampRelative: "3 hr ago", timestampMs: time.now() - 10_800_000 },
@@ -110,7 +110,7 @@
       featuredMetric: { label: "Focus sessions this week", value: "18", moduleId: "focus", trend: { direction: "up", percentage: 22.5 } },
       recentModules: [
         { id: "journal", name: "Journal", icon: "file-text", accentHex: "#f59e0b", lastUsedMs: time.now() - 720_000 },
-        { id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#8b5cf6", lastUsedMs: time.now() - 2_040_000 },
+        { id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#3B82F6", lastUsedMs: time.now() - 2_040_000 },
         { id: "focus", name: "Focus", icon: "timer", accentHex: "#10b981", lastUsedMs: time.now() - 3_600_000 },
         { id: "reading", name: "Reading", icon: "book-heart", accentHex: "#ec4899", lastUsedMs: time.now() - 7_200_000 },
         { id: "water", name: "Water", icon: "droplets", accentHex: "#3b82f6", lastUsedMs: time.now() - 10_800_000 },

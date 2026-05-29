@@ -2,6 +2,8 @@
   import BellIcon from "@lucide/svelte/icons/bell";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import DropletsIcon from "@lucide/svelte/icons/droplets";
+  import MinusIcon from "@lucide/svelte/icons/minus";
+  import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import UtensilsCrossedIcon from "@lucide/svelte/icons/utensils-crossed";
   import { Badge } from "$lib/components/ui/badge/index.js";
@@ -13,6 +15,9 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  // PieChart / Text kept for any other chart usage in this module.
+  // PremiumRing wraps the segmented ring — used for the hydration Today card.
+  import { PieChart, Text } from 'layerchart';
   import { activeBundle, createTranslator } from "$lib/i18n";
   import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
   import HydrationPieChart from "$lib/components/charts/HydrationPieChart.svelte";
@@ -78,6 +83,21 @@
   }
 
   let journalProgress = $derived((journalCalories / 2200) * 100);
+
+  // ── Hydration ring (Today section) ──
+  // PremiumRing handles its own segment data internally.
+  // We only need the raw ml value and the derived percentage.
+  const hydrationGoal = 2000;
+  let hydrationTotal = $state(580);
+  let hydrationPct = $derived(Math.min(100, Math.round((hydrationTotal / hydrationGoal) * 100)));
+
+  function addWater(ml: number) {
+    hydrationTotal = Math.min(hydrationGoal, Math.max(0, hydrationTotal + ml));
+  }
+
+  function resetHydration() {
+    hydrationTotal = 0;
+  }
 </script>
 
 <main class="nutrition-workspace module-root" data-module="nutrition">
@@ -112,11 +132,52 @@
           <CardDescription>{_t('moduleNutritionHydrationDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="nutrition-ring-card__content">
-          <div class="nutrition-hydration-chart">
-            <HydrationPieChart percentage={hydrationPercentage} height={200} />
-            <div class="nutrition-hydration-overlay">
-              <strong>{hydrationCurrent}L</strong>
-              <small>of {hydrationGoal}L</small>
+          <!--
+            PremiumRing wraps the segmented layerchart PieChart.
+            Replaces the previous inline <PieChart> block.
+            value is 0-100 (hydrationPct). label shows ml / goal.
+          -->
+          <PremiumRing
+            value={hydrationPct}
+            count={60}
+            size={250}
+            label="{hydrationTotal} / {hydrationGoal} ml"
+            activeColor="var(--color-success, #52b788)"
+          />
+          <div class="nutrition-hydration-controls">
+            <div class="nutrition-hydration-stats">
+              <span class="nutrition-hydration-total">{hydrationTotal} ml</span>
+              <span class="nutrition-hydration-goal">/ {hydrationGoal} ml</span>
+            </div>
+            <div class="nutrition-hydration-buttons">
+              <button
+                class="nutrition-hydration-btn"
+                onclick={() => addWater(-50)}
+                disabled={hydrationTotal <= 0}
+              >
+                <MinusIcon size={14} />
+              </button>
+              {#each [
+                { label: "50ml", value: 50 },
+                { label: "150ml", value: 150 },
+                { label: "250ml", value: 250 },
+                { label: "500ml", value: 500 },
+              ] as preset}
+                <button
+                  class="nutrition-hydration-btn nutrition-hydration-btn--add"
+                  onclick={() => addWater(preset.value)}
+                  disabled={hydrationTotal >= hydrationGoal}
+                >
+                  +{preset.label}
+                </button>
+              {/each}
+              <button
+                class="nutrition-hydration-btn nutrition-hydration-btn--reset"
+                onclick={resetHydration}
+                disabled={hydrationTotal <= 0}
+              >
+                <RotateCcwIcon size={14} />
+              </button>
             </div>
           </div>
         </CardContent>
@@ -433,8 +494,10 @@
   }
 
   :global(.nutrition-ring-card__content) {
-    display: grid;
-    place-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
   }
 
   :global(.nutrition-hydration-chart) {
@@ -955,6 +1018,91 @@
   .nj-water-dot svg {
     width: 18px;
     height: 18px;
+  }
+
+  /* ── Hydration controls (Today section PieChart) ── */
+  :global(.nutrition-hydration-controls) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  :global(.nutrition-hydration-stats) {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :global(.nutrition-hydration-total) {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-success);
+  }
+
+  :global(.nutrition-hydration-goal) {
+    font-size: 0.82rem;
+    color: var(--nutrition-muted);
+  }
+
+  :global(.nutrition-hydration-buttons) {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  :global(.nutrition-hydration-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: 1px solid color-mix(in srgb, var(--nutrition-accent) 38%, var(--nutrition-border));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nutrition-accent) 12%, var(--nutrition-surface));
+    color: var(--nutrition-ink);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  :global(.nutrition-hydration-btn:hover:not(:disabled)) {
+    background: color-mix(in srgb, var(--nutrition-accent) 22%, var(--nutrition-surface));
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-hydration-btn:disabled) {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  :global(.nutrition-hydration-btn--add) {
+    color: var(--color-success);
+    border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  }
+
+  :global(.nutrition-hydration-btn--add:hover:not(:disabled)) {
+    background: color-mix(in srgb, var(--color-success) 20%, transparent);
+    border-color: var(--color-success);
+  }
+
+  :global(.nutrition-hydration-btn--reset) {
+    color: var(--nutrition-muted);
+    border-color: color-mix(in srgb, var(--nutrition-muted) 30%, transparent);
+    background: transparent;
+  }
+
+  :global(.nutrition-hydration-btn--reset:hover:not(:disabled)) {
+    color: var(--nutrition-ink);
+    border-color: var(--nutrition-muted);
   }
 
   @media (max-width: 860px) {

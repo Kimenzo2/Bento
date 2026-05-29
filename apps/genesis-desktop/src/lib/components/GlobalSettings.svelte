@@ -5,9 +5,10 @@
   import BellIcon from "@lucide/svelte/icons/bell";
   import CheckIcon from "@lucide/svelte/icons/check";
   import CommandIcon from "@lucide/svelte/icons/command";
+  import CloudIcon from "@lucide/svelte/icons/cloud";
+  import DatabaseIcon from "@lucide/svelte/icons/database";
   import EyeIcon from "@lucide/svelte/icons/eye";
   import GlobeIcon from "@lucide/svelte/icons/globe";
-  import Grid2x2Icon from "@lucide/svelte/icons/grid-2x2";
   import InfoIcon from "@lucide/svelte/icons/info";
   import KeyboardIcon from "@lucide/svelte/icons/keyboard";
   import MessageSquarePlusIcon from "@lucide/svelte/icons/message-square-plus";
@@ -21,8 +22,6 @@
 
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
   import { openExternal } from "$lib/desktop/open-external";
-  import { activeModule, modules, switchModule } from "$lib/desktop/modules";
-  import { fetchModuleRegistry, type ModuleRegistryEntry } from "$lib/desktop/installer";
   import { billingProfile } from "$lib/stores/billing.store";
   import { availableThemes, setMode, setTheme } from "$lib/stores/theme.store";
   import { authStore, setAuthLoginRequired } from "$lib/stores/auth.store";
@@ -32,7 +31,9 @@
   import { activeBundle, createTranslator, INTERFACE_LANGUAGES, DATE_FORMATS, TIME_FORMATS, FIRST_DAY_OPTIONS } from "$lib/i18n";
   import { toast } from "svelte-sonner";
   import { invoke } from "@tauri-apps/api/core";
-  import { browser } from "$app/environment";  import { needsSetup,
+  import { browser } from "$app/environment";
+  import {
+    needsSetup,
     setupMasterPassword,
     changeMasterPassword,
     lockDatabase,
@@ -56,8 +57,8 @@
 
   // ── Sections ──────────────────────────────────────────────────────────────
   type SectionId =
-    | "account" | "appearance" | "typography" | "modules" | "sync"
-    | "credentials" | "notifications" | "shortcuts" | "privacy" | "system"
+    | "account" | "appearance" | "typography" | "sync"
+    | "credentials" | "notifications" | "shortcuts" | "privacy" | "backup" | "system"
     | "accessibility" | "language" | "updates" | "about" | "feedback";
 
   interface Section { id: SectionId; label: string; tKey: string; icon: typeof UserIcon; }
@@ -66,12 +67,12 @@
     { id: "account",       label: "Account",           tKey: "settingsSectionAccount",       icon: UserIcon },
     { id: "appearance",    label: "Appearance",        tKey: "settingsSectionAppearance",    icon: PaintbrushIcon },
     { id: "typography",    label: "Typography",        tKey: "settingsSectionTypography",    icon: TypeIcon },
-    { id: "modules",       label: "Modules & Apps",    tKey: "settingsSectionModules",       icon: Grid2x2Icon },
     { id: "sync",          label: "Sync & Storage",    tKey: "settingsSectionSync",          icon: SmartphoneIcon },
     { id: "credentials",   label: "Credentials",       tKey: "settingsSectionCredentials", icon: ShieldIcon },
     { id: "notifications", label: "Notifications",     tKey: "settingsSectionNotifications", icon: BellIcon },
     { id: "shortcuts",     label: "Shortcuts",         tKey: "settingsSectionShortcuts",     icon: KeyboardIcon },
     { id: "privacy",       label: "Privacy & Security",tKey: "settingsSectionPrivacy",       icon: ShieldIcon },
+    { id: "backup",        label: "Cloud Backup",      tKey: "Cloud Backup",                 icon: CloudIcon },
     { id: "system",        label: "System & Startup",  tKey: "settingsSectionSystem",        icon: MonitorCogIcon },
     { id: "accessibility", label: "Accessibility",     tKey: "settingsSectionAccessibility", icon: EyeIcon },
     { id: "language",      label: "Language & Region", tKey: "settingsSectionLanguage",      icon: GlobeIcon },
@@ -84,8 +85,6 @@
 
   let open = $state(false);
   let activeSection = $state<SectionId>("account");
-  let registry = $state<ModuleRegistryEntry[]>([]);
-  let loadingRegistry = $state(false);
   let canUseTauri = $derived(browser && "__TAURI_INTERNALS__" in window);
 
   // Language picker
@@ -100,6 +99,67 @@
   let encLoading = $state(false);
   let encError = $state<string | null>(null);
   let encSuccess = $state<string | null>(null);
+
+  type CloudBackupObjectInfo = {
+    objectPath: string;
+    backupId: string;
+    createdAt: string;
+    sizeBytes: number;
+  };
+
+  type CloudBackupState = {
+    configured: boolean;
+    bucketReady: boolean;
+    hasServiceRole: boolean;
+    enabled: boolean;
+    scheduleEnabled: boolean;
+    schedule: "daily" | "weekly";
+    scope: "all" | "selected";
+    selectedModules: string[];
+    projectUrl: string;
+    bucketName: string;
+    lastBackupAt: string | null;
+    lastBackupSizeBytes: number | null;
+    lastBackupObjectPath: string | null;
+    lastBackupStatus: string | null;
+    storageUsageBytes: number | null;
+    backups: CloudBackupObjectInfo[];
+  };
+
+  type CloudBackupKeyState = {
+    hasServiceRoleKey: boolean;
+  };
+
+  const cloudBackupModules = [
+    { id: "notes", label: "Notes" },
+    { id: "tasks", label: "Tasks" },
+    { id: "journal", label: "Journal" },
+    { id: "habits", label: "Habits" },
+    { id: "focus", label: "Focus" },
+    { id: "passwords", label: "Passwords" },
+    { id: "health", label: "Health" },
+    { id: "budget", label: "Budget" },
+    { id: "flashcards", label: "Flashcards" },
+    { id: "reading", label: "Reading" },
+    { id: "grocery", label: "Grocery" },
+    { id: "recipes", label: "Recipes" },
+    { id: "time", label: "Time" },
+    { id: "goals", label: "Goals" },
+    { id: "clipboard", label: "Clipboard" },
+    { id: "breathing", label: "Breathing" },
+    { id: "voice-memos", label: "Voice Memos" },
+    { id: "countdown", label: "Countdown" },
+    { id: "telemetry", label: "Telemetry" },
+    { id: "ai", label: "AI" },
+  ];
+
+  let cloudBackupState = $state<CloudBackupState | null>(null);
+  let cloudBackupKeyState = $state<CloudBackupKeyState | null>(null);
+  let cloudBackupLoading = $state(false);
+  let cloudBackupError = $state<string | null>(null);
+  let cloudBackupSuccess = $state<string | null>(null);
+  let cloudBackupServiceRole = $state("");
+  let cloudBackupBusyPath = $state<string | null>(null);
 
   async function handleSetupEncryption() {
     encError = null; encSuccess = null;
@@ -129,23 +189,8 @@
     finally { encLoading = false; }
   }
 
-  function show() { open = true; void loadRegistry(); }
+  function show() { open = true; }
   function hide() { open = false; }
-
-  async function loadRegistry() {
-    if (loadingRegistry || registry.length > 0) return;
-    loadingRegistry = true;
-    try { registry = await fetchModuleRegistry(); }
-    catch (e) { console.warn("[Bento] Registry load failed", e); }
-    finally { loadingRegistry = false; }
-  }
-
-  async function selectBuiltin(moduleId: string) {
-    const target = modules.find((m) => m.id === moduleId);
-    if (!target) { toast.info("Module not available."); return; }
-    await switchModule(target.id);
-    hide();
-  }
 
   async function handleSignOut() {
     try {
@@ -166,12 +211,177 @@
     } catch (e) { toast.error("Delete account failed: " + String(e)); }
   }
 
+  async function refreshCloudBackupState() {
+    if (!canUseTauri) return;
+    cloudBackupError = null;
+    try {
+      cloudBackupState = await invoke<CloudBackupState>("get_cloud_backup_state");
+      cloudBackupKeyState = await invoke<CloudBackupKeyState>("get_key_state");
+    } catch (error) {
+      cloudBackupError = String(error);
+    }
+  }
+
+  async function saveCloudBackupKey() {
+    if (!canUseTauri) return;
+    cloudBackupError = null;
+    cloudBackupSuccess = null;
+    cloudBackupLoading = true;
+    try {
+      cloudBackupKeyState = await invoke<CloudBackupKeyState>("set_service_role_key", {
+        value: cloudBackupServiceRole,
+      });
+      cloudBackupSuccess = "Service role key saved locally.";
+      cloudBackupServiceRole = "";
+    } catch (error) {
+      cloudBackupError = String(error);
+    } finally {
+      cloudBackupLoading = false;
+    }
+  }
+
+  async function clearCloudBackupKey() {
+    if (!canUseTauri) return;
+    cloudBackupError = null;
+    cloudBackupSuccess = null;
+    cloudBackupLoading = true;
+    try {
+      cloudBackupKeyState = await invoke<CloudBackupKeyState>("clear_service_role_key");
+      cloudBackupSuccess = "Service role key removed.";
+    } catch (error) {
+      cloudBackupError = String(error);
+    } finally {
+      cloudBackupLoading = false;
+    }
+  }
+
+  async function runCloudBackupNow() {
+    if (!canUseTauri) return;
+    cloudBackupError = null;
+    cloudBackupSuccess = null;
+    cloudBackupLoading = true;
+    try {
+      const result = await invoke<{
+        objectPath: string;
+        backupId: string;
+        createdAt: string;
+        sizeBytes: number;
+        storageUsageBytes: number | null;
+      }>("backup_now");
+      cloudBackupSuccess = `Backed up ${result.sizeBytes} bytes to ${result.objectPath}.`;
+      await refreshCloudBackupState();
+    } catch (error) {
+      cloudBackupError = String(error);
+    } finally {
+      cloudBackupLoading = false;
+    }
+  }
+
+  async function restoreCloudBackup(objectPath: string) {
+    if (!canUseTauri) return;
+    cloudBackupError = null;
+    cloudBackupSuccess = null;
+    cloudBackupBusyPath = objectPath;
+    try {
+      const result = await invoke<{
+        objectPath: string;
+        backupId: string;
+        requiresRestart: boolean;
+        warnings: string[];
+      }>("restore_backup", { objectPath });
+      cloudBackupSuccess = result.warnings.length
+        ? `Restore staged. ${result.warnings.join(" ")} Restart the app to complete.`
+        : "Restore staged. Restart the app to complete.";
+      await refreshCloudBackupState();
+    } catch (error) {
+      cloudBackupError = String(error);
+    } finally {
+      cloudBackupBusyPath = null;
+    }
+  }
+
+  async function deleteCloudBackup(objectPath: string) {
+    if (!canUseTauri) return;
+    if (!confirm("Delete this cloud backup permanently?")) return;
+    cloudBackupError = null;
+    cloudBackupSuccess = null;
+    cloudBackupBusyPath = objectPath;
+    try {
+      cloudBackupState = await invoke<CloudBackupState>("delete_backup", { objectPath });
+      cloudBackupSuccess = "Backup deleted from cloud storage.";
+      cloudBackupKeyState = await invoke<CloudBackupKeyState>("get_key_state");
+    } catch (error) {
+      cloudBackupError = String(error);
+    } finally {
+      cloudBackupBusyPath = null;
+    }
+  }
+
+  async function testCloudBackupConnection() {
+    if (!canUseTauri) return;
+    cloudBackupError = null;
+    cloudBackupSuccess = null;
+    cloudBackupLoading = true;
+    try {
+      cloudBackupState = await invoke<CloudBackupState>("test_cloud_backup_connection");
+      cloudBackupSuccess = "Cloud backup connection looks good.";
+      cloudBackupKeyState = await invoke<CloudBackupKeyState>("get_key_state");
+    } catch (error) {
+      cloudBackupError = String(error);
+    } finally {
+      cloudBackupLoading = false;
+    }
+  }
+
+  async function setCloudBackupEnabled(enabled: boolean) {
+    await updateDesktopSettings((current) => ({
+      ...current,
+      cloudBackup: { ...current.cloudBackup, enabled },
+    }));
+    await refreshCloudBackupState();
+  }
+
+  async function setCloudBackupScheduleEnabled(enabled: boolean) {
+    await updateDesktopSettings((current) => ({
+      ...current,
+      cloudBackup: { ...current.cloudBackup, scheduleEnabled: enabled },
+    }));
+    await refreshCloudBackupState();
+  }
+
+  async function setCloudBackupScope(scope: "all" | "selected") {
+    await updateDesktopSettings((current) => ({
+      ...current,
+      cloudBackup: { ...current.cloudBackup, scope },
+    }));
+    await refreshCloudBackupState();
+  }
+
+  async function toggleCloudBackupModule(moduleId: string, checked: boolean) {
+    await updateDesktopSettings((current) => {
+      const selected = new Set(current.cloudBackup.selectedModules);
+      if (checked) {
+        selected.add(moduleId);
+      } else {
+        selected.delete(moduleId);
+      }
+
+      return {
+        ...current,
+        cloudBackup: {
+          ...current.cloudBackup,
+          selectedModules: Array.from(selected),
+        },
+      };
+    });
+    await refreshCloudBackupState();
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     const shortcut = (event.metaKey || event.ctrlKey) && event.key === ",";
     if (!shortcut) return;
     event.preventDefault();
     open = !open;
-    if (open) void loadRegistry();
   }
 
   onMount(() => {
@@ -186,6 +396,13 @@
       window.removeEventListener("bento:open-global-settings", openSettings);
       window.removeEventListener("bento:close-global-settings", closeSettings);
     };
+  });
+
+  $effect(() => {
+    if (!canUseTauri) return;
+    if (open || surface === "page") {
+      void refreshCloudBackupState();
+    }
   });
 </script>
 
@@ -227,7 +444,12 @@
           <button
             type="button"
             class:global-settings__nav-active={activeSection === section.id}
-            onclick={() => { activeSection = section.id; if (section.id === "modules") void loadRegistry(); }}
+            onclick={() => {
+              activeSection = section.id;
+              if (section.id === "backup") {
+                void refreshCloudBackupState();
+              }
+            }}
           >
             <Icon size={16} /><span>{_t(section.tKey, section.label)}</span>
           </button>
@@ -319,27 +541,6 @@
             </div>
           </div>
 
-        {:else if activeSection === "modules"}
-          <div class="global-settings__section">
-            <div class="global-settings__section-heading">
-              <h3>{_t('settingsModulesTitle')}</h3>
-              <p>{_t('settingsModulesSubtitle')}</p>
-            </div>
-            {#if loadingRegistry}
-              <p class="global-settings__muted">{_t('settingsModulesLoading')}</p>
-            {:else}
-              <div class="global-settings__apps">
-                {#each registry as app}
-                  <button type="button" class="global-settings__app-card" onclick={() => void selectBuiltin(app.id)}>
-                    <span class="global-settings__app-accent" style={`--app-accent: ${app.accent}`}></span>
-                    <span><strong>{app.name}</strong><small>{app.description}</small></span>
-                    <em>{app.installed ? (app.id === $activeModule ? _t('settingsModulesOpen') : _t('settingsModulesLaunch')) : _t('settingsModulesLocked')}</em>
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          </div>
-
         {:else if activeSection === "sync"}
           <div class="global-settings__section">
             <div class="global-settings__section-heading"><h3>{_t('settingsSyncTitle')}</h3><p>{_t('settingsSyncSubtitle')}</p></div>
@@ -415,6 +616,226 @@
                 </div>
               </div>
             {/if}
+          </div>
+
+        {:else if activeSection === "backup"}
+          <div class="global-settings__section">
+            <div class="global-settings__section-heading">
+              <h3>Cloud Backup</h3>
+              <p>Optional, encrypted backups to your own Supabase project. Local-first stays the default.</p>
+            </div>
+
+            {#if cloudBackupError}
+              <p class="gs-enc-error" role="alert">{cloudBackupError}</p>
+            {/if}
+            {#if cloudBackupSuccess}
+              <p class="gs-enc-success" role="status">{cloudBackupSuccess}</p>
+            {/if}
+
+            <div class="global-settings__info-card">
+              <div class="gs-row">
+                <span>
+                  <strong>Cloud Backup</strong>
+                  <small>{cloudBackupState?.configured ? "Configured" : "Not configured yet"}</small>
+                </span>
+                <label class="global-settings__toggle gs-toggle-inline">
+                  <span><strong>{cloudBackupState?.enabled ? "Enabled" : "Disabled"}</strong></span>
+                  <input
+                    type="checkbox"
+                    checked={$desktopSettings.cloudBackup.enabled}
+                    onchange={(e) => void setCloudBackupEnabled(e.currentTarget.checked)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div class="global-settings__grid-2">
+              <div class="global-settings__info-card">
+                <strong>Last backup</strong>
+                <span>{$desktopSettings.cloudBackup.lastBackupAt ?? "No backup yet"}</span>
+              </div>
+              <div class="global-settings__info-card">
+                <strong>Storage usage</strong>
+                <span>{cloudBackupState?.storageUsageBytes != null ? `${Math.round(cloudBackupState.storageUsageBytes / 1024)} KB` : "Unknown"}</span>
+              </div>
+            </div>
+
+            <div class="gs-enc-card">
+              <div class="global-settings__label">Supabase project setup</div>
+              <input
+                type="url"
+                class="gs-enc-input"
+                placeholder="https://your-project.supabase.co"
+                value={$desktopSettings.cloudBackup.projectUrl}
+                oninput={(e) => void updateDesktopSettings((current) => ({
+                  ...current,
+                  cloudBackup: { ...current.cloudBackup, projectUrl: e.currentTarget.value },
+                }))}
+              />
+              <input
+                type="password"
+                class="gs-enc-input"
+                placeholder="Anon key"
+                value={$desktopSettings.cloudBackup.anonKey}
+                oninput={(e) => void updateDesktopSettings((current) => ({
+                  ...current,
+                  cloudBackup: { ...current.cloudBackup, anonKey: e.currentTarget.value },
+                }))}
+              />
+              <input
+                type="text"
+                class="gs-enc-input"
+                placeholder="Bucket name"
+                value={$desktopSettings.cloudBackup.bucketName}
+                oninput={(e) => void updateDesktopSettings((current) => ({
+                  ...current,
+                  cloudBackup: { ...current.cloudBackup, bucketName: e.currentTarget.value },
+                }))}
+              />
+
+              <div class="gs-enc-actions">
+                <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void refreshCloudBackupState()} disabled={cloudBackupLoading}>
+                  Refresh
+                </button>
+                <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void testCloudBackupConnection()} disabled={cloudBackupLoading}>
+                  Test connection
+                </button>
+                <button type="button" class="gs-enc-btn" onclick={() => void runCloudBackupNow()} disabled={cloudBackupLoading || !$desktopSettings.cloudBackup.enabled}>
+                  {cloudBackupLoading ? "Working…" : "Backup now"}
+                </button>
+              </div>
+
+              <div class="global-settings__label" style="margin-top:0.25rem">Service role key</div>
+              <p class="global-settings__muted" style="margin:0;">
+                Optional. If you add it, Supabase Storage setup becomes much simpler because the key can create and access private buckets locally.
+              </p>
+              <input
+                type="password"
+                class="gs-enc-input"
+                placeholder={cloudBackupKeyState?.hasServiceRoleKey ? "Service role key already stored locally" : "Paste service role key for advanced setup"}
+                bind:value={cloudBackupServiceRole}
+              />
+              <div class="gs-enc-actions">
+                <button type="button" class="gs-enc-btn" onclick={() => void saveCloudBackupKey()} disabled={cloudBackupLoading || !cloudBackupServiceRole.trim()}>
+                  Save key
+                </button>
+                <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void clearCloudBackupKey()} disabled={cloudBackupLoading || !cloudBackupKeyState?.hasServiceRoleKey}>
+                  Remove key
+                </button>
+              </div>
+            </div>
+
+            <div class="gs-enc-card">
+              <div class="gs-enc-status">
+                <CloudIcon size={15} />
+                <span>Backup policy</span>
+              </div>
+              <label class="global-settings__toggle">
+                <span><strong>Automatic backups</strong><small>Run daily or weekly in the background.</small></span>
+                <input
+                  type="checkbox"
+                  checked={$desktopSettings.cloudBackup.scheduleEnabled}
+                  onchange={(e) => void setCloudBackupScheduleEnabled(e.currentTarget.checked)}
+                />
+              </label>
+              <div class="global-settings__segmented">
+                <button
+                  type="button"
+                  class:global-settings__segment-active={$desktopSettings.cloudBackup.schedule === "daily"}
+                  onclick={() => void updateDesktopSettings((current) => ({
+                    ...current,
+                    cloudBackup: { ...current.cloudBackup, schedule: "daily" },
+                  }))}
+                >
+                  Daily
+                </button>
+                <button
+                  type="button"
+                  class:global-settings__segment-active={$desktopSettings.cloudBackup.schedule === "weekly"}
+                  onclick={() => void updateDesktopSettings((current) => ({
+                    ...current,
+                    cloudBackup: { ...current.cloudBackup, schedule: "weekly" },
+                  }))}
+                >
+                  Weekly
+                </button>
+              </div>
+              <div class="global-settings__segmented">
+                <button
+                  type="button"
+                  class:global-settings__segment-active={$desktopSettings.cloudBackup.scope === "all"}
+                  onclick={() => void setCloudBackupScope("all")}
+                >
+                  All data
+                </button>
+                <button
+                  type="button"
+                  class:global-settings__segment-active={$desktopSettings.cloudBackup.scope === "selected"}
+                  onclick={() => void setCloudBackupScope("selected")}
+                >
+                  Selected modules
+                </button>
+              </div>
+            </div>
+
+            {#if $desktopSettings.cloudBackup.scope === "selected"}
+              <div class="gs-enc-card">
+                <div class="global-settings__label">Which modules should be backed up?</div>
+                <div class="cloud-backup-module-grid">
+                  {#each cloudBackupModules as module}
+                    <label class="cloud-backup-module">
+                      <input
+                        type="checkbox"
+                        checked={$desktopSettings.cloudBackup.selectedModules.includes(module.id)}
+                        onchange={(e) => void toggleCloudBackupModule(module.id, e.currentTarget.checked)}
+                      />
+                      <span>{module.label}</span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            <div class="gs-enc-card">
+              <div class="gs-enc-status">
+                <DatabaseIcon size={15} />
+                <span>Cloud backups</span>
+                <span class="gs-enc-badge">{cloudBackupState?.backups.length ?? 0} stored</span>
+              </div>
+              {#if cloudBackupState?.backups?.length}
+                <div class="cloud-backup-list">
+                  {#each cloudBackupState.backups as backup}
+                    <article class="cloud-backup-item">
+                      <div>
+                        <strong>{backup.backupId}</strong>
+                        <p class="global-settings__muted">{backup.createdAt}</p>
+                        <p class="global-settings__muted">{Math.max(1, Math.round(backup.sizeBytes / 1024))} KB</p>
+                      </div>
+                      <div class="gs-enc-actions">
+                        <button
+                          type="button"
+                          class="gs-enc-btn gs-enc-btn--sec"
+                          onclick={() => void restoreCloudBackup(backup.objectPath)}
+                          disabled={cloudBackupBusyPath === backup.objectPath}
+                        >
+                          {cloudBackupBusyPath === backup.objectPath ? "Working…" : "Restore"}
+                        </button>
+                        <button
+                          type="button"
+                          class="gs-enc-btn gs-enc-btn--sec"
+                          onclick={() => void deleteCloudBackup(backup.objectPath)}
+                          disabled={cloudBackupBusyPath === backup.objectPath}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  {/each}
+                </div>
+              {:else}
+                <p class="global-settings__muted" style="margin:0;">No cloud backups uploaded yet.</p>
+              {/if}
+            </div>
           </div>
 
         {:else if activeSection === "system"}
@@ -518,7 +939,16 @@
   }
   .global-settings--page .global-settings__body { grid-template-columns: minmax(14rem,16rem) minmax(0,1fr); gap:1.5rem; align-items:start; }
   .global-settings--page .global-settings__content { overflow:visible; padding:0.75rem 0 3rem; }
-  .global-settings--page .global-settings__nav { position:sticky; top:0.25rem; align-self:start; max-height:none; overflow:visible; padding-top:0.5rem; }
+  .global-settings--page .global-settings__nav {
+    position: sticky;
+    top: 0.25rem;
+    align-self: start;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    padding-top: 0.5rem;
+    scrollbar-width: none;
+  }
+  .global-settings--page .global-settings__nav::-webkit-scrollbar { display: none; }
 
   /* ── Profile ─────────────────────────────────────────────────────────────── */
   .gs-profile { display:flex; align-items:center; gap:0.85rem; }
@@ -543,6 +973,14 @@
   .gs-enc-actions { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.25rem; }
   .gs-enc-error { font-size:0.85rem; color:var(--destructive); background:color-mix(in srgb,var(--destructive) 8%,var(--background)); border-radius:8px; padding:0.5rem 0.75rem; margin:0; }
   .gs-enc-success { font-size:0.85rem; color:#10b981; background:color-mix(in srgb,#10b981 10%,var(--background)); border-radius:8px; padding:0.5rem 0.75rem; margin:0; }
+  .global-settings__grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.75rem; }
+  .gs-toggle-inline { justify-content:space-between; width:100%; }
+  .cloud-backup-module-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.45rem 0.75rem; }
+  .cloud-backup-module { display:flex; align-items:center; gap:0.55rem; font-size:0.88rem; color:var(--foreground); }
+  .cloud-backup-module input { width:1rem; height:1rem; }
+  .cloud-backup-list { display:flex; flex-direction:column; gap:0.65rem; }
+  .cloud-backup-item { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding:0.8rem 0.9rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
+  .cloud-backup-item p { margin:0.1rem 0 0; }
 
   /* ── Language picker ─────────────────────────────────────────────────────── */
   .global-settings__lang-search { margin-bottom:0.5rem; }

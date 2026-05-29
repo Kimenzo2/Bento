@@ -10,8 +10,8 @@
     onKeyUp?: (e: any, value: string, marks: any[], range: any, props: any) => void;
   } = $props();
 
-  let content = block.content as any;
-  let style: DivStyle = content?.style ?? DivStyle.Line;
+  let content = $derived(block.content as any);
+  let style: DivStyle = $derived(content?.style ?? DivStyle.Line);
 
   function handleKeyDown(e: KeyboardEvent) {
     onKeyDown(e, '', [], { from: 0, to: 0 }, { block, rootId, readonly });

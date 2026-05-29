@@ -2,9 +2,9 @@
   import './tasks.css';
   import {
     Plus, ListTodo, Inbox, Calendar, Trash2, CheckSquare,
-    Edit3, X, ChevronLeft, ChevronRight, Clock,
+    X, ChevronLeft, ChevronRight, Clock,
     Layers, Archive as ArchiveIcon, AlertCircle,
-    Play, Square, Download, FileText
+    Play, Square, Download, FileText, Share2
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import Sortable from 'sortablejs';
@@ -17,6 +17,8 @@
   import type { ImportPreview, ImportPreviewEntry, ConflictEntry } from '$lib/services/task-import-service';
   import type { TaskEntry, UpdateTaskParams } from '$lib/services/task-service';
   import { time } from '$lib/utils/time';
+import ShareSheet from '$lib/components/ShareSheet.svelte';
+import { formatTasksAsMarkdown } from '$lib/services/share-service';
 
   /* ═══════════════════════════════════════════════════════════════════
      TYPES
@@ -50,10 +52,10 @@
   // Data
   let tasks = $state<TaskEntry[]>([]);
   let projects = $state<Project[]>([
-    { id: 'inbox', name: 'Inbox', color: '#6366f1' },
-    { id: 'work', name: 'Work', color: '#f59e0b' },
-    { id: 'personal', name: 'Personal', color: '#22c55e' },
-    { id: 'learning', name: 'Learning', color: '#a855f7' },
+    { id: 'inbox', name: 'Inbox', color: 'var(--primary)' },
+    { id: 'work', name: 'Work', color: 'color-mix(in srgb, var(--primary) 72%, var(--foreground))' },
+    { id: 'personal', name: 'Personal', color: 'color-mix(in srgb, var(--accent) 78%, var(--foreground))' },
+    { id: 'learning', name: 'Learning', color: 'color-mix(in srgb, var(--destructive) 40%, var(--primary))' },
   ]);
 
   // View state
@@ -87,6 +89,16 @@
 
   // Shortcuts reference overlay
   let showShortcuts = $state(false);
+
+  // Share
+  let showShare = $state(false);
+  let shareContent = $state('');
+
+  async function openShare() {
+    const allTasks = await listTasks({ limit: 10000 });
+    shareContent = formatTasksAsMarkdown(allTasks, `Bento Tasks — ${viewTitle}`);
+    showShare = true;
+  }
 
   // Overdue reschedule dialog
   let showReschedule = $state(false);
@@ -737,7 +749,16 @@
   }
 
   function tagColor(tag: string): string {
-    const colors = ['#6366f1','#f59e0b','#22c55e','#ef4444','#a855f7','#06b6d4','#f97316','#ec4899'];
+    const colors = [
+      'var(--primary)',
+      'color-mix(in srgb, var(--primary) 72%, var(--foreground))',
+      'color-mix(in srgb, var(--accent) 78%, var(--foreground))',
+      'var(--destructive)',
+      'color-mix(in srgb, var(--foreground) 62%, var(--muted))',
+      'color-mix(in srgb, var(--primary) 54%, var(--foreground))',
+      'color-mix(in srgb, var(--accent) 54%, var(--primary))',
+      'color-mix(in srgb, var(--destructive) 58%, var(--foreground))',
+    ];
     let hash = 0;
     for (let i = 0; i < tag.length; i++) {
       hash = tag.charCodeAt(i) + ((hash << 5) - hash);
@@ -1024,15 +1045,15 @@
 
   function priorityColor(p: string): string {
     switch (p) {
-      case 'urgent': return '#ef4444';
-      case 'high': return '#f59e0b';
-      case 'medium': return '#6366f1';
-      default: return 'transparent';
+      case 'urgent': return 'var(--destructive)';
+      case 'high': return 'color-mix(in srgb, var(--primary) 78%, var(--foreground))';
+      case 'medium': return 'var(--primary)';
+      default: return 'var(--muted)';
     }
   }
 
   function getProjectColor(id: string): string {
-    return projects.find(p => p.id === id)?.color ?? '#6366f1';
+    return projects.find(p => p.id === id)?.color ?? 'var(--primary)';
   }
 
   function getEmptyText(): string {
@@ -1577,6 +1598,7 @@
      ═══════════════════════════════════════════════════════════════════ -->
 <div
   class="tasks-app"
+  class:detail-open={!!selectedTask}
   class:density-compact={density === 'compact'}
   class:density-spacious={density === 'spacious'}
   class:focus-mode={focusMode}
@@ -1636,6 +1658,10 @@
         <FileText size={14} />
         <span>Import</span>
       </button>
+      <button class="tasks-sidebar-settings-btn" onclick={openShare} title="Share tasks">
+        <Share2 size={14} />
+        <span>Share</span>
+      </button>
     </div>
 
   </aside>
@@ -1661,7 +1687,7 @@
     <!-- Overdue Banner (Today view) -->
     {#if viewFilter === 'today' && overdueCount > 0}
       <div class="tasks-overdue-banner">
-        <AlertCircle size={13} style="color: #ef4444; flex-shrink: 0;" />
+        <AlertCircle size={13} style="color: var(--destructive); flex-shrink: 0;" />
         <span><strong>{overdueCount}</strong> {overdueCount === 1 ? 'task is' : 'tasks are'} overdue</span>
         <button class="tasks-overdue-banner-btn" onclick={() => viewFilter = 'overdue'}>Review</button>
         <button class="tasks-overdue-banner-btn" onclick={() => { openReschedule(); }}>Reschedule</button>
@@ -1671,7 +1697,7 @@
     <!-- Stats -->
     {#if overdueCount > 0 && viewFilter !== 'today' && viewFilter !== 'overdue' && viewFilter !== 'logbook'}
       <div class="tasks-stats">
-        <span class="tasks-stat"><strong style="color:#ef4444">{overdueCount}</strong> overdue</span>
+        <span class="tasks-stat"><strong style="color: var(--destructive)">{overdueCount}</strong> overdue</span>
       </div>
     {/if}
 
@@ -1728,7 +1754,7 @@
       {:else}
         {#each visibleTasks as task (task.id)}
           <Card
-            class={"tasks-card tasks-card--priority-" + task.priority + (task.done ? " tasks-card--completed" : "") + (!task.done && isOverdue(task.dueAt) ? " tasks-card--overdue" : "") + (newIds.has(task.id) ? " tasks-card--new" : "") + (removingIds.has(task.id) ? " tasks-card--removing" : "") + (selectedTaskId === task.id ? " selected" : "")}
+            class={"card-surface tasks-card tasks-card--priority-" + task.priority + (task.done ? " tasks-card--completed" : "") + (!task.done && isOverdue(task.dueAt) ? " tasks-card--overdue" : "") + (newIds.has(task.id) ? " tasks-card--new" : "") + (removingIds.has(task.id) ? " tasks-card--removing" : "") + (selectedTaskId === task.id ? " selected" : "")}
             role="listitem"
             onclick={(ev) => {
               if (ev.metaKey || ev.ctrlKey) {
@@ -1739,7 +1765,7 @@
             }}
             onkeydown={(e) => { if (e.key === 'Enter') { selectedTaskId = task.id; } }}
           >
-            <CardContent size="sm" class="tasks-card-content">
+            <CardContent class="tasks-card-content">
               <!-- Checkbox -->
               <button
                 class="tasks-checkbox"
@@ -1809,7 +1835,7 @@
         {@const boardTasks = filteredTasks.filter(t => t.priority === priority)}
         <div class="tasks-board-column">
           <div class="tasks-board-column-header">
-            <span style="color: {priorityColor(priority)};">
+              <span style="color: {priorityColor(priority)};">
               {#if priority === 'urgent'}🔴{/if}
               {#if priority === 'high'}🟠{/if}
               {#if priority === 'medium'}🔵{/if}
@@ -1821,11 +1847,11 @@
           <div class="tasks-board-column-list">
             {#each boardTasks as task (task.id)}
               <Card
-                class={"tasks-board-card tasks-board-card--priority-" + task.priority + (!task.done && isOverdue(task.dueAt) ? " tasks-card--overdue" : "")}
+                class={"card-surface tasks-board-card tasks-board-card--priority-" + task.priority + (!task.done && isOverdue(task.dueAt) ? " tasks-card--overdue" : "")}
                 onclick={() => { selectedTaskId = task.id; }}
                 oncontextmenu={(e) => { e.preventDefault(); openContextMenu(e, task.id); }}
               >
-                <CardContent size="sm" class="tasks-board-card-content">
+                <CardContent class="tasks-board-card-content">
                   <p class="tasks-board-card-title">{task.title}</p>
                   <div class="tasks-board-card-meta">
                     {#if task.project !== 'inbox'}
@@ -1854,7 +1880,7 @@
     {#if viewMode === 'calendar'}
       <div class="tasks-calendar-view">
         {#each timelineGroups as [date, dayTasks]}
-          <Card class="tasks-calendar-day-card">
+          <Card class="card-surface tasks-calendar-day-card">
             <CardContent class="tasks-calendar-card-content">
               <div class="tasks-calendar-day-head">
                 <span>{date === 'No Date' ? 'No Date' : new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
@@ -1905,7 +1931,7 @@
     {#if viewMode === 'timeline'}
       <div class="tasks-timeline-view">
         {#each timelineGroups as [date, dayTasks]}
-          <Card class="tasks-timeline-group">
+          <Card class="card-surface tasks-timeline-group">
             <CardContent class="tasks-timeline-group-content">
               <div class="tasks-timeline-date">{date === 'No Date' ? 'No Date' : formatDate(new Date(date).getTime())}</div>
               <div class="tasks-timeline-items">
@@ -1986,6 +2012,7 @@
     {/if}
   </section>
 
+  {#if selectedTask}
   <!-- ─── RESIZE HANDLE ─── -->
   <button
     type="button"
@@ -2000,7 +2027,6 @@
 
   <!-- ─── DETAIL PANE ─── -->
   <section class="tasks-detail">
-    {#if selectedTask}
       <!-- Detail — Task Content -->
       <div class="tasks-detail-scroll">
         <!-- Title -->
@@ -2300,22 +2326,11 @@
           {/if}
         </div>
       </div>
-    {:else}
-      <!-- Detail — Empty State -->
-      <div class="tasks-detail-empty">
-        <Edit3 class="tasks-detail-empty-icon" size={48} />
-        <h3 class="tasks-detail-empty-title">No task selected</h3>
-        <p class="tasks-detail-empty-desc">Click any task in the list to view and edit its details</p>
-        <div class="tasks-detail-empty-shortcuts">
-          <span><kbd>Ctrl+K</kbd> Quick Add</span>
-          <span><kbd>Ctrl+N</kbd> New Task</span>
-          <span><kbd>Ctrl+Shift+F</kbd> Focus Mode</span>
-          <span><kbd>Ctrl+/</kbd> All Shortcuts</span>
-        </div>
-      </div>
-    {/if}
   </section>
+  {/if}
 </div>
+
+<ShareSheet bind:open={showShare} content={shareContent} title="Share Tasks" label={viewTitle} filename={`bento-tasks-${new Date().toISOString().slice(0,10)}`} />
 
 <!-- ─── UNDO TOASTS ─── -->
 {#if undoToasts.length > 0}
@@ -2511,23 +2526,23 @@
         <div class="tasks-import-preview">
           <div class="tasks-import-preview-header">
             <span class="tasks-import-preview-badge">{importPreview.format}</span>
-            <span style="font-size: 12px; color: rgba(255,255,255,0.50);">{importPreview.entries.length} tasks found</span>
+            <span style="font-size: 12px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">{importPreview.entries.length} tasks found</span>
           </div>
 
           {#if importPreview.conflicts.length > 0}
             <div class="tasks-import-conflicts">
-              <p style="font-size: 11px; font-weight: 500; color: #f59e0b; margin: 0 0 8px;">
+              <p style="font-size: 11px; font-weight: 500; color: var(--primary); margin: 0 0 8px;">
                 ⚠️ {importPreview.conflicts.length} conflict{importPreview.conflicts.length > 1 ? 's' : ''} detected
               </p>
-              <p style="font-size: 10.5px; color: rgba(255,255,255,0.50); margin: 0 0 10px;">
+              <p style="font-size: 10.5px; color: color-mix(in srgb, var(--foreground) 50%, transparent); margin: 0 0 10px;">
                 Tasks with the same title already exist. Choose how to handle each:
               </p>
               <div class="tasks-import-conflicts-list">
                 {#each importPreview.conflicts as conflict}
                   <div class="tasks-import-conflict-row">
                     <div class="tasks-import-conflict-info">
-                      <span style="color: rgba(255,255,255,0.7);">"{conflict.title}"</span>
-                      <span style="color: rgba(255,255,255,0.50); font-size: 10px;">
+                      <span style="color: color-mix(in srgb, var(--foreground) 70%, transparent);">"{conflict.title}"</span>
+                      <span style="color: color-mix(in srgb, var(--foreground) 50%, transparent); font-size: 10px;">
                         matches existing task
                         {#if conflict.existingDone}✅{/if}
                       </span>
@@ -2565,20 +2580,20 @@
                 {#each importPreview.entries.slice(0, 100) as entry, i}
                   <Table.Row class={importPreview.conflicts.some(c => c.rowIndex === i) ? 'tasks-import-conflict-row' : ''}>
                     <Table.Cell class="tasks-import-cell-title">
-                      {#if entry.done}<span style="color: #22c55e; margin-right: 4px;">✓</span>{/if}
+                      {#if entry.done}<span style="color: var(--primary); margin-right: 4px;">✓</span>{/if}
                       {entry.title}
                     </Table.Cell>
                     <Table.Cell>
                       {#if entry.priority !== 'none'}
-                        <span class="tasks-import-priority-dot" style="background: {entry.priority === 'urgent' ? '#ef4444' : entry.priority === 'high' ? '#f59e0b' : '#6366f1'}"></span>
+                        <span class="tasks-import-priority-dot" style="background: {entry.priority === 'urgent' ? 'var(--destructive)' : entry.priority === 'high' ? 'color-mix(in srgb, var(--primary) 78%, var(--foreground))' : 'var(--primary)'}"></span>
                       {/if}
                     </Table.Cell>
                     <Table.Cell>
                       {#if entry.project !== 'inbox'}
-                        <span style="font-size: 10px; color: rgba(255,255,255,0.50);">{entry.project}</span>
+                        <span style="font-size: 10px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">{entry.project}</span>
                       {/if}
                     </Table.Cell>
-                    <Table.Cell style="font-size: 10px; color: rgba(255,255,255,0.50);">
+                    <Table.Cell style="font-size: 10px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">
                       {entry.dueDate ? new Date(parseInt(entry.dueDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                     </Table.Cell>
                     <Table.Cell>
