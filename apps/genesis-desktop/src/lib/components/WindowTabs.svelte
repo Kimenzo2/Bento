@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
   import { goto } from "@mateothegreat/svelte5-router";
+  import Sortable, { type SortableEvent } from "sortablejs";
   import {
     tabState,
     initTabSession,
@@ -8,6 +9,7 @@
     addTab,
     closeTab,
     switchTab,
+    reorderTabs,
   } from "$lib/desktop/tab-session.svelte";
   import { getModuleCatalogEntry, moduleCatalog } from "$lib/data/module-catalog";
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
@@ -29,7 +31,10 @@
   // Marker animation gate — first paint jumps, subsequent slides
   let markerAnimate = $state(false);
 
-  // Marker and bg positioning done via direct DOM manipulation
+  // ── Drag state (mirrors Anytype's tabs.js exactly) ──────────────────
+  let sortable: Sortable | null = null;
+  let isDragging = $state(false);
+  let draggedActiveId = "";   // id of active tab when drag started (for marker)
 
   // ── Helpers ─────────────────────────────────────────────────────────
   function getLabel(moduleId: string): string {
@@ -40,44 +45,32 @@
     return getModuleCatalogEntry(moduleId)?.route ?? "/";
   }
 
-  // Filter out: dashboard, and any module that already has an open tab
   const openModuleIds = $derived(new Set(tabs.map((t) => t.moduleId)));
 
   const availableModules = $derived(
     moduleCatalog.filter((m) => m.id !== "dashboard" && !openModuleIds.has(m.id)),
   );
 
-  // ── Marker & Background Positioning (Anytype's exact logic) ────────
+  // ── Marker & Background Positioning (Anytype's exact logic) ─────────
   function updateMarkerPosition(id: string | undefined) {
     if (!id || !scrollEl || !markerEl) return;
-
     const active = scrollEl.querySelector<HTMLElement>(`#tab-${id}`);
     if (!active) return;
-
     const containerRect = scrollEl.getBoundingClientRect();
     const activeRect = active.getBoundingClientRect();
-
     markerEl.style.width = `${activeRect.width - 4}px`;
     markerEl.style.left = `${activeRect.left - containerRect.left + 2}px`;
   }
 
   function updateBackgroundPosition() {
     if (!scrollEl || !tabsBgEl) return;
-
-    // Start from first tab, or add button if no tabs
     const firstTab = scrollEl.querySelector<HTMLElement>(".tab:not(.isAdd)");
-    const addTab = scrollEl.querySelector<HTMLElement>(".tab.isAdd");
-    const startEl = firstTab || addTab;
-
-    if (!startEl) {
-      tabsBgEl.style.width = "0";
-      return;
-    }
-
+    const addTabEl = scrollEl.querySelector<HTMLElement>(".tab.isAdd");
+    const startEl = firstTab || addTabEl;
+    if (!startEl) { tabsBgEl.style.width = "0"; return; }
     const containerRect = scrollEl.getBoundingClientRect();
     const startRect = startEl.getBoundingClientRect();
     const left = startRect.left - containerRect.left;
-
     tabsBgEl.style.left = `${left}px`;
     tabsBgEl.style.width = `${scrollEl.clientWidth - left}px`;
   }
@@ -85,51 +78,114 @@
   function updateAllPositions(skipAnim = false) {
     updateMarkerPosition(activeTabId);
     updateBackgroundPosition();
-
     if (skipAnim) {
-      if (markerEl) {
-        markerAnimate = false;
-        void markerEl.offsetHeight;
-        markerAnimate = true;
-      }
+      if (markerEl) { markerAnimate = false; void markerEl.offsetHeight; markerAnimate = true; }
     } else if (!markerAnimate) {
       markerAnimate = true;
     }
   }
 
-  // ── Divider hide logic (Anytype: hide divider on previous tab + active tab) ──
+  // Divider hide logic
   function getHideDiv(tabId: string): boolean {
     if (!tabs.length) return false;
     const activeIdx = tabs.findIndex((t) => t.id === activeTabId);
     const thisIdx = tabs.findIndex((t) => t.id === tabId);
-    // Hide divider if this tab is the one before the active tab
     return thisIdx === activeIdx - 1;
   }
 
-  // Reactively update positions when tabs change
+  // Reactively update positions when tabs change (skip during drag — Anytype does this too)
   $effect(() => {
     void tabs.length;
     void activeTabId;
-    requestAnimationFrame(() => updateAllPositions(false));
+    if (!isDragging) {
+      requestAnimationFrame(() => updateAllPositions(false));
+    }
   });
 
-  // ── Tab actions ─────────────────────────────────────────────────────
+  // ── Sortable init/destroy (Anytype pattern: re-init after every DOM change) ─
+  function initSortable() {
+    if (sortable) { sortable.destroy(); sortable = null; }
+    if (!scrollEl) return;
+
+    const tabEls = scrollEl.querySelectorAll(".tab:not(.isAdd)");
+    if (!tabEls.length) return;
+
+    sortable = new Sortable(scrollEl, ({
+      animation: 150,
+      easing: "ease-in-out",
+      draggable: ".tab:not(.isAdd)",
+      filter: ".icon.close",
+      preventOnFilter: false,
+      ghostClass: "sortable-drag",
+      onMove(evt: any) {
+        const dragged = evt.dragged as HTMLElement;
+        const related = evt.related as HTMLElement;
+        const draggedPinned = dragged.dataset.pinned === "true";
+        const relatedPinned = related?.dataset?.pinned === "true";
+        if (draggedPinned !== relatedPinned) return false;
+        return true;
+      },
+      onStart(evt: SortableEvent) {
+        isDragging = true;
+        const item = evt.item as HTMLElement;
+        item.style.visibility = "hidden";
+
+        if (item.classList.contains("active")) {
+          draggedActiveId = item.dataset.tabId ?? "";
+          if (markerEl) {
+            markerEl.classList.remove("anim");
+            markerEl.style.pointerEvents = "none";
+          }
+        }
+      },
+      onChange(_evt: SortableEvent) {
+        updateMarkerPosition(draggedActiveId || activeTabId);
+        updateBackgroundPosition();
+      },
+      onEnd(evt: SortableEvent) {
+        isDragging = false;
+        draggedActiveId = "";
+
+        const item = evt.item as HTMLElement;
+        item.style.visibility = "";
+
+        if (markerEl) {
+          markerEl.classList.add("anim");
+          markerEl.style.pointerEvents = "";
+        }
+
+        if (!scrollEl) return;
+        const tabIds: string[] = [];
+        scrollEl.querySelectorAll<HTMLElement>(".tab:not(.isAdd)").forEach((el) => {
+          const id = el.dataset.tabId;
+          if (id) tabIds.push(id);
+        });
+
+        if (tabIds.length > 0) {
+          void reorderTabs(tabIds);
+        }
+
+        requestAnimationFrame(() => updateAllPositions(false));
+
+        setTimeout(() => initSortable(), 10);
+      },
+    } as any));
+  }
+
+  // ── Tab actions ──────────────────────────────────────────────────────
   function onTabClick(tabId: string, moduleId: string) {
-    // Always update local state first, regardless of Tauri availability
     tabState.activeTabId = tabId;
     tabState.tabs = tabState.tabs.map((t) => ({
       ...t,
       isForeground: t.id === tabId,
       state: t.id === tabId ? ("Active" as const) : ("Background" as const),
     }));
-    // Then try backend sync (if available)
     void switchTab(tabId);
     goto(getRoute(moduleId));
   }
 
   function onTabClose(e: MouseEvent, tabId: string) {
     e.stopPropagation();
-    // Closing the last tab disables tab mode entirely
     if (tabs.length <= 1) {
       void updateDesktopSettings((s) => ({
         ...s,
@@ -142,47 +198,46 @@
     void closeTab(tabId);
   }
 
-  function toggleAddMenu() {
-    addMenuOpen = !addMenuOpen;
-  }
+  function toggleAddMenu() { addMenuOpen = !addMenuOpen; }
 
   function onAddModule(moduleId: string) {
     const tab = addTab(moduleId);
-    if (tab) {
-      goto(getRoute(moduleId));
-    }
+    if (tab) goto(getRoute(moduleId));
     addMenuOpen = false;
   }
 
   function onOutsideClick(e: MouseEvent) {
     if (
       addMenuOpen &&
-      scrollEl &&
-      !scrollEl.contains(e.target as Node) &&
-      dropdownEl &&
-      !dropdownEl.contains(e.target as Node)
-    ) {
-      addMenuOpen = false;
-    }
+      scrollEl && !scrollEl.contains(e.target as Node) &&
+      dropdownEl && !dropdownEl.contains(e.target as Node)
+    ) { addMenuOpen = false; }
   }
 
   function onDropdownKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      addMenuOpen = false;
-      addBtnEl?.focus();
-    }
+    if (e.key === "Escape") { addMenuOpen = false; addBtnEl?.focus(); }
   }
 
-  // ── Lifecycle ───────────────────────────────────────────────────────
+  // Re-init sortable whenever tabs list changes (same as Anytype: re-init after create/remove)
+  $effect(() => {
+    void tabs.length;
+    if (!isDragging) {
+      tick().then(() => setTimeout(() => initSortable(), 10));
+    }
+  });
+
+  // ── Lifecycle ────────────────────────────────────────────────────────
   onMount(async () => {
     await initTabSession();
     await tick();
     requestAnimationFrame(() => updateAllPositions(true));
+    setTimeout(() => initSortable(), 10);
     document.addEventListener("click", onOutsideClick);
     document.addEventListener("keydown", onDropdownKeydown as EventListener);
   });
 
   onDestroy(() => {
+    if (sortable) { sortable.destroy(); sortable = null; }
     destroyTabSession();
     document.removeEventListener("click", onOutsideClick);
     document.removeEventListener("keydown", onDropdownKeydown as EventListener);
@@ -204,6 +259,7 @@
         class:hideDiv={getHideDiv(tab.id)}
         data-tab-id={tab.id}
         data-module-id={tab.moduleId}
+        data-pinned="false"
         role="button"
         tabindex="0"
         aria-label={getLabel(tab.moduleId)}
@@ -257,7 +313,7 @@
   <!-- Active tab pill marker (Anytype's #marker) -->
   <div class="window-tabs__marker" bind:this={markerEl}></div>
 
-  <!-- Add dropdown — card-system floating sidebar, app names only -->
+  <!-- Add dropdown -->
   {#if addMenuOpen}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
@@ -286,27 +342,6 @@
 </div>
 
 <style>
-  /* ═══════════════════════════════════════════════════════════════════
-     WINDOW TABS — 1:1 port from Anytype
-     
-     Structure (matches Anytype exactly):
-       .window-tabs                 → #tabsWrapper
-       .window-tabs__scroll         → #tabs
-       .tab > .clickable > .name + .icon.close + .div  (matches Anytype)
-       .tab.isAdd > .icon           → add button
-       .window-tabs__bg             → #tabsBackground
-       .window-tabs__marker         → #marker
-     
-     CSS variable mapping:
-       --color-text-primary       → var(--foreground)
-       --color-text-secondary     → color-mix(in srgb, var(--foreground) 51%, transparent)
-       --color-bg-primary         → var(--background)
-       --color-shape-tertiary     → color-mix(in srgb, var(--foreground) 6%, var(--background))
-       --color-shape-highlight-dark  → color-mix(in srgb, var(--foreground) 11%, transparent)
-       --color-shape-highlight-medium → color-mix(in srgb, var(--foreground) 5%, transparent)
-     ═══════════════════════════════════════════════════════════════════ */
-
-  /* ── Wrapper (Anytype: #tabsWrapper) ── */
   .window-tabs {
     position: relative;
     overflow: hidden;
@@ -324,7 +359,6 @@
     -webkit-app-region: no-drag;
   }
 
-  /* ── Scroll container (Anytype: #tabs) ── */
   .window-tabs__scroll {
     display: flex;
     flex-direction: row;
@@ -334,11 +368,9 @@
     -webkit-app-region: no-drag;
   }
 
-  .window-tabs__scroll::-webkit-scrollbar {
-    display: none;
-  }
+  .window-tabs__scroll::-webkit-scrollbar { display: none; }
 
-  /* ── Background fill (Anytype: #tabsBackground) ── */
+  /* ── Anytype's #tabsBackground ── */
   .window-tabs__bg {
     position: absolute;
     height: 100%;
@@ -350,10 +382,7 @@
     transition: left 0.1s ease-in-out, width 0.1s ease-in-out;
   }
 
-  /* ── Marker pill (Anytype: #marker) ──
-     NOTE: Only the transition property is gated via .window-tabs--anim.
-     The marker itself is ALWAYS visible (matching Anytype behavior).
-  */
+  /* ── Anytype's #marker ── */
   .window-tabs__marker {
     position: absolute;
     height: calc(100% - 4px);
@@ -362,14 +391,14 @@
     border-radius: 18px;
     z-index: 1;
     pointer-events: none;
-    will-change: transform, left, width;
+    will-change: left, width;
   }
 
   .window-tabs--anim .window-tabs__marker {
     transition: left 0.1s ease-in-out, width 0.1s ease-in-out;
   }
 
-  /* ── Individual tab (Anytype: .tab) ── */
+  /* ── .tab (Anytype exact) ── */
   .tab {
     padding: 8px 8px 8px 12px;
     cursor: default;
@@ -386,12 +415,7 @@
     -webkit-app-region: no-drag;
   }
 
-  .tab * {
-    -webkit-app-region: no-drag;
-  }
-
-  /* noClose: hide close button when only 1 tab remains — REMOVED per user request.
-     Single tab always shows close button; clicking it disables tab mode. */
+  .tab * { -webkit-app-region: no-drag; }
 
   .tab.active {
     color: var(--foreground);
@@ -399,20 +423,23 @@
     min-width: auto;
   }
 
-  .tab.active .icon.close {
-    opacity: 1;
-  }
-
-  .tab.active:hover .icon.close {
-    opacity: 1 !important;
-  }
+  .tab.active .icon.close,
+  .tab.active:hover .icon.close { opacity: 1 !important; }
 
   .tab.active .div,
-  .tab.hideDiv .div {
-    display: none;
+  .tab.hideDiv .div { display: none; }
+
+  /* ── Anytype ghost class: .sortable-drag ── */
+  :global(.sortable-drag) {
+    opacity: 1 !important;
+    background: color-mix(in srgb, var(--foreground) 6%, var(--background)) !important;
+    border-radius: 16px !important;
+    color: var(--foreground) !important;
+    -webkit-app-region: no-drag !important;
+    visibility: visible !important;
   }
 
-  /* ── Add button (Anytype: .tab.isAdd) ── */
+  /* ── Add button ── */
   .tab.isAdd {
     flex: 0 0 auto;
     min-width: 24px;
@@ -441,11 +468,9 @@
     color: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
 
-  .tab.isAdd .icon:hover .plus-icon {
-    color: var(--foreground);
-  }
+  .tab.isAdd .icon:hover .plus-icon { color: var(--foreground); }
 
-  /* ── Clickable area (Anytype: .tab .clickable) ── */
+  /* ── Clickable ── */
   .tab .clickable {
     display: flex;
     flex-direction: row;
@@ -458,7 +483,7 @@
     -webkit-app-region: no-drag;
   }
 
-  /* ── Tab name (Anytype: .tab .name) ── */
+  /* ── Name ── */
   .tab .name {
     height: 20px;
     line-height: 20px;
@@ -472,22 +497,20 @@
     -webkit-app-region: no-drag;
   }
 
-  /* ── Global icon base (Anytype: .icon) ── */
+  /* ── Icon base ── */
   .icon {
     transition: all 0.1s ease-in-out;
     cursor: default;
     -webkit-app-region: no-drag;
   }
 
-  .icon.withBackground {
-    border-radius: 10px;
-  }
+  .icon.withBackground { border-radius: 10px; }
 
   .icon.withBackground:hover {
     background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
   }
 
-  /* ── Close button (Anytype: .tab .icon.close) ── */
+  /* ── Close button ── */
   .tab .icon.close {
     flex-shrink: 0;
     opacity: 0;
@@ -500,21 +523,12 @@
     cursor: default;
   }
 
-  .tab:not(.active):hover .icon.close {
-    opacity: 0.45;
-  }
+  .tab:not(.active):hover .icon.close { opacity: 0.45; }
+  .tab .icon.close:hover { opacity: 1 !important; background: color-mix(in srgb, var(--foreground) 12%, transparent); }
 
-  .tab .icon.close:hover {
-    opacity: 1 !important;
-    background: color-mix(in srgb, var(--foreground) 12%, transparent);
-  }
+  .close-icon { width: 10px; height: 10px; }
 
-  .close-icon {
-    width: 10px;
-    height: 10px;
-  }
-
-  /* ── Divider (Anytype: .tab .div) ── */
+  /* ── Divider ── */
   .tab .div {
     position: absolute;
     width: 1px;
@@ -524,13 +538,9 @@
     background: color-mix(in srgb, var(--foreground) 11%, transparent);
     z-index: 0;
     right: 0;
-    transition: opacity 0.1s ease-in-out;
   }
 
-  /* ── Add dropdown — card-system sidebar, app names only ──
-     Background: var(--background) per card system's dropdown spec.
-     Border: 1px solid var(--border) retained (user-requested).
-     No shadow, just the app name, compact items. */
+  /* ── Add dropdown ── */
   .window-tabs__add-dropdown {
     position: fixed;
     top: 48px;
@@ -542,25 +552,17 @@
     border-bottom-left-radius: 20px;
     box-shadow: none;
     z-index: 9999;
-    overflow: visible;
     animation: tabs-dropdown-in 0.12s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   @keyframes tabs-dropdown-in {
-    from {
-      opacity: 0;
-      transform: translateX(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(4px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
 
   .window-tabs__add-dropdown-items {
     display: flex;
     flex-direction: column;
-    gap: 0;
     padding: 6px;
   }
 
@@ -583,11 +585,6 @@
     text-overflow: ellipsis;
   }
 
-  .window-tabs__add-dropdown-item:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  }
-
-  .window-tabs__add-dropdown-item:active {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
-  }
+  .window-tabs__add-dropdown-item:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
+  .window-tabs__add-dropdown-item:active { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
 </style>

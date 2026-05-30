@@ -153,7 +153,7 @@ const starterSidebarSpecs = {
   },
   budget: {
     sectionLabel: "Budget",
-    items: ["Overview", "Transactions", "Budgets", "Bills", "Trends", "Export"],
+    items: ["Overview", "Transactions", "Budgets", "Bills", "AI Costs", "Forecast", "Export"],
   },
   flashcards: {
     sectionLabel: "Flashcards",

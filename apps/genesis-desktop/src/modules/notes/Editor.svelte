@@ -30,6 +30,8 @@
   let slashQuery = $state('');
   let slashMenuIndex = $state(0);
   let slashAnchorBlockId = $state<string | null>(null);
+  let showLinkDialog = $state(false);
+  let linkUrl = $state('');
   let editorEl: HTMLDivElement;
 
   // ── Drag reorder state ──────────────────────────────────────────
@@ -102,20 +104,33 @@
 
   let loadedObjectId = '';
 
+  // Anytype pattern (page.tsx useEffect([rootId])): re-init whenever objectId
+  // changes to a value the store doesn't already hold.
+  // BUG FIX 1: old guard `objectId === loadedObjectId` skipped re-init on
+  //   revisit (A -> B -> A): loadedObjectId was still 'A' but store held B's blocks.
+  // FIX: also check store.objectId; if it drifted, fire init regardless.
   $effect(() => {
-    if (!objectId || objectId === loadedObjectId) return;
-    loadedObjectId = objectId;
-    // The store's _pendingInitId guard handles stale responses;
-    // if the user switches notes before init completes, the store
-    // silently drops the stale result — no store corruption.
-    void editorStore.init(objectId);
+    const id = objectId;
+    if (!id) return;
+    let storeId = '';
+    const u = editorStore.subscribe((s: any) => { storeId = s.objectId ?? ''; });
+    u();
+    // Skip only when BOTH the prop guard AND store agree we are already loaded.
+    if (id === loadedObjectId && storeId === id) return;
+    loadedObjectId = id;
+    showBlockActions = null;
+    showFormatToolbar = false;
+    formatBlockId = null;
+    showSlashMenu = false;
+    slashQuery = '';
+    slashMenuIndex = 0;
+    slashAnchorBlockId = null;
+    void editorStore.init(id);
   });
 
   // ── DOM focus helper ──────────────────────────────────────────────
-  // After the store creates a new block, focus its contenteditable
-  // with the cursor placed at the given position.
   async function focusBlockElement(blockId: string, cursorPos: number = 0) {
-    await tick(); // wait for Svelte to flush DOM updates
+    await tick();
     const el = document.querySelector<HTMLElement>(
       `[data-block-id="${blockId}"] .editable`,
     );
@@ -138,19 +153,15 @@
       }
       charIndex = nextIndex;
     }
-    // Fallback: cursor at end
     range.selectNodeContents(el);
     range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);
   }
 
-  // ── Local click: close floating menus when clicking outside ──────
   function handleEditorMouseDown(e: MouseEvent) {
     const target = e.target as Element;
-    // Only process clicks within the editor
     if (!editorEl?.contains(target)) {
-      // Click outside editor — close all floating UIs
       if (showSlashMenu) showSlashMenu = false;
       if (showBlockActions) showBlockActions = null;
       if (showFormatToolbar) showFormatToolbar = false;
@@ -161,32 +172,31 @@
     if (showFormatToolbar && !target.closest?.('.format-toolbar')) showFormatToolbar = false;
   }
 
-  // ── Handlers ──────────────────────────────────────────────────────
-
-  function handleFocus(e?: any) {
-    // Focus tracking is delegated to BlockText
+  function handlePopupKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      showSlashMenu = false;
+      showBlockActions = null;
+      showFormatToolbar = false;
+      e.stopPropagation();
+    }
   }
+
+  function handleFocus(e?: any) {}
 
   function handleBlur() {
     editorStore.blurBlock();
   }
 
-  /** Persist text changes — debounced backend save + live text cache.
-   *  Does NOT update the writable store, which prevents the cascading
-   *  derived-store re-evaluations that were causing the editor freeze.
-   *  The store is only synced on blur or structural operations (split/merge). */
   function handleUpdate(blockId: string, text: string, marks: Mark[]) {
     if (!blockId) return;
     editorStore.persistBlockText(blockId, text, marks);
-    // If this is the title block, notify the parent (sidebar list update)
     if ($titleBlock?.id === blockId && onTitleChange) {
       onTitleChange(objectId, text);
-      void invoke('notes_object_update', { params: { id: objectId, title: text } })
-        .catch((err) => console.error('[notes] title metadata update failed:', err));
+      void invoke('notes_object_update', { id: objectId, title: text })
+        .catch((err) => console.error('[notes] title update failed:', err));
     }
   }
 
-  /** Convert a block's style (e.g. from markdown trigger like `# ` → H1). */
   function handleStyleConvert(blockId: string, style: TextStyle) {
     if (!blockId) return;
     editorStore.convertBlockStyle(blockId, style);
@@ -203,79 +213,54 @@
     const blockId = block.id;
     if (!blockId) return;
 
-    // Enter pressed on text block — split into two blocks
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-
-      const text = value;
-      const before = text.slice(0, range.from);
-      const after = text.slice(range.from);
-
-      // Save text before cursor — sync to store so the template reflects the split
+      const before = value.slice(0, range.from);
+      const after = value.slice(range.from);
       await editorStore.persistBlockText(blockId, before);
       editorStore.syncBlockTextToStore(blockId);
-
-      // Create new block after current one
       const newId = await editorStore.addBlock(blockId, after, (block.content as ContentText)?.style);
-
-      // Focus the new block
-      if (newId) {
-        editorStore.focusBlock(newId);
-        focusBlockElement(newId, 0);
-      }
+      if (newId) { editorStore.focusBlock(newId); focusBlockElement(newId, 0); }
       return;
-    }      // Backspace on empty block — merge with previous
+    }
+
     if (e.key === 'Backspace' && value === '' && range.from === 0) {
       e.preventDefault();
       if (blocks.length <= 1) return;
-
       const idx = blocks.findIndex((b) => b.id === blockId);
       if (idx <= 0) return;
-
       const prev = blocks[idx - 1];
       const prevId = prev.id;
       if (!prevId) return;
-
       const prevText = (prev.content as ContentText)?.text ?? '';
       await editorStore.persistBlockText(prevId, prevText + value);
       editorStore.syncBlockTextToStore(prevId);
-
       await editorStore.deleteBlock(blockId);
       editorStore.focusBlock(prevId);
       focusBlockElement(prevId);
       return;
     }
 
-    // Arrow up at start — focus previous block
     if (e.key === 'ArrowUp' && range.from === 0) {
       e.preventDefault();
       const idx = blocks.findIndex((b) => b.id === blockId);
       if (idx > 0) {
         const prevId = blocks[idx - 1].id;
-        if (prevId) {
-          editorStore.focusBlock(prevId);
-          const prevText = (blocks[idx - 1].content as ContentText)?.text ?? '';
-          focusBlockElement(prevId, prevText.length);
-        }
+        if (prevId) { editorStore.focusBlock(prevId); focusBlockElement(prevId, ((blocks[idx - 1].content as ContentText)?.text ?? '').length); }
       }
       return;
     }
 
-    // Arrow down at end — focus next block
     if (e.key === 'ArrowDown' && range.from >= value.length) {
       e.preventDefault();
       const idx = blocks.findIndex((b) => b.id === blockId);
       if (idx < blocks.length - 1) {
         const nextId = blocks[idx + 1].id;
-        if (nextId) {
-          editorStore.focusBlock(nextId);
-          focusBlockElement(nextId, 0);
-        }
+        if (nextId) { editorStore.focusBlock(nextId); focusBlockElement(nextId, 0); }
       }
       return;
     }
 
-    // Escape — close floating menus
     if (e.key === 'Escape') {
       if (showSlashMenu) { showSlashMenu = false; return; }
       if (showBlockActions) { showBlockActions = null; return; }
@@ -284,11 +269,8 @@
   }
 
   function handleKeyUp(e: any, value: string, marks: any[], range: TextRange, props: any) {
-    // Delegate markdown trigger handling to BlockText
     const blockId = props.block?.id;
     if (!blockId) return;
-
-    // Slash trigger
     if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
       const el = document.querySelector(`[data-block-id="${blockId}"]`);
       if (el && editorEl) {
@@ -296,14 +278,9 @@
         const edRect = editorEl.getBoundingClientRect();
         slashMenuStyle = { top: `${rect.top - edRect.top + rect.height}px`, left: '24px' };
       }
-      showSlashMenu = true;
-      slashQuery = '';
-      slashMenuIndex = 0;
-      slashAnchorBlockId = blockId;
+      showSlashMenu = true; slashQuery = ''; slashMenuIndex = 0; slashAnchorBlockId = blockId;
       return;
     }
-
-    // Filter slash menu
     if (showSlashMenu && slashAnchorBlockId === blockId) {
       const before = value.slice(0, range.from);
       const si = before.lastIndexOf('/');
@@ -326,8 +303,7 @@
       const newId = await editorStore.addBlock(slashAnchorBlockId, '');
       if (newId) { editorStore.focusBlock(newId); focusBlockElement(newId, 0); }
     }
-    showSlashMenu = false;
-    slashAnchorBlockId = null;
+    showSlashMenu = false; slashAnchorBlockId = null;
   }
 
   function openBlockActions(blockId: string, e: MouseEvent) {
@@ -358,10 +334,7 @@
     if (!el) { showFormatToolbar = false; return; }
     const rect = sel.getRangeAt(0).getBoundingClientRect();
     const edRect = editorEl.getBoundingClientRect();
-    formatToolbarStyle = {
-      top: `${rect.top - edRect.top - 40}px`,
-      left: `${(rect.left - edRect.left) + (rect.width / 2)}px`,
-    };
+    formatToolbarStyle = { top: `${rect.top - edRect.top - 40}px`, left: `${(rect.left - edRect.left) + (rect.width / 2)}px` };
     formatBlockId = blockId;
     showFormatToolbar = true;
   }
@@ -388,52 +361,38 @@
   }
 </script>
 
-<div class="notes-editor" bind:this={editorEl} onmousedown={handleEditorMouseDown}>
+<div
+  class="notes-editor"
+  bind:this={editorEl}
+  role="presentation"
+  onmousedown={handleEditorMouseDown}
+>
   {#if loading}
     <div class="editor-loading">
       <div class="loading-spinner"></div>
-      <p>Loading document…</p>
+      <p>Loading document...</p>
     </div>
   {:else}
-    <!-- ── Title ─────────────────────────────────────────────────────────── -->
     <div class="editor-header">
       {#if title}
-        <BlockRenderer
-          block={title}
-          rootId="root"
-          blockIndex={0}
-          onUpdate={handleUpdate}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
-          onToggle={handleToggle}
-          onStyleConvert={handleStyleConvert}
-        />
+        <BlockRenderer block={title} rootId="root" blockIndex={0}
+          onUpdate={handleUpdate} onFocus={handleFocus} onBlur={handleBlur}
+          onKeyDown={handleKeyDown} onKeyUp={handleKeyUp}
+          onToggle={handleToggle} onStyleConvert={handleStyleConvert} />
       {/if}
     </div>
 
-    <!-- ── Description ──────────────────────────────────────────────────── -->
     {#each blocks as block, i (block.id)}
       {#if block.content && 'style' in block.content && isTextDescription((block.content as ContentText).style)}
         <div class="editor-description">
-          <BlockRenderer
-            {block}
-            rootId="root"
-            blockIndex={i}
-            onUpdate={handleUpdate}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            onToggle={handleToggle}
-            onStyleConvert={handleStyleConvert}
-          />
+          <BlockRenderer {block} rootId="root" blockIndex={i}
+            onUpdate={handleUpdate} onFocus={handleFocus} onBlur={handleBlur}
+            onKeyDown={handleKeyDown} onKeyUp={handleKeyUp}
+            onToggle={handleToggle} onStyleConvert={handleStyleConvert} />
         </div>
       {/if}
     {/each}
 
-    <!-- ── Content blocks (non-title, non-description) ──────────────────── -->
     <div class="editor-blocks">
       {#each blocks as block, i (block.id)}
         {#if !('style' in (block.content ?? {})) || (!isTextTitle((block.content as ContentText).style) && !isTextDescription((block.content as ContentText).style))}
@@ -442,6 +401,8 @@
             class:is-dragging={dragBlockId === block.id}
             class:drag-over-top={dragOverBlockId === block.id && dragOverPos === 'top'}
             class:drag-over-bottom={dragOverBlockId === block.id && dragOverPos === 'bottom'}
+            role="listitem"
+            aria-label={`Block ${i + 1}`}
             draggable={true}
             ondragstart={(e) => onDragStart(e, block.id!)}
             ondragover={(e) => onDragOver(e, block.id!)}
@@ -449,43 +410,22 @@
             ondrop={(e) => onDrop(e, block.id!)}
             ondragend={onDragEnd}
           >
-            <!-- ── Grip handle ── -->
             <div class="block-controls">
-              <button
-                class="block-grip"
-                aria-label="Drag to reorder"
-                title="Drag to reorder"
-                tabindex="-1"
-              >
+              <button class="block-grip" aria-label="Drag to reorder" title="Drag to reorder" tabindex="-1">
                 <GripVertical size={14} />
               </button>
-              <button
-                class="block-add-button"
-                onclick={(e) => { e.stopPropagation(); addBlockBelow(block.id); }}
-                aria-label="Add block below"
-                title="Add block"
-              >
+              <button class="block-add-button" onclick={(e) => { e.stopPropagation(); addBlockBelow(block.id); }} aria-label="Add block below" title="Add block">
                 <Plus size={14} />
               </button>
             </div>
-
-            <BlockRenderer
-              {block}
-              rootId="root"
-              blockIndex={i}
-              onUpdate={handleUpdate}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              onKeyUp={handleKeyUp}
-              onToggle={handleToggle}
-              onStyleConvert={handleStyleConvert}
-            />
+            <BlockRenderer {block} rootId="root" blockIndex={i}
+              onUpdate={handleUpdate} onFocus={handleFocus} onBlur={handleBlur}
+              onKeyDown={handleKeyDown} onKeyUp={handleKeyUp}
+              onToggle={handleToggle} onStyleConvert={handleStyleConvert} />
           </div>
         {/if}
       {/each}
 
-      <!-- ── Empty state ── -->
       {#if blocks.length === 0}
         <div class="editor-empty">
           <p>Press <kbd>Enter</kbd> to start writing, or use <kbd>/</kbd> for commands</p>
@@ -493,19 +433,15 @@
       {/if}
     </div>
 
-    <!-- ── Slash Menu ──────────────────────────────────────────────── -->
     {#if showSlashMenu}
-      <div class="slash-menu" style="top: {slashMenuStyle.top}; left: {slashMenuStyle.left};" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} tabindex="0" role="listbox" aria-label="Block type menu">
+      <div class="slash-menu" style="top: {slashMenuStyle.top}; left: {slashMenuStyle.left};"
+        onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}
+        tabindex="0" role="listbox" aria-label="Block type menu">
         <div class="slash-menu-header">Basic Blocks</div>
         <div class="slash-menu-items">
           {#each filteredCommands as cmd, i}
             {@const Icon = cmd.icon}
-            <button
-              class="slash-menu-item"
-              class:active={i === slashMenuIndex}
-              type="button"
-              onclick={() => handleSlashSelect(cmd)}
-            >
+            <button class="slash-menu-item" class:active={i === slashMenuIndex} type="button" onclick={() => handleSlashSelect(cmd)}>
               <span class="slash-menu-item-icon"><Icon size={16} /></span>
               <span class="slash-menu-item-label">{cmd.label}</span>
             </button>
@@ -514,18 +450,15 @@
       </div>
     {/if}
 
-    <!-- ── Format Toolbar ──────────────────────────────────────────── -->
     {#if showFormatToolbar}
-      <div
-        class="format-toolbar"
-        style="top: {formatToolbarStyle.top}; left: {formatToolbarStyle.left};"
+      <div class="format-toolbar" style="top: {formatToolbarStyle.top}; left: {formatToolbarStyle.left};"
         class:show={showFormatToolbar}
         onclick={(e) => e.stopPropagation()}
+        onkeydown={handlePopupKeydown}
         onmousedown={(e) => e.preventDefault()}
         role="toolbar"
         aria-label="Text formatting"
-        tabindex="0"
-      >
+        tabindex="0">
         <button class="format-toolbar-btn" type="button" aria-label="Bold" onclick={() => handleFormatAction(MarkType.Bold)}><Bold size={14} /></button>
         <button class="format-toolbar-btn" type="button" aria-label="Italic" onclick={() => handleFormatAction(MarkType.Italic)}><Italic size={14} /></button>
         <button class="format-toolbar-btn" type="button" aria-label="Underline" onclick={() => handleFormatAction(MarkType.Underline)}><Underline size={14} /></button>
@@ -536,24 +469,19 @@
       </div>
     {/if}
 
-    <!-- ── Block Actions ───────────────────────────────────────────── -->
     {#if showBlockActions}
-      <div
-        class="block-actions"
-        style="top: {actionMenuStyle.top}; left: {actionMenuStyle.left};"
+      <div class="block-actions" style="top: {actionMenuStyle.top}; left: {actionMenuStyle.left};"
         onclick={(e) => e.stopPropagation()}
+        onkeydown={handlePopupKeydown}
         onmousedown={(e) => e.preventDefault()}
         role="menu"
         aria-label="Block actions"
-        tabindex="0"
-      >
+        tabindex="0">
         <button class="block-actions-btn" type="button" onclick={() => handleDuplicateBlock(showBlockActions!)}>
-          <Copy size={14} />
-          <span>Duplicate</span>
+          <Copy size={14} /><span>Duplicate</span>
         </button>
         <button class="block-actions-btn danger" type="button" onclick={() => handleDeleteBlock(showBlockActions!)}>
-          <Trash2 size={14} />
-          <span>Delete</span>
+          <Trash2 size={14} /><span>Delete</span>
         </button>
       </div>
     {/if}
@@ -561,11 +489,6 @@
 </div>
 
 <style>
-  /* ── Instrument Serif — editor body text only ───────────────────────
-     Title (.editor-header) stays Bricolage Grotesque (h1/h2/h3 global rule).
-     Sidebar UI stays General Sans (the global default).
-     Only the body blocks the user actually types in get Instrument Serif.
-  ─────────────────────────────────────────────────────────────────────── */
   .notes-editor {
     display: flex;
     flex-direction: column;
@@ -576,22 +499,9 @@
     padding: 40px 24px 120px 80px;
     min-height: 100%;
   }
-
-  .editor-header {
-    margin-bottom: 8px;
-  }
-
-  .editor-description {
-    margin-bottom: 16px;
-    opacity: 0.7;
-  }
-
-  .editor-blocks {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
+  .editor-header { margin-bottom: 8px; }
+  .editor-description { margin-bottom: 16px; opacity: 0.7; }
+  .editor-blocks { display: flex; flex-direction: column; gap: 2px; }
   .block-wrapper {
     position: relative;
     display: flex;
@@ -600,21 +510,9 @@
     border-radius: 6px;
     transition: background 0.1s;
   }
-
-  /* Drag states */
-  .block-wrapper.is-dragging {
-    opacity: 0.4;
-  }
-
-  .block-wrapper.drag-over-top {
-    box-shadow: 0 -2px 0 var(--primary);
-  }
-
-  .block-wrapper.drag-over-bottom {
-    box-shadow: 0 2px 0 var(--primary);
-  }
-
-  /* ── Block controls (grip + add) ────────────────────────────────── */
+  .block-wrapper.is-dragging { opacity: 0.4; }
+  .block-wrapper.drag-over-top { box-shadow: 0 -2px 0 var(--primary); }
+  .block-wrapper.drag-over-bottom { box-shadow: 0 2px 0 var(--primary); }
   .block-controls {
     position: absolute;
     left: -56px;
@@ -626,260 +524,43 @@
     transition: opacity 0.12s;
     pointer-events: none;
   }
-
-  .block-wrapper:hover .block-controls {
-    opacity: 1;
-    pointer-events: all;
-  }
-
+  .block-wrapper:hover .block-controls { opacity: 1; pointer-events: all; }
   .block-grip {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 5px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    cursor: grab;
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 5px; border: none;
+    background: transparent; color: var(--muted); cursor: grab;
     transition: background 0.12s, color 0.12s;
   }
-
-  .block-grip:active {
-    cursor: grabbing;
-  }
-
-  .block-grip:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    color: var(--foreground);
-  }
-
+  .block-grip:active { cursor: grabbing; }
+  .block-grip:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
   .block-add-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 5px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 5px; border: none;
+    background: transparent; color: var(--muted); cursor: pointer;
     transition: background 0.12s, color 0.12s;
   }
-
-  .block-add-button:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    color: var(--foreground);
-  }
-
-  .editor-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 24px;
-    color: var(--muted);
-    font-size: 0.95rem;
-    text-align: center;
-  }
-
-  .editor-empty kbd {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 8px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--surface);
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: var(--foreground);
-  }
-
-  .editor-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 24px;
-    gap: 16px;
-    color: var(--muted);
-  }
-
-  .loading-spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* ── Body text blocks — Instrument Serif ────────────────────────────
-     Targets the contenteditable divs inside .editor-blocks.
-     Does NOT touch .editor-header (title) or any UI chrome.
-  ─────────────────────────────────────────────────────────────────────── */
-  .editor-blocks :global([contenteditable]) {
-    font-family: 'Instrument Serif', serif;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.75;
-  }
-
-  /* Code blocks inside the editor keep JetBrains Mono */
-  .editor-blocks :global(code),
-  .editor-blocks :global(pre) {
-    font-family: var(--font-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
-    font-size: 13px;
-    font-weight: 400;
-  }
-
-  /* ── Slash Menu ────────────────────────────────────────────────── */
-  .slash-menu {
-    position: absolute;
-    z-index: 100;
-    width: 260px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    overflow: hidden;
-  }
-
-  .slash-menu-header {
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .slash-menu-items {
-    display: flex;
-    flex-direction: column;
-    padding: 4px;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  .slash-menu-item {
-    all: unset;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: default;
-    font-size: 13px;
-    color: var(--foreground);
-    transition: background 120ms ease;
-  }
-
-  .slash-menu-item:hover,
-  .slash-menu-item.active {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  }
-
-  .slash-menu-item-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--foreground) 4%, transparent);
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-
-  .slash-menu-item-label {
-    flex: 1;
-  }
-
-  /* ── Format Toolbar ────────────────────────────────────────────── */
-  .format-toolbar {
-    position: absolute;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 4px 6px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    transform: translateX(-50%);
-  }
-
-  .format-toolbar-btn {
-    all: unset;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 4px;
-    cursor: default;
-    color: var(--muted);
-    transition: background 120ms ease, color 120ms ease;
-  }
-
-  .format-toolbar-btn:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    color: var(--foreground);
-  }
-
-  .format-toolbar-sep {
-    width: 1px;
-    height: 20px;
-    background: var(--border);
-    margin: 0 2px;
-  }
-
-  /* ── Block Actions ─────────────────────────────────────────────── */
-  .block-actions {
-    position: absolute;
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 4px;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    min-width: 120px;
-  }
-
-  .block-actions-btn {
-    all: unset;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: default;
-    font-size: 13px;
-    color: var(--foreground);
-    transition: background 120ms ease;
-  }
-
-  .block-actions-btn:hover {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  }
-
-  .block-actions-btn.danger {
-    color: var(--destructive, #ef4444);
-  }
-
-  .block-actions-btn.danger:hover {
-    background: color-mix(in srgb, var(--destructive, #ef4444) 10%, transparent);
-  }
+  .block-add-button:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
+  .editor-empty { display: flex; align-items: center; justify-content: center; padding: 60px 24px; color: var(--muted); font-size: 0.95rem; text-align: center; }
+  .editor-empty kbd { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); font-family: inherit; font-size: 0.85rem; color: var(--foreground); }
+  .editor-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 16px; color: var(--muted); }
+  .loading-spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .editor-blocks :global([contenteditable]) { font-family: 'Instrument Serif', serif; font-size: 16px; font-weight: 400; line-height: 1.75; }
+  .editor-blocks :global(code), .editor-blocks :global(pre) { font-family: var(--font-mono, 'JetBrains Mono Variable', ui-monospace, monospace); font-size: 13px; }
+  .slash-menu { position: absolute; z-index: 100; width: 260px; background: var(--background); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+  .slash-menu-header { padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .slash-menu-items { display: flex; flex-direction: column; padding: 4px; max-height: 300px; overflow-y: auto; }
+  .slash-menu-item { all: unset; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: default; font-size: 13px; color: var(--foreground); transition: background 120ms ease; }
+  .slash-menu-item:hover, .slash-menu-item.active { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
+  .slash-menu-item-icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: color-mix(in srgb, var(--foreground) 4%, transparent); color: var(--muted); flex-shrink: 0; }
+  .slash-menu-item-label { flex: 1; }
+  .format-toolbar { position: absolute; z-index: 100; display: flex; align-items: center; gap: 2px; padding: 4px 6px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateX(-50%); }
+  .format-toolbar-btn { all: unset; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 4px; cursor: default; color: var(--muted); transition: background 120ms ease, color 120ms ease; }
+  .format-toolbar-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
+  .format-toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+  .block-actions { position: absolute; z-index: 100; display: flex; flex-direction: column; gap: 2px; padding: 4px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 120px; }
+  .block-actions-btn { all: unset; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; cursor: default; font-size: 13px; color: var(--foreground); transition: background 120ms ease; }
+  .block-actions-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
+  .block-actions-btn.danger { color: var(--destructive, #ef4444); }
+  .block-actions-btn.danger:hover { background: color-mix(in srgb, var(--destructive, #ef4444) 10%, transparent); }
 </style>

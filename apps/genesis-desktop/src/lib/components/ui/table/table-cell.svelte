@@ -6,8 +6,9 @@
 		ref = $bindable(null),
 		class: className,
 		children,
+		colspan,
 		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLTableCellElement>> = $props();
+	}: WithElementRef<HTMLAttributes<HTMLTableCellElement>> & { colspan?: number | string } = $props();
 </script>
 
 <td
@@ -17,6 +18,7 @@
 		"p-3 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
 		className
 	)}
+	colspan={typeof colspan === "string" ? Number.parseInt(colspan, 10) : colspan}
 	{...restProps}
 >
 	{@render children?.()}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import BanIcon from "@lucide/svelte/icons/ban";
   import DownloadIcon from "@lucide/svelte/icons/download";
@@ -29,8 +30,74 @@
   const sectionLabels = ["Timer", "Sessions", "Sounds", "Blocking", "History", "Review", "Quick Timer"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
+  type FocusPreset = {
+    label: string;
+    description?: string | null;
+    minutes?: number | null;
+  };
+
+  type FocusCardItem = {
+    title: string;
+    detail: string;
+    status: string;
+  };
+
+  type FocusReviewNote = {
+    title: string;
+    note: string;
+  };
+
+  type FocusSessionEntry = {
+    id: string;
+    label: string;
+    duration: string;
+    note: string;
+    date: string;
+    minutes: number;
+    loggedAt: number;
+  };
+
+  type FocusHistoryEntry = {
+    day: string;
+    minutes: number;
+    sessions: number;
+  };
+
+  type FocusDashboardData = {
+    timerPresets: FocusPreset[];
+    sessions: FocusSessionEntry[];
+    sounds: FocusCardItem[];
+    blockers: FocusCardItem[];
+    history: FocusHistoryEntry[];
+    reviewNotes: FocusReviewNote[];
+    todayMinutes: number;
+    todaySessions: number;
+    thisWeekSessions: number;
+    blockingProfile: string | null;
+  };
+
+  function createEmptyFocusDashboard(): FocusDashboardData {
+    return {
+      timerPresets: [],
+      sessions: [],
+      sounds: [],
+      blockers: [],
+      history: [],
+      reviewNotes: [],
+      todayMinutes: 0,
+      todaySessions: 0,
+      thisWeekSessions: 0,
+      blockingProfile: null,
+    };
+  }
+
+  let focusDashboard = $state<FocusDashboardData>(createEmptyFocusDashboard());
+  let focusLoading = $state(true);
+  let focusError = $state<string | null>(null);
+
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
+    void loadFocusDashboard();
   });
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -39,42 +106,44 @@
     setModuleSection(moduleId, section, sectionLabels);
   }
 
+  async function loadFocusDashboard() {
+    focusLoading = true;
+    focusError = null;
+
+    try {
+      focusDashboard = await invoke<FocusDashboardData>("get_focus_dashboard");
+    } catch (error) {
+      console.warn("[focus] failed to load dashboard:", error);
+      focusDashboard = createEmptyFocusDashboard();
+      focusError = error instanceof Error ? error.message : "Could not load focus data.";
+    } finally {
+      focusLoading = false;
+    }
+  }
+
+  async function logFocusSession(minutes: number, label = currentSession, note = "Timer completed in the Focus module.") {
+    if (minutes <= 0) {
+      return;
+    }
+
+    try {
+      await invoke("record_focus_session", {
+        params: {
+          label,
+          minutes,
+          note,
+        },
+      });
+      await loadFocusDashboard();
+    } catch (error) {
+      console.warn("[focus] failed to record session:", error);
+    }
+  }
+
   let isRunning = $state(false);
   let timeRemaining = $state(25 * 60);
   let currentSession = "Pomodoro";
   let interval: ReturnType<typeof setInterval> | undefined;
-
-  const sessions = [
-    { label: "Morning writing", duration: "45 min", note: "Best uninterrupted block today." },
-    { label: "Admin sweep", duration: "20 min", note: "Email and follow-ups only." },
-    { label: "Design review", duration: "30 min", note: "Shared crit session with no chat." },
-  ];
-
-  const sounds = [
-    { title: "Brown noise", detail: "Low distraction, no melody", active: true },
-    { title: "Rain tape", detail: "Soft ambience with gentle hiss", active: false },
-    { title: "Lo-fi pulse", detail: "Light rhythmic support for planning", active: false },
-  ];
-
-  const blockers = [
-    { title: "Social web", detail: "Blocked for focus sessions over 20 minutes", status: "Enabled" },
-    { title: "Email", detail: "Muted until session ends", status: "Conditional" },
-    { title: "Team chat", detail: "Allowed only for starred contacts", status: "Smart" },
-  ];
-
-  const history = [
-    { day: "Mon", minutes: 162 },
-    { day: "Tue", minutes: 128 },
-    { day: "Wed", minutes: 184 },
-    { day: "Thu", minutes: 96 },
-    { day: "Fri", minutes: 140 },
-  ];
-
-  const reviewNotes = [
-    { title: "Best window", note: "First session lands fastest when started before messages open." },
-    { title: "Drop-off trigger", note: "Context switching spikes after lunch unless sounds stay on." },
-    { title: "Suggestion", note: "Try two 45 minute blocks instead of three shorter cycles tomorrow." },
-  ];
 
   function formatTime(seconds: number) {
     const minutes = Math.floor(seconds / 60);
@@ -118,23 +187,22 @@
   let qtSeconds = $state(25 * 60);
   let qtInterval: ReturnType<typeof setInterval> | null = null;
 
-  let qtSessions = $state([
-    { label: 'Morning deep work', duration: '52 min', date: 'Today' },
-    { label: 'Writing block', duration: '25 min', date: 'Today' },
-    { label: 'Research reading', duration: '40 min', date: 'Yesterday' },
-  ]);
-  let qtWeekCount = $state([3, 5, 2, 4, 4, 0, 0]);
-
   let qtMin = $derived(String(Math.floor(qtSeconds / 60)).padStart(2, '0'));
   let qtSec = $derived(String(qtSeconds % 60).padStart(2, '0'));
   let qtProgress = $derived(1 - qtSeconds / (25 * 60));
 
-  let totalQtMin = $derived(
-    qtSessions
-      .filter(s => s.date === 'Today')
-      .reduce((acc, s) => acc + (parseInt(s.duration) || 0), 0)
+  let qtSessions = $derived(
+    focusDashboard.sessions.map((session) => ({
+      label: session.label,
+      duration: session.duration,
+      date: session.date,
+    }))
   );
-  let totalQtSessions = $derived(qtSessions.length);
+
+  let qtWeekCount = $derived(focusDashboard.history.map((item) => item.sessions));
+
+  let totalQtMin = $derived(focusDashboard.todayMinutes);
+  let totalQtSessions = $derived(focusDashboard.thisWeekSessions);
 
   function toggleQtTimer() {
     if (qtActive) {
@@ -144,10 +212,7 @@
       const elapsed = 25 * 60 - qtSeconds;
       if (elapsed > 60) {
         const mins = Math.round(elapsed / 60);
-        qtSessions = [
-          { label: `Focus session`, duration: `${mins} min`, date: 'Today' },
-          ...qtSessions,
-        ];
+        void logFocusSession(mins, "Focus session");
       }
     } else {
       qtActive = true;
@@ -158,7 +223,7 @@
           qtActive = false;
           qtInterval = null;
           qtSeconds = 25 * 60;
-          qtSessions = [{ label: `Completed focus`, duration: '25 min', date: 'Today' }, ...qtSessions];
+          void logFocusSession(25, "Completed focus");
         }
       }, 1000);
     }
@@ -195,6 +260,21 @@
         </Button>
       </div>
     </header>
+
+    {#if focusLoading}
+      <div class="focus-status-banner" role="status" aria-live="polite">
+        <span class="focus-status-banner__dot"></span>
+        <span>Loading focus data from Rust…</span>
+      </div>
+    {:else if focusError}
+      <div class="focus-status-banner focus-status-banner--error" role="alert">
+        <span class="focus-status-banner__dot"></span>
+        <span>{focusError}</span>
+        <Button type="button" variant="outline" size="sm" onclick={() => void loadFocusDashboard()}>
+          Retry
+        </Button>
+      </div>
+    {/if}
 
     {#if selectedSection === "Timer"}
     <section class="focus-hero-grid">
@@ -248,9 +328,33 @@
           <CardDescription>Deep work minutes and protected time.</CardDescription>
         </CardHeader>
         <CardContent class="focus-hero-list">
-          <article><span>Deep work</span><strong>2h 21m</strong></article>
-          <article><span>Completed sessions</span><strong>4</strong></article>
-          <article><span>Blocking profile</span><strong>Writing mode</strong></article>
+          {#if focusLoading}
+            <div class="focus-empty-state focus-empty-state--center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+              <div>
+                <strong>Loading focus summary</strong>
+                <p>Rust is fetching today’s minutes and session totals.</p>
+              </div>
+            </div>
+          {:else if focusDashboard.todayMinutes === 0 && focusDashboard.todaySessions === 0 && !focusDashboard.blockingProfile}
+            <div class="focus-empty-state focus-empty-state--center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+              </svg>
+              <div>
+                <strong>No focus sessions yet</strong>
+                <p>Start a timer and Rust will keep the summary cards in sync.</p>
+              </div>
+            </div>
+          {:else}
+            <article><span>Deep work</span><strong>{Math.floor(focusDashboard.todayMinutes / 60)}h {focusDashboard.todayMinutes % 60}m</strong></article>
+            <article><span>Completed sessions</span><strong>{focusDashboard.todaySessions}</strong></article>
+            <article><span>Blocking profile</span><strong>{focusDashboard.blockingProfile ?? "Not set"}</strong></article>
+          {/if}
         </CardContent>
       </Card>
     </section>
@@ -297,9 +401,26 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
           {_t('moduleFocusRecentSessions')}
         </div>
-        {#if qtSessions.length === 0}
-        <div class="qt-empty-small">
-          <span class="qt-card-hint">{_t('moduleFocusNoSessions')}</span>
+        {#if focusLoading}
+        <div class="focus-empty-state focus-empty-state--center qt-empty-small">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>
+          </svg>
+          <div>
+            <strong>Loading sessions</strong>
+            <p>Waiting on the Rust backend to load recent focus history.</p>
+          </div>
+        </div>
+        {:else if qtSessions.length === 0}
+        <div class="focus-empty-state focus-empty-state--center qt-empty-small">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+          <div>
+            <strong>No sessions yet</strong>
+            <p>{_t('moduleFocusNoSessions')}</p>
+          </div>
         </div>
         {:else}
           {#each qtSessions.slice(0, 8) as s}
@@ -325,16 +446,38 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           {_t('moduleFocusThisWeek')}
         </div>
-        <div class="qt-stat-big" style="color:#10b981">{totalQtSessions}<span class="qt-stat-unit">{_t('moduleFocusSessions')}</span></div>
-        <p class="qt-card-hint" style="color:#22c55e">{_t('moduleFocusIncrease')}</p>
-        <div class="qt-mini-bars">
-          {#each qtWeekCount as h, i}
-            <div class="qt-mini-bar-wrap">
-              <div class="qt-mini-bar" style="height:{h*14}px;background:#10b981"></div>
-              <span class="qt-mini-bar-label">{['M','T','W','T','F','S','S'][i]}</span>
+        {#if focusLoading}
+          <div class="focus-empty-state focus-empty-state--center qt-empty-small">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <div>
+              <strong>Loading weekly stats</strong>
+              <p>Rust is building this week’s focus summary.</p>
             </div>
-          {/each}
-        </div>
+          </div>
+        {:else if totalQtSessions === 0 || qtWeekCount.length === 0}
+          <div class="focus-empty-state focus-empty-state--center qt-empty-small">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <div>
+              <strong>No weekly data yet</strong>
+              <p>Run a few sessions and the chart will appear here.</p>
+            </div>
+          </div>
+        {:else}
+          <div class="qt-stat-big" style="color:#10b981">{totalQtSessions}<span class="qt-stat-unit">{_t('moduleFocusSessions')}</span></div>
+          <p class="qt-card-hint" style="color:#22c55e">{_t('moduleFocusIncrease')}</p>
+          <div class="qt-mini-bars">
+            {#each qtWeekCount as h, i}
+              <div class="qt-mini-bar-wrap">
+                <div class="qt-mini-bar" style="height:{h*14}px;background:#10b981"></div>
+                <span class="qt-mini-bar-label">{['M','T','W','T','F','S','S'][i]}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
 
     </section>
@@ -348,9 +491,35 @@
             <CardDescription>Stay close to the original timer screen while adding session variants.</CardDescription>
           </CardHeader>
           <CardContent class="focus-preset-grid">
-            {#each ["Pomodoro 25", "Deep work 45", "Reset 10", "Review 15"] as preset}
-              <button type="button">{preset}</button>
-            {/each}
+            {#if focusLoading}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 7v5l3 2"></path>
+                </svg>
+                <div>
+                  <strong>Loading presets</strong>
+                  <p>Rust will load saved timer presets here.</p>
+                </div>
+              </div>
+            {:else if focusDashboard.timerPresets.length === 0}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 7v5l3 2"></path>
+                </svg>
+                <div>
+                  <strong>No presets saved yet</strong>
+                  <p>Timer presets can be stored from Rust settings without changing this layout.</p>
+                </div>
+              </div>
+            {:else}
+              {#each focusDashboard.timerPresets as preset}
+                <button type="button">
+                  {preset.label}
+                </button>
+              {/each}
+            {/if}
           </CardContent>
         </Card>
       {:else if selectedSection === "Sessions"}
@@ -360,15 +529,38 @@
             <CardDescription>Track what actually got protected today.</CardDescription>
           </CardHeader>
           <CardContent class="focus-session-list">
-            {#each sessions as session}
-              <article>
+            {#if focusLoading}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>
+                </svg>
                 <div>
-                  <strong>{session.label}</strong>
-                  <p>{session.note}</p>
+                  <strong>Loading sessions</strong>
+                  <p>Rust is fetching recent protected sessions.</p>
                 </div>
-                <span>{session.duration}</span>
-              </article>
-            {/each}
+              </div>
+            {:else if focusDashboard.sessions.length === 0}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 7v5l3 2"></path>
+                </svg>
+                <div>
+                  <strong>No sessions yet</strong>
+                  <p>Once you complete a focus block, the Rust backend will show it here.</p>
+                </div>
+              </div>
+            {:else}
+              {#each focusDashboard.sessions as session}
+                <article>
+                  <div>
+                    <strong>{session.label}</strong>
+                    <p>{session.note}</p>
+                  </div>
+                  <span>{session.duration}</span>
+                </article>
+              {/each}
+            {/if}
           </CardContent>
         </Card>
       {:else if selectedSection === "Sounds"}
@@ -378,16 +570,38 @@
             <CardDescription>Light audio control without turning the module into a media player.</CardDescription>
           </CardHeader>
           <CardContent class="focus-sound-list">
-            {#each sounds as sound}
-              <article>
-                <Volume2Icon size={18} />
+            {#if focusLoading}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M11 5 6 9H3v6h3l5 4z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
                 <div>
-                  <strong>{sound.title}</strong>
-                  <p>{sound.detail}</p>
+                  <strong>Loading sound profiles</strong>
+                  <p>Saved ambient profiles appear here once Rust returns them.</p>
                 </div>
-                <Badge variant={sound.active ? "default" : "outline"}>{sound.active ? "Active" : "Available"}</Badge>
-              </article>
-            {/each}
+              </div>
+            {:else if focusDashboard.sounds.length === 0}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M11 5 6 9H3v6h3l5 4z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+                <div>
+                  <strong>No sounds configured</strong>
+                  <p>Background sound profiles can be added later without changing this card.</p>
+                </div>
+              </div>
+            {:else}
+              {#each focusDashboard.sounds as sound}
+                <article>
+                  <Volume2Icon size={18} />
+                  <div>
+                    <strong>{sound.title}</strong>
+                    <p>{sound.detail}</p>
+                  </div>
+                  <Badge variant={sound.status.toLowerCase() === "active" ? "default" : "outline"}>{sound.status}</Badge>
+                </article>
+              {/each}
+            {/if}
           </CardContent>
         </Card>
       {:else if selectedSection === "Blocking"}
@@ -397,16 +611,40 @@
             <CardDescription>Website and app blocking presented as focused rules, not another nav system.</CardDescription>
           </CardHeader>
           <CardContent class="focus-block-list">
-            {#each blockers as blocker}
-              <article>
-                <BanIcon size={18} />
+            {#if focusLoading}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M8 8l8 8"></path><path d="M16 8l-8 8"></path>
+                </svg>
                 <div>
-                  <strong>{blocker.title}</strong>
-                  <p>{blocker.detail}</p>
+                  <strong>Loading blocking rules</strong>
+                  <p>Rust will surface saved blocking profiles here.</p>
                 </div>
-                <Badge variant="secondary">{blocker.status}</Badge>
-              </article>
-            {/each}
+              </div>
+            {:else if focusDashboard.blockers.length === 0}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M8 8l8 8"></path><path d="M16 8l-8 8"></path>
+                </svg>
+                <div>
+                  <strong>No blocking rules saved</strong>
+                  <p>Keep this card for future rules without showing mock blockers.</p>
+                </div>
+              </div>
+            {:else}
+              {#each focusDashboard.blockers as blocker}
+                <article>
+                  <BanIcon size={18} />
+                  <div>
+                    <strong>{blocker.title}</strong>
+                    <p>{blocker.detail}</p>
+                  </div>
+                  <Badge variant="secondary">{blocker.status}</Badge>
+                </article>
+              {/each}
+            {/if}
           </CardContent>
         </Card>
       {:else if selectedSection === "History"}
@@ -416,13 +654,35 @@
             <CardDescription>Compact charting that still fits inside the desktop shell.</CardDescription>
           </CardHeader>
           <CardContent class="focus-history-chart">
-            {#each history as item}
-              <article>
-                <span>{item.day}</span>
-                <i style={`--bar:${Math.max(item.minutes / 2, 20)}px`}></i>
-                <strong>{item.minutes}m</strong>
-              </article>
-            {/each}
+            {#if focusLoading}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <div>
+                  <strong>Loading history</strong>
+                  <p>The Rust analytics layer is computing the weekly chart.</p>
+                </div>
+              </div>
+            {:else if focusDashboard.history.length === 0}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <div>
+                  <strong>No weekly history yet</strong>
+                  <p>Focus history will populate after a few completed sessions.</p>
+                </div>
+              </div>
+            {:else}
+              {#each focusDashboard.history as item}
+                <article>
+                  <span>{item.day}</span>
+                  <i style={`--bar:${Math.max(item.minutes / 2, 20)}px`}></i>
+                  <strong>{item.minutes}m</strong>
+                </article>
+              {/each}
+            {/if}
           </CardContent>
         </Card>
       {:else if selectedSection === "Quick Timer"}
@@ -442,21 +702,43 @@
             <CardDescription>Readable summaries instead of a generic performance dashboard.</CardDescription>
           </CardHeader>
           <CardContent class="focus-review-list">
-            {#each reviewNotes as note}
-              <article>
-                <SparklesIcon size={18} />
+            {#if focusLoading}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3l2.9 5.88L21 10l-4.5 4.38L17.88 21 12 17.88 6.12 21 7.5 14.38 3 10l6.1-1.12L12 3z"></path>
+                </svg>
                 <div>
-                  <strong>{note.title}</strong>
-                  <p>{note.note}</p>
+                  <strong>Loading review notes</strong>
+                  <p>Rust is assembling the patterns for this section.</p>
                 </div>
-              </article>
-            {/each}
+              </div>
+            {:else if focusDashboard.reviewNotes.length === 0}
+              <div class="focus-empty-state focus-empty-state--wide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3l2.9 5.88L21 10l-4.5 4.38L17.88 21 12 17.88 6.12 21 7.5 14.38 3 10l6.1-1.12L12 3z"></path>
+                </svg>
+                <div>
+                  <strong>No review notes yet</strong>
+                  <p>Run a few focus sessions and Rust will start surfacing patterns here.</p>
+                </div>
+              </div>
+            {:else}
+              {#each focusDashboard.reviewNotes as note}
+                <article>
+                  <SparklesIcon size={18} />
+                  <div>
+                    <strong>{note.title}</strong>
+                    <p>{note.note}</p>
+                  </div>
+                </article>
+              {/each}
+            {/if}
             <article class="focus-review-list__export">
               <div>
                 <strong>Export session log</strong>
                 <p>Download today’s timeline and blocker profile.</p>
               </div>
-              <Button variant="outline">
+              <Button variant="outline" disabled={focusDashboard.sessions.length === 0}>
                 <DownloadIcon data-icon="inline-start" />
                 {_t('commonExport')}
               </Button>
@@ -530,6 +812,34 @@
   :global(.focus-shell__actions) {
     display: flex;
     gap: 12px;
+  }
+
+  :global(.focus-status-banner) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 1px solid var(--focus-border);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--focus-surface) 94%, var(--background));
+    color: var(--focus-ink);
+  }
+
+  :global(.focus-status-banner--error) {
+    border-color: color-mix(in srgb, #ef4444 38%, var(--focus-border));
+    background: color-mix(in srgb, #ef4444 10%, var(--focus-surface));
+  }
+
+  :global(.focus-status-banner__dot) {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--focus-accent);
+    flex-shrink: 0;
+  }
+
+  :global(.focus-status-banner--error) .focus-status-banner__dot {
+    background: #ef4444;
   }
 
   :global(.focus-hero-grid) {
@@ -665,6 +975,47 @@
 
   :global(.focus-hero-list) article {
     padding: 16px 18px;
+  }
+
+  :global(.focus-empty-state) {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 0;
+    padding: 10px 0 0;
+    color: var(--focus-muted);
+  }
+
+  :global(.focus-empty-state--center) {
+    align-items: center;
+  }
+
+  :global(.focus-empty-state--wide) {
+    padding-top: 6px;
+  }
+
+  :global(.focus-empty-state) svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    color: currentColor;
+  }
+
+  :global(.qt-empty-small) {
+    padding-top: 4px;
+  }
+
+  :global(.focus-empty-state p) {
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  :global(.focus-empty-state strong) {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--focus-ink);
   }
 
   :global(.focus-hero-list) span,

@@ -3,7 +3,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { Plus, FileText, Star, Clock, Search, MoreHorizontal, Archive, Trash2, Pin } from 'lucide-svelte';
   import { time } from '$lib/utils/time';
-  import Editor from './Editor.svelte';
+  import { editorStore } from '$lib/local-store/store';
 
   let { moduleId = 'notes' } = $props();
 
@@ -46,6 +46,8 @@
   let creating    = $state(false);
   let searchQuery = $state('');
   let activeId    = $state<string | null>(null);
+  let EditorComponent = $state<any>(null);
+  let editorLoadPromise: Promise<void> | null = null;
   let contextMenu = $state<{ id: string; x: number; y: number } | null>(null);
   let errorMsg    = $state<string | null>(null);
   let errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -71,6 +73,25 @@
   let otherNotes  = $derived(filtered.filter(n => !n.pinned));
   let activeNote  = $derived(notes.find(n => n.id === activeId) ?? null);
 
+  async function ensureEditorLoaded() {
+    if (EditorComponent) return;
+    if (editorLoadPromise) return editorLoadPromise;
+
+    editorLoadPromise = import('./Editor.svelte')
+      .then((mod) => {
+        EditorComponent = mod.default;
+      })
+      .catch((err) => {
+        console.error('[notes] editor load failed:', err);
+        showError('Could not load editor. Backend unavailable.');
+      })
+      .finally(() => {
+        editorLoadPromise = null;
+      });
+
+    return editorLoadPromise;
+  }
+
   // ── Load ───────────────────────────────────────────────────────────────
 
   async function load() {
@@ -84,10 +105,6 @@
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         return b.updatedAt - a.updatedAt;
       });
-      // Auto-select most recent on first load
-      if (!activeId && notes.length > 0) {
-        activeId = notes[0].id;
-      }
     } catch (err) {
       console.error('[notes] load failed:', err);
       showError('Could not load notes. Backend unavailable.');
@@ -104,6 +121,7 @@
     if (creating) return;
     creating = true;
     try {
+      await editorStore.flushPendingSaves();
       const created = await invoke<NoteWithBlocks>('notes_object_create', {
         params: { title: '', icon: null, tags: [], pinned: false },
       });
@@ -121,6 +139,7 @@
       };
       notes = [newNote, ...notes];
       activeId = newNote.id;
+      void ensureEditorLoaded();
     } catch (err) {
       console.error('[notes] create failed:', err);
       showError('Could not create note. Backend unavailable.');
@@ -183,6 +202,12 @@
     e.preventDefault();
     e.stopPropagation();
     contextMenu = { id, x: e.clientX, y: e.clientY };
+  }
+
+  async function selectNote(id: string) {
+    await editorStore.flushPendingSaves();
+    activeId = id;
+    void ensureEditorLoaded();
   }
 
   function closeContextMenu() { contextMenu = null; }
@@ -273,8 +298,8 @@
               role="option"
               aria-selected={activeId === note.id}
               tabindex="0"
-              onclick={() => activeId = note.id}
-              onkeydown={(e) => e.key === 'Enter' && (activeId = note.id)}
+              onclick={() => selectNote(note.id)}
+              onkeydown={(e) => e.key === 'Enter' && selectNote(note.id)}
               oncontextmenu={(e) => openContextMenu(e, note.id)}
             >
               <div class="note-row-icon">{note.icon ?? '📄'}</div>
@@ -312,8 +337,8 @@
               role="option"
               aria-selected={activeId === note.id}
               tabindex="0"
-              onclick={() => activeId = note.id}
-              onkeydown={(e) => e.key === 'Enter' && (activeId = note.id)}
+              onclick={() => selectNote(note.id)}
+              onkeydown={(e) => e.key === 'Enter' && selectNote(note.id)}
               oncontextmenu={(e) => openContextMenu(e, note.id)}
             >
               <div class="note-row-icon">{note.icon ?? '📄'}</div>
@@ -345,12 +370,20 @@
   <!-- ── Panel 2: Editor ─────────────────────────────────────────────── -->
   <main class="notes-editor-pane">
     {#if activeId}
-      <Editor
-        objectId={activeId}
-        onTitleChange={(id: string, title: string) => {
-          notes = notes.map(n => n.id === id ? { ...n, title, updatedAt: time.now() } : n);
-        }}
-      />
+      {#if EditorComponent}
+        <svelte:component
+          this={EditorComponent}
+          objectId={activeId}
+          onTitleChange={(id: string, title: string) => {
+            notes = notes.map(n => n.id === id ? { ...n, title, updatedAt: time.now() } : n);
+          }}
+        />
+      {:else}
+        <div class="editor-loading">
+          <div class="spinner"></div>
+          <span>Loading editor…</span>
+        </div>
+      {/if}
     {:else}
       <!-- Empty state — no note selected -->
       <div class="editor-empty">
@@ -667,6 +700,16 @@
     overflow: hidden;
     min-width: 0;
     background: var(--background);
+  }
+
+  .editor-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    color: color-mix(in srgb, var(--foreground) 50%, transparent);
+    font-size: 13px;
   }
 
   /* Empty / no-selection state */

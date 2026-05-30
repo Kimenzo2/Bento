@@ -13,6 +13,7 @@ import {
 import { canAccessModuleByPlan } from '$lib/desktop/billing-access';
 import { ensureBillingProfile } from '$lib/stores/billing.store';
 import { time } from '$lib/utils/time';
+import { pushNav } from '$lib/stores/nav-history.store';
 
 export const moduleIdSchema = z.enum(moduleIdValues);
 export type { BentoModuleId } from '$lib/data/module-catalog';
@@ -152,6 +153,7 @@ export async function switchModule(toModule: BentoModuleId): Promise<ModuleSwitc
         localStorage.setItem('bento:lastModuleAt', String(time.now()));
       } catch {}
       activeModule.set(toModule);
+      pushNav(toModule);
       await Promise.resolve(goto(target.route));
       await setWindowTitle(toModule);
       return receipt;
@@ -173,6 +175,7 @@ export async function switchModule(toModule: BentoModuleId): Promise<ModuleSwitc
       localStorage.setItem('bento:lastModuleAt', String(time.now()));
     } catch {}
     activeModule.set(toModule);
+    pushNav(toModule);
     await Promise.resolve(goto(target.route));
     await setWindowTitle(toModule);
   }

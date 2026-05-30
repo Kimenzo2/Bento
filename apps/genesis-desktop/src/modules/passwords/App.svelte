@@ -1,595 +1,341 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { browser } from "$app/environment";
-  import { fade, slide } from "svelte/transition";
-  import { activeBundle, createTranslator } from "$lib/i18n";
-  import { time } from "$lib/utils/time";
-  import { invoke } from "@tauri-apps/api/core";
+  import "./passwords.css";
+  import CopyIcon from "@lucide/svelte/icons/copy";
+  import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
+  import EyeIcon from "@lucide/svelte/icons/eye";
+  import EyeOffIcon from "@lucide/svelte/icons/eye-off";
+  import PlusIcon from "@lucide/svelte/icons/plus";
+  import SearchIcon from "@lucide/svelte/icons/search";
+  import XIcon from "@lucide/svelte/icons/x";
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { MiniAppHeader, MiniAppRoot, MiniAppStatGrid } from "$lib/modules/mini-app/index.js";
 
-  let _t = $derived.by(() => createTranslator($activeBundle));
-
-  let t = (key: string, fallback?: string) => _t(key, fallback);
+  let { moduleId = "passwords", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
+    $props();
 
   type VaultEntry = {
-    id: string;
+    id: number;
     site: string;
-    username: string;
-    password: string;
-    notes: string;
-    created: number;
-    updated: number;
+    user: string;
+    url: string;
+    pass: string;
   };
 
-  let entries = $state<VaultEntry[]>([]);
-  let loading = $state(true);
-  let error = $state<string | null>(null);
-  let search = $state("");
-  let showForm = $state(false);
-  let formSite = $state("");
-  let formUser = $state("");
-  let formPass = $state("");
-  let formNotes = $state("");
-  let editingId = $state<string | null>(null);
-  let visiblePasswords = $state<Set<string>>(new Set());
-  let copiedId = $state<string | null>(null);
-  let useBackend = $state(false);
+  type VaultGroup = {
+    section: string;
+    items: VaultEntry[];
+  };
 
-  const STORAGE_KEY = "bento_passwords";
+  let searchQuery = $state("");
+  let showDetail = $state<VaultEntry | null>(null);
+  let revealPassword = $state(false);
+  let activeCategory = $state("All");
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Filter (ported from Anytype) ──────────────────────────────
+  let isFocused = $state(false);
+  let isActive = $state(false);
+  let filterNode: HTMLDivElement | undefined = $state(undefined);
+  let inputRef: HTMLInputElement | undefined = $state(undefined);
 
-  function normalizeEntry(entry: Partial<VaultEntry>): VaultEntry | null {
-    if (!entry.id || !entry.site || !entry.username || !entry.password) return null;
-    const now = time.now();
-
-    return {
-      id: String(entry.id),
-      site: String(entry.site).trim(),
-      username: String(entry.username).trim(),
-      password: String(entry.password),
-      notes: String(entry.notes ?? "").trim(),
-      created: Number(entry.created ?? now),
-      updated: Number(entry.updated ?? entry.created ?? now),
-    };
+  function onIconClick() {
+    isActive = !isActive;
+    if (!isActive) searchQuery = "";
   }
 
-  function loadFromLocalStorage(): VaultEntry[] {
-    const raw = browser ? localStorage.getItem(STORAGE_KEY) : null;
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed)
-      ? parsed
-          .map((e: Partial<VaultEntry>) => normalizeEntry(e))
-          .filter((e: VaultEntry | null): e is VaultEntry => Boolean(e))
-          .sort((a: VaultEntry, b: VaultEntry) => b.updated - a.updated || b.created - a.created)
-      : [];
+  function onFocus() {
+    isFocused = true;
   }
 
-  function persistLocalStorage() {
-    if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  function onBlur() {
+    isFocused = false;
   }
 
-  // ── Data layer ──────────────────────────────────────────────────────────────
+  function clear() {
+    searchQuery = "";
+    inputRef?.focus();
+  }
 
-  async function load() {
-    loading = true;
-    error = null;
+  function onClearHandler(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    clear();
+  }
 
-    // Try the encrypted backend first (requires master password unlocked)
-    try {
-      let backend = await invoke<VaultEntry[]>("passwords_list");
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      clear();
+    }
+  }
 
-      // Backend is available — auto-migrate any localStorage data
-      const localRaw = browser ? localStorage.getItem(STORAGE_KEY) : null;
-      if (localRaw) {
-        try {
-          const count = await invoke<number>("passwords_migrate_from_storage", { entriesJson: localRaw });
-          if (count > 0) {
-            console.log(`[passwords] migrated ${count} entries from localStorage to encrypted DB`);
-          }
-          localStorage.removeItem(STORAGE_KEY);
-          // Re-read after migration so entries reflect merged data
-          backend = await invoke<VaultEntry[]>("passwords_list");
-        } catch (e) {
-          console.warn("[passwords] migration from localStorage to encrypted DB failed", e);
+  $effect(() => {
+    if (isActive) {
+      requestAnimationFrame(() => inputRef?.focus());
+      const onDocClick = (e: MouseEvent) => {
+        if (filterNode && !filterNode.contains(e.target as Node)) {
+          isActive = false;
         }
-      }
-
-      entries = backend;
-      useBackend = true;
-    } catch {
-      // Backend unavailable (crypto locked or not configured) — use localStorage
-      try {
-        entries = loadFromLocalStorage();
-      } catch (e) {
-        error = _t("modulePasswordsErrorLoad", "Failed to load vault");
-        entries = [];
-      }
-      useBackend = false;
-    } finally {
-      loading = false;
+      };
+      document.addEventListener("click", onDocClick);
+      return () => document.removeEventListener("click", onDocClick);
     }
+  });
+
+  const categories = ["All", "Login", "Cards", "Notes", "Identity"];
+
+  const recentLogins: VaultEntry[] = [
+    { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV…" },
+    { id: 2, site: "Stripe", user: "admin@corp.com", url: "stripe.com", pass: "str_live_…" },
+    { id: 3, site: "AWS Console", user: "root-dev", url: "aws.amazon.com", pass: "aws_19192…" },
+  ];
+
+  const vault: VaultGroup[] = [
+    {
+      section: "A",
+      items: [
+        { id: 4, site: "Apple", user: "steve@mac.com", url: "apple.com", pass: "apple_xZ91…" },
+        { id: 5, site: "Adobe", user: "design@ui.com", url: "adobe.com", pass: "dobe_pass…" },
+      ],
+    },
+    {
+      section: "G",
+      items: [
+        { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV…" },
+        { id: 6, site: "Google", user: "kimenzo@gmail.com", url: "google.com", pass: "g_99182…" },
+      ],
+    },
+  ];
+
+  function copyPass(pass: string) {
+    void pass;
   }
 
-  async function saveToBackend(entry: VaultEntry): Promise<void> {
-    try {
-      await invoke("passwords_save", { entry });
-      // Re-read so we're always in sync (sort order, timestamps from server)
-      entries = await invoke<VaultEntry[]>("passwords_list");
-    } catch (e) {
-      console.warn("[passwords] save to encrypted backend failed, falling back", e);
-      useBackend = false;
-      entries = loadFromLocalStorage();
-    }
+  function openDetail(item: VaultEntry) {
+    showDetail = item;
+    revealPassword = false;
   }
 
-  async function deleteFromBackend(id: string): Promise<void> {
-    try {
-      await invoke("passwords_delete", { id });
-      entries = await invoke<VaultEntry[]>("passwords_list");
-    } catch (e) {
-      console.warn("[passwords] delete from encrypted backend failed, falling back", e);
-      useBackend = false;
-      entries = loadFromLocalStorage();
-    }
+  function closeDetail() {
+    showDetail = null;
+    revealPassword = false;
   }
-
-  // ── UI actions ─────────────────────────────────────────────────────────────
-
-  function resetForm() {
-    formSite = "";
-    formUser = "";
-    formPass = "";
-    formNotes = "";
-    editingId = null;
-    showForm = false;
-  }
-
-  async function saveEntry() {
-    if (!formSite.trim() || !formUser.trim() || !formPass.trim()) return;
-
-    if (useBackend) {
-      if (editingId) {
-        const patched: VaultEntry = {
-          id: editingId,
-          site: formSite.trim(),
-          username: formUser.trim(),
-          password: formPass.trim(),
-          notes: formNotes.trim(),
-          created: entries.find((e) => e.id === editingId)?.created ?? time.now(),
-          updated: time.now(),
-        };
-        await saveToBackend(patched);
-      } else {
-        const created = time.now();
-        const newEntry: VaultEntry = {
-          id: crypto.randomUUID(),
-          site: formSite.trim(),
-          username: formUser.trim(),
-          password: formPass.trim(),
-          notes: formNotes.trim(),
-          created,
-          updated: created,
-        };
-        await saveToBackend(newEntry);
-      }
-    } else {
-      if (editingId) {
-        entries = entries.map((e) =>
-          e.id === editingId
-            ? { ...e, site: formSite.trim(), username: formUser.trim(), password: formPass.trim(), notes: formNotes.trim(), updated: time.now() }
-            : e
-        );
-      } else {
-        entries = [
-          { id: crypto.randomUUID(), site: formSite.trim(), username: formUser.trim(), password: formPass.trim(), notes: formNotes.trim(), created: time.now(), updated: time.now() },
-          ...entries,
-        ];
-      }
-      entries = entries.sort((a, b) => b.updated - a.updated || b.created - a.created);
-      persistLocalStorage();
-    }
-
-    resetForm();
-  }
-
-  function editEntry(entry: VaultEntry) {
-    formSite = entry.site;
-    formUser = entry.username;
-    formPass = entry.password;
-    formNotes = entry.notes;
-    editingId = entry.id;
-    showForm = true;
-  }
-
-  async function deleteEntry(id: string) {
-    if (useBackend) {
-      await deleteFromBackend(id);
-    } else {
-      entries = entries.filter((e) => e.id !== id);
-      persistLocalStorage();
-    }
-  }
-
-  async function copyPassword(text: string, id: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      copiedId = id;
-      setTimeout(() => (copiedId = null), 1500);
-    } catch {}
-  }
-
-  function toggleVisible(id: string) {
-    const next = new Set(visiblePasswords);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    visiblePasswords = next;
-  }
-
-  function generatePassword() {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
-    let pw = "";
-    for (let i = 0; i < 20; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-    formPass = pw;
-  }
-
-  const filtered = $derived(
-    search.trim()
-      ? entries.filter(
-          (e) =>
-            e.site.toLowerCase().includes(search.toLowerCase()) ||
-            e.username.toLowerCase().includes(search.toLowerCase())
-        )
-      : entries
-  );
-
-  const totalPasswords = $derived(entries.length);
-
-  onMount(() => load());
 </script>
 
-<div class="vault-shell module-root" data-module="passwords">
-  <!-- Header -->
-  <div class="vault-header">
-    <div class="vault-header-left">
-      <span class="vault-icon">🔒</span>
-      <div>
-        <h1 class="vault-title">{_t("modulePasswordsTitle", "Password Vault")}</h1>
-        <p class="vault-subtitle">
-          {_t("modulePasswordsTotal", "{n} passwords saved").replace("{n}", String(totalPasswords))}
-          {#if useBackend}
-            <span class="vault-badge">E2EE</span>
-          {/if}
-        </p>
-      </div>
-    </div>
-    <button class="vault-btn vault-btn-primary" onclick={() => { resetForm(); showForm = true; }}>
-      + {_t("modulePasswordsAddPassword", "Add Password")}
-    </button>
-  </div>
+<MiniAppRoot class="passwords-app gap-5 p-4 sm:p-6">
+  <MiniAppHeader
+    eyebrow="Vault"
+    title="Password vault"
+    description="Local-first logins, secure notes, and passkeys — encrypted on this device."
+  >
+    {#snippet actions()}
+      <Button type="button" variant="outline" size="icon" aria-label="Add item">
+        <PlusIcon />
+      </Button>
+    {/snippet}
+  </MiniAppHeader>
 
-  <!-- Search -->
-  {#if entries.length > 0}
-    <div class="vault-search" transition:fade>
-      <input
-        type="text"
-        class="vault-input"
-        bind:value={search}
-        placeholder={_t("modulePasswordsSearchPlaceholder", "Search sites or usernames...")}
-      />
-    </div>
-  {/if}
+  <MiniAppStatGrid
+    columns={3}
+    stats={[
+      { label: "Saved items", value: "128", hint: "Across all categories" },
+      { label: "Health score", value: "94", hint: "Strong passwords" },
+      { label: "Breaches", value: "0", hint: "Monitored emails" },
+    ]}
+  />
 
-  <!-- Loading -->
-  {#if loading}
-    <div class="vault-loading" transition:fade>
-      {#each [1, 2, 3, 4] as _}
-        <div class="vault-skeleton"></div>
-      {/each}
+  <section class="passwords-toolbar">
+    <div class="passwords-toolbar-left">
+      <span class="passwords-section-title">Vault</span>
     </div>
-
-  <!-- Error -->
-  {:else if error}
-    <div class="vault-state vault-state-error" transition:fade>
-      <span class="vault-state-icon">⚠️</span>
-      <p>{error}</p>
-      <button class="vault-btn vault-btn-secondary" onclick={load}>Retry</button>
-    </div>
-
-  <!-- Empty -->
-  {:else if entries.length === 0}
-    <div class="vault-state" transition:fade>
-      <span class="vault-state-icon vault-state-icon--large">🔒</span>
-      <h2 class="vault-state-title">{_t("modulePasswordsNoVault", "Your vault is empty")}</h2>
-      <p class="vault-state-desc">{_t("modulePasswordsNoVaultDesc", "Save your first password to get started.")}</p>
-      <button class="vault-btn vault-btn-primary" onclick={() => { resetForm(); showForm = true; }}>
-        {_t("modulePasswordsAddFirst", "Add Your First Password")}
+    <div class="passwords-toolbar-right">
+      <button
+        type="button"
+        class="icon passwords-search-icon"
+        onclick={onIconClick}
+        aria-label={isActive ? "Close search" : "Search vault"}
+      >
+        <SearchIcon />
       </button>
-    </div>
-
-  <!-- Add/Edit Form -->
-  {/if}
-
-  {#if showForm}
-    <div class="vault-form-overlay" transition:fade onclick={resetForm} role="presentation"></div>
-    <div class="vault-form-panel" transition:fade={{ duration: 150 }}>
-      <h2 class="vault-form-title">{editingId ? _t("modulePasswordsEditPassword", "Edit Password") : _t("modulePasswordsAddPassword", "Add Password")}</h2>
-      <div class="vault-form-group">
-        <label class="vault-label">{_t("modulePasswordsSiteLabel", "Site / App")}</label>
-        <input type="text" class="vault-input" bind:value={formSite} placeholder="e.g. github.com" />
-      </div>
-      <div class="vault-form-group">
-        <label class="vault-label">{_t("modulePasswordsUsernameLabel", "Username / Email")}</label>
-        <input type="text" class="vault-input" bind:value={formUser} placeholder="user@example.com" />
-      </div>
-      <div class="vault-form-group">
-        <label class="vault-label">{_t("modulePasswordsPasswordLabel", "Password")}</label>
-        <div class="vault-pass-row">
-          <input type="text" class="vault-input" bind:value={formPass} placeholder="Enter or generate" />
-          <button class="vault-btn vault-btn-ghost vault-btn-sm" onclick={generatePassword} title={_t("modulePasswordsGenerate", "Generate")}>🎲</button>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="filterWrap"
+        class:active={isActive}
+        bind:this={filterNode}
+      >
+        <div
+          class="filter size28 withIcon"
+          class:isFocused
+          class:active={searchQuery.length > 0}
+        >
+          <div class="inner">
+            <span class="icon search-icon">
+              <SearchIcon />
+            </span>
+            <div class="filterInputWrap">
+              <input
+                bind:this={inputRef}
+                bind:value={searchQuery}
+                type="text"
+                placeholder="Search vault…"
+                class="input"
+                onfocus={onFocus}
+                onblur={onBlur}
+                onkeydown={onKeyDown}
+              />
+            </div>
+            <button type="button" class="icon commonClear" onclick={onClearHandler}>
+              <XIcon />
+            </button>
+          </div>
+          <div class="line"></div>
         </div>
       </div>
-      <div class="vault-form-group">
-        <label class="vault-label">{_t("modulePasswordsNotesLabel", "Notes (optional)")}</label>
-        <textarea class="vault-textarea" bind:value={formNotes} placeholder="Any extra info..." rows={2}></textarea>
-      </div>
-      <div class="vault-form-actions">
-        <button class="vault-btn vault-btn-primary" disabled={!formSite.trim() || !formUser.trim() || !formPass.trim()} onclick={saveEntry}>
-          {editingId ? _t("modulePasswordsUpdate", "Update Password") : _t("modulePasswordsSave", "Save Password")}
+    </div>
+  </section>
+
+  <section class="passwords-categories">
+    {#each categories as cat (cat)}
+      <Button
+        type="button"
+        variant={activeCategory === cat ? "default" : "outline"}
+        size="sm"
+        class="rounded-full"
+        onclick={() => (activeCategory = cat)}
+      >
+        {cat}
+      </Button>
+    {/each}
+  </section>
+
+  <section class="passwords-scroll grid gap-1">
+    {#if !searchQuery}
+      <p class="passwords-section-title">Recently used</p>
+      {#each recentLogins as entry (entry.id)}
+        <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
+          <span class="flex min-w-0 items-center gap-3">
+            <span class="passwords-favicon">{entry.site.charAt(0)}</span>
+            <span class="min-w-0">
+              <span class="block truncate font-medium text-[var(--foreground)]">{entry.site}</span>
+              <span class="block truncate text-sm text-[var(--muted)]">{entry.user}</span>
+            </span>
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Copy password"
+            onclick={(e) => {
+              e.stopPropagation();
+              copyPass(entry.pass);
+            }}
+          >
+            <CopyIcon class="size-4" />
+          </Button>
         </button>
-        <button class="vault-btn vault-btn-ghost" onclick={resetForm}>{_t("commonCancel", "Cancel")}</button>
-      </div>
-    </div>
-  {/if}
+      {/each}
 
-  <!-- List -->
-  {#if !loading && !error && entries.length > 0}
-    <div class="vault-list" transition:fade>
-      {#if filtered.length === 0}
-        <div class="vault-state" transition:fade>
-          <span class="vault-state-icon">🔍</span>
-          <p class="vault-state-desc">{_t("modulePasswordsNoResults", "No results for \"{q}\"").replace("{q}", search)}</p>
+      {#each vault as group (group.section)}
+        <p class="passwords-alpha">{group.section}</p>
+        {#each group.items as entry (entry.id)}
+          <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
+            <span class="flex min-w-0 items-center gap-3">
+              <span class="passwords-favicon">{entry.site.charAt(0)}</span>
+              <span class="min-w-0">
+                <span class="block truncate font-medium text-[var(--foreground)]">{entry.site}</span>
+                <span class="block truncate text-sm text-[var(--muted)]">{entry.user}</span>
+              </span>
+            </span>
+            <CopyIcon class="size-4 shrink-0 text-[var(--muted)]" />
+          </button>
+        {/each}
+      {/each}
+    {:else}
+      <p class="passwords-section-title">Results</p>
+      {#each recentLogins as entry (entry.id)}
+        <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
+          <span class="flex min-w-0 items-center gap-3">
+            <span class="passwords-favicon">{entry.site.charAt(0)}</span>
+            <span class="min-w-0">
+              <span class="block truncate font-medium">{entry.site}</span>
+              <span class="block truncate text-sm text-[var(--muted)]">{entry.user}</span>
+            </span>
+          </span>
+        </button>
+      {/each}
+    {/if}
+  </section>
+
+  {#if showDetail}
+    {@const detail = showDetail}
+    <div class="passwords-detail-overlay" role="presentation">
+      <button type="button" class="absolute inset-0" aria-label="Close detail" onclick={closeDetail}></button>
+      <div class="passwords-detail-pane relative z-10">
+        <div class="mb-6 flex items-start justify-between gap-4 border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pb-5">
+          <span class="flex items-center gap-3">
+            <span class="passwords-favicon passwords-favicon--lg">{detail.site.charAt(0)}</span>
+            <span>
+              <h2 class="font-[var(--font-heading)] text-xl font-semibold">{detail.site}</h2>
+              <Badge variant="outline" class="mt-1">Login</Badge>
+            </span>
+          </span>
+          <Button type="button" variant="ghost" size="sm">Edit</Button>
         </div>
-      {/if}
-      {#each filtered as entry (entry.id)}
-        <div class="vault-row" transition:slide={{ duration: 150 }}>
-          <div class="vault-row-left">
-            <div class="vault-row-icon">{entry.site.charAt(0).toUpperCase()}</div>
-            <div class="vault-row-info">
-              <span class="vault-row-site">{entry.site}</span>
-              <span class="vault-row-user">{entry.username}</span>
+
+        <div class="grid gap-4">
+          <div class="passwords-field">
+            <span class="passwords-field-label">Username</span>
+            <div class="passwords-field-row">
+              <span class="passwords-field-value">{detail.user}</span>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label="Copy username">
+                <CopyIcon class="size-4" />
+              </Button>
             </div>
           </div>
-          <div class="vault-pass-display">
-            {#if visiblePasswords.has(entry.id)}
-              <span class="vault-pass-text">{entry.password}</span>
-            {:else}
-              <span class="vault-pass-dots">{'•'.repeat(Math.min(entry.password.length, 20))}</span>
-            {/if}
-            <button class="vault-btn-icon" onclick={() => toggleVisible(entry.id)} title={visiblePasswords.has(entry.id) ? _t("commonHide", "Hide") : _t("commonShow", "Show")}>
-              {visiblePasswords.has(entry.id) ? "🙈" : "👁️"}
-            </button>
+
+          <div class="passwords-field">
+            <span class="passwords-field-label">Password</span>
+            <div class="passwords-field-row">
+              <span class="passwords-field-value passwords-field-value--mono">
+                {revealPassword ? detail.pass : "••••••••••••"}
+              </span>
+              <span class="flex gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={revealPassword ? "Hide password" : "Show password"}
+                  onclick={() => (revealPassword = !revealPassword)}
+                >
+                  {#if revealPassword}
+                    <EyeOffIcon class="size-4" />
+                  {:else}
+                    <EyeIcon class="size-4" />
+                  {/if}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Copy password"
+                  onclick={() => copyPass(detail.pass)}
+                >
+                  <CopyIcon class="size-4" />
+                </Button>
+              </span>
+            </div>
           </div>
-          <div class="vault-row-actions">
-            <button class="vault-btn-icon" onclick={() => copyPassword(entry.password, entry.id)} title={_t("commonCopy", "Copy")}>
-              {copiedId === entry.id ? "✅" : "📋"}
-            </button>
-            <button class="vault-btn-icon" onclick={() => editEntry(entry)} title={_t("commonEdit", "Edit")}>✏️</button>
-            <button class="vault-btn-icon vault-btn-icon--danger" onclick={() => deleteEntry(entry.id)} title={_t("commonDelete", "Delete")}>🗑️</button>
-          </div>
+
+          <section class="passwords-field">
+            <span class="passwords-field-label">Website</span>
+            <div class="passwords-field-row">
+              <span class="passwords-field-value passwords-field-value--link">{detail.url}</span>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label="Open website">
+                <ExternalLinkIcon class="size-4" />
+              </Button>
+            </div>
+          </section>
         </div>
-      {/each}
+      </div>
     </div>
   {/if}
-</div>
-
-<style>
-  .vault-shell {
-    --vault-surface: var(--card);
-    --vault-surface-soft: color-mix(in srgb, var(--surface) 94%, var(--background));
-    --vault-surface-hover: color-mix(in srgb, var(--foreground) 8%, var(--card));
-    --vault-border: color-mix(in srgb, var(--border) 86%, transparent);
-    --vault-ink: var(--foreground);
-    --vault-muted: var(--muted);
-    --vault-subtle: color-mix(in srgb, var(--muted) 62%, transparent);
-    --vault-accent: var(--primary);
-    --vault-accent-foreground: var(--primary-foreground, var(--background));
-    --vault-danger: var(--destructive, var(--primary));
-    padding: 24px;
-    max-width: 720px;
-    margin: 0 auto;
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    position: relative;
-  }
-
-  .vault-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .vault-header-left { display: flex; align-items: center; gap: 12px; }
-  .vault-icon { font-size: 28px; line-height: 1; }
-  .vault-title { font-size: 20px; font-weight: 700; margin: 0; color: var(--vault-ink); }
-  .vault-subtitle { font-size: 13px; color: var(--vault-muted); margin: 2px 0 0 0; display: flex; align-items: center; gap: 8px; }
-
-  .vault-badge {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--vault-accent) 18%, transparent);
-    color: var(--vault-accent);
-    text-transform: uppercase;
-  }
-
-  .vault-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 12px;
-    padding: 60px 20px;
-  }
-  .vault-state-error { gap: 8px; }
-  .vault-state-icon { font-size: 24px; }
-  .vault-state-icon--large { font-size: 48px; }
-  .vault-state-title { font-size: 18px; font-weight: 600; margin: 0; color: var(--vault-ink); }
-  .vault-state-desc { font-size: 14px; color: var(--vault-muted); margin: 0; max-width: 280px; }
-
-  .vault-loading { display: flex; flex-direction: column; gap: 10px; }
-  .vault-skeleton {
-    height: 56px;
-    border-radius: 10px;
-    background: var(--vault-surface-soft);
-    animation: vault-pulse 1.5s infinite;
-  }
-  @keyframes vault-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-
-  .vault-btn {
-    padding: 8px 18px;
-    border-radius: 8px;
-    border: none;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .vault-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .vault-btn-primary { background: var(--vault-accent); color: var(--vault-accent-foreground); }
-  .vault-btn-primary:not(:disabled):hover { opacity: 0.9; transform: translateY(-1px); }
-  .vault-btn-secondary { background: var(--vault-surface-soft); color: var(--vault-ink); }
-  .vault-btn-secondary:not(:disabled):hover { background: var(--vault-surface-hover); }
-  .vault-btn-ghost { background: transparent; color: var(--vault-muted); padding: 6px 12px; }
-  .vault-btn-ghost:hover { background: var(--vault-surface-hover); }
-  .vault-btn-sm { padding: 5px 10px; font-size: 12px; }
-
-  .vault-btn-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    background: transparent;
-    transition: all 0.15s;
-  }
-  .vault-btn-icon:hover { background: var(--vault-surface-hover); }
-  .vault-btn-icon--danger { color: var(--vault-danger); }
-  .vault-btn-icon--danger:hover { background: color-mix(in srgb, var(--vault-danger) 12%, transparent); }
-
-  .vault-input {
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--vault-border);
-    background: var(--vault-surface-soft);
-    color: var(--vault-ink);
-    font-size: 14px;
-    outline: none;
-    transition: border 0.15s;
-    box-sizing: border-box;
-  }
-  .vault-input:focus { border-color: var(--vault-accent); box-shadow: none; }
-  .vault-input::placeholder { color: var(--vault-subtle); }
-
-  .vault-textarea {
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--vault-border);
-    background: var(--vault-surface-soft);
-    color: var(--vault-ink);
-    font-size: 14px;
-    outline: none;
-    resize: vertical;
-    font-family: inherit;
-    box-sizing: border-box;
-  }
-  .vault-textarea:focus { border-color: var(--vault-accent); box-shadow: none; }
-
-  .vault-pass-row { display: flex; gap: 6px; }
-  .vault-pass-row input { flex: 1; }
-
-  .vault-list { display: flex; flex-direction: column; gap: 6px; }
-
-  .vault-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    border-radius: 20px;
-    background: var(--vault-surface);
-    border: 1px solid var(--vault-border);
-    box-shadow: none;
-    transition: all 0.15s;
-  }
-  .vault-row:hover { background: var(--vault-surface-hover); }
-
-  .vault-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-
-  .vault-row-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--vault-accent) 12%, transparent);
-    color: var(--vault-accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .vault-row-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .vault-row-site { font-size: 14px; font-weight: 600; color: var(--vault-ink); }
-  .vault-row-user { font-size: 12px; color: var(--vault-muted); }
-
-  .vault-pass-display { display: flex; align-items: center; gap: 6px; }
-  .vault-pass-text { font-size: 13px; font-family: monospace; color: var(--vault-ink); }
-  .vault-pass-dots { font-size: 18px; letter-spacing: 2px; color: var(--vault-subtle); }
-
-  .vault-row-actions { display: flex; gap: 2px; }
-
-  .vault-form-overlay {
-    position: fixed;
-    inset: 0;
-    background: color-mix(in srgb, var(--background) 72%, transparent);
-    z-index: 100;
-  }
-
-  .vault-form-panel {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 101;
-    background: var(--vault-surface);
-    border: 1px solid var(--vault-border);
-    border-radius: 20px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    max-height: 80vh;
-    width: min(440px, 90vw);
-    overflow-y: auto;
-    box-shadow: none;
-  }
-
-  .vault-form-title { font-size: 17px; font-weight: 700; margin: 0; color: var(--vault-ink); }
-  .vault-form-group { display: flex; flex-direction: column; gap: 6px; }
-  .vault-label { font-size: 13px; font-weight: 600; color: var(--vault-ink); }
-  .vault-form-actions { display: flex; gap: 8px; margin-top: 4px; }
-</style>
+</MiniAppRoot>

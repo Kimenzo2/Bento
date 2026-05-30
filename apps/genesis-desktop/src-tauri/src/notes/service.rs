@@ -56,6 +56,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
 use uuid::Uuid;
 
 use crate::local_store::block::{BlockRow, TextStyle};
@@ -94,14 +95,6 @@ fn text_style_value(style: &str) -> Value {
         _ => TextStyle::Paragraph as i64,
     };
     json!(value)
-}
-
-fn is_title_style(content: &Value) -> bool {
-    match &content["style"] {
-        Value::Number(value) => value.as_i64() == Some(TextStyle::Title as i64),
-        Value::String(value) => value == "Title" || value == "title" || value == "7",
-        _ => false,
-    }
 }
 
 fn is_code_style(style: &str) -> bool {
@@ -284,6 +277,70 @@ pub struct NoteWithBlocks {
     pub blocks: Vec<BlockRow>,
 }
 
+#[derive(Debug, Clone)]
+struct CachedNoteFull {
+    version: i64,
+    cached_at: i64,
+    payload: NoteWithBlocks,
+}
+
+/// In-memory cache for fully materialized notes.
+///
+/// The cache is keyed by note ID and invalidated by a freshness version that
+/// combines note metadata updates with object/block writes. That mirrors the
+/// Go cache.Do() behavior without reloading the same full tree repeatedly.
+#[derive(Debug, Default)]
+pub struct NoteFullCache {
+    inner: Mutex<HashMap<String, CachedNoteFull>>,
+}
+
+impl NoteFullCache {
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(HashMap::new()),
+        }
+    }
+
+    pub fn get(&self, note_id: &str, version: i64) -> Option<NoteWithBlocks> {
+        let guard = self.inner.lock().ok()?;
+        guard.get(note_id).and_then(|entry| {
+            if entry.version == version {
+                Some(entry.payload.clone())
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn set(&self, note_id: String, version: i64, payload: NoteWithBlocks) {
+        if let Ok(mut guard) = self.inner.lock() {
+            if guard.len() >= 64 && !guard.contains_key(&note_id) {
+                if let Some(oldest_key) = guard
+                    .iter()
+                    .min_by_key(|(_, entry)| entry.cached_at)
+                    .map(|(key, _)| key.clone())
+                {
+                    guard.remove(&oldest_key);
+                }
+            }
+            guard.insert(
+                note_id,
+                CachedNoteFull {
+                    version,
+                    cached_at: crate::util::time::now_ms(),
+                    payload,
+                },
+            );
+        }
+    }
+
+    pub fn invalidate(&self, note_id: &str) {
+        if let Ok(mut guard) = self.inner.lock() {
+            guard.remove(note_id);
+        }
+    }
+}
+
 /// Params for creating a new note.
 /// Go source: objectcreator.CreateObjectRequest { Details, ObjectTypeKey: TypeKeyNote }
 #[derive(Debug, Clone, Deserialize)]
@@ -401,21 +458,25 @@ async fn snapshot_blocks(db: &SqlitePool, block_ids: &[String]) -> Vec<BlockSnap
     let mut snaps = Vec::with_capacity(block_ids.len());
     for id in block_ids {
         if let Ok(Some(row)) = get_block_by_id(db, id).await {
-            snaps.push(BlockSnapshot {
-                id: row.id,
-                object_id: row.object_id,
-                parent_id: row.parent_id,
-                r#type: row.r#type,
-                content: row.content,
-                fields: row.fields,
-                align: row.align,
-                bg_color: row.bg_color,
-                position: row.position,
-                existed: true,
-            });
+            snaps.push(snapshot_from_row(&row));
         }
     }
     snaps
+}
+
+fn snapshot_from_row(row: &BlockRow) -> BlockSnapshot {
+    BlockSnapshot {
+        id: row.id.clone(),
+        object_id: row.object_id.clone(),
+        parent_id: row.parent_id.clone(),
+        r#type: row.r#type.clone(),
+        content: row.content.clone(),
+        fields: row.fields.clone(),
+        align: row.align,
+        bg_color: row.bg_color.clone(),
+        position: row.position,
+        existed: true,
+    }
 }
 
 /// Restore a set of block snapshots to the database.
@@ -463,6 +524,7 @@ pub async fn create_note_object(
     db: &SqlitePool,
     history: &HistoryRegistry,
     search: &SearchService,
+    cache: &NoteFullCache,
     params: CreateNoteParams,
 ) -> OpResult<NoteWithBlocks> {
     let note_id = Uuid::new_v4().to_string();
@@ -623,6 +685,14 @@ pub async fn create_note_object(
         updated_at: now,
     };
     let blocks = vec![title_block.block, body_block.block];
+    cache.set(
+        note.id.clone(),
+        now,
+        NoteWithBlocks {
+            note: note.clone(),
+            blocks: blocks.clone(),
+        },
+    );
 
     Ok(NoteWithBlocks { note, blocks })
 }
@@ -668,6 +738,53 @@ pub async fn get_note_full(db: &SqlitePool, note_id: &str) -> OpResult<NoteWithB
     Ok(NoteWithBlocks { note, blocks })
 }
 
+async fn get_note_full_version(db: &SqlitePool, note_id: &str) -> OpResult<i64> {
+    use sqlx::Row;
+
+    let row = sqlx::query(
+        r#"
+        SELECT
+            COALESCE(n.updated_at, 0) AS note_updated_at,
+            COALESCE(o.updated_at, 0) AS object_updated_at,
+            COALESCE((
+                SELECT MAX(updated_at)
+                FROM blocks
+                WHERE object_id = n.id
+            ), 0) AS block_updated_at
+        FROM note_objects n
+        LEFT JOIN objects o ON o.id = n.id
+        WHERE n.id = ?
+        "#,
+    )
+    .bind(note_id)
+    .fetch_optional(db)
+    .await
+    .map_err(OperationError::db_error)?
+    .ok_or_else(|| OperationError::not_found("NoteObject", note_id))?;
+
+    let note_updated: i64 = row.try_get("note_updated_at").unwrap_or(0);
+    let object_updated: i64 = row.try_get("object_updated_at").unwrap_or(0);
+    let block_updated: i64 = row.try_get("block_updated_at").unwrap_or(0);
+
+    Ok(note_updated.max(object_updated).max(block_updated))
+}
+
+/// Get a full note with an in-memory freshness cache.
+pub async fn get_note_full_cached(
+    db: &SqlitePool,
+    cache: &NoteFullCache,
+    note_id: &str,
+) -> OpResult<NoteWithBlocks> {
+    let version = get_note_full_version(db, note_id).await?;
+    if let Some(cached) = cache.get(note_id, version) {
+        return Ok(cached);
+    }
+
+    let payload = get_note_full(db, note_id).await?;
+    cache.set(note_id.to_string(), version, payload.clone());
+    Ok(payload)
+}
+
 /// List note summaries (no blocks).
 /// Go source: objectstore.SpaceIndex.QueryObjectIds + GetDetails.
 pub async fn list_note_objects(
@@ -684,17 +801,45 @@ pub async fn list_note_objects(
     };
     let sql = format!(
         r#"
+        WITH filtered_notes AS (
+            SELECT id, title, icon, tags, pinned, is_archived, updated_at, created_at
+            FROM note_objects
+            WHERE {archived_filter}
+        ),
+        block_counts AS (
+            SELECT object_id, COUNT(*) AS block_count
+            FROM blocks
+            GROUP BY object_id
+        ),
+        preview_positions AS (
+            SELECT object_id, MIN(position) AS position
+            FROM blocks
+            WHERE type = 'text'
+              AND json_valid(content)
+              AND COALESCE(CAST(json_extract(content, '$.style') AS INTEGER), -1) != {title_style}
+              AND TRIM(COALESCE(json_extract(content, '$.text'), '')) != ''
+            GROUP BY object_id
+        ),
+        previews AS (
+            SELECT b.object_id,
+                   TRIM(COALESCE(json_extract(b.content, '$.text'), '')) AS preview
+            FROM blocks b
+            INNER JOIN preview_positions p
+                ON p.object_id = b.object_id AND p.position = b.position
+        )
         SELECT
             n.id, n.title, n.icon, n.tags, n.pinned, n.is_archived,
             n.updated_at, n.created_at,
-            COUNT(b.id) AS block_count
-        FROM note_objects n
-        LEFT JOIN blocks b ON b.object_id = n.id
-        WHERE {archived_filter}
-        GROUP BY n.id
+            COALESCE(bc.block_count, 0) AS block_count,
+            COALESCE(p.preview, '') AS preview
+        FROM filtered_notes n
+        LEFT JOIN block_counts bc ON bc.object_id = n.id
+        LEFT JOIN previews p ON p.object_id = n.id
         ORDER BY n.pinned DESC, n.updated_at DESC
         LIMIT ? OFFSET ?
         "#
+        ,
+        title_style = TextStyle::Title as i32
     );
 
     let rows = sqlx::query(&sql)
@@ -713,7 +858,7 @@ pub async fn list_note_objects(
             id: row.try_get("id").unwrap_or_default(),
             title: row.try_get("title").unwrap_or_default(),
             icon: row.try_get("icon").ok().flatten(),
-            preview: String::new(), // populated below from first body block
+            preview: row.try_get("preview").unwrap_or_else(|_| String::new()),
             tags,
             pinned: row.try_get::<bool, _>("pinned").unwrap_or(false),
             is_archived: row.try_get::<bool, _>("is_archived").unwrap_or(false),
@@ -721,25 +866,6 @@ pub async fn list_note_objects(
             created_at: row.try_get("created_at").unwrap_or(0),
             block_count: row.try_get::<i64, _>("block_count").unwrap_or(0),
         });
-    }
-
-    // Populate preview from the first non-title text block for each note
-    for summary in &mut summaries {
-        if let Ok(blocks) = get_blocks_by_object(db, &summary.id).await {
-            for block in &blocks {
-                if block.r#type == "text" {
-                    if let Ok(c) = serde_json::from_str::<Value>(&block.content) {
-                        if !is_title_style(&c) {
-                            let text = c["text"].as_str().unwrap_or("").trim();
-                            if !text.is_empty() {
-                                summary.preview = text.chars().take(120).collect();
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     Ok(summaries)
@@ -832,6 +958,7 @@ pub async fn delete_note_object(
     db: &SqlitePool,
     history: &HistoryRegistry,
     search: &SearchService,
+    cache: &NoteFullCache,
     note_id: &str,
 ) -> OpResult<()> {
     // before_delete: close sessions, archive favorites (no-op locally),
@@ -863,6 +990,8 @@ pub async fn delete_note_object(
     let _ = search
         .delete_from_index("notes".to_string(), note_id.to_string())
         .await;
+
+    cache.invalidate(note_id);
 
     Ok(())
 }
@@ -897,6 +1026,7 @@ pub async fn object_duplicate(
     db: &SqlitePool,
     history: &HistoryRegistry,
     search: &SearchService,
+    cache: &NoteFullCache,
     source_id: &str,
 ) -> OpResult<NoteWithBlocks> {
     let source = get_note_object(db, source_id).await?;
@@ -907,6 +1037,7 @@ pub async fn object_duplicate(
         db,
         history,
         search,
+        cache,
         CreateNoteParams {
             title: format!("{} (copy)", source.title),
             icon: source.icon.clone(),
@@ -1396,11 +1527,10 @@ pub async fn set_text_content(
     text: String,
     marks: Option<Value>,
 ) -> OpResult<BlockRow> {
-    let before = snapshot_blocks(db, &[block_id.to_string()]).await;
-
     let existing = get_block_by_id(db, block_id)
         .await?
         .ok_or_else(|| OperationError::not_found("Block", block_id))?;
+    let before = vec![snapshot_from_row(&existing)];
     let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
     content["text"] = Value::String(text);
     if let Some(m) = marks {
@@ -1419,7 +1549,7 @@ pub async fn set_text_content(
     )
     .await?;
 
-    let after = snapshot_blocks(db, &[block_id.to_string()]).await;
+    let after = vec![snapshot_from_row(&updated)];
     history.push(
         note_id,
         Change {
@@ -1445,13 +1575,14 @@ pub async fn set_text_style(
     block_ids: &[String],
     style: &str,
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
         let existing = get_block_by_id(db, bid)
             .await?
             .ok_or_else(|| OperationError::not_found("Block", bid))?;
+        before.push(snapshot_from_row(&existing));
         let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
         content["style"] = text_style_value(style);
         let row = block_update(
@@ -1468,7 +1599,7 @@ pub async fn set_text_style(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect::<Vec<_>>();
     history.push(
         note_id,
         Change {
@@ -1494,11 +1625,10 @@ pub async fn set_text_checked(
     block_id: &str,
     checked: bool,
 ) -> OpResult<BlockRow> {
-    let before = snapshot_blocks(db, &[block_id.to_string()]).await;
-
     let existing = get_block_by_id(db, block_id)
         .await?
         .ok_or_else(|| OperationError::not_found("Block", block_id))?;
+    let before = vec![snapshot_from_row(&existing)];
     let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
     content["checked"] = Value::Bool(checked);
 
@@ -1514,7 +1644,7 @@ pub async fn set_text_checked(
     )
     .await?;
 
-    let after = snapshot_blocks(db, &[block_id.to_string()]).await;
+    let after = vec![snapshot_from_row(&updated)];
     history.push(
         note_id,
         Change {
@@ -1540,13 +1670,14 @@ pub async fn set_text_color(
     block_ids: &[String],
     color: &str,
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
         let existing = get_block_by_id(db, bid)
             .await?
             .ok_or_else(|| OperationError::not_found("Block", bid))?;
+        before.push(snapshot_from_row(&existing));
         let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
         content["color"] = Value::String(color.to_string());
         let row = block_update(
@@ -1563,7 +1694,7 @@ pub async fn set_text_color(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect();
     history.push(
         note_id,
         Change {
@@ -1587,8 +1718,8 @@ pub async fn set_text_mark(
     history: &HistoryRegistry,
     params: SetMarkParams,
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, &params.block_ids).await;
     let mut updated = Vec::with_capacity(params.block_ids.len());
+    let mut before = Vec::with_capacity(params.block_ids.len());
 
     let new_mark = json!({
         "type": params.mark_type,
@@ -1600,6 +1731,7 @@ pub async fn set_text_mark(
         let existing = get_block_by_id(db, bid)
             .await?
             .ok_or_else(|| OperationError::not_found("Block", bid))?;
+        before.push(snapshot_from_row(&existing));
         let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
 
         let marks = content["marks"].as_array_mut().map(|m| {
@@ -1632,7 +1764,7 @@ pub async fn set_text_mark(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, &params.block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect::<Vec<_>>();
     history.push(
         &params.note_id,
         Change {
@@ -1658,13 +1790,14 @@ pub async fn clear_text_style(
     note_id: &str,
     block_ids: &[String],
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
         let existing = get_block_by_id(db, bid)
             .await?
             .ok_or_else(|| OperationError::not_found("Block", bid))?;
+        before.push(snapshot_from_row(&existing));
         let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
 
         // Go source: t.SetStyle(Paragraph), t.SetTextColor(""), t.Model().BackgroundColor = ""
@@ -1695,7 +1828,7 @@ pub async fn clear_text_style(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect::<Vec<_>>();
     history.push(
         note_id,
         Change {
@@ -1720,13 +1853,14 @@ pub async fn clear_text_content(
     note_id: &str,
     block_ids: &[String],
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
         let existing = get_block_by_id(db, bid)
             .await?
             .ok_or_else(|| OperationError::not_found("Block", bid))?;
+        before.push(snapshot_from_row(&existing));
         let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
         content["text"] = json!("");
         content["marks"] = json!([]);
@@ -1744,7 +1878,7 @@ pub async fn clear_text_content(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect();
     history.push(
         note_id,
         Change {
@@ -1770,10 +1904,13 @@ pub async fn set_background_color(
     block_ids: &[String],
     color: &str,
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
+        if let Ok(Some(existing)) = get_block_by_id(db, bid).await {
+            before.push(snapshot_from_row(&existing));
+        }
         let row = block_update(
             db,
             BlockUpdateParams {
@@ -1788,7 +1925,7 @@ pub async fn set_background_color(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect::<Vec<_>>();
     history.push(
         note_id,
         Change {
@@ -1814,10 +1951,13 @@ pub async fn set_align(
     block_ids: &[String],
     align: i32, // 0=Left, 1=Center, 2=Right, 3=Justify (matches model.BlockAlign)
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
+        if let Ok(Some(existing)) = get_block_by_id(db, bid).await {
+            before.push(snapshot_from_row(&existing));
+        }
         let row = block_update(
             db,
             BlockUpdateParams {
@@ -1832,7 +1972,7 @@ pub async fn set_align(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect::<Vec<_>>();
     history.push(
         note_id,
         Change {
@@ -1859,13 +1999,14 @@ pub async fn turn_into(
     block_ids: &[String],
     style: &str,
 ) -> OpResult<Vec<BlockRow>> {
-    let before = snapshot_blocks(db, block_ids).await;
     let mut updated = Vec::with_capacity(block_ids.len());
+    let mut before = Vec::with_capacity(block_ids.len());
 
     for bid in block_ids {
         let existing = get_block_by_id(db, bid)
             .await?
             .ok_or_else(|| OperationError::not_found("Block", bid))?;
+        before.push(snapshot_from_row(&existing));
         let mut content: Value = serde_json::from_str(&existing.content).unwrap_or(json!({}));
 
         content["style"] = text_style_value(style);
@@ -1894,7 +2035,7 @@ pub async fn turn_into(
         updated.push(row);
     }
 
-    let after = snapshot_blocks(db, block_ids).await;
+    let after = updated.iter().map(snapshot_from_row).collect::<Vec<_>>();
     history.push(
         note_id,
         Change {

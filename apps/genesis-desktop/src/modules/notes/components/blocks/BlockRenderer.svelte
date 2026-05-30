@@ -12,7 +12,7 @@
   import BlockRelation from './BlockRelation.svelte';
   import BlockRendererSelf from './BlockRenderer.svelte';
   import BlockActionMenu from './BlockActionMenu.svelte';
-  import { editorStore } from '$lib/local-store/store';
+  import { editorStore, toggleStateVersion } from '$lib/local-store/store';
   import { TextStyle as TS, isTextToggle } from '$lib/local-store/block';
   import type { Block, ContentText } from '$lib/local-store/block';
 
@@ -57,27 +57,34 @@
     onClearStyle?: (blockId: string) => void;
   } = $props();
 
-  // ── Toggle open/closed state ────────────────────────────────────────
-  // Subscribe to editorStore to get reactive toggle open state
-  let storeState = $derived($editorStore);
+  let liveBlock = $derived.by(() => block);
+  let togglePulse = $derived($toggleStateVersion);
 
+  // ── Toggle open/closed state ────────────────────────────────────────
   let isToggleBlock = $derived.by(() => {
-    if (!block.content || !('style' in block.content)) return false;
-    return isTextToggle((block.content as ContentText).style);
+    const live = liveBlock;
+    if (!live.content || !('style' in live.content)) return false;
+    return isTextToggle((live.content as ContentText).style);
   });
 
   let toggleOpen = $derived.by(() => {
-    if (!isToggleBlock || !block.id) return false;
-    return editorStore.isToggleOpen(block.id);
+    void togglePulse;
+    const live = liveBlock;
+    if (!isToggleBlock || !live.id) return false;
+    return editorStore.isToggleOpen(live.id);
   });
 
   let childBlocks = $derived.by(() => {
-    if (!isToggleBlock || !block.id || !storeState) return [];
-    return editorStore.getBlockChildren(block.id);
+    void togglePulse;
+    const live = liveBlock;
+    if (!isToggleBlock || !live.id) return [];
+    return (live.childrenIds ?? [])
+      .map((id) => editorStore.getBlock(id))
+      .filter((b): b is Block => !!b);
   });
 
   function handleToggle(blockId?: string) {
-    const id = blockId ?? block.id;
+    const id = blockId ?? liveBlock.id;
     if (!id) return;
     editorStore.setToggleOpen(id, !editorStore.isToggleOpen(id));
     onToggle(id);
@@ -90,12 +97,13 @@
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       const b = props.block as Block;
-      if (!b?.id || !block.id) return;
+      const live = liveBlock;
+      if (!b?.id || !live.id) return;
       const before = value.slice(0, range.from);
       const after = value.slice(range.from);
       await editorStore.persistBlockText(b.id, before);
       editorStore.syncBlockTextToStore(b.id);
-      const newId = await editorStore.addChildBlock(block.id, after);
+      const newId = await editorStore.addChildBlock(live.id, after);
       if (newId) {
         editorStore.focusBlock(newId);
         await tick();
@@ -115,18 +123,18 @@
   class:is-toggle={isToggleBlock}
   class:toggle-open={isToggleBlock && toggleOpen}
   class:is-hovered={isHovered}
-  data-block-id={block.id}
-  data-block-type={block.type}
+  data-block-id={liveBlock.id}
+  data-block-type={liveBlock.type}
   data-depth={depth}
   onmouseenter={() => isHovered = true}
   onmouseleave={() => isHovered = false}
 >
   {#if !readonly}
-    <BlockActionMenu {block} {rootId} />
+    <BlockActionMenu block={liveBlock} {rootId} />
   {/if}
-  {#if block.type === 'text'}
+  {#if liveBlock.type === 'text'}
     <BlockText
-      {block}
+      block={liveBlock}
       {rootId}
       {readonly}
       {blockIndex}
@@ -135,7 +143,7 @@
       {onBlur}
       {onKeyDown}
       {onKeyUp}
-      onToggle={() => handleToggle(block.id)}
+      onToggle={() => handleToggle(liveBlock.id)}
       {onStyleConvert}
     />
 
@@ -161,44 +169,44 @@
       </div>
     {/if}
 
-  {:else if block.type === 'div'}
-    <BlockDiv {block} {rootId} {readonly} {onKeyDown} {onKeyUp} />
+  {:else if liveBlock.type === 'div'}
+    <BlockDiv block={liveBlock} {rootId} {readonly} {onKeyDown} {onKeyUp} />
 
-  {:else if block.type === 'file'}
-    <BlockFile {block} />
+  {:else if liveBlock.type === 'file'}
+    <BlockFile block={liveBlock} />
 
-  {:else if block.type === 'bookmark'}
-    <BlockBookmark {block} />
+  {:else if liveBlock.type === 'bookmark'}
+    <BlockBookmark block={liveBlock} />
 
-  {:else if block.type === 'layout'}
-    <BlockHeader {block} />
+  {:else if liveBlock.type === 'layout'}
+    <BlockHeader block={liveBlock} />
 
-  {:else if block.type === 'latex'}
-    <BlockEmbed {block} {readonly} />
+  {:else if liveBlock.type === 'latex'}
+    <BlockEmbed block={liveBlock} {readonly} />
 
-  {:else if block.type === 'table'}
-    <BlockTable {block} {rootId} {readonly} />
+  {:else if liveBlock.type === 'table'}
+    <BlockTable block={liveBlock} {rootId} {readonly} />
 
-  {:else if block.type === 'tableOfContents'}
-    <BlockTableOfContents {block} />
+  {:else if liveBlock.type === 'tableOfContents'}
+    <BlockTableOfContents block={liveBlock} />
 
-  {:else if block.type === 'link'}
-    <BlockLink {block} {readonly} />
+  {:else if liveBlock.type === 'link'}
+    <BlockLink block={liveBlock} {readonly} />
 
-  {:else if block.type === 'relation'}
-    <BlockRelation {block} {readonly} objectId={rootId} />
+  {:else if liveBlock.type === 'relation'}
+    <BlockRelation block={liveBlock} {readonly} objectId={rootId} />
 
-  {:else if block.type === 'page' || block.type === 'dataview'}
+  {:else if liveBlock.type === 'page' || liveBlock.type === 'dataview'}
     <!-- Dataview/page blocks render as a styled placeholder — not interactive in notes -->
     <div class="block-placeholder">
-      <span class="block-type-badge">{block.type}</span>
+      <span class="block-type-badge">{liveBlock.type}</span>
     </div>
 
-  {:else if block.type !== 'iconPage' && block.type !== 'iconUser' && block.type !== 'cover' && block.type !== 'featured'}
+  {:else if liveBlock.type !== 'iconPage' && liveBlock.type !== 'iconUser' && liveBlock.type !== 'cover' && liveBlock.type !== 'featured'}
     <!-- Unknown block types get a subtle placeholder; system blocks (icon, cover) are silently skipped -->
     <div class="block-placeholder">
-      <span class="block-type-badge">{block.type}</span>
-      <span class="block-placeholder-text">{block.type} block</span>
+      <span class="block-type-badge">{liveBlock.type}</span>
+      <span class="block-placeholder-text">{liveBlock.type} block</span>
     </div>
   {/if}
 </div>

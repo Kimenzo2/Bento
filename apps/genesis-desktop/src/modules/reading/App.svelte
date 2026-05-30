@@ -1,557 +1,132 @@
 <script lang="ts">
-  import { fade } from 'svelte/transition';
-  import { Search, Flame, BookText, BarChart2 } from 'lucide-svelte';
-  import { activeBundle, createTranslator } from "$lib/i18n";
-  import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
+  import "./reading.css";
+  import PlusIcon from "@lucide/svelte/icons/plus";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card/index.js";
+  import { MiniAppHeader, MiniAppRoot, MiniAppStatGrid } from "$lib/modules/mini-app/index.js";
 
-  let { moduleId, settings = {} }: { moduleId: string; settings?: any } = $props();
+  let { moduleId = "reading", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
+    $props();
 
-  let _t = $derived.by(() => createTranslator($activeBundle));
-
-  const currentReads = [
-    {
-      id: 1,
-      title: 'Dune',
-      author: 'Frank Herbert',
-      genre: 'Sci-Fi',
-      cover: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=300&q=80',
-      currentPage: 342,
-      totalPages: 896,
-    }
-  ];
+  const currentBook = {
+    title: "Dune",
+    author: "Frank Herbert",
+    genre: "Sci-Fi",
+    currentPage: 342,
+    totalPages: 896,
+  };
 
   const recentlyFinished = [
-    { title: 'Project Hail Mary', cover: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?w=300&q=80' },
-    { title: 'The Martian', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&q=80' },
-    { title: 'Foundation', cover: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&q=80' }
+    { title: "Project Hail Mary" },
+    { title: "The Martian" },
+    { title: "Foundation" },
   ];
 
-  const challenge = {
-    read: 8,
-    target: 24,
-    aheadBy: 4
-  };
-  const challengeProgress = (challenge.read / challenge.target) * 100;
-
-  const navItems: { icon: any; label: string; active: boolean }[] = [
-    { icon: BookText, label: 'Reading', active: true },
-    { icon: Search, label: 'Discover', active: false },
-    { icon: BarChart2, label: 'Stats', active: false }
-  ];
-
-  let showNavModal = $state(false);
+  const challenge = { read: 8, target: 24, aheadBy: 4 };
+  const ringLength = 251.2;
+  const progress = $derived(currentBook.currentPage / currentBook.totalPages);
 </script>
 
-<div class="reading-app-container module-root" data-module="reading">
-  <div class="reading-scroll-content">
-    
-    <!-- Hero: Currently Reading -->
-    <div class="hero-section">
-      {#each currentReads as book}
-        <div class="current-book-card">
-          <img src={book.cover} alt={_t('moduleReadingCoverAlt').replace('{title}', book.title)} class="book-cover" />
-          
-          <div class="book-info">
-            <h2 class="book-title">{book.title}</h2>
-            <p class="book-author">{book.author}</p>
-            <span class="genre-pill">{book.genre}</span>
-            
-            <div class="progress-section">
-              <div class="progress-text">
-                <span>{_t('moduleReadingPageOf').replace('{current}', String(book.currentPage)).replace('{total}', String(book.totalPages))}</span>
-                <span class="progress-pct">{Math.round((book.currentPage / book.totalPages) * 100)}%</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: {(book.currentPage / book.totalPages) * 100}%"></div>
-              </div>
-            </div>
-            
-            <div class="book-actions">
-              <button class="btn-update">{_t('moduleReadingUpdateProgress')}</button>
-              <button class="btn-finished">{_t('moduleReadingFinished')}</button>
-            </div>
-          </div>
-        </div>
-      {/each}
-    </div>
+<MiniAppRoot class="reading-app gap-5 p-4 sm:p-6">
+  <MiniAppHeader
+    eyebrow="Reading"
+    title="Reading tracker"
+    description="Log sessions, track annual goals, and keep your current book visible."
+  >
+    {#snippet actions()}
+      <Button type="button" variant="outline">
+        <PlusIcon data-icon="inline-start" />
+        Add book
+      </Button>
+    {/snippet}
+  </MiniAppHeader>
 
-    <!-- Reading Challenge -->
-    <div class="challenge-section">
-      <div class="section-title">{_t('moduleReadingChallenge')}</div>
-      <div class="challenge-card">
-        <div class="circular-progress">
-          <PremiumRing
-            size={148}
-            thickness={12}
-            segments={[{ value: challengeProgress, color: "rgba(225, 29, 72, 0.92)", label: "Read" }]}
-            centerLabel={_t('moduleReadingBooks')}
-            centerValue={`${challenge.read} / ${challenge.target}`}
-            centerNote={_t('moduleReadingBooksAhead').replace('{count}', String(challenge.aheadBy))}
-          />
-        </div>
-        <div class="challenge-text">
-          <span class="status-badge ahead">{_t('moduleReadingBooksAhead').replace('{count}', String(challenge.aheadBy))}</span>
-        </div>
-      </div>
-    </div>
+  <MiniAppStatGrid
+    stats={[
+      { label: "Streak", value: "14 days", hint: "Daily reading" },
+      { label: "This year", value: "8 books", hint: "Finished" },
+      { label: "Pace", value: "284 pg/wk", hint: "4-week average" },
+    ]}
+  />
 
-    <!-- Want to Read / Recently Finished -->
-    <div class="shelf-section">
-      <div class="shelf-header">
-        <div class="section-title">{_t('moduleReadingRecentlyFinished')}</div>
-        <button class="view-all-link">{_t('moduleReadingViewAll').replace('{count}', '34')}</button>
-      </div>
-      <div class="shelf-scroll">
-        {#each recentlyFinished as recent}
-          <div class="shelf-book">
-            <img src={recent.cover} alt={recent.title} />
-          </div>
+  <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+    <CardHeader>
+      <CardTitle class="font-[var(--font-heading)] text-xl">Currently reading</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <article class="reading-current">
+        <span class="reading-cover-placeholder" aria-hidden="true">Cover</span>
+        <span class="reading-meta">
+          <h2 class="font-[var(--font-heading)] text-xl font-semibold">{currentBook.title}</h2>
+          <p class="text-sm text-[var(--muted)]">{currentBook.author}</p>
+          <span class="reading-genre">{currentBook.genre}</span>
+          <span class="flex justify-between text-sm text-[var(--muted)]">
+            <span>Page {currentBook.currentPage} of {currentBook.totalPages}</span>
+            <span class="font-medium text-[var(--foreground)]">{Math.round(progress * 100)}%</span>
+          </span>
+          <span class="reading-progress-track">
+            <span class="reading-progress-fill" style="width:{progress * 100}%"></span>
+          </span>
+          <span class="mt-2 flex flex-wrap gap-2">
+            <Button type="button" size="sm">Update progress</Button>
+            <Button type="button" size="sm" variant="outline">Mark finished</Button>
+          </span>
+        </span>
+      </article>
+    </CardContent>
+  </Card>
+
+  <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+    <CardHeader>
+      <CardTitle class="font-[var(--font-heading)] text-xl">2026 challenge</CardTitle>
+      <CardDescription>{challenge.read} of {challenge.target} books</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <article class="reading-challenge">
+        <span class="reading-ring" aria-hidden="true">
+          <svg viewBox="0 0 100 100">
+            <circle class="reading-ring__bg" cx="50" cy="50" r="40"></circle>
+            <circle
+              class="reading-ring__fill"
+              cx="50"
+              cy="50"
+              r="40"
+              style="stroke-dasharray:{ringLength};stroke-dashoffset:{ringLength - ringLength * (challenge.read / challenge.target)}"
+            ></circle>
+          </svg>
+          <span class="reading-ring__label">
+            {challenge.read}<span class="text-xs font-normal text-[var(--muted)]">/{challenge.target}</span>
+          </span>
+        </span>
+        <span class="reading-status">{challenge.aheadBy} books ahead of plan</span>
+      </article>
+    </CardContent>
+  </Card>
+
+  <Card class="surface-card rounded-2xl border-none bg-transparent shadow-none ring-1 ring-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+    <CardHeader class="flex-row items-center justify-between space-y-0">
+      <CardTitle class="font-[var(--font-heading)] text-xl">Recently finished</CardTitle>
+      <Button type="button" variant="ghost" size="sm">View all</Button>
+    </CardHeader>
+    <CardContent>
+      <span class="reading-shelf">
+        {#each recentlyFinished as book (book.title)}
+          <span class="reading-shelf-item">
+            <span class="reading-shelf-cover" title={book.title}></span>
+            <span class="mt-2 block truncate text-xs text-[var(--muted)]">{book.title}</span>
+          </span>
         {/each}
-        <div class="shelf-book add-new">
-          <Search size={24} />
-          <span>{_t('moduleReadingFindNext')}</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Stats Card (inline, always visible) -->
-  <div class="reading-stats-card">
-    <div class="reading-stats-card-head"><h3>{_t('moduleReadingStats')}</h3></div>
-    <div class="reading-stats-card-body">
-      <div class="reading-stat-item">
-        <Flame size={16} color="#F97316" />
-        <span>{_t('moduleReadingDayStreak')}</span>
-      </div>
-      <div class="reading-stat-item">
-        <span>{_t('moduleReadingBooksThisYear')}</span>
-      </div>
-      <div class="reading-stat-item">
-        <span>{_t('moduleReadingPagesPerWeek')}</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Nav Toggle -->
-  <div class="reading-nav-toggle">
-    <button onclick={() => showNavModal = true}>
-      <BarChart2 size={16}/>
-      <span>{_t('moduleReadingNavigation')}</span>
-    </button>
-  </div>
-
-  <!-- Nav Modal -->
-  {#if showNavModal}
-  <div class="reading-overlay" onclick={(e) => { if (e.target === e.currentTarget) showNavModal = false; }} onkeydown={(e) => { if (e.key === 'Escape') showNavModal = false; }} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="reading-modal reading-nav-modal" transition:fade={{ duration: 150 }}>
-      <div class="reading-modal-head">
-        <h3>{_t('moduleReadingNavigation')}</h3>
-        <button class="reading-close-btn" onclick={() => showNavModal = false}>✕</button>
-      </div>
-      <div class="reading-modal-body nav-items">
-        {#each navItems as item}
-          <button class="nav-item {item.active ? 'active' : ''}">
-            <svelte:component this={item.icon} size={20} />
-            <span>{_t('moduleReadingNav' + item.label)}</span>
-          </button>
-        {/each}
-      </div>
-    </div>
-  </div>
-  {/if}
-</div>
-<style>
-.reading-app-container {
-  height: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background-color: transparent;
-  color: var(--text-primary, #F9FAFB);
-}
-
-.reading-scroll-content {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 32px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.section-title {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
-  color: var(--text-secondary, #9CA3AF);
-  margin-bottom: 16px;
-}
-
-/* Hero Section */
-.hero-section {
-  margin-bottom: 48px;
-}
-
-.current-book-card {
-  display: flex;
-  gap: 24px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  padding: 24px;
-  border-radius: 24px;
-}
-
-.book-cover {
-  width: 120px;
-  height: 180px;
-  border-radius: 8px;
-  object-fit: cover;
-  box-shadow: none;
-}
-
-.book-info {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.book-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-}
-
-.book-author {
-  font-size: 15px;
-  color: var(--text-secondary, #9CA3AF);
-  margin: 0 0 12px 0;
-}
-
-.genre-pill {
-  align-self: flex-start;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 99px;
-  background: rgba(225, 29, 72, 0.15); /* Reading app accent #E11D48 */
-  color: #FDA4AF;
-  margin-bottom: 24px;
-}
-
-.progress-section {
-  margin-bottom: 16px;
-}
-
-.progress-text {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--text-secondary, #9CA3AF);
-  margin-bottom: 8px;
-}
-
-.progress-pct {
-  font-weight: 600;
-  color: var(--text-primary, white);
-}
-
-.progress-bar-bg {
-  width: 100%;
-  height: 6px;
-  background: var(--bg-elevated, rgba(255, 255, 255, 0.1));
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: #E11D48; /* Registry accent */
-  border-radius: 3px;
-}
-
-.book-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: auto;
-}
-
-.btn-update {
-  background: #E11D48;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-}
-.btn-update:hover { background: #BE123C; }
-
-.btn-finished {
-  background: transparent;
-  color: var(--text-secondary, #9CA3AF);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-}
-.btn-finished:hover {
-  color: white;
-  border-color: white;
-}
-
-/* Challenge Section */
-.challenge-section {
-  margin-bottom: 48px;
-}
-
-.challenge-card {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  padding: 24px;
-  border-radius: 24px;
-}
-
-.circular-progress {
-  position: relative;
-  width: 100px;
-  height: 100px;
-}
-
-.circular-progress svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.ring-bg {
-  fill: none;
-  stroke: var(--bg-elevated, rgba(255, 255, 255, 0.1));
-  stroke-width: 8;
-}
-
-.ring-fill {
-  fill: none;
-  stroke: #E11D48;
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s ease-out;
-}
-
-.ring-content {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.ring-number {
-  font-size: 20px;
-  font-weight: 700;
-}
-.ring-label {
-  font-size: 12px;
-  color: var(--text-secondary, #9CA3AF);
-}
-
-.status-badge.ahead {
-  color: #4ADE80;
-  background: rgba(74, 222, 128, 0.15);
-  padding: 6px 12px;
-  border-radius: 99px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Shelf Section */
-.shelf-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.view-all-link {
-  background: transparent;
-  border: none;
-  color: #E11D48;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.shelf-scroll {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 16px;
-  scrollbar-width: none;
-}
-.shelf-scroll::-webkit-scrollbar { display: none; }
-
-.shelf-book img {
-  width: 100px;
-  height: 150px;
-  border-radius: 8px;
-  object-fit: cover;
-  box-shadow: none;
-  transition: transform 0.2s;
-  cursor: pointer;
-}
-.shelf-book img:hover {
-  transform: translateY(-4px);
-}
-
-.add-new {
-  width: 100px;
-  height: 150px;
-  border-radius: 8px;
-  border: 2px dashed var(--border-color, rgba(255, 255, 255, 0.2));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--text-secondary, #9CA3AF);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.add-new:hover {
-  border-color: white;
-  color: white;
-  background: rgba(255,255,255,0.03);
-}
-
-/* ── Stats card (inline, centered) ─────────────────────────────── */
-.reading-stats-card {
-  background: var(--card);
-  border-radius: 20px;
-  width: min(400px, calc(100vw - 64px));
-  margin: 0 auto 48px;
-  display: flex; flex-direction: column;
-  animation: fadeIn 0.3s ease;
-}
-
-.reading-stats-card-head {
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-}
-.reading-stats-card-head h3 {
-  font-size: 14px; font-weight: 700; margin: 0;
-}
-
-.reading-stats-card-body {
-  padding: 14px 20px 18px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-
-.reading-stat-item {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 14px; font-weight: 500;
-}
-
-/* ── Nav toggle button ──────────────────────────────────────────── */
-.reading-nav-toggle {
-  display: flex; justify-content: center;
-  padding: 0 32px 32px;
-}
-.reading-nav-toggle button {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 20px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: var(--card);
-  cursor: pointer;
-  font-size: 13px; font-weight: 600;
-  color: var(--muted-foreground);
-  transition: all .14s;
-}
-.reading-nav-toggle button:hover {
-  border-color: var(--border);
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 4%, transparent);
-}
-
-/* ── Nav Modal (centered overlay pattern) ──────────────────────── */
-.reading-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,.55);
-  display: flex; align-items: center; justify-content: center;
-}
-
-.reading-modal {
-  background: var(--card);
-  border-radius: 20px;
-  width: min(360px, calc(100vw - 32px));
-  display: flex; flex-direction: column;
-}
-
-.reading-modal-head {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-}
-.reading-modal-head h3 {
-  font-size: 15px; font-weight: 700; margin: 0;
-}
-
-.reading-close-btn {
-  width: 26px; height: 26px; border-radius: 7px; border: none;
-  background: transparent; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--muted-foreground); font-size: 15px;
-  transition: background .12s, color .12s;
-}
-.reading-close-btn:hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-  color: var(--foreground);
-}
-
-.reading-modal-body {
-  padding: 14px 20px 20px;
-  display: flex; flex-direction: column; gap: 10px;
-}
-
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted-foreground);
-  transition: all .14s;
-  text-align: left;
-}
-
-.nav-item.active {
-  background: color-mix(in srgb, #E11D48 12%, transparent);
-  border-color: color-mix(in srgb, #E11D48 30%, transparent);
-  color: #E11D48;
-  font-weight: 600;
-}
-
-.nav-item:hover:not(.active) {
-  background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  color: var(--foreground);
-}
-
-.nav-item span {
-  font-size: 13px;
-}
-</style>
-
-
+        <button type="button" class="reading-shelf-item reading-shelf-add">
+          <PlusIcon class="size-5" />
+          <span class="text-xs">Add</span>
+        </button>
+      </span>
+    </CardContent>
+  </Card>
+</MiniAppRoot>

@@ -17,7 +17,7 @@
     height = 200 
   }: Props = $props();
 
-  let springValue = new Spring(percentage);
+  let springValue = new Spring(0);
 
   // Update spring when percentage changes
   $effect(() => {

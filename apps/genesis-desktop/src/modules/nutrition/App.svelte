@@ -87,12 +87,12 @@
   // ── Hydration ring (Today section) ──
   // PremiumRing handles its own segment data internally.
   // We only need the raw ml value and the derived percentage.
-  const hydrationGoal = 2000;
+  const hydrationGoalMl = 2000;
   let hydrationTotal = $state(580);
-  let hydrationPct = $derived(Math.min(100, Math.round((hydrationTotal / hydrationGoal) * 100)));
+  let hydrationPct = $derived(Math.min(100, Math.round((hydrationTotal / hydrationGoalMl) * 100)));
 
   function addWater(ml: number) {
-    hydrationTotal = Math.min(hydrationGoal, Math.max(0, hydrationTotal + ml));
+    hydrationTotal = Math.min(hydrationGoalMl, Math.max(0, hydrationTotal + ml));
   }
 
   function resetHydration() {
@@ -141,13 +141,13 @@
             value={hydrationPct}
             count={60}
             size={250}
-            label="{hydrationTotal} / {hydrationGoal} ml"
+            label="{hydrationTotal} / {hydrationGoalMl} ml"
             activeColor="var(--color-success, #52b788)"
           />
           <div class="nutrition-hydration-controls">
             <div class="nutrition-hydration-stats">
               <span class="nutrition-hydration-total">{hydrationTotal} ml</span>
-              <span class="nutrition-hydration-goal">/ {hydrationGoal} ml</span>
+              <span class="nutrition-hydration-goal">/ {hydrationGoalMl} ml</span>
             </div>
             <div class="nutrition-hydration-buttons">
               <button
@@ -166,7 +166,7 @@
                 <button
                   class="nutrition-hydration-btn nutrition-hydration-btn--add"
                   onclick={() => addWater(preset.value)}
-                  disabled={hydrationTotal >= hydrationGoal}
+                  disabled={hydrationTotal >= hydrationGoalMl}
                 >
                   +{preset.label}
                 </button>

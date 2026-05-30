@@ -27,7 +27,7 @@
     primaryCount: number;
     primaryLabel: string;
     descriptorLabel: string;
-    items: { text: string; secondary: string | null }[];
+    items: { text: string; secondary: string | null; completed: boolean }[];
   }
 
   interface ActivityEntry {
@@ -93,10 +93,10 @@
         id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#3B82F6",
         primaryCount: 5, primaryLabel: "Pending tasks", descriptorLabel: "Open tasks",
         items: [
-          { text: "Review Q2 project brief", secondary: "Today at 3pm" },
-          { text: "Update habit tracker streak", secondary: "Overdue" },
-          { text: "Outline journal entry for May", secondary: "Tomorrow" },
-          { text: "Export budget as CSV", secondary: null },
+          { text: "Review Q2 project brief", secondary: "Today at 3pm", completed: false },
+          { text: "Update habit tracker streak", secondary: "Overdue", completed: false },
+          { text: "Outline journal entry for May", secondary: "Tomorrow", completed: true },
+          { text: "Export budget as CSV", secondary: null, completed: true },
         ],
       },
       recentActivity: [
@@ -334,22 +334,49 @@
       <!-- Card 1: Today's Priority -->
       <article class="dashboard__card dashboard__card--priority" style="--card-accent: {data.featuredModule.accentHex};">
         <div class="dashboard__card-header">
-          <div class="dashboard__card-badge">
-            {@html moduleIconSVG(data.featuredModule.icon)}
-            <span>{data.featuredModule.name}</span>
-          </div>
           <span class="dashboard__card-count">{data.featuredModule.primaryCount}</span>
         </div>
         <p class="dashboard__card-primary-label">{data.featuredModule.primaryLabel}</p>
-        <ul class="dashboard__card-items">
-          {#each data.featuredModule.items.slice(0, 4) as item}
-            <li class="dashboard__card-item">
-              <div class="dashboard__card-item-dot" style="background: {data!.featuredModule.accentHex};"></div>
-              <span class="dashboard__card-item-text">{item.text}</span>
-              {#if item.secondary}<span class="dashboard__card-item-secondary">{item.secondary}</span>{/if}
+
+        <!-- ── Linear progress indicator — tasks stack in creation order ── -->
+        <ol class="dpi" aria-label="Today's tasks">
+          {#each data.featuredModule.items.slice(0, 6) as item, i}
+            {@const isLast = i === Math.min(data.featuredModule.items.length, 6) - 1}
+            <li class="dpi__item" class:dpi__item--done={item.completed}>
+              <!-- Left rail: node + continuous line going down -->
+              <div class="dpi__rail">
+                <div class="dpi__node" class:dpi__node--done={item.completed}>
+                  {#if item.completed}
+                    <svg class="dpi__svg" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="10" cy="10" r="10" fill="#3b82f6"/>
+                      <path d="M5.5 10.25l3.25 3.25 5.75-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  {:else}
+                    <svg class="dpi__svg" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                  {/if}
+                </div>
+                <!-- Line drawn downward — hidden on last item -->
+                {#if !isLast}
+                  <div class="dpi__connector"
+                    class:dpi__connector--done={item.completed && data.featuredModule.items[i + 1]?.completed}>
+                  </div>
+                {/if}
+              </div>
+              <!-- Right: text -->
+              <div class="dpi__body">
+                <span class="dpi__text">{item.text}</span>
+                {#if item.secondary}
+                  <span class="dpi__secondary"
+                    class:dpi__secondary--overdue={item.secondary === 'Overdue'}>
+                    {item.secondary}
+                  </span>
+                {/if}
+              </div>
             </li>
           {/each}
-        </ul>
+        </ol>
         <button class="dashboard__card-action" onclick={() => navigateToModule(data!.featuredModule.id)}>
           {data.featuredModule.descriptorLabel}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dashboard__card-arrow"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -525,6 +552,122 @@
   .dashboard__retry-btn:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
 
   /* ═══════════════════════════════════════════════════════════════════
+     DAILY PROGRESS INDICATOR  (dpi)
+     Architecture: each item owns its NODE + the LINE below it.
+     The line stretches to fill the full remaining height of the item,
+     so it connects flush into the next node — no gaps, no cuts.
+     ═══════════════════════════════════════════════════════════════════ */
+  .dpi {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Each row: [rail | body] */
+  .dpi__item {
+    display: flex;
+    align-items: stretch;   /* rail stretches full row height */
+    gap: 10px;
+  }
+
+  /* Left rail — fixed width, holds node at top + connector line below */
+  .dpi__rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 20px;
+  }
+
+  /* The circular node — sits at the top of the rail */
+  .dpi__node {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Single SVG for both states — no filter/shadow */
+  .dpi__svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+
+  /* Pending node ring color */
+  .dpi__node:not(.dpi__node--done) .dpi__svg {
+    color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  }
+
+  /* Connector line — fills all remaining vertical space below the node */
+  .dpi__connector {
+    flex: 1;
+    width: 2px;
+    min-height: 6px;
+    background: color-mix(in srgb, var(--foreground) 18%, transparent);
+    border-radius: 0;       /* square ends so segments butt perfectly */
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  /* Blue line when both this item AND next item are done */
+  .dpi__connector--done {
+    background: #3b82f6;
+  }
+
+  /* Right body — text block, padding-bottom creates the row height
+     which the rail's connector fills exactly */
+  .dpi__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 2px;
+    padding: 1px 0 14px;    /* top aligns with node center; bottom = spacing between rows */
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* Last item has no connector so no bottom padding needed */
+  .dpi__item:last-child .dpi__body {
+    padding-bottom: 2px;
+  }
+
+  .dpi__text {
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.2s ease;
+  }
+
+  .dpi__item--done .dpi__text {
+    opacity: 0.4;
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--foreground) 25%, transparent);
+  }
+
+  .dpi__secondary {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--foreground) 38%, transparent);
+    letter-spacing: 0.01em;
+  }
+
+  .dpi__secondary--overdue {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
      ZONE 1: GREETING
      Left-aligned text block. No card, no border, no background.
      ═══════════════════════════════════════════════════════════════════ */
@@ -658,8 +801,8 @@
     padding: clamp(16px, 2.5vw, 24px);
     background: color-mix(in srgb, var(--card-accent) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--card-accent) 20%, transparent);
-    /* Internal layout: header → number → label → items → action */
-    grid-template-rows: auto auto auto 1fr auto;
+    /* Internal layout: header → label → items (stretch) → action pinned bottom */
+    grid-template-rows: auto auto 1fr auto;
   }
 
   .dashboard__card-badge {

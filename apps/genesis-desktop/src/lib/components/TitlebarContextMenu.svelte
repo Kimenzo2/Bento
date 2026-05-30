@@ -8,6 +8,8 @@
   import VaultToggleIcon from "$lib/components/anytype-icons/VaultToggleIcon.svelte";
   import { toggleSidebarHidden } from "$lib/stores/workspace.store";
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
+  import { back, canGoBack, pushNav } from "$lib/stores/nav-history.store";
+  import { moduleFromPath } from "$lib/desktop/modules";
 
   type MenuAction = () => Promise<void> | void;
 
@@ -71,6 +73,12 @@
   }
 
   function handleShortcut(event: KeyboardEvent) {
+    if (event.altKey && event.key === 'ArrowLeft') {
+      event.preventDefault();
+      if ($canGoBack) back();
+      return;
+    }
+
     if (!shortcutModifier(event) || event.altKey || event.shiftKey) {
       return;
     }
@@ -89,8 +97,11 @@
   }
 
   onMount(() => {
-    window.addEventListener("keydown", handleShortcut);
+    // Seed history with the landing module — runs client-side only,
+    // after hydration, so browser APIs are available.
+    pushNav(moduleFromPath(window.location.pathname));
 
+    window.addEventListener("keydown", handleShortcut);
     return () => {
       window.removeEventListener("keydown", handleShortcut);
     };
@@ -112,6 +123,15 @@
     <DropdownMenuContent align="start" class={appMenuContentClass} sideOffset={8}>
       <DropdownMenuItem class="window-shell__menu-item" onclick={() => openRoute("/")}>
         <span class="window-shell__menu-item-label">Dashboard</span>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem
+        class="window-shell__menu-item"
+        disabled={!$canGoBack}
+        onclick={() => { if ($canGoBack) back(); }}
+      >
+        <span class="window-shell__menu-item-label">Back</span>
+        <DropdownMenuShortcut>Alt+←</DropdownMenuShortcut>
       </DropdownMenuItem>
 
       <DropdownMenuSeparator class="window-shell__menu-separator" />

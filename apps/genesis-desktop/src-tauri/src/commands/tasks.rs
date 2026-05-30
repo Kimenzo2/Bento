@@ -3,6 +3,7 @@ use sqlx::Row;
 use tauri::State;
 use uuid::Uuid;
 
+use crate::commands::DashboardCache;
 use crate::db::BentoAppState;
 use crate::util::time;
 
@@ -63,14 +64,15 @@ pub struct UpdateTaskParams {
     pub project: Option<String>,
     pub tags: Option<String>,
     pub notes: Option<String>,
-    pub due_at: Option<i64>,
-    pub due_time: Option<String>,
-    pub start_at: Option<i64>,
-    pub estimated_minutes: Option<i64>,
+    /// None = keep existing, Some(None) = clear, Some(Some(v)) = set
+    pub due_at: Option<Option<i64>>,
+    pub due_time: Option<Option<String>>,
+    pub start_at: Option<Option<i64>>,
+    pub estimated_minutes: Option<Option<i64>>,
     pub tracked_minutes: Option<i64>,
-    pub recurrence_rule: Option<String>,
+    pub recurrence_rule: Option<Option<String>>,
     pub archived: Option<bool>,
-    pub completed_at: Option<i64>,
+    pub completed_at: Option<Option<i64>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,6 +123,7 @@ fn row_to_task(row: sqlx::sqlite::SqliteRow) -> TaskEntry {
 #[tauri::command]
 pub async fn save_task(
     state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
     params: SaveTaskParams,
 ) -> Result<TaskEntry, String> {
     let db = state.db();
@@ -159,7 +162,7 @@ pub async fn save_task(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(TaskEntry {
+    let result = TaskEntry {
         id,
         title,
         done: false,
@@ -179,13 +182,17 @@ pub async fn save_task(
         completed_at: None,
         created_at: now,
         updated_at: now,
-    })
+    };
+    // Invalidate dashboard cache so next poll reflects the new task
+    cache.invalidate();
+    Ok(result)
 }
 
 /// Update an existing task (partial update — only provided fields change).
 #[tauri::command]
 pub async fn update_task(
     state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
     params: UpdateTaskParams,
 ) -> Result<TaskEntry, String> {
     let db = state.db();
@@ -205,14 +212,33 @@ pub async fn update_task(
     let project = params.project.unwrap_or(existing.project);
     let tags = params.tags.unwrap_or(existing.tags);
     let notes = params.notes.unwrap_or(existing.notes);
-    let due_at = params.due_at.or(existing.due_at);
-    let due_time = params.due_time.or(existing.due_time);
-    let start_at = params.start_at.or(existing.start_at);
-    let estimated_minutes = params.estimated_minutes.or(existing.estimated_minutes);
+    // Double-Option: None=unchanged, Some(None)=clear, Some(Some(v))=set
+    let due_at = match params.due_at {
+        None => existing.due_at,
+        Some(v) => v,
+    };
+    let due_time = match params.due_time {
+        None => existing.due_time,
+        Some(v) => v,
+    };
+    let start_at = match params.start_at {
+        None => existing.start_at,
+        Some(v) => v,
+    };
+    let estimated_minutes = match params.estimated_minutes {
+        None => existing.estimated_minutes,
+        Some(v) => v,
+    };
     let tracked_minutes = params.tracked_minutes.unwrap_or(existing.tracked_minutes);
-    let recurrence_rule = params.recurrence_rule.or(existing.recurrence_rule);
+    let recurrence_rule = match params.recurrence_rule {
+        None => existing.recurrence_rule,
+        Some(v) => v,
+    };
     let archived = params.archived.unwrap_or(existing.archived);
-    let completed_at = params.completed_at.or(existing.completed_at);
+    let completed_at = match params.completed_at {
+        None => existing.completed_at,
+        Some(v) => v,
+    };
     let sort_order = existing.sort_order;
 
     sqlx::query(
@@ -239,7 +265,7 @@ pub async fn update_task(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(TaskEntry {
+    let updated = TaskEntry {
         id: existing.id,
         title,
         done,
@@ -259,13 +285,19 @@ pub async fn update_task(
         completed_at,
         created_at: existing.created_at,
         updated_at: now,
-    })
+    };
+    cache.invalidate();
+    Ok(updated)
 }
 
 /// Toggle a task's done state. If the task has a recurrence rule,
 /// auto-generate the next instance on completion.
 #[tauri::command]
-pub async fn toggle_task(state: State<'_, BentoAppState>, id: String) -> Result<TaskEntry, String> {
+pub async fn toggle_task(
+    state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
+    id: String,
+) -> Result<TaskEntry, String> {
     let db = state.db();
     let now = time::now_ms();
 
@@ -332,7 +364,9 @@ pub async fn toggle_task(state: State<'_, BentoAppState>, id: String) -> Result<
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(row_to_task(updated))
+    let task = row_to_task(updated);
+    cache.invalidate();
+    Ok(task)
 }
 
 /// Advance a due_at date by one recurrence interval.
@@ -382,13 +416,18 @@ pub async fn get_task(
 
 /// Delete a task by ID.
 #[tauri::command]
-pub async fn delete_task(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn delete_task(
+    state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
+    id: String,
+) -> Result<(), String> {
     let db = state.db();
     sqlx::query("DELETE FROM tasks WHERE id = ?")
         .bind(&id)
         .execute(&db)
         .await
         .map_err(|e| e.to_string())?;
+    cache.invalidate();
     Ok(())
 }
 
@@ -411,6 +450,14 @@ pub async fn list_tasks(
         "SELECT id, title, done, priority, project, tags, notes, due_at, due_time, start_at, estimated_minutes, tracked_minutes, recurrence_rule, archived, parent_id, completed_at, created_at, updated_at, sort_order FROM tasks WHERE 1=1",
     );
 
+    // Default: exclude archived tasks unless explicitly requested
+    if let Some(a) = archived {
+        q.push(" AND archived = ");
+        q.push_bind(if a { 1i64 } else { 0i64 });
+    } else {
+        q.push(" AND archived = 0");
+    }
+
     if let Some(ref p) = project {
         q.push(" AND project = ");
         q.push_bind(p.clone());
@@ -422,10 +469,6 @@ pub async fn list_tasks(
     if let Some(d) = done {
         q.push(" AND done = ");
         q.push_bind(if d { 1i64 } else { 0i64 });
-    }
-    if let Some(a) = archived {
-        q.push(" AND archived = ");
-        q.push_bind(if a { 1i64 } else { 0i64 });
     }
     if let Some(before) = due_before {
         q.push(" AND (due_at IS NOT NULL AND due_at <= ");
@@ -493,6 +536,7 @@ pub async fn log_activity_entry(
 #[tauri::command]
 pub async fn archive_task(
     state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
     id: String,
 ) -> Result<TaskEntry, String> {
     let db = state.db();
@@ -513,6 +557,7 @@ pub async fn archive_task(
         .await
         .map_err(|e| e.to_string())?;
 
+    cache.invalidate();
     Ok(TaskEntry {
         archived: true,
         updated_at: now,
@@ -708,6 +753,7 @@ pub async fn update_subtask_status(
 #[tauri::command]
 pub async fn reorder_tasks(
     state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
     items: Vec<ReorderItem>,
 ) -> Result<(), String> {
     let db = state.db();
@@ -720,6 +766,7 @@ pub async fn reorder_tasks(
             .await
             .map_err(|e| e.to_string())?;
     }
+    cache.invalidate();
     Ok(())
 }
 

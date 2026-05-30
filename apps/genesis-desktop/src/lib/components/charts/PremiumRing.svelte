@@ -46,6 +46,7 @@
     // Pass `segments` to activate this mode.
     segments    = undefined as Segment[] | undefined,
     thickness   = 14,            // stroke width in px
+    gap         = 4,             // gap between segments (for future multi-segment layout)
     centerValue = undefined as string | undefined,   // large text in center
     centerLabel = undefined as string | undefined,   // small label above value
     centerNote  = undefined as string | undefined,   // tiny note below value
@@ -58,6 +59,7 @@
     trackColor?:  string;
     segments?:    Segment[];
     thickness?:   number;
+    gap?:         number;
     centerValue?: string;
     centerLabel?: string;
     centerNote?:  string;
@@ -78,25 +80,30 @@
   );
 
   // ── MODE B — SVG arc geometry ─────────────────────────────────────────────
-  // We draw on a square canvas of `size × size`. The arc ring sits centred.
   const cx      = $derived(size / 2);
   const cy      = $derived(size / 2);
-  const radius  = $derived(cx - thickness / 2 - 2);   // 2px safety margin
+  const radius  = $derived(cx - thickness / 2 - 2);
   const circum  = $derived(2 * Math.PI * radius);
 
-  // Build per-segment path data from the `segments` array.
-  // Each segment is a portion of the ring based on its `value` (0–100).
-  // Multiple segments stack sequentially (for stacked donut usage).
-  const arcSegs = $derived(
-    (segments ?? []).map((seg) => {
-      const filled  = (Math.min(100, Math.max(0, seg.value)) / 100) * circum;
-      // dasharray: filled arc length, then gap to complete the circle
-      const dash    = `${filled.toFixed(2)} ${(circum - filled).toFixed(2)}`;
-      // Start at 12 o'clock (-90°). strokeDashoffset rotates the arc origin.
-      const offset  = (circum * 0.25).toFixed(2);  // quarter-turn = top
-      return { ...seg, dash, offset };
-    })
-  );
+  // For stacked donut: each segment occupies its value% of the ring,
+  // and starts where the previous one ended. Gap is subtracted from each.
+  const arcSegs = $derived.by(() => {
+    const segs = segments ?? [];
+    const total = segs.reduce((s, seg) => s + Math.min(100, Math.max(0, seg.value)), 0);
+    const scale = total > 100 ? 100 / total : 1;
+    let consumed = 0; // degrees already used, starting from top (0 = 12 o'clock)
+
+    return segs.map((seg) => {
+      const pctVal  = Math.min(100, Math.max(0, seg.value)) * scale;
+      const gapAngle = (gap / circum) * 360;
+      const arcLen  = Math.max(0, (pctVal / 100) * circum - gap);
+      const dash    = `${arcLen.toFixed(2)} ${(circum - arcLen).toFixed(2)}`;
+      // dashoffset shifts start position: full circum = 0°, quarter back = top
+      const offsetArc = circum - (consumed / 360) * circum + circum * 0.25;
+      consumed += pctVal / 100 * 360 + gapAngle;
+      return { ...seg, dash, offset: offsetArc.toFixed(2) };
+    });
+  });
 </script>
 
 {#if isArcMode}
@@ -132,7 +139,6 @@
           stroke-linecap="round"
           stroke-dasharray={seg.dash}
           stroke-dashoffset={seg.offset}
-          transform="rotate(-90 {cx} {cy})"
         />
       {/each}
 

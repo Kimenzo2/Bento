@@ -1,12 +1,14 @@
 pub mod actors;
 pub mod audio;
 pub mod auth;
+pub mod budget;
 pub mod byok;
 pub mod cloud_backup;
 pub mod commands;
 pub mod crypto;
 pub mod crypto_commands;
 pub mod db;
+pub mod flashcards;
 pub mod health;
 pub mod local_store;
 pub mod mcp;
@@ -45,10 +47,10 @@ use crate::commands::{
     DashboardCache, McpManager, PendingDeepLink, backup_desktop_settings, begin_background_task,
     consume_pending_deep_link, emit_main_window_event, export_content_to_file,
     finish_background_task, get_dashboard_data, get_feedback_by_id, get_feedback_realtime_config,
-    get_lifecycle_state, get_my_feedback, load_desktop_settings, pick_export_directory,
-    pick_import_file, pick_transcription_model, quit_app, restore_desktop_settings_backup,
-    restore_window, save_desktop_settings, save_export_manifest, send_mcp_request,
-    start_mcp_sidecar, submit_feedback, write_debug_log,
+    get_focus_dashboard, get_lifecycle_state, get_my_feedback, load_desktop_settings,
+    pick_export_directory, pick_import_file, pick_transcription_model, quit_app,
+    record_focus_session, restore_desktop_settings_backup, restore_window, save_desktop_settings,
+    save_export_manifest, send_mcp_request, start_mcp_sidecar, submit_feedback, write_debug_log,
 };
 use crate::crypto::CryptoService;
 use crate::db::{
@@ -61,6 +63,7 @@ use crate::modules::{
     uninstall_module,
 };
 use crate::notes::undo::HistoryRegistry;
+use crate::notes::NoteFullCache;
 use crate::reading::*;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
@@ -216,6 +219,7 @@ pub fn run() {
         .manage(McpManager::default())
         .manage(PendingDeepLink::default())
         .manage(DashboardCache::new())
+        .manage(Arc::new(NoteFullCache::new()))
         .manage(Arc::new(HistoryRegistry::new()))
         .manage(ManagedTabSession::new());
 
@@ -361,6 +365,7 @@ pub fn run() {
             restore_window,
             quit_app,
             get_dashboard_data,
+            get_focus_dashboard,
             get_module_context,
             save_module_context,
             flush_module_state,
@@ -464,6 +469,32 @@ pub fn run() {
             crate::byok::commands::byok_update_settings,
             crate::byok::commands::byok_toggle_enabled,
             crate::byok::commands::byok_dismiss_onboarding,
+            // Budget — Intelligent Budget Planner
+            crate::budget::budget_list_categories,
+            crate::budget::budget_suggest_limits,
+            crate::budget::budget_set_category_budget,
+            crate::budget::budget_add_transaction,
+            crate::budget::budget_list_transactions,
+            crate::budget::budget_delete_transaction,
+            crate::budget::budget_update_transaction,
+            crate::budget::budget_add_bill,
+            crate::budget::budget_list_bills,
+            crate::budget::budget_toggle_bill_paid,
+            crate::budget::budget_delete_bill,
+            crate::budget::budget_add_ai_cost,
+            crate::budget::budget_list_ai_costs,
+            crate::budget::budget_ai_cost_summary,
+            crate::budget::budget_delete_ai_cost,
+            crate::budget::budget_monthly_overview,
+            crate::budget::budget_financial_health,
+            crate::budget::budget_cash_flow_forecast,
+            crate::budget::budget_cross_module_spending,
+            crate::budget::budget_save_template,
+            crate::budget::budget_list_templates,
+            crate::budget::budget_delete_template,
+            crate::budget::budget_forecast_chart_data,
+            crate::budget::budget_export_pdf,
+            crate::budget::budget_export_csv,
             // Audio recording & playback
             crate::audio::start_recording,
             crate::audio::stop_recording,
@@ -547,6 +578,17 @@ pub fn run() {
             crate::recipes::cook_history_list,
             crate::recipes::cook_history_add,
             crate::recipes::recipes_seed_if_empty,
+            // Flashcards (Bento Recall)
+            crate::flashcards::flashcards_list,
+            crate::flashcards::flashcards_deck_create,
+            crate::flashcards::flashcards_deck_delete,
+            crate::flashcards::flashcards_card_create,
+            crate::flashcards::flashcards_card_grade,
+            crate::flashcards::flashcards_card_toggle_pin,
+            crate::flashcards::flashcards_card_archive,
+            crate::flashcards::flashcards_card_restore,
+            crate::flashcards::flashcards_search,
+            crate::flashcards::flashcards_review_queue,
             // Reading
             reading_list_books,
             reading_get_book,
@@ -617,6 +659,7 @@ pub fn run() {
             crate::commands::tasks::list_subtasks_for_task,
             crate::commands::tasks::update_subtask_status,
             crate::commands::tasks::reorder_tasks,
+            record_focus_session,
             // Passwords Vault (E2EE SQLCipher)
             crate::commands::passwords::passwords_list,
             crate::commands::passwords::passwords_save,

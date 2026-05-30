@@ -19,10 +19,10 @@ use super::service::{
     BlockCreateParams, CreateNoteParams, DuplicateBlocksParams, HistoryInfo, MoveBlocksParams,
     NoteObject, NoteSummary, NoteWithBlocks, SetMarkParams, UpdateNoteParams, block_create,
     clear_text_content, clear_text_style, create_note_object, delete_note_object, duplicate_blocks,
-    get_note_full, get_note_object, list_note_objects, merge_block, move_blocks, object_duplicate,
-    redo, replace_block, set_align, set_background_color, set_layout, set_text_checked,
-    set_text_color, set_text_content, set_text_mark, set_text_style, split_block, turn_into, undo,
-    unlink_block, update_note_object,
+    get_note_full_cached, get_note_object, list_note_objects, merge_block, move_blocks,
+    object_duplicate, redo, replace_block, set_align, set_background_color, set_layout,
+    set_text_checked, set_text_color, set_text_content, set_text_mark, set_text_style, split_block,
+    turn_into, undo, unlink_block, update_note_object,
 };
 use super::undo::HistoryRegistry;
 
@@ -41,9 +41,10 @@ pub async fn notes_object_create(
     state: State<'_, BentoAppState>,
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
+    cache: State<'_, Arc<super::NoteFullCache>>,
     params: CreateNoteParams,
 ) -> Result<NoteWithBlocks, String> {
-    create_note_object(&db(&state), &history, &search, params)
+    create_note_object(&db(&state), &history, &search, cache.inner().as_ref(), params)
         .await
         .map_err(|e| e.message)
 }
@@ -65,9 +66,10 @@ pub async fn notes_object_get(
 #[tauri::command]
 pub async fn notes_object_full(
     state: State<'_, BentoAppState>,
+    cache: State<'_, Arc<super::NoteFullCache>>,
     note_id: String,
 ) -> Result<NoteWithBlocks, String> {
-    get_note_full(&db(&state), &note_id)
+    get_note_full_cached(&db(&state), cache.inner().as_ref(), &note_id)
         .await
         .map_err(|e| e.message)
 }
@@ -111,9 +113,10 @@ pub async fn notes_object_delete(
     state: State<'_, BentoAppState>,
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
+    cache: State<'_, Arc<super::NoteFullCache>>,
     note_id: String,
 ) -> Result<(), String> {
-    delete_note_object(&db(&state), &history, &search, &note_id)
+    delete_note_object(&db(&state), &history, &search, cache.inner().as_ref(), &note_id)
         .await
         .map_err(|e| e.message)
 }
@@ -125,9 +128,10 @@ pub async fn notes_object_duplicate(
     state: State<'_, BentoAppState>,
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
+    cache: State<'_, Arc<super::NoteFullCache>>,
     source_id: String,
 ) -> Result<NoteWithBlocks, String> {
-    object_duplicate(&db(&state), &history, &search, &source_id)
+    object_duplicate(&db(&state), &history, &search, cache.inner().as_ref(), &source_id)
         .await
         .map_err(|e| e.message)
 }

@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import './tasks.css';
   import {
     Plus, ListTodo, Inbox, Calendar, Trash2, CheckSquare,
@@ -110,7 +110,10 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   let isResizing = $state(false);
 
   // View mode
-  let viewMode = $state<ViewMode>('list');
+  const TASKS_VIEW_KEY = "bento:tasks:viewMode";
+  const _savedViewMode = (typeof localStorage !== "undefined" ? localStorage.getItem(TASKS_VIEW_KEY) : null) as ViewMode | null;
+  let viewMode = $state<ViewMode>(_savedViewMode ?? "calendar");
+  $effect(() => { try { localStorage.setItem(TASKS_VIEW_KEY, viewMode); } catch {} });
   let customFilterText = $state('');
   let savedViews = $state<{ name: string; viewFilter: ViewFilter; priorityFilter: Priority | 'all'; projectFilter: string; viewMode: ViewMode; query: string }[]>([
     { name: 'Deep Work', viewFilter: 'today', priorityFilter: 'all', projectFilter: 'all', viewMode: 'focus', query: '' },
@@ -154,19 +157,25 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   let editRecurrenceRule = $state<string | null>(null);
   let editActivity = $state<ActivityEntry[]>([]);
 
-  // Calendar picker state
-  let calendarMonth = $state(new Date(time.now()).getMonth());
-  let calendarYear = $state(new Date(time.now()).getFullYear());
+  // Calendar picker state — month/year live-tracked via today
   let showCalendar = $state(false);
 
   /* ═══════════════════════════════════════════════════════════════════
      DERIVED
      ═══════════════════════════════════════════════════════════════════ */
+  // BUG-12 FIX: today must tick in real time — use a $state that refreshes
+  // every minute via a timer, not a $derived of time.now() which is static.
+  let _todayTick = $state(0);
   let today = $derived.by(() => {
-    const d = new Date(time.now());
+    void _todayTick; // reactive dependency — re-evaluates when tick changes
+    const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
+
+  // BUG-14 FIX: calendarMonth/Year must also follow today — init from live today
+  let calendarMonth = $state(new Date().getMonth());
+  let calendarYear  = $state(new Date().getFullYear());
 
   let selectedTask = $derived(tasks.find(t => t.id === selectedTaskId) ?? null);
 
@@ -188,7 +197,8 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
         result = result.filter(t => t.dueAt !== null && t.dueAt >= endOfToday && t.dueAt <= next7 && t.project !== 'someday');
         break;
       case 'overdue':
-        result = result.filter(t => t.dueAt !== null && t.dueAt < now && t.project !== 'someday');
+        // BUG-13 FIX: exclude done tasks — a completed task is never overdue
+        result = result.filter(t => !t.done && t.dueAt !== null && t.dueAt < now && t.project !== 'someday');
         break;
       case 'no-date':
         result = result.filter(t => t.dueAt === null && t.project !== 'someday');
@@ -377,6 +387,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
      DRAG & DROP REORDERING
      ═══════════════════════════════════════════════════════════════════ */
   let taskListEl = $state<HTMLElement | null>(null);
+  let detailPanelEl = $state<HTMLElement | null>(null);
   let sortableInstance: Sortable | null = null;
 
   async function handleReorder() {
@@ -407,7 +418,50 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
 
   onMount(() => {
     document.addEventListener('keydown', handleGlobalKeydown);
-    return () => document.removeEventListener('keydown', handleGlobalKeydown);
+
+    // ── Outside-click dismiss for the detail panel ──────────────────────
+    // Using pointerdown (not click) so it fires before focus changes.
+    // We check if the event target is OUTSIDE the panel element — if so, close.
+    // Clicks INSIDE the panel (inputs, buttons, selects) are never intercepted.
+    function handleOutsideClick(e: PointerEvent) {
+      if (!selectedTaskId) return;
+      if (!detailPanelEl) return;
+      const target = e.target as Node;
+      // If the click is inside the panel — do nothing
+      if (detailPanelEl.contains(target)) return;
+      // Also ignore clicks on task cards that open the panel (they set selectedTaskId themselves)
+      const card = (target as Element).closest?.('[data-task-id]');
+      if (card) return;
+      // Click was outside panel and not on a task card — dismiss
+      selectedTaskId = null;
+    }
+    document.addEventListener('pointerdown', handleOutsideClick, { capture: true });
+
+    // BUG-12 FIX: tick _todayTick every minute so today/overdue deriveds stay accurate.
+    // Also schedule an exact midnight flip so the date rolls over precisely.
+    const minuteInterval = setInterval(() => { _todayTick++; }, 60_000);
+
+    function scheduleMidnightFlip() {
+      const now = new Date();
+      const msUntilMidnight =
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+      return setTimeout(() => {
+        _todayTick++;
+        // Update calendarMonth/Year to follow the new day
+        const tomorrow = new Date();
+        calendarMonth = tomorrow.getMonth();
+        calendarYear  = tomorrow.getFullYear();
+        scheduleMidnightFlip(); // re-schedule for next midnight
+      }, msUntilMidnight + 100); // +100ms safety margin
+    }
+    const midnightTimer = scheduleMidnightFlip();
+
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeydown);
+      document.removeEventListener('pointerdown', handleOutsideClick, { capture: true });
+      clearInterval(minuteInterval);
+      clearTimeout(midnightTimer);
+    };
   });
   $effect(() => {
     // Re-run when tasks change and the list element exists
@@ -835,8 +889,191 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   });
 
   /* ═══════════════════════════════════════════════════════════════════
-     CALENDAR PICKER
-     ════════════��══════════════════════════════════════════════════════ */
+     CALENDAR VIEW (Anytype-ported block-grid)
+     ═══════════════════════════════════════════════════════════════════ */
+
+  // Separate month/year state for the calendar VIEW (not the due-date picker)
+  let calViewMonth = $state(new Date().getMonth());
+  let calViewYear  = $state(new Date().getFullYear());
+
+  // Calendar-scoped task list — only the visible month's tasks.
+  // Separate from the main `tasks` list so we don't thrash 10 000 rows.
+  let calTasks = $state<TaskEntry[]>([]);
+  let calLoading = $state(false);
+
+  async function loadCalMonth() {
+    calLoading = true;
+    try {
+      // Load the full visible 6-week range: from the Monday before the 1st
+      // to the Sunday after the last day of the month.
+      const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+      const firstDow     = (firstOfMonth.getDay() + 6) % 7; // Mon=0
+      const rangeStart   = new Date(calViewYear, calViewMonth, 1 - firstDow, 0, 0, 0, 0);
+      const rangeEnd     = new Date(rangeStart.getTime() + 42 * 24 * 60 * 60 * 1000 - 1);
+      calTasks = await listTasks({
+        dueAfter:  rangeStart.getTime(),
+        dueBefore: rangeEnd.getTime(),
+        limit:     500,
+      });
+    } catch (err) {
+      console.error('[cal] loadCalMonth failed:', err);
+    } finally {
+      calLoading = false;
+    }
+  }
+
+  // Reload whenever the visible month/year changes
+  $effect(() => {
+    // Track both reactive vars so the effect re-runs on navigation
+    void calViewMonth;
+    void calViewYear;
+    loadCalMonth();
+  });
+
+  // Listen for tasks created anywhere in the app (Dashboard quick-add,
+  // other modules, etc.) and reload the calendar view.
+  onMount(() => {
+    const refresh = () => loadCalMonth();
+    window.addEventListener('bento:dashboard-refresh', refresh);
+    window.addEventListener('bento:task-created',      refresh);
+    return () => {
+      window.removeEventListener('bento:dashboard-refresh', refresh);
+      window.removeEventListener('bento:task-created',      refresh);
+    };
+  });
+  // Overflow popover state
+  let calOverflow = $state<{
+    x: number; y: number;
+    day: number; month: number; year: number;
+    tasks: TaskEntry[];
+  } | null>(null);
+
+  // Quick-add bar state
+  let calQuickAddTarget = $state<{ day: number; month: number; year: number } | null>(null);
+  let calQuickAddTitle  = $state('');
+
+  /** Generate the 6×7 cell grid for the current cal view month.
+   *  Mirrors Anytype's U.Date.getCalendarMonth() */
+  function calViewData(): Array<{
+    d: number; m: number; y: number;
+    isOtherMonth: boolean; isToday: boolean;
+    isWeekend: boolean; isFirstRow: boolean;
+    wd: number; // 0=Mon … 6=Sun (Anytype convention)
+  }> {
+    const todayObj = new Date();
+    const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+    const lastOfMonth  = new Date(calViewYear, calViewMonth + 1, 0);
+
+    // getDay() returns 0=Sun, convert to 0=Mon
+    const rawDow = (firstOfMonth.getDay() + 6) % 7; // Mon-based start
+    const cells: ReturnType<typeof calViewData> = [];
+
+    // Leading days from previous month
+    const prevLast = new Date(calViewYear, calViewMonth, 0);
+    for (let i = rawDow - 1; i >= 0; i--) {
+      const d = prevLast.getDate() - i;
+      const m = calViewMonth - 1 < 0 ? 11 : calViewMonth - 1;
+      const y = calViewMonth - 1 < 0 ? calViewYear - 1 : calViewYear;
+      const wd = ((new Date(y, m, d).getDay()) + 6) % 7;
+      cells.push({
+        d, m, y, isOtherMonth: true,
+        isToday: false, isWeekend: wd >= 5,
+        isFirstRow: cells.length < 7, wd,
+      });
+    }
+
+    // Current month days
+    for (let d = 1; d <= lastOfMonth.getDate(); d++) {
+      const wd = ((new Date(calViewYear, calViewMonth, d).getDay()) + 6) % 7;
+      const isTod = todayObj.getFullYear() === calViewYear
+        && todayObj.getMonth() === calViewMonth
+        && todayObj.getDate() === d;
+      cells.push({
+        d, m: calViewMonth, y: calViewYear,
+        isOtherMonth: false, isToday: isTod,
+        isWeekend: wd >= 5, isFirstRow: false, wd,
+      });
+    }
+
+    // Trailing days from next month
+    const remaining = 42 - cells.length;
+    const nextM = (calViewMonth + 1) % 12;
+    const nextY = calViewMonth === 11 ? calViewYear + 1 : calViewYear;
+    for (let d = 1; d <= remaining; d++) {
+      const wd = ((new Date(nextY, nextM, d).getDay()) + 6) % 7;
+      cells.push({
+        d, m: nextM, y: nextY,
+        isOtherMonth: true, isToday: false,
+        isWeekend: wd >= 5, isFirstRow: false, wd,
+      });
+    }
+
+    return cells;
+  }
+
+  /** Return all tasks whose dueAt falls on a specific calendar day. */
+  function calTasksOnDay(d: number, m: number, y: number): TaskEntry[] {
+    const start = new Date(y, m, d, 0, 0, 0, 0).getTime();
+    const end   = new Date(y, m, d, 23, 59, 59, 999).getTime();
+    return tasks.filter(t =>
+      t.dueAt !== null && t.dueAt >= start && t.dueAt <= end && !t.archived
+    );
+  }
+
+  function calPrevMonth() {
+    if (calViewMonth === 0) { calViewMonth = 11; calViewYear--; }
+    else calViewMonth--;
+  }
+
+  function calNextMonth() {
+    if (calViewMonth === 11) { calViewMonth = 0; calViewYear++; }
+    else calViewMonth++;
+  }
+
+  function calGoToday() {
+    const n = new Date();
+    calViewMonth = n.getMonth();
+    calViewYear  = n.getFullYear();
+  }
+
+  /** Open the quick-add bar pinned to a specific cell. */
+  function calQuickAdd(d: number, m: number, y: number) {
+    calQuickAddTarget = { day: d, month: m, year: y };
+    calQuickAddTitle  = '';
+  }
+
+  async function calSubmitQuickAdd() {
+    const t = calQuickAddTarget;
+    const title = calQuickAddTitle.trim();
+    if (!t || !title) return;
+
+    const dueAt = new Date(t.year, t.month, t.day, 12, 0, 0).getTime();
+    calQuickAddTarget = null;
+    calQuickAddTitle  = '';
+
+    try {
+      const saved = await saveTask({ title, dueAt, project: 'inbox' });
+      tasks = [saved, ...tasks];
+      logActivityEntry(saved.id, 'Task created from calendar').catch(() => {});
+    } catch (err) {
+      console.error('[cal] addTask failed:', err);
+    }
+  }
+
+  function calOpenOverflow(
+    e: MouseEvent,
+    d: number, m: number, y: number,
+    dayTasks: TaskEntry[],
+  ) {
+    const rect = (e.currentTarget as HTMLElement).closest('.tasks-cal-day')!.getBoundingClientRect();
+    const container = (e.currentTarget as HTMLElement).closest('.tasks-cal')!.getBoundingClientRect();
+    calOverflow = {
+      x: rect.left - container.left,
+      y: rect.bottom - container.top + 4,
+      day: d, month: m, year: y,
+      tasks: dayTasks,
+    };
+  }
   function calendarDays() {
     const first = new Date(calendarYear, calendarMonth, 1);
     const last = new Date(calendarYear, calendarMonth + 1, 0);
@@ -1672,9 +1909,9 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
       <h2>{viewTitle}</h2>
       <div class="tasks-list-panel-header-right">
         <div class="tasks-view-switcher">
+          <button class="tasks-view-switcher-btn" class:active={viewMode === 'calendar'} onclick={() => viewMode = 'calendar'}>Calendar</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'list'} onclick={() => viewMode = 'list'}>List</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'board'} onclick={() => viewMode = 'board'}>Board</button>
-          <button class="tasks-view-switcher-btn" class:active={viewMode === 'calendar'} onclick={() => viewMode = 'calendar'}>Calendar</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'table'} onclick={() => viewMode = 'table'}>Table</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'timeline'} onclick={() => viewMode = 'timeline'}>Timeline</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'focus'} onclick={() => viewMode = 'focus'} title="Minimal view — only the next action (Ctrl+Shift+F)">Focus</button>
@@ -1878,25 +2115,176 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
     {/if}
 
     {#if viewMode === 'calendar'}
-      <div class="tasks-calendar-view">
-        {#each timelineGroups as [date, dayTasks]}
-          <Card class="card-surface tasks-calendar-day-card">
-            <CardContent class="tasks-calendar-card-content">
-              <div class="tasks-calendar-day-head">
-                <span>{date === 'No Date' ? 'No Date' : new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                <strong>{dayTasks.length}</strong>
-              </div>
-              {#each dayTasks as task}
-                <button class="tasks-mini-row" type="button" onclick={() => selectedTaskId = task.id}>
-                  <span class="tasks-priority-dot" style="background: {priorityColor(task.priority)}"></span>
-                  <span>{task.title}</span>
-                  {#if task.dueTime}<em>{task.dueTime}</em>{/if}
-                </button>
-              {/each}
-            </CardContent>
-          </Card>
-        {/each}
+    <!--
+      ══════════════════════════════════════════════════════════════════
+       ANYTYPE-STYLE BLOCK GRID CALENDAR
+       Ported 1:1 from anytype-ts ViewCalendar + CalendarItem
+       Uses: calViewYear, calViewMonth, calViewData(), calTasksOnDay()
+      ══════════════════════════════════════════════════════════════════
+    -->
+    <div class="tasks-cal">
+
+      <!-- ── Date select bar ── -->
+      <div class="tasks-cal-bar">
+        <div class="tasks-cal-bar-left">
+          <select
+            class="tasks-cal-select"
+            bind:value={calViewMonth}
+            aria-label="Month"
+          >
+            {#each ['January','February','March','April','May','June','July','August','September','October','November','December'] as name, i}
+              <option value={i}>{name}</option>
+            {/each}
+          </select>
+          <select
+            class="tasks-cal-select"
+            bind:value={calViewYear}
+            aria-label="Year"
+          >
+            {#each Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - 5 + i) as yr}
+              <option value={yr}>{yr}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="tasks-cal-bar-right">
+          <button class="tasks-cal-arrow" aria-label="Previous month" onclick={calPrevMonth}>
+            <ChevronLeft size={15} />
+          </button>
+          <button class="tasks-cal-today-btn" onclick={calGoToday}>Today</button>
+          <button class="tasks-cal-arrow" aria-label="Next month" onclick={calNextMonth}>
+            <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
+
+      <!-- ── Grid ── -->
+      <div class="tasks-cal-wrap">
+        <div class="tasks-cal-table">
+
+          <!-- Day-of-week header row -->
+          <div class="tasks-cal-head">
+            {#each ['Mo','Tu','We','Th','Fr','Sa','Su'] as d}
+              <div class="tasks-cal-head-cell">{d}</div>
+            {/each}
+          </div>
+
+          <!-- Body: 6 rows × 7 cols -->
+          <div class="tasks-cal-body">
+            {#each calViewData() as cell}
+              {@const cellTasks = calTasksOnDay(cell.d, cell.m, cell.y)}
+              {@const LIMIT = 4}
+              {@const overflow = cellTasks.length > LIMIT ? cellTasks.length - LIMIT : 0}
+              <div
+                class="tasks-cal-day"
+                class:tasks-cal-day--other={cell.isOtherMonth}
+                class:tasks-cal-day--today={cell.isToday}
+                class:tasks-cal-day--weekend={cell.isWeekend}
+                class:tasks-cal-day--first={cell.isFirstRow}
+                ondblclick={() => calQuickAdd(cell.d, cell.m, cell.y)}
+              >
+                <!-- Day cell head -->
+                <div class="tasks-cal-day-head">
+                  <button
+                    class="tasks-cal-day-plus"
+                    aria-label="Add task"
+                    onclick={(e) => { e.stopPropagation(); calQuickAdd(cell.d, cell.m, cell.y); }}
+                    title="Add task"
+                  >+</button>
+                  <div class="tasks-cal-day-num">
+                    <span>{cell.d}</span>
+                  </div>
+                </div>
+
+                <!-- Task records inside the day cell -->
+                <div class="tasks-cal-day-items">
+                  {#each cellTasks.slice(0, LIMIT) as task (task.id)}
+                    <button
+                      class="tasks-cal-record"
+                      class:tasks-cal-record--done={task.done}
+                      onclick={() => selectedTaskId = task.id}
+                      title={task.title}
+                    >
+                      <span
+                        class="tasks-cal-record-dot"
+                        style="background: {priorityColor(task.priority)}"
+                      ></span>
+                      <span class="tasks-cal-record-title">{task.title}</span>
+                    </button>
+                  {/each}
+
+                  {#if overflow > 0}
+                    <button
+                      class="tasks-cal-record tasks-cal-record--more"
+                      onclick={(e) => { e.stopPropagation(); calOpenOverflow(e, cell.d, cell.m, cell.y, cellTasks); }}
+                    >
+                      +{overflow} more
+                    </button>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+
+      <!-- Overflow popover -->
+      {#if calOverflow}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tasks-cal-overflow-scrim"
+          onclick={() => calOverflow = null}
+          onkeydown={(e) => e.key === 'Escape' && (calOverflow = null)}
+        ></div>
+        <div
+          class="tasks-cal-overflow-popover"
+          style="top: {calOverflow.y}px; left: {calOverflow.x}px"
+        >
+          <div class="tasks-cal-overflow-head">
+            {new Date(calOverflow.year, calOverflow.month, calOverflow.day)
+              .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </div>
+          {#each calOverflow.tasks as task (task.id)}
+            <button
+              class="tasks-cal-record"
+              onclick={() => { selectedTaskId = task.id; calOverflow = null; }}
+            >
+              <span class="tasks-cal-record-dot" style="background: {priorityColor(task.priority)}"></span>
+              <span class="tasks-cal-record-title">{task.title}</span>
+            </button>
+          {/each}
+          <button
+            class="tasks-cal-overflow-add"
+            onclick={() => { calQuickAdd(calOverflow!.day, calOverflow!.month, calOverflow!.year); calOverflow = null; }}
+          >+ Add task</button>
+        </div>
+      {/if}
+
+      <!-- Inline quick-add bar (appears below the grid) -->
+      {#if calQuickAddTarget}
+        <div class="tasks-cal-quick-add-bar">
+          <span class="tasks-cal-quick-add-date">
+            {new Date(calQuickAddTarget.year, calQuickAddTarget.month, calQuickAddTarget.day)
+              .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+          <input
+            class="tasks-cal-quick-add-input"
+            type="text"
+            placeholder="Task title…"
+            bind:value={calQuickAddTitle}
+            onkeydown={(e) => {
+              if (e.key === 'Enter') void calSubmitQuickAdd();
+              if (e.key === 'Escape') calQuickAddTarget = null;
+            }}
+            spellcheck="false"
+          />
+          <button class="tasks-cal-quick-add-btn" onclick={() => void calSubmitQuickAdd()}>Add</button>
+          <button class="tasks-cal-quick-add-cancel" onclick={() => calQuickAddTarget = null}>
+            <X size={13} />
+          </button>
+        </div>
+      {/if}
+
+    </div>
     {/if}
 
     {#if viewMode === 'table'}
@@ -2026,11 +2414,22 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   ></button>
 
   <!-- ─── DETAIL PANE ─── -->
-  <section class="tasks-detail">
+  <!-- Scrim kept only for Escape-key dismiss — display:none so it has no hit area.
+       Outside-click dismiss is handled by the document pointerdown listener in onMount. -->
+  {#if selectedTask}<div class="tasks-detail-scrim" role="presentation" onkeydown={(e) => e.key === 'Escape' && (selectedTaskId = null)}></div>{/if}
+  <section class="tasks-detail" bind:this={detailPanelEl}>
       <!-- Detail — Task Content -->
       <div class="tasks-detail-scroll">
         <!-- Title -->
         <div class="tasks-detail-header">
+          <!-- Close button — top right of panel -->
+          <button
+            class="tasks-detail-close"
+            type="button"
+            onclick={() => selectedTaskId = null}
+            aria-label="Close task detail"
+            title="Close (Esc)"
+          ><X size={14} /></button>
           <input
             class="tasks-detail-title-input"
             type="text"

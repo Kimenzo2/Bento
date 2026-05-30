@@ -19,3 +19,5 @@
 pub mod commands;
 pub mod service;
 pub mod undo;
+
+pub use service::NoteFullCache;

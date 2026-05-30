@@ -65,6 +65,14 @@
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   void today;
 
+  function getGreeting(): string {
+    const h = new Date(time.now()).getHours();
+    if (h < 12) return "Good morning — here's everything about your health today.";
+    if (h < 17) return "Good afternoon — here's everything about your health today.";
+    return "Good evening — here's everything about your health today.";
+  }
+  const greeting = $derived(getGreeting());
+
   // ── Daily Log state ───────────────────────────────────────────
   const moodOptions = [
     { id: "low",    label: "Low",    emoji: "😔" },
@@ -315,11 +323,17 @@
 
   let weeklyChartData = $derived.by((): {day:string; score:number}[] => {
     const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-    const map = new Map(weekLogs.map(l => [new Date(l.loggedAt).toLocaleDateString("en-US",{weekday:"short"}), l]));
-    return days.map(day => {
-      const l = map.get(day);
+    // Key by dateKey (YYYY-MM-DD) — locale-safe, no toLocaleDateString mismatch
+    const map = new Map(weekLogs.map(l => [l.dateKey, l]));
+    // Build last 7 calendar days so chart always shows current week
+    return Array.from({length: 7}, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const label = days[(d.getDay() + 6) % 7]; // 0=Sun→index6, 1=Mon→0
+      const l = map.get(key);
       const score = l ? Math.round((l.energy / 10 * 40) + (Math.min(l.sleepHours,9)/9*30) + (Math.min(l.waterGlasses,10)/10*30)) : 0;
-      return { day, score };
+      return { day: label, score };
     });
   });
 
@@ -446,7 +460,7 @@
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><ActivityIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionDashboard')}</Badge></div>
-          <h1>{_t('moduleHealthGoodMorning')}</h1>
+          <h1>{greeting}</h1>
           <p>{_t('moduleHealthDashboardDesc')}</p>
         </div>
         <div class="hl-page__actions">
@@ -458,7 +472,7 @@
       <section class="hl-hero-grid">          <Card class="hl-score-card">
             <CardHeader><CardTitle>{_t('moduleHealthToday')}</CardTitle><CardDescription>{today}</CardDescription></CardHeader>
             <CardContent class="hl-score-card__content">
-              <div class="hl-score-orb">
+              <div class="hl-score-orb" style="--score:{todayLog ? Math.round((todayLog.energy/10*40)+(Math.min(todayLog.sleepHours,9)/9*30)+(Math.min(todayLog.waterGlasses,10)/10*30)) : 0}%">
                 <strong>{todayLog ? Math.round((todayLog.energy/10*40)+(Math.min(todayLog.sleepHours,9)/9*30)+(Math.min(todayLog.waterGlasses,10)/10*30)) : "--"}</strong>
                 <small>{_t('moduleHealthWellness')}</small>
               </div>
@@ -473,10 +487,10 @@
             <CardHeader><CardTitle>{_t('moduleHealthDailySnapshot')}</CardTitle><CardDescription>{_t('moduleHealthDailySnapshotDesc')}</CardDescription></CardHeader>
             <CardContent class="hl-hero-list">
               {#if todayLog}
-                <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%"></i></div><strong>{todayLog?.energy} / 10</strong></article>
-                <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%"></i></div><strong>{(todayLog.waterGlasses*0.25).toFixed(1)} L</strong></article>
-                <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%"></i></div><strong>{todayLog?.sleepHours}h</strong></article>
-                <article><span>{_t('moduleHealthMood')}</span><div class="hl-hero-bar"><i style="--fill:{["low","okay","steady","good","great"].indexOf(todayLog?.mood)/4*100}%"></i></div><strong>{_t('moduleHealthMood' + (todayLog?.mood ? todayLog.mood.charAt(0).toUpperCase() + todayLog.mood.slice(1) : ''))}</strong></article>
+                <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%;--hl-bar-color:var(--hl-chart-energy)"></i></div><strong>{todayLog?.energy} / 10</strong></article>
+                <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%;--hl-bar-color:var(--hl-chart-water)"></i></div><strong>{(todayLog.waterGlasses*0.25).toFixed(1)} L</strong></article>
+                <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%;--hl-bar-color:var(--hl-chart-sleep)"></i></div><strong>{todayLog?.sleepHours}h</strong></article>
+                <article><span>{_t('moduleHealthMood')}</span><div class="hl-hero-bar"><i style="--fill:{["low","okay","steady","good","great"].indexOf(todayLog?.mood)/4*100}%;--hl-bar-color:var(--hl-chart-mood)"></i></div><strong>{_t('moduleHealthMood' + (todayLog?.mood ? todayLog.mood.charAt(0).toUpperCase() + todayLog.mood.slice(1) : ''))}</strong></article>
               {:else}
                 <p class="hl-muted hl-muted--center">{_t('moduleHealthNoCheckinYet')}</p>
               {/if}
@@ -562,7 +576,7 @@
         <Card class="hl-score-card">
           <CardHeader><CardTitle>{_t('moduleHealthTodaySoFar')}</CardTitle><CardDescription>{today}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
-            <div class="hl-score-orb hl-score-orb--ring">
+            <div class="hl-score-orb hl-score-orb--ring" style="--score:{selectedEnergy * 10}%">
               <strong>{selectedEnergy}</strong><small>{_t('moduleHealthEnergy')}</small>
             </div>
             <div class="hl-score-meta">
@@ -578,10 +592,10 @@
           <CardHeader><CardTitle>{_t('moduleHealthLastSaved')}</CardTitle><CardDescription>{todayLog ? _t('moduleHealthLoadedDb') : _t('moduleHealthNoCheckinToday')}</CardDescription></CardHeader>
           <CardContent class="hl-hero-list">
             {#if todayLog}
-              <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%"></i></div><strong>{todayLog?.energy} / 10</strong></article>
-              <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%"></i></div><strong>{(todayLog.waterGlasses*0.25).toFixed(2)} L</strong></article>
-              <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%"></i></div><strong>{todayLog?.sleepHours}h</strong></article>
-              <article><span>{_t('moduleHealthMood')}</span><div class="hl-hero-bar"><i style="--fill:{["low","okay","steady","good","great"].indexOf(todayLog?.mood)/4*100}%"></i></div><strong>{_t('moduleHealthMood' + (todayLog?.mood ? todayLog.mood.charAt(0).toUpperCase() + todayLog.mood.slice(1) : ''))}</strong></article>
+              <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%;--hl-bar-color:var(--hl-chart-energy)"></i></div><strong>{todayLog?.energy} / 10</strong></article>
+              <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%;--hl-bar-color:var(--hl-chart-water)"></i></div><strong>{(todayLog.waterGlasses*0.25).toFixed(2)} L</strong></article>
+              <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%;--hl-bar-color:var(--hl-chart-sleep)"></i></div><strong>{todayLog?.sleepHours}h</strong></article>
+              <article><span>{_t('moduleHealthMood')}</span><div class="hl-hero-bar"><i style="--fill:{["low","okay","steady","good","great"].indexOf(todayLog?.mood)/4*100}%;--hl-bar-color:var(--hl-chart-mood)"></i></div><strong>{_t('moduleHealthMood' + (todayLog?.mood ? todayLog.mood.charAt(0).toUpperCase() + todayLog.mood.slice(1) : ''))}</strong></article>
             {:else}
               <p class="hl-muted hl-muted--center">{_t('moduleHealthFillForm')}</p>
             {/if}
@@ -716,7 +730,7 @@
         <Card class="hl-score-card">
           <CardHeader><CardTitle>{_t('moduleHealthLatestReading')}</CardTitle><CardDescription>{vitalHistory[0] ? vitalHistory[0].dateKey : _t('moduleHealthNoReadingsYet')}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
-            <div class="hl-score-orb hl-orb--bp">
+            <div class="hl-score-orb hl-orb--bp" style="--score:{vitalHistory[0]?.bp ? Math.min(100, Math.round((parseInt(vitalHistory[0].bp.split('/')[0]) / 180) * 100)) + '%' : '0%'}">
               <strong>{vitalHistory[0]?.bp?.split("/")[0] ?? "--"}</strong>
               <small>{vitalHistory[0]?.bp ? "/"+vitalHistory[0].bp.split("/")[1]+" mmHg" : "mmHg"}</small>
             </div>
@@ -833,7 +847,7 @@
         <Card class="hl-score-card">
           <CardHeader><CardTitle>{_t('moduleHealthThisWeek')}</CardTitle><CardDescription>{_t('moduleHealthOf7Days').replace('{count}', String(weekLogs.length))}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
-            <div class="hl-score-orb">
+            <div class="hl-score-orb" style="--score:{weeklyChartData.length ? Math.round(weeklyChartData.filter(d=>d.score>0).reduce((a,b)=>a+b.score,0)/(weeklyChartData.filter(d=>d.score>0).length||1)) : 0}%">
               <strong>{weeklyChartData.length ? Math.round(weeklyChartData.filter(d=>d.score>0).reduce((a,b)=>a+b.score,0)/(weeklyChartData.filter(d=>d.score>0).length||1)) : "--"}</strong>
               <small>{_t('moduleHealthAvgScore')}</small>
             </div>
@@ -953,13 +967,12 @@
                 thickness={12}
                 gap={8}
                 segments={[
-                  { value: takenCount, color: "var(--hl-accent)", label: "Taken" },
-                  { value: Math.max(medications.length - takenCount, 0), color: "color-mix(in srgb, var(--hl-border) 82%, transparent)", label: "Left" },
+                  { value: adherencePct, color: "var(--hl-chart-meds)", label: "Taken" },
+                  { value: 100 - adherencePct, color: "var(--hl-chart-empty)", label: "Left" },
                 ]}
                 centerLabel={_t('moduleHealthTodaysAdherence')}
                 centerValue={`${adherencePct}%`}
                 centerNote="confirmed"
-                showLegend
               />
             </div>              <div class="hl-score-meta">
               <div><PillIcon size={12}/><strong>{takenCount} {_t('moduleHealthTaken')}</strong><span>{_t('moduleHealthOf')} {medications.length} {_t('moduleHealthDoses')}</span></div>
@@ -1043,13 +1056,12 @@
                     thickness={12}
                     gap={8}
                     segments={[
-                      { value: takenCount, color: "var(--hl-accent)", label: _t('moduleHealthTaken') },
-                      { value: Math.max(medications.length - takenCount, 0), color: "color-mix(in srgb, var(--hl-border) 82%, transparent)", label: _t('moduleHealthLeft') },
+                      { value: adherencePct, color: "var(--hl-chart-meds)", label: _t('moduleHealthTaken') },
+                      { value: 100 - adherencePct, color: "var(--hl-chart-empty)", label: _t('moduleHealthLeft') },
                     ]}
                     centerLabel={_t('moduleHealthTodayLabel')}
                     centerValue={`${adherencePct}%`}
                     centerNote={_t('moduleHealthDosesConfirmed')}
-                    showLegend
                   />
                 </div>
                 <div class="hl-adherence__meta">
@@ -1086,6 +1098,20 @@
     --hl-ink:            var(--foreground);
     --hl-muted:          var(--muted);
     --hl-accent:         var(--primary);
+
+    /* ── Chart palette — theme-independent semantic colors ─────
+       These are fixed across all 7 themes so charts always have
+       contrast and meaning regardless of --primary value.
+       Named by health concept, not by hue.                     */
+    --hl-chart-energy:   #f59e0b;   /* amber  — energy/activity  */
+    --hl-chart-sleep:    #6366f1;   /* indigo — sleep/rest       */
+    --hl-chart-water:    #22d3ee;   /* cyan   — hydration        */
+    --hl-chart-mood:     #34d399;   /* emerald— mood/wellbeing   */
+    --hl-chart-wellness: #a78bfa;   /* violet — composite score  */
+    --hl-chart-bp-sys:   #f87171;   /* red    — systolic BP      */
+    --hl-chart-bp-dia:   #fb923c;   /* orange — diastolic BP     */
+    --hl-chart-meds:     #4ade80;   /* green  — medication taken */
+    --hl-chart-empty:    color-mix(in srgb, var(--border) 60%, transparent);
     height:     100%;
     background: var(--hl-bg);
     color:      var(--hl-ink);
@@ -1139,15 +1165,24 @@
   :global(.hl-score-orb) {
     display: grid; place-items: center; width: 120px; aspect-ratio: 1;
     border-radius: 999px; flex-shrink: 0;
-    background: conic-gradient(var(--hl-accent) 78%, color-mix(in srgb, var(--hl-border) 80%, transparent) 0);
+    background: conic-gradient(
+      var(--hl-chart-wellness) var(--score, 0%),
+      color-mix(in srgb, var(--hl-border) 80%, transparent) 0
+    );
   }
   :global(.hl-score-orb--ring) {
-    width: 156px;
-    background: transparent;
+    width: 120px;
+    background: conic-gradient(
+      var(--hl-chart-energy) var(--score, 0%),
+      color-mix(in srgb, var(--hl-border) 80%, transparent) 0
+    );
     overflow: visible;
   }
   :global(.hl-orb--bp) {
-    background: conic-gradient(var(--hl-accent) 63%, color-mix(in srgb, var(--hl-border) 80%, transparent) 0);
+    background: conic-gradient(
+      var(--hl-chart-bp-sys) var(--score, 0%),
+      color-mix(in srgb, var(--hl-border) 80%, transparent) 0
+    );
   }
   :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; }
   :global(.hl-score-orb) small  { color: var(--hl-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
@@ -1175,16 +1210,16 @@
   }
   :global(.hl-hero-bar) i {
     display: block; width: var(--fill); height: 100%; border-radius: inherit;
-    background: linear-gradient(90deg, var(--hl-accent), color-mix(in srgb, var(--accent) 40%, var(--hl-accent)));
+    background: var(--hl-bar-color, var(--hl-chart-wellness));
   }
 
   /* Body */
   :global(.hl-body), :global(.hl-grid), :global(.hl-panel), :global(.hl-panel) :global(.card-content) { min-height: 0; }
   :global(.hl-body) { min-height: 0; }
   :global(.hl-grid) { display: grid; gap: 16px; height: 100%; }
-  :global(.hl-grid--2col)  { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  :global(.hl-grid--2col)  { grid-template-columns: repeat(2,minmax(0,1fr)); min-height: 280px; }
   :global(.hl-grid--vitals){ grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: auto auto; }
-  :global(.hl-panel)       { display: flex; flex-direction: column; }
+  :global(.hl-panel)       { display: flex; flex-direction: column; min-height: 280px; }
   :global(.hl-panel--full-row) { grid-column: 1/-1; }
 
   /* Utils */
@@ -1222,12 +1257,12 @@
   }
   :global(.hl-timeline__item:hover) { background: color-mix(in srgb, var(--hl-surface-strong) 80%, transparent); }
   :global(.hl-timeline__time) { font-size: 0.78rem; color: var(--hl-muted); font-variant: tabular-nums; text-align: right; }
-  :global(.hl-timeline__dot) { width: 10px; height: 10px; border-radius: 999px; background: var(--hl-accent); flex-shrink: 0; }
-  :global(.hl-dot--vitals)  { background: color-mix(in srgb, red 60%,    var(--hl-accent)); }
-  :global(.hl-dot--med)     { background: color-mix(in srgb, purple 50%, var(--hl-accent)); }
-  :global(.hl-dot--water)   { background: color-mix(in srgb, cyan 60%,   var(--hl-accent)); }
-  :global(.hl-dot--mood)    { background: color-mix(in srgb, blue 40%,   var(--hl-accent)); }
-  :global(.hl-dot--symptom) { background: color-mix(in srgb, orange 60%, var(--hl-accent)); }
+  :global(.hl-timeline__dot) { width: 10px; height: 10px; border-radius: 999px; background: var(--hl-chart-wellness); flex-shrink: 0; }
+  :global(.hl-dot--vitals)  { background: var(--hl-chart-bp-sys); }
+  :global(.hl-dot--med)     { background: var(--hl-chart-meds); }
+  :global(.hl-dot--water)   { background: var(--hl-chart-water); }
+  :global(.hl-dot--mood)    { background: var(--hl-chart-mood); }
+  :global(.hl-dot--symptom) { background: var(--hl-chart-energy); }
   :global(.hl-timeline__copy) strong { font-size: 0.88rem; }
   :global(.hl-timeline__copy) p      { margin: 2px 0 0; font-size: 0.78rem; color: var(--hl-muted); }
 
@@ -1240,7 +1275,7 @@
   :global(.hl-bar-chart) i {
     display: block; width: 22px; height: var(--bar); min-height: 10px;
     border-radius: 999px; align-self: end;
-    background: linear-gradient(180deg, var(--hl-accent), color-mix(in srgb, var(--accent) 38%, var(--hl-accent)));
+    background: linear-gradient(180deg, var(--hl-chart-wellness), color-mix(in srgb, var(--hl-chart-sleep) 60%, var(--hl-chart-wellness)));
     transition: height 0.4s ease;
   }
   :global(.hl-bar-chart) span   { font-size: 0.72rem; color: var(--hl-muted); }
@@ -1311,8 +1346,8 @@
   :global(.hl-bp-chart) small { font-size: 0.7rem; }
   :global(.hl-bp-col) { display: flex; gap: 3px; align-items: flex-end; height: 70px; align-self: end; }
   :global(.hl-bp-sys), :global(.hl-bp-dia) { display: block; width: 10px; border-radius: 3px 3px 0 0; }
-  :global(.hl-bp-sys) { height: var(--h); min-height: 6px; background: var(--hl-accent); transition: height 0.4s; }
-  :global(.hl-bp-dia) { height: var(--h); min-height: 4px; background: color-mix(in srgb, var(--hl-accent) 40%, transparent); transition: height 0.4s; }
+  :global(.hl-bp-sys) { height: var(--h); min-height: 6px; background: var(--hl-chart-bp-sys); transition: height 0.4s; }
+  :global(.hl-bp-dia) { height: var(--h); min-height: 4px; background: var(--hl-chart-bp-dia); transition: height 0.4s; }
 
   :global(.hl-vitals-table) { display: grid; gap: 5px; overflow: auto; }
   :global(.hl-table-head), :global(.hl-table-row) {

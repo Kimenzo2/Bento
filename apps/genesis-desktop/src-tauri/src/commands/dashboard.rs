@@ -88,6 +88,8 @@ pub struct FeaturedModule {
 pub struct DashboardItem {
     pub text: String,
     pub secondary: Option<String>,
+    /// true = task is done — drives the progress indicator on the frontend.
+    pub completed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,7 +186,8 @@ fn today_start_ms() -> i64 {
 }
 
 fn today_end_ms() -> i64 {
-    time::start_of_today() + 86_399_999
+    // Start of tomorrow minus 1ms = last ms of today (no boundary miss)
+    time::start_of_today() + 86_400_000 - 1
 }
 
 fn compute_greeting(name: &str) -> String {
@@ -215,23 +218,47 @@ async fn query_featured_module(
     today_end: i64,
     insight: &mut String,
 ) -> Result<FeaturedModule, String> {
+    // ── 24-hour task window ─────────────────────────────────────────────────
+    // Show tasks that were CREATED today, ordered by creation time ascending
+    // (the order the user added them). Completed tasks are included so the
+    // progress indicator can show a checkmark. The list resets automatically
+    // at day-start because today_start changes each day.
+    //
+    // Also pull in any undone tasks due today that may have been created
+    // before today_start (older tasks with a today due-date).
     let rows = sqlx::query(
-        "SELECT id, title, due_at FROM tasks WHERE done = 0 AND due_at >= ? AND due_at <= ? ORDER BY due_at ASC LIMIT 5",
+        r#"
+        SELECT id, title, done, due_at, created_at FROM tasks
+        WHERE archived = 0
+          AND (
+            -- Tasks the user added today (progress indicator items)
+            created_at >= ?
+            OR
+            -- Older tasks that are due today and still pending
+            (done = 0 AND due_at >= ? AND due_at <= ?)
+          )
+        ORDER BY created_at ASC
+        LIMIT 6
+        "#,
     )
-    .bind(today_start)
-    .bind(today_end)
+    .bind(today_start)   // tasks created today
+    .bind(today_start)   // due-today window start
+    .bind(today_end)     // due-today window end
     .fetch_all(db)
     .await
     .map_err(|e| e.to_string())?;
 
-    let count = rows.len() as i32;
+    let pending_count = rows.iter().filter(|r| r.try_get::<i64, _>("done").unwrap_or(0) == 0).count() as i32;
+    let total_count   = rows.len() as i32;
 
-    if count > 0 {
+    if total_count > 0 {
         let items: Vec<DashboardItem> = rows
-            .into_iter()
+            .iter()
             .map(|row| {
-                let title: String = row.try_get("title").unwrap_or_default();
+                let title: String    = row.try_get("title").unwrap_or_default();
+                let done: i64        = row.try_get("done").unwrap_or(0);
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
+
                 let secondary = due_at.map(|ts| {
                     let diff = ts - now_ms();
                     if diff < 0 {
@@ -241,74 +268,48 @@ async fn query_featured_module(
                     } else if diff < 86_400_000 {
                         format!("{}h left", diff / 3_600_000)
                     } else {
-                        let dt = chrono::DateTime::from_timestamp_millis(ts)
+                        chrono::DateTime::from_timestamp_millis(ts)
                             .map(|d| d.format("%I:%M %p").to_string())
-                            .unwrap_or_default();
-                        dt
+                            .unwrap_or_default()
                     }
                 });
+
                 DashboardItem {
-                    text: title,
+                    text:      title,
                     secondary,
+                    completed: done == 1,
                 }
             })
             .collect();
 
         *insight = format!(
-            "You have {count} task{} due today",
-            if count == 1 { "" } else { "s" }
+            "{pending_count} task{} remaining today",
+            if pending_count == 1 { "" } else { "s" }
         );
 
-        let done_today: i64 =
-            sqlx::query("SELECT COUNT(*) AS c FROM tasks WHERE done = 1 AND updated_at >= ?")
-                .bind(today_start)
-                .fetch_one(db)
-                .await
-                .map_err(|e| e.to_string())?
-                .try_get("c")
-                .unwrap_or(0);
-
-        if done_today > 0 && insight.is_empty() {
-            *insight = format!(
-                "{} task{} done today — {} remaining",
-                done_today,
-                if done_today == 1 { "" } else { "s" },
-                count
-            );
-        }
-
         return Ok(FeaturedModule {
-            id: "tasks".to_string(),
-            name: "Tasks".to_string(),
-            icon: "layout-grid".to_string(),
-            accent_hex: "#52b788".to_string(),
-            primary_count: count,
-            primary_label: if count == 1 {
-                "task due today".to_string()
-            } else {
-                "tasks due today".to_string()
-            },
+            id:               "tasks".to_string(),
+            name:             "Tasks".to_string(),
+            icon:             "layout-grid".to_string(),
+            accent_hex:       "#52b788".to_string(),
+            primary_count:    pending_count,
+            primary_label:    if pending_count == 1 { "task remaining".to_string() } else { "tasks remaining".to_string() },
             descriptor_label: "Open Tasks →".to_string(),
             items,
         });
     }
 
-    let total_tasks: i64 = sqlx::query("SELECT COUNT(*) AS c FROM tasks")
-        .fetch_one(db)
-        .await
-        .map_err(|e| e.to_string())?
-        .try_get("c")
-        .unwrap_or(0);
+    // ── Fallback: any pending tasks at all ───────────────────────────────────
+    let rows = sqlx::query(
+        "SELECT id, title, done, due_at, created_at FROM tasks WHERE done = 0 AND archived = 0 ORDER BY created_at ASC LIMIT 6",
+    )
+    .fetch_all(db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    if total_tasks > 0 {
-        let rows = sqlx::query(
-            "SELECT id, title, due_at FROM tasks WHERE done = 0 ORDER BY due_at ASC NULLS LAST LIMIT 5",
-        )
-        .fetch_all(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let pending_count = rows.len() as i32;
 
-        let pending_count = rows.len() as i32;
+    if pending_count > 0 {
         *insight = format!(
             "{pending_count} pending task{}",
             if pending_count == 1 { "" } else { "s" }
@@ -317,58 +318,50 @@ async fn query_featured_module(
         let items: Vec<DashboardItem> = rows
             .into_iter()
             .map(|row| {
-                let title: String = row.try_get("title").unwrap_or_default();
+                let title: String       = row.try_get("title").unwrap_or_default();
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
                 let secondary = due_at.map(|ts| {
                     let diff = ts - now_ms();
-                    if diff < 0 {
-                        "Overdue".to_string()
-                    } else if diff < 86_400_000 {
-                        "Today".to_string()
-                    } else {
-                        let dt = chrono::DateTime::from_timestamp_millis(ts)
+                    if diff < 0 { "Overdue".to_string() }
+                    else if diff < 86_400_000 { "Today".to_string() }
+                    else {
+                        chrono::DateTime::from_timestamp_millis(ts)
                             .map(|d| d.format("%b %d").to_string())
-                            .unwrap_or_default();
-                        dt
+                            .unwrap_or_default()
                     }
                 });
-                DashboardItem {
-                    text: title,
-                    secondary,
-                }
+                DashboardItem { text: title, secondary, completed: false }
             })
             .collect();
 
-        Ok(FeaturedModule {
-            id: "tasks".to_string(),
-            name: "Tasks".to_string(),
-            icon: "layout-grid".to_string(),
-            accent_hex: "#52b788".to_string(),
-            primary_count: pending_count,
-            primary_label: if pending_count == 1 {
-                "pending task".to_string()
-            } else {
-                "pending tasks".to_string()
-            },
+        return Ok(FeaturedModule {
+            id:               "tasks".to_string(),
+            name:             "Tasks".to_string(),
+            icon:             "layout-grid".to_string(),
+            accent_hex:       "#52b788".to_string(),
+            primary_count:    pending_count,
+            primary_label:    if pending_count == 1 { "pending task".to_string() } else { "pending tasks".to_string() },
             descriptor_label: "Open Tasks →".to_string(),
             items,
-        })
-    } else {
-        *insight = "No tasks yet — add your first one".to_string();
-        Ok(FeaturedModule {
-            id: "tasks".to_string(),
-            name: "Tasks".to_string(),
-            icon: "layout-grid".to_string(),
-            accent_hex: "#52b788".to_string(),
-            primary_count: 0,
-            primary_label: "tasks".to_string(),
-            descriptor_label: "Create your first task →".to_string(),
-            items: vec![DashboardItem {
-                text: "Add a task to get started".to_string(),
-                secondary: None,
-            }],
-        })
+        });
     }
+
+    // ── Empty state ──────────────────────────────────────────────────────────
+    *insight = "No tasks yet — add your first one".to_string();
+    Ok(FeaturedModule {
+        id:               "tasks".to_string(),
+        name:             "Tasks".to_string(),
+        icon:             "layout-grid".to_string(),
+        accent_hex:       "#52b788".to_string(),
+        primary_count:    0,
+        primary_label:    "tasks".to_string(),
+        descriptor_label: "Create your first task →".to_string(),
+        items: vec![DashboardItem {
+            text:      "Add a task to get started".to_string(),
+            secondary: None,
+            completed: false,
+        }],
+    })
 }
 
 // ---------------------------------------------------------------------------

@@ -47,6 +47,7 @@ const updateTaskParamsSchema = z.object({
   project: z.string().optional(),
   tags: z.string().optional(),
   notes: z.string().optional(),
+  // Double-option: undefined=unchanged, null=clear, number=set
   dueAt: z.number().int().nullable().optional(),
   dueTime: z.string().nullable().optional(),
   startAt: z.number().int().nullable().optional(),

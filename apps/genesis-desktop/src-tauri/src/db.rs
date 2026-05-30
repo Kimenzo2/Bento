@@ -585,6 +585,10 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         ON blocks(object_id, parent_id, position)
         "#,
         r#"
+        CREATE INDEX IF NOT EXISTS idx_blocks_object_type_position
+        ON blocks(object_id, type, position)
+        "#,
+        r#"
         CREATE TABLE IF NOT EXISTS relations (
             id TEXT NOT NULL,
             object_id TEXT NOT NULL,
@@ -679,6 +683,27 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
             metadata TEXT DEFAULT '{}',
             logged_at INTEGER NOT NULL
         )
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS health_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            module_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            value REAL,
+            unit TEXT,
+            metadata TEXT NOT NULL DEFAULT '{}',
+            started_at INTEGER,
+            ended_at INTEGER,
+            logged_at INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_health_events_module_event_logged_at
+        ON health_events(module_id, event_type, logged_at DESC)
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_health_events_logged_at
+        ON health_events(logged_at DESC)
         "#,
         r#"
         CREATE TABLE IF NOT EXISTS habits (
@@ -882,6 +907,78 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         r#"
         CREATE INDEX IF NOT EXISTS idx_tasks_sort_order
         ON tasks(sort_order ASC)
+        "#,
+        // ── Nutrition ─────────────────────────────────────────────────────────
+        r#"
+        CREATE TABLE IF NOT EXISTS water_logs (
+            id         TEXT PRIMARY KEY,
+            amount_ml  INTEGER NOT NULL,
+            logged_at  INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_water_logs_logged_at
+        ON water_logs(logged_at DESC)
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS meals (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            meal_type  TEXT NOT NULL DEFAULT 'meal',
+            notes      TEXT NOT NULL DEFAULT '',
+            total_kcal INTEGER NOT NULL DEFAULT 0,
+            logged_at  INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_meals_logged_at
+        ON meals(logged_at DESC)
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS meal_foods (
+            id           TEXT PRIMARY KEY,
+            meal_id      TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
+            name         TEXT NOT NULL,
+            quantity     REAL NOT NULL DEFAULT 1.0,
+            unit         TEXT NOT NULL DEFAULT 'serving',
+            calories_kcal INTEGER NOT NULL DEFAULT 0,
+            protein_g    REAL NOT NULL DEFAULT 0,
+            carbs_g      REAL NOT NULL DEFAULT 0,
+            fat_g        REAL NOT NULL DEFAULT 0,
+            created_at   INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_meal_foods_meal_id
+        ON meal_foods(meal_id)
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS nutrition_goals (
+            id             INTEGER PRIMARY KEY CHECK (id = 1),
+            water_goal_ml  INTEGER NOT NULL DEFAULT 2000,
+            calorie_goal   INTEGER NOT NULL DEFAULT 2200,
+            protein_goal_g INTEGER NOT NULL DEFAULT 150,
+            carbs_goal_g   INTEGER NOT NULL DEFAULT 250,
+            fat_goal_g     INTEGER NOT NULL DEFAULT 70,
+            updated_at     INTEGER NOT NULL DEFAULT 0
+        )
+        "#,
+        r#"
+        INSERT OR IGNORE INTO nutrition_goals (id, updated_at) VALUES (1, 0)
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS nutrition_reminders (
+            id         TEXT PRIMARY KEY,
+            label      TEXT NOT NULL,
+            detail     TEXT NOT NULL DEFAULT '',
+            mode       TEXT NOT NULL DEFAULT 'Active',
+            schedule   TEXT NOT NULL DEFAULT '{}',
+            enabled    INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
         "#,
     ];
 

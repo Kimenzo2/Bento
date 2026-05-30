@@ -1,79 +1,25 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, readable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Block, ContentText, TextStyle, Mark, TextRange } from './block';
 import { BlockType as BT, TextStyle as TS, MarkType, isTextBlock } from './block';
 
-// ── Types ───────────────────────────────────────────────────────────
-
 type EditorStore = {
-  blocks: Map<string, Block>;
-  rootChildren: string[];
-  focusedId: string | null;
-  titleBlockId: string | null;
-  descriptionBlockId: string | null;
-  objectId: string | null;
-  loaded: boolean;
-  loading: boolean;
+  blocks: Map<string, Block>; rootChildren: string[]; focusedId: string | null;
+  titleBlockId: string | null; descriptionBlockId: string | null;
+  objectId: string | null; loaded: boolean; loading: boolean;
 };
-
-type TypeDef = {
-  id: string;
-  name: string;
-  layout: string;
-  icon: string;
-  description: string;
-};
-
-type RelationDef = {
-  id: string;
-  key: string;
-  name: string;
-  type: number; // RelationType
-  format: string;
-};
-
-/** Shape of a BlockRow returned from the Rust backend */
-interface BlockRow {
-  id: string;
-  objectId: string;
-  parentId?: string | null;
-  type: string;
-  content: string;
-  fields: string;
-  align: number;
-  bgColor: string;
-  position: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface NoteWithBlocks {
-  note: {
-    id: string;
-    title: string;
-    icon?: string | null;
-    cover?: string | null;
-    layout: string;
-    pinned: boolean;
-    tags: string[];
-    isArchived: boolean;
-    details: unknown;
-    createdAt: number;
-    updatedAt: number;
-  };
-  blocks: BlockRow[];
-}
-
-// ── System Types (Anytype-style type registry) ─────────────────────
+type TypeDef = { id: string; name: string; layout: string; icon: string; description: string; };
+type RelationDef = { id: string; key: string; name: string; type: number; format: string; };
+interface BlockRow { id: string; objectId: string; parentId?: string | null; type: string; content: string; fields: string; align: number; bgColor: string; position: number; createdAt: number; updatedAt: number; }
+interface NoteWithBlocks { note: { id: string; title: string; icon?: string | null; cover?: string | null; layout: string; pinned: boolean; tags: string[]; isArchived: boolean; details: unknown; createdAt: number; updatedAt: number; }; blocks: BlockRow[]; }
 
 const SYSTEM_TYPES: TypeDef[] = [
-  { id: 'type-note', name: 'Note', layout: 'note', icon: '📄', description: 'Rich text document' },
-  { id: 'type-task', name: 'Task', layout: 'task', icon: '✅', description: 'Task with due date and status' },
-  { id: 'type-journal', name: 'Journal', layout: 'journal', icon: '📔', description: 'Daily journal entry' },
-  { id: 'type-set', name: 'Set', layout: 'set', icon: '📊', description: 'Collection of objects' },
-  { id: 'type-bookmark', name: 'Bookmark', layout: 'bookmark', icon: '🔖', description: 'Saved link' },
+  { id: 'type-note', name: 'Note', layout: 'note', icon: '??', description: 'Rich text document' },
+  { id: 'type-task', name: 'Task', layout: 'task', icon: '?', description: 'Task' },
+  { id: 'type-journal', name: 'Journal', layout: 'journal', icon: '??', description: 'Daily journal' },
+  { id: 'type-set', name: 'Set', layout: 'set', icon: '??', description: 'Collection' },
+  { id: 'type-bookmark', name: 'Bookmark', layout: 'bookmark', icon: '??', description: 'Saved link' },
 ];
-
 const SYSTEM_RELATIONS: RelationDef[] = [
   { id: 'rel-tags', key: 'tags', name: 'Tags', type: 11, format: 'multiSelect' },
   { id: 'rel-priority', key: 'priority', name: 'Priority', type: 3, format: 'select' },
@@ -82,910 +28,313 @@ const SYSTEM_RELATIONS: RelationDef[] = [
   { id: 'rel-assignee', key: 'assignee', name: 'Assignee', type: 5, format: 'object' },
 ];
 
-// ── Helpers ─────────────────────────────────────────────────────────
-
-function parseContentText(contentStr: string): ContentText {
+function parseContentText(s: string): ContentText {
   try {
-    const parsed = JSON.parse(contentStr);
-    return {
-      text: parsed.text ?? '',
-      style: normalizeTextStyle(parsed.style),
-      marks: parsed.marks ?? [],
-      checked: parsed.checked ?? false,
-      color: parsed.color ?? '',
-      iconEmoji: parsed.iconEmoji ?? '',
-      iconImage: parsed.iconImage ?? '',
-    };
-  } catch {
-    return { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' };
-  }
+    const p = JSON.parse(s);
+    return { text: p.text ?? '', style: normStyle(p.style), marks: p.marks ?? [], checked: p.checked ?? false, color: p.color ?? '', iconEmoji: p.iconEmoji ?? '', iconImage: p.iconImage ?? '' };
+  } catch { return { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' }; }
 }
-
-function normalizeTextStyle(style: unknown): TextStyle {
+function normStyle(style: unknown): TextStyle {
   if (typeof style === 'number') return style as TextStyle;
   if (typeof style === 'string') {
-    const numeric = Number(style);
-    if (Number.isFinite(numeric)) return numeric as TextStyle;
-    const map: Record<string, TextStyle> = {
-      paragraph: TS.Paragraph,
-      header1: TS.Header1,
-      h1: TS.Header1,
-      header2: TS.Header2,
-      h2: TS.Header2,
-      header3: TS.Header3,
-      h3: TS.Header3,
-      header4: TS.Header4,
-      h4: TS.Header4,
-      quote: TS.Quote,
-      code: TS.Code,
-      title: TS.Title,
-      checkbox: TS.Checkbox,
-      todo: TS.Checkbox,
-      bulleted: TS.Bulleted,
-      bullet: TS.Bulleted,
-      numbered: TS.Numbered,
-      toggle: TS.Toggle,
-      description: TS.Description,
-      callout: TS.Callout,
-      toggleheader1: TS.ToggleHeader1,
-      toggleheader2: TS.ToggleHeader2,
-      toggleheader3: TS.ToggleHeader3,
-    };
-    return map[style.toLowerCase()] ?? TS.Paragraph;
+    const n = Number(style); if (Number.isFinite(n)) return n as TextStyle;
+    const m: Record<string,TextStyle> = { paragraph:TS.Paragraph,header1:TS.Header1,h1:TS.Header1,header2:TS.Header2,h2:TS.Header2,header3:TS.Header3,h3:TS.Header3,header4:TS.Header4,h4:TS.Header4,quote:TS.Quote,code:TS.Code,title:TS.Title,checkbox:TS.Checkbox,todo:TS.Checkbox,bulleted:TS.Bulleted,bullet:TS.Bulleted,numbered:TS.Numbered,toggle:TS.Toggle,description:TS.Description,callout:TS.Callout,toggleheader1:TS.ToggleHeader1,toggleheader2:TS.ToggleHeader2,toggleheader3:TS.ToggleHeader3 };
+    return m[style.toLowerCase()] ?? TS.Paragraph;
   }
   return TS.Paragraph;
 }
-
-function blockRowToBlock(row: BlockRow): Block {
-  return {
-    id: row.id,
-    type: row.type as any,
-    parentId: row.parentId ?? undefined,
-    content: parseContentText(row.content),
-    childrenIds: [],
-    bgColor: row.bgColor || undefined,
-    fields: row.fields ? tryParseJson(row.fields) : undefined,
-  };
+function rowToBlock(row: BlockRow): Block {
+  return { id: row.id, type: row.type as any, parentId: row.parentId ?? undefined, content: parseContentText(row.content), childrenIds: [], bgColor: row.bgColor || undefined, fields: row.fields ? tryJson(row.fields) : undefined };
 }
-
-function tryParseJson(s: string): any {
-  try { return JSON.parse(s); } catch { return {}; }
-}
-
-function buildContentPayload(
-  text: string,
-  style: TextStyle,
-  marks?: Mark[],
-  checked?: boolean,
-) {
+function tryJson(s: string): any { try { return JSON.parse(s); } catch { return {}; } }
+function mkContent(text: string, style: TextStyle, marks?: Mark[], checked?: boolean) {
   return { text, style, marks: marks ?? [], checked: checked ?? false, color: '', iconEmoji: '', iconImage: '' };
 }
 
-// ── Store ───────────────────────────────────────────────────────────
+const toggleRevision = writable(0);
 
 function createEditorStore() {
-  const { subscribe, update, set } = writable<EditorStore>({
-    blocks: new Map(),
-    rootChildren: [],
-    focusedId: null,
-    titleBlockId: null,
-    descriptionBlockId: null,
-    objectId: null,
-    loaded: false,
-    loading: false,
-  });
+  const { subscribe, update, set } = writable<EditorStore>({ blocks: new Map(), rootChildren: [], focusedId: null, titleBlockId: null, descriptionBlockId: null, objectId: null, loaded: false, loading: false });
 
-  // ── Toggle state — kept OUTSIDE the writable so toggling never
-  //    triggers rootBlocks / titleBlock derived stores (fixes freeze) ──
+  // SINGLE declaration of toggleOpenState � kept outside writable to avoid cascade re-renders
   const toggleOpenState = new Map<string, boolean>();
 
-  let _pendingInitId: string | null = null;
+  // Write-through text cache: typing never touches the writable store
+  const liveText = new Map<string, { text: string; marks: Mark[] }>();
+  const pendingSaves = new Map<string, { text: string; marks?: Mark[]; noteId: string }>();
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let flushingSaves: Promise<void> | null = null;
+  let pendingInitId: string | null = null;
 
-  // ── Init / Load ─────────────────────────────────────────────────
+  function oid(): string { let r = ''; const u = subscribe((s) => { r = s.objectId ?? ''; }); u(); return r; }
 
-  async function init(objectId: string, source: 'notes' | 'journal' = 'notes'): Promise<void> {
-    // Track the current request — ignore stale responses.
-    // This prevents the race condition where init(noteA) finishes AFTER
-    // init(noteB) has already started, overwriting the store with wrong data.
-    _pendingInitId = objectId;
-    const current = () => _pendingInitId === objectId;
+  async function flushSaves() {
+    if (flushingSaves) return flushingSaves;
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    if (pendingSaves.size === 0) return;
 
-    if (!current()) return;
+    const entries = [...pendingSaves.entries()];
+    pendingSaves.clear();
 
-    // Flush any pending text saves for the PREVIOUS note before resetting.
-    // This ensures text typed right before a note switch isn't lost.
-    // Because noteId was captured at schedule time, each save goes to its
-    // correct note — even if the store has already been reset for the new one.
-    _flushTextSaves();
-    // Clear the live text cache for the old note — prevents 
-    // unbounded memory growth across many note switches.
-    _liveTextContent.clear();
-
-    if (!current()) return;
-
-    // Always reset fully — never guard with loadedObjectId here.
-    // The guard in Editor.svelte ($effect) is the right place; the store
-    // itself must be stateless between note switches to avoid content bleed.
-    set({
-      blocks: new Map(),
-      rootChildren: [],
-      focusedId: null,
-      titleBlockId: null,
-      descriptionBlockId: null,
-      objectId,
-      loaded: false,
-      loading: true,
+    flushingSaves = Promise.all(entries.map(([blockId, { text, marks, noteId }]) =>
+      invoke('notes_set_text_content', { noteId, blockId, text, marks: marks ?? [] })
+        .catch((e) => console.error('[store] flush failed', e))
+    )).then(() => {
+      flushingSaves = null;
     });
 
-    if (!current()) return;
+    return flushingSaves;
+  }
+  function scheduleSave(blockId: string, text: string, marks: Mark[] | undefined, noteId: string) {
+    pendingSaves.set(blockId, { text, marks, noteId });
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { void flushSaves(); }, 250);
+  }
 
+  function applyRows(objectId: string, rows: BlockRow[]) {
+    const blocks = new Map<string, Block>(); const rootChildren: string[] = [];
+    const byParent = new Map<string, string[]>(); let titleBlockId: string | null = null; let descriptionBlockId: string | null = null;
+    const posMap = new Map<string, number>();
+    for (const row of rows) {
+      posMap.set(row.id, row.position); const b = rowToBlock(row); blocks.set(b.id!, b);
+      if (!row.parentId) rootChildren.push(b.id!);
+      else { if (!byParent.has(row.parentId)) byParent.set(row.parentId, []); byParent.get(row.parentId)!.push(b.id!); }
+      if (b.content && 'style' in b.content) { const ct = b.content as ContentText; if (ct.style === TS.Title && !titleBlockId) titleBlockId = b.id!; else if (ct.style === TS.Description && !descriptionBlockId) descriptionBlockId = b.id!; }
+    }
+    for (const [pid, cids] of byParent) { const p = blocks.get(pid); if (p) { cids.sort((a,b) => (posMap.get(a)??0)-(posMap.get(b)??0)); blocks.set(pid, { ...p, childrenIds: cids }); } }
+    rootChildren.sort((a,b) => (posMap.get(a)??0)-(posMap.get(b)??0));
+    update((s) => ({ ...s, blocks, rootChildren, titleBlockId, descriptionBlockId, objectId }));
+  }
+
+  async function initEmpty(objectId: string) {
+    // Pure local fallback — never writes to DB.
+    // Called only when the backend is unreachable (offline) or returns zero blocks.
+    // Ghost blocks created by the old invoke path caused duplicate DB rows and
+    // the "note gone after switching" bug.
+    const tid: string = crypto.randomUUID();
+    const fid: string = crypto.randomUUID();
+    const blocks = new Map<string, Block>();
+    blocks.set(tid, { id: tid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Title) as ContentText });
+    blocks.set(fid, { id: fid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Paragraph) as ContentText });
+    update((s) => ({ ...s, blocks, rootChildren: [tid, fid], titleBlockId: tid, descriptionBlockId: null, objectId }));
+  }
+
+  async function init(objectId: string, source: 'notes'|'journal' = 'notes') {
+    pendingInitId = objectId; const cur = () => pendingInitId === objectId;
+    await flushSaves(); liveText.clear(); if (!cur()) return;
+    set({ blocks: new Map(), rootChildren: [], focusedId: null, titleBlockId: null, descriptionBlockId: null, objectId, loaded: false, loading: true });
+    if (!cur()) return;
     try {
       if (source === 'journal') {
-        const result = await invoke<{ blocks: string } | null>('get_journal_entry', { date: objectId });
-        if (!current()) return;
-        if (result?.blocks) {
-          try {
-            const parsed: any[] = JSON.parse(result.blocks);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const fakeRows: BlockRow[] = parsed.map((b, i) => ({
-                id: b.id ?? crypto.randomUUID(),
-                objectId,
-                parentId: null,
-                type: b.type ?? 'text',
-                content: typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
-                fields: '{}',
-                align: 0,
-                bgColor: '',
-                position: i,
-                createdAt: 0,
-                updatedAt: 0,
-              }));
-              if (!current()) return;
-              applyLoadedRows(objectId, fakeRows);
-              if (!current()) return;
-              update((s) => ({ ...s, loading: false, loaded: true }));
-              return;
-            }
-          } catch { /* fall through */ }
-        }
-        if (!current()) return;
-        initEmptyLocal(objectId);
-        if (!current()) return;
-        update((s) => ({ ...s, loading: false, loaded: true }));
-        return;
+        const res = await invoke<{blocks:string}|null>('get_journal_entry', { date: objectId }); if (!cur()) return;
+        if (res?.blocks) { try { const p: any[] = JSON.parse(res.blocks); if (Array.isArray(p) && p.length > 0) { const fakeRows: BlockRow[] = p.map((b,i) => ({ id: b.id ?? crypto.randomUUID(), objectId, parentId: null, type: b.type ?? 'text', content: typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? {text:'',style:0,marks:[],checked:false}), fields: '{}', align: 0, bgColor: '', position: i, createdAt: 0, updatedAt: 0 })); if (!cur()) return; applyRows(objectId, fakeRows); if (!cur()) return; update((s) => ({...s,loading:false,loaded:true})); return; } } catch {} }
+        if (!cur()) return; await initEmpty(objectId); if (!cur()) return; update((s) => ({...s,loading:false,loaded:true})); return;
       }
-
-      // Notes source — load from backend
-      const full = await invoke<NoteWithBlocks>('notes_object_full', { noteId: objectId });
-      if (!current()) return;
-
-      // NEVER call createInitialBlocks here — if the DB returned no blocks the
-      // Rust create_note_object already wrote the title+paragraph stubs.
-      // Calling it again was creating N duplicate ghost blocks on every load.
-      // If rows are genuinely empty (corrupted note), show one empty paragraph
-      // without writing anything to the DB.
+      const full = await invoke<NoteWithBlocks>('notes_object_full', { noteId: objectId }); if (!cur()) return;
+      // Only call initEmpty for notes the Rust backend created with zero blocks
+      // (should never happen — create_note_object always writes title+para stubs).
+      // If blocks arrive empty it means a genuine DB issue, not a new note —
+      // show one local empty paragraph without writing anything to the DB.
       if (full.blocks.length === 0) {
-        initEmptyLocal(objectId);
+        // Local-only fallback — do NOT invoke notes_block_create here.
+        const tid = crypto.randomUUID(); const fid = crypto.randomUUID();
+        const blocks = new Map<string,Block>();
+        blocks.set(tid, { id: tid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Title) as ContentText });
+        blocks.set(fid, { id: fid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Paragraph) as ContentText });
+        if (!cur()) return;
+        update((s) => ({...s, blocks, rootChildren:[tid,fid], titleBlockId:tid, descriptionBlockId:null, objectId}));
       } else {
-        applyLoadedRows(objectId, full.blocks);
+        applyRows(objectId, full.blocks);
       }
-      if (!current()) return;
-      update((s) => ({ ...s, loading: false, loaded: true }));
-    } catch (err) {
-      if (!current()) return;
-      console.error('[local-store] init failed:', err);
-      initEmptyLocal(objectId);
-      if (!current()) return;
-      update((s) => ({ ...s, loading: false, loaded: true }));
-    }
+      if (!cur()) return; update((s) => ({...s,loading:false,loaded:true}));
+    } catch (e) { if (!cur()) return; console.error('[store] init failed:', e); await initEmpty(objectId); if (!cur()) return; update((s) => ({...s,loading:false,loaded:true})); }
   }
 
-  function applyLoadedRows(objectId: string, rows: BlockRow[]): void {
-    const blocks = new Map<string, Block>();
-    const rootChildren: string[] = [];
-    const childrenByParent = new Map<string, string[]>();
-    let titleBlockId: string | null = null;
-    let descriptionBlockId: string | null = null;
-    const posMap = new Map<string, number>();
+  function focusBlock(id: string) { update((s) => ({...s,focusedId:id})); }
+  function blurBlock() { update((s) => ({...s,focusedId:null})); }
 
-    for (const row of rows) {
-      posMap.set(row.id, row.position);
-      const block = blockRowToBlock(row);
-      blocks.set(block.id!, block);
-      if (!row.parentId) {
-        rootChildren.push(block.id!);
-      } else {
-        if (!childrenByParent.has(row.parentId)) childrenByParent.set(row.parentId, []);
-        childrenByParent.get(row.parentId)!.push(block.id!);
-      }
-      if (block.content && 'style' in block.content) {
-        const ct = block.content as ContentText;
-        if (ct.style === TS.Title && !titleBlockId) titleBlockId = block.id!;
-        else if (ct.style === TS.Description && !descriptionBlockId) descriptionBlockId = block.id!;
-      }
-    }
-
-    // Wire childrenIds
-    for (const [parentId, childIds] of childrenByParent) {
-      const parent = blocks.get(parentId);
-      if (parent) {
-        childIds.sort((a, b) => (posMap.get(a) ?? 0) - (posMap.get(b) ?? 0));
-        blocks.set(parentId, { ...parent, childrenIds: childIds });
-      }
-    }
-
-    rootChildren.sort((a, b) => (posMap.get(a) ?? 0) - (posMap.get(b) ?? 0));
-
-    update((s) => ({
-      ...s,
-      blocks,
-      rootChildren,
-      titleBlockId,
-      descriptionBlockId,
-      objectId,
-    }));
+  // -- Text write-through cache (NO store update on keystrokes) ----------
+  async function persistBlockText(blockId: string, text: string, marks?: Mark[]) {
+    liveText.set(blockId, { text, marks: marks ?? [] });
+    scheduleSave(blockId, text, marks, oid());
   }
-
-  async function initEmptyLocal(objectId: string): Promise<void> {
-    // First, create the stub blocks in the backend so they actually persist.
-    // Previously we created them only in memory with random UUIDs — the
-    // backend didn't know about them, so setBlockText's invoke() call would
-    // silently fail and the user's text would vanish on next navigation.
-    let titleId = crypto.randomUUID();
-    let firstId = crypto.randomUUID();
-    try {
-      const titleRow = await invoke<BlockRow>('notes_block_create', {
-        params: {
-          noteId: objectId, parentId: null, targetId: null,
-          blockType: 'text',
-          content: buildContentPayload('', TS.Title),
-          position: 0, align: 0, bgColor: null,
-        },
-      });
-      titleId = titleRow.id;
-      const paraRow = await invoke<BlockRow>('notes_block_create', {
-        params: {
-          noteId: objectId, parentId: null, targetId: titleId,
-          blockType: 'text',
-          content: buildContentPayload('', TS.Paragraph),
-          position: 1, align: 0, bgColor: null,
-        },
-      });
-      firstId = paraRow.id;
-    } catch (err) {
-      // Backend unavailable — fall back to local-only blocks (text won't persist across navigation)
-      console.warn('[local-store] initEmptyLocal backend create failed:', err);
-    }
-    const blocks = new Map<string, Block>();
-    blocks.set(titleId, {
-      id: titleId, type: BT.Text, childrenIds: [],
-      content: { text: '', style: TS.Title, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText,
-    });
-    blocks.set(firstId, {
-      id: firstId, type: BT.Text, childrenIds: [],
-      content: { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText,
-    });
-    update((s) => ({
-      ...s, blocks,
-      rootChildren: [titleId, firstId],
-      titleBlockId: titleId,
-      descriptionBlockId: null,
-      objectId,
-    }));
-  }
-
-  // ── Focus ────────────────────────────────────────────────────────
-
-  function focusBlock(blockId: string): void {
-    update((state) => ({ ...state, focusedId: blockId }));
-  }
-
-  function blurBlock(): void {
-    update((state) => ({ ...state, focusedId: null }));
-  }
-
-  // ── Mark Operations (Anytype-style inline formatting) ──────────
-
-  /** Toggle a mark type on the current selection range of a block */
-  async function toggleMark(blockId: string, markType: MarkType, range: TextRange, param?: string): Promise<void> {
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
+  function syncBlockTextToStore(blockId: string) {
+    const live = liveText.get(blockId); if (!live) return;
+    let block: Block | undefined; const u = subscribe((s) => { block = s.blocks.get(blockId); }); u();
     if (!block || !isTextBlock(block)) return;
-
-    const content = block.content as ContentText;
-    let marks = [...(content.marks ?? [])];
-
-    // Check if this exact mark already exists on this range
-    const existingIdx = marks.findIndex(
-      (m) => m.type === markType && m.range.from === range.from && m.range.to === range.to
-    );
-
-    if (existingIdx >= 0) {
-      // Remove the mark (toggle off)
-      marks.splice(existingIdx, 1);
-    } else {
-      // Remove existing same-type marks that overlap with this range (replace)
-      marks = marks.filter((m) => {
-        if (m.type !== markType) return true;
-        // Keep marks that don't overlap with the new range
-        return !(m.range.from < range.to && m.range.to > range.from);
-      });
-      // Add new mark
-      marks.push({ type: markType, range, param });
-    }
-
-    // Sort marks by range.from ascending
-    marks.sort((a, b) => a.range.from - b.range.from);
-
-    // Optimistic local update
-    update((state) => {
-      const newBlocks = new Map(state.blocks);
-      newBlocks.set(blockId, { ...block!, content: { ...content, marks } });
-      return { ...state, blocks: newBlocks };
-    });
-
-    try {
-      await invoke('notes_set_text_content', { noteId: stateObjectId(), blockId, text: content.text, marks });
-    } catch (err) {
-      console.error('[local-store] toggleMark failed:', err);
-    }
+    const ct = block.content as ContentText;
+    if (ct.text === live.text) return;
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, { ...block!, content: { ...ct, text: live.text, marks: live.marks } }); return {...s,blocks:nb}; });
   }
+  async function setBlockText(id: string, text: string, marks?: Mark[]) { await persistBlockText(id, text, marks); }
+  async function flushPendingSaves() { await flushSaves(); }
 
-  /** Apply a mark to a text selection (used by format toolbar) */
-  async function applyMarkToSelection(blockId: string, markType: MarkType, selText?: string): Promise<void> {
-    // Get the selection range from the DOM
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-
-    const el = document.querySelector(`[data-block-id="${blockId}"] .editable`);
-    if (!el) return;
-
-    const range = sel.getRangeAt(0);
-    const pre = document.createRange();
-    pre.selectNodeContents(el);
-    pre.setEnd(range.startContainer, range.startOffset);
-    const from = pre.toString().length;
-    const to = from + range.toString().length;
-
-    if (from === to) return;
+  async function toggleMark(blockId: string, markType: MarkType, range: TextRange, param?: string) {
+    let block: Block | undefined; const u = subscribe((s) => { block = s.blocks.get(blockId); }); u();
+    if (!block || !isTextBlock(block)) return;
+    const ct = block.content as ContentText; let marks = [...(ct.marks ?? [])];
+    const ei = marks.findIndex((m) => m.type === markType && m.range.from === range.from && m.range.to === range.to);
+    if (ei >= 0) marks.splice(ei, 1);
+    else { marks = marks.filter((m) => m.type !== markType || !(m.range.from < range.to && m.range.to > range.from)); marks.push({ type: markType, range, param }); }
+    marks.sort((a,b) => a.range.from - b.range.from);
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...block!,content:{...ct,marks}}); return {...s,blocks:nb}; });
+    try { await invoke('notes_set_text_content', { noteId: oid(), blockId, text: ct.text, marks }); } catch (e) { console.error('[store] toggleMark', e); }
+  }
+  async function applyMarkToSelection(blockId: string, markType: MarkType) {
+    const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const el = document.querySelector(`[data-block-id="${blockId}"] .editable`); if (!el) return;
+    const r = sel.getRangeAt(0); const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+    const from = pre.toString().length; const to = from + r.toString().length; if (from === to) return;
     await toggleMark(blockId, markType, { from, to });
   }
-
-  /** Check if a mark exists at the current selection (for toolbar state) */
   function hasMarkAtSelection(blockId: string, markType: MarkType): boolean {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return false;
-    const el = document.querySelector(`[data-block-id="${blockId}"] .editable`);
-    if (!el) return false;
-    const range = sel.getRangeAt(0);
-    const pre = document.createRange();
-    pre.selectNodeContents(el);
-    pre.setEnd(range.startContainer, range.startOffset);
-    const from = pre.toString().length;
-    const to = from + range.toString().length;
-    if (from === to) return false;
-
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
+    const sel = window.getSelection(); if (!sel || !sel.rangeCount) return false;
+    const el = document.querySelector(`[data-block-id="${blockId}"] .editable`); if (!el) return false;
+    const r = sel.getRangeAt(0); const pre = document.createRange(); pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+    const from = pre.toString().length; const to = from + r.toString().length; if (from === to) return false;
+    let block: Block | undefined; const u = subscribe((s) => { block = s.blocks.get(blockId); }); u();
     if (!block || !isTextBlock(block)) return false;
-    const marks = (block.content as ContentText).marks ?? [];
-    return marks.some((m) => m.type === markType && m.range.from <= from && m.range.to >= to);
+    return ((block.content as ContentText).marks ?? []).some((m) => m.type === markType && m.range.from <= from && m.range.to >= to);
   }
 
-  // ── Text Mutations ───────────────────────────────────────────────
-  //
-  // DESIGN: Match Anytype-ts where text content is kept OUTSIDE the main
-  // store during active editing. Only the debounced backend persistence runs
-  // on every keystroke. The store is only updated on blur or note switch.
-  // This prevents cascading derived-store re-evaluations on every keystroke,
-  // which was the root cause of the editor freeze.
-  //
-  // Two separate maps:
-  //   _pendingTextSaves  — debounced backend persists (keyed by blockId)
-  //   _liveTextContent   — in-memory text state during editing (mirror of contenteditable)
-  //
-
-  // Coalesce pending persistence calls per block so we don't flood the
-  // backend with an invoke() on every single keystroke.
-  // CRITICAL: capture the noteId AT SCHEDULE TIME, not at flush time.
-  const _pendingTextSaves = new Map<string, { text: string; marks?: Mark[]; noteId: string }>();
-  let _saveTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function _flushTextSaves() {
-    _saveTimer = null;
-    const entries = [..._pendingTextSaves.entries()];
-    _pendingTextSaves.clear();
-    for (const [blockId, { text, marks, noteId }] of entries) {
-      invoke('notes_set_text_content', {
-        noteId,
-        blockId,
-        text,
-        marks: marks ? JSON.stringify(marks) : null,
-      }).catch((err) => console.error('[local-store] persistBlockText failed:', err));
-    }
+  async function setBlockChecked(blockId: string, checked: boolean) {
+    let b: Block | undefined; const u = subscribe((s) => { b = s.blocks.get(blockId); }); u();
+    if (!b || !isTextBlock(b)) return; const ct = b.content as ContentText;
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...b!,content:{...ct,checked}}); return {...s,blocks:nb}; });
+    try { await invoke('notes_set_text_checked', { noteId: oid(), blockId, checked }); } catch (e) { console.error('[store] setBlockChecked', e); }
+  }
+  async function convertBlockStyle(blockId: string, newStyle: TextStyle) {
+    let b: Block | undefined; const u = subscribe((s) => { b = s.blocks.get(blockId); }); u();
+    if (!b || !isTextBlock(b)) return; const ct = b.content as ContentText;
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...b!,content:{...ct,style:newStyle}}); return {...s,blocks:nb}; });
+    try { await invoke('notes_set_text_style', { noteId: oid(), blockIds: [blockId], style: String(newStyle) }); } catch (e) { console.error('[store] convertBlockStyle', e); }
   }
 
-  function _scheduleTextSave(blockId: string, text: string, marks: Mark[] | undefined, noteId: string) {
-    _pendingTextSaves.set(blockId, { text, marks, noteId });
-    if (_saveTimer) clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(_flushTextSaves, 250);
-  }
-
-  // In-memory text cache during active editing — avoids touching the writable store
-  // on every keystroke, which was causing cascading derived-store re-evaluations (freeze).
-  const _liveTextContent = new Map<string, { text: string; marks: Mark[] }>();
-
-  /**
-   * Persist text to backend (debounced) and cache in the live map.
-   * Does NOT update the writable store — matching Anytype's approach where
-   * the block tree isn't re-rendered on every keystroke.
-   */
-  async function persistBlockText(blockId: string, text: string, marks?: Mark[]): Promise<void> {
-    _liveTextContent.set(blockId, { text, marks: marks ?? [] });
-    const currentNoteId = stateObjectId();
-    _scheduleTextSave(blockId, text, marks, currentNoteId);
-  }
-
-  /**
-   * Sync the live text cache into the writable store for a given block.
-   * Called on blur or note switch to make the text visible to derived stores.
-   */
-  function syncBlockTextToStore(blockId: string): void {
-    const live = _liveTextContent.get(blockId);
-    if (!live) return;
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
-    if (!block || !isTextBlock(block)) return;
-    const content = block.content as ContentText;
-    if (content.text === live.text) return; // no change
-    update((state) => {
-      const newBlocks = new Map(state.blocks);
-      newBlocks.set(blockId, { ...block!, content: { ...content, text: live.text, marks: live.marks } });
-      return { ...state, blocks: newBlocks };
-    });
-  }
-
-  // Keep backward-compatible alias — now only persists, doesn't update the writable store.
-  // Use syncBlockTextToStore() when the store needs to reflect live text (on blur, split, merge).
-  async function setBlockText(blockId: string, text: string, marks?: Mark[]): Promise<void> {
-    await persistBlockText(blockId, text, marks);
-  }
-
-  async function setBlockChecked(blockId: string, checked: boolean): Promise<void> {
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
-    if (!block || !isTextBlock(block)) return;
-    const content = block.content as ContentText;
-    update((state) => {
-      const newBlocks = new Map(state.blocks);
-      newBlocks.set(blockId, { ...block!, content: { ...content, checked } });
-      return { ...state, blocks: newBlocks };
-    });
-
+  async function addBlock(afterId?: string, text = '', style: TextStyle = TS.Paragraph): Promise<string> {
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
+    const objectId = state?.objectId; if (!objectId) return '';
+    const children = state?.rootChildren ?? []; let position = children.length;
+    if (afterId) { const idx = children.indexOf(afterId); if (idx !== -1) position = idx + 1; }
     try {
-      await invoke('notes_set_text_checked', { noteId: stateObjectId(), blockId, checked });
-    } catch (err) {
-      console.error('[local-store] setBlockChecked failed:', err);
-    }
-  }
-
-  async function convertBlockStyle(blockId: string, newStyle: TextStyle): Promise<void> {
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
-    if (!block || !isTextBlock(block)) return;
-    const content = block.content as ContentText;
-    update((state) => {
-      const newBlocks = new Map(state.blocks);
-      newBlocks.set(blockId, { ...block!, content: { ...content, style: newStyle } });
-      return { ...state, blocks: newBlocks };
-    });
-
-    try {
-      await invoke('notes_set_text_style', { noteId: stateObjectId(), blockIds: [blockId], style: String(newStyle) });
-    } catch (err) {
-      console.error('[local-store] convertBlockStyle failed:', err);
-    }
-  }
-
-  // ── Block Structure ──────────────────────────────────────────────
-
-  async function addBlock(afterId?: string, text: string = '', style: TextStyle = TS.Paragraph): Promise<string> {
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
-    const objectId = state?.objectId;
-    if (!objectId) { console.warn('[local-store] addBlock: no objectId'); return ''; }
-
-    const children = state?.rootChildren ?? [];
-    let position = children.length;
-    if (afterId) {
-      const idx = children.indexOf(afterId);
-      if (idx !== -1) position = idx + 1;
-    }
-
-    const content = buildContentPayload(text, style);
-    try {
-      const result: BlockRow = await invoke('notes_block_create', { params: { noteId: objectId, parentId: null, targetId: afterId ?? null, blockType: 'text', content, position, align: 0, bgColor: null } });
-      const newBlock = blockRowToBlock(result);
-      const newId = newBlock.id!;
-
-      update((s) => {
-        const newBlocks = new Map(s.blocks);
-        newBlocks.set(newId, newBlock);
-        const newChildren = [...s.rootChildren];
-        if (afterId) {
-          const idx = newChildren.indexOf(afterId);
-          if (idx !== -1) newChildren.splice(idx + 1, 0, newId);
-          else newChildren.push(newId);
-        } else newChildren.push(newId);
-        return { ...s, blocks: newBlocks, rootChildren: newChildren };
-      });
+      const result: BlockRow = await invoke('notes_block_create', { params: { noteId: objectId, parentId: null, targetId: afterId ?? null, blockType: 'text', content: mkContent(text, style), position, align: 0, bgColor: null } });
+      const newBlock = rowToBlock(result); const newId = newBlock.id!;
+      update((s) => { const nb = new Map(s.blocks); nb.set(newId, newBlock); const nc = [...s.rootChildren]; if (afterId) { const idx = nc.indexOf(afterId); if (idx !== -1) nc.splice(idx+1,0,newId); else nc.push(newId); } else nc.push(newId); return {...s,blocks:nb,rootChildren:nc}; });
       return newId;
-    } catch (err) {
-      console.error('[local-store] addBlock failed:', err);
-      return '';
-    }
+    } catch (e) { console.error('[store] addBlock', e); return ''; }
   }
-
-  async function deleteBlock(blockId: string): Promise<void> {
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
+  async function deleteBlock(blockId: string) {
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
     if (state?.titleBlockId === blockId || state?.descriptionBlockId === blockId) return;
-    const objectId = state?.objectId;
-    if (!objectId) return;
-
-    // Also delete any children
-    const block = state?.blocks.get(blockId);
-    const childIds = block?.childrenIds ?? [];
-
-    update((s) => {
-      if (s.titleBlockId === blockId || s.descriptionBlockId === blockId) return s;
-      const newBlocks = new Map(s.blocks);
-      newBlocks.delete(blockId);
-      for (const cid of childIds) newBlocks.delete(cid);
-      return { ...s, blocks: newBlocks, rootChildren: s.rootChildren.filter((id) => id !== blockId && !childIds.includes(id)), focusedId: s.focusedId === blockId ? null : s.focusedId };
-    });
-
-    try {
-      await invoke('notes_block_unlink', { noteId: objectId, blockIds: [blockId, ...childIds] });
-    } catch (err) {
-      console.error('[local-store] deleteBlock failed:', err);
-    }
+    const objectId = state?.objectId; if (!objectId) return;
+    const childIds = state?.blocks.get(blockId)?.childrenIds ?? [];
+    update((s) => { if (s.titleBlockId===blockId||s.descriptionBlockId===blockId) return s; const nb = new Map(s.blocks); nb.delete(blockId); for (const c of childIds) nb.delete(c); return {...s,blocks:nb,rootChildren:s.rootChildren.filter((id)=>id!==blockId&&!childIds.includes(id)),focusedId:s.focusedId===blockId?null:s.focusedId}; });
+    try { await invoke('notes_block_unlink', { noteId: objectId, blockIds: [blockId,...childIds] }); } catch (e) { console.error('[store] deleteBlock', e); }
   }
-
-  async function moveBlock(blockId: string, newIndex: number): Promise<void> {
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
-    const objectId = state?.objectId;
-    if (!objectId) return;
-    const idx = state?.rootChildren.indexOf(blockId) ?? -1;
-    if (idx === -1) return;
-
-    update((s) => {
-      const children = [...s.rootChildren];
-      children.splice(idx, 1);
-      children.splice(Math.min(newIndex, children.length), 0, blockId);
-      return { ...s, rootChildren: children };
-    });
-
-    try {
-      await invoke('notes_block_move', { params: { noteId: objectId, blockIds: [blockId], targetParentId: null, position: newIndex } });
-    } catch (err) {
-      console.error('[local-store] moveBlock failed:', err);
-    }
+  async function moveBlock(blockId: string, newIndex: number) {
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
+    const objectId = state?.objectId; if (!objectId) return;
+    const idx = state?.rootChildren.indexOf(blockId) ?? -1; if (idx === -1) return;
+    update((s) => { const c = [...s.rootChildren]; c.splice(idx,1); c.splice(Math.min(newIndex,c.length),0,blockId); return {...s,rootChildren:c}; });
+    try { await invoke('notes_block_move', { params: { noteId: objectId, blockIds: [blockId], targetParentId: null, position: newIndex } }); } catch (e) { console.error('[store] moveBlock', e); }
   }
-
-  /** Duplicate a block (creates copy right after original) */
   async function duplicateBlock(blockId: string): Promise<string> {
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
-    const objectId = state?.objectId;
-    if (!objectId) return '';
-
-    const block = state?.blocks.get(blockId);
-    if (!block) return '';
-
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
+    const objectId = state?.objectId; if (!objectId||!state?.blocks.get(blockId)) return '';
     try {
       const rows = await invoke<BlockRow[]>('notes_block_duplicate', { params: { noteId: objectId, blockIds: [blockId], targetId: blockId } });
-      const first = rows[0];
-      if (!first) return '';
-      const newBlock = blockRowToBlock(first);
-      update((s) => {
-        const newBlocks = new Map(s.blocks);
-        newBlocks.set(newBlock.id!, newBlock);
-        const children = [...s.rootChildren];
-        const idx = children.indexOf(blockId);
-        if (idx >= 0) children.splice(idx + 1, 0, newBlock.id!);
-        else children.push(newBlock.id!);
-        return { ...s, blocks: newBlocks, rootChildren: children };
-      });
-      return newBlock.id!;
-    } catch (err) {
-      console.error('[local-store] duplicateBlock failed:', err);
-      return '';
-    }
+      const first = rows[0]; if (!first) return '';
+      const nb2 = rowToBlock(first);
+      update((s) => { const nb = new Map(s.blocks); nb.set(nb2.id!, nb2); const c = [...s.rootChildren]; const idx = c.indexOf(blockId); if (idx>=0) c.splice(idx+1,0,nb2.id!); else c.push(nb2.id!); return {...s,blocks:nb,rootChildren:c}; });
+      return nb2.id!;
+    } catch (e) { console.error('[store] duplicateBlock', e); return ''; }
   }
-
-  /** Set text color on a block — port of C.BlockTextListSetColor */
-  async function setBlockColor(blockId: string, color: string): Promise<void> {
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
-    if (!block || !isTextBlock(block)) return;
-    const content = block.content as ContentText;
-
-    update((s) => {
-      const nb = new Map(s.blocks);
-      nb.set(blockId, { ...block!, content: { ...content, color } });
-      return { ...s, blocks: nb };
-    });
-
+  async function addChildBlock(parentId: string, text = '', style: TextStyle = TS.Paragraph): Promise<string> {
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
+    const objectId = state?.objectId; if (!objectId) return '';
+    const position = (state?.blocks.get(parentId)?.childrenIds ?? []).length;
     try {
-      await invoke('notes_set_text_color', { noteId: stateObjectId(), blockId, color });
-    } catch (err) {
-      console.error('[local-store] setBlockColor failed:', err);
-    }
-  }
-
-  /** Set background color on a block — port of C.BlockListSetBackgroundColor */
-  async function setBlockBgColor(blockId: string, bgColor: string): Promise<void> {
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
-    const objectId = state?.objectId;
-    const block = state?.blocks.get(blockId);
-    if (!objectId || !block) return;
-
-    update((s) => {
-      const nb = new Map(s.blocks);
-      nb.set(blockId, { ...block!, bgColor: bgColor === 'default' ? undefined : bgColor });
-      return { ...s, blocks: nb };
-    });
-
-    try {
-      await invoke('notes_set_background_color', { noteId: objectId, blockIds: [blockId], color: bgColor });
-    } catch (err) {
-      console.error('[local-store] setBlockBgColor failed:', err);
-    }
-  }
-
-  /** Set horizontal alignment — port of C.BlockListSetAlign */
-  async function setBlockAlign(blockId: string, align: string): Promise<void> {
-    const alignMap: Record<string, number> = { left: 0, center: 1, right: 2, justify: 3 };
-    const alignNum = alignMap[align] ?? 0;
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
-    const objectId = state?.objectId;
-    if (!objectId) return;
-
-    // Optimistic: store align in block.fields
-    const block = state?.blocks.get(blockId);
-    if (block) {
-      update((s) => {
-        const nb = new Map(s.blocks);
-        nb.set(blockId, { ...block, fields: { ...(block.fields ?? {}), hAlign: align } });
-        return { ...s, blocks: nb };
-      });
-    }
-
-    try {
-      await invoke('notes_set_align', { noteId: objectId, blockIds: [blockId], align: alignNum });
-    } catch (err) {
-      console.error('[local-store] setBlockAlign failed:', err);
-    }
-  }
-
-  /** Clear all text style marks — port of C.BlockTextListClearStyle */
-  async function clearBlockStyle(blockId: string): Promise<void> {
-    let block: Block | undefined;
-    const unsub = subscribe((s) => { block = s.blocks.get(blockId); });
-    unsub();
-    if (!block || !isTextBlock(block)) return;
-    const content = block.content as ContentText;
-    // Remove all formatting marks; keep text and style intact
-    const clearedMarks: Mark[] = [];
-
-    update((s) => {
-      const nb = new Map(s.blocks);
-      nb.set(blockId, { ...block!, content: { ...content, marks: clearedMarks, color: '' } });
-      return { ...s, blocks: nb };
-    });
-
-    try {
-      await invoke('notes_clear_text_style', { noteId: stateObjectId(), blockId });
-    } catch (err) {
-      console.error('[local-store] clearBlockStyle failed:', err);
-    }
-  }
-
-  function stateObjectId(): string {
-    let objectId = '';
-    const unsub = subscribe((s) => { objectId = s.objectId ?? ''; });
-    unsub();
-    return objectId;
-  }
-
-  // ── Type / Relation System ───────────────────────────────────────
-
-  function getSystemTypes(): TypeDef[] {
-    return SYSTEM_TYPES;
-  }
-
-  function getSystemRelations(): RelationDef[] {
-    return SYSTEM_RELATIONS;
-  }
-
-  function getTypeById(typeId: string): TypeDef | undefined {
-    return SYSTEM_TYPES.find((t) => t.id === typeId);
-  }
-
-  // ── Sync Readers ────────────────────────────────────────────────
-
-  function getBlock(blockId: string): Block | undefined {
-    let result: Block | undefined;
-    const unsub = subscribe((s) => { result = s.blocks.get(blockId); });
-    unsub();
-    return result;
-  }
-
-  function getChildren(): Block[] {
-    let result: Block[] = [];
-    const unsub = subscribe((s) => {
-      result = s.rootChildren.map((id) => s.blocks.get(id)).filter((b): b is Block => b !== undefined);
-    });
-    unsub();
-    return result;
-  }
-
-  /** Get child blocks of a given parent block (for toggle/nested rendering) */
-  function getBlockChildren(parentId: string): Block[] {
-    let result: Block[] = [];
-    const unsub = subscribe((s) => {
-      const parent = s.blocks.get(parentId);
-      if (!parent) return;
-      result = (parent.childrenIds ?? [])
-        .map((id) => s.blocks.get(id))
-        .filter((b): b is Block => b !== undefined);
-    });
-    unsub();
-    return result;
-  }
-
-  /** Add a child block under a parent block (for toggle indent) */
-  async function addChildBlock(
-    parentId: string,
-    text: string = '',
-    style: TextStyle = TS.Paragraph,
-  ): Promise<string> {
-    let state: EditorStore | undefined;
-    const unsub = subscribe((s) => { state = s; });
-    unsub();
-    const objectId = state?.objectId;
-    if (!objectId) return '';
-
-    const parent = state?.blocks.get(parentId);
-    const position = (parent?.childrenIds ?? []).length;
-    const content = buildContentPayload(text, style);
-
-    try {
-      const result: BlockRow = await invoke('notes_block_create', {
-        params: {
-          noteId: objectId,
-          parentId,
-          targetId: null,
-          blockType: 'text',
-          content,
-          position,
-          align: 0,
-          bgColor: null,
-        },
-      });
-      const newBlock = blockRowToBlock(result);
-      const newId = newBlock.id!;
-
-      update((s) => {
-        const newBlocks = new Map(s.blocks);
-        newBlocks.set(newId, newBlock);
-        const existingParent = newBlocks.get(parentId);
-        if (existingParent) {
-          newBlocks.set(parentId, {
-            ...existingParent,
-            childrenIds: [...(existingParent.childrenIds ?? []), newId],
-          });
-        }
-        return { ...s, blocks: newBlocks };
-      });
+      const result: BlockRow = await invoke('notes_block_create', { params: { noteId: objectId, parentId, targetId: null, blockType: 'text', content: mkContent(text, style), position, align: 0, bgColor: null } });
+      const nb2 = rowToBlock(result); const newId = nb2.id!;
+      update((s) => { const nb = new Map(s.blocks); nb.set(newId, nb2); const ep = nb.get(parentId); if (ep) nb.set(parentId, {...ep,childrenIds:[...(ep.childrenIds??[]),newId]}); return {...s,blocks:nb}; });
       return newId;
-    } catch (err) {
-      console.error('[local-store] addChildBlock failed:', err);
-      return '';
-    }
+    } catch (e) { console.error('[store] addChildBlock', e); return ''; }
+  }
+  async function setBlockColor(blockId: string, color: string) {
+    let b: Block | undefined; const u = subscribe((s) => { b = s.blocks.get(blockId); }); u();
+    if (!b||!isTextBlock(b)) return; const ct = b.content as ContentText;
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...b!,content:{...ct,color}}); return {...s,blocks:nb}; });
+    // Rust: notes_set_text_color(note_id, block_ids: Vec<String>, color)
+    try { await invoke('notes_set_text_color', { noteId: oid(), blockIds: [blockId], color }); } catch (e) { console.error('[store] setBlockColor', e); }
+  }
+  async function setBlockBgColor(blockId: string, bgColor: string) {
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
+    const objectId = state?.objectId; const b = state?.blocks.get(blockId); if (!objectId||!b) return;
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...b!,bgColor:bgColor==='default'?undefined:bgColor}); return {...s,blocks:nb}; });
+    try { await invoke('notes_set_background_color', { noteId: objectId, blockIds: [blockId], color: bgColor }); } catch (e) { console.error('[store] setBlockBgColor', e); }
+  }
+  async function setBlockAlign(blockId: string, align: string) {
+    const aMap: Record<string,number> = {left:0,center:1,right:2,justify:3};
+    let state: EditorStore | undefined; const u = subscribe((s) => { state = s; }); u();
+    const objectId = state?.objectId; if (!objectId) return;
+    const b = state?.blocks.get(blockId);
+    if (b) update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...b,fields:{...(b.fields??{}),hAlign:align}}); return {...s,blocks:nb}; });
+    try { await invoke('notes_set_align', { noteId: objectId, blockIds: [blockId], align: aMap[align]??0 }); } catch (e) { console.error('[store] setBlockAlign', e); }
+  }
+  async function clearBlockStyle(blockId: string) {
+    let b: Block | undefined; const u = subscribe((s) => { b = s.blocks.get(blockId); }); u();
+    if (!b||!isTextBlock(b)) return; const ct = b.content as ContentText;
+    update((s) => { const nb = new Map(s.blocks); nb.set(blockId, {...b!,content:{...ct,marks:[],color:''}}); return {...s,blocks:nb}; });
+    try { await invoke('notes_clear_text_style', { noteId: oid(), blockIds: [blockId] }); } catch (e) { console.error('[store] clearBlockStyle', e); }
   }
 
-  function isToggleOpen(blockId: string): boolean {
-    return toggleOpenState.get(blockId) ?? false;
-  }
+  function getBlock(id: string): Block|undefined { let r: Block|undefined; const u = subscribe((s)=>{r=s.blocks.get(id);}); u(); return r; }
+  function getChildren(): Block[] { let r: Block[]=[]; const u = subscribe((s)=>{r=s.rootChildren.map((id)=>s.blocks.get(id)).filter((b):b is Block=>!!b);}); u(); return r; }
+  function getBlockChildren(pid: string): Block[] { let r: Block[]=[]; const u = subscribe((s)=>{const p=s.blocks.get(pid);if(!p)return;r=(p.childrenIds??[]).map((id)=>s.blocks.get(id)).filter((b):b is Block=>!!b);}); u(); return r; }
 
-  function setToggleOpen(blockId: string, open: boolean): void {
-    const prev = toggleOpenState.get(blockId);
-    if (prev === open) return;
-    toggleOpenState.set(blockId, open);
-    // Trigger reactive update so template re-renders with new toggle state
-    update((s) => ({ ...s }));
-  }
+  function isToggleOpen(id: string): boolean { return toggleOpenState.get(id)??false; }
+  function setToggleOpen(id: string, open: boolean) { if (toggleOpenState.get(id)===open) return; toggleOpenState.set(id,open); toggleRevision.update((n) => n + 1); }
+
+  function getSystemTypes() { return SYSTEM_TYPES; }
+  function getSystemRelations() { return SYSTEM_RELATIONS; }
+  function getTypeById(id: string) { return SYSTEM_TYPES.find((t)=>t.id===id); }
 
   return {
-    subscribe,
-    init,
-    focusBlock,
-    blurBlock,
-    setBlockText,
-    setBlockChecked,
-    convertBlockStyle,
-    toggleMark,
-    applyMarkToSelection,
-    hasMarkAtSelection,
-    addBlock,
-    deleteBlock,
-    moveBlock,
-    duplicateBlock,
-    addChildBlock,
-    setBlockColor,
-    setBlockBgColor,
-    setBlockAlign,
-    clearBlockStyle,
-    persistBlockText,
-    syncBlockTextToStore,
-    getBlock,
-    getChildren,
-    getBlockChildren,
-    isToggleOpen,
-    setToggleOpen,
-    getSystemTypes,
-    getSystemRelations,
-    getTypeById,
-    // ── clearBlocks: reset to a single empty paragraph (used by JournalEditor clear) ──
+    subscribe, init, focusBlock, blurBlock,
+    setBlockText, setBlockChecked, convertBlockStyle,
+    toggleMark, applyMarkToSelection, hasMarkAtSelection,
+    addBlock, deleteBlock, moveBlock, duplicateBlock, addChildBlock,
+    setBlockColor, setBlockBgColor, setBlockAlign, clearBlockStyle,
+    persistBlockText, syncBlockTextToStore,
+    flushPendingSaves,
+    getBlock, getChildren, getBlockChildren,
+    isToggleOpen, setToggleOpen,
+    getSystemTypes, getSystemRelations, getTypeById,
     clearBlocks(): void {
-      const paraId = crypto.randomUUID();
-      update((s) => ({
-        ...s,
-        blocks: new Map([[paraId, {
-          id: paraId,
-          type: BT.Text,
-          content: { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' } as ContentText,
-          childrenIds: [],
-        }]]),
-        rootChildren: [paraId],
-        focusedId: null,
-      }));
+      const pid = crypto.randomUUID();
+      update((s) => ({ ...s, blocks: new Map([[pid, { id: pid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Paragraph) as ContentText }]]), rootChildren: [pid], focusedId: null }));
     },
   };
 }
 
 export const editorStore = createEditorStore();
-
-// ── Derived stores ──────────────────────────────────────────────────
-
-export const rootBlocks = derived(editorStore, ($store) =>
-  $store.rootChildren.map((id) => $store.blocks.get(id)).filter((b): b is Block => b !== undefined),
-);
-
-export const titleBlock = derived(editorStore, ($store) =>
-  $store.titleBlockId ? $store.blocks.get($store.titleBlockId) ?? null : null,
-);
-
-export const focusedBlock = derived(editorStore, ($store) =>
-  $store.focusedId ? $store.blocks.get($store.focusedId) ?? null : null,
-);
-
-export const isEditorLoading = derived(editorStore, ($store) => $store.loading);
-export const isEditorLoaded = derived(editorStore, ($store) => $store.loaded);
+export function blockById(id: string) {
+  return readable<Block | null>(null, (set) => {
+    let last: Block | null = null;
+    return editorStore.subscribe(($s) => {
+      const next = $s.blocks.get(id) ?? null;
+      if (next !== last) {
+        last = next;
+        set(next);
+      }
+    });
+  });
+}
+export const toggleStateVersion = derived(toggleRevision, ($n) => $n);
+export const rootBlocks    = derived(editorStore, ($s) => $s.rootChildren.map((id)=>$s.blocks.get(id)).filter((b):b is Block=>!!b));
+export const titleBlock    = derived(editorStore, ($s) => $s.titleBlockId ? ($s.blocks.get($s.titleBlockId)??null) : null);
+export const focusedBlock  = derived(editorStore, ($s) => $s.focusedId   ? ($s.blocks.get($s.focusedId)??null)   : null);
+export const isEditorLoading = derived(editorStore, ($s) => $s.loading);
+export const isEditorLoaded  = derived(editorStore, ($s) => $s.loaded);

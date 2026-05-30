@@ -155,15 +155,18 @@ pub fn hours_ago(hours: i64) -> i64 {
     now_ms() - (hours * 60 * 60 * 1000)
 }
 
-/// Returns the timestamp in ms for the start of today (midnight).
+/// Returns the timestamp in ms for the start of today (local midnight).
+/// Uses LOCAL time to match the frontend's `time.today()` which also uses local midnight.
+/// BUG-FIX: was using Utc::now() causing a timezone mismatch in non-UTC timezones.
 #[must_use]
 pub fn start_of_today() -> i64 {
-    let now = Utc::now();
+    let now = chrono::Local::now();
     let today = now.date_naive();
     today
         .and_hms_opt(0, 0, 0)
         .unwrap()
-        .and_utc()
+        .and_local_timezone(chrono::Local)
+        .unwrap()
         .timestamp_millis()
 }
 

@@ -1,5 +1,6 @@
 pub mod dashboard;
 pub mod feedback;
+pub mod focus;
 pub mod journal;
 pub mod passwords;
 pub mod sync;
@@ -8,6 +9,7 @@ pub use dashboard::{DashboardCache, get_dashboard_data};
 pub use feedback::{
     get_feedback_by_id, get_feedback_realtime_config, get_my_feedback, submit_feedback,
 };
+pub use focus::{get_focus_dashboard, record_focus_session};
 
 use std::{
     collections::{HashMap, VecDeque},
