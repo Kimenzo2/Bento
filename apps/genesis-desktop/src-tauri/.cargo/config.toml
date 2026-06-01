@@ -7,8 +7,7 @@ OPENSSL_NO_VENDOR = "1"
 OPENSSL_INCLUDE_DIR = "C:\\Program Files\\OpenSSL-Win64\\include"
 OPENSSL_LIB_DIR = "C:\\Program Files\\OpenSSL-Win64\\lib\\VC\\x64\\MD"
 
-[build]
-rustflags = ["-C", "linker=rust-lld"]
+
 
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld"
