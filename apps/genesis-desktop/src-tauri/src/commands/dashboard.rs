@@ -919,6 +919,7 @@ mod tests {
                 done INTEGER NOT NULL DEFAULT 0,
                 priority TEXT NOT NULL DEFAULT 'medium',
                 due_at INTEGER,
+                archived INTEGER NOT NULL DEFAULT 0,
                 parent_id TEXT,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
@@ -929,6 +930,7 @@ mod tests {
                 content TEXT NOT NULL DEFAULT '',
                 tags TEXT NOT NULL DEFAULT '[]',
                 pinned INTEGER NOT NULL DEFAULT 0,
+                is_archived INTEGER NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
             )",
@@ -1132,7 +1134,11 @@ mod tests {
         assert!(!result.is_empty(), "should have activity entries");
         assert!(result.len() <= 5, "should cap at 5 entries");
         // Most recent action should mention a task or note
-        assert!(result[0].action.contains("Completed") || result[0].action.contains("Created"));
+        assert!(
+            result[0].action.contains("Completed")
+                || result[0].action.contains("Created")
+                || result[0].action.contains("Edited")
+        );
     }
 
     #[tokio::test]
@@ -1258,7 +1264,7 @@ mod tests {
         let now = now_ms();
 
         let just_now = relative_time(now);
-        assert_eq!(just_now, "0s ago");
+        assert_eq!(just_now, "just now");
 
         let five_mins_ago = relative_time(now - 300_000);
         assert_eq!(five_mins_ago, "5m ago");

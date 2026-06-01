@@ -276,13 +276,13 @@ mod tests {
     #[test]
     fn test_time_key() {
         // 2024-07-15T14:30:00Z in ms
-        let ts = 1_721_056_200_000;
+        let ts = 1_721_053_800_000;
         assert_eq!(time_key(ts), "14:30:00");
     }
 
     #[test]
     fn test_datetime_key() {
-        let ts = 1_721_056_200_000;
+        let ts = 1_721_053_800_000;
         assert_eq!(datetime_key(ts), "2024-07-15 14:30:00");
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let s = "2024-07-15T14:30:00Z";
         let parsed = parse_rfc3339(s);
         assert!(parsed.is_some());
-        assert_eq!(parsed.unwrap(), 1_721_056_200_000);
+        assert_eq!(parsed.unwrap(), 1_721_053_800_000);
     }
 
     #[test]
