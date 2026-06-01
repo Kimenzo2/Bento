@@ -897,13 +897,13 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
 let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let calViewYearStr  = $state(String(time.getDate(time.now()).year));  $effect(() => { calViewMonth = parseInt(calViewMonthStr, 10); });  $effect(() => { calViewYear  = parseInt(calViewYearStr, 10); });
 
   let monthOptions = [
-    { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
-    { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
-    { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
-    { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
+    { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' },
+    { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' },
+    { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' },
+    { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
   ];
   let yearOptions = Array.from({ length: 20 }, (_, i) => ({
-    value: time.getDate(time.now()).year - 5 + i,
+    value: String(time.getDate(time.now()).year - 5 + i),
     label: String(time.getDate(time.now()).year - 5 + i),
   }));
 
@@ -912,12 +912,13 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
   let calExtraFetched = $state<TaskEntry[]>([]);
   let calLoading = $state(false);
 
-  const calRangeStart = $derived.by(() => {
+  function _calRangeStart(): number {
     const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
     const firstDow = (firstOfMonth.getDay() + 6) % 7;
     return new Date(calViewYear, calViewMonth, 1 - firstDow, 0, 0, 0, 0).getTime();
-  });
-  const calRangeEnd = $derived(() => calRangeStart + 42 * 24 * 60 * 60 * 1000 - 1);
+  }
+  const calRangeStart = $derived(_calRangeStart());
+  const calRangeEnd = $derived(_calRangeStart() + 42 * 24 * 60 * 60 * 1000 - 1);
 
   // Primary: live slice of main tasks. Secondary: extra fetched tasks.
   const calTasks = $derived.by(() => {
@@ -929,7 +930,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     calLoading = true;
     try {
       const fetched = await listTasks({
-        dueAfter:  calRangeStart,
+        dueAfter:  calRangeStart as number,
         dueBefore: calRangeEnd,
         limit:     500,
       });
