@@ -9,19 +9,19 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import {
-	type Block,
-	type Sort,
-	type Filter,
-	type FilterCondition,
-	type FilterOperator,
-	type FilterQuickOption,
-	ObjectLayout,
-	RelationType,
-	type ViewRelation,
-	type View,
-	ViewType,
-	SortType,
-	BlockHAlign,
+  type Block,
+  type Sort,
+  type Filter,
+  type FilterCondition,
+  type FilterOperator,
+  type FilterQuickOption,
+  ObjectLayout,
+  RelationType,
+  type ViewRelation,
+  type View,
+  ViewType,
+  SortType,
+  BlockHAlign,
 } from './block';
 
 // ─── ObjectLayout ─────────────────────────────────────────────────────
@@ -36,69 +36,69 @@ export { ObjectLayout, RelationType };
 // Constructed from Anytype's detail store pattern (src/ts/store/detail.ts)
 
 export interface ObjectDetail {
-	id: string;
-	details: Record<string, any>;
-};
+  id: string;
+  details: Record<string, any>;
+}
 
 // ─── RelationScope ────────────────────────────────────────────────────
 // Source: interface/object.ts — enum RelationScope
 
 export enum RelationScope {
-	Object             = 0,
-	Type               = 1,
-	SetOfTheSameType   = 2,
-	ObjectsOfTheSameType = 3,
-	Library            = 4,
+  Object = 0,
+  Type = 1,
+  SetOfTheSameType = 2,
+  ObjectsOfTheSameType = 3,
+  Library = 4,
 }
 
 // ─── ObjectFlag ───────────────────────────────────────────────────────
 // Source: interface/object.ts — enum ObjectFlag
 
 export enum ObjectFlag {
-	DeleteEmpty    = 0,
-	SelectTemplate = 2,
+  DeleteEmpty = 0,
+  SelectTemplate = 2,
 }
 
 // ─── ObjectOrigin ─────────────────────────────────────────────────────
 // Source: interface/object.ts — enum ObjectOrigin
 
 export enum ObjectOrigin {
-	None              = 0,
-	Clipboard         = 1,
-	DragAndDrop       = 2,
-	Import            = 3,
-	Webclipper        = 4,
-	SharingExtension  = 5,
-	Usecase           = 6,
-	Builtin           = 7,
-	Bookmark          = 8,
-	Api               = 9,
+  None = 0,
+  Clipboard = 1,
+  DragAndDrop = 2,
+  Import = 3,
+  Webclipper = 4,
+  SharingExtension = 5,
+  Usecase = 6,
+  Builtin = 7,
+  Bookmark = 8,
+  Api = 9,
 }
 
 // ─── ImageKind ────────────────────────────────────────────────────────
 // Source: interface/object.ts — enum ImageKind
 
 export enum ImageKind {
-	Basic              = 0,
-	Cover              = 1,
-	Icon               = 2,
-	AutomaticallyAdded = 3,
+  Basic = 0,
+  Cover = 1,
+  Icon = 2,
+  AutomaticallyAdded = 3,
 }
 
 // ─── LayoutFormat ─────────────────────────────────────────────────────
 // Source: interface/object.ts — enum LayoutFormat
 
 export enum LayoutFormat {
-	Page = 0,
-	List = 1,
+  Page = 0,
+  List = 1,
 }
 
 // ─── FeaturedRelationLayout ───────────────────────────────────────────
 // Source: interface/object.ts — enum FeaturedRelationLayout
 
 export enum FeaturedRelationLayout {
-	Inline = 0,
-	Column = 1,
+  Inline = 0,
+  Column = 1,
 }
 
 // ─── FilterCondition ──────────────────────────────────────────────────
@@ -135,74 +135,74 @@ export { BlockHAlign };
 // Convenience types built from Anytype's patterns
 
 export interface ObjectTree {
-	objectId: string;
-	typeId: string;
-	layout: ObjectLayout;
-	name: string;
-	icon: string;
-	cover: string;
-	blocks: Block[];
-	isArchived: boolean;
-	isDeleted: boolean;
-	createdAt: number;
-	updatedAt: number;
-	spaceId: string;
-	relations: Record<string, any>;
+  objectId: string;
+  typeId: string;
+  layout: ObjectLayout;
+  name: string;
+  icon: string;
+  cover: string;
+  blocks: Block[];
+  isArchived: boolean;
+  isDeleted: boolean;
+  createdAt: number;
+  updatedAt: number;
+  spaceId: string;
+  relations: Record<string, any>;
 }
 
 export interface ObjectSummary {
-	id: string;
-	name: string;
-	layout: ObjectLayout;
-	icon: string;
-	snippet: string;
-	createdAt: number;
-	updatedAt: number;
-	isArchived: boolean;
-	isDeleted: boolean;
-	typeId?: string;
+  id: string;
+  name: string;
+  layout: ObjectLayout;
+  icon: string;
+  snippet: string;
+  createdAt: number;
+  updatedAt: number;
+  isArchived: boolean;
+  isDeleted: boolean;
+  typeId?: string;
 }
 
 // ─── Relation helpers ─────────────────────────────────────────────────
 // Derived from Anytype's relation system
 
 export interface Relation {
-	id: string;
-	key: string;
-	name: string;
-	type: RelationType;
-	objectId: string;
-	spaceId: string;
-	isReadonly?: boolean;
-	isHidden?: boolean;
+  id: string;
+  key: string;
+  name: string;
+  type: RelationType;
+  objectId: string;
+  spaceId: string;
+  isReadonly?: boolean;
+  isHidden?: boolean;
 }
 
 export interface RelationValue {
-	relationKey: string;
-	value: any;
-	format?: RelationType;
+  relationKey: string;
+  value: any;
+  format?: RelationType;
 }
 
 // ─── Task-specific relations (from Anytype's Task layout) ─────────────
 // These relation keys match what Anytype uses for Task objects
 
 export const TASK_RELATION_KEYS = {
-	DUE_DATE: 'dueDate',
-	PRIORITY: 'priority',
-	STATUS: 'status',
-	TAGS: 'tags',
-	ASSIGNEE: 'assignee',
-	ESTIMATED_TIME: 'estimatedTime',
-	COMPLETED_TIME: 'completedTime',
-	REPEAT: 'repeat',
-	RELATED_OBJECTS: 'relatedObjects',
+  DUE_DATE: 'dueDate',
+  PRIORITY: 'priority',
+  STATUS: 'status',
+  TAGS: 'tags',
+  ASSIGNEE: 'assignee',
+  ESTIMATED_TIME: 'estimatedTime',
+  COMPLETED_TIME: 'completedTime',
+  REPEAT: 'repeat',
+  RELATED_OBJECTS: 'relatedObjects',
 } as const;
 
 // ─── Journal-specific relation ────────────────────────────────────────
 
 export const JOURNAL_RELATION_KEYS = {
-	DATE: 'date',
-	MOOD: 'mood',
-	WEATHER: 'weather',
-	TAGS: 'tags',
+  DATE: 'date',
+  MOOD: 'mood',
+  WEATHER: 'weather',
+  TAGS: 'tags',
 } as const;

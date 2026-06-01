@@ -3,23 +3,27 @@ import { z } from 'zod';
 
 // ─── Zod schemas ──────────────────────────────────────────────────────
 
-const journalEntrySchema = z.object({
-  id: z.string().min(1),
-  date: z.string().min(1),
-  blocks: z.string(),
-  wordCount: z.number().int(),
-  mood: z.string().nullable(),
-  createdAt: z.number().int(),
-  updatedAt: z.number().int(),
-}).strict();
+const journalEntrySchema = z
+  .object({
+    id: z.string().min(1),
+    date: z.string().min(1),
+    blocks: z.string(),
+    wordCount: z.number().int(),
+    mood: z.string().nullable(),
+    createdAt: z.number().int(),
+    updatedAt: z.number().int(),
+  })
+  .strict();
 
-const saveEntryParamsSchema = z.object({
-  id: z.string().min(1),
-  date: z.string().min(1),
-  blocks: z.string(),
-  wordCount: z.number().int(),
-  mood: z.string().nullable(),
-}).strict();
+const saveEntryParamsSchema = z
+  .object({
+    id: z.string().min(1),
+    date: z.string().min(1),
+    blocks: z.string(),
+    wordCount: z.number().int(),
+    mood: z.string().nullable(),
+  })
+  .strict();
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -35,7 +39,12 @@ export async function createJournalEntry(date: string): Promise<JournalEntry> {
 }
 
 /** Save (update) a journal entry by ID. */
-export async function saveJournalEntry(id: string, date: string, blocks: string, wordCount: number): Promise<JournalEntry> {
+export async function saveJournalEntry(
+  id: string,
+  date: string,
+  blocks: string,
+  wordCount: number
+): Promise<JournalEntry> {
   const params: SaveEntryParams = { id, date, blocks, wordCount, mood: null };
   const parsed = saveEntryParamsSchema.parse(params);
   const result = await invoke<unknown>('save_journal_entry', { params: parsed });

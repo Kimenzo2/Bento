@@ -9,11 +9,7 @@
     },
     "types": ["node"]
   },
-  "include": [
-    "scripts/**/*.ts",
-    "src/lib/**/*.ts",
-    "src-tauri/**/*.ts"
-  ],
+  "include": ["scripts/**/*.ts", "src/lib/**/*.ts", "src-tauri/**/*.ts"],
   "exclude": [
     "src/**/*.svelte",
     "src/routes/**/+page.svelte",

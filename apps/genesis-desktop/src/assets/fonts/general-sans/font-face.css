@@ -38,7 +38,8 @@
 
 @font-face {
   font-family: 'Bricolage Grotesque Variable';
-  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2') format('woff2-variations');
+  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2')
+    format('woff2-variations');
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;

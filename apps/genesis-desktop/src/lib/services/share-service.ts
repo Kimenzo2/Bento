@@ -4,22 +4,18 @@ import { time } from '$lib/utils/time';
 
 // ─── Zod schemas ──────────────────────────────────────────────────────
 
-const shareResultSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  filePath: z.string().nullable(),
-  sizeBytes: z.number().int(),
-}).strict();
+const shareResultSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    filePath: z.string().nullable(),
+    sizeBytes: z.number().int(),
+  })
+  .strict();
 
 export type ShareResult = z.infer<typeof shareResultSchema>;
 
-export type ShareFormat =
-  | 'plainText'
-  | 'markdown'
-  | 'json'
-  | 'html'
-  | 'csv'
-  | 'bentoManifest';
+export type ShareFormat = 'plainText' | 'markdown' | 'json' | 'html' | 'csv' | 'bentoManifest';
 
 export type ShareDestination = 'clipboard' | 'file';
 
@@ -47,7 +43,7 @@ export async function shareContent(
   content: string,
   format: ShareFormat,
   destination: ShareDestination,
-  options?: ShareOptions,
+  options?: ShareOptions
 ): Promise<ShareResult> {
   const opts = { ...defaultOptions, ...options };
 
@@ -69,10 +65,7 @@ export async function shareContent(
 /**
  * Convenience: share as markdown to clipboard.
  */
-export async function shareAsMarkdown(
-  content: string,
-  label?: string,
-): Promise<ShareResult> {
+export async function shareAsMarkdown(content: string, label?: string): Promise<ShareResult> {
   const result = await invoke<unknown>('share_markdown', {
     content,
     label: label ?? 'Shared content',
@@ -86,7 +79,7 @@ export async function shareAsMarkdown(
 export async function shareAsJsonToFile(
   content: string,
   filename?: string,
-  label?: string,
+  label?: string
 ): Promise<ShareResult> {
   const result = await invoke<unknown>('share_json_to_file', {
     content,
@@ -102,7 +95,7 @@ export async function shareAsJsonToFile(
 export async function shareAsCsvToFile(
   content: string,
   filename?: string,
-  label?: string,
+  label?: string
 ): Promise<ShareResult> {
   const result = await invoke<unknown>('share_csv_to_file', {
     content,
@@ -115,10 +108,7 @@ export async function shareAsCsvToFile(
 /**
  * Share plain text to clipboard.
  */
-export async function copyToClipboard(
-  text: string,
-  label?: string,
-): Promise<ShareResult> {
+export async function copyToClipboard(text: string, label?: string): Promise<ShareResult> {
   return shareContent(text, 'plainText', 'clipboard', {
     label: label ?? 'Text copied to clipboard',
   });
@@ -138,9 +128,16 @@ export function formatTasksAsMarkdown(
     notes?: string;
     tags?: string;
   }>,
-  title = 'Task List',
+  title = 'Task List'
 ): string {
-  const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', '---', ''];
+  const lines: string[] = [
+    `# ${title}`,
+    '',
+    `_Generated ${time.format(time.now())}_`,
+    '',
+    '---',
+    '',
+  ];
 
   const incomplete = items.filter((t) => !t.done);
   const complete = items.filter((t) => t.done);
@@ -149,12 +146,14 @@ export function formatTasksAsMarkdown(
     lines.push('## To Do', '');
     for (const t of incomplete) {
       const priorityMark =
-        t.priority === 'urgent' ? ' 🔴' :
-        t.priority === 'high' ? ' 🟠' :
-        t.priority === 'medium' ? ' 🔵' : '';
-      const dueStr = t.dueAt
-        ? ` *(due ${time.formatCustom(t.dueAt, 'M j')})*`
-        : '';
+        t.priority === 'urgent'
+          ? ' 🔴'
+          : t.priority === 'high'
+            ? ' 🟠'
+            : t.priority === 'medium'
+              ? ' 🔵'
+              : '';
+      const dueStr = t.dueAt ? ` *(due ${time.formatCustom(t.dueAt, 'M j')})*` : '';
       const projectStr = t.project && t.project !== 'inbox' ? ` \`[${t.project}]\`` : '';
       lines.push(`- [ ] **${t.title}**${priorityMark}${dueStr}${projectStr}`);
       if (t.notes) lines.push(`  - ${t.notes.replace(/\n/g, '\n  ')}`);
@@ -162,7 +161,9 @@ export function formatTasksAsMarkdown(
         try {
           const tags = JSON.parse(t.tags) as string[];
           if (tags.length > 0) lines.push(`  \`Tags: ${tags.join(', ')}\``);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     }
   }
@@ -191,15 +192,24 @@ export function formatHealthAsMarkdown(
     symptoms: string[];
     note?: string | null;
   }>,
-  title = 'Health Log',
+  title = 'Health Log'
 ): string {
-  const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', '---', ''];
+  const lines: string[] = [
+    `# ${title}`,
+    '',
+    `_Generated ${time.format(time.now())}_`,
+    '',
+    '---',
+    '',
+  ];
 
   for (const log of logs) {
     lines.push(`### ${log.dateKey}`);
     lines.push(`- **Mood:** ${log.mood}`);
     lines.push(`- **Energy:** ${log.energy}/10`);
-    lines.push(`- **Water:** ${log.waterGlasses} glasses (${(log.waterGlasses * 0.25).toFixed(1)}L)`);
+    lines.push(
+      `- **Water:** ${log.waterGlasses} glasses (${(log.waterGlasses * 0.25).toFixed(1)}L)`
+    );
     lines.push(`- **Sleep:** ${log.sleepHours}h`);
     if (log.symptoms.length > 0) {
       lines.push(`- **Symptoms:** ${log.symptoms.join(', ')}`);
@@ -226,7 +236,7 @@ export function formatVitalsAsMarkdown(
     temp?: string | null;
     spo2?: string | null;
   }>,
-  title = 'Vitals Log',
+  title = 'Vitals Log'
 ): string {
   const lines: string[] = [
     `# ${title}`,
@@ -238,7 +248,9 @@ export function formatVitalsAsMarkdown(
   ];
 
   for (const v of vitals) {
-    lines.push(`| ${v.dateKey} | ${v.bp ?? '—'} | ${v.hr ?? '—'} | ${v.weight ?? '—'} | ${v.temp ?? '—'} | ${v.spo2 ?? '—'} |`);
+    lines.push(
+      `| ${v.dateKey} | ${v.bp ?? '—'} | ${v.hr ?? '—'} | ${v.weight ?? '—'} | ${v.temp ?? '—'} | ${v.spo2 ?? '—'} |`
+    );
   }
 
   lines.push('', `_${vitals.length} readings_`);
@@ -256,13 +268,15 @@ export function formatMedsAsMarkdown(
     notes?: string;
     takenToday?: boolean;
   }>,
-  title = 'Medications',
+  title = 'Medications'
 ): string {
   const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', ''];
 
   for (const m of meds) {
     const status = m.takenToday ? '✅ Taken' : '⬜ Pending';
-    lines.push(`- **${m.name}** — ${m.dose} @ ${m.timeOfDay} (${status})${m.notes ? ` — ${m.notes}` : ''}`);
+    lines.push(
+      `- **${m.name}** — ${m.dose} @ ${m.timeOfDay} (${status})${m.notes ? ` — ${m.notes}` : ''}`
+    );
   }
 
   lines.push('', `_${meds.length} medications_`);

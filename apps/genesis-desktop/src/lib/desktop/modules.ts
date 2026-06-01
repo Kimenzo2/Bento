@@ -39,11 +39,12 @@ const switchReceiptSchema = z
 export type ModuleContext = z.infer<typeof moduleContextSchema>;
 export type ModuleSwitchReceipt = z.infer<typeof switchReceiptSchema>;
 
-export const modules: Array<{ id: BentoModuleId; label: string; route: string }> = moduleCatalog.map((entry) => ({
-  id: entry.id,
-  label: entry.navLabel,
-  route: entry.route,
-}));
+export const modules: Array<{ id: BentoModuleId; label: string; route: string }> =
+  moduleCatalog.map((entry) => ({
+    id: entry.id,
+    label: entry.navLabel,
+    route: entry.route,
+  }));
 
 export function moduleFromPath(pathname: string): BentoModuleId {
   if (pathname.startsWith('/apps/')) {
@@ -123,7 +124,7 @@ export async function switchModule(toModule: BentoModuleId): Promise<ModuleSwitc
     const hasAccess = canAccessModuleByPlan(
       billingProfile?.activePlanCode,
       toModule,
-      billingProfile?.hasActiveSubscription ?? false,
+      billingProfile?.hasActiveSubscription ?? false
     );
     if (!hasAccess) {
       try {
@@ -164,7 +165,7 @@ export async function switchModule(toModule: BentoModuleId): Promise<ModuleSwitc
 
       console.warn(
         '[Bento Desktop] Falling back to frontend-only module switch; restart the desktop shell to refresh the Rust module catalog.',
-        error,
+        error
       );
     }
   }
@@ -189,15 +190,15 @@ export async function switchModule(toModule: BentoModuleId): Promise<ModuleSwitc
 
 /* ─── Window title helpers ─────────────────────────────────────── */
 const MODULE_TITLES: Record<string, string> = {
-  tasks:     'Tasks — Bento',
-  notes:     'Notes — Bento',
-  habits:    'Habits — Bento',
-  journal:   'Journal — Bento',
-  focus:     'Focus — Bento',
-  health:    'Health — Bento',
-  budget:    'Budget — Bento',
-  reading:   'Reading — Bento',
-  grocery:   'Grocery — Bento',
+  tasks: 'Tasks — Bento',
+  notes: 'Notes — Bento',
+  habits: 'Habits — Bento',
+  journal: 'Journal — Bento',
+  focus: 'Focus — Bento',
+  health: 'Health — Bento',
+  budget: 'Budget — Bento',
+  reading: 'Reading — Bento',
+  grocery: 'Grocery — Bento',
   passwords: 'Vault — Bento',
   telemetry: 'System — Bento',
 };

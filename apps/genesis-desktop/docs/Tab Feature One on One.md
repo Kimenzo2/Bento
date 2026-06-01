@@ -13,6 +13,7 @@
 The TabSessionManager has no handler for sync events targeting non-active, non-workflow modules. Sync data arrives in Rust, tries to emit an update to the frontend, and the frontend has no listener because Health is not mounted.
 
 **Questions to resolve**:
+
 - Does the data get applied to SQLite silently?
 - Does it get queued?
 - Does it fail?
@@ -45,6 +46,7 @@ The actor handle is dropped from TabSessionManager but the Tokio task continues 
 **Purpose**: Lives in Rust permanently. Owns the full session state for every open tab.
 
 **Tracks per tab**:
+
 - Which module it contains
 - When it was opened
 - Last known scroll position and UI context
@@ -59,6 +61,7 @@ The actor handle is dropped from TabSessionManager but the Tokio task continues 
 ## Tab Switch Sequence (3 phases)
 
 **Phase 1 — Departing module flush**: Before any visual change, Rust synchronously flushes all pending writes for the current module.
+
 - Auto-save runs one final time
 - Sync queue notified of pending context switch
 - UI context (scroll position, cursor position, open items) written to SQLite
@@ -66,6 +69,7 @@ The actor handle is dropped from TabSessionManager but the Tokio task continues 
 - Must complete before Phase 2 begins
 
 **Phase 2 — Incoming module context load**: Rust reads the incoming module's last UI context from SQLite and sends it to the frontend as part of the tab switch event payload.
+
 - Frontend receives the context before rendering
 - Tab opens exactly where user left it — correct scroll position, correct open note, correct cursor position
 
@@ -87,9 +91,11 @@ The actor handle is dropped from TabSessionManager but the Tokio task continues 
 ## Sync Events and Tab Visibility
 
 If Tasks is foreground:
+
 - Sync update applied AND WebView notified immediately via Tauri channel
 
 If Tasks is background:
+
 - Sync update applied to SQLite silently
 - When user switches to Tasks tab, Phase 2 loads already-updated context
 - User never sees loading state or sync indicator

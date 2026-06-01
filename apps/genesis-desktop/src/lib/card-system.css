@@ -7,52 +7,52 @@
 
 /* ── Module tint backgrounds — use global theme variables ──────────── */
 :root {
-  --mod-bg-tasks:       var(--background);
-  --mod-bg-notes:       var(--background);
-  --mod-bg-habits:      var(--background);
-  --mod-bg-focus:       var(--background);
-  --mod-bg-health:      var(--background);
-  --mod-bg-budget:      var(--background);
-  --mod-bg-journal:     var(--background);
-  --mod-bg-flashcards:  var(--background);
-  --mod-bg-reading:     var(--background);
-  --mod-bg-goals:       var(--background);
-  --mod-bg-time:        var(--background);
-  --mod-bg-mood:        var(--background);
-  --mod-bg-grocery:     var(--background);
-  --mod-bg-recipes:     var(--background);
-  --mod-bg-countdown:   var(--background);
+  --mod-bg-tasks: var(--background);
+  --mod-bg-notes: var(--background);
+  --mod-bg-habits: var(--background);
+  --mod-bg-focus: var(--background);
+  --mod-bg-health: var(--background);
+  --mod-bg-budget: var(--background);
+  --mod-bg-journal: var(--background);
+  --mod-bg-flashcards: var(--background);
+  --mod-bg-reading: var(--background);
+  --mod-bg-goals: var(--background);
+  --mod-bg-time: var(--background);
+  --mod-bg-mood: var(--background);
+  --mod-bg-grocery: var(--background);
+  --mod-bg-recipes: var(--background);
+  --mod-bg-countdown: var(--background);
   --mod-bg-voice-memos: var(--background);
-  --mod-bg-clipboard:   var(--background);
-  --mod-bg-nutrition:   var(--background);
-  --mod-bg-sleep:       var(--background);
-  --mod-bg-breathing:   var(--background);
-  --mod-bg-passwords:   var(--background);
-  --mod-bg-water:       var(--background);
-  --mod-bg-telemetry:   var(--background);
+  --mod-bg-clipboard: var(--background);
+  --mod-bg-nutrition: var(--background);
+  --mod-bg-sleep: var(--background);
+  --mod-bg-breathing: var(--background);
+  --mod-bg-passwords: var(--background);
+  --mod-bg-water: var(--background);
+  --mod-bg-telemetry: var(--background);
 }
 
 /* Dark mode — same as light, uses global theme */
 .dark {
-  --mod-bg-tasks:       var(--background);
-  --mod-bg-notes:       var(--background);
-  --mod-bg-habits:      var(--background);
-  --mod-bg-focus:       var(--background);
-  --mod-bg-health:      var(--background);
-  --mod-bg-budget:      var(--background);
-  --mod-bg-journal:     var(--background);
-  --mod-bg-flashcards:  var(--background);
-  --mod-bg-reading:     var(--background);
-  --mod-bg-goals:       var(--background);
-  --mod-bg-time:        var(--background);
-  --mod-bg-mood:        var(--background);
-  --mod-bg-grocery:     var(--background);
-  --mod-bg-recipes:     var(--background);
-  --mod-bg-countdown:   var(--background);
+  --mod-bg-tasks: var(--background);
+  --mod-bg-notes: var(--background);
+  --mod-bg-habits: var(--background);
+  --mod-bg-focus: var(--background);
+  --mod-bg-health: var(--background);
+  --mod-bg-budget: var(--background);
+  --mod-bg-journal: var(--background);
+  --mod-bg-flashcards: var(--background);
+  --mod-bg-reading: var(--background);
+  --mod-bg-goals: var(--background);
+  --mod-bg-time: var(--background);
+  --mod-bg-mood: var(--background);
+  --mod-bg-grocery: var(--background);
+  --mod-bg-recipes: var(--background);
+  --mod-bg-countdown: var(--background);
   --mod-bg-voice-memos: var(--background);
-  --mod-bg-clipboard:   var(--background);
-  --mod-bg-nutrition:   var(--background);
-  --mod-bg-breathing:   var(--background);
+  --mod-bg-clipboard: var(--background);
+  --mod-bg-nutrition: var(--background);
+  --mod-bg-breathing: var(--background);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -75,14 +75,18 @@
   box-shadow: none;
   border-radius: 20px;
   padding: 24px;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 .card-accent .label,
 .card-accent span:not([class]),
-.card-accent small { color: rgba(255,255,255,0.75); }
+.card-accent small {
+  color: rgba(255, 255, 255, 0.75);
+}
 .card-accent strong,
 .card-accent .value,
-.card-accent .count { color: #FFFFFF; }
+.card-accent .count {
+  color: #ffffff;
+}
 
 /* TYPE C — Dark card. Maximum contrast. One per app, optional. */
 .card-dark {
@@ -97,7 +101,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    SHADCN CARD COMPONENT — strip ring and shadow, use bg contrast
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot="card"] {
+[data-slot='card'] {
   background: var(--card);
   border: none !important;
   box-shadow: none !important;
@@ -111,7 +115,7 @@
    theme exactly. No border. No shadow. No ring. Floating is achieved
    by the overlay darkening everything else.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot="dialog-content"] {
+[data-slot='dialog-content'] {
   background: var(--background) !important;
   color: var(--foreground) !important;
   border: none !important;
@@ -123,7 +127,7 @@
 
 /* Overlay dims everything behind the dialog — that contrast IS the
    dialog's visual separation. No border needed. */
-[data-slot="dialog-overlay"] {
+[data-slot='dialog-overlay'] {
   background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
   backdrop-filter: none !important;
 }
@@ -132,7 +136,7 @@
    SHEETS — same rule. Background = var(--background). No border.
    Sheet slides in from the edge, the overlay creates the separation.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot="sheet-content"] {
+[data-slot='sheet-content'] {
   background: var(--background) !important;
   color: var(--foreground) !important;
   border: none !important;
@@ -141,7 +145,7 @@
   --tw-shadow: none !important;
 }
 
-[data-slot="sheet-overlay"] {
+[data-slot='sheet-overlay'] {
   background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
   backdrop-filter: none !important;
 }
@@ -151,8 +155,8 @@
    These sit above content so they DO need separation. They get it
    from background contrast + the overlay. Still no shadow or ring.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot="dropdown-menu-content"],
-[data-slot="select-content"] {
+[data-slot='dropdown-menu-content'],
+[data-slot='select-content'] {
   background: var(--background) !important;
   color: var(--foreground) !important;
   border: none !important;
@@ -163,7 +167,7 @@
 }
 
 /* Tooltip inverts: dark bg with light text — highest contrast possible */
-[data-slot="tooltip-content"] {
+[data-slot='tooltip-content'] {
   background: var(--foreground) !important;
   color: var(--background) !important;
   border: none !important;
@@ -193,7 +197,10 @@
 .global-settings__density-card,
 .global-settings__radius-pill,
 .global-settings__theme-grid button {
-  background: var(--surface, color-mix(in srgb, var(--foreground) 5%, var(--background))) !important;
+  background: var(
+    --surface,
+    color-mix(in srgb, var(--foreground) 5%, var(--background))
+  ) !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -239,8 +246,8 @@
 /* ═══════════════════════════════════════════════════════════════════
    CRASH DIALOG & DOWNGRADE DIALOG inner info blocks
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot="dialog-content"] .grid.rounded-3xl,
-[data-slot="dialog-content"] .grid.gap-3.rounded-3xl {
+[data-slot='dialog-content'] .grid.rounded-3xl,
+[data-slot='dialog-content'] .grid.gap-3.rounded-3xl {
   background: color-mix(in srgb, var(--foreground) 5%, var(--background)) !important;
   border: none !important;
   box-shadow: none !important;
@@ -285,7 +292,11 @@
   box-shadow: none !important;
 }
 .dashboard__module-chip:hover {
-  background: color-mix(in srgb, var(--chip-accent, var(--accent)) 12%, var(--background)) !important;
+  background: color-mix(
+    in srgb,
+    var(--chip-accent, var(--accent)) 12%,
+    var(--background)
+  ) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -348,7 +359,7 @@
   border-radius: 20px !important;
   box-shadow: none !important;
   font-family: var(--font-body) !important;
-  font-size: var(--font-size-sm) !important;          /* 13px — compact, not oversized */
+  font-size: var(--font-size-sm) !important; /* 13px — compact, not oversized */
   line-height: var(--line-height-normal) !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
@@ -367,7 +378,7 @@
 /* Toast description — muted weight, same scale */
 [data-sonner-toast] [data-description] {
   font-family: var(--font-body) !important;
-  font-size: var(--font-size-xs) !important;          /* 11px — clearly secondary */
+  font-size: var(--font-size-xs) !important; /* 11px — clearly secondary */
   font-weight: var(--font-weight-regular) !important;
   line-height: var(--line-height-normal) !important;
   opacity: 0.72;

@@ -1,11 +1,11 @@
 ﻿.sleep-app {
-  --mod-accent: #5C6BC0;
+  --mod-accent: #5c6bc0;
   min-height: 100%;
   padding: 36px;
   background: var(--mod-bg);
   color: var(--foreground);
   font-family: var(--font-body);
-  animation: sleep-in .35s;
+  animation: sleep-in 0.35s;
 }
 
 .sleep-app nav {
@@ -109,17 +109,23 @@
   display: block;
   margin: 40px 0 10px;
   font-size: 58px;
-  font-family: "JetBrains Mono", monospace;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 @keyframes sleep-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.sleep-app [class*="-card"],
-.sleep-app [class*="-panel"],
+.sleep-app [class*='-card'],
+.sleep-app [class*='-panel'],
 .sleep-app article {
   border: none !important;
   box-shadow: none !important;

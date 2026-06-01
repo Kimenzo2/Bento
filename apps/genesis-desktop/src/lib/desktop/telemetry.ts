@@ -194,7 +194,9 @@ function requireDesktopTelemetry() {
   }
 }
 
-export async function getTelemetryBrainOverview(range: TelemetryRange): Promise<BrainOverviewPayload> {
+export async function getTelemetryBrainOverview(
+  range: TelemetryRange
+): Promise<BrainOverviewPayload> {
   requireDesktopTelemetry();
   const result = await invoke<unknown>('get_telemetry_brain_overview', { range });
   return brainOverviewSchema.parse(result);
@@ -202,7 +204,7 @@ export async function getTelemetryBrainOverview(range: TelemetryRange): Promise<
 
 export async function getTelemetryModuleDetail(
   range: TelemetryRange,
-  miniAppId?: string,
+  miniAppId?: string
 ): Promise<ModuleDetailPayload> {
   requireDesktopTelemetry();
   const result = await invoke<unknown>('get_telemetry_module_detail', { range, miniAppId });

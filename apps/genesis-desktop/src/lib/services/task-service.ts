@@ -3,69 +3,77 @@ import { z } from 'zod';
 
 // ─── Zod schemas ──────────────────────────────────────────────────────
 
-const taskEntrySchema = z.object({
-  id: z.string().min(1),
-  title: z.string(),
-  done: z.boolean(),
-  priority: z.string(),
-  project: z.string(),
-  tags: z.string(),
-  notes: z.string(),
-  dueAt: z.number().int().nullable(),
-  dueTime: z.string().nullable(),
-  startAt: z.number().int().nullable(),
-  estimatedMinutes: z.number().int().nullable(),
-  trackedMinutes: z.number().int(),
-  recurrenceRule: z.string().nullable(),
-  archived: z.boolean(),
-  parentId: z.string().nullable(),
-  completedAt: z.number().int().nullable(),
-  createdAt: z.number().int(),
-  updatedAt: z.number().int(),
-  sortOrder: z.number(),
-}).strict();
+const taskEntrySchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string(),
+    done: z.boolean(),
+    priority: z.string(),
+    project: z.string(),
+    tags: z.string(),
+    notes: z.string(),
+    dueAt: z.number().int().nullable(),
+    dueTime: z.string().nullable(),
+    startAt: z.number().int().nullable(),
+    estimatedMinutes: z.number().int().nullable(),
+    trackedMinutes: z.number().int(),
+    recurrenceRule: z.string().nullable(),
+    archived: z.boolean(),
+    parentId: z.string().nullable(),
+    completedAt: z.number().int().nullable(),
+    createdAt: z.number().int(),
+    updatedAt: z.number().int(),
+    sortOrder: z.number(),
+  })
+  .strict();
 
-const saveTaskParamsSchema = z.object({
-  title: z.string().min(1),
-  priority: z.string().optional(),
-  project: z.string().optional(),
-  tags: z.string().optional(),
-  notes: z.string().optional(),
-  dueAt: z.number().int().nullable().optional(),
-  dueTime: z.string().nullable().optional(),
-  startAt: z.number().int().nullable().optional(),
-  estimatedMinutes: z.number().int().nullable().optional(),
-  recurrenceRule: z.string().nullable().optional(),
-  parentId: z.string().nullable().optional(),
-}).strict();
+const saveTaskParamsSchema = z
+  .object({
+    title: z.string().min(1),
+    priority: z.string().optional(),
+    project: z.string().optional(),
+    tags: z.string().optional(),
+    notes: z.string().optional(),
+    dueAt: z.number().int().nullable().optional(),
+    dueTime: z.string().nullable().optional(),
+    startAt: z.number().int().nullable().optional(),
+    estimatedMinutes: z.number().int().nullable().optional(),
+    recurrenceRule: z.string().nullable().optional(),
+    parentId: z.string().nullable().optional(),
+  })
+  .strict();
 
-const updateTaskParamsSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().optional(),
-  done: z.boolean().optional(),
-  priority: z.string().optional(),
-  project: z.string().optional(),
-  tags: z.string().optional(),
-  notes: z.string().optional(),
-  // Double-option: undefined=unchanged, null=clear, number=set
-  dueAt: z.number().int().nullable().optional(),
-  dueTime: z.string().nullable().optional(),
-  startAt: z.number().int().nullable().optional(),
-  estimatedMinutes: z.number().int().nullable().optional(),
-  trackedMinutes: z.number().int().optional(),
-  recurrenceRule: z.string().nullable().optional(),
-  archived: z.boolean().nullable().optional(),
-  completedAt: z.number().int().nullable().optional(),
-}).strict();
+const updateTaskParamsSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().optional(),
+    done: z.boolean().optional(),
+    priority: z.string().optional(),
+    project: z.string().optional(),
+    tags: z.string().optional(),
+    notes: z.string().optional(),
+    // Double-option: undefined=unchanged, null=clear, number=set
+    dueAt: z.number().int().nullable().optional(),
+    dueTime: z.string().nullable().optional(),
+    startAt: z.number().int().nullable().optional(),
+    estimatedMinutes: z.number().int().nullable().optional(),
+    trackedMinutes: z.number().int().optional(),
+    recurrenceRule: z.string().nullable().optional(),
+    archived: z.boolean().nullable().optional(),
+    completedAt: z.number().int().nullable().optional(),
+  })
+  .strict();
 
 // ─── Activity types ───────────────────────────────────────────────────
 
-const activityEntrySchema = z.object({
-  id: z.string(),
-  taskId: z.string(),
-  text: z.string(),
-  timestamp: z.number().int(),
-}).strict();
+const activityEntrySchema = z
+  .object({
+    id: z.string(),
+    taskId: z.string(),
+    text: z.string(),
+    timestamp: z.number().int(),
+  })
+  .strict();
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -148,7 +156,10 @@ export async function logActivityEntry(taskId: string, text: string): Promise<Ac
 }
 
 /** List activity entries for a task. */
-export async function listActivityForTask(taskId: string, limit?: number): Promise<ActivityEntry[]> {
+export async function listActivityForTask(
+  taskId: string,
+  limit?: number
+): Promise<ActivityEntry[]> {
   const result = await invoke<unknown>('list_activity_for_task', { taskId, limit: limit ?? null });
   return z.array(activityEntrySchema).parse(result);
 }
@@ -182,26 +193,34 @@ export async function listTasks(params?: {
 }
 
 /** Open a file picker dialog and read the selected import file. */
-export async function pickImportFile(): Promise<{ content: string; fileName: string; extension: string } | null> {
+export async function pickImportFile(): Promise<{
+  content: string;
+  fileName: string;
+  extension: string;
+} | null> {
   const result = await invoke<unknown>('pick_import_file');
   if (result === null) return null;
-  return z.object({
-    content: z.string(),
-    fileName: z.string(),
-    extension: z.string(),
-  }).parse(result);
+  return z
+    .object({
+      content: z.string(),
+      fileName: z.string(),
+      extension: z.string(),
+    })
+    .parse(result);
 }
 
 // ─── Subtask commands ─────────────────────────────────────────────────
 
-const subtaskEntrySchema = z.object({
-  id: z.string(),
-  taskId: z.string(),
-  title: z.string(),
-  done: z.boolean(),
-  createdAt: z.number().int(),
-  updatedAt: z.number().int(),
-}).strict();
+const subtaskEntrySchema = z
+  .object({
+    id: z.string(),
+    taskId: z.string(),
+    title: z.string(),
+    done: z.boolean(),
+    createdAt: z.number().int(),
+    updatedAt: z.number().int(),
+  })
+  .strict();
 
 /** Create a new subtask. */
 export async function saveSubtask(params: SaveSubtaskParams): Promise<SubtaskEntry> {
@@ -239,7 +258,7 @@ export async function exportContentToFile(
   content: string,
   defaultName: string,
   extension: string,
-  filterName: string,
+  filterName: string
 ): Promise<string | null> {
   const result = await invoke<unknown>('export_content_to_file', {
     content,

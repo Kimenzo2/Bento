@@ -14,6 +14,31 @@ use tauri::State;
 
 use crate::crypto::CryptoService;
 
+// ── Schema migration ───────────────────────────────────────────────────────────
+
+/// Ensure the `passwords` table exists in the dedicated `passwords.db`.
+/// This runs every time a pool is first obtained, since `passwords.db` is a
+/// separate SQLCipher database file and does not inherit migrations from the
+/// main `app.db`.
+async fn ensure_passwords_table(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS passwords (
+            id                TEXT PRIMARY KEY,
+            site              TEXT NOT NULL,
+            username          TEXT NOT NULL,
+            password_encrypted TEXT NOT NULL DEFAULT '',
+            notes_encrypted   TEXT NOT NULL DEFAULT '',
+            created_at        INTEGER NOT NULL,
+            updated_at        INTEGER NOT NULL
+        )",
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,6 +61,7 @@ pub struct VaultEntry {
 #[tauri::command]
 pub async fn passwords_list(crypto: State<'_, CryptoService>) -> Result<Vec<VaultEntry>, String> {
     let pool = crypto.pool("passwords").await?;
+    ensure_passwords_table(&pool).await?;
 
     let rows = sqlx::query(
         "SELECT id, site, username, password_encrypted, notes_encrypted, \
@@ -74,6 +100,7 @@ pub async fn passwords_save(
     entry: VaultEntry,
 ) -> Result<(), String> {
     let pool = crypto.pool("passwords").await?;
+    ensure_passwords_table(&pool).await?;
 
     sqlx::query(
         "INSERT INTO passwords \
@@ -107,6 +134,7 @@ pub async fn passwords_get(
     id: String,
 ) -> Result<Option<VaultEntry>, String> {
     let pool = crypto.pool("passwords").await?;
+    ensure_passwords_table(&pool).await?;
 
     let row = sqlx::query(
         "SELECT id, site, username, password_encrypted, notes_encrypted, \
@@ -141,6 +169,7 @@ pub async fn passwords_search(
     query: String,
 ) -> Result<Vec<VaultEntry>, String> {
     let pool = crypto.pool("passwords").await?;
+    ensure_passwords_table(&pool).await?;
     let pattern = format!("%{}%", query);
 
     let rows = sqlx::query(
@@ -180,6 +209,7 @@ pub async fn passwords_search(
 #[tauri::command]
 pub async fn passwords_delete(crypto: State<'_, CryptoService>, id: String) -> Result<(), String> {
     let pool = crypto.pool("passwords").await?;
+    ensure_passwords_table(&pool).await?;
 
     sqlx::query("DELETE FROM passwords WHERE id = ?")
         .bind(&id)
@@ -204,6 +234,7 @@ pub async fn passwords_migrate_from_storage(
         serde_json::from_str(&entries_json).map_err(|e| format!("Invalid entries JSON: {e}"))?;
 
     let pool = crypto.pool("passwords").await?;
+    ensure_passwords_table(&pool).await?;
     let count = entries.len();
 
     for entry in &entries {

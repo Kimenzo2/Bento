@@ -25,8 +25,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const currentLevel: LogLevel =
-  (import.meta.env.VITE_PUBLIC_LOG_LEVEL as LogLevel | undefined) ||
-  'info';
+  (import.meta.env.VITE_PUBLIC_LOG_LEVEL as LogLevel | undefined) || 'info';
 
 function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
@@ -39,7 +38,8 @@ function formatMessage(level: LogLevel, message: string): string {
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
-  if (err && typeof err === 'object' && 'message' in err) return String((err as { message: unknown }).message);
+  if (err && typeof err === 'object' && 'message' in err)
+    return String((err as { message: unknown }).message);
   return String(err);
 }
 

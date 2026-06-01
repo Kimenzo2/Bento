@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
 type ModuleSectionsState = Record<string, string>;
 
@@ -46,10 +46,10 @@ export function setModuleSection(moduleId: string, label: string, labels: readon
 export function getModuleSectionLabel(
   state: ModuleSectionsState,
   moduleId: string,
-  labels: readonly string[],
+  labels: readonly string[]
 ) {
   if (labels.length === 0) {
-    return "";
+    return '';
   }
 
   const current = state[moduleId];

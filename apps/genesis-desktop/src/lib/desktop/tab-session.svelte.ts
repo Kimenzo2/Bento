@@ -1,6 +1,6 @@
-import { browser } from "$app/environment";
-import { invoke, isTauri } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { browser } from '$app/environment';
+import { invoke, isTauri } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { time } from '$lib/utils/time';
 
 // ── Types matching Rust backend (session.rs) ─────────────────────────────
@@ -13,12 +13,7 @@ export interface TabInfo {
   state: TabStateValue;
 }
 
-export type TabStateValue =
-  | "Idle"
-  | "Loading"
-  | "Active"
-  | "Background"
-  | { Error: string };
+export type TabStateValue = 'Idle' | 'Loading' | 'Active' | 'Background' | { Error: string };
 
 export interface TabSwitchPayload {
   fromTabId: string | null;
@@ -41,7 +36,7 @@ export interface ModuleContext {
 
 export const tabState = $state({
   tabs: [] as TabInfo[],
-  activeTabId: "",
+  activeTabId: '',
   initialized: false,
 });
 
@@ -71,8 +66,8 @@ export async function initTabSession(): Promise<void> {
 
   try {
     const [existingTabs, foregroundTab] = await Promise.all([
-      invoke<TabInfo[]>("tab_list"),
-      invoke<TabInfo | null>("tab_get_foreground"),
+      invoke<TabInfo[]>('tab_list'),
+      invoke<TabInfo | null>('tab_get_foreground'),
     ]);
 
     tabState.tabs = existingTabs;
@@ -81,7 +76,7 @@ export async function initTabSession(): Promise<void> {
     // full backend restart), try restoring from persisted tab IDs in SQLite.
     if (existingTabs.length === 0) {
       try {
-        const restoredTabs = await invoke<TabInfo[]>("tab_restore");
+        const restoredTabs = await invoke<TabInfo[]>('tab_restore');
         if (restoredTabs.length > 0) {
           tabState.tabs = restoredTabs;
           // Find the foreground tab from restored set (first by convention)
@@ -89,23 +84,20 @@ export async function initTabSession(): Promise<void> {
           tabState.activeTabId = restoredForeground.id;
         }
       } catch (error) {
-        console.warn("[TabSession] Could not restore tabs from database:", error);
+        console.warn('[TabSession] Could not restore tabs from database:', error);
       }
     } else if (foregroundTab) {
       tabState.activeTabId = foregroundTab.id;
     }
 
-    const unlistenSync = await listen<{ moduleId: string }>(
-      "bento://tab:sync-update",
-      (_event) => {
-        // Actual refresh logic lives in per-module components
-      },
-    );
+    const unlistenSync = await listen<{ moduleId: string }>('bento://tab:sync-update', (_event) => {
+      // Actual refresh logic lives in per-module components
+    });
     cleanupFns.push(unlistenSync);
 
     tabState.initialized = true;
   } catch (error) {
-    console.warn("[TabSession] Could not sync with Rust backend:", error);
+    console.warn('[TabSession] Could not sync with Rust backend:', error);
   }
 }
 
@@ -117,7 +109,7 @@ export function destroyTabSession(): void {
   cleanupFns = [];
   tabState.initialized = false;
   tabState.tabs = [];
-  tabState.activeTabId = "";
+  tabState.activeTabId = '';
 }
 
 // ── Local ID generation ────────────────────────────────────────────────
@@ -146,7 +138,7 @@ export function addTab(moduleId: string): TabInfo | null {
     tabState.tabs = tabState.tabs.map((t) => ({
       ...t,
       isForeground: t.id === existing.id,
-      state: t.id === existing.id ? ("Active" as const) : ("Background" as const),
+      state: t.id === existing.id ? ('Active' as const) : ('Background' as const),
     }));
     return existing;
   }
@@ -155,7 +147,7 @@ export function addTab(moduleId: string): TabInfo | null {
   const updatedTabs = tabState.tabs.map((t) => ({
     ...t,
     isForeground: false,
-    state: "Background" as const,
+    state: 'Background' as const,
   }));
 
   const tab: TabInfo = {
@@ -163,7 +155,7 @@ export function addTab(moduleId: string): TabInfo | null {
     moduleId,
     openedAt: time.now(),
     isForeground: true,
-    state: "Active" as const,
+    state: 'Active' as const,
   };
 
   tabState.tabs = [...updatedTabs, tab];
@@ -171,7 +163,7 @@ export function addTab(moduleId: string): TabInfo | null {
 
   // Try backend if available (don't fail if not)
   if (browser && isTauri()) {
-    invoke("tab_open", { moduleId }).catch(() => {});
+    invoke('tab_open', { moduleId }).catch(() => {});
   }
 
   return tab;
@@ -189,7 +181,7 @@ export async function openTab(moduleId: string): Promise<TabInfo | null> {
   }
 
   try {
-    const tabInfo = await invoke<TabInfo>("tab_open", { moduleId });
+    const tabInfo = await invoke<TabInfo>('tab_open', { moduleId });
     if (!tabState.tabs.some((t) => t.id === tabInfo.id)) {
       tabState.tabs = [...tabState.tabs, tabInfo];
     }
@@ -218,20 +210,19 @@ export async function closeTab(tabId: string): Promise<boolean> {
 
   if (tabState.activeTabId === tabId) {
     if (tabState.tabs.length === 0) {
-      tabState.activeTabId = "";
+      tabState.activeTabId = '';
     } else {
       // Prefer the tab to the left of the closed one;
       // if we closed the first tab, use the new first tab.
       const fallbackIndex = Math.min(closingIndex, tabState.tabs.length - 1);
-      tabState.activeTabId =
-        tabState.tabs[fallbackIndex]?.id ?? tabState.tabs[0]?.id ?? "";
+      tabState.activeTabId = tabState.tabs[fallbackIndex]?.id ?? tabState.tabs[0]?.id ?? '';
     }
   }
 
   // Try backend if available
   if (browser && isTauri()) {
     try {
-      await invoke("tab_close", { tabId });
+      await invoke('tab_close', { tabId });
     } catch (error) {
       console.warn(`[TabSession] Backend tab_close failed, tab closed client‑side:`, error);
     }
@@ -253,12 +244,12 @@ export async function switchTab(tabId: string): Promise<TabSwitchPayload | null>
   if (!browser || !isTauri()) return null;
 
   try {
-    const payload = await invoke<TabSwitchPayload>("tab_switch", { tabId });
+    const payload = await invoke<TabSwitchPayload>('tab_switch', { tabId });
     tabState.activeTabId = tabId;
     tabState.tabs = tabState.tabs.map((t) => ({
       ...t,
       isForeground: t.id === tabId,
-      state: t.id === tabId ? ("Active" as const) : ("Background" as const),
+      state: t.id === tabId ? ('Active' as const) : ('Background' as const),
     }));
     return payload;
   } catch (error) {
@@ -276,20 +267,17 @@ export async function setForegroundTab(tabId: string): Promise<boolean> {
   if (!browser || !isTauri()) return false;
 
   try {
-    await invoke("tab_set_foreground", { tabId });
+    await invoke('tab_set_foreground', { tabId });
     tabState.activeTabId = tabId;
     tabState.tabs = tabState.tabs.map((t) => ({
       ...t,
       isForeground: t.id === tabId,
-      state: t.id === tabId ? ("Active" as const) : ("Background" as const),
+      state: t.id === tabId ? ('Active' as const) : ('Background' as const),
     }));
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error(
-      `[TabSession] Failed to set foreground tab "${tabId}":`,
-      error,
-    );
+    console.error(`[TabSession] Failed to set foreground tab "${tabId}":`, error);
     return false;
   }
 }
@@ -303,7 +291,7 @@ export async function isModuleOpen(moduleId: string): Promise<boolean> {
   if (!browser || !isTauri()) return false;
 
   try {
-    return await invoke<boolean>("tab_is_module_open", { moduleId });
+    return await invoke<boolean>('tab_is_module_open', { moduleId });
   } catch {
     return false;
   }
@@ -319,11 +307,11 @@ export async function reorderTabs(tabIds: string[]): Promise<boolean> {
   if (!browser || !isTauri()) return false;
 
   try {
-    await invoke("tab_reorder", { tabIds });
+    await invoke('tab_reorder', { tabIds });
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.warn("[TabSession] tab_reorder not yet implemented in backend:", error);
+    console.warn('[TabSession] tab_reorder not yet implemented in backend:', error);
     return false;
   }
 }
@@ -332,7 +320,7 @@ export async function reorderTabs(tabIds: string[]): Promise<boolean> {
 export async function refreshTabs(): Promise<void> {
   if (!browser || !isTauri()) return;
   try {
-    tabState.tabs = await invoke<TabInfo[]>("tab_list");
+    tabState.tabs = await invoke<TabInfo[]>('tab_list');
   } catch {
     // Session may not be ready yet — silent no‑op
   }

@@ -37,14 +37,15 @@
 
 ## 2. Existing Recording Systems Found
 
-| Location | Status |
-|---|---|
-| `src/modules/voice-memos/App.svelte` | **Was fake** — `setTimeout` simulating 3-second recording, no mic access, no Rust backend, no audio data captured |
-| `src/modules/voice-memos/voice-memos.css` | Static styles for fake UI |
-| `src/lib/services/audio-recording.ts` | Did not exist |
-| `src-tauri/src/audio/mod.rs` | Did not exist |
+| Location                                  | Status                                                                                                            |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/modules/voice-memos/App.svelte`      | **Was fake** — `setTimeout` simulating 3-second recording, no mic access, no Rust backend, no audio data captured |
+| `src/modules/voice-memos/voice-memos.css` | Static styles for fake UI                                                                                         |
+| `src/lib/services/audio-recording.ts`     | Did not exist                                                                                                     |
+| `src-tauri/src/audio/mod.rs`              | Did not exist                                                                                                     |
 
 **Fake/static implementations removed:**
+
 - `setTimeout`-based fake recording timer removed
 - Static recording icon toggles removed
 - Placeholder "recording complete" alerts removed
@@ -52,81 +53,81 @@
 
 ## 3. Missing Systems Implemented
 
-| System | Implementation |
-|---|---|
-| Rust audio capture (cpal) | `RecordingEngine` with background thread streaming |
-| WAV file writing (hound) | Proper WAV spec with sample rate/channels/16-bit |
-| Recording lifecycle | start, stop, pause, resume, cancel, retry |
-| Device enumeration | `list_devices()` with name, channels, sample rates |
-| Playback (rodio) | `PlaybackEngine` with play/pause/resume/stop, background worker thread |
-| SQLite persistence | `recording_metadata` table with full schema + indexes |
-| TypeScript bridge | 18 typed command wrappers, reactive stores, polling |
-| Microphone permission check | `check_microphone_permission()` via cpal device detection |
-| Cancel + retry | `cancel_recording()` (file + metadata cleanup), `retry_recording()` |
+| System                      | Implementation                                                           |
+| --------------------------- | ------------------------------------------------------------------------ |
+| Rust audio capture (cpal)   | `RecordingEngine` with background thread streaming                       |
+| WAV file writing (hound)    | Proper WAV spec with sample rate/channels/16-bit                         |
+| Recording lifecycle         | start, stop, pause, resume, cancel, retry                                |
+| Device enumeration          | `list_devices()` with name, channels, sample rates                       |
+| Playback (rodio)            | `PlaybackEngine` with play/pause/resume/stop, background worker thread   |
+| SQLite persistence          | `recording_metadata` table with full schema + indexes                    |
+| TypeScript bridge           | 18 typed command wrappers, reactive stores, polling                      |
+| Microphone permission check | `check_microphone_permission()` via cpal device detection                |
+| Cancel + retry              | `cancel_recording()` (file + metadata cleanup), `retry_recording()`      |
 | Voice Memos UI full rewrite | Real recording controls, playback, listing, rename, delete, empty states |
 
 ## 4. Weak Systems Repaired
 
-| Issue | Fix |
-|---|---|
+| Issue                                     | Fix                                                                                                                                |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `cancel_recording` had broken SQL cleanup | Replaced `delete_recording_inner()` (deleted all but 50 newest recordings) with `delete_recording(&id)` — proper ID-based deletion |
-| Polling race on stop | Poll callback now checks if session is null and resets stores + stops polling |
-| A11y: `<p onclick>` used for title rename | Changed to `<button>` with proper `aria-label`, `type="button"`, and accessible styling |
-| No cancel during recording | Added cancel button in both recording and paused states |
-| Missing `check_microphone_permission` | Added as `RecordingEngine` static method + `#[tauri::command]` |
+| Polling race on stop                      | Poll callback now checks if session is null and resets stores + stops polling                                                      |
+| A11y: `<p onclick>` used for title rename | Changed to `<button>` with proper `aria-label`, `type="button"`, and accessible styling                                            |
+| No cancel during recording                | Added cancel button in both recording and paused states                                                                            |
+| Missing `check_microphone_permission`     | Added as `RecordingEngine` static method + `#[tauri::command]`                                                                     |
 
 ## 5. Performance Issues Detected & Fixed
 
-| Issue | Status |
-|---|---|
-| Excessive IPC spam | No — polling at 250ms is appropriate; only active during recording |
-| Blocking audio loops | No — cpal callback is non-blocking; background thread sleeps 500ms |
-| Memory leaks | No — session is properly cleaned (`guard.take()`) on stop/cancel |
-| Runaway streams | No — background thread exits on Idle status; stream dropped |
-| Duplicated listeners | No — single event stream per recording session |
-| High CPU usage | No — cpal audio callback is lightweight; tokio SQL writes use `block_on` |
+| Issue                | Status                                                                   |
+| -------------------- | ------------------------------------------------------------------------ |
+| Excessive IPC spam   | No — polling at 250ms is appropriate; only active during recording       |
+| Blocking audio loops | No — cpal callback is non-blocking; background thread sleeps 500ms       |
+| Memory leaks         | No — session is properly cleaned (`guard.take()`) on stop/cancel         |
+| Runaway streams      | No — background thread exits on Idle status; stream dropped              |
+| Duplicated listeners | No — single event stream per recording session                           |
+| High CPU usage       | No — cpal audio callback is lightweight; tokio SQL writes use `block_on` |
 
 ## 6. IPC Architecture Summary
 
 **18 Tauri Commands:**
 
-| Command | Direction | Payload |
-|---|---|---|
-| `start_recording` | UI → Rust | `module_id`, `device_name?` → `RecordingSession` |
-| `stop_recording` | UI → Rust | → `RecordingSession` (waits for finalized signal) |
-| `pause_recording` | UI → Rust | → `RecordingSession` |
-| `resume_recording` | UI → Rust | → `RecordingSession` |
-| `cancel_recording` | UI → Rust | → `()` (deletes file + metadata by ID) |
-| `retry_recording` | UI → Rust | `module_id`, `device_name?` → `RecordingSession` |
-| `get_recording_status` | UI → Rust | → `"idle" / "recording" / "paused"` |
-| `get_current_session` | Polling → Rust | → `Option<RecordingSession>` |
-| `list_audio_devices` | UI → Rust | → `Vec<AudioDevice>` |
-| `check_microphone_permission` | UI → Rust | → `bool` |
-| `list_recordings` | UI → Rust | `module_id?`, `limit?` → `Vec<RecordingMeta>` |
-| `delete_recording` | UI → Rust | `id` → `()` (file + metadata) |
-| `update_recording_title` | UI → Rust | `id`, `title` → `()` |
-| `playback_start` | UI → Rust | `file_path` → `()` |
-| `playback_pause` | UI → Rust | → `()` |
-| `playback_resume` | UI → Rust | → `()` |
-| `playback_stop` | UI → Rust | → `()` |
-| `playback_is_playing` | UI → Rust | → `bool` |
+| Command                       | Direction      | Payload                                           |
+| ----------------------------- | -------------- | ------------------------------------------------- |
+| `start_recording`             | UI → Rust      | `module_id`, `device_name?` → `RecordingSession`  |
+| `stop_recording`              | UI → Rust      | → `RecordingSession` (waits for finalized signal) |
+| `pause_recording`             | UI → Rust      | → `RecordingSession`                              |
+| `resume_recording`            | UI → Rust      | → `RecordingSession`                              |
+| `cancel_recording`            | UI → Rust      | → `()` (deletes file + metadata by ID)            |
+| `retry_recording`             | UI → Rust      | `module_id`, `device_name?` → `RecordingSession`  |
+| `get_recording_status`        | UI → Rust      | → `"idle" / "recording" / "paused"`               |
+| `get_current_session`         | Polling → Rust | → `Option<RecordingSession>`                      |
+| `list_audio_devices`          | UI → Rust      | → `Vec<AudioDevice>`                              |
+| `check_microphone_permission` | UI → Rust      | → `bool`                                          |
+| `list_recordings`             | UI → Rust      | `module_id?`, `limit?` → `Vec<RecordingMeta>`     |
+| `delete_recording`            | UI → Rust      | `id` → `()` (file + metadata)                     |
+| `update_recording_title`      | UI → Rust      | `id`, `title` → `()`                              |
+| `playback_start`              | UI → Rust      | `file_path` → `()`                                |
+| `playback_pause`              | UI → Rust      | → `()`                                            |
+| `playback_resume`             | UI → Rust      | → `()`                                            |
+| `playback_stop`               | UI → Rust      | → `()`                                            |
+| `playback_is_playing`         | UI → Rust      | → `bool`                                          |
 
 **Frontend/Backend Responsibility Split:**
 
-| Responsibility | Owner |
-|---|---|
-| Microphone access | Rust (cpal) |
-| Recording state | Rust (`Arc<Mutex<RecordingStatus>>`) |
-| Audio streams | Rust (cpal callback thread) |
-| WAV file writing | Rust (hound, background thread) |
-| Duration tracking | Rust (`std::time::Instant` timestamps) |
-| Metadata persistence | Rust (SQLite via sqlx + tokio) |
-| Playback | Rust (rodio, background worker) |
-| Device detection | Rust (cpal) |
-| UI rendering | Svelte |
+| Responsibility          | Owner                                         |
+| ----------------------- | --------------------------------------------- |
+| Microphone access       | Rust (cpal)                                   |
+| Recording state         | Rust (`Arc<Mutex<RecordingStatus>>`)          |
+| Audio streams           | Rust (cpal callback thread)                   |
+| WAV file writing        | Rust (hound, background thread)               |
+| Duration tracking       | Rust (`std::time::Instant` timestamps)        |
+| Metadata persistence    | Rust (SQLite via sqlx + tokio)                |
+| Playback                | Rust (rodio, background worker)               |
+| Device detection        | Rust (cpal)                                   |
+| UI rendering            | Svelte                                        |
 | Recording timer display | Svelte (backed by Rust `startTime` timestamp) |
-| Playback state display | Svelte (local `playingFile` state) |
-| Error display | Svelte |
+| Playback state display  | Svelte (local `playingFile` state)            |
+| Error display           | Svelte                                        |
 
 ## 7. Audio Service Architecture Summary
 
@@ -256,13 +257,13 @@ Cancel          → rm file → DELETE FROM recording_metadata WHERE id = ?
 
 ## 10. Future AI-Readiness Status
 
-| Capability | Status |
-|---|---|
-| Transcription | Metadata field `transcribed` exists as `bool`, UI button placeholder present |
-| AI summaries | Architecture supports via `tags: Vec<String>` field and `transcribed` flag |
-| Speech-to-text | Prerequisite: transcription infrastructure first |
-| Voice search | Prerequisite: transcription first |
-| Semantic indexing | Prerequisite: embeddings pipeline first |
+| Capability        | Status                                                                       |
+| ----------------- | ---------------------------------------------------------------------------- |
+| Transcription     | Metadata field `transcribed` exists as `bool`, UI button placeholder present |
+| AI summaries      | Architecture supports via `tags: Vec<String>` field and `transcribed` flag   |
+| Speech-to-text    | Prerequisite: transcription infrastructure first                             |
+| Voice search      | Prerequisite: transcription first                                            |
+| Semantic indexing | Prerequisite: embeddings pipeline first                                      |
 
 All metadata fields are structured and backward-compatible. No schema migration needed to add AI features — only new optional fields and processing pipelines.
 
@@ -303,28 +304,28 @@ uuid = { version = "1", features = ["v4"] }  # Session/recording IDs
 
 ## 13. Privacy Risk Report
 
-| Risk | Status |
-|---|---|
-| Recording stored locally | ✅ Yes — `$APPDATA/recordings/` |
-| Metadata stored locally | ✅ Yes — SQLite |
-| Data leaves device | ❌ No — no server sync configured |
-| Sensitive content exposure | ✅ None — all local, no uploads |
-| Microphone permission | ✅ Checked via `check_microphone_permission()` |
-| User control | ✅ Full — delete, rename, list, cancel |
-| Platform permission check | ⚠️ OS-level (Windows/macOS) — cpal will fail gracefully if denied |
+| Risk                       | Status                                                            |
+| -------------------------- | ----------------------------------------------------------------- |
+| Recording stored locally   | ✅ Yes — `$APPDATA/recordings/`                                   |
+| Metadata stored locally    | ✅ Yes — SQLite                                                   |
+| Data leaves device         | ❌ No — no server sync configured                                 |
+| Sensitive content exposure | ✅ None — all local, no uploads                                   |
+| Microphone permission      | ✅ Checked via `check_microphone_permission()`                    |
+| User control               | ✅ Full — delete, rename, list, cancel                            |
+| Platform permission check  | ⚠️ OS-level (Windows/macOS) — cpal will fail gracefully if denied |
 
 **No privacy risks found.** The system is fully local-first with no data transmission.
 
 ## 14. Performance Risk Report
 
-| Risk | Status |
-|---|---|
-| High CPU during recording | ⚠️ Minimal — cpal callback is lightweight; background thread sleeps 500ms |
-| Memory leak | ✅ None — session cleaned on stop/cancel |
-| Thread leak | ✅ None — background thread exits on Idle |
-| IPC spam | ✅ Low — 250ms polling only during recording |
-| Large file growth | ✅ Auto-limited by user actions (delete/cancel) |
-| SQLite contention | ✅ Low — one INSERT per recording; lightweight SELECT for listing |
-| Audio buffer overflow | ⚠️ Possible on underpowered hardware — cpal writes to WAV directly, no intermediate buffering |
+| Risk                      | Status                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| High CPU during recording | ⚠️ Minimal — cpal callback is lightweight; background thread sleeps 500ms                     |
+| Memory leak               | ✅ None — session cleaned on stop/cancel                                                      |
+| Thread leak               | ✅ None — background thread exits on Idle                                                     |
+| IPC spam                  | ✅ Low — 250ms polling only during recording                                                  |
+| Large file growth         | ✅ Auto-limited by user actions (delete/cancel)                                               |
+| SQLite contention         | ✅ Low — one INSERT per recording; lightweight SELECT for listing                             |
+| Audio buffer overflow     | ⚠️ Possible on underpowered hardware — cpal writes to WAV directly, no intermediate buffering |
 
 **Performance risk: low.** No blocking operations on the UI thread. All audio processing happens on background threads.

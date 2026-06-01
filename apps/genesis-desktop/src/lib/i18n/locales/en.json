@@ -1065,7 +1065,6 @@
   "moduleMoodExportDesc": "Move your data out cleanly without losing the context behind it.",
   "moduleMoodExportBtn": "Export",
 
-
   "moduleNotesTitle": "Notes",
   "moduleNotesDesc": "Capture everything with the rich block editor",
   "moduleNotesNewNote": "New Note",
@@ -1423,7 +1422,6 @@
   "moduleRecipesHeard": "Heard: \"{cmd}\"",
   "moduleRecipesVoiceNotSupported": "Voice not supported in this browser",
   "moduleRecipesMicError": "Mic error — check permissions",
-
 
   "moduleSleepTitle": "Sleep",
   "moduleSleepDesc": "Sleep score, routine, and alarm planning stay inside one calm desktop surface.",

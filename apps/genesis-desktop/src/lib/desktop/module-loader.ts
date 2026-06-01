@@ -2,7 +2,14 @@ import { browser } from '$app/environment';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { mount, unmount } from 'svelte';
 import type { BentoModuleId, ModuleContext } from './modules';
-import { activeModule, captureModuleContext, moduleFromPath, modules, setWindowTitle, switchModule } from './modules';
+import {
+  activeModule,
+  captureModuleContext,
+  moduleFromPath,
+  modules,
+  setWindowTitle,
+  switchModule,
+} from './modules';
 
 type MountedModule = Record<string, unknown>;
 
@@ -19,7 +26,11 @@ export function moduleAssetUrl(moduleId: string, assetPath: string) {
   return `http://module.localhost/${moduleId}/${safeAssetPath}`;
 }
 
-export async function loadInstalledModule(moduleId: string, target: HTMLElement, settings: unknown) {
+export async function loadInstalledModule(
+  moduleId: string,
+  target: HTMLElement,
+  settings: unknown
+) {
   if (!browser) {
     return null;
   }

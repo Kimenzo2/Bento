@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Bento Desktop application",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "bun run tauri dev",
@@ -24,7 +25,6 @@
     "format:check": "oxfmt --check .",
     "tauri": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/tauri.ps1"
   },
-  "license": "MIT",
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource-variable/noto-sans-arabic": "^5.2.10",

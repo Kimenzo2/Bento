@@ -7,22 +7,42 @@
 /* ─── 1. TEXT SELECTION ─────────────────────────
    Off on all UI chrome. On only where user types or reads content. */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   user-select: none;
   -webkit-user-select: none;
 }
 
-input, textarea,
-[contenteditable], [contenteditable="true"],
-.notes-editor, .note-body, .block-text, .block-content, .prose-content,
-.journal-editor, .journal-note-input, .entry-body,
-.task-description, .task-note-body,
-.password-revealed, .vault-copy-field,
-.ai-message-content, .user-message-content, .ai-response-body,
-.telemetry-log-text, .insight-description, .anomaly-message,
-pre, code, .code-block, .code-content,
+input,
+textarea,
+[contenteditable],
+[contenteditable='true'],
+.notes-editor,
+.note-body,
+.block-text,
+.block-content,
+.prose-content,
+.journal-editor,
+.journal-note-input,
+.entry-body,
+.task-description,
+.task-note-body,
+.password-revealed,
+.vault-copy-field,
+.ai-message-content,
+.user-message-content,
+.ai-response-body,
+.telemetry-log-text,
+.insight-description,
+.anomaly-message,
+pre,
+code,
+.code-block,
+.code-content,
 kbd,
-.error-message, .error-detail,
+.error-message,
+.error-detail,
 .selectable {
   user-select: text;
   -webkit-user-select: text;
@@ -32,33 +52,55 @@ kbd,
    Default everywhere. The app intentionally does not use hand pointers.
    Text cursor only on inputs/editors. */
 
-* { cursor: default !important; }
+* {
+  cursor: default !important;
+}
 
-button, a, [role="button"],
-[role="tab"], [role="menuitem"],
-label, summary,
-.clickable, .app-tile,
-.nav-item, .sidebar-item,
-.module-tile, .pill-btn,
-.task-item, .habit-tile,
-.card-accent, .item-card,
-.sound-pill, .filter-pill,
-.close-btn, .action-btn,
+button,
+a,
+[role='button'],
+[role='tab'],
+[role='menuitem'],
+label,
+summary,
+.clickable,
+.app-tile,
+.nav-item,
+.sidebar-item,
+.module-tile,
+.pill-btn,
+.task-item,
+.habit-tile,
+.card-accent,
+.item-card,
+.sound-pill,
+.filter-pill,
+.close-btn,
+.action-btn,
 [data-clickable] {
   cursor: default !important;
 }
 
-input[type="text"], input[type="email"],
-input[type="password"], input[type="search"],
-input[type="url"], input[type="number"],
-textarea, [contenteditable="true"] {
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='search'],
+input[type='url'],
+input[type='number'],
+textarea,
+[contenteditable='true'] {
   cursor: text !important;
 }
 
-input[type="range"]  { cursor: default !important; }
-input[type="color"]  { cursor: default !important; }
+input[type='range'] {
+  cursor: default !important;
+}
+input[type='color'] {
+  cursor: default !important;
+}
 
-[disabled], [aria-disabled="true"] {
+[disabled],
+[aria-disabled='true'] {
   cursor: default !important;
   opacity: 0.5;
 }
@@ -66,18 +108,25 @@ input[type="color"]  { cursor: default !important; }
 /* ─── 3. IMAGE DRAG PREVENTION ───────────────────
    Prevents dragging app images onto the desktop. */
 
-img, svg, canvas {
+img,
+svg,
+canvas {
   -webkit-user-drag: none;
   user-drag: none;
   pointer-events: none;
 }
 
 /* Re-enable pointer events on images that need clicks */
-img.clickable, svg.clickable,
-button img, button svg,
-a img, a svg,
-.app-icon img, .app-icon svg,
-.module-icon, .nav-icon {
+img.clickable,
+svg.clickable,
+button img,
+button svg,
+a img,
+a svg,
+.app-icon img,
+.app-icon svg,
+.module-icon,
+.nav-icon {
   pointer-events: auto;
 }
 
@@ -90,7 +139,7 @@ a img, a svg,
 }
 
 *:focus-visible {
-  outline: 2px solid var(--accent, #6366F1);
+  outline: 2px solid var(--accent, #6366f1);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -98,8 +147,10 @@ a img, a svg,
 /* ─── 5. CARET COLOR ─────────────────────────────
    Blinking cursor inside inputs matches app accent. */
 
-input, textarea, [contenteditable] {
-  caret-color: var(--accent, #6366F1);
+input,
+textarea,
+[contenteditable] {
+  caret-color: var(--accent, #6366f1);
 }
 
 /* ─── 6. TAP HIGHLIGHT ───────────────────────────
@@ -129,7 +180,9 @@ textarea {
    No rubber-band bounce on macOS.
    No scroll chaining on Windows. */
 
-html, body, .module-root {
+html,
+body,
+.module-root {
   overscroll-behavior: none;
 }
 
@@ -137,12 +190,12 @@ html, body, .module-root {
    Visible on both dark and light themes. */
 
 ::selection {
-  background: rgba(99, 102, 241, 0.30);
+  background: rgba(99, 102, 241, 0.3);
   color: inherit;
 }
 
 ::-webkit-selection {
-  background: rgba(99, 102, 241, 0.30);
+  background: rgba(99, 102, 241, 0.3);
   color: inherit;
 }
 
@@ -163,7 +216,7 @@ html, body, .module-root {
 .journal-editor,
 .ai-response-body {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
 .scrollable::-webkit-scrollbar,
@@ -178,14 +231,15 @@ html, body, .module-root {
 .notes-editor::-webkit-scrollbar-thumb,
 .journal-editor::-webkit-scrollbar-thumb,
 .ai-response-body::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
 
 /* ─── 12. NO HORIZONTAL OVERFLOW ─────────────────
    Enterprise apps never show unexpected horizontal scroll. */
 
-html, body {
+html,
+body {
   overflow-x: hidden;
   max-width: 100vw;
 }
@@ -203,14 +257,21 @@ html, body {
    Buttons and nav items transition color/opacity.
    Not background — that can look cheap if overdone. */
 
-button, a, [role="button"],
-.nav-item, .sidebar-item {
-  transition: opacity 120ms ease, color 120ms ease;
+button,
+a,
+[role='button'],
+.nav-item,
+.sidebar-item {
+  transition:
+    opacity 120ms ease,
+    color 120ms ease;
 }
 
 /* ─── 15. PRINT PREVENTION ───────────────────────
    Enterprise apps are not meant to be printed. */
 
 @media print {
-  body { display: none; }
+  body {
+    display: none;
+  }
 }

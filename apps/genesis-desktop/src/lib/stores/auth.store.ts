@@ -1,7 +1,7 @@
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
 const AUTH_LOGIN_TIMEOUT_MS = 2 * 60 * 1000;
-const AUTH_LOGIN_TIMEOUT_MESSAGE = "Sign-in timed out after 2 minutes. Please try again.";
+const AUTH_LOGIN_TIMEOUT_MESSAGE = 'Sign-in timed out after 2 minutes. Please try again.';
 
 let authLoginTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -18,7 +18,7 @@ function armAuthLoginTimeout() {
     authLoginTimeout = null;
     authStore.update((state) => ({
       ...state,
-      status: state.status === "restored" ? "restored" : "error",
+      status: state.status === 'restored' ? 'restored' : 'error',
       message: AUTH_LOGIN_TIMEOUT_MESSAGE,
       loginLoading: false,
     }));
@@ -34,10 +34,10 @@ export type AuthUser = {
 
 export type AuthBootstrapState =
   | {
-      status: "loginRequired";
+      status: 'loginRequired';
     }
   | {
-      status: "restored";
+      status: 'restored';
       user: AuthUser;
     };
 
@@ -50,14 +50,14 @@ export type AuthErrorPayload = {
 };
 
 export type AuthUiState = {
-  status: "booting" | "loginRequired" | "restored" | "sessionExpired" | "error";
+  status: 'booting' | 'loginRequired' | 'restored' | 'sessionExpired' | 'error';
   user: AuthUser | null;
   message: string | null;
   loginLoading: boolean;
 };
 
 export const authStore = writable<AuthUiState>({
-  status: "booting",
+  status: 'booting',
   user: null,
   message: null,
   loginLoading: false,
@@ -66,15 +66,15 @@ export const authStore = writable<AuthUiState>({
 export function setAuthBootstrap(state: AuthBootstrapState) {
   clearAuthLoginTimeout();
   authStore.set(
-    state.status === "restored"
+    state.status === 'restored'
       ? {
-          status: "restored",
+          status: 'restored',
           user: state.user,
           message: null,
           loginLoading: false,
         }
       : {
-          status: "loginRequired",
+          status: 'loginRequired',
           user: null,
           message: null,
           loginLoading: false,
@@ -85,7 +85,7 @@ export function setAuthBootstrap(state: AuthBootstrapState) {
 export function setAuthRestored(user: AuthUser) {
   clearAuthLoginTimeout();
   authStore.set({
-    status: "restored",
+    status: 'restored',
     user,
     message: null,
     loginLoading: false,
@@ -95,7 +95,7 @@ export function setAuthRestored(user: AuthUser) {
 export function setAuthLoginRequired() {
   clearAuthLoginTimeout();
   authStore.set({
-    status: "loginRequired",
+    status: 'loginRequired',
     user: null,
     message: null,
     loginLoading: false,
@@ -106,7 +106,7 @@ export function setAuthSessionExpired(message: string) {
   clearAuthLoginTimeout();
   authStore.update((state) => ({
     ...state,
-    status: "sessionExpired",
+    status: 'sessionExpired',
     message,
     loginLoading: false,
   }));
@@ -116,7 +116,7 @@ export function setAuthError(message: string | null) {
   clearAuthLoginTimeout();
   authStore.update((state) => ({
     ...state,
-    status: message ? "error" : state.status === "booting" ? "booting" : state.status,
+    status: message ? 'error' : state.status === 'booting' ? 'booting' : state.status,
     message,
     loginLoading: false,
   }));

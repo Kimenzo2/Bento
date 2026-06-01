@@ -1,7 +1,7 @@
-export type Priority = "urgent" | "high" | "medium" | "none";
-export type TaskStatus = "todo" | "in-progress" | "waiting" | "blocked" | "done";
-export type DeadlineKind = "soft" | "hard";
-export type RecurringInterval = "daily" | "weekly" | "monthly" | "yearly" | "custom";
+export type Priority = 'urgent' | 'high' | 'medium' | 'none';
+export type TaskStatus = 'todo' | 'in-progress' | 'waiting' | 'blocked' | 'done';
+export type DeadlineKind = 'soft' | 'hard';
+export type RecurringInterval = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export interface Subtask {
   id: string;
@@ -18,7 +18,7 @@ export interface Recurrence {
   dayOfMonth?: number;
   ordinal?: number;
   weekdayOfMonth?: number;
-  endKind?: "never" | "after" | "on";
+  endKind?: 'never' | 'after' | 'on';
   endAfter?: number;
   endOn?: string;
   completionCount?: number;
@@ -27,7 +27,7 @@ export interface Recurrence {
 
 export interface Reminder {
   id: string;
-  kind: "time" | "location" | "persistent" | "recurring-daily";
+  kind: 'time' | 'location' | 'persistent' | 'recurring-daily';
   at?: string;
   location?: string;
   arriving?: boolean;
@@ -38,14 +38,14 @@ export interface Reminder {
 export interface Attachment {
   id: string;
   name: string;
-  kind: "image" | "document" | "other";
+  kind: 'image' | 'document' | 'other';
   sizeBytes: number;
   addedAt: string;
 }
 
 export interface TaskLink {
   targetId: string;
-  kind: "blocks" | "blocked-by" | "related";
+  kind: 'blocks' | 'blocked-by' | 'related';
 }
 
 export interface TimeBlock {
@@ -110,8 +110,8 @@ export interface Tag {
 }
 
 export interface FilterCondition {
-  field: "project" | "tag" | "priority" | "status" | "dueDate" | "area";
-  op: "is" | "isNot" | "before" | "after" | "contains";
+  field: 'project' | 'tag' | 'priority' | 'status' | 'dueDate' | 'area';
+  op: 'is' | 'isNot' | 'before' | 'after' | 'contains';
   value: string;
 }
 
@@ -119,8 +119,8 @@ export interface SavedFilter {
   id: string;
   name: string;
   conditions: FilterCondition[];
-  sortBy: "priority" | "dueDate" | "created" | "title" | "manual";
-  sortDir: "asc" | "desc";
+  sortBy: 'priority' | 'dueDate' | 'created' | 'title' | 'manual';
+  sortDir: 'asc' | 'desc';
   createdAt: string;
 }
 

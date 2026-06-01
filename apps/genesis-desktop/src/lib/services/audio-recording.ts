@@ -25,7 +25,7 @@ export interface AudioDevice {
 export interface RecordingSession {
   id: string;
   status: string;
-  startTime: number;       // UTC ms
+  startTime: number; // UTC ms
   elapsedMs: number;
   pausedDurationMs: number;
   filePath: string | null;
@@ -40,7 +40,7 @@ export interface RecordingMeta {
   filePath: string;
   fileSizeBytes: number;
   moduleId: string;
-  createdAt: number;       // UTC ms
+  createdAt: number; // UTC ms
   deviceName: string | null;
   sampleRate: number;
   channels: number;
@@ -109,7 +109,7 @@ function stopPolling(): void {
  */
 export async function startRecording(
   moduleId: string,
-  deviceName?: string,
+  deviceName?: string
 ): Promise<RecordingSession> {
   const session = await invoke<RecordingSession>('start_recording', {
     moduleId,
@@ -176,7 +176,7 @@ export async function cancelRecording(): Promise<void> {
  */
 export async function retryRecording(
   moduleId: string,
-  deviceName?: string,
+  deviceName?: string
 ): Promise<RecordingSession> {
   const session = await invoke<RecordingSession>('retry_recording', {
     moduleId,
@@ -202,7 +202,7 @@ export async function pickTranscriptionModel(): Promise<string | null> {
 export async function transcribeRecording(
   recordingId: string,
   modelPath: string,
-  language?: string,
+  language?: string
 ): Promise<string> {
   return invoke<string>('transcribe_recording', {
     recording_id: recordingId,
@@ -227,7 +227,7 @@ export async function listAudioDevices(): Promise<AudioDevice[]> {
  */
 export async function listRecordings(
   moduleId?: string,
-  limit: number = 50,
+  limit: number = 50
 ): Promise<RecordingMeta[]> {
   const recordings = await invoke<RecordingMeta[]>('list_recordings', {
     moduleId: moduleId ?? null,

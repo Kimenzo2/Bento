@@ -25,8 +25,5 @@ export function repairMarkdown(raw: string): string {
 }
 
 export function escapeMarkdownHtml(raw: string): string {
-  return raw
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+  return raw.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }

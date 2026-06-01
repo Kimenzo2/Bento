@@ -1,4 +1,4 @@
-declare module "sortablejs" {
+declare module 'sortablejs' {
   export interface SortableEvent {
     dragged: Element | null;
     related: Element | null;

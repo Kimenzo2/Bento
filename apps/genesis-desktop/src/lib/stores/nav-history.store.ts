@@ -22,7 +22,7 @@ export const canGoBack = derived(_stack, ($s) => $s.length > 1);
 
 // ── Called by switchModule() every time a module is activated ────────────────
 export function pushNav(moduleId: BentoModuleId): void {
-  if (_isGoingBack) return;           // back() manages the stack itself
+  if (_isGoingBack) return; // back() manages the stack itself
   _stack.update((s) => {
     if (s[s.length - 1] === moduleId) return s;
     return [...s, moduleId];

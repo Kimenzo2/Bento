@@ -16,10 +16,10 @@ import { time } from '$lib/utils/time';
 
 export interface PassiveIntelligenceConfig {
   enabled: boolean;
-  idleThresholdSeconds: number;      // Seconds before considering user idle (default 300 = 5min)
-  minFocusMinutes: number;           // Min duration to count as a focus session (default 5)
-  maxIdleBreakMinutes: number;       // Max idle gap within one session (default 15)
-  historyRetentionDays: number;      // How long to keep activity history (default 30)
+  idleThresholdSeconds: number; // Seconds before considering user idle (default 300 = 5min)
+  minFocusMinutes: number; // Min duration to count as a focus session (default 5)
+  maxIdleBreakMinutes: number; // Max idle gap within one session (default 15)
+  historyRetentionDays: number; // How long to keep activity history (default 30)
 }
 
 const DEFAULT_CONFIG: PassiveIntelligenceConfig = {
@@ -33,24 +33,24 @@ const DEFAULT_CONFIG: PassiveIntelligenceConfig = {
 // ─── Activity Records ─────────────────────────────────────────────────
 
 export interface ActivityEvent {
-  timestamp: number;       // UTC ms
+  timestamp: number; // UTC ms
   type: 'input' | 'focus_start' | 'focus_end' | 'module_switch' | 'idle_start' | 'idle_end';
   moduleId?: string;
-  duration?: number;       // ms
+  duration?: number; // ms
 }
 
 export interface FocusSession {
   id: string;
-  start: number;           // UTC ms
-  end: number | null;      // UTC ms
+  start: number; // UTC ms
+  end: number | null; // UTC ms
   durationMinutes: number;
-  quality: number | null;  // 1-5 subjective, null = auto-inferred
+  quality: number | null; // 1-5 subjective, null = auto-inferred
   moduleId: string;
   interruptions: number;
 }
 
 export interface DailyRhythm {
-  date: string;            // "2026-05-09"
+  date: string; // "2026-05-09"
   sessionCount: number;
   totalActiveMinutes: number;
   totalIdleMinutes: number;
@@ -62,10 +62,10 @@ export interface DailyRhythm {
 
 export interface BurnoutSignal {
   detected: boolean;
-  score: number;            // 0-100
-  signals: string[];        // e.g., ["late_night_work", "declining_focus", "missed_breaks"]
+  score: number; // 0-100
+  signals: string[]; // e.g., ["late_night_work", "declining_focus", "missed_breaks"]
   insight: string;
-  since: number;            // UTC ms
+  since: number; // UTC ms
 }
 
 // ─── Stores ───────────────────────────────────────────────────────────
@@ -194,9 +194,8 @@ class PassiveIntelligenceEngine {
 
     const focusSessions = get(this.focusHistory);
     if (focusSessions.length >= 3) {
-      const avgDuration = focusSessions
-        .slice(-10)
-        .reduce((sum, s) => sum + (s.durationMinutes || 0), 0) /
+      const avgDuration =
+        focusSessions.slice(-10).reduce((sum, s) => sum + (s.durationMinutes || 0), 0) /
         Math.min(focusSessions.length, 10);
       if (avgDuration < 15) {
         insights.push('Focus sessions are brief — try locking in for longer blocks.');
@@ -232,8 +231,7 @@ class PassiveIntelligenceEngine {
       if (this.currentFocusSession) {
         const now = time.now();
         this.currentFocusSession.end = now;
-        this.currentFocusSession.durationMinutes =
-          (now - this.currentFocusSession.start) / 60_000;
+        this.currentFocusSession.durationMinutes = (now - this.currentFocusSession.start) / 60_000;
         this.focusSessions.push(this.currentFocusSession);
         this.focusHistory.update((h) => {
           h.push(this.currentFocusSession!);
@@ -249,17 +247,17 @@ class PassiveIntelligenceEngine {
     eventBus.on(BentoEventType.FocusInterrupted, () => {
       if (this.currentFocusSession) {
         this.currentFocusSession.interruptions++;
-        this.currentFocusSession.quality = Math.max(
-          1,
-          (this.currentFocusSession.quality ?? 3) - 1,
-        );
+        this.currentFocusSession.quality = Math.max(1, (this.currentFocusSession.quality ?? 3) - 1);
       }
     });
   }
 
   private resetIdleTimer(): void {
     this.stopIdleTimer();
-    this.userIdleTimer = setTimeout(() => this.onUserIdle(), this.config.idleThresholdSeconds * 1000);
+    this.userIdleTimer = setTimeout(
+      () => this.onUserIdle(),
+      this.config.idleThresholdSeconds * 1000
+    );
   }
 
   private stopIdleTimer(): void {
@@ -423,8 +421,10 @@ class PassiveIntelligenceEngine {
     if (recentFocus.length >= 4) {
       const firstHalf = recentFocus.slice(0, Math.floor(recentFocus.length / 2));
       const secondHalf = recentFocus.slice(Math.floor(recentFocus.length / 2));
-      const avgFirst = firstHalf.reduce((s, f) => s + (f.durationMinutes || 0), 0) / firstHalf.length;
-      const avgSecond = secondHalf.reduce((s, f) => s + (f.durationMinutes || 0), 0) / secondHalf.length;
+      const avgFirst =
+        firstHalf.reduce((s, f) => s + (f.durationMinutes || 0), 0) / firstHalf.length;
+      const avgSecond =
+        secondHalf.reduce((s, f) => s + (f.durationMinutes || 0), 0) / secondHalf.length;
       if (avgSecond < avgFirst * 0.7) {
         signals.push('declining_focus_duration');
         score += 20;
@@ -448,9 +448,7 @@ class PassiveIntelligenceEngine {
     }
 
     // Signal: Consistent late-night pattern (>3 days)
-    const uniqueLateDays = new Set(
-      lateNightActivity.map((e) => time.dateKey(e.timestamp)),
-    );
+    const uniqueLateDays = new Set(lateNightActivity.map((e) => time.dateKey(e.timestamp)));
     if (uniqueLateDays.size >= 3) {
       signals.push('consistent_late_nights');
       score += 20;
@@ -461,11 +459,14 @@ class PassiveIntelligenceEngine {
 
     if (detected) {
       if (signals.includes('late_night_work') || signals.includes('consistent_late_nights')) {
-        insight = 'You have been active late at night on multiple recent days. Consider winding down earlier to protect your sleep.';
+        insight =
+          'You have been active late at night on multiple recent days. Consider winding down earlier to protect your sleep.';
       } else if (signals.includes('declining_focus_duration')) {
-        insight = 'Your focus sessions have been getting shorter. This may indicate mental fatigue — try taking a full break day.';
+        insight =
+          'Your focus sessions have been getting shorter. This may indicate mental fatigue — try taking a full break day.';
       } else if (signals.includes('missed_breaks')) {
-        insight = 'Several long focus sessions without breaks detected. Regular short breaks improve long-term productivity.';
+        insight =
+          'Several long focus sessions without breaks detected. Regular short breaks improve long-term productivity.';
       } else {
         insight = 'Multiple burnout signals detected. Consider scaling back and prioritizing rest.';
       }

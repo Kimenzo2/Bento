@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from '@tauri-apps/api/core';
 
 export type SearchDocument = {
   moduleId: string;
@@ -34,17 +34,17 @@ export type SearchHit = {
 };
 
 export async function indexContent(document: SearchDocument) {
-  return invoke<void>("index_content", { document });
+  return invoke<void>('index_content', { document });
 }
 
 export async function searchInModule(moduleId: string, query: SearchQuery) {
-  return invoke<SearchHit[]>("search_in_module", { moduleId, query });
+  return invoke<SearchHit[]>('search_in_module', { moduleId, query });
 }
 
 export async function rebuildIndex(moduleId: string) {
-  return invoke<void>("rebuild_index", { moduleId });
+  return invoke<void>('rebuild_index', { moduleId });
 }
 
 export async function deleteFromIndex(moduleId: string, id: string) {
-  return invoke<void>("delete_from_index", { moduleId, id });
+  return invoke<void>('delete_from_index', { moduleId, id });
 }

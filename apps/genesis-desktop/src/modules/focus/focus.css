@@ -1,12 +1,12 @@
 /* Focus Timer — Card System Fix */
 .focus-app {
-  --mod-accent: #F5C400;
+  --mod-accent: #f5c400;
   min-height: 100%;
   padding: 32px;
   background: var(--mod-bg, var(--mod-bg-focus));
   color: var(--foreground);
   font-family: var(--font-body);
-  animation: focus-in .35s ease;
+  animation: focus-in 0.35s ease;
 }
 
 /* Nav — NOT a card, sits on background */
@@ -45,9 +45,16 @@
   border: none;
   box-shadow: none;
 }
-.focus-app h1 { font-size: 48px; }
-.focus-app header p { display: grid; margin: 0; }
-.focus-app header b { font-size: 42px; }
+.focus-app h1 {
+  font-size: 48px;
+}
+.focus-app header p {
+  display: grid;
+  margin: 0;
+}
+.focus-app header b {
+  font-size: 42px;
+}
 
 /* Grid — surface cards */
 .focus-grid {
@@ -61,9 +68,11 @@
   padding: 24px;
   border: none;
   box-shadow: none;
-  transition: transform .2s ease;
+  transition: transform 0.2s ease;
 }
-.focus-grid article:hover { transform: translateY(-3px); }
+.focus-grid article:hover {
+  transform: translateY(-3px);
+}
 
 /* Timer card — Type C dark card */
 .focus-timer {
@@ -75,7 +84,9 @@
   border-radius: 20px;
   color: #fff;
 }
-.focus-timer canvas { height: 220px !important; }
+.focus-timer canvas {
+  height: 220px !important;
+}
 .focus-timer > strong {
   position: absolute;
   inset: 130px 0 auto;
@@ -83,8 +94,15 @@
   text-align: center;
   font: 800 64px var(--font-body);
 }
-.focus-timer small { font-size: 14px; color: #aaa; }
-.focus-timer footer { display: flex; justify-content: center; gap: 14px; }
+.focus-timer small {
+  font-size: 14px;
+  color: #aaa;
+}
+.focus-timer footer {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
 .focus-timer button {
   padding: 12px 22px;
   border: 0;
@@ -92,10 +110,25 @@
   background: var(--mod-accent);
 }
 
-.focus-week b { display: block; font-size: 44px; }
-.focus-week div { display: flex; align-items: end; gap: 16px; height: 190px; }
-.focus-week span { width: 26px; height: var(--h); border-radius: 999px; background: var(--foreground); }
-.focus-week .focus-today { background: var(--mod-accent); }
+.focus-week b {
+  display: block;
+  font-size: 44px;
+}
+.focus-week div {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  height: 190px;
+}
+.focus-week span {
+  width: 26px;
+  height: var(--h);
+  border-radius: 999px;
+  background: var(--foreground);
+}
+.focus-week .focus-today {
+  background: var(--mod-accent);
+}
 
 /* Log items — NOT cards, just list rows */
 .focus-log p {
@@ -105,9 +138,14 @@
   border-bottom: 1px dotted var(--border);
   background: transparent;
 }
-.focus-log button { border: 0; background: transparent; }
+.focus-log button {
+  border: 0;
+  background: transparent;
+}
 
-.focus-calendar { grid-column: span 2; }
+.focus-calendar {
+  grid-column: span 2;
+}
 .focus-calendar div {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -123,6 +161,12 @@
 }
 
 @keyframes focus-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

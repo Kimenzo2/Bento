@@ -14,9 +14,5 @@
       "name": "Asset Pack"
     }
   ],
-  "pipeline": [
-    "print-pdf",
-    "viewer-sequence",
-    "asset-pack-manifest"
-  ]
+  "pipeline": ["print-pdf", "viewer-sequence", "asset-pack-manifest"]
 }

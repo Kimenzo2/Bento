@@ -74,8 +74,8 @@ export enum BentoEventType {
 
 export interface BentoEvent {
   type: BentoEventType;
-  source: string;        // module id, e.g. "sleep", "focus", "system"
-  timestamp: number;     // UTC ms
+  source: string; // module id, e.g. "sleep", "focus", "system"
+  timestamp: number; // UTC ms
   payload: Record<string, unknown>;
 }
 
@@ -83,7 +83,7 @@ export interface BentoEvent {
 export function createEvent(
   type: BentoEventType,
   source: string,
-  payload: Record<string, unknown> = {},
+  payload: Record<string, unknown> = {}
 ): BentoEvent {
   return { type, source, timestamp: time.now(), payload };
 }
@@ -116,7 +116,9 @@ class EventBus {
     const typeListeners = this.listeners.get(event.type);
     if (typeListeners) {
       typeListeners.forEach((l) => {
-        try { l(event); } catch (e) {
+        try {
+          l(event);
+        } catch (e) {
           console.warn(`[event-bus] Listener error for ${event.type}:`, e);
         }
       });
@@ -124,7 +126,9 @@ class EventBus {
 
     // Notify catch-all listeners
     this.allListeners.forEach((l) => {
-      try { l(event); } catch (e) {
+      try {
+        l(event);
+      } catch (e) {
         console.warn(`[event-bus] onAny listener error:`, e);
       }
     });
@@ -138,11 +142,7 @@ class EventBus {
   }
 
   /** Emit without building a BentoEvent manually. */
-  emitSimple(
-    type: BentoEventType,
-    source: string,
-    payload: Record<string, unknown> = {},
-  ): void {
+  emitSimple(type: BentoEventType, source: string, payload: Record<string, unknown> = {}): void {
     this.emit(createEvent(type, source, payload));
   }
 
@@ -191,15 +191,11 @@ export async function initEventBridge(): Promise<() => void> {
       moduleId: string;
       label: string;
     }>('bento://schedule-fire', (e) => {
-      eventBus.emitSimple(
-        BentoEventType.ScheduleDue,
-        'system',
-        {
-          scheduleId: e.payload.scheduleId,
-          moduleId: e.payload.moduleId,
-          label: e.payload.label,
-        },
-      );
+      eventBus.emitSimple(BentoEventType.ScheduleDue, 'system', {
+        scheduleId: e.payload.scheduleId,
+        moduleId: e.payload.moduleId,
+        label: e.payload.label,
+      });
     });
     unlisteners.push(unlistenSchedule);
 
@@ -208,14 +204,10 @@ export async function initEventBridge(): Promise<() => void> {
       from: string;
       to: string;
     }>('bento://module-switch', (e) => {
-      eventBus.emitSimple(
-        BentoEventType.ModuleSwitched,
-        'system',
-        {
-          from: e.payload.from,
-          to: e.payload.to,
-        },
-      );
+      eventBus.emitSimple(BentoEventType.ModuleSwitched, 'system', {
+        from: e.payload.from,
+        to: e.payload.to,
+      });
     });
     unlisteners.push(unlistenModuleSwitch);
 

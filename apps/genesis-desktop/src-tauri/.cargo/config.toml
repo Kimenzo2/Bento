@@ -1,11 +1,11 @@
 [env]
-CARGO_BUILD_TARGET        = "x86_64-pc-windows-msvc"
-RUST_MIN_STACK            = "33554432"
+CARGO_BUILD_TARGET = "x86_64-pc-windows-msvc"
+RUST_MIN_STACK = "33554432"
 LIBSQLITE3_SYS_USE_PKG_CONFIG = "0"
-OPENSSL_DIR               = "C:\\Program Files\\OpenSSL-Win64"
-OPENSSL_NO_VENDOR         = "1"
-OPENSSL_INCLUDE_DIR       = "C:\\Program Files\\OpenSSL-Win64\\include"
-OPENSSL_LIB_DIR           = "C:\\Program Files\\OpenSSL-Win64\\lib\\VC\\x64\\MD"
+OPENSSL_DIR = "C:\\Program Files\\OpenSSL-Win64"
+OPENSSL_NO_VENDOR = "1"
+OPENSSL_INCLUDE_DIR = "C:\\Program Files\\OpenSSL-Win64\\include"
+OPENSSL_LIB_DIR = "C:\\Program Files\\OpenSSL-Win64\\lib\\VC\\x64\\MD"
 
 [build]
 rustflags = ["-C", "linker=rust-lld"]
@@ -13,14 +13,18 @@ rustflags = ["-C", "linker=rust-lld"]
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld"
 rustflags = [
-  "-C", "linker=rust-lld",
-  "-C", "codegen-units=256",
-  "-C", "debuginfo=line-tables-only",
-  "-C", "split-debuginfo=packed"
+  "-C",
+  "linker=rust-lld",
+  "-C",
+  "codegen-units=256",
+  "-C",
+  "debuginfo=line-tables-only",
+  "-C",
+  "split-debuginfo=packed",
 ]
 
 [target.x86_64-unknown-linux-gnu]
-linker    = "clang"
+linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 [target.aarch64-apple-darwin]

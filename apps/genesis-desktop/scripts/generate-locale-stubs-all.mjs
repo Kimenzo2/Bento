@@ -11,9 +11,32 @@ const allKeys = Object.keys(enBundle);
 
 // Language codes that need stubs (all except 'en')
 const languageCodes = [
-  'ar', 'be', 'cs', 'da', 'de', 'es', 'fa', 'fr', 'hi', 'id', 'it', 'ja',
-  'ko', 'lt', 'nl', 'no', 'pl', 'pt-BR', 'pt-PT', 'ro', 'ru', 'tr', 'uk',
-  'vi', 'zh-CN', 'zh-TW'
+  'ar',
+  'be',
+  'cs',
+  'da',
+  'de',
+  'es',
+  'fa',
+  'fr',
+  'hi',
+  'id',
+  'it',
+  'ja',
+  'ko',
+  'lt',
+  'nl',
+  'no',
+  'pl',
+  'pt-BR',
+  'pt-PT',
+  'ro',
+  'ru',
+  'tr',
+  'uk',
+  'vi',
+  'zh-CN',
+  'zh-TW',
 ];
 
 // Existing stubs with real translations (from _generate_stubs.ps1)
@@ -40,7 +63,7 @@ if (existsSync(dePath)) {
   existingTranslations['de'] = { ...existingTranslations['de'], ...deBundle };
 }
 
-// Arabic is pre-loaded 
+// Arabic is pre-loaded
 const arPath = join(localesDir, 'ar.json');
 if (existsSync(arPath)) {
   const arBundle = JSON.parse(readFileSync(arPath, 'utf-8'));
@@ -53,7 +76,7 @@ if (existsSync(arPath)) {
 for (const code of languageCodes) {
   const existing = existingTranslations[code] || {};
   const bundle = {};
-  
+
   for (const key of allKeys) {
     if (existing.hasOwnProperty(key)) {
       bundle[key] = existing[key];
@@ -61,7 +84,7 @@ for (const code of languageCodes) {
       bundle[key] = enBundle[key]; // Fallback to English
     }
   }
-  
+
   const path = join(localesDir, `${code}.json`);
   writeFileSync(path, JSON.stringify(bundle, null, 2) + '\n', 'utf-8');
   console.log(`✓ Written: ${code}.json (${Object.keys(bundle).length} keys)`);

@@ -21,42 +21,146 @@ import { BlockType as BT, TextStyle as TS, MarkType, isTextBlock } from './block
 
 // ─── Interface types ─────────────────────────────────────────────────
 
-type TypeDef = { id: string; name: string; layout: string; icon: string; description: string; };
-type RelationDef = { id: string; key: string; name: string; type: number; format: string; };
-interface BlockRow { id: string; objectId: string; parentId?: string | null; type: string; content: string; fields: string; align: number; bgColor: string; position: number; createdAt: number; updatedAt: number; }
-interface NoteWithBlocks { note: { id: string; title: string; icon?: string | null; cover?: string | null; layout: string; pinned: boolean; tags: string[]; isArchived: boolean; details: unknown; createdAt: number; updatedAt: number; }; blocks: BlockRow[]; }
+type TypeDef = { id: string; name: string; layout: string; icon: string; description: string };
+type RelationDef = { id: string; key: string; name: string; type: number; format: string };
+interface BlockRow {
+  id: string;
+  objectId: string;
+  parentId?: string | null;
+  type: string;
+  content: string;
+  fields: string;
+  align: number;
+  bgColor: string;
+  position: number;
+  createdAt: number;
+  updatedAt: number;
+}
+interface NoteWithBlocks {
+  note: {
+    id: string;
+    title: string;
+    icon?: string | null;
+    cover?: string | null;
+    layout: string;
+    pinned: boolean;
+    tags: string[];
+    isArchived: boolean;
+    details: unknown;
+    createdAt: number;
+    updatedAt: number;
+  };
+  blocks: BlockRow[];
+}
 
 // ─── Parsing helpers ─────────────────────────────────────────────────
 
 function parseContentText(s: string): ContentText {
   try {
     const p = JSON.parse(s);
-    return { text: p.text ?? '', style: normStyle(p.style), marks: p.marks ?? [], checked: p.checked ?? false, color: p.color ?? '', iconEmoji: p.iconEmoji ?? '', iconImage: p.iconImage ?? '' };
-  } catch { return { text: '', style: TS.Paragraph, marks: [], checked: false, color: '', iconEmoji: '', iconImage: '' }; }
+    return {
+      text: p.text ?? '',
+      style: normStyle(p.style),
+      marks: p.marks ?? [],
+      checked: p.checked ?? false,
+      color: p.color ?? '',
+      iconEmoji: p.iconEmoji ?? '',
+      iconImage: p.iconImage ?? '',
+    };
+  } catch {
+    return {
+      text: '',
+      style: TS.Paragraph,
+      marks: [],
+      checked: false,
+      color: '',
+      iconEmoji: '',
+      iconImage: '',
+    };
+  }
 }
 function normStyle(style: unknown): TextStyle {
   if (typeof style === 'number') return style as TextStyle;
   if (typeof style === 'string') {
-    const n = Number(style); if (Number.isFinite(n)) return n as TextStyle;
-    const m: Record<string,TextStyle> = { paragraph:TS.Paragraph,header1:TS.Header1,h1:TS.Header1,header2:TS.Header2,h2:TS.Header2,header3:TS.Header3,h3:TS.Header3,header4:TS.Header4,h4:TS.Header4,quote:TS.Quote,code:TS.Code,title:TS.Title,checkbox:TS.Checkbox,todo:TS.Checkbox,bulleted:TS.Bulleted,bullet:TS.Bulleted,numbered:TS.Numbered,toggle:TS.Toggle,description:TS.Description,callout:TS.Callout,toggleheader1:TS.ToggleHeader1,toggleheader2:TS.ToggleHeader2,toggleheader3:TS.ToggleHeader3 };
+    const n = Number(style);
+    if (Number.isFinite(n)) return n as TextStyle;
+    const m: Record<string, TextStyle> = {
+      paragraph: TS.Paragraph,
+      header1: TS.Header1,
+      h1: TS.Header1,
+      header2: TS.Header2,
+      h2: TS.Header2,
+      header3: TS.Header3,
+      h3: TS.Header3,
+      header4: TS.Header4,
+      h4: TS.Header4,
+      quote: TS.Quote,
+      code: TS.Code,
+      title: TS.Title,
+      checkbox: TS.Checkbox,
+      todo: TS.Checkbox,
+      bulleted: TS.Bulleted,
+      bullet: TS.Bulleted,
+      numbered: TS.Numbered,
+      toggle: TS.Toggle,
+      description: TS.Description,
+      callout: TS.Callout,
+      toggleheader1: TS.ToggleHeader1,
+      toggleheader2: TS.ToggleHeader2,
+      toggleheader3: TS.ToggleHeader3,
+    };
     return m[style.toLowerCase()] ?? TS.Paragraph;
   }
   return TS.Paragraph;
 }
 function rowToBlock(row: BlockRow): Block {
-  return { id: row.id, type: row.type as any, parentId: row.parentId ?? undefined, content: parseContentText(row.content), childrenIds: [], bgColor: row.bgColor || undefined, fields: row.fields ? tryJson(row.fields) : undefined };
+  return {
+    id: row.id,
+    type: row.type as any,
+    parentId: row.parentId ?? undefined,
+    content: parseContentText(row.content),
+    childrenIds: [],
+    bgColor: row.bgColor || undefined,
+    fields: row.fields ? tryJson(row.fields) : undefined,
+  };
 }
-function tryJson(s: string): any { try { return JSON.parse(s); } catch { return {}; } }
+function tryJson(s: string): any {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return {};
+  }
+}
 function mkContent(text: string, style: TextStyle, marks?: Mark[], checked?: boolean) {
-  return { text, style, marks: marks ?? [], checked: checked ?? false, color: '', iconEmoji: '', iconImage: '' };
+  return {
+    text,
+    style,
+    marks: marks ?? [],
+    checked: checked ?? false,
+    color: '',
+    iconEmoji: '',
+    iconImage: '',
+  };
 }
 
 const SYSTEM_TYPES: TypeDef[] = [
   { id: 'type-note', name: 'Note', layout: 'note', icon: '📄', description: 'Rich text document' },
   { id: 'type-task', name: 'Task', layout: 'task', icon: '✅', description: 'Task' },
-  { id: 'type-journal', name: 'Journal', layout: 'journal', icon: '📓', description: 'Daily journal' },
+  {
+    id: 'type-journal',
+    name: 'Journal',
+    layout: 'journal',
+    icon: '📓',
+    description: 'Daily journal',
+  },
   { id: 'type-set', name: 'Set', layout: 'set', icon: '📁', description: 'Collection' },
-  { id: 'type-bookmark', name: 'Bookmark', layout: 'bookmark', icon: '🔖', description: 'Saved link' },
+  {
+    id: 'type-bookmark',
+    name: 'Bookmark',
+    layout: 'bookmark',
+    icon: '🔖',
+    description: 'Saved link',
+  },
 ];
 const SYSTEM_RELATIONS: RelationDef[] = [
   { id: 'rel-tags', key: 'tags', name: 'Tags', type: 11, format: 'multiSelect' },
@@ -108,27 +212,35 @@ let loading = $state(false);
 const _rootBlocks: Block[] = $derived(
   rootChildren.map((id) => blocks.get(id)).filter((b): b is Block => !!b)
 );
-export function getRootBlocks(): Block[] { return _rootBlocks; }
+export function getRootBlocks(): Block[] {
+  return _rootBlocks;
+}
 
 /** Derived: title block — Anytype's `@computed get titleBlock()` */
 const _titleBlock: Block | null = $derived(
   titleBlockId ? (blocks.get(titleBlockId) ?? null) : null
 );
-export function getTitleBlock(): Block | null { return _titleBlock; }
+export function getTitleBlock(): Block | null {
+  return _titleBlock;
+}
 
 /** Derived: focused block — Anytype's `@computed get focusedBlock()` */
-const _focusedBlock: Block | null = $derived(
-  focusedId ? (blocks.get(focusedId) ?? null) : null
-);
-export function getFocusedBlock(): Block | null { return _focusedBlock; }
+const _focusedBlock: Block | null = $derived(focusedId ? (blocks.get(focusedId) ?? null) : null);
+export function getFocusedBlock(): Block | null {
+  return _focusedBlock;
+}
 
 /** Derived: loading state */
 const _isEditorLoading: boolean = $derived(loading);
-export function getIsEditorLoading(): boolean { return _isEditorLoading; }
+export function getIsEditorLoading(): boolean {
+  return _isEditorLoading;
+}
 
 /** Derived: loaded state */
 const _isEditorLoaded: boolean = $derived(loaded);
-export function getIsEditorLoaded(): boolean { return _isEditorLoaded; }
+export function getIsEditorLoaded(): boolean {
+  return _isEditorLoaded;
+}
 
 /** Toggle open/closed state — kept in a plain Map (not reactive), updated via revision counter */
 const toggleOpenState = new Map<string, boolean>();
@@ -136,7 +248,9 @@ let toggleRevision = $state(0);
 
 /** Toggle state version — increments whenever any toggle opens/closes */
 const _toggleStateVersion: number = $derived(toggleRevision);
-export function getToggleStateVersion(): number { return _toggleStateVersion; }
+export function getToggleStateVersion(): number {
+  return _toggleStateVersion;
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // NON-REACTIVE STATE — live text cache, pending saves, race guards
@@ -164,10 +278,13 @@ async function flushSaves() {
   const entries = [...pendingSaves.entries()];
   pendingSaves.clear();
 
-  flushingSaves = Promise.all(entries.map(([blockId, { text, marks, noteId }]) =>
-    invoke('notes_set_text_content', { noteId, blockId, text, marks: marks ?? [] })
-      .catch((e) => console.error('[editor-state] flush failed', e))
-  )).then(() => {
+  flushingSaves = Promise.all(
+    entries.map(([blockId, { text, marks, noteId }]) =>
+      invoke('notes_set_text_content', { noteId, blockId, text, marks: marks ?? [] }).catch((e) =>
+        console.error('[editor-state] flush failed', e)
+      )
+    )
+  ).then(() => {
     flushingSaves = null;
   });
 
@@ -177,7 +294,9 @@ async function flushSaves() {
 function scheduleSave(blockId: string, text: string, marks: Mark[] | undefined, noteId: string) {
   pendingSaves.set(blockId, { text, marks, noteId });
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { void flushSaves(); }, 250);
+  saveTimer = setTimeout(() => {
+    void flushSaves();
+  }, 250);
 }
 
 function getCurrentObjectId(): string {
@@ -237,7 +356,17 @@ function applyRows(newObjectId: string, rows: BlockRow[]) {
 }
 
 /** Read a journal entry from localStorage by ID (fallback for when Tauri backend is unavailable). */
-function getJournalEntryFromLocalStorage(id: string): { id: string; date: string; blocks: string; wordCount: number; mood: string | null; createdAt: number; updatedAt: number } | null {
+function getJournalEntryFromLocalStorage(
+  id: string
+): {
+  id: string;
+  date: string;
+  blocks: string;
+  wordCount: number;
+  mood: string | null;
+  createdAt: number;
+  updatedAt: number;
+} | null {
   try {
     const raw = localStorage.getItem(`journal:id:${id}`);
     if (!raw) return null;
@@ -254,8 +383,18 @@ function initEmpty(newObjectId: string) {
   const tid = crypto.randomUUID();
   const pid = crypto.randomUUID();
   const newBlocks = new SvelteMap<string, Block>();
-  newBlocks.set(tid, { id: tid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Title) as ContentText });
-  newBlocks.set(pid, { id: pid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Paragraph) as ContentText });
+  newBlocks.set(tid, {
+    id: tid,
+    type: BT.Text,
+    childrenIds: [],
+    content: mkContent('', TS.Title) as ContentText,
+  });
+  newBlocks.set(pid, {
+    id: pid,
+    type: BT.Text,
+    childrenIds: [],
+    content: mkContent('', TS.Paragraph) as ContentText,
+  });
   blocks = newBlocks;
   rootChildren = [tid, pid];
   titleBlockId = tid;
@@ -269,7 +408,11 @@ function initEmpty(newObjectId: string) {
  * Init the editor for a given object — Anytype's `page.tsx useEffect([rootId])`.
  * @param forceEmpty — when true, skip backend fetch and start with a blank document immediately.
  */
-export async function init(objectIdParam: string, source: 'notes' | 'journal' = 'notes', forceEmpty = false) {
+export async function init(
+  objectIdParam: string,
+  source: 'notes' | 'journal' = 'notes',
+  forceEmpty = false
+) {
   pendingInitId = objectIdParam;
   const cur = () => pendingInitId === objectIdParam;
   await flushSaves();
@@ -290,16 +433,35 @@ export async function init(objectIdParam: string, source: 'notes' | 'journal' = 
   try {
     if (source === 'journal') {
       // Try Tauri backend first — objectIdParam is now a UUID, so use `id`
-      const journalEntry: { id: string; date: string; blocks: string; wordCount: number; mood: string | null; createdAt: number; updatedAt: number } | null = await invoke('get_journal_entry', { id: objectIdParam });
+      const journalEntry: {
+        id: string;
+        date: string;
+        blocks: string;
+        wordCount: number;
+        mood: string | null;
+        createdAt: number;
+        updatedAt: number;
+      } | null = await invoke('get_journal_entry', { id: objectIdParam });
       if (!cur()) return;
       if (journalEntry?.blocks) {
         try {
           const p: any[] = JSON.parse(journalEntry.blocks);
           if (Array.isArray(p) && p.length > 0) {
             const fakeRows: BlockRow[] = p.map((b, i) => ({
-              id: b.id ?? crypto.randomUUID(), objectId: objectIdParam, parentId: null,
-              type: b.type ?? 'text', content: typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
-              fields: '{}', align: 0, bgColor: '', position: i, createdAt: 0, updatedAt: 0,
+              id: b.id ?? crypto.randomUUID(),
+              objectId: objectIdParam,
+              parentId: null,
+              type: b.type ?? 'text',
+              content:
+                typeof b.content === 'string'
+                  ? b.content
+                  : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
+              fields: '{}',
+              align: 0,
+              bgColor: '',
+              position: i,
+              createdAt: 0,
+              updatedAt: 0,
             }));
             if (!cur()) return;
             applyRows(objectIdParam, fakeRows);
@@ -308,7 +470,9 @@ export async function init(objectIdParam: string, source: 'notes' | 'journal' = 
             loaded = true;
             return;
           }
-        } catch { /* fall through */ }
+        } catch {
+          /* fall through */
+        }
       }
       // If backend returned nothing, try localStorage fallback (keyed by UUID now)
       if (!cur()) return;
@@ -319,9 +483,20 @@ export async function init(objectIdParam: string, source: 'notes' | 'journal' = 
           const p: any[] = JSON.parse(fallbackEntry.blocks);
           if (Array.isArray(p) && p.length > 0) {
             const fakeRows: BlockRow[] = p.map((b, i) => ({
-              id: b.id ?? crypto.randomUUID(), objectId: objectIdParam, parentId: null,
-              type: b.type ?? 'text', content: typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
-              fields: '{}', align: 0, bgColor: '', position: i, createdAt: 0, updatedAt: 0,
+              id: b.id ?? crypto.randomUUID(),
+              objectId: objectIdParam,
+              parentId: null,
+              type: b.type ?? 'text',
+              content:
+                typeof b.content === 'string'
+                  ? b.content
+                  : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
+              fields: '{}',
+              align: 0,
+              bgColor: '',
+              position: i,
+              createdAt: 0,
+              updatedAt: 0,
             }));
             if (!cur()) return;
             applyRows(objectIdParam, fakeRows);
@@ -330,7 +505,9 @@ export async function init(objectIdParam: string, source: 'notes' | 'journal' = 
             loaded = true;
             return;
           }
-        } catch { /* fall through */ }
+        } catch {
+          /* fall through */
+        }
       }
       if (!cur()) return;
       initEmpty(objectIdParam);
@@ -356,10 +533,14 @@ export async function init(objectIdParam: string, source: 'notes' | 'journal' = 
 }
 
 /** Focus a block */
-export function focusBlock(id: string) { focusedId = id; }
+export function focusBlock(id: string) {
+  focusedId = id;
+}
 
 /** Blur (clear focus) */
-export function blurBlock() { focusedId = null; }
+export function blurBlock() {
+  focusedId = null;
+}
 
 // ─── Text write-through cache (NO reactive update on keystrokes) ─────
 
@@ -392,26 +573,46 @@ export async function setBlockText(id: string, text: string, marks?: Mark[]) {
 }
 
 /** Flush pending saves */
-export async function flushPendingSaves() { await flushSaves(); }
+export async function flushPendingSaves() {
+  await flushSaves();
+}
 
 // ─── Marks ────────────────────────────────────────────────────────────
 
-export async function toggleMark(blockId: string, markType: MarkType, range: TextRange, param?: string) {
+export async function toggleMark(
+  blockId: string,
+  markType: MarkType,
+  range: TextRange,
+  param?: string
+) {
   const block = blocks.get(blockId);
   if (!block || !isTextBlock(block)) return;
   const ct = block.content as ContentText;
   let marks = [...(ct.marks ?? [])];
-  const ei = marks.findIndex((m) => m.type === markType && m.range.from === range.from && m.range.to === range.to);
+  const ei = marks.findIndex(
+    (m) => m.type === markType && m.range.from === range.from && m.range.to === range.to
+  );
   if (ei >= 0) marks.splice(ei, 1);
   else {
-    marks = marks.filter((m) => m.type !== markType || !(m.range.from < range.to && m.range.to > range.from));
+    marks = marks.filter(
+      (m) => m.type !== markType || !(m.range.from < range.to && m.range.to > range.from)
+    );
     marks.push({ type: markType, range, param });
   }
   marks.sort((a, b) => a.range.from - b.range.from);
 
   blocks.set(blockId, { ...block!, content: { ...ct, marks } });
 
-  try { await invoke('notes_set_text_content', { noteId: getCurrentObjectId(), blockId, text: ct.text, marks }); } catch (e) { console.error('[editor-state] toggleMark', e); }
+  try {
+    await invoke('notes_set_text_content', {
+      noteId: getCurrentObjectId(),
+      blockId,
+      text: ct.text,
+      marks,
+    });
+  } catch (e) {
+    console.error('[editor-state] toggleMark', e);
+  }
 }
 
 export async function applyMarkToSelection(blockId: string, markType: MarkType) {
@@ -443,7 +644,9 @@ export function hasMarkAtSelection(blockId: string, markType: MarkType): boolean
   if (from === to) return false;
   const block = blocks.get(blockId);
   if (!block || !isTextBlock(block)) return false;
-  return ((block.content as ContentText).marks ?? []).some((m) => m.type === markType && m.range.from <= from && m.range.to >= to);
+  return ((block.content as ContentText).marks ?? []).some(
+    (m) => m.type === markType && m.range.from <= from && m.range.to >= to
+  );
 }
 
 // ─── Block mutations ──────────────────────────────────────────────────
@@ -453,7 +656,11 @@ export async function setBlockChecked(blockId: string, checked: boolean) {
   if (!b || !isTextBlock(b)) return;
   const ct = b.content as ContentText;
   blocks.set(blockId, { ...b!, content: { ...ct, checked } });
-  try { await invoke('notes_set_text_checked', { noteId: getCurrentObjectId(), blockId, checked }); } catch (e) { console.error('[editor-state] setBlockChecked', e); }
+  try {
+    await invoke('notes_set_text_checked', { noteId: getCurrentObjectId(), blockId, checked });
+  } catch (e) {
+    console.error('[editor-state] setBlockChecked', e);
+  }
 }
 
 export async function convertBlockStyle(blockId: string, newStyle: TextStyle) {
@@ -463,32 +670,68 @@ export async function convertBlockStyle(blockId: string, newStyle: TextStyle) {
 
   // Update title/description tracking
   const styleNum = Number(newStyle);
-  if (styleNum === TS.Title) { titleBlockId = blockId; }
-  else if (titleBlockId === blockId && styleNum !== TS.Title) { titleBlockId = null; }
-  if (styleNum === TS.Description) { descriptionBlockId = blockId; }
-  else if (descriptionBlockId === blockId && styleNum !== TS.Description) { descriptionBlockId = null; }
+  if (styleNum === TS.Title) {
+    titleBlockId = blockId;
+  } else if (titleBlockId === blockId && styleNum !== TS.Title) {
+    titleBlockId = null;
+  }
+  if (styleNum === TS.Description) {
+    descriptionBlockId = blockId;
+  } else if (descriptionBlockId === blockId && styleNum !== TS.Description) {
+    descriptionBlockId = null;
+  }
 
   blocks.set(blockId, { ...b!, content: { ...ct, style: newStyle } });
-  try { await invoke('notes_set_text_style', { noteId: getCurrentObjectId(), blockIds: [blockId], style: String(newStyle) }); } catch (e) { console.error('[editor-state] convertBlockStyle', e); }
+  try {
+    await invoke('notes_set_text_style', {
+      noteId: getCurrentObjectId(),
+      blockIds: [blockId],
+      style: String(newStyle),
+    });
+  } catch (e) {
+    console.error('[editor-state] convertBlockStyle', e);
+  }
 }
 
-export async function addBlock(afterId?: string, text = '', style: TextStyle = TS.Paragraph): Promise<string> {
+export async function addBlock(
+  afterId?: string,
+  text = '',
+  style: TextStyle = TS.Paragraph
+): Promise<string> {
   const oid = objectId;
   if (!oid) return '';
   const children = rootChildren;
   let position = children.length;
-  if (afterId) { const idx = children.indexOf(afterId); if (idx !== -1) position = idx + 1; }
+  if (afterId) {
+    const idx = children.indexOf(afterId);
+    if (idx !== -1) position = idx + 1;
+  }
   try {
     const result: BlockRow = await invoke('notes_block_create', {
-      params: { noteId: oid, parentId: null, targetId: afterId ?? null, blockType: 'text', content: mkContent(text, style), position, align: 0, bgColor: null },
+      params: {
+        noteId: oid,
+        parentId: null,
+        targetId: afterId ?? null,
+        blockType: 'text',
+        content: mkContent(text, style),
+        position,
+        align: 0,
+        bgColor: null,
+      },
     });
     const newBlock = rowToBlock(result);
     const newId = newBlock.id!;
     blocks.set(newId, newBlock);
-    if (afterId) { const idx = rootChildren.indexOf(afterId); if (idx !== -1) rootChildren.splice(idx + 1, 0, newId); else rootChildren.push(newId); }
-    else rootChildren.push(newId);
+    if (afterId) {
+      const idx = rootChildren.indexOf(afterId);
+      if (idx !== -1) rootChildren.splice(idx + 1, 0, newId);
+      else rootChildren.push(newId);
+    } else rootChildren.push(newId);
     return newId;
-  } catch (e) { console.error('[editor-state] addBlock', e); return ''; }
+  } catch (e) {
+    console.error('[editor-state] addBlock', e);
+    return '';
+  }
 }
 
 export async function deleteBlock(blockId: string) {
@@ -504,7 +747,11 @@ export async function deleteBlock(blockId: string) {
     }
   }
   if (focusedId === blockId) focusedId = null;
-  try { await invoke('notes_block_unlink', { noteId: oid, blockIds: [blockId, ...childIds] }); } catch (e) { console.error('[editor-state] deleteBlock', e); }
+  try {
+    await invoke('notes_block_unlink', { noteId: oid, blockIds: [blockId, ...childIds] });
+  } catch (e) {
+    console.error('[editor-state] deleteBlock', e);
+  }
 }
 
 export async function moveBlock(blockId: string, newIndex: number) {
@@ -514,14 +761,22 @@ export async function moveBlock(blockId: string, newIndex: number) {
   if (idx === -1) return;
   rootChildren.splice(idx, 1);
   rootChildren.splice(Math.min(newIndex, rootChildren.length), 0, blockId);
-  try { await invoke('notes_block_move', { params: { noteId: oid, blockIds: [blockId], targetParentId: null, position: newIndex } }); } catch (e) { console.error('[editor-state] moveBlock', e); }
+  try {
+    await invoke('notes_block_move', {
+      params: { noteId: oid, blockIds: [blockId], targetParentId: null, position: newIndex },
+    });
+  } catch (e) {
+    console.error('[editor-state] moveBlock', e);
+  }
 }
 
 export async function duplicateBlock(blockId: string): Promise<string> {
   const oid = objectId;
   if (!oid || !blocks.get(blockId)) return '';
   try {
-    const rows = await invoke<BlockRow[]>('notes_block_duplicate', { params: { noteId: oid, blockIds: [blockId], targetId: blockId } });
+    const rows = await invoke<BlockRow[]>('notes_block_duplicate', {
+      params: { noteId: oid, blockIds: [blockId], targetId: blockId },
+    });
     const first = rows[0];
     if (!first) return '';
     const nb2 = rowToBlock(first);
@@ -530,16 +785,32 @@ export async function duplicateBlock(blockId: string): Promise<string> {
     if (idx >= 0) rootChildren.splice(idx + 1, 0, nb2.id!);
     else rootChildren.push(nb2.id!);
     return nb2.id!;
-  } catch (e) { console.error('[editor-state] duplicateBlock', e); return ''; }
+  } catch (e) {
+    console.error('[editor-state] duplicateBlock', e);
+    return '';
+  }
 }
 
-export async function addChildBlock(parentId: string, text = '', style: TextStyle = TS.Paragraph): Promise<string> {
+export async function addChildBlock(
+  parentId: string,
+  text = '',
+  style: TextStyle = TS.Paragraph
+): Promise<string> {
   const oid = objectId;
   if (!oid) return '';
   const position = (blocks.get(parentId)?.childrenIds ?? []).length;
   try {
     const result: BlockRow = await invoke('notes_block_create', {
-      params: { noteId: oid, parentId, targetId: null, blockType: 'text', content: mkContent(text, style), position, align: 0, bgColor: null },
+      params: {
+        noteId: oid,
+        parentId,
+        targetId: null,
+        blockType: 'text',
+        content: mkContent(text, style),
+        position,
+        align: 0,
+        bgColor: null,
+      },
     });
     const nb2 = rowToBlock(result);
     const newId = nb2.id!;
@@ -547,7 +818,10 @@ export async function addChildBlock(parentId: string, text = '', style: TextStyl
     const ep = blocks.get(parentId);
     if (ep) blocks.set(parentId, { ...ep, childrenIds: [...(ep.childrenIds ?? []), newId] });
     return newId;
-  } catch (e) { console.error('[editor-state] addChildBlock', e); return ''; }
+  } catch (e) {
+    console.error('[editor-state] addChildBlock', e);
+    return '';
+  }
 }
 
 export async function setBlockColor(blockId: string, color: string) {
@@ -555,14 +829,30 @@ export async function setBlockColor(blockId: string, color: string) {
   if (!b || !isTextBlock(b)) return;
   const ct = b.content as ContentText;
   blocks.set(blockId, { ...b!, content: { ...ct, color } });
-  try { await invoke('notes_set_text_color', { noteId: getCurrentObjectId(), blockIds: [blockId], color }); } catch (e) { console.error('[editor-state] setBlockColor', e); }
+  try {
+    await invoke('notes_set_text_color', {
+      noteId: getCurrentObjectId(),
+      blockIds: [blockId],
+      color,
+    });
+  } catch (e) {
+    console.error('[editor-state] setBlockColor', e);
+  }
 }
 
 export async function setBlockBgColor(blockId: string, bgColor: string) {
   const b = blocks.get(blockId);
   if (!b) return;
   blocks.set(blockId, { ...b!, bgColor: bgColor === 'default' ? undefined : bgColor });
-  try { await invoke('notes_set_background_color', { noteId: getCurrentObjectId(), blockIds: [blockId], color: bgColor }); } catch (e) { console.error('[editor-state] setBlockBgColor', e); }
+  try {
+    await invoke('notes_set_background_color', {
+      noteId: getCurrentObjectId(),
+      blockIds: [blockId],
+      color: bgColor,
+    });
+  } catch (e) {
+    console.error('[editor-state] setBlockBgColor', e);
+  }
 }
 
 export async function setBlockAlign(blockId: string, align: string) {
@@ -571,7 +861,15 @@ export async function setBlockAlign(blockId: string, align: string) {
   if (b) {
     blocks.set(blockId, { ...b, fields: { ...(b.fields ?? {}), hAlign: align } });
   }
-  try { await invoke('notes_set_align', { noteId: getCurrentObjectId(), blockIds: [blockId], align: aMap[align] ?? 0 }); } catch (e) { console.error('[editor-state] setBlockAlign', e); }
+  try {
+    await invoke('notes_set_align', {
+      noteId: getCurrentObjectId(),
+      blockIds: [blockId],
+      align: aMap[align] ?? 0,
+    });
+  } catch (e) {
+    console.error('[editor-state] setBlockAlign', e);
+  }
 }
 
 export async function clearBlockStyle(blockId: string) {
@@ -579,12 +877,18 @@ export async function clearBlockStyle(blockId: string) {
   if (!b || !isTextBlock(b)) return;
   const ct = b.content as ContentText;
   blocks.set(blockId, { ...b!, content: { ...ct, marks: [], color: '' } });
-  try { await invoke('notes_clear_text_style', { noteId: getCurrentObjectId(), blockIds: [blockId] }); } catch (e) { console.error('[editor-state] clearBlockStyle', e); }
+  try {
+    await invoke('notes_clear_text_style', { noteId: getCurrentObjectId(), blockIds: [blockId] });
+  } catch (e) {
+    console.error('[editor-state] clearBlockStyle', e);
+  }
 }
 
 // ─── Read helpers (snapshot access for imperative contexts) ──────────
 
-export function getBlock(id: string): Block | undefined { return blocks.get(id); }
+export function getBlock(id: string): Block | undefined {
+  return blocks.get(id);
+}
 
 export function getChildren(): Block[] {
   return rootChildren.map((id) => blocks.get(id)).filter((b): b is Block => !!b);
@@ -597,11 +901,15 @@ export function getBlockChildren(pid: string): Block[] {
 }
 
 /** Get current objectId — for imperative use */
-export function getObjectId(): string { return objectId ?? ''; }
+export function getObjectId(): string {
+  return objectId ?? '';
+}
 
 // ─── Toggle state ─────────────────────────────────────────────────────
 
-export function isToggleOpen(id: string): boolean { return toggleOpenState.get(id) ?? false; }
+export function isToggleOpen(id: string): boolean {
+  return toggleOpenState.get(id) ?? false;
+}
 
 export function setToggleOpen(id: string, open: boolean) {
   if (toggleOpenState.get(id) === open) return;
@@ -611,16 +919,27 @@ export function setToggleOpen(id: string, open: boolean) {
 
 // ─── System types ─────────────────────────────────────────────────────
 
-export function getSystemTypes() { return SYSTEM_TYPES; }
-export function getSystemRelations() { return SYSTEM_RELATIONS; }
-export function getTypeById(id: string) { return SYSTEM_TYPES.find((t) => t.id === id); }
+export function getSystemTypes() {
+  return SYSTEM_TYPES;
+}
+export function getSystemRelations() {
+  return SYSTEM_RELATIONS;
+}
+export function getTypeById(id: string) {
+  return SYSTEM_TYPES.find((t) => t.id === id);
+}
 
 // ─── Clear blocks (used by JournalEditor) ────────────────────────────
 
 export function clearBlocks() {
   const pid = crypto.randomUUID();
   const newBlocks = new SvelteMap<string, Block>();
-  newBlocks.set(pid, { id: pid, type: BT.Text, childrenIds: [], content: mkContent('', TS.Paragraph) as ContentText });
+  newBlocks.set(pid, {
+    id: pid,
+    type: BT.Text,
+    childrenIds: [],
+    content: mkContent('', TS.Paragraph) as ContentText,
+  });
   blocks = newBlocks;
   rootChildren = [pid];
   focusedId = null;

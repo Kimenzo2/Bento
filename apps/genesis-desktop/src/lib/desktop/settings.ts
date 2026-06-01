@@ -75,14 +75,38 @@ const storeKeys = {
 const themeModeSchema = z.enum(['light', 'dark']);
 // All 27 interface language codes — ported from Anytype-ts src/json/lang.ts
 const languageCodeSchema = z.enum([
-  'en', 'ar', 'be', 'cs', 'da', 'de', 'es', 'fa', 'fr', 'hi',
-  'id', 'it', 'ja', 'ko', 'lt', 'nl', 'no', 'pl', 'pt-BR', 'pt-PT',
-  'ro', 'ru', 'tr', 'uk', 'vi', 'zh-CN', 'zh-TW',
+  'en',
+  'ar',
+  'be',
+  'cs',
+  'da',
+  'de',
+  'es',
+  'fa',
+  'fr',
+  'hi',
+  'id',
+  'it',
+  'ja',
+  'ko',
+  'lt',
+  'nl',
+  'no',
+  'pl',
+  'pt-BR',
+  'pt-PT',
+  'ro',
+  'ru',
+  'tr',
+  'uk',
+  'vi',
+  'zh-CN',
+  'zh-TW',
 ]);
 // Mirrors Anytype's I.DateFormat options from language.tsx
-const dateFormatSchema = z.enum([
-  'MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD.MM.YYYY', 'MMMM D, YYYY',
-]).default('MM/DD/YYYY');
+const dateFormatSchema = z
+  .enum(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD.MM.YYYY', 'MMMM D, YYYY'])
+  .default('MM/DD/YYYY');
 // Mirrors Anytype's I.TimeFormat (H12 / H24)
 const timeFormatSchema = z.enum(['12h', '24h']).default('12h');
 // Mirrors Anytype's firstDayOptions
@@ -323,8 +347,10 @@ function storeDefaults() {
     [storeKeys.cloudBackupScope]: defaultDesktopSettings.cloudBackup.scope,
     [storeKeys.cloudBackupSelectedModules]: defaultDesktopSettings.cloudBackup.selectedModules,
     [storeKeys.cloudBackupLastBackupAt]: defaultDesktopSettings.cloudBackup.lastBackupAt,
-    [storeKeys.cloudBackupLastBackupSizeBytes]: defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
-    [storeKeys.cloudBackupLastBackupObjectPath]: defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
+    [storeKeys.cloudBackupLastBackupSizeBytes]:
+      defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
+    [storeKeys.cloudBackupLastBackupObjectPath]:
+      defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
     [storeKeys.cloudBackupLastBackupStatus]: defaultDesktopSettings.cloudBackup.lastBackupStatus,
     [storeKeys.cloudBackupStorageUsageBytes]: defaultDesktopSettings.cloudBackup.storageUsageBytes,
     [storeKeys.legacyBrowserStorageMigrated]:
@@ -402,8 +428,7 @@ function readLegacyBrowserSettings() {
             window.localStorage.getItem('bento_desktop_sidebar_top') ??
             '',
           10
-        ) ||
-        defaultDesktopSettings.workspace.sidebarTop,
+        ) || defaultDesktopSettings.workspace.sidebarTop,
       tabsEnabled: window.localStorage.getItem('bento_desktop_tabs_enabled') === 'true',
     },
     shortcuts: {
@@ -429,23 +454,38 @@ function readLegacyBrowserSettings() {
       projectUrl: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.projectUrl`) ?? '',
       anonKey: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.anonKey`) ?? '',
       bucketName: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.bucketName`) ?? 'bento-backups',
-      scheduleEnabled: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scheduleEnabled`) === 'true',
-      schedule: cloudBackupScheduleSchema.safeParse(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`)).success
-        ? (window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`) as DesktopSettings['cloudBackup']['schedule'])
+      scheduleEnabled:
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scheduleEnabled`) === 'true',
+      schedule: cloudBackupScheduleSchema.safeParse(
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`)
+      ).success
+        ? (window.localStorage.getItem(
+            `${CLOUD_BACKUP_KEY}.schedule`
+          ) as DesktopSettings['cloudBackup']['schedule'])
         : defaultDesktopSettings.cloudBackup.schedule,
-      scope: cloudBackupScopeSchema.safeParse(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`)).success
-        ? (window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`) as DesktopSettings['cloudBackup']['scope'])
+      scope: cloudBackupScopeSchema.safeParse(
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`)
+      ).success
+        ? (window.localStorage.getItem(
+            `${CLOUD_BACKUP_KEY}.scope`
+          ) as DesktopSettings['cloudBackup']['scope'])
         : defaultDesktopSettings.cloudBackup.scope,
-      selectedModules: parseStringArray(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.selectedModules`)),
+      selectedModules: parseStringArray(
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.selectedModules`)
+      ),
       lastBackupAt: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupAt`),
       lastBackupSizeBytes:
-        Number.parseInt(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupSizeBytes`) ?? '', 10) ||
-        null,
+        Number.parseInt(
+          window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupSizeBytes`) ?? '',
+          10
+        ) || null,
       lastBackupObjectPath: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupObjectPath`),
       lastBackupStatus: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupStatus`),
       storageUsageBytes:
-        Number.parseInt(window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`) ?? '', 10) ||
-        null,
+        Number.parseInt(
+          window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`) ?? '',
+          10
+        ) || null,
     },
   };
 }
@@ -504,10 +544,8 @@ function normalizeSettings(settings: DesktopSettings): DesktopSettings {
         settings.workspace?.sidebarHidden ?? defaultDesktopSettings.workspace.sidebarHidden,
       sidebarWidth:
         settings.workspace?.sidebarWidth ?? defaultDesktopSettings.workspace.sidebarWidth,
-      sidebarTop:
-        settings.workspace?.sidebarTop ?? defaultDesktopSettings.workspace.sidebarTop,
-      tabsEnabled:
-        settings.workspace?.tabsEnabled ?? defaultDesktopSettings.workspace.tabsEnabled,
+      sidebarTop: settings.workspace?.sidebarTop ?? defaultDesktopSettings.workspace.sidebarTop,
+      tabsEnabled: settings.workspace?.tabsEnabled ?? defaultDesktopSettings.workspace.tabsEnabled,
     },
     shortcuts: {
       reopenId: normalizeShortcutId(settings.shortcuts?.reopenId ?? defaultReopenShortcutId),
@@ -526,17 +564,24 @@ function normalizeSettings(settings: DesktopSettings): DesktopSettings {
         ? (settings.cloudBackup?.scope as DesktopSettings['cloudBackup']['scope'])
         : defaultDesktopSettings.cloudBackup.scope,
       selectedModules: Array.isArray(settings.cloudBackup?.selectedModules)
-        ? Array.from(new Set(settings.cloudBackup.selectedModules.filter((value) => !!value.trim())))
+        ? Array.from(
+            new Set(settings.cloudBackup.selectedModules.filter((value) => !!value.trim()))
+          )
         : defaultDesktopSettings.cloudBackup.selectedModules,
-      lastBackupAt: settings.cloudBackup?.lastBackupAt ?? defaultDesktopSettings.cloudBackup.lastBackupAt,
+      lastBackupAt:
+        settings.cloudBackup?.lastBackupAt ?? defaultDesktopSettings.cloudBackup.lastBackupAt,
       lastBackupSizeBytes:
-        settings.cloudBackup?.lastBackupSizeBytes ?? defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
+        settings.cloudBackup?.lastBackupSizeBytes ??
+        defaultDesktopSettings.cloudBackup.lastBackupSizeBytes,
       lastBackupObjectPath:
-        settings.cloudBackup?.lastBackupObjectPath ?? defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
+        settings.cloudBackup?.lastBackupObjectPath ??
+        defaultDesktopSettings.cloudBackup.lastBackupObjectPath,
       lastBackupStatus:
-        settings.cloudBackup?.lastBackupStatus ?? defaultDesktopSettings.cloudBackup.lastBackupStatus,
+        settings.cloudBackup?.lastBackupStatus ??
+        defaultDesktopSettings.cloudBackup.lastBackupStatus,
       storageUsageBytes:
-        settings.cloudBackup?.storageUsageBytes ?? defaultDesktopSettings.cloudBackup.storageUsageBytes,
+        settings.cloudBackup?.storageUsageBytes ??
+        defaultDesktopSettings.cloudBackup.storageUsageBytes,
     },
   });
 }
@@ -561,21 +606,15 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       code: normalizeLanguageCode(
         (await store.get<string>(storeKeys.languageCode)) ?? defaultDesktopSettings.language.code
       ),
-      dateFormat: (dateFormatSchema.safeParse(
-        await store.get<string>(storeKeys.dateFormat)
-      ).success
-        ? (await store.get<string>(storeKeys.dateFormat)) as DesktopDateFormat
-        : defaultDesktopSettings.language.dateFormat),
-      timeFormat: (timeFormatSchema.safeParse(
-        await store.get<string>(storeKeys.timeFormat)
-      ).success
-        ? (await store.get<string>(storeKeys.timeFormat)) as DesktopTimeFormat
-        : defaultDesktopSettings.language.timeFormat),
-      firstDay: (firstDaySchema.safeParse(
-        await store.get<string>(storeKeys.firstDay)
-      ).success
-        ? (await store.get<string>(storeKeys.firstDay)) as DesktopFirstDay
-        : defaultDesktopSettings.language.firstDay),
+      dateFormat: dateFormatSchema.safeParse(await store.get<string>(storeKeys.dateFormat)).success
+        ? ((await store.get<string>(storeKeys.dateFormat)) as DesktopDateFormat)
+        : defaultDesktopSettings.language.dateFormat,
+      timeFormat: timeFormatSchema.safeParse(await store.get<string>(storeKeys.timeFormat)).success
+        ? ((await store.get<string>(storeKeys.timeFormat)) as DesktopTimeFormat)
+        : defaultDesktopSettings.language.timeFormat,
+      firstDay: firstDaySchema.safeParse(await store.get<string>(storeKeys.firstDay)).success
+        ? ((await store.get<string>(storeKeys.firstDay)) as DesktopFirstDay)
+        : defaultDesktopSettings.language.firstDay,
     },
     workspace: {
       sidebarCollapsed:
@@ -641,14 +680,19 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       scheduleEnabled:
         (await store.get<boolean>(storeKeys.cloudBackupScheduleEnabled)) ??
         defaultDesktopSettings.cloudBackup.scheduleEnabled,
-      schedule:
-        cloudBackupScheduleSchema.safeParse(await store.get<string>(storeKeys.cloudBackupSchedule)).success
-          ? ((await store.get<string>(storeKeys.cloudBackupSchedule)) as DesktopSettings['cloudBackup']['schedule'])
-          : defaultDesktopSettings.cloudBackup.schedule,
-      scope:
-        cloudBackupScopeSchema.safeParse(await store.get<string>(storeKeys.cloudBackupScope)).success
-          ? ((await store.get<string>(storeKeys.cloudBackupScope)) as DesktopSettings['cloudBackup']['scope'])
-          : defaultDesktopSettings.cloudBackup.scope,
+      schedule: cloudBackupScheduleSchema.safeParse(
+        await store.get<string>(storeKeys.cloudBackupSchedule)
+      ).success
+        ? ((await store.get<string>(
+            storeKeys.cloudBackupSchedule
+          )) as DesktopSettings['cloudBackup']['schedule'])
+        : defaultDesktopSettings.cloudBackup.schedule,
+      scope: cloudBackupScopeSchema.safeParse(await store.get<string>(storeKeys.cloudBackupScope))
+        .success
+        ? ((await store.get<string>(
+            storeKeys.cloudBackupScope
+          )) as DesktopSettings['cloudBackup']['scope'])
+        : defaultDesktopSettings.cloudBackup.scope,
       selectedModules:
         (await store.get<string[]>(storeKeys.cloudBackupSelectedModules)) ??
         defaultDesktopSettings.cloudBackup.selectedModules,
@@ -710,8 +754,14 @@ async function persistStoreSettings(settings: DesktopSettings) {
   await store.set(storeKeys.cloudBackupScope, settings.cloudBackup.scope);
   await store.set(storeKeys.cloudBackupSelectedModules, settings.cloudBackup.selectedModules);
   await store.set(storeKeys.cloudBackupLastBackupAt, settings.cloudBackup.lastBackupAt);
-  await store.set(storeKeys.cloudBackupLastBackupSizeBytes, settings.cloudBackup.lastBackupSizeBytes);
-  await store.set(storeKeys.cloudBackupLastBackupObjectPath, settings.cloudBackup.lastBackupObjectPath);
+  await store.set(
+    storeKeys.cloudBackupLastBackupSizeBytes,
+    settings.cloudBackup.lastBackupSizeBytes
+  );
+  await store.set(
+    storeKeys.cloudBackupLastBackupObjectPath,
+    settings.cloudBackup.lastBackupObjectPath
+  );
   await store.set(storeKeys.cloudBackupLastBackupStatus, settings.cloudBackup.lastBackupStatus);
   await store.set(storeKeys.cloudBackupStorageUsageBytes, settings.cloudBackup.storageUsageBytes);
   await store.set(
@@ -836,11 +886,11 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
           ...legacySettings.appearance,
         },
         language: { ...current.language, ...nativeMirror?.language, ...legacySettings.language },
-    workspace: {
-      ...current.workspace,
-      ...nativeMirror?.workspace,
-      ...legacySettings.workspace,
-    },
+        workspace: {
+          ...current.workspace,
+          ...nativeMirror?.workspace,
+          ...legacySettings.workspace,
+        },
         window: { ...current.window, ...nativeMirror?.window },
         shortcuts: {
           ...current.shortcuts,

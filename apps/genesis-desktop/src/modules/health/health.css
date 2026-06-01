@@ -1,6 +1,6 @@
 ﻿/* Base container - using transparent background to utilize global theme */
 .health-app-container {
-  --mod-accent: #4CAF50;
+  --mod-accent: #4caf50;
   height: 100%;
   padding: 32px 40px;
   position: relative;
@@ -10,8 +10,14 @@
 }
 
 @keyframes health-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Typography styles */
@@ -19,15 +25,15 @@
   font-size: 32px;
   font-weight: 400;
   margin: 0 0 8px 0;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
 }
 .health-app-container h1 span {
   font-weight: 700;
-  color: var(--text-primary, #F9FAFB);
+  color: var(--text-primary, #f9fafb);
 }
 .health-date {
   font-size: 15px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   margin: 0;
 }
 .health-header {
@@ -46,7 +52,7 @@
   border: none;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   padding: 8px 24px;
   border-radius: 99px;
   cursor: default;
@@ -54,11 +60,11 @@
 }
 .health-nav button:hover {
   background: var(--bg-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text-primary, #F9FAFB);
+  color: var(--text-primary, #f9fafb);
 }
 .health-nav button.active {
   background: var(--bg-active, rgba(255, 255, 255, 0.1));
-  color: var(--text-primary, #F9FAFB);
+  color: var(--text-primary, #f9fafb);
 }
 
 /* Three Rings Container */
@@ -92,9 +98,15 @@
   stroke-linecap: round;
   transition: stroke-dashoffset 1s ease-out;
 }
-.health-ring-green { stroke: #22C55E; }
-.health-ring-blue { stroke: #3B82F6; }
-.health-ring-cyan { stroke: #06B6D4; }
+.health-ring-green {
+  stroke: #22c55e;
+}
+.health-ring-blue {
+  stroke: #3b82f6;
+}
+.health-ring-cyan {
+  stroke: #06b6d4;
+}
 
 .health-ring-content {
   position: absolute;
@@ -103,11 +115,11 @@
   width: 100%;
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary, #F9FAFB);
+  color: var(--text-primary, #f9fafb);
 }
 .health-ring-label {
   font-size: 14px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   margin: 0;
 }
 
@@ -119,7 +131,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 20px 0;
-  color: var(--text-primary, #F9FAFB);
+  color: var(--text-primary, #f9fafb);
 }
 .health-log-list {
   list-style: none;
@@ -147,10 +159,22 @@
   margin-right: 16px;
   color: white;
 }
-.health-icon-workout { background: rgba(34, 197, 94, 0.2); color: #22C55E; }
-.health-icon-meal { background: rgba(245, 158, 11, 0.2); color: #F59E0B; }
-.health-icon-weight { background: rgba(168, 85, 247, 0.2); color: #A855F7; }
-.health-icon-water { background: rgba(6, 182, 212, 0.2); color: #06B6D4; }
+.health-icon-workout {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+.health-icon-meal {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+.health-icon-weight {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+.health-icon-water {
+  background: rgba(6, 182, 212, 0.2);
+  color: #06b6d4;
+}
 
 .health-log-details {
   display: flex;
@@ -164,7 +188,7 @@
 }
 .health-log-time {
   font-size: 13px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
 }
 .health-log-value {
   font-size: 16px;
@@ -185,11 +209,11 @@
   margin-bottom: 16px;
 }
 .health-empty-state p {
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   margin-bottom: 24px;
 }
 .health-start-btn {
-  background: #C8F535;
+  background: #c8f535;
   color: #111318;
   border: none;
   padding: 12px 24px;
@@ -206,7 +230,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #C8F535;
+  background: #c8f535;
   border: none;
   display: flex;
   align-items: center;
@@ -248,8 +272,12 @@
   border: none;
 }
 @keyframes health-slide-up {
-  from { transform: translate(-50%, 100%); }
-  to { transform: translate(-50%, 0); }
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
 }
 
 .health-sheet-handle {
@@ -295,9 +323,9 @@
   color: var(--text-primary, white);
 }
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.health-app-container [class*="-card"],
-.health-app-container [class*="-panel"],
-.health-app-container [class*="-block"],
+.health-app-container [class*='-card'],
+.health-app-container [class*='-panel'],
+.health-app-container [class*='-block'],
 .health-app-container .metric-card,
 .health-app-container .log-item,
 .health-app-container .stat-block {
@@ -306,9 +334,9 @@
   background: var(--card);
   border-radius: 20px;
 }
-.dark .health-app-container [class*="-card"],
-.dark .health-app-container [class*="-panel"],
-.dark .health-app-container [class*="-block"],
+.dark .health-app-container [class*='-card'],
+.dark .health-app-container [class*='-panel'],
+.dark .health-app-container [class*='-block'],
 .dark .health-app-container .metric-card,
 .dark .health-app-container .log-item,
 .dark .health-app-container .stat-block {

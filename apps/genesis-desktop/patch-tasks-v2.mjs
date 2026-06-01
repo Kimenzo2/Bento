@@ -7,7 +7,7 @@ let c = readFileSync(f, 'utf-8');
 if (!c.includes('let showShare')) {
   // Add state variables AFTER 'let showShortcuts = $state(false);'
   c = c.replace(
-    "let showShortcuts = $state(false);\n\n  async function openShare",
+    'let showShortcuts = $state(false);\n\n  async function openShare',
     "let showShortcuts = $state(false);\n\n  // Share\n  let showShare = $state(false);\n  let shareContent = $state('');\n\n  async function openShare"
   );
 }
@@ -26,8 +26,8 @@ if (!c.includes('async function openShare')) {
 if (!c.includes('Share2 size={14}')) {
   // Add Share button after Import button
   c = c.replace(
-    "<button class=\"tasks-sidebar-settings-btn\" onclick={() => { showImport = true; importPreview = null; importResult = null; }} title=\"Import tasks\">\n        <FileText size={14} />\n        <span>Import</span>\n      </button>",
-    "<button class=\"tasks-sidebar-settings-btn\" onclick={() => { showImport = true; importPreview = null; importResult = null; }} title=\"Import tasks\">\n        <FileText size={14} />\n        <span>Import</span>\n      </button>\n      <button class=\"tasks-sidebar-settings-btn\" onclick={openShare} title=\"Share tasks\">\n        <Share2 size={14} />\n        <span>Share</span>\n      </button>"
+    '<button class="tasks-sidebar-settings-btn" onclick={() => { showImport = true; importPreview = null; importResult = null; }} title="Import tasks">\n        <FileText size={14} />\n        <span>Import</span>\n      </button>',
+    '<button class="tasks-sidebar-settings-btn" onclick={() => { showImport = true; importPreview = null; importResult = null; }} title="Import tasks">\n        <FileText size={14} />\n        <span>Import</span>\n      </button>\n      <button class="tasks-sidebar-settings-btn" onclick={openShare} title="Share tasks">\n        <Share2 size={14} />\n        <span>Share</span>\n      </button>'
   );
 }
 

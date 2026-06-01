@@ -35,21 +35,21 @@ The important boundary is that the webview owns the UI, but the Rust side owns a
 
 ## 3. Repository Map
 
-| File | Role |
-| --- | --- |
-| `apps/genesis-desktop/package.json` | Bun scripts and the frontend/runtime dependency graph |
-| `apps/genesis-desktop/src/app.css` | Shell-level layout, overflow rules, scroll containment, and resize-safe root styling |
+| File                                                           | Role                                                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `apps/genesis-desktop/package.json`                            | Bun scripts and the frontend/runtime dependency graph                                      |
+| `apps/genesis-desktop/src/app.css`                             | Shell-level layout, overflow rules, scroll containment, and resize-safe root styling       |
 | `apps/genesis-desktop/src/lib/components/RuntimeBridge.svelte` | Bootstraps theme variables, language state, deep links, update checks, and the MCP sidecar |
-| `apps/genesis-desktop/src/lib/components/WindowShell.svelte` | Custom titlebar, window controls, and drag region |
-| `apps/genesis-desktop/src/lib/ai/mastra.config.ts` | Declarative Mastra configuration used by the desktop app |
-| `apps/genesis-desktop/src/lib/ai/mcp-client.ts` | Tauri invoke wrapper for the local MCP sidecar |
-| `apps/genesis-desktop/src-tauri/tauri.conf.json` | Native window defaults, capabilities, and Tauri runtime config |
-| `apps/genesis-desktop/src-tauri/Cargo.toml` | Rust crate graph, plugin dependencies, and dev/release profiles |
-| `apps/genesis-desktop/src-tauri/src/lib.rs` | Main Tauri builder, plugin registration, panic bootstrap, and window setup |
-| `apps/genesis-desktop/src-tauri/src/commands/mod.rs` | Tauri commands and sidecar process management |
-| `apps/genesis-desktop/src-tauri/src/window_bounds.rs` | Monitor-aware restore logic for off-screen protection |
-| `apps/genesis-desktop/src-tauri/src/mcp/mod.rs` | Legacy custom stdio JSON-RPC bridge and message types |
-| `apps/genesis-desktop/src-tauri/src/bin/genesis-mcp.rs` | Stand-alone MCP sidecar binary |
+| `apps/genesis-desktop/src/lib/components/WindowShell.svelte`   | Custom titlebar, window controls, and drag region                                          |
+| `apps/genesis-desktop/src/lib/ai/mastra.config.ts`             | Declarative Mastra configuration used by the desktop app                                   |
+| `apps/genesis-desktop/src/lib/ai/mcp-client.ts`                | Tauri invoke wrapper for the local MCP sidecar                                             |
+| `apps/genesis-desktop/src-tauri/tauri.conf.json`               | Native window defaults, capabilities, and Tauri runtime config                             |
+| `apps/genesis-desktop/src-tauri/Cargo.toml`                    | Rust crate graph, plugin dependencies, and dev/release profiles                            |
+| `apps/genesis-desktop/src-tauri/src/lib.rs`                    | Main Tauri builder, plugin registration, panic bootstrap, and window setup                 |
+| `apps/genesis-desktop/src-tauri/src/commands/mod.rs`           | Tauri commands and sidecar process management                                              |
+| `apps/genesis-desktop/src-tauri/src/window_bounds.rs`          | Monitor-aware restore logic for off-screen protection                                      |
+| `apps/genesis-desktop/src-tauri/src/mcp/mod.rs`                | Legacy custom stdio JSON-RPC bridge and message types                                      |
+| `apps/genesis-desktop/src-tauri/src/bin/genesis-mcp.rs`        | Stand-alone MCP sidecar binary                                                             |
 
 ## 4. Frontend Architecture
 
@@ -352,4 +352,3 @@ Genesis Desktop v1 is a native desktop shell wrapped around a Svelte app and a R
 - Bun handles frontend dependencies and scripts
 
 That division is what makes the app maintainable. If any one layer starts doing another layer’s job, the shell becomes fragile very quickly.
-

@@ -68,12 +68,12 @@ function nowSecs(): number {
  */
 function fromComponents(
   year: number,
-  month: number,       // 1-12
+  month: number, // 1-12
   day: number,
   hours = 0,
   minutes = 0,
   seconds = 0,
-  ms = 0,
+  ms = 0
 ): number {
   return new Date(year, month - 1, day, hours, minutes, seconds, ms).getTime();
 }
@@ -95,15 +95,30 @@ function parseDate(value: string, format?: DateFormatId): number {
 
   // Manual parsing
   const [datePart, timePart] = value.split(' ');
-  let d = 0, m = 0, y = 0, h = 0, i = 0, s = 0;
+  let d = 0,
+    m = 0,
+    y = 0,
+    h = 0,
+    i = 0,
+    s = 0;
 
   const parts = (datePart || '').split(/[./-]/);
   switch (format) {
-    case 'YYYY-MM-DD': [y, m, d] = parts.map(Number); break;
-    case 'MM/DD/YYYY': [m, d, y] = parts.map(Number); break;
-    case 'DD/MM/YYYY': [d, m, y] = parts.map(Number); break;
-    case 'DD.MM.YYYY': [d, m, y] = parts.map(Number); break;
-    default:           [d, m, y] = parts.map(Number); break;
+    case 'YYYY-MM-DD':
+      [y, m, d] = parts.map(Number);
+      break;
+    case 'MM/DD/YYYY':
+      [m, d, y] = parts.map(Number);
+      break;
+    case 'DD/MM/YYYY':
+      [d, m, y] = parts.map(Number);
+      break;
+    case 'DD.MM.YYYY':
+      [d, m, y] = parts.map(Number);
+      break;
+    default:
+      [d, m, y] = parts.map(Number);
+      break;
   }
 
   if (timePart) {
@@ -163,11 +178,7 @@ function _pad(n: number, len = 2): string {
   return String(n).padStart(len, '0');
 }
 
-function _formatIntl(
-  ts: number,
-  opts: Intl.DateTimeFormatOptions,
-  locale = 'en-US',
-): string {
+function _formatIntl(ts: number, opts: Intl.DateTimeFormatOptions, locale = 'en-US'): string {
   return new Intl.DateTimeFormat(locale, opts).format(new Date(ts));
 }
 
@@ -178,12 +189,20 @@ function _formatIntl(
 function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
   const d = new Date(ts);
   const pad = _pad;
-  const dayNames = [
-    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
-  ];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   // Use locale for localized names when available
@@ -254,11 +273,16 @@ function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
 /** Resolve a DateFormatId to a PHP-style format string (Anytype's dateFormat()) */
 function _dateFormatString(fmt: DateFormatId): string {
   switch (fmt) {
-    case 'MM/DD/YYYY':   return 'm/d/Y';
-    case 'DD/MM/YYYY':   return 'd/m/Y';
-    case 'YYYY-MM-DD':   return 'Y-m-d';
-    case 'DD.MM.YYYY':   return 'd.m.Y';
-    case 'MMMM D, YYYY': return 'F j, Y';
+    case 'MM/DD/YYYY':
+      return 'm/d/Y';
+    case 'DD/MM/YYYY':
+      return 'd/m/Y';
+    case 'YYYY-MM-DD':
+      return 'Y-m-d';
+    case 'DD.MM.YYYY':
+      return 'd.m.Y';
+    case 'MMMM D, YYYY':
+      return 'F j, Y';
   }
 }
 
@@ -367,7 +391,8 @@ function elapsed(ms: number): string {
   const abs = Math.abs(ms);
   if (abs < SECONDS) return 'just now';
   if (abs < MINUTES) return `${Math.floor(abs / SECONDS)}s ago`;
-  if (abs < HOURS) return `${Math.floor(abs / MINUTES)}m ${Math.floor((abs % MINUTES) / SECONDS)}s ago`;
+  if (abs < HOURS)
+    return `${Math.floor(abs / MINUTES)}m ${Math.floor((abs % MINUTES) / SECONDS)}s ago`;
   if (abs < DAY) return `${Math.floor(abs / HOURS)}h ${Math.floor((abs % HOURS) / MINUTES)}m ago`;
   return `${Math.floor(abs / DAY)}d ${Math.floor((abs % DAY) / HOURS)}h ago`;
 }
@@ -400,7 +425,7 @@ function isTomorrow(ts: number): boolean {
 
 interface CalendarDate {
   year: number;
-  month: number;   // 1-12
+  month: number; // 1-12
   day: number;
 }
 
@@ -434,8 +459,12 @@ function mergeDateAndTime(dateTs: number, timeTs: number): number {
   const date = getCalendarDate(dateTs);
   const time = getDate(timeTs);
   return new Date(
-    date.year, date.month - 1, date.day,
-    time.hours, time.minutes, time.seconds,
+    date.year,
+    date.month - 1,
+    date.day,
+    time.hours,
+    time.minutes,
+    time.seconds
   ).getTime();
 }
 
@@ -473,7 +502,7 @@ interface DayInfo {
   month: number;
   day: number;
   ts: number;
-  weekday: number;   // 1-7 (Mon-Sun)
+  weekday: number; // 1-7 (Mon-Sun)
   isToday: boolean;
   isWeekend: boolean;
   isCurrentMonth: boolean;
@@ -490,8 +519,18 @@ interface YearInfo {
 }
 
 const MONTH_DAYS: Record<number, number> = {
-  1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-  7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31,
+  1: 31,
+  2: 28,
+  3: 31,
+  4: 30,
+  5: 31,
+  6: 30,
+  7: 31,
+  8: 31,
+  9: 30,
+  10: 31,
+  11: 30,
+  12: 31,
 };
 
 function isLeapYear(year: number): boolean {
@@ -511,11 +550,7 @@ function getMonthDays(year: number): Record<number, number> {
  * Generate calendar month grid (Anytype's getCalendarMonth).
  * Returns array of DayInfo objects including days from adjacent months.
  */
-function getCalendarMonth(
-  ts: number,
-  firstDay: 0 | 1 | 6 = 0,
-  locale = 'en-US',
-): DayInfo[] {
+function getCalendarMonth(ts: number, firstDay: 0 | 1 | 6 = 0, locale = 'en-US'): DayInfo[] {
   const { year, month } = getCalendarDate(ts);
   const md = getMonthDays(year);
   const todayTs = today();
@@ -542,7 +577,9 @@ function getCalendarMonth(
     const d = prevMonthDays - i;
     const ts2 = fromComponents(prevYear, prevMonth, d);
     days.push({
-      year: prevYear, month: prevMonth, day: d,
+      year: prevYear,
+      month: prevMonth,
+      day: d,
       ts: ts2,
       weekday: new Date(ts2).getDay() || 7,
       isToday: dayStart(ts2) === todayTs,
@@ -555,7 +592,9 @@ function getCalendarMonth(
   for (let d = 1; d <= md[month]; d++) {
     const ts2 = fromComponents(year, month, d);
     days.push({
-      year, month, day: d,
+      year,
+      month,
+      day: d,
       ts: ts2,
       weekday: new Date(ts2).getDay() || 7,
       isToday: dayStart(ts2) === todayTs,
@@ -571,7 +610,9 @@ function getCalendarMonth(
   for (let d = 1; d <= remainingCells; d++) {
     const ts2 = fromComponents(nextYear, nextMonth, d);
     days.push({
-      year: nextYear, month: nextMonth, day: d,
+      year: nextYear,
+      month: nextMonth,
+      day: d,
       ts: ts2,
       weekday: new Date(ts2).getDay() || 7,
       isToday: dayStart(ts2) === todayTs,
@@ -589,7 +630,7 @@ function getCalendarMonth(
 function getWeekDays(firstDay: 0 | 1 | 6 = 0, locale = 'en-US'): { id: number; name: string }[] {
   const days: { id: number; name: string }[] = [];
   for (let i = 1; i <= 7; i++) {
-    const id = ((i + firstDay - 1) % 7) || 7;
+    const id = (i + firstDay - 1) % 7 || 7;
     const date = new Date(2024, 0, id); // Jan 7, 2024 is a Sunday
     const name = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date);
     days.push({ id, name });

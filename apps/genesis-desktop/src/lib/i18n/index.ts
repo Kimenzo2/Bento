@@ -20,9 +20,7 @@ const englishBundle = _defaultBundle as TranslationBundle;
 export const defaultBundle: TranslationBundle = new Proxy(englishBundle, {
   get(target, prop, receiver) {
     if (typeof prop === 'string') {
-      return Object.prototype.hasOwnProperty.call(target, prop)
-        ? target[prop]
-        : `⚠️${prop}⚠️`;
+      return Object.prototype.hasOwnProperty.call(target, prop) ? target[prop] : `⚠️${prop}⚠️`;
     }
     return Reflect.get(target, prop, receiver);
   },
@@ -54,7 +52,10 @@ const POSITIONAL_PLACEHOLDERS = [
   'id',
 ];
 
-function applyTranslationReplacements(value: string, replacements?: TranslationReplacements): string {
+function applyTranslationReplacements(
+  value: string,
+  replacements?: TranslationReplacements
+): string {
   if (!replacements) return value;
 
   if (Array.isArray(replacements)) {
@@ -87,12 +88,15 @@ export function createTranslator(bundle: TranslationBundle | undefined) {
     ...positionalReplacements: TranslationValue[]
   ): string => {
     const hasPositionalReplacements = positionalReplacements.length > 0;
-    const fallback = typeof fallbackOrReplacements === 'string' && !hasPositionalReplacements
-      ? fallbackOrReplacements
-      : undefined;
+    const fallback =
+      typeof fallbackOrReplacements === 'string' && !hasPositionalReplacements
+        ? fallbackOrReplacements
+        : undefined;
     const replacements = hasPositionalReplacements
       ? ([fallbackOrReplacements, ...positionalReplacements] as TranslationValue[])
-      : (typeof fallbackOrReplacements === 'string' ? undefined : fallbackOrReplacements);
+      : typeof fallbackOrReplacements === 'string'
+        ? undefined
+        : fallbackOrReplacements;
 
     return translateFromBundle(bundle, key, fallback, replacements);
   };
@@ -106,33 +110,33 @@ export type LocaleTag = string;
  * These are the locales Bento ships UI translations for.
  */
 export const INTERFACE_LANGUAGES = [
-  { code: 'en',    label: 'English',             direction: 'ltr', locale: 'en-US' },
-  { code: 'ar',    label: 'العربية',              direction: 'rtl', locale: 'ar-SA' },
-  { code: 'be',    label: 'Беларуская',           direction: 'ltr', locale: 'be-BY' },
-  { code: 'cs',    label: 'Čeština',              direction: 'ltr', locale: 'cs-CZ' },
-  { code: 'da',    label: 'Dansk',                direction: 'ltr', locale: 'da-DK' },
-  { code: 'de',    label: 'Deutsch',              direction: 'ltr', locale: 'de-DE' },
-  { code: 'es',    label: 'Español',              direction: 'ltr', locale: 'es-ES' },
-  { code: 'fa',    label: 'فارسی',                direction: 'rtl', locale: 'fa-IR' },
-  { code: 'fr',    label: 'Français',             direction: 'ltr', locale: 'fr-FR' },
-  { code: 'hi',    label: 'हिन्दी',               direction: 'ltr', locale: 'hi-IN' },
-  { code: 'id',    label: 'Bahasa Indonesia',     direction: 'ltr', locale: 'id-ID' },
-  { code: 'it',    label: 'Italiano',             direction: 'ltr', locale: 'it-IT' },
-  { code: 'ja',    label: '日本語',               direction: 'ltr', locale: 'ja-JP' },
-  { code: 'ko',    label: '한국어',               direction: 'ltr', locale: 'ko-KR' },
-  { code: 'lt',    label: 'Lietuvių',             direction: 'ltr', locale: 'lt-LT' },
-  { code: 'nl',    label: 'Nederlands',           direction: 'ltr', locale: 'nl-NL' },
-  { code: 'no',    label: 'Norsk',                direction: 'ltr', locale: 'no-NO' },
-  { code: 'pl',    label: 'Polski',               direction: 'ltr', locale: 'pl-PL' },
-  { code: 'pt-BR', label: 'Português (Brasil)',   direction: 'ltr', locale: 'pt-BR' },
+  { code: 'en', label: 'English', direction: 'ltr', locale: 'en-US' },
+  { code: 'ar', label: 'العربية', direction: 'rtl', locale: 'ar-SA' },
+  { code: 'be', label: 'Беларуская', direction: 'ltr', locale: 'be-BY' },
+  { code: 'cs', label: 'Čeština', direction: 'ltr', locale: 'cs-CZ' },
+  { code: 'da', label: 'Dansk', direction: 'ltr', locale: 'da-DK' },
+  { code: 'de', label: 'Deutsch', direction: 'ltr', locale: 'de-DE' },
+  { code: 'es', label: 'Español', direction: 'ltr', locale: 'es-ES' },
+  { code: 'fa', label: 'فارسی', direction: 'rtl', locale: 'fa-IR' },
+  { code: 'fr', label: 'Français', direction: 'ltr', locale: 'fr-FR' },
+  { code: 'hi', label: 'हिन्दी', direction: 'ltr', locale: 'hi-IN' },
+  { code: 'id', label: 'Bahasa Indonesia', direction: 'ltr', locale: 'id-ID' },
+  { code: 'it', label: 'Italiano', direction: 'ltr', locale: 'it-IT' },
+  { code: 'ja', label: '日本語', direction: 'ltr', locale: 'ja-JP' },
+  { code: 'ko', label: '한국어', direction: 'ltr', locale: 'ko-KR' },
+  { code: 'lt', label: 'Lietuvių', direction: 'ltr', locale: 'lt-LT' },
+  { code: 'nl', label: 'Nederlands', direction: 'ltr', locale: 'nl-NL' },
+  { code: 'no', label: 'Norsk', direction: 'ltr', locale: 'no-NO' },
+  { code: 'pl', label: 'Polski', direction: 'ltr', locale: 'pl-PL' },
+  { code: 'pt-BR', label: 'Português (Brasil)', direction: 'ltr', locale: 'pt-BR' },
   { code: 'pt-PT', label: 'Português (Portugal)', direction: 'ltr', locale: 'pt-PT' },
-  { code: 'ro',    label: 'Română',               direction: 'ltr', locale: 'ro-RO' },
-  { code: 'ru',    label: 'Русский',              direction: 'ltr', locale: 'ru-RU' },
-  { code: 'tr',    label: 'Türkçe',               direction: 'ltr', locale: 'tr-TR' },
-  { code: 'uk',    label: 'Українська',           direction: 'ltr', locale: 'uk-UA' },
-  { code: 'vi',    label: 'Tiếng Việt',           direction: 'ltr', locale: 'vi-VN' },
-  { code: 'zh-CN', label: '简体中文',             direction: 'ltr', locale: 'zh-CN' },
-  { code: 'zh-TW', label: '繁體中文',             direction: 'ltr', locale: 'zh-TW' },
+  { code: 'ro', label: 'Română', direction: 'ltr', locale: 'ro-RO' },
+  { code: 'ru', label: 'Русский', direction: 'ltr', locale: 'ru-RU' },
+  { code: 'tr', label: 'Türkçe', direction: 'ltr', locale: 'tr-TR' },
+  { code: 'uk', label: 'Українська', direction: 'ltr', locale: 'uk-UA' },
+  { code: 'vi', label: 'Tiếng Việt', direction: 'ltr', locale: 'vi-VN' },
+  { code: 'zh-CN', label: '简体中文', direction: 'ltr', locale: 'zh-CN' },
+  { code: 'zh-TW', label: '繁體中文', direction: 'ltr', locale: 'zh-TW' },
 ] as const;
 
 export type LanguageCode = (typeof INTERFACE_LANGUAGES)[number]['code'];
@@ -169,8 +173,8 @@ export type TimeFormatId = (typeof TIME_FORMATS)[number]['id'];
  * First day of week options — ported from Anytype
  */
 export const FIRST_DAY_OPTIONS = [
-  { id: 'monday',   label: 'Monday'   },
-  { id: 'sunday',   label: 'Sunday'   },
+  { id: 'monday', label: 'Monday' },
+  { id: 'sunday', label: 'Sunday' },
   { id: 'saturday', label: 'Saturday' },
 ] as const;
 
@@ -180,10 +184,9 @@ export type FirstDayId = (typeof FIRST_DAY_OPTIONS)[number]['id'];
 // Same pattern as Anytype's import.meta.glob — eagerly indexed at build time,
 // loaded lazily per language on demand.
 
-const localeModules = import.meta.glob<{ default: TranslationBundle }>(
-  '$lib/i18n/locales/*.json',
-  { eager: false }
-);
+const localeModules = import.meta.glob<{ default: TranslationBundle }>('$lib/i18n/locales/*.json', {
+  eager: false,
+});
 
 const bundleCache = new Map<string, TranslationBundle>();
 bundleCache.set('en', englishBundle);
@@ -231,11 +234,7 @@ export const activeLang = writable<string>('en');
  */
 export function t(key: string, forceBundle?: TranslationBundle): string {
   const bundle = forceBundle ?? get(activeBundle);
-  return (
-    bundle[key] ??
-    defaultBundle[key] ??
-    `⚠️${key}⚠️`
-  );
+  return bundle[key] ?? defaultBundle[key] ?? `⚠️${key}⚠️`;
 }
 
 /**
@@ -260,11 +259,7 @@ export async function applyLanguage(code: string): Promise<void> {
 
 import { time } from '$lib/utils/time';
 
-export function formatDate(
-  date: Date,
-  formatId: DateFormatId,
-  locale: string
-): string {
+export function formatDate(date: Date, formatId: DateFormatId, locale: string): string {
   return time.formatDate(date.getTime(), formatId, locale);
 }
 

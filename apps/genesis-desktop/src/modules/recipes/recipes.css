@@ -2,7 +2,7 @@
 /* Matches the class names used in App.svelte exactly.                  */
 
 .recipes-app {
-  --mod-accent: #F6A623;
+  --mod-accent: #f6a623;
   --recipes-bg: var(--mod-bg, var(--mod-bg-recipes));
   --recipes-ink: var(--foreground);
   --recipes-muted: var(--muted);
@@ -58,7 +58,10 @@
   font-weight: 500;
   cursor: default;
   white-space: nowrap;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .recipes-chip:hover {
@@ -95,7 +98,9 @@
   width: 100%;
   padding: 0;
   color: var(--foreground);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .recipes-card:hover {
@@ -258,7 +263,9 @@
   font-weight: 500;
   cursor: default;
   white-space: nowrap;
-  transition: background 0.1s ease, border-color 0.1s ease;
+  transition:
+    background 0.1s ease,
+    border-color 0.1s ease;
 }
 
 .recipes-fab-option:hover {
@@ -267,9 +274,9 @@
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.recipes-app [class*="-card"],
-.recipes-app [class*="-panel"],
-.recipes-app [class*="-block"],
+.recipes-app [class*='-card'],
+.recipes-app [class*='-panel'],
+.recipes-app [class*='-block'],
 .recipes-app .recipe-item {
   border: none !important;
   box-shadow: none !important;

@@ -19,15 +19,22 @@ if (showShortcutsIdx === -1) {
 }
 
 // Check if showShare is already there
-let alreadyHasShare = lines.some(l => l.includes('let showShare'));
+let alreadyHasShare = lines.some((l) => l.includes('let showShare'));
 if (!alreadyHasShare) {
-  lines.splice(showShortcutsIdx + 1, 0, '', '  // Share', '  let showShare = $state(false);', '  let shareContent = $state(\'\');');
+  lines.splice(
+    showShortcutsIdx + 1,
+    0,
+    '',
+    '  // Share',
+    '  let showShare = $state(false);',
+    "  let shareContent = $state('');"
+  );
   console.log('Added showShare and shareContent state variables.');
 }
 
 // --- Step 2: Add openShare function ---
 // Find the position after the share state vars and before Shortcuts/comments
-let openShareExists = lines.some(l => l.includes('async function openShare'));
+let openShareExists = lines.some((l) => l.includes('async function openShare'));
 if (!openShareExists) {
   // Find where to insert - after the share state variables, before '// Overdue reschedule dialog'
   let insertIdx = -1;
@@ -37,29 +44,40 @@ if (!openShareExists) {
       break;
     }
   }
-  
+
   if (insertIdx > 0) {
-    lines.splice(insertIdx, 0, '',
+    lines.splice(
+      insertIdx,
+      0,
+      '',
       '  async function openShare() {',
       '    const allTasks = await listTasks({ limit: 10000 });',
       '    shareContent = formatTasksAsMarkdown(allTasks, `Bento Tasks — ${viewTitle}`);',
       '    showShare = true;',
-      '  }');
+      '  }'
+    );
     console.log('Added openShare function.');
   }
 }
 
 // --- Step 3: Add Share button in sidebar ---
-let hasShareButton = lines.some(l => l.includes('Share2 size={14}'));
+let hasShareButton = lines.some((l) => l.includes('Share2 size={14}'));
 if (!hasShareButton) {
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('title="Import tasks"') && lines[i+1] && lines[i+1].includes('FileText')) {
+    if (
+      lines[i].includes('title="Import tasks"') &&
+      lines[i + 1] &&
+      lines[i + 1].includes('FileText')
+    ) {
       // Found the Import button, add Share after it
-      lines.splice(i + 3, 0,
+      lines.splice(
+        i + 3,
+        0,
         '      <button class="tasks-sidebar-settings-btn" onclick={openShare} title="Share tasks">',
         '        <Share2 size={14} />',
         '        <span>Share</span>',
-        '      </button>');
+        '      </button>'
+      );
       break;
     }
   }

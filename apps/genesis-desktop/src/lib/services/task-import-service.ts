@@ -47,7 +47,9 @@ export function detectImportFormat(fileName: string, content: string): string {
       if (parsed && typeof parsed === 'object' && 'items' in parsed && 'projects' in parsed) {
         return 'todoist';
       }
-    } catch { /* not JSON */ }
+    } catch {
+      /* not JSON */
+    }
   }
 
   if (ext === 'csv') {
@@ -104,13 +106,17 @@ function parseTodoist(content: string): ImportPreview {
   const projects = data.projects ?? [];
   const items = data.items ?? [];
 
-  const projectNames = new Map(projects.map(p => [p.id, p.name]));
+  const projectNames = new Map(projects.map((p) => [p.id, p.name]));
 
-  const entries: ImportPreviewEntry[] = items.map(item => {
+  const entries: ImportPreviewEntry[] = items.map((item) => {
     const projectName = projectNames.get(item.project_id) ?? 'inbox';
-    const project = projectName.toLowerCase() === 'inbox'
-      ? 'inbox'
-      : projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'inbox';
+    const project =
+      projectName.toLowerCase() === 'inbox'
+        ? 'inbox'
+        : projectName
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '') || 'inbox';
 
     let dueDate: string | null = null;
     if (item.due?.datetime) {
@@ -124,7 +130,7 @@ function parseTodoist(content: string): ImportPreview {
       priority: priorityMap[item.priority] ?? 'none',
       project: project === 'inbox' ? 'inbox' : project,
       dueDate,
-      tags: (item.labels ?? []).map(l => l.toLowerCase()),
+      tags: (item.labels ?? []).map((l) => l.toLowerCase()),
       notes: item.description ?? '',
       done: item.checked === 1,
     };
@@ -151,7 +157,7 @@ function parseTodoist(content: string): ImportPreview {
 function parseThings3Csv(content: string): ImportPreview {
   const lines = content.trim().split('\n');
   // Skip header row
-  const dataLines = lines.slice(1).filter(l => l.trim());
+  const dataLines = lines.slice(1).filter((l) => l.trim());
   const entries: ImportPreviewEntry[] = [];
 
   for (const line of dataLines) {
@@ -174,7 +180,11 @@ function parseThings3Csv(content: string): ImportPreview {
     // Determine project
     let project = 'inbox';
     if (projectRaw) {
-      project = projectRaw.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'inbox';
+      project =
+        projectRaw
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '') || 'inbox';
     }
     if (somedayRaw.toLowerCase() === 'true') {
       project = 'someday';
@@ -188,7 +198,12 @@ function parseThings3Csv(content: string): ImportPreview {
       dueDate = parseThingsDate(whenRaw);
     }
 
-    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
+    const tags = tagsRaw
+      ? tagsRaw
+          .split(',')
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
 
     entries.push({
       title,
@@ -214,7 +229,9 @@ function parseThingsDate(raw: string): string | null {
   try {
     const d = new Date(raw);
     if (!isNaN(d.getTime())) return d.getTime().toString();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
@@ -228,16 +245,16 @@ function parseThingsDate(raw: string): string | null {
  */
 
 const tickTickPriorityMap: Record<string, string> = {
-  'high': 'urgent',
-  'urgent': 'urgent',
-  'medium': 'high',
-  'low': 'medium',
-  'none': 'none',
+  high: 'urgent',
+  urgent: 'urgent',
+  medium: 'high',
+  low: 'medium',
+  none: 'none',
 };
 
 function parseTickTickCsv(content: string): ImportPreview {
   const lines = content.trim().split('\n');
-  const dataLines = lines.slice(1).filter(l => l.trim());
+  const dataLines = lines.slice(1).filter((l) => l.trim());
   const entries: ImportPreviewEntry[] = [];
 
   for (const line of dataLines) {
@@ -259,7 +276,10 @@ function parseTickTickCsv(content: string): ImportPreview {
     // Determine project from folder/list
     const projectSource = list || folder;
     const project = projectSource
-      ? projectSource.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'inbox'
+      ? projectSource
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '') || 'inbox'
       : 'inbox';
 
     // Parse due date
@@ -268,10 +288,17 @@ function parseTickTickCsv(content: string): ImportPreview {
       try {
         const d = new Date(dueDateRaw);
         if (!isNaN(d.getTime())) dueDate = d.getTime().toString();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
-    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
+    const tags = tagsRaw
+      ? tagsRaw
+          .split(',')
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
 
     entries.push({
       title,
@@ -296,14 +323,14 @@ function parseTickTickCsv(content: string): ImportPreview {
 
 export function detectConflicts(
   entries: ImportPreviewEntry[],
-  existingTitles: Map<string, { id: string; title: string; done: boolean }>,
+  existingTitles: Map<string, { id: string; title: string; done: boolean }>
 ): ConflictEntry[] {
   const conflicts: ConflictEntry[] = [];
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
     const normalized = entry.title.trim().toLowerCase();
     const match = Array.from(existingTitles.entries()).find(
-      ([key]) => key.toLowerCase() === normalized,
+      ([key]) => key.toLowerCase() === normalized
     );
     if (match) {
       conflicts.push({
@@ -325,13 +352,13 @@ export async function executeImport(
   preview: ImportPreview,
   conflicts: ConflictEntry[],
   existingTasks: Map<string, { id: string; title: string }>,
-  saveFn: (params: SaveTaskParams) => Promise<{ id: string }>,
+  saveFn: (params: SaveTaskParams) => Promise<{ id: string }>
 ): Promise<ImportResult> {
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
 
-  const conflictResolutions = new Map(conflicts.map(c => [c.rowIndex, c.resolve]));
+  const conflictResolutions = new Map(conflicts.map((c) => [c.rowIndex, c.resolve]));
 
   for (let i = 0; i < preview.entries.length; i++) {
     const entry = preview.entries[i];

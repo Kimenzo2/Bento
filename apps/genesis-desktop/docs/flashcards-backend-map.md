@@ -9,6 +9,7 @@ The Flashcards module (`src/modules/flashcards/App.svelte`) is a **spaced-repeti
 ## What Changed
 
 ### REMOVED (mock data + localStorage):
+
 - `import { browser } from "$app/environment"` — removed, no longer needed
 - `type PersistedState` — entire interface removed
 - `const STORAGE_KEY` / `const LEGACY_KEY` — removed
@@ -21,6 +22,7 @@ The Flashcards module (`src/modules/flashcards/App.svelte`) is a **spaced-repeti
 - `seedExamples()` — removed (no "install example packs" CTA)
 
 ### ADDED:
+
 - `import { invoke } from '@tauri-apps/api/core'`
 - `type RawRecallCard` / `type RawRecallDeck` — for serde JSON from Rust
 - `mapCard()` / `mapDeck()` — adapters: `RawRecallCard`→`RecallCard`
@@ -33,6 +35,7 @@ The Flashcards module (`src/modules/flashcards/App.svelte`) is a **spaced-repeti
 - `gradeCard(SRS)` → calls `invoke("flashcards_card_grade", { payload })`
 
 ### KEPT EXACTLY (zero changes):
+
 - ALL template/HTML (`<main class="recall-workspace">` and all sections)
 - ALL CSS (`<style>` — 890 lines unchanged)
 - ALL derived variables (`$derived`)
@@ -41,6 +44,7 @@ The Flashcards module (`src/modules/flashcards/App.svelte`) is a **spaced-repeti
 - ALL translation / i18n references (`_t(...)`)
 
 ### MODIFIED (minor):
+
 - `captureDeckId` type: `string | null` → `string | undefined`
 - `resolveDeck` parameter: `string | null` → `string | null | undefined`
 - `gradeCard` local variable typing to resolve `never` issue
@@ -67,6 +71,7 @@ Added a full-screen empty state when `decks.length === 0`:
 ```
 
 Also added:
+
 - `:global(.recall-empty-state)` — grid centered with 64px icon
 - `:global(.recall-empty-state__actions)` — CTA button area
 
@@ -107,18 +112,18 @@ CREATE TABLE IF NOT EXISTS flashcard_cards (
 
 ### Commands registered in `lib.rs`:
 
-| Command | Input | Output | Purpose |
-|---|---|---|---|
-| `flashcards_list` | — | `Vec<RecallDeckRow>` | Load all decks with nested cards |
-| `flashcards_deck_create` | `{title, context, note}` | `RecallDeckRow` | Create new empty deck |
-| `flashcards_deck_delete` | `{deck_id}` | `void` | Delete deck + cascade cards |
-| `flashcards_card_create` | `{deck_id, cue, anchor, context}` | `RecallCardRow` | Add flashcard to deck |
-| `flashcards_card_grade` | `{card_id, grade, due_at, interval_days, ease, streak, mastery}` | `RecallCardRow` | Persist SRS update |
-| `flashcards_card_toggle_pin` | `{card_id}` | `RecallCardRow` | Toggle pinned state |
-| `flashcards_card_archive` | `{card_id}` | `void` | Soft-delete card |
-| `flashcards_card_restore` | `{card_id}` | `void` | Restore archived card |
-| `flashcards_search` | `{query}` | `Vec<RecallDeckRow>` | Full-text search across title/note/cue/anchor |
-| `flashcards_review_queue` | `{deck_id?: Option<String>}` | `Vec<RecallCardRow>` | Get due cards (pinned first, due ascending, mastery descending) |
+| Command                      | Input                                                            | Output               | Purpose                                                         |
+| ---------------------------- | ---------------------------------------------------------------- | -------------------- | --------------------------------------------------------------- |
+| `flashcards_list`            | —                                                                | `Vec<RecallDeckRow>` | Load all decks with nested cards                                |
+| `flashcards_deck_create`     | `{title, context, note}`                                         | `RecallDeckRow`      | Create new empty deck                                           |
+| `flashcards_deck_delete`     | `{deck_id}`                                                      | `void`               | Delete deck + cascade cards                                     |
+| `flashcards_card_create`     | `{deck_id, cue, anchor, context}`                                | `RecallCardRow`      | Add flashcard to deck                                           |
+| `flashcards_card_grade`      | `{card_id, grade, due_at, interval_days, ease, streak, mastery}` | `RecallCardRow`      | Persist SRS update                                              |
+| `flashcards_card_toggle_pin` | `{card_id}`                                                      | `RecallCardRow`      | Toggle pinned state                                             |
+| `flashcards_card_archive`    | `{card_id}`                                                      | `void`               | Soft-delete card                                                |
+| `flashcards_card_restore`    | `{card_id}`                                                      | `void`               | Restore archived card                                           |
+| `flashcards_search`          | `{query}`                                                        | `Vec<RecallDeckRow>` | Full-text search across title/note/cue/anchor                   |
+| `flashcards_review_queue`    | `{deck_id?: Option<String>}`                                     | `Vec<RecallCardRow>` | Get due cards (pinned first, due ascending, mastery descending) |
 
 ### SRS Algorithm: Client-Side (kept in App.svelte)
 

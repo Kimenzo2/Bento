@@ -1,7 +1,7 @@
 /* goals.css - Flat UI (No shadows, no blur, no blobs, no global app backgrounds) */
 
 .goals-app-container {
-  --mod-accent: #7CB342;
+  --mod-accent: #7cb342;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -59,9 +59,11 @@
   flex-grow: 1;
   overflow-y: auto;
   padding: 16px 32px 100px;
-  scrollbar-width: none; 
+  scrollbar-width: none;
 }
-.goals-content::-webkit-scrollbar { display: none; }
+.goals-content::-webkit-scrollbar {
+  display: none;
+}
 
 /* Flat Weekly Check-in Card */
 .weekly-checkin-card {
@@ -86,7 +88,8 @@
 }
 
 .checkin-icon-wrapper {
-  width: 56px; height: 56px;
+  width: 56px;
+  height: 56px;
   border-radius: 16px;
   background: #6366f1;
   display: flex;
@@ -154,13 +157,22 @@
   margin: 0;
   font-weight: 500;
 }
-.text-red { color: #f43f5e; }
-.text-gray { color: #a1a1aa; }
-.mr-1 { margin-right: 4px; }
-.text-green { color: #10b981; }
+.text-red {
+  color: #f43f5e;
+}
+.text-gray {
+  color: #a1a1aa;
+}
+.mr-1 {
+  margin-right: 4px;
+}
+.text-green {
+  color: #10b981;
+}
 
 .goal-icon-box {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   background: var(--surface);
   display: flex;
@@ -288,7 +300,8 @@
 .close-modal-btn {
   background: var(--surface);
   border: none;
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 16px;
   color: #e4e4e7;
   cursor: default;
@@ -368,9 +381,9 @@
   cursor: default;
 }
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.goals-app-container [class*="-card"],
-.goals-app-container [class*="-panel"],
-.goals-app-container [class*="-block"],
+.goals-app-container [class*='-card'],
+.goals-app-container [class*='-panel'],
+.goals-app-container [class*='-block'],
 .goals-app-container .goal-item {
   border: none !important;
   box-shadow: none !important;

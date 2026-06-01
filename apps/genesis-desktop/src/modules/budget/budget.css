@@ -1,7 +1,7 @@
 /* .budget-app-container is legacy — template now uses .budget-shell.
    Background is controlled by card-system.css + .budget-shell token. */
 .budget-app-container {
-  --mod-accent: #E07A5F;
+  --mod-accent: #e07a5f;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -11,8 +11,12 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .budget-header {
@@ -37,7 +41,7 @@
 .icon-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   cursor: default;
   padding: 8px;
   border-radius: 50%;
@@ -49,7 +53,7 @@
 
 .icon-btn:hover {
   background: var(--bg-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text-primary, #F9FAFB);
+  color: var(--text-primary, #f9fafb);
 }
 
 .assign-banner {
@@ -68,17 +72,24 @@
   background: rgba(245, 158, 11, 0.15);
   border: none;
   border-radius: 20px;
-  color: #FCD34D;
+  color: #fcd34d;
 }
 .all-assigned {
   background: rgba(34, 197, 94, 0.15);
   border: none;
   border-radius: 20px;
-  color: #86EFAC;
+  color: #86efac;
 }
 
-.banner-icon { font-size: 20px; margin-right: 12px; }
-.banner-text { flex-grow: 1; font-weight: 600; font-size: 16px; }
+.banner-icon {
+  font-size: 20px;
+  margin-right: 12px;
+}
+.banner-text {
+  flex-grow: 1;
+  font-weight: 600;
+  font-size: 16px;
+}
 
 .budget-content {
   flex-grow: 1;
@@ -86,12 +97,14 @@
   padding: 0 32px 100px;
 }
 
-.category-group { margin-bottom: 32px; }
+.category-group {
+  margin-bottom: 32px;
+}
 .group-header {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   margin: 0 0 16px 8px;
 }
 
@@ -126,8 +139,12 @@
   font-weight: 600;
   font-size: 15px;
 }
-.category-amount.positive { color: #4ADE80; }
-.category-amount.negative { color: #F87171; }
+.category-amount.positive {
+  color: #4ade80;
+}
+.category-amount.negative {
+  color: #f87171;
+}
 
 .progress-bar-container {
   height: 6px;
@@ -167,7 +184,7 @@
 
 .summary-label {
   font-size: 12px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -201,17 +218,22 @@
   border-radius: 24px 24px 0 0;
   padding: 24px 32px 40px;
   border: 1px solid var(--border);
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
   animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .sheet-handle {
-  width: 40px; height: 5px;
+  width: 40px;
+  height: 5px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
   margin: 0 auto 24px;
@@ -232,11 +254,12 @@
 
 .form-group label {
   font-size: 14px;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   font-weight: 500;
 }
 
-.form-group input, .form-group select {
+.form-group input,
+.form-group select {
   background: var(--surface);
   border: 1px solid var(--border);
   padding: 12px 16px;
@@ -246,7 +269,8 @@
   width: 100%;
   outline: none;
 }
-.form-group input:focus, .form-group select:focus {
+.form-group input:focus,
+.form-group select:focus {
   border-color: var(--accent);
 }
 
@@ -261,7 +285,7 @@
   transform: translateY(-50%);
   font-size: 32px;
   font-weight: bold;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
   z-index: 10;
 }
 .amount-group .amount-input {
@@ -281,7 +305,7 @@
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: var(--text-secondary, #9CA3AF);
+  color: var(--text-secondary, #9ca3af);
 }
 select {
   appearance: none;
@@ -306,9 +330,9 @@ select {
 /* ── Card System Fix ──────────────────────────────────────────────── */
 /* Remove all borders and shadows from budget cards */
 .budget-app-container .card,
-.budget-app-container [class*="-card"],
-.budget-app-container [class*="-panel"],
-.budget-app-container [class*="-block"],
+.budget-app-container [class*='-card'],
+.budget-app-container [class*='-panel'],
+.budget-app-container [class*='-block'],
 .budget-app-container .summary-card,
 .budget-app-container .stat-card,
 .budget-app-container .transaction-item {
@@ -318,9 +342,9 @@ select {
   border-radius: 20px;
 }
 .dark .budget-app-container .card,
-.dark .budget-app-container [class*="-card"],
-.dark .budget-app-container [class*="-panel"],
-.dark .budget-app-container [class*="-block"],
+.dark .budget-app-container [class*='-card'],
+.dark .budget-app-container [class*='-panel'],
+.dark .budget-app-container [class*='-block'],
 .dark .budget-app-container .summary-card,
 .dark .budget-app-container .stat-card,
 .dark .budget-app-container .transaction-item {

@@ -8,47 +8,47 @@
 
 ## 1. Existing Systems Discovered
 
-| System | Status | Notes |
-|---|---|---|
-| Sleep module (Svelte frontend) | ✅ Stable | Manual entry UI, no Rust backend backing |
-| Health module (Svelte frontend) | ✅ Stable | Basic manual logging UI |
-| Water module (Svelte frontend) | ✅ Stable | Hydration tracking UI |
-| Nutrition module (Svelte frontend) | ✅ Stable | Meal logging, macro display |
-| Focus module (Svelte frontend) | ✅ Stable | Pomodoro timer UI |
-| Habits module (Svelte frontend) | ✅ Stable | Streak display, completion tracking |
-| Mood module (Svelte frontend) | ✅ Stable | Emotion logging with Daylio-style UI |
-| Time module (Svelte frontend) | ✅ Stable | Timer and schedule UI |
-| Tauri plugin system | ✅ Stable | notification, clipboard, dialog, fs all present |
-| SQLite (db.rs) | ✅ Stable | Schema migration system, 40+ tables |
-| Module context persistence | ✅ Stable | module_context saves scroll/state across switches |
-| Telemetry system | ✅ Stable | Ring buffer, anomaly detection, AI healing |
+| System                             | Status    | Notes                                             |
+| ---------------------------------- | --------- | ------------------------------------------------- |
+| Sleep module (Svelte frontend)     | ✅ Stable | Manual entry UI, no Rust backend backing          |
+| Health module (Svelte frontend)    | ✅ Stable | Basic manual logging UI                           |
+| Water module (Svelte frontend)     | ✅ Stable | Hydration tracking UI                             |
+| Nutrition module (Svelte frontend) | ✅ Stable | Meal logging, macro display                       |
+| Focus module (Svelte frontend)     | ✅ Stable | Pomodoro timer UI                                 |
+| Habits module (Svelte frontend)    | ✅ Stable | Streak display, completion tracking               |
+| Mood module (Svelte frontend)      | ✅ Stable | Emotion logging with Daylio-style UI              |
+| Time module (Svelte frontend)      | ✅ Stable | Timer and schedule UI                             |
+| Tauri plugin system                | ✅ Stable | notification, clipboard, dialog, fs all present   |
+| SQLite (db.rs)                     | ✅ Stable | Schema migration system, 40+ tables               |
+| Module context persistence         | ✅ Stable | module_context saves scroll/state across switches |
+| Telemetry system                   | ✅ Stable | Ring buffer, anomaly detection, AI healing        |
 
 ## 2. Missing Systems Implemented (NEW)
 
 ### Rust Backend — 4 new modules
 
-| Module | File | Lines | Key Components |
-|---|---|---|---|
-| **health-core** | `src-tauri/src/health/mod.rs` | ~280 | HealthEvent, SleepEvent, HydrationEntry, MoodEntry, FocusSession, TrendResult (with direction detection), HealthScore (composite 0-100), HealthDataProvider trait (wearable adapter interface), UTC helpers |
-| **scheduler** | `src-tauri/src/scheduler/mod.rs` | ~340 | Schedule types (Once/Daily/Weekly/Custom), ScheduleStore (CRUD + get_due), background tokio worker (30s interval), 5 Tauri commands |
-| **notifications** | `src-tauri/src/notifications/mod.rs` | ~280 | NotificationRecord, NotificationStore (record/dismiss/snooze/recent/pending-snoozed), OS notification dispatch via tauri-plugin-notification, 4 Tauri commands |
-| **analytics** | `src-tauri/src/analytics/mod.rs` | ~570 | StreakCalculator (longest + current streak from sorted dates), HealthAggregator (daily sleep/hydration/mood/focus/energy queries with TrendResult), wellness score computation (composite 0-100), 6 Tauri commands |
+| Module            | File                                 | Lines | Key Components                                                                                                                                                                                                     |
+| ----------------- | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **health-core**   | `src-tauri/src/health/mod.rs`        | ~280  | HealthEvent, SleepEvent, HydrationEntry, MoodEntry, FocusSession, TrendResult (with direction detection), HealthScore (composite 0-100), HealthDataProvider trait (wearable adapter interface), UTC helpers        |
+| **scheduler**     | `src-tauri/src/scheduler/mod.rs`     | ~340  | Schedule types (Once/Daily/Weekly/Custom), ScheduleStore (CRUD + get_due), background tokio worker (30s interval), 5 Tauri commands                                                                                |
+| **notifications** | `src-tauri/src/notifications/mod.rs` | ~280  | NotificationRecord, NotificationStore (record/dismiss/snooze/recent/pending-snoozed), OS notification dispatch via tauri-plugin-notification, 4 Tauri commands                                                     |
+| **analytics**     | `src-tauri/src/analytics/mod.rs`     | ~570  | StreakCalculator (longest + current streak from sorted dates), HealthAggregator (daily sleep/hydration/mood/focus/energy queries with TrendResult), wellness score computation (composite 0-100), 6 Tauri commands |
 
 ### SQLite Schema — 8 new tables + 9 new indexes
 
-| Table | Purpose | Key Indexes |
-|---|---|---|
-| `health_events` | Unified health event store (module + type + value + metadata + time range) | `(module_id, event_type, logged_at DESC)`, `(logged_at DESC)` |
-| `schedules` | Persistent reminders (once/daily/weekly/custom, interval, start/end, next fire) | `(enabled, next_fire_at)`, `(module_id, enabled)` |
-| `notification_history` | Full notification audit trail (fired, dismissed, snoozed, actioned) | `(module_id, fired_at DESC)`, `(snoozed_until)` |
-| `streaks` | Per-module streak tracking with UNIQUE constraint | `(module_id, streak_type)`, `(current_streak DESC)` |
+| Table                  | Purpose                                                                         | Key Indexes                                                   |
+| ---------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `health_events`        | Unified health event store (module + type + value + metadata + time range)      | `(module_id, event_type, logged_at DESC)`, `(logged_at DESC)` |
+| `schedules`            | Persistent reminders (once/daily/weekly/custom, interval, start/end, next fire) | `(enabled, next_fire_at)`, `(module_id, enabled)`             |
+| `notification_history` | Full notification audit trail (fired, dismissed, snoozed, actioned)             | `(module_id, fired_at DESC)`, `(snoozed_until)`               |
+| `streaks`              | Per-module streak tracking with UNIQUE constraint                               | `(module_id, streak_type)`, `(current_streak DESC)`           |
 
 ### TypeScript Services — 2 new files
 
-| Service | File | Lines | Key Capabilities |
-|---|---|---|---|
-| **Event Bus** | `src/lib/services/event-bus.ts` | ~180 | 32 typed GenesisEventTypes, EventBus class (on/onAny/emit), 200-event history store, `initEventBridge()` for Tauri IPC (bridges `genesis://schedule-fire` and `genesis://module-switch`) |
-| **Passive Intelligence** | `src/lib/services/passive-intelligence.ts` | ~420 | Idle detection (configurable threshold), focus session tracking, daily rhythm computation, activity log, burnout risk assessment (4 signal categories), `attachInputTracking()`, `trackModuleSwitch()` |
+| Service                  | File                                       | Lines | Key Capabilities                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Event Bus**            | `src/lib/services/event-bus.ts`            | ~180  | 32 typed GenesisEventTypes, EventBus class (on/onAny/emit), 200-event history store, `initEventBridge()` for Tauri IPC (bridges `genesis://schedule-fire` and `genesis://module-switch`)               |
+| **Passive Intelligence** | `src/lib/services/passive-intelligence.ts` | ~420  | Idle detection (configurable threshold), focus session tracking, daily rhythm computation, activity log, burnout risk assessment (4 signal categories), `attachInputTracking()`, `trackModuleSwitch()` |
 
 ### Wiring — `lib.rs`
 
@@ -58,47 +58,47 @@
 
 ## 3. Weak Systems Repaired
 
-| Issue | Location | Fix |
-|---|---|---|
-| `editingBlockId` undefined in Notes | `src/modules/notes/App.svelte` | Added `let editingBlockId = $state<string \| null>(null)` |
-| Self-closing `<span>` tags (4 instances) | nutrition, recipes modules | Changed to proper `<span>...</span>` |
-| Dialog a11y warnings (grocery) | `src/modules/grocery/App.svelte` | Added `tabindex="-1"`, Escape handlers, `role="presentation"` |
-| Unused CSS warnings (Notes) | `src/modules/notes/App.svelte` | Added `:global()` to 3 component-scoped selectors |
-| Dead loop in streak calculator | `src-tauri/src/analytics/mod.rs` | Removed first loop that was immediately shadowed by re-declarations |
-| Compile error: `.and_then()` on `&str` | `src-tauri/src/analytics/mod.rs` | Changed to `NaiveDate::parse_from_str(last, ...).ok()` |
-| Idle duration always 0 | `src/lib/services/passive-intelligence.ts` | Added `idleStartedAt` field, compute real duration on idle end |
-| Daily counters never reset | `src/lib/services/passive-intelligence.ts` | Added `checkDayRollover()` called before each input record |
-| Scheduler `end_at` boundary ignored | `src-tauri/src/scheduler/mod.rs` | `advance()` now disables schedule if past `end_at` |
-| Snoozed notifications never re-fired | `src-tauri/src/scheduler/mod.rs` | Worker now polls `get_pending_snoozed()` and re-dispatches |
+| Issue                                    | Location                                   | Fix                                                                 |
+| ---------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
+| `editingBlockId` undefined in Notes      | `src/modules/notes/App.svelte`             | Added `let editingBlockId = $state<string \| null>(null)`           |
+| Self-closing `<span>` tags (4 instances) | nutrition, recipes modules                 | Changed to proper `<span>...</span>`                                |
+| Dialog a11y warnings (grocery)           | `src/modules/grocery/App.svelte`           | Added `tabindex="-1"`, Escape handlers, `role="presentation"`       |
+| Unused CSS warnings (Notes)              | `src/modules/notes/App.svelte`             | Added `:global()` to 3 component-scoped selectors                   |
+| Dead loop in streak calculator           | `src-tauri/src/analytics/mod.rs`           | Removed first loop that was immediately shadowed by re-declarations |
+| Compile error: `.and_then()` on `&str`   | `src-tauri/src/analytics/mod.rs`           | Changed to `NaiveDate::parse_from_str(last, ...).ok()`              |
+| Idle duration always 0                   | `src/lib/services/passive-intelligence.ts` | Added `idleStartedAt` field, compute real duration on idle end      |
+| Daily counters never reset               | `src/lib/services/passive-intelligence.ts` | Added `checkDayRollover()` called before each input record          |
+| Scheduler `end_at` boundary ignored      | `src-tauri/src/scheduler/mod.rs`           | `advance()` now disables schedule if past `end_at`                  |
+| Snoozed notifications never re-fired     | `src-tauri/src/scheduler/mod.rs`           | Worker now polls `get_pending_snoozed()` and re-dispatches          |
 
 ## 4. Performance Risks Detected
 
-| Risk | Severity | Location | Recommendation |
-|---|---|---|---|
-| Scheduler worker polls every 30s | 🟢 Low | `src-tauri/src/scheduler/mod.rs` | Acceptable for health reminders (hydration, bedtime). For precision scheduling, reduce to 10s or use tokio::time::sleep_until |
-| Passive intelligence `setInterval` runs when backgrounded | 🟡 Medium | `src/lib/services/passive-intelligence.ts` | Check `document.visibilityState` before running burnout assessment |
-| Activity log unbounded in memory | 🟢 Low | `src/lib/services/passive-intelligence.ts` | Already trimmed to 7 days, but could be moved to SQLite for persistence |
-| Event bus history at 200 events | 🟢 Low | `src/lib/services/event-bus.ts` | Acceptable — Rust backend handles long-term persistence |
-| No batch insert for health events | 🟢 Low | `src-tauri/src/analytics/mod.rs` | Acceptable for manual logging volume. Add batch insert if wearable data arrives |
+| Risk                                                      | Severity  | Location                                   | Recommendation                                                                                                                |
+| --------------------------------------------------------- | --------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Scheduler worker polls every 30s                          | 🟢 Low    | `src-tauri/src/scheduler/mod.rs`           | Acceptable for health reminders (hydration, bedtime). For precision scheduling, reduce to 10s or use tokio::time::sleep_until |
+| Passive intelligence `setInterval` runs when backgrounded | 🟡 Medium | `src/lib/services/passive-intelligence.ts` | Check `document.visibilityState` before running burnout assessment                                                            |
+| Activity log unbounded in memory                          | 🟢 Low    | `src/lib/services/passive-intelligence.ts` | Already trimmed to 7 days, but could be moved to SQLite for persistence                                                       |
+| Event bus history at 200 events                           | 🟢 Low    | `src/lib/services/event-bus.ts`            | Acceptable — Rust backend handles long-term persistence                                                                       |
+| No batch insert for health events                         | 🟢 Low    | `src-tauri/src/analytics/mod.rs`           | Acceptable for manual logging volume. Add batch insert if wearable data arrives                                               |
 
 ## 5. Privacy Risks Detected
 
-| Risk | Severity | Status |
-|---|---|---|
-| Keystroke content recording | ✅ NONE | `passive-intelligence.ts` only captures timing, never content |
-| External data transmission | ✅ NONE | All processing is local, no cloud dependencies |
-| Telemetry sending health data | ✅ NONE | Telemetry ring buffer tracks performance, not health metrics |
-| User tracking without consent | ✅ NONE | Passive intelligence has `enabled: boolean` config, defaults to true but toggleable |
-| Log leakage of personal data | ✅ NONE | `activityLog` stores only timestamps, types, and module IDs |
+| Risk                          | Severity | Status                                                                              |
+| ----------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| Keystroke content recording   | ✅ NONE  | `passive-intelligence.ts` only captures timing, never content                       |
+| External data transmission    | ✅ NONE  | All processing is local, no cloud dependencies                                      |
+| Telemetry sending health data | ✅ NONE  | Telemetry ring buffer tracks performance, not health metrics                        |
+| User tracking without consent | ✅ NONE  | Passive intelligence has `enabled: boolean` config, defaults to true but toggleable |
+| Log leakage of personal data  | ✅ NONE  | `activityLog` stores only timestamps, types, and module IDs                         |
 
 ## 6. Persistence Risks Detected
 
-| Risk | Severity | Status |
-|---|---|---|
-| Health events lost on crash | 🟢 Low | SQLite WAL mode provides crash recovery. Each event is an atomic INSERT |
-| Schedule fire missed during app restart | 🟡 Medium | Scheduler checks `get_due()` on every 30s tick. If app was closed for 2 hours, all due schedules fire immediately on next tick — could cause a burst of notifications |
-| Notification history unbounded growth | 🟢 Low | No automatic pruning yet. Add a cleanup job that deletes records older than 90 days |
-| Streak data out of sync after missed days | 🟢 Low | Streaks are computed from `activity_dates` array on each `update_streak` call, so state is always derived from source data |
+| Risk                                      | Severity  | Status                                                                                                                                                                |
+| ----------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health events lost on crash               | 🟢 Low    | SQLite WAL mode provides crash recovery. Each event is an atomic INSERT                                                                                               |
+| Schedule fire missed during app restart   | 🟡 Medium | Scheduler checks `get_due()` on every 30s tick. If app was closed for 2 hours, all due schedules fire immediately on next tick — could cause a burst of notifications |
+| Notification history unbounded growth     | 🟢 Low    | No automatic pruning yet. Add a cleanup job that deletes records older than 90 days                                                                                   |
+| Streak data out of sync after missed days | 🟢 Low    | Streaks are computed from `activity_dates` array on each `update_streak` call, so state is always derived from source data                                            |
 
 ## 7. Architecture Improvements Completed
 
@@ -115,36 +115,36 @@
 
 ## 8. Future Wearable Readiness Status
 
-| Component | Status | Notes |
-|---|---|---|
-| Provider-agnostic adapter trait | ✅ Ready | `HealthDataProvider` trait defined in `health/mod.rs` — implement for each wearable |
-| Unified internal schema | ✅ Ready | `health_events` table accepts module_id + event_type — wearable data maps naturally |
-| Adapter-based integration | 🟡 Prepared | Trait exists but no concrete adapters yet. Ready for Apple Watch, Fitbit, Oura, Garmin, Whoop |
-| Sync-ready infrastructure | ✅ Ready | UTC timestamps, normalized events, provider-agnostic IDs |
+| Component                       | Status      | Notes                                                                                         |
+| ------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| Provider-agnostic adapter trait | ✅ Ready    | `HealthDataProvider` trait defined in `health/mod.rs` — implement for each wearable           |
+| Unified internal schema         | ✅ Ready    | `health_events` table accepts module_id + event_type — wearable data maps naturally           |
+| Adapter-based integration       | 🟡 Prepared | Trait exists but no concrete adapters yet. Ready for Apple Watch, Fitbit, Oura, Garmin, Whoop |
+| Sync-ready infrastructure       | ✅ Ready    | UTC timestamps, normalized events, provider-agnostic IDs                                      |
 
 ## 9. Passive Intelligence Readiness Status
 
-| Component | Status | Notes |
-|---|---|---|
-| Idle detection | ✅ Complete | Configurable threshold (default 5min), fires `IdleDetected` event |
-| Focus session tracking | ✅ Complete | Tracks from `FocusStarted`/`FocusEnded` events + module switch time |
-| Activity windows | ✅ Complete | `ActivityEvent[]` log with daily rhythm computation |
-| Sleep estimation | 🔲 Not implemented | Requires sleep module integration — future enhancement |
-| Burnout risk detection | ✅ Complete | 4 signal categories (late_night, declining_focus, missed_breaks, low_quality) |
-| Consistency scoring | 🟡 Partial | Streak tracking covers habits, trend direction covers health metrics |
-| Temporal behavior analysis | 🟡 Partial | Peak productivity hour detected, but no weekly/monthly pattern analysis yet |
+| Component                  | Status             | Notes                                                                         |
+| -------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| Idle detection             | ✅ Complete        | Configurable threshold (default 5min), fires `IdleDetected` event             |
+| Focus session tracking     | ✅ Complete        | Tracks from `FocusStarted`/`FocusEnded` events + module switch time           |
+| Activity windows           | ✅ Complete        | `ActivityEvent[]` log with daily rhythm computation                           |
+| Sleep estimation           | 🔲 Not implemented | Requires sleep module integration — future enhancement                        |
+| Burnout risk detection     | ✅ Complete        | 4 signal categories (late_night, declining_focus, missed_breaks, low_quality) |
+| Consistency scoring        | 🟡 Partial         | Streak tracking covers habits, trend direction covers health metrics          |
+| Temporal behavior analysis | 🟡 Partial         | Peak productivity hour detected, but no weekly/monthly pattern analysis yet   |
 
 ## 10. Cross-App Intelligence Readiness Status
 
-| Component | Status | Notes |
-|---|---|---|
-| Typed event system | ✅ Complete | 32 GenesisEventTypes across health, habits, tasks, focus, goals, time, mood, sleep, passive |
-| Pub/sub infrastructure | ✅ Complete | EventBus class with type-specific and catch-all listeners |
-| Tauri IPC bridge | ✅ Complete | Bridges `genesis://schedule-fire` and `genesis://module-switch` |
-| History store | ✅ Complete | 200-event ring buffer for dashboard widgets |
-| Event-driven architecture | ✅ Complete | Clean signal flow without module coupling |
-| Modular analytics pipelines | ✅ Complete | HealthAggregator queries by module + event type |
-| Future AI compatibility | ✅ Ready | Signals flow through typed bus — AI agent subsystem can subscribe without modifying modules |
+| Component                   | Status      | Notes                                                                                       |
+| --------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| Typed event system          | ✅ Complete | 32 GenesisEventTypes across health, habits, tasks, focus, goals, time, mood, sleep, passive |
+| Pub/sub infrastructure      | ✅ Complete | EventBus class with type-specific and catch-all listeners                                   |
+| Tauri IPC bridge            | ✅ Complete | Bridges `genesis://schedule-fire` and `genesis://module-switch`                             |
+| History store               | ✅ Complete | 200-event ring buffer for dashboard widgets                                                 |
+| Event-driven architecture   | ✅ Complete | Clean signal flow without module coupling                                                   |
+| Modular analytics pipelines | ✅ Complete | HealthAggregator queries by module + event type                                             |
+| Future AI compatibility     | ✅ Ready    | Signals flow through typed bus — AI agent subsystem can subscribe without modifying modules |
 
 ---
 
@@ -197,16 +197,16 @@
 ## Database Summary
 
 **Total tables before:** ~30  
-**Total tables after:** 34  
+**Total tables after:** 34
 
 ### New tables (8)
 
-| Table | Columns | Row Estimate | Indexes |
-|---|---|---|---|
-| `health_events` | id, module_id, event_type, value, unit, metadata, started_at, ended_at, logged_at | ~100/day/module | 2 |
-| `schedules` | id, module_id, label, schedule_type, interval_seconds, start_at, end_at, last_fired_at, next_fire_at, enabled, created_at, updated_at | ~5-20/user | 2 |
-| `notification_history` | id, schedule_id, module_id, title, body, fired_at, dismissed_at, snoozed_until, action_taken | ~10-30/day | 1 |
-| `streaks` | id, module_id, streak_type, current_streak, longest_streak, last_activity_date, started_at, updated_at | ~15/user | 2 |
+| Table                  | Columns                                                                                                                               | Row Estimate    | Indexes |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------- |
+| `health_events`        | id, module_id, event_type, value, unit, metadata, started_at, ended_at, logged_at                                                     | ~100/day/module | 2       |
+| `schedules`            | id, module_id, label, schedule_type, interval_seconds, start_at, end_at, last_fired_at, next_fire_at, enabled, created_at, updated_at | ~5-20/user      | 2       |
+| `notification_history` | id, schedule_id, module_id, title, body, fired_at, dismissed_at, snoozed_until, action_taken                                          | ~10-30/day      | 1       |
+| `streaks`              | id, module_id, streak_type, current_streak, longest_streak, last_activity_date, started_at, updated_at                                | ~15/user        | 2       |
 
 ## Scheduler Flow Summary
 

@@ -172,7 +172,7 @@ jobs:
           tagName: ${{ needs.prepare.outputs.tag_name }}
           releaseName: Bento v${{ needs.prepare.outputs.version }}
           releaseDraft: true
-          releaseId: ""
+          releaseId: ''
           bundles: ${{ matrix.bundles }}
           target: ${{ matrix.target }}
           architecture: ${{ matrix.arch }}

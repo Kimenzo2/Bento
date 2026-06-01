@@ -5,7 +5,8 @@
 /* Bricolage Grotesque Variable — self-hosted, static/fonts/bricolage/ */
 @font-face {
   font-family: 'Bricolage Grotesque Variable';
-  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2') format('woff2-variations');
+  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2')
+    format('woff2-variations');
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;
@@ -13,7 +14,8 @@
 /* Legacy alias so any remaining 'Bricolage Grotesque' references still work */
 @font-face {
   font-family: 'Bricolage Grotesque';
-  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2') format('woff2-variations');
+  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2')
+    format('woff2-variations');
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;
@@ -93,40 +95,40 @@
 :root {
   /* ── Font roles ────────────────────────────────────────────────── */
   --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif;
-  --font-body:    'General Sans', system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono Variable', ui-monospace, 'JetBrains Mono', monospace;
+  --font-body: 'General Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'JetBrains Mono', monospace;
   /* Tailwind alias — keeps @theme inline working */
   --font-heading: var(--font-display);
-  --font-sans:    var(--font-body);
+  --font-sans: var(--font-body);
 
   /* ── Type scale (fixed px — not responsive) ────────────────────── */
-  --font-size-xs:   11px;
-  --font-size-sm:   13px;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
   --font-size-base: 15px;
-  --font-size-md:   17px;
-  --font-size-lg:   22px;
-  --font-size-xl:   28px;
-  --font-size-2xl:  36px;
-  --font-size-3xl:  48px;
+  --font-size-md: 17px;
+  --font-size-lg: 22px;
+  --font-size-xl: 28px;
+  --font-size-2xl: 36px;
+  --font-size-3xl: 48px;
   --font-size-hero: 64px;
 
   /* ── Weight scale ───────────────────────────────────────────────── */
-  --font-weight-regular:   400;
-  --font-weight-medium:    500;
-  --font-weight-semibold:  600;
-  --font-weight-bold:      700;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --font-weight-extrabold: 800;
 
   /* ── Line heights ───────────────────────────────────────────────── */
-  --line-height-tight:  1.15;
+  --line-height-tight: 1.15;
   --line-height-normal: 1.5;
-  --line-height-loose:  1.75;
+  --line-height-loose: 1.75;
 
   /* ── Letter spacing ─────────────────────────────────────────────── */
-  --letter-spacing-tight:  -0.02em;
-  --letter-spacing-normal:  0em;
-  --letter-spacing-wide:    0.04em;
-  --letter-spacing-wider:   0.08em;
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.04em;
+  --letter-spacing-wider: 0.08em;
 
   /* ── Color tokens (unchanged) ───────────────────────────────────── */
   --background: Canvas;
@@ -195,7 +197,9 @@ body {
 /* ── Display font — Bricolage Grotesque Variable ────────────────────
    Headings, large numbers, greeting, module title, card primaries.
 ─────────────────────────────────────────────────────────────────────── */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--font-display);
   letter-spacing: var(--letter-spacing-tight);
   line-height: var(--line-height-tight);
@@ -283,7 +287,8 @@ body {
 }
 
 /* Scroll-capable lists: functional scroll, subtle theme scrollbar. */
-.module-root :is(
+.module-root
+  :is(
     .scrollable-content,
     .clip-scroll-container,
     .grocery-content,
@@ -307,7 +312,8 @@ body {
   scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
 }
 
-.module-root :is(
+.module-root
+  :is(
     .scrollable-content,
     .clip-scroll-container,
     .grocery-content,
@@ -328,7 +334,8 @@ body {
   height: var(--shell-scrollbar-size);
 }
 
-.module-root :is(
+.module-root
+  :is(
     .scrollable-content,
     .clip-scroll-container,
     .grocery-content,
@@ -348,7 +355,8 @@ body {
   background: var(--shell-scrollbar-track);
 }
 
-.module-root :is(
+.module-root
+  :is(
     .scrollable-content,
     .clip-scroll-container,
     .grocery-content,
@@ -560,11 +568,13 @@ body {
   background: transparent;
 }
 
-.module-switcher-stack:not(.module-switcher-stack--expanded) .module-switcher-stack__row:first-child {
+.module-switcher-stack:not(.module-switcher-stack--expanded)
+  .module-switcher-stack__row:first-child {
   pointer-events: auto;
 }
 
-.module-switcher-stack:not(.module-switcher-stack--expanded) .module-switcher-stack__row:not(:first-child) {
+.module-switcher-stack:not(.module-switcher-stack--expanded)
+  .module-switcher-stack__row:not(:first-child) {
   pointer-events: none;
 }
 
@@ -1051,7 +1061,11 @@ textarea {
   padding: 1.25rem 1rem;
   overflow: hidden;
   z-index: 80;
-  transition: width 150ms ease, transform 180ms ease, opacity 180ms ease, top 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    width 150ms ease,
+    transform 180ms ease,
+    opacity 180ms ease,
+    top 180ms cubic-bezier(0.16, 1, 0.3, 1);
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 1rem;
@@ -1106,13 +1120,15 @@ textarea {
 }
 
 .desktop-sidebar__move-handle::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: transparent;
   opacity: 0;
-  transition: opacity 150ms ease, background 150ms ease;
+  transition:
+    opacity 150ms ease,
+    background 150ms ease;
 }
 
 .desktop-sidebar__move-handle:hover::after,
@@ -2433,7 +2449,11 @@ body.sidebar-dragging * {
   background:
     linear-gradient(color-mix(in srgb, var(--border) 8%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--border) 8%, transparent) 1px, transparent 1px),
-    radial-gradient(circle at 50% 65%, color-mix(in srgb, var(--starter-accent) 20%, transparent), transparent 10rem),
+    radial-gradient(
+      circle at 50% 65%,
+      color-mix(in srgb, var(--starter-accent) 20%, transparent),
+      transparent 10rem
+    ),
     var(--starter-card);
   background-size:
     28px 28px,
@@ -2700,13 +2720,15 @@ body.sidebar-dragging * {
 }
 
 .desktop-sidebar__move-handle::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: transparent;
   opacity: 0;
-  transition: opacity 150ms ease, background 150ms ease;
+  transition:
+    opacity 150ms ease,
+    background 150ms ease;
 }
 
 .desktop-sidebar__move-handle:hover::after,
@@ -3480,7 +3502,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   box-shadow: none;
   border-radius: 20px;
   padding: 24px;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .card-accent :where(label, small, .muted) {
@@ -3697,7 +3719,6 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   background: #f8fafc !important;
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════
    TOOLTIP SYSTEM — Ported 1:1 from Anytype
    Source: anytype-ts/src/scss/component/tooltip.scss
@@ -3784,7 +3805,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   cursor: pointer;
   box-shadow: none;
   opacity: 0.48;
-  transition: opacity 120ms ease, color 120ms ease;
+  transition:
+    opacity 120ms ease,
+    color 120ms ease;
 }
 
 .feedback-float-btn:hover {
@@ -4202,7 +4225,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
    SETTINGS — FEEDBACK PAGE
    ═══════════════════════════════════════════════════════════════════ */
 
-.feedback-page {}
+.feedback-page {
+}
 
 .feedback-page__header {
   margin-bottom: 20px;
@@ -4444,8 +4468,13 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 @keyframes feedback-skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* ── Empty state ────────────────────────────────────────────────────── */
@@ -4506,10 +4535,13 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 @keyframes feedback-highlight-pulse {
-  0% { background: color-mix(in srgb, var(--primary) 14%, transparent); }
-  100% { background: transparent; }
+  0% {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
 }
-
 
 /* ═══════════════════════════════════════════════════════════════
    BUDGET APP — Header overrides
@@ -4551,7 +4583,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 /* hide the old badge if it somehow reappears */
-.budget-header .header-badge { display: none !important; }
+.budget-header .header-badge {
+  display: none !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    BUDGET HEADER v2 — commanding presence matching Health app
@@ -4566,7 +4600,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   letter-spacing: 0.07em;
   color: color-mix(in srgb, var(--foreground) 38%, transparent);
 }
-.budget-header .header-eyebrow-sep { opacity: 0.4; }
+.budget-header .header-eyebrow-sep {
+  opacity: 0.4;
+}
 .budget-header .header-eyebrow-section {
   color: color-mix(in srgb, var(--foreground) 55%, transparent);
   text-transform: none;
@@ -4836,8 +4872,14 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   font-weight: 700;
 }
 
-.subs-month-badge.paid { background: color-mix(in srgb, #22c55e 15%, transparent); color: #22c55e; }
-.subs-month-badge.unpaid { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #f59e0b; }
+.subs-month-badge.paid {
+  background: color-mix(in srgb, #22c55e 15%, transparent);
+  color: #22c55e;
+}
+.subs-month-badge.unpaid {
+  background: color-mix(in srgb, #f59e0b 15%, transparent);
+  color: #f59e0b;
+}
 
 .subs-month-total {
   display: flex;
@@ -4895,7 +4937,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   background: transparent;
 }
 
-.subs-cal-cell--empty { background: transparent; }
+.subs-cal-cell--empty {
+  background: transparent;
+}
 
 .subs-cal-cell--today .subs-cal-day {
   background: var(--foreground);
@@ -4938,7 +4982,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   filter: grayscale(40%);
 }
 
-.subs-icon-badge:hover { transform: scale(1.12); }
+.subs-icon-badge:hover {
+  transform: scale(1.12);
+}
 
 .subs-icon-letter {
   font-size: 12px;
@@ -4987,7 +5033,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   scrollbar-width: none;
 }
 
-.subs-right-pane::-webkit-scrollbar { display: none; }
+.subs-right-pane::-webkit-scrollbar {
+  display: none;
+}
 
 /* Detail card — brand-colored, Subscription Day style */
 .subs-detail-card {
@@ -5052,7 +5100,11 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   line-height: 1;
 }
 
-.subs-detail-rows { display: flex; flex-direction: column; gap: 0; }
+.subs-detail-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
 .subs-detail-row {
   display: flex;
@@ -5063,10 +5115,17 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   font-size: 13px;
 }
 
-.subs-detail-row:last-child { border-bottom: none; }
+.subs-detail-row:last-child {
+  border-bottom: none;
+}
 
-.subs-detail-row span { color: color-mix(in srgb, var(--foreground) 50%, transparent); }
-.subs-detail-row strong { font-weight: 600; color: var(--foreground); }
+.subs-detail-row span {
+  color: color-mix(in srgb, var(--foreground) 50%, transparent);
+}
+.subs-detail-row strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
 
 .subs-status-pill {
   padding: 2px 10px;
@@ -5082,7 +5141,11 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   color: #22c55e;
 }
 
-.subs-detail-actions { display: flex; gap: 8px; align-items: center; }
+.subs-detail-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
 .subs-pay-btn {
   flex: 1;
@@ -5131,7 +5194,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   overflow: hidden;
 }
 
-.subs-analytics-header { padding-bottom: 4px; }
+.subs-analytics-header {
+  padding-bottom: 4px;
+}
 
 .subs-analytics-title {
   font-size: 12px;
@@ -5155,7 +5220,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   background: color-mix(in srgb, var(--foreground) 4%, transparent);
 }
 
-.subs-stat:last-child { grid-column: 1 / -1; }
+.subs-stat:last-child {
+  grid-column: 1 / -1;
+}
 
 .subs-stat-label {
   font-size: 10px;
@@ -5183,7 +5250,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   flex: 1;
 }
 
-.subs-list::-webkit-scrollbar { display: none; }
+.subs-list::-webkit-scrollbar {
+  display: none;
+}
 
 .subs-list-row {
   display: flex;
@@ -5198,9 +5267,15 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   text-align: left;
 }
 
-.subs-list-row:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
-.subs-list-row--active { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
-.subs-list-row--paid { opacity: 0.55; }
+.subs-list-row:hover {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.subs-list-row--active {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+.subs-list-row--paid {
+  opacity: 0.55;
+}
 
 .subs-list-icon {
   width: 32px;
@@ -5249,7 +5324,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   color: var(--foreground);
 }
 
-:global(.subs-paid-check) { color: #22c55e; }
+:global(.subs-paid-check) {
+  color: #22c55e;
+}
 
 .subs-empty {
   display: flex;
@@ -5298,7 +5375,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   cursor: pointer;
 }
 
-.popular-btn:hover { background: color-mix(in srgb, var(--foreground) 4%, transparent); }
+.popular-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
 
 .popular-icon {
   width: 36px;
@@ -5506,10 +5585,22 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   display: grid;
   place-items: center;
 }
-.budget-metric-icon.income  { background: color-mix(in srgb, #22c55e 12%, transparent); color: #22c55e; }
-.budget-metric-icon.expense { background: color-mix(in srgb, #ef4444 12%, transparent); color: #ef4444; }
-.budget-metric-icon.savings { background: color-mix(in srgb, #3b82f6 12%, transparent); color: #3b82f6; }
-.budget-metric-icon.rate    { background: color-mix(in srgb, #a855f7 12%, transparent); color: #a855f7; }
+.budget-metric-icon.income {
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  color: #22c55e;
+}
+.budget-metric-icon.expense {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+.budget-metric-icon.savings {
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  color: #3b82f6;
+}
+.budget-metric-icon.rate {
+  background: color-mix(in srgb, #a855f7 12%, transparent);
+  color: #a855f7;
+}
 
 .budget-metric-label {
   font-size: 11px;

@@ -1,12 +1,12 @@
 .mood-app {
-  --mod-accent: #9575CD;
+  --mod-accent: #9575cd;
   min-height: 100%;
   display: grid;
-  grid-template-columns: 2fr .9fr;
+  grid-template-columns: 2fr 0.9fr;
   background: var(--mod-bg, var(--mod-bg-mood));
   color: var(--foreground);
   font-family: var(--font-body);
-  animation: mood-in .35s;
+  animation: mood-in 0.35s;
 }
 
 .mood-app section {
@@ -100,7 +100,7 @@
   stroke-width: 5;
 }
 
-.mood-line path+path {
+.mood-line path + path {
   stroke: #7285ff;
 }
 
@@ -135,8 +135,14 @@
 }
 
 @keyframes mood-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Dark mode */
@@ -146,16 +152,16 @@
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.mood-app [class*="-card"],
-.mood-app [class*="-panel"],
+.mood-app [class*='-card'],
+.mood-app [class*='-panel'],
 .mood-app article {
   border: none !important;
   box-shadow: none !important;
   background: var(--card);
   border-radius: 20px;
 }
-.dark .mood-app [class*="-card"],
-.dark .mood-app [class*="-panel"],
+.dark .mood-app [class*='-card'],
+.dark .mood-app [class*='-panel'],
 .dark .mood-app article {
   background: var(--card);
 }

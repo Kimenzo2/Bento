@@ -1,6 +1,6 @@
-import { get, writable } from "svelte/store";
-import { demoAssets, demoProjects } from "$lib/data/app-data";
-import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
+import { get, writable } from 'svelte/store';
+import { demoAssets, demoProjects } from '$lib/data/app-data';
+import { desktopSettings, updateDesktopSettings } from '$lib/desktop/settings';
 
 const initialSettings = get(desktopSettings);
 const sidebarCollapsed = initialSettings.workspace.sidebarCollapsed;
@@ -12,7 +12,7 @@ export const workspaceStore = writable({
   sidebarWidth,
   sidebarTop,
   sidebarHidden: false,
-  selectedProjectId: demoProjects[0]?.id ?? "",
+  selectedProjectId: demoProjects[0]?.id ?? '',
   projects: demoProjects,
   assets: demoAssets,
 });

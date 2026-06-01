@@ -61,7 +61,7 @@
   display: flex;
   align-items: end;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--border, rgba(255,255,255,0.12)) 50%, transparent);
+  background: color-mix(in srgb, var(--border, rgba(255, 255, 255, 0.12)) 50%, transparent);
   overflow: hidden;
 }
 
@@ -87,9 +87,15 @@
   flex: 0 0 auto;
 }
 
-.time-project-dot--a { background: #3b82f6; }
-.time-project-dot--b { background: #a855f7; }
-.time-project-dot--c { background: #f97316; }
+.time-project-dot--a {
+  background: #3b82f6;
+}
+.time-project-dot--b {
+  background: #a855f7;
+}
+.time-project-dot--c {
+  background: #f97316;
+}
 
 .time-recent-entry {
   display: flex;
@@ -97,4 +103,3 @@
   justify-content: space-between;
   gap: 1rem;
 }
-

@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
 export type UpdateState = {
   available: null | {
@@ -10,10 +10,10 @@ export type UpdateState = {
   // ── Download progress (mirrors Anytype's DownloadProgress shape) ──
   // Anytype: { bytesPerSecond, percent, transferred, total }
   // Tauri:   Started → contentLength, Progress → chunkLength (accumulated here)
-  downloadedBytes: number;  // accumulated chunk bytes (transferred)
-  totalBytes: number;       // from Tauri's Started event (total)
-  downloadPercent: number;  // 0–100, computed
-  downloadSpeed: number;    // bytes/sec, computed from timing
+  downloadedBytes: number; // accumulated chunk bytes (transferred)
+  totalBytes: number; // from Tauri's Started event (total)
+  downloadPercent: number; // 0–100, computed
+  downloadSpeed: number; // bytes/sec, computed from timing
 };
 
 export const updateStore = writable<UpdateState>({
@@ -30,7 +30,7 @@ export function setUpdateChecking(checking: boolean) {
   updateStore.update((s) => ({ ...s, checking }));
 }
 
-export function setAvailableUpdate(update: UpdateState["available"]) {
+export function setAvailableUpdate(update: UpdateState['available']) {
   updateStore.update((s) => ({ ...s, available: update }));
 }
 

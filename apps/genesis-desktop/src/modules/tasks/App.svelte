@@ -894,6 +894,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   // Separate month/year state for the calendar VIEW (not the due-date picker)
   let calViewMonth = $state(time.getDate(time.now()).month - 1);
   let calViewYear  = $state(time.getDate(time.now()).year);
+let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let calViewYearStr  = $state(String(time.getDate(time.now()).year));  $effect(() => { calViewMonth = parseInt(calViewMonthStr, 10); });  $effect(() => { calViewYear  = parseInt(calViewYearStr, 10); });
 
   let monthOptions = [
     { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
@@ -2146,9 +2147,9 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
       <!-- ── Date select bar ── -->
       <div class="tasks-cal-bar">
         <div class="tasks-cal-bar-left">
-          <Select.Root type="single" bind:value={calViewMonth}>
+          <Select.Root type="single" bind:value={calViewMonthStr}>
             <Select.Trigger class="tasks-cal-select" id="tasks-cal-month" aria-label="Month">
-              {monthOptions.find(f => f.value === calViewMonth)?.label ?? 'Month'}
+              {monthOptions.find(f => f.value === calViewMonthStr)?.label ?? 'Month'}
             </Select.Trigger>
             <Select.Content>
               {#each monthOptions as opt (opt.value)}
@@ -2156,9 +2157,9 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
               {/each}
             </Select.Content>
           </Select.Root>
-          <Select.Root type="single" bind:value={calViewYear}>
+          <Select.Root type="single" bind:value={calViewYearStr}>
             <Select.Trigger class="tasks-cal-select" id="tasks-cal-year" aria-label="Year">
-              {yearOptions.find(f => f.value === calViewYear)?.label ?? 'Year'}
+              {yearOptions.find(f => f.value === calViewYearStr)?.label ?? 'Year'}
             </Select.Trigger>
             <Select.Content>
               {#each yearOptions as opt (opt.value)}
