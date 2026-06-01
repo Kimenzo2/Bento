@@ -97,6 +97,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
+      - name: Build MCP sidecar
+        env:
+          RUSTC_WRAPPER: sccache
+        run: |
+          cargo build --profile ci --bin bento-mcp
+          mkdir -p binaries
+          cp target/ci/bento-mcp binaries/bento-mcp-x86_64-unknown-linux-gnu
+
       - name: cargo check
         env:
           RUSTC_WRAPPER: sccache
