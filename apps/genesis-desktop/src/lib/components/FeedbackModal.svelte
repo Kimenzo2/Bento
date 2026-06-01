@@ -200,7 +200,7 @@
       <!-- Title -->
       <div class="feedback-modal__field">
         <label for="feedback-title">
-          {type === 'bug' ? "What's the issue?" : 'What would you like?'}
+          {#if type === 'bug'}What's the issue?{:else}What would you like?{/if}
         </label>
         <input
           id="feedback-title"
@@ -360,7 +360,7 @@
           {#if submitting}
             Submitting…
           {:else}
-            {type === 'bug' ? 'Submit Report' : 'Submit Request'}
+            {#if type === 'bug'}Submit Report{:else}Submit Request{/if}
           {/if}
         </button>
       </div>
