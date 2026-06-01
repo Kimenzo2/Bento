@@ -2,7 +2,13 @@ import { motion } from 'framer-motion';
 import { Calendar, Crown, MonitorSmartphone, Shield, User } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { type TierName, TIER_DISPLAY, getEntitlements, isUnlimited, userTierToTierName } from '../config/entitlements';
+import {
+  type TierName,
+  TIER_DISPLAY,
+  getEntitlements,
+  isUnlimited,
+  userTierToTierName,
+} from '../config/entitlements';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile } from '../services/profileService';
 import { getCurrentMonthUsage } from '../services/usageService';

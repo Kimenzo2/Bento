@@ -119,14 +119,12 @@ const unlockBadge = createTool({
       .eq('achievement_type', input.badgeId)
       .single();
     if (existing) return { unlocked: false, alreadyHad: true, badgeName: badge.name };
-    await db
-      .from('user_achievements')
-      .insert({
-        user_id: input.userId,
-        achievement_type: input.badgeId,
-        achievement_name: badge.name,
-        unlocked_at: new Date().toISOString(),
-      });
+    await db.from('user_achievements').insert({
+      user_id: input.userId,
+      achievement_type: input.badgeId,
+      achievement_name: badge.name,
+      unlocked_at: new Date().toISOString(),
+    });
     return { unlocked: true, alreadyHad: false, badgeName: badge.name };
   },
 });

@@ -321,7 +321,7 @@ const KDPExportModal: React.FC<KDPExportModalProps> = ({
             {userTier === UserTier.SPARK && (
               <div className="mb-6 p-6 bg-linear-to-r from-gold-sunshine/20 to-coral-burst/20 border border-gold-sunshine rounded-2xl">
                 <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gold-sunshine rounded-full flex items-center justify-center">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                   <div>

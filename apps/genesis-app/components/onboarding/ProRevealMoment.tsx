@@ -54,8 +54,8 @@ const ProRevealMoment: React.FC = () => {
           </h1>
 
           <p className="text-white/60 text-lg max-w-md mx-auto">
-            Core, Pro, and Power are now managed in the Genesis desktop app so there is one
-            purchase surface and no upgrade confusion.
+            Core, Pro, and Power are now managed in the Genesis desktop app so there is one purchase
+            surface and no upgrade confusion.
           </p>
         </motion.div>
 

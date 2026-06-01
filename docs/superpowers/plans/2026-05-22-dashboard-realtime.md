@@ -13,6 +13,7 @@
 ### Task 1: Add a dashboard activity log in Rust
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src-tauri/src/db.rs`
 - Modify: `apps/genesis-desktop/src-tauri/src/commands/dashboard.rs`
 
@@ -88,6 +89,7 @@ git commit -m "feat(desktop): add local dashboard activity log for realtime summ
 ### Task 2: Invalidate the dashboard from backend writes
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src-tauri/src/db.rs`
 - Modify: `apps/genesis-desktop/src-tauri/src/commands/dashboard.rs`
 - Modify: `apps/genesis-desktop/src-tauri/src/lib.rs`
@@ -124,6 +126,7 @@ Expected: fail until the backend writes `last_active_module` and emits a refresh
 - [ ] **Step 3: Write minimal implementation**
 
 Teach `flush_module_state` to:
+
 - write the outgoing module context
 - write `runtime_state.last_active_module`
 - write a dashboard event row for the switch
@@ -155,6 +158,7 @@ git commit -m "feat(desktop): emit dashboard refreshes from module state writes"
 ### Task 3: Make the dashboard consume live refresh events
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src/routes/pages/DashboardPage.svelte`
 
 - [ ] **Step 1: Write the failing test**
@@ -175,8 +179,8 @@ let unlistenDashboardRefresh: (() => void) | null = null;
 onMount(async () => {
   void loadDashboard();
   if (canUseTauri) {
-    const { listen } = await import("@tauri-apps/api/event");
-    unlistenDashboardRefresh = await listen("bento://dashboard-refresh", () => {
+    const { listen } = await import('@tauri-apps/api/event');
+    unlistenDashboardRefresh = await listen('bento://dashboard-refresh', () => {
       void loadDashboard();
     });
   }
@@ -201,6 +205,7 @@ git commit -m "feat(desktop): refresh dashboard from backend invalidation events
 ### Task 4: Verify the real dashboard data paths end to end
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src-tauri/src/commands/dashboard.rs`
 - Modify: `apps/genesis-desktop/src/routes/pages/DashboardPage.svelte`
 
@@ -236,6 +241,7 @@ Expected: fail until the backend uses the durable runtime-state value consistent
 - [ ] **Step 3: Write minimal implementation**
 
 Keep `get_dashboard_data` fully real on the Tauri path:
+
 - query SQLite for featured module, activity, streaks, metrics, and recent modules
 - use `runtime_state.last_active_module` for `Continue in ...`
 - reserve fallback data only for browser-only preview
@@ -251,4 +257,3 @@ Expected: PASS.
 git add apps/genesis-desktop/src-tauri/src/commands/dashboard.rs apps/genesis-desktop/src/routes/pages/DashboardPage.svelte
 git commit -m "feat(desktop): keep dashboard cards bound to local SQLite state"
 ```
-

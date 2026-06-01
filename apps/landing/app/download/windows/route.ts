@@ -9,10 +9,7 @@ const FALLBACK_INSTALLER_URL =
 
 export async function GET(request: NextRequest) {
   // Try to serve the local installer first
-  const localUrl = new URL(
-    `/downloads/${WINDOWS_INSTALLER_FILENAME}`,
-    request.url
-  );
+  const localUrl = new URL(`/downloads/${WINDOWS_INSTALLER_FILENAME}`, request.url);
   const localResponse = await fetch(localUrl, {
     method: 'HEAD',
     cache: 'no-store',
@@ -24,8 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Fallback: proxy from remote URL
-  const upstreamUrl =
-    process.env.GENESIS_DESKTOP_WINDOWS_INSTALLER_URL ?? FALLBACK_INSTALLER_URL;
+  const upstreamUrl = process.env.GENESIS_DESKTOP_WINDOWS_INSTALLER_URL ?? FALLBACK_INSTALLER_URL;
   const upstream = await fetch(upstreamUrl, {
     cache: 'no-store',
     redirect: 'follow',
@@ -43,10 +39,7 @@ export async function GET(request: NextRequest) {
 
   const headers = new Headers();
   headers.set('cache-control', 'no-store');
-  headers.set(
-    'content-disposition',
-    `attachment; filename="${WINDOWS_INSTALLER_FILENAME}"`
-  );
+  headers.set('content-disposition', `attachment; filename="${WINDOWS_INSTALLER_FILENAME}"`);
 
   const contentType = upstream.headers.get('content-type');
   if (contentType) {

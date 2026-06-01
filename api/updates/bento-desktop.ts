@@ -7,10 +7,13 @@ interface UpdaterResponse {
   version: string;
   notes: string;
   pub_date: string;
-  platforms: Record<string, {
-    signature: string;
-    url: string;
-  }>;
+  platforms: Record<
+    string,
+    {
+      signature: string;
+      url: string;
+    }
+  >;
 }
 
 interface GitHubRelease {
@@ -49,10 +52,7 @@ const PLATFORM_PATTERNS: Array<{
   },
 ];
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Allow', 'GET, HEAD');
     return res.status(405).json({ error: 'Method not allowed' });
@@ -71,7 +71,7 @@ export default async function handler(
 
     const releaseRes = await fetch(
       'https://api.github.com/repos/' + GITHUB_OWNER + '/' + GITHUB_REPO + '/releases/latest',
-      { headers },
+      { headers }
     );
 
     if (!releaseRes.ok) {
@@ -111,9 +111,7 @@ export default async function handler(
     }
 
     const body: UpdaterResponse = {
-      version: release.tag_name.startsWith('v')
-        ? release.tag_name.slice(1)
-        : release.tag_name,
+      version: release.tag_name.startsWith('v') ? release.tag_name.slice(1) : release.tag_name,
       notes: release.body || '',
       pub_date: release.published_at,
       platforms,

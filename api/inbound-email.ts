@@ -125,7 +125,7 @@ async function parseJsonBody<T>(req: VercelRequest): Promise<T> {
   }
 
   const rawBody = await getRawBody(req);
-  return (rawBody ? (JSON.parse(rawBody) as T) : ({} as T));
+  return rawBody ? (JSON.parse(rawBody) as T) : ({} as T);
 }
 
 async function handleSendEmail(req: VercelRequest, res: VercelResponse): Promise<void> {

@@ -16,8 +16,8 @@ export default function HomePage() {
             Download the Windows installer.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-            Bento Desktop is available for Windows right now. Use the download below and the
-            browser will start the installer immediately.
+            Bento Desktop is available for Windows right now. Use the download below and the browser
+            will start the installer immediately.
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">

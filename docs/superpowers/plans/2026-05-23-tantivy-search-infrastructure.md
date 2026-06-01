@@ -13,6 +13,7 @@
 ### Task 1: Add the shared Rust search service
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src-tauri/Cargo.toml`
 - Create: `apps/genesis-desktop/src-tauri/src/search/mod.rs`
 - Create: `apps/genesis-desktop/src-tauri/src/search/service.rs`
@@ -71,6 +72,7 @@ Expected: Tantivy compiles and the search module is reachable from `lib.rs`.
 ### Task 2: Expose the Tauri search commands
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src-tauri/src/lib.rs`
 - Modify: `apps/genesis-desktop/src-tauri/src/commands/mod.rs`
 - Modify: `apps/genesis-desktop/src-tauri/src/search/service.rs`
@@ -106,6 +108,7 @@ Expected: command registration succeeds.
 ### Task 3: Integrate Recipes and Journal
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src/modules/recipes/App.svelte`
 - Modify: `apps/genesis-desktop/src/modules/journal/App.svelte`
 - Modify: `apps/genesis-desktop/src-tauri/src/recipes/mod.rs`
@@ -137,6 +140,7 @@ Expected: no compile regressions.
 ### Task 4: Integrate clipboard, reading, and optional module bridges
 
 **Files:**
+
 - Create: `apps/genesis-desktop/src/lib/services/search.ts`
 - Modify: `apps/genesis-desktop/src/modules/clipboard/App.svelte`
 - Modify: `apps/genesis-desktop/src/modules/reading/App.svelte`
@@ -146,7 +150,11 @@ Expected: no compile regressions.
 - [ ] **Step 1: Add a shared Svelte search helper**
 
 ```ts
-export async function searchInModule(moduleId: string, query: string, filters?: Record<string, unknown>) {
+export async function searchInModule(
+  moduleId: string,
+  query: string,
+  filters?: Record<string, unknown>
+) {
   return invoke<SearchHit[]>('search_in_module', { moduleId, query, filters });
 }
 ```
@@ -171,6 +179,7 @@ Expected: search helpers compile and modules still render.
 ### Task 5: Rebuild support and cleanup
 
 **Files:**
+
 - Modify: `apps/genesis-desktop/src-tauri/src/search/snapshot.rs`
 - Modify: `apps/genesis-desktop/src-tauri/src/search/service.rs`
 

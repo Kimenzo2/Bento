@@ -356,9 +356,7 @@ function applyRows(newObjectId: string, rows: BlockRow[]) {
 }
 
 /** Read a journal entry from localStorage by ID (fallback for when Tauri backend is unavailable). */
-function getJournalEntryFromLocalStorage(
-  id: string
-): {
+function getJournalEntryFromLocalStorage(id: string): {
   id: string;
   date: string;
   blocks: string;

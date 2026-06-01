@@ -224,16 +224,16 @@ tauri::Builder::default()
         let uri = request.uri().path().to_string();
         // module://localhost/notes/index.js
         // → $APPDATA/modules/notes/index.js
-        
+
         let rel_path = uri.trim_start_matches('/');
         let module_path = app.path()
             .app_data_dir().unwrap()
             .join("modules")
             .join(rel_path);
-        
+
         let content = std::fs::read(&module_path)
             .unwrap_or_default();
-        
+
         let mime = match module_path.extension()
             .and_then(|e| e.to_str()) {
             Some("js")   => "application/javascript",
@@ -243,7 +243,7 @@ tauri::Builder::default()
             Some("svg")  => "image/svg+xml",
             _            => "application/octet-stream",
         };
-        
+
         tauri::http::Response::builder()
             .status(200)
             .header("content-type", mime)
@@ -275,48 +275,48 @@ import { invoke } from '@tauri-apps/api/core';
 let currentModule: { unmount: () => void } | null = null;
 
 export async function loadModule(moduleId: string) {
-    // 1. Unmount previous module cleanly
-    if (currentModule) {
-        currentModule.unmount();
-        currentModule = null;
-    }
-    
-    // 2. Tell Rust which module is active (for capability enforcement)
-    await invoke('set_active_module', { moduleId });
-    
-    // 3. Dynamic import from custom protocol
-    // This works because module:// is in CSP script-src
-    const { default: ModuleApp } = await import(
-        /* @vite-ignore */
-        `module://localhost/${moduleId}/index.js`
-    );
-    
-    // 4. Mount Svelte component into permanent container
-    const container = document.getElementById('module-container')!;
-    container.innerHTML = ''; // clean slate
-    
-    currentModule = new ModuleApp({
-        target: container,
-        props: {
-            moduleId,
-            // Pass global settings from shell store
-            settings: getGlobalSettings(),
-        }
-    });
-    
-    // 5. Load module-specific CSS
-    loadModuleCSS(moduleId);
+  // 1. Unmount previous module cleanly
+  if (currentModule) {
+    currentModule.unmount();
+    currentModule = null;
+  }
+
+  // 2. Tell Rust which module is active (for capability enforcement)
+  await invoke('set_active_module', { moduleId });
+
+  // 3. Dynamic import from custom protocol
+  // This works because module:// is in CSP script-src
+  const { default: ModuleApp } = await import(
+    /* @vite-ignore */
+    `module://localhost/${moduleId}/index.js`
+  );
+
+  // 4. Mount Svelte component into permanent container
+  const container = document.getElementById('module-container')!;
+  container.innerHTML = ''; // clean slate
+
+  currentModule = new ModuleApp({
+    target: container,
+    props: {
+      moduleId,
+      // Pass global settings from shell store
+      settings: getGlobalSettings(),
+    },
+  });
+
+  // 5. Load module-specific CSS
+  loadModuleCSS(moduleId);
 }
 
 function loadModuleCSS(moduleId: string) {
-    // Remove previous module CSS
-    document.getElementById('module-css')?.remove();
-    
-    const link = document.createElement('link');
-    link.id = 'module-css';
-    link.rel = 'stylesheet';
-    link.href = `module://localhost/${moduleId}/index.css`;
-    document.head.appendChild(link);
+  // Remove previous module CSS
+  document.getElementById('module-css')?.remove();
+
+  const link = document.createElement('link');
+  link.id = 'module-css';
+  link.rel = 'stylesheet';
+  link.href = `module://localhost/${moduleId}/index.css`;
+  document.head.appendChild(link);
 }
 ```
 
@@ -374,10 +374,7 @@ $APPDATA/modules/
   "author": "yourname",
   "size_mb": 2.1,
   "min_shell_version": "1.0.0",
-  "rust_commands": [
-    "read_note", "write_note", "search_notes",
-    "delete_note", "list_notes"
-  ],
+  "rust_commands": ["read_note", "write_note", "search_notes", "delete_note", "list_notes"],
   "permissions": ["fs:notes-dir"],
   "icon": "assets/icon.svg",
   "accent": "#7c3aed"
@@ -433,23 +430,23 @@ pub async fn install_module(
 ) -> Result<(), String> {
     let bytes = download_with_progress(&bundle_url, &on_progress)
         .await.map_err(|e| e.to_string())?;
-    
+
     verify_sha256(&bytes, &expected_checksum)
         .map_err(|_| "Checksum mismatch — download may be corrupted".to_string())?;
-    
+
     let modules_dir = app.path().app_data_dir().unwrap().join("modules");
     extract_tar_gz(&bytes, &modules_dir.join(&module_id))
         .map_err(|e| e.to_string())?;
-    
+
     sqlx::query(
-        "INSERT OR REPLACE INTO installed_modules 
+        "INSERT OR REPLACE INTO installed_modules
          (id, installed_at, version) VALUES (?, unixepoch(), ?)"
     )
     .bind(&module_id)
     .bind("1.0.0")
     .execute(&*state.db.lock().await)
     .await.map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 ```
@@ -521,19 +518,19 @@ CREATE TABLE IF NOT EXISTS module_context (
 
 ## Size Budget Reality Check
 
-| Component | Size |
-|---|---|
-| Shell binary (Rust, all commands) | ~10-12MB |
-| Shell Svelte UI | ~400KB |
-| SQLite WAL database | grows with user data |
-| Total base install | ~12-13MB |
-| Notes module bundle | ~1.5-2MB |
-| Tasks module bundle | ~1-1.5MB |
-| Health module bundle | ~2MB |
-| Habits module bundle | ~800KB |
-| Budget module bundle | ~1.2MB |
-| Code editor module (Monaco) | ~4-5MB |
-| 10 modules installed | ~25MB total |
+| Component                         | Size                 |
+| --------------------------------- | -------------------- |
+| Shell binary (Rust, all commands) | ~10-12MB             |
+| Shell Svelte UI                   | ~400KB               |
+| SQLite WAL database               | grows with user data |
+| Total base install                | ~12-13MB             |
+| Notes module bundle               | ~1.5-2MB             |
+| Tasks module bundle               | ~1-1.5MB             |
+| Health module bundle              | ~2MB                 |
+| Habits module bundle              | ~800KB               |
+| Budget module bundle              | ~1.2MB               |
+| Code editor module (Monaco)       | ~4-5MB               |
+| 10 modules installed              | ~25MB total          |
 
 ## Confidence Check: Remaining Risks
 
@@ -552,28 +549,28 @@ AI assistant built-in, instant full-text search, offline-first, cross-device syn
 
 ---
 
-| # | App | 2026 Core Features People Actually Use |
-|---|---|---|
-| 1 | **Journal / Diary** | Daily prompts AI-generated, mood check-in, streak calendar, photo attachments, end-of-year AI recap, lock with biometrics, timeline view |
-| 2 | **To-Do / Tasks** | Natural language input ("buy milk tomorrow 8am"), subtasks, priority flags, recurring tasks, today/upcoming/filters view, AI task suggestions from calendar |
-| 3 | **Habit Tracker** | Streak counter, visual heatmap (GitHub-style), custom frequencies (not just daily), habit stacking, weekly review AI summary, widget with today's habits |
-| 4 | **Focus Timer** | Pomodoro + custom intervals, ambient sounds (rain/lofi/white noise), session history chart, website blocking integration, animated focus companion |
-| 5 | **Password Vault** | Biometric unlock, password health score, breach alerts, passkey support, one-tap autofill, secure notes, travel mode (hide sensitive vaults) |
-| 6 | **Health Tracker** | Weight/body metrics log, workout library with custom exercises, progress photos, AI insight ("you sleep better on workout days"), Apple Health/Google Fit sync |
-| 7 | **Sleep Tracker** | Smart alarm (wake in light sleep), sleep score, snore detection, bedtime routine reminders, weekly trend charts, caffeine/screen time correlation |
-| 8 | **Water & Nutrition** | Quick-log cups/bottles, hydration goal with reminders, food log with barcode scanner, macro breakdown, AI meal suggestions based on goals |
-| 9 | **Mood Tracker** | One-tap emotion logging (Daylio-style), mood + activity correlation, monthly mood calendar, AI pattern detection ("you feel low on Sundays"), export to share with therapist |
-| 10 | **Budget Tracker** | Manual transaction log, category budgets, monthly summary, bill reminders, spending trend charts, no bank connection required (privacy-first) |
-| 11 | **Flashcards / Study** | Spaced repetition algorithm, AI card generation from notes/text, image cards, progress tracking per deck, cram mode vs. learn mode |
-| 12 | **Reading Tracker** | Book log with ISBN lookup, reading sessions with timer, highlights/notes per book, annual reading goal, AI book recommendations based on finished books |
-| 13 | **Grocery / Shopping** | Quick add via voice, shared lists (sync with family via link), auto-categorize by store section, recipe → shopping list conversion, price tracking |
-| 14 | **Recipe Manager** | Import from URL/photo, ingredient scaling, step-by-step cooking mode (screen stays on), meal planning calendar, shopping list generation from plan |
-| 15 | **Time Tracker** | One-tap start/stop timer, project/client tagging, daily/weekly hour charts, idle detection, invoice-ready export, Pomodoro integration |
-| 16 | **Goal Tracker** | Long-term goals with milestones, progress percentage, check-in reminders, vision board (image grid), AI weekly accountability message |
-| 17 | **Clipboard Manager** | Persistent clipboard history (text/images/links), pin favorites, search history, snippet templates, auto-expire sensitive clips, cross-device paste |
-| 18 | **Breathing / Calm** | Guided breathing exercises (box, 4-7-8, physiological sigh), session streaks, heart rate guide (manual), anxiety check-in, ambient visuals |
-| 19 | **Voice Memos** | One-tap record, AI transcription, speaker labels, search inside recordings, auto-title from content, organize by tag/date, export as text or audio |
-| 20 | **Countdown / Life Events** | Event countdowns with cover photos, anniversary reminders, "days since" tracker, birthday board, shareable countdown cards, widget per event |
+| #   | App                         | 2026 Core Features People Actually Use                                                                                                                                       |
+| --- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Journal / Diary**         | Daily prompts AI-generated, mood check-in, streak calendar, photo attachments, end-of-year AI recap, lock with biometrics, timeline view                                     |
+| 2   | **To-Do / Tasks**           | Natural language input ("buy milk tomorrow 8am"), subtasks, priority flags, recurring tasks, today/upcoming/filters view, AI task suggestions from calendar                  |
+| 3   | **Habit Tracker**           | Streak counter, visual heatmap (GitHub-style), custom frequencies (not just daily), habit stacking, weekly review AI summary, widget with today's habits                     |
+| 4   | **Focus Timer**             | Pomodoro + custom intervals, ambient sounds (rain/lofi/white noise), session history chart, website blocking integration, animated focus companion                           |
+| 5   | **Password Vault**          | Biometric unlock, password health score, breach alerts, passkey support, one-tap autofill, secure notes, travel mode (hide sensitive vaults)                                 |
+| 6   | **Health Tracker**          | Weight/body metrics log, workout library with custom exercises, progress photos, AI insight ("you sleep better on workout days"), Apple Health/Google Fit sync               |
+| 7   | **Sleep Tracker**           | Smart alarm (wake in light sleep), sleep score, snore detection, bedtime routine reminders, weekly trend charts, caffeine/screen time correlation                            |
+| 8   | **Water & Nutrition**       | Quick-log cups/bottles, hydration goal with reminders, food log with barcode scanner, macro breakdown, AI meal suggestions based on goals                                    |
+| 9   | **Mood Tracker**            | One-tap emotion logging (Daylio-style), mood + activity correlation, monthly mood calendar, AI pattern detection ("you feel low on Sundays"), export to share with therapist |
+| 10  | **Budget Tracker**          | Manual transaction log, category budgets, monthly summary, bill reminders, spending trend charts, no bank connection required (privacy-first)                                |
+| 11  | **Flashcards / Study**      | Spaced repetition algorithm, AI card generation from notes/text, image cards, progress tracking per deck, cram mode vs. learn mode                                           |
+| 12  | **Reading Tracker**         | Book log with ISBN lookup, reading sessions with timer, highlights/notes per book, annual reading goal, AI book recommendations based on finished books                      |
+| 13  | **Grocery / Shopping**      | Quick add via voice, shared lists (sync with family via link), auto-categorize by store section, recipe → shopping list conversion, price tracking                           |
+| 14  | **Recipe Manager**          | Import from URL/photo, ingredient scaling, step-by-step cooking mode (screen stays on), meal planning calendar, shopping list generation from plan                           |
+| 15  | **Time Tracker**            | One-tap start/stop timer, project/client tagging, daily/weekly hour charts, idle detection, invoice-ready export, Pomodoro integration                                       |
+| 16  | **Goal Tracker**            | Long-term goals with milestones, progress percentage, check-in reminders, vision board (image grid), AI weekly accountability message                                        |
+| 17  | **Clipboard Manager**       | Persistent clipboard history (text/images/links), pin favorites, search history, snippet templates, auto-expire sensitive clips, cross-device paste                          |
+| 18  | **Breathing / Calm**        | Guided breathing exercises (box, 4-7-8, physiological sigh), session streaks, heart rate guide (manual), anxiety check-in, ambient visuals                                   |
+| 19  | **Voice Memos**             | One-tap record, AI transcription, speaker labels, search inside recordings, auto-title from content, organize by tag/date, export as text or audio                           |
+| 20  | **Countdown / Life Events** | Event countdowns with cover photos, anniversary reminders, "days since" tracker, birthday board, shareable countdown cards, widget per event                                 |
 
 ---
 
@@ -627,21 +624,21 @@ use tokio::sync::Mutex;
 pub struct TelemetrySnapshot {
     pub timestamp_ms: u64,
     pub module: String,          // which mini-app was active
-    
+
     // Memory
     pub heap_bytes: u64,         // Rust process memory
     pub webview_bytes: u64,      // WebView process memory
     pub total_app_mb: f32,
-    
-    // Performance  
+
+    // Performance
     pub ipc_latency_ms: f32,     // last IPC command roundtrip
     pub db_query_ms: f32,        // last SQLite query time
     pub frame_budget_used: f32,  // 0.0-1.0 (1.0 = 16ms budget consumed)
-    
+
     // Rust async runtime
     pub tokio_tasks_active: u32,
     pub tokio_queue_depth: u32,
-    
+
     // User action context
     pub last_action: String,     // "typed_in_notes", "switched_module", etc.
 }
@@ -657,14 +654,14 @@ impl TelemetryCollector {
         let pid = std::process::id();
         Self { sys: Arc::new(Mutex::new(sys)), pid }
     }
-    
+
     pub async fn snapshot(&self, module: &str, last_action: &str) -> TelemetrySnapshot {
         let mut sys = self.sys.lock().await;
         sys.refresh_process(sysinfo::Pid::from_u32(self.pid));
-        
+
         let process = sys.process(sysinfo::Pid::from_u32(self.pid));
         let heap_bytes = process.map(|p| p.memory()).unwrap_or(0);
-        
+
         TelemetrySnapshot {
             timestamp_ms: unix_ms(),
             module: module.to_string(),
@@ -696,9 +693,9 @@ macro_rules! instrumented_command {
             let start = std::time::Instant::now();
             let result = $inner.await;
             let elapsed = start.elapsed().as_secs_f32() * 1000.0;
-            
+
             telemetry.record_ipc(stringify!($name), elapsed).await;
-            
+
             // Flag if IPC took >50ms — that's anomalous
             if elapsed > 50.0 {
                 telemetry.flag_anomaly(Anomaly::SlowIPC {
@@ -706,7 +703,7 @@ macro_rules! instrumented_command {
                     ms: elapsed,
                 }).await;
             }
-            
+
             result
         }
     };
@@ -781,7 +778,7 @@ pub fn detect_anomalies(
     baseline: &PerformanceBaseline,
 ) -> Vec<Anomaly> {
     let mut anomalies = vec![];
-    
+
     // Memory >2x baseline is a spike
     if snapshot.total_app_mb > baseline.avg_heap_mb * 2.0 {
         anomalies.push(Anomaly::MemorySpike {
@@ -790,7 +787,7 @@ pub fn detect_anomalies(
             baseline_mb: baseline.avg_heap_mb,
         });
     }
-    
+
     // IPC >3x p95 is anomalous
     if snapshot.ipc_latency_ms > baseline.p95_ipc_ms * 3.0 {
         anomalies.push(Anomaly::SlowIPC {
@@ -798,14 +795,14 @@ pub fn detect_anomalies(
             ms: snapshot.ipc_latency_ms,
         });
     }
-    
+
     // Tokio queue >100 tasks = something is blocking
     if snapshot.tokio_queue_depth > 100 {
         anomalies.push(Anomaly::TokioStarve {
             queue_depth: snapshot.tokio_queue_depth,
         });
     }
-    
+
     anomalies
 }
 ```
@@ -825,10 +822,10 @@ pub async fn heal(
     db: &SqlitePool,
     app: &tauri::AppHandle,
 ) -> HealingAction {
-    
+
     // Build context from last 30 minutes of telemetry
     let history = get_recent_telemetry(db, 30).await;
-    
+
     let prompt = format!(r#"
 You are the performance guardian of a desktop productivity app.
 You have detected this anomaly: {:?}
@@ -851,19 +848,19 @@ Diagnose the root cause and respond in JSON:
   "prevented": true/false
 }}
     "#, anomaly, summarize_telemetry(&history), get_last_user_action());
-    
+
     // Call AI (local Ollama or cloud depending on user setting)
     let response = call_ai(&prompt).await;
     let action: HealingAction = serde_json::from_str(&response).unwrap();
-    
+
     // Execute auto-fix if safe
     if action.auto_fix.possible {
         execute_fix(&action.auto_fix.action, app, db).await;
     }
-    
+
     // Log the resolution
     log_anomaly_resolution(db, anomaly, &action).await;
-    
+
     action
 }
 
@@ -919,16 +916,16 @@ This lives as a permanently mounted shell component AND as a full mini-app users
 <script lang="ts">
   import { listen } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/core';
-  
+
   let health = $state<'good' | 'warn' | 'critical'>('good');
   let activeAnomalies = $state(0);
-  
+
   // Listen for real-time anomaly alerts from Rust
   await listen<{severity: string}>('telemetry:anomaly', (e) => {
     health = e.payload.severity as any;
     activeAnomalies++;
   });
-  
+
   await listen('telemetry:healed', () => {
     activeAnomalies = Math.max(0, activeAnomalies - 1);
     if (activeAnomalies === 0) health = 'good';
@@ -943,15 +940,15 @@ This lives as a permanently mounted shell component AND as a full mini-app users
 
 ## Collection Schedule (Zero Performance Impact)
 
-| Collector | Interval | Storage Cost |
-|---|---|---|
-| Memory snapshot | Every 5 seconds | ~500 bytes/snapshot |
-| IPC latency | Per command | ~100 bytes/event |
-| DB query time | Per query | ~100 bytes/event |
-| Tokio runtime | Every 10 seconds | ~200 bytes/snapshot |
+| Collector         | Interval             | Storage Cost            |
+| ----------------- | -------------------- | ----------------------- |
+| Memory snapshot   | Every 5 seconds      | ~500 bytes/snapshot     |
+| IPC latency       | Per command          | ~100 bytes/event        |
+| DB query time     | Per query            | ~100 bytes/event        |
+| Tokio runtime     | Every 10 seconds     | ~200 bytes/snapshot     |
 | Anomaly detection | After every snapshot | 0 (pure CPU, in-memory) |
-| AI healing | Only on anomaly | 0 when healthy |
-| DB prune job | Every 1 hour | Removes old data |
+| AI healing        | Only on anomaly      | 0 when healthy          |
+| DB prune job      | Every 1 hour         | Removes old data        |
 
 **72 hours of data = ~50-80MB SQLite file maximum.** Separate from `app.db`. Auto-pruned.
 
@@ -973,27 +970,27 @@ These local screenshot references are implementation inputs for the Genesis Desk
 
 ## Received Images
 
-| Image | Local Path | File URL | Size | Primary UI Reading | Suggested App Mapping |
-|---|---|---|---|---|---|
-| 1 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 175836.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20175836.png` | 1034x601 | Green project dashboard with left sidebar, top search, KPI cards, project analytics, reminders, team list, time tracker. | Goal Tracker / Time Tracker dashboard reference |
-| 2 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180005.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180005.png` | 1275x891 | Purple online learning dashboard with course hero, lesson cards, mentor panel, stats, search, friend/sidebar list. | Flashcards / Study reference |
-| 3 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180119.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180119.png` | 1300x926 | Warm HR/time dashboard with pill top nav, profile card, progress bars, work-time dial, onboarding tasks, schedule calendar. | Time Tracker / Goal Tracker reference |
-| 4 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180343.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180343.png` | 1323x1014 | Personal productivity board with profile, prioritized task gradients, connected trackers, focus line chart, meetings sidebar, skill bars. | Focus Timer reference |
-| 5 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180422.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180422.png` | 1346x967 | Dark node/workflow canvas with dotted grid, connected prompt/model nodes, preview panel, floating controls. | Personal Telemetry / AI workflow reference |
-| 6 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180617.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180617.png` | 1294x942 | CRM/revenue analytics with nested sidebar tree, revenue hero, metric cards, platform bars, sales tables, report cards. | Budget Tracker reference |
-| 7 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 152902.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20152902.png` | 1193x872 | Organization workflow/admin dashboard with black rail, pill tabs, usage cards, upgrade card, statistics chart, resource list. | App Store / module management / shell admin reference |
-| 8 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 152957.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20152957.png` | 1207x836 | Dark operations dashboard with vertical icon rail, map canvas, vehicle panel, compass, toggles, dense telemetry controls. | Personal Telemetry reference |
-| 9 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153041.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153041.png` | 1214x852 | Event/sports home with slim rail, central command search, large feature cards, moments, insights metrics. | Countdown / Life Events reference |
-| 10 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153134.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153134.png` | 1220x851 | CRM workspace with lead cards, schedule bar, stats, video overlay, document/summary side panel. | Goal Tracker / Time Tracker secondary reference |
-| 11 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153211.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153211.png` | 1272x945 | Financial dashboard with minimal white cards, assistant prompt, income/payment cards, lock/growth ring, stock sparkline, survey card. | Budget Tracker reference |
-| 12 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153248.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153248.png` | 1237x836 | Customer journey canvas with left rail, top nav, connected workflow columns, avatars, process stages, task grid. | Recipe Manager / process-flow reference |
-| 13 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153331.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153331.png` | 1171x838 | Gmail-like generated summary composer with structured sections and side navigation anchors. | Voice Memos transcription / Journal AI recap reference |
-| 14 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153410.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153410.png` | 1428x791 | Dark fitness dashboard with neon lime accents, workout bars, step ring, water tile, calendar schedule, daily goals checklist. | Health Tracker / Water & Nutrition reference |
-| 15 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153447.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153447.png` | 1003x689 | Dark smart-home control board with room hero, activity timeline, lamp/AC/vacuum device cards. | Sleep Tracker / bedtime routine reference |
-| 16 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153900.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153900.png` | 1002x602 | Music dashboard with red artist hero, albums, top artists, vertical icon rail, persistent audio player. | Breathing / Calm ambient audio reference |
-| 17 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 175348.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20175348.png` | 1339x956 | Exact kanban/task board with shared sidebar, task count badge, pastel task cards, filters, avatars, progress dots. | To-Do / Tasks primary reference |
-| 18 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 175501.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20175501.png` | 1023x843 | Learning dashboard with pill top nav, ongoing class cards, learning-hours chart, messages, calendar, class schedule. | Reading Tracker / Study secondary reference |
-| 19 | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 191848.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20191848.png` | 1308x942 | Commerce analytics dashboard with clean left sidebar, profit chart, sales-performance gauge, transaction table, top market cards, product cards, green/black/orange accents. | Budget Tracker / commerce analytics reference |
+| Image | Local Path                                                             | File URL                                                                           | Size      | Primary UI Reading                                                                                                                                                           | Suggested App Mapping                                  |
+| ----- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 1     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 175836.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20175836.png` | 1034x601  | Green project dashboard with left sidebar, top search, KPI cards, project analytics, reminders, team list, time tracker.                                                     | Goal Tracker / Time Tracker dashboard reference        |
+| 2     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180005.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180005.png` | 1275x891  | Purple online learning dashboard with course hero, lesson cards, mentor panel, stats, search, friend/sidebar list.                                                           | Flashcards / Study reference                           |
+| 3     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180119.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180119.png` | 1300x926  | Warm HR/time dashboard with pill top nav, profile card, progress bars, work-time dial, onboarding tasks, schedule calendar.                                                  | Time Tracker / Goal Tracker reference                  |
+| 4     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180343.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180343.png` | 1323x1014 | Personal productivity board with profile, prioritized task gradients, connected trackers, focus line chart, meetings sidebar, skill bars.                                    | Focus Timer reference                                  |
+| 5     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180422.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180422.png` | 1346x967  | Dark node/workflow canvas with dotted grid, connected prompt/model nodes, preview panel, floating controls.                                                                  | Personal Telemetry / AI workflow reference             |
+| 6     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 180617.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20180617.png` | 1294x942  | CRM/revenue analytics with nested sidebar tree, revenue hero, metric cards, platform bars, sales tables, report cards.                                                       | Budget Tracker reference                               |
+| 7     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 152902.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20152902.png` | 1193x872  | Organization workflow/admin dashboard with black rail, pill tabs, usage cards, upgrade card, statistics chart, resource list.                                                | App Store / module management / shell admin reference  |
+| 8     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 152957.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20152957.png` | 1207x836  | Dark operations dashboard with vertical icon rail, map canvas, vehicle panel, compass, toggles, dense telemetry controls.                                                    | Personal Telemetry reference                           |
+| 9     | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153041.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153041.png` | 1214x852  | Event/sports home with slim rail, central command search, large feature cards, moments, insights metrics.                                                                    | Countdown / Life Events reference                      |
+| 10    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153134.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153134.png` | 1220x851  | CRM workspace with lead cards, schedule bar, stats, video overlay, document/summary side panel.                                                                              | Goal Tracker / Time Tracker secondary reference        |
+| 11    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153211.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153211.png` | 1272x945  | Financial dashboard with minimal white cards, assistant prompt, income/payment cards, lock/growth ring, stock sparkline, survey card.                                        | Budget Tracker reference                               |
+| 12    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153248.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153248.png` | 1237x836  | Customer journey canvas with left rail, top nav, connected workflow columns, avatars, process stages, task grid.                                                             | Recipe Manager / process-flow reference                |
+| 13    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153331.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153331.png` | 1171x838  | Gmail-like generated summary composer with structured sections and side navigation anchors.                                                                                  | Voice Memos transcription / Journal AI recap reference |
+| 14    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153410.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153410.png` | 1428x791  | Dark fitness dashboard with neon lime accents, workout bars, step ring, water tile, calendar schedule, daily goals checklist.                                                | Health Tracker / Water & Nutrition reference           |
+| 15    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153447.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153447.png` | 1003x689  | Dark smart-home control board with room hero, activity timeline, lamp/AC/vacuum device cards.                                                                                | Sleep Tracker / bedtime routine reference              |
+| 16    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-03 153900.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-03%20153900.png` | 1002x602  | Music dashboard with red artist hero, albums, top artists, vertical icon rail, persistent audio player.                                                                      | Breathing / Calm ambient audio reference               |
+| 17    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 175348.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20175348.png` | 1339x956  | Exact kanban/task board with shared sidebar, task count badge, pastel task cards, filters, avatars, progress dots.                                                           | To-Do / Tasks primary reference                        |
+| 18    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 175501.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20175501.png` | 1023x843  | Learning dashboard with pill top nav, ongoing class cards, learning-hours chart, messages, calendar, class schedule.                                                         | Reading Tracker / Study secondary reference            |
+| 19    | `C:\Users\admin\Pictures\Screenshots\Screenshot 2026-05-09 191848.png` | `file:///C:/Users/admin/Pictures/Screenshots/Screenshot%202026-05-09%20191848.png` | 1308x942  | Commerce analytics dashboard with clean left sidebar, profit chart, sales-performance gauge, transaction table, top market cards, product cards, green/black/orange accents. | Budget Tracker / commerce analytics reference          |
 
 ## App Coverage Status
 
@@ -1068,32 +1065,32 @@ Page transitions feel like navigation because they are horizontal: slide, fade, 
 
 The exact colors may evolve with the app visual system, but every app must have a clear launch identity.
 
-| App | Icon | Accent | Launch Background |
-|---|---|---|---|
-| Dashboard | `layout-dashboard` | `#F8FAFC` | `#0B0B0B` |
-| Notes | `file-text` | `#6366F1` | `#3730A3` |
-| Tasks | `layout-grid` | `#1B5E3B` | `#1B5E3B` |
-| Journal | `book-heart` | `#818CF8` | `#1E1B4B` |
-| Habits | `target` | `#C8F535` | `#1A2800` |
-| Focus | `timer` | `#F5C400` | `#7A6200` |
-| Health | `activity` | `#C8F535` | `#0D1500` |
-| Sleep | `moon` | `#8CC8FF` | `#101624` |
-| Nutrition | `droplets` | `#1AA6A6` | `#063B3C` |
-| Mood | `smile-plus` | `#D92B67` | `#5F1231` |
-| Budget | `wallet` | `#E05A3A` | `#6B1F0A` |
-| Flashcards | `brain` | `#6D5CE7` | `#2F247F` |
-| Reading | `library` | `#E11D48` | `#881337` |
-| Grocery | `shopping-cart` | `#22C55E` | `#064E3B` |
-| Recipes | `utensils-crossed` | `#D4A017` | `#4A3308` |
-| Time | `clock-4` | `#FFD95B` | `#5B4300` |
-| Goals | `trophy` | `#CCFF00` | `#182400` |
-| Clipboard | `clipboard-list` | `#E11D48` | `#4C0519` |
-| Breathing | `wind` | `#65D7C1` | `#063D35` |
-| Voice Memos | `mic` | `#8B5CF6` | `#2E1065` |
-| Countdown | `hourglass` | `#EC4899` | `#831843` |
-| Telemetry | `gauge` | `#38BDF8` | `#0C2340` |
-| AI Studio | `bot` | `#38BDF8` | `#0C2340` |
-| Settings | `settings` | `#E5E7EB` | `#171717` |
+| App         | Icon               | Accent    | Launch Background |
+| ----------- | ------------------ | --------- | ----------------- |
+| Dashboard   | `layout-dashboard` | `#F8FAFC` | `#0B0B0B`         |
+| Notes       | `file-text`        | `#6366F1` | `#3730A3`         |
+| Tasks       | `layout-grid`      | `#1B5E3B` | `#1B5E3B`         |
+| Journal     | `book-heart`       | `#818CF8` | `#1E1B4B`         |
+| Habits      | `target`           | `#C8F535` | `#1A2800`         |
+| Focus       | `timer`            | `#F5C400` | `#7A6200`         |
+| Health      | `activity`         | `#C8F535` | `#0D1500`         |
+| Sleep       | `moon`             | `#8CC8FF` | `#101624`         |
+| Nutrition   | `droplets`         | `#1AA6A6` | `#063B3C`         |
+| Mood        | `smile-plus`       | `#D92B67` | `#5F1231`         |
+| Budget      | `wallet`           | `#E05A3A` | `#6B1F0A`         |
+| Flashcards  | `brain`            | `#6D5CE7` | `#2F247F`         |
+| Reading     | `library`          | `#E11D48` | `#881337`         |
+| Grocery     | `shopping-cart`    | `#22C55E` | `#064E3B`         |
+| Recipes     | `utensils-crossed` | `#D4A017` | `#4A3308`         |
+| Time        | `clock-4`          | `#FFD95B` | `#5B4300`         |
+| Goals       | `trophy`           | `#CCFF00` | `#182400`         |
+| Clipboard   | `clipboard-list`   | `#E11D48` | `#4C0519`         |
+| Breathing   | `wind`             | `#65D7C1` | `#063D35`         |
+| Voice Memos | `mic`              | `#8B5CF6` | `#2E1065`         |
+| Countdown   | `hourglass`        | `#EC4899` | `#831843`         |
+| Telemetry   | `gauge`            | `#38BDF8` | `#0C2340`         |
+| AI Studio   | `bot`              | `#38BDF8` | `#0C2340`         |
+| Settings    | `settings`         | `#E5E7EB` | `#171717`         |
 
 ## Verification Requirements
 

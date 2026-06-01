@@ -1,4 +1,11 @@
-import { ArrowLeft, BrainCircuit, Check, MonitorSmartphone, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  BrainCircuit,
+  Check,
+  MonitorSmartphone,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import type React from 'react';
 import { usePageSEO } from '../hooks/usePageSEO';
 import { Button } from './ui/button';
@@ -34,8 +41,7 @@ const PLANS: BillingPlan[] = [
     name: 'Power',
     monthly: '$29/month',
     yearly: '$270/year',
-    summary:
-      'All 21 apps. Unlimited devices. Advanced AI intelligence layer. Priority support.',
+    summary: 'All 21 apps. Unlimited devices. Advanced AI intelligence layer. Priority support.',
     features: [
       'All 21 apps',
       'Unlimited devices',
@@ -75,9 +81,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onUpgrade }) => {
               Pricing is now read only on the web
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-cocoa-light">
-              Subscription changes and checkout now happen inside the Genesis desktop app. This
-              web page stays open for reference only so there is no confusion about where billing
-              lives.
+              Subscription changes and checkout now happen inside the Genesis desktop app. This web
+              page stays open for reference only so there is no confusion about where billing lives.
             </p>
           </div>
 

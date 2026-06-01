@@ -618,21 +618,21 @@ const LandingPage: React.FC = memo(() => {
             Genesis Desktop
           </p>
           <h2 className="mt-5 text-5xl font-semibold leading-none tracking-tight text-balance sm:text-6xl lg:text-7xl">
-              Download the Windows package.
+            Download the Windows package.
           </h2>
           <p className="mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-              Genesis Desktop is available for Windows right now. Use the direct download below to
-              get the hosted build here.
+            Genesis Desktop is available for Windows right now. Use the direct download below to get
+            the hosted build here.
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <a
-                href={WINDOWS_PACKAGE_URL}
-                download={WINDOWS_PACKAGE_FILENAME}
-                className="inline-flex cursor-default items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                Download for Windows
-              </a>
+            <a
+              href={WINDOWS_PACKAGE_URL}
+              download={WINDOWS_PACKAGE_FILENAME}
+              className="inline-flex cursor-default items-center justify-center rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              Download for Windows
+            </a>
           </div>
         </div>
       </div>
