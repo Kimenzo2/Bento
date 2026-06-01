@@ -879,7 +879,7 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
   const merged: DesktopSettings = shouldMigrateToStore
     ? {
         ...current,
-        ...(nativeMirror ?? {}),
+        ...nativeMirror,
         appearance: {
           ...current.appearance,
           ...nativeMirror?.appearance,

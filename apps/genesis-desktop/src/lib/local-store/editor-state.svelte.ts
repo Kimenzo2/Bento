@@ -857,7 +857,7 @@ export async function setBlockAlign(blockId: string, align: string) {
   const aMap: Record<string, number> = { left: 0, center: 1, right: 2, justify: 3 };
   const b = blocks.get(blockId);
   if (b) {
-    blocks.set(blockId, { ...b, fields: { ...(b.fields ?? {}), hAlign: align } });
+    blocks.set(blockId, { ...b, fields: { ...b.fields, hAlign: align } });
   }
   try {
     await invoke('notes_set_align', {

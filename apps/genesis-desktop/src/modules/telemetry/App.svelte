@@ -69,7 +69,7 @@
         projected: row.projectedValueIn5min.toFixed(1),
         threshold: `${Math.round(row.timeToThresholdSecs / 60)} min`,
         verdict:
-          row.wasCorrect == null ? 'Pending' : row.wasCorrect ? 'Correct' : 'Missed',
+          row.wasCorrect === null ? 'Pending' : row.wasCorrect ? 'Correct' : 'Missed',
       },
     })) ?? [];
   $: healingRows =

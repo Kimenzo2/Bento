@@ -30,7 +30,7 @@
   // – mini-app mode → activeAppId is set; the single-row grid requires exactly
   //                   one child in .desktop-workspace__content, and the tab label
   //                   already identifies the module
-  const showTopbar = $derived(!NO_SIDEBAR_PAGES.has(page) && !Boolean(activeAppId));
+  const showTopbar = $derived(!NO_SIDEBAR_PAGES.has(page) && !activeAppId);
 
   const showSidebar = $derived(!NO_SIDEBAR_PAGES.has(page));
 
@@ -76,7 +76,7 @@
 
 <div
   class:desktop-workspace--dashboard={page === "dashboard"}
-  class:desktop-workspace--mini-app={Boolean(activeAppId)}
+  class:desktop-workspace--mini-app={!!activeAppId}
   class:desktop-workspace--sidebar-hidden={$workspaceStore.sidebarHidden}
   class:desktop-workspace--no-topbar={!showTopbar}
   class="desktop-workspace"
@@ -95,7 +95,7 @@
     </main>
   </div>
 
-  {#if page === "dashboard" && !Boolean(activeAppId)}
+  {#if page === "dashboard" && !activeAppId}
     <!-- ── Floating feedback button ──────────────────────────────────────── -->
     <button
       data-feedback-btn

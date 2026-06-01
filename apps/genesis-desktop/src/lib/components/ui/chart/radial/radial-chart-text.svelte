@@ -60,7 +60,7 @@
   // Read the display value from the correct field name (now "value" by default).
   const rawValue  = $derived(data[0]?.[value]);
   const displayValue = $derived(
-    rawValue != null ? String(rawValue) : ""
+    rawValue !== null ? String(rawValue) : ""
   );
 
   // Background circle radius — tight-fits the inner radius of the arc.

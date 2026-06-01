@@ -345,9 +345,6 @@ class PassiveIntelligenceEngine {
 
   private updateTodayRhythm(): void {
     const today = time.dateKey(time.now());
-    today: {
-      ts: this.todayRhythm;
-    }
 
     const focusSessions = this.focusSessions.filter((s) => {
       const d = time.dateKey(s.start);

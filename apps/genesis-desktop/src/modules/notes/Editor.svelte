@@ -31,7 +31,7 @@
   let slashAnchorBlockId = $state<string | null>(null);
   let showLinkDialog = $state(false);
   let linkUrl = $state('');
-  let editorEl: HTMLDivElement;
+  let editorEl = $state<HTMLDivElement>();
 
   // ── Drag reorder state ──────────────────────────────────────────
   let dragBlockId = $state<string | null>(null);

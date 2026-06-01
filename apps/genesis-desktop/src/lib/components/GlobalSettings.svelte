@@ -656,7 +656,7 @@
               </div>
               <div class="global-settings__info-card">
                 <strong>Storage usage</strong>
-                <span>{cloudBackupState?.storageUsageBytes != null ? `${Math.round(cloudBackupState.storageUsageBytes / 1024)} KB` : "Unknown"}</span>
+                <span>{cloudBackupState?.storageUsageBytes !== null ? `${Math.round(cloudBackupState.storageUsageBytes / 1024)} KB` : "Unknown"}</span>
               </div>
             </div>
 

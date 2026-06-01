@@ -179,7 +179,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   let selectedTask = $derived(tasks.find(t => t.id === selectedTaskId) ?? null);
 
   let filteredTasks = $derived.by(() => {
-    let result = [...tasks.filter(t => !t.done)];
+    let result = tasks.filter(t => !t.done);
     const now = time.now();
     const todayMs = today.getTime();
     const endOfToday = todayMs + 86_400_000;

@@ -8,9 +8,9 @@ const filePath = resolve(__dirname, '..', 'src', 'modules', 'tasks', 'App.svelte
 let content = readFileSync(filePath, 'utf-8');
 
 // 1. Replace month select
-const monthOld = `<select\r\n            class=\"tasks-cal-select\"\r\n            bind:value={calViewMonth}\r\n            aria-label=\"Month\"\r\n          >\r\n            {#each ['January','February','March','April','May','June','July','August','September','October','November','December'] as name, i}\r\n              <option value={i}>{name}</option>\r\n            {/each}\r\n          </select>`;
+const monthOld = `<select\r\n            class="tasks-cal-select"\r\n            bind:value={calViewMonth}\r\n            aria-label="Month"\r\n          >\r\n            {#each ['January','February','March','April','May','June','July','August','September','October','November','December'] as name, i}\r\n              <option value={i}>{name}</option>\r\n            {/each}\r\n          </select>`;
 
-const monthNew = `<CustomSelect\r\n            options={monthOptions}\r\n            bind:value={calViewMonth}\r\n            id=\"tasks-cal-month\"\r\n            aria-label=\"Month\"\r\n            class=\"tasks-cal-select\"\r\n          />`;
+const monthNew = `<CustomSelect\r\n            options={monthOptions}\r\n            bind:value={calViewMonth}\r\n            id="tasks-cal-month"\r\n            aria-label="Month"\r\n            class="tasks-cal-select"\r\n          />`;
 
 if (content.includes(monthOld)) {
   content = content.replace(monthOld, monthNew);
@@ -28,9 +28,9 @@ if (content.includes(monthOld)) {
 }
 
 // 2. Replace year select
-const yearOld = `<select\r\n            class=\"tasks-cal-select\"\r\n            bind:value={calViewYear}\r\n            aria-label=\"Year\"\r\n          >\r\n            {#each Array.from({ length: 20 }, (_, i) => time.getDate(time.now()).year - 5 + i) as yr}\r\n              <option value={yr}>{yr}</option>\r\n            {/each}\r\n          </select>`;
+const yearOld = `<select\r\n            class="tasks-cal-select"\r\n            bind:value={calViewYear}\r\n            aria-label="Year"\r\n          >\r\n            {#each Array.from({ length: 20 }, (_, i) => time.getDate(time.now()).year - 5 + i) as yr}\r\n              <option value={yr}>{yr}</option>\r\n            {/each}\r\n          </select>`;
 
-const yearNew = `<CustomSelect\r\n            options={yearOptions}\r\n            bind:value={calViewYear}\r\n            id=\"tasks-cal-year\"\r\n            aria-label=\"Year\"\r\n            class=\"tasks-cal-select\"\r\n          />`;
+const yearNew = `<CustomSelect\r\n            options={yearOptions}\r\n            bind:value={calViewYear}\r\n            id="tasks-cal-year"\r\n            aria-label="Year"\r\n            class="tasks-cal-select"\r\n          />`;
 
 if (content.includes(yearOld)) {
   content = content.replace(yearOld, yearNew);

@@ -7,6 +7,7 @@
   import type { Block } from '$lib/local-store/block';
   import { EmbedProcessor } from '$lib/local-store/block';
 
+  // eslint-disable-next-line no-unassigned-vars
   export let block: Block;
   export let readonly: boolean = false;
 
@@ -16,8 +17,8 @@
 
   let isEditing = false;
   let isShowing = false;
-  let valueEl: HTMLDivElement;
-  let editableEl: HTMLTextAreaElement;
+  let valueEl: HTMLDivElement;      // eslint-disable-line no-unassigned-vars
+  let editableEl: HTMLTextAreaElement; // eslint-disable-line no-unassigned-vars
   let nodeEl: HTMLDivElement;
 
   // ── Lazy-load KaTeX — CDN fallback, no npm install required ────────

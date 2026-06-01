@@ -32,10 +32,8 @@ describe('desktop settings contract', () => {
     });
 
     expect(parsed.success).toBe(true);
-    if (parsed.success) {
-      expect(parsed.data.migration.legacyBrowserStorageMigrated).toBe(false);
-      expect(parsed.data.migration.storeSettingsMigrated).toBe(false);
-    }
+    expect(parsed.data!.migration.legacyBrowserStorageMigrated).toBe(false);
+    expect(parsed.data!.migration.storeSettingsMigrated).toBe(false);
   });
 
   it('defaults the desktop to Midnight Classic', () => {
