@@ -43,6 +43,13 @@ jobs:
           "C:\Strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "C:\Strawberry\perl\site\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Install OpenSSL Perl modules
+        shell: pwsh
+        env:
+          PERL_MM_USE_DEFAULT: 1
+        run: |
+          cpan -T Locale::Maketext::Simple Text::Template
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
