@@ -57,7 +57,7 @@
       }
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI4M0UwRkY2NDk2RTJFRjYKUldUMkxtNUo5ZzgrS09ObHB2LzhPMkZvOGtGUHZPUlVndmRQYWIrWHRyVG9LOGNielJPQjh1aW0K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2MTg0NEExNTVCM0IxOUUKUldTZXNiTlZvVVFZZGtoUUJwUTRJbTF0SGtqTWZ5aE9HOGlHbGdRNkdUd1ZQVjFQZWpTSktnbWQK",
       "endpoints": [
         "https://genesis.vercel.app/api/updates/bento-desktop",
         "https://updates.iamazeyou.me/bento-desktop"
