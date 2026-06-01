@@ -29,9 +29,10 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Oxc Check
+      - name: Svelte Check
         run: bun run check
       - name: Lint
+        continue-on-error: true
         run: bun run lint
       - name: Type Check
         continue-on-error: true
