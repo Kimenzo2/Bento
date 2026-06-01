@@ -78,8 +78,7 @@ jobs:
             librsvg2-dev \
             patchelf \
             libxdo-dev \
-            libssl-dev \
-            mold
+            libssl-dev
 
       - name: Install Rust toolchain
         run: |
