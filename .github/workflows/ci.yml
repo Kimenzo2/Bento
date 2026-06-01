@@ -58,6 +58,7 @@ jobs:
         with:
           cache-key: ${{ runner.os }}-cargo-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
       - name: Install Tauri system dependencies
+        shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq             libwebkit2gtk-4.1-dev             libayatana-appindicator3-dev             librsvg2-dev             patchelf             libxdo-dev             libssl-dev             libasound2-dev
@@ -74,6 +75,13 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
           restore-keys: ${{ runner.os }}-cargo-registry-
+      - name: Build MCP sidecar
+        env:
+          RUSTC_WRAPPER: sccache
+        run: |
+          cargo build --profile ci --bin bento-mcp
+          mkdir -p binaries
+          cp target/ci/bento-mcp binaries/bento-mcp-x86_64-unknown-linux-gnu
       - name: cargo check
         env:
           RUSTC_WRAPPER: sccache
