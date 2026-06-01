@@ -16,3 +16,6 @@ warnings_output.txt
 C:\\Users\\admin\\Downloads\\svcheck.txt
 C:\\Users\\admin\\Downloads\\svelte-check-output.txt
 bento-build-setup.cmd
+
+# Tauri signing keys (private key — never commit!)
+src-tauri/.keys/
