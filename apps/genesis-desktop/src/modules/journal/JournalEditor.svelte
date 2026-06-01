@@ -1,79 +1,99 @@
 <script lang="ts">
   // ════════════════════════════════════════════════════════════════════
   // JournalEditor.svelte
-  // The Anytype-ported Editor surface adapted for Journal.
-  // Wraps Editor.svelte (from notes) with journal-specific chrome:
-  //  • Today header + streak pill
-  //  • Mood picker
-  //  • Word / char count footer
-  //  • Save / Clear actions wired to journal-service
+  // The Anytype-ported Editor surface adapted for Journal entries.
+  // Each entry has a unique UUID (not date-based), and the entry's date
+  // is fetched from the backend for display in the header.
   // ════════════════════════════════════════════════════════════════════
+  import { time } from '$lib/utils/time';
   import { onMount, onDestroy } from 'svelte';
-  import { editorStore, rootBlocks, isEditorLoading } from '$lib/local-store/store';
+  import { editorStore, getRootBlocks, getIsEditorLoading } from '$lib/local-store/store';
   import { TextStyle } from '$lib/local-store/block';
-  import { saveJournalEntry, getJournalEntry } from '$lib/services/journal-service';
+  import { getJournalEntry, saveJournalEntry } from '$lib/services/journal-service';
+
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   let {
-    objectId = '',        // journal entry date string used as objectId
-    todayLabel = '',
-    dayOfYear = 0,
-    streak = 0,
+    objectId = '',
     isSaving = $bindable(false),
     saved = $bindable(false),
-    selectedMood = $bindable<string>(''),
     t = (k: string) => k,
-    onsave = () => {},
+    onsaved = () => {},
   }: {
     objectId?: string;
-    todayLabel?: string;
-    dayOfYear?: number;
-    streak?: number;
     isSaving?: boolean;
     saved?: boolean;
-    selectedMood?: string;
     t?: (k: string) => string;
-    onsave?: () => void;
+    onsaved?: () => void;
   } = $props();
 
-  // ── Local editor state (mirror from store) ───────────────────────
-  let blocks = $derived($rootBlocks);
-  let loading = $derived($isEditorLoading);
+  // ── Entry date (fetched from backend) ────────────────────────────
+  let entryDate = $state<string>('');
+  let entryLabel = $state<string>('');
 
+  // ── Local editor state ──────────────────────────────────────────
   let wordCount = $derived(
-    blocks.map(b => (b.content as any)?.text ?? '').join(' ').trim().split(/\s+/).filter(Boolean).length
+    getRootBlocks().map((b: any) => (b.content as any)?.text ?? '').join(' ').trim().split(/\s+/).filter(Boolean).length
   );
   let charCount = $derived(
-    blocks.reduce((acc, b) => acc + ((b.content as any)?.text?.length ?? 0), 0)
+    getRootBlocks().reduce((acc: number, b: any) => acc + ((b.content as any)?.text?.length ?? 0), 0)
   );
 
-  // ── Mood picker ──────────────────────────────────────────────────
-  const moods = [
-    { id: 'great', emoji: '🤩', label: 'Great', color: '#8b5cf6' },
-    { id: 'good',  emoji: '😊', label: 'Good',  color: '#22c55e' },
-    { id: 'okay',  emoji: '😐', label: 'Okay',  color: '#eab308' },
-    { id: 'low',   emoji: '😔', label: 'Low',   color: '#f97316' },
-    { id: 'awful', emoji: '😩', label: 'Awful', color: '#ef4444' },
-  ];
-
-  // ── Init editor from backend ─────────────────────────────────────
+  // ── Init editor from backend ────────────────────────────────────
   onMount(async () => {
-    if (objectId) {
-      await editorStore.init(objectId, 'journal');
+    // Fetch the entry to get its date for display
+    try {
+      const entry = await getJournalEntry(objectId);
+      if (entry) {
+        entryDate = entry.date;
+        entryLabel = formatEntryDate(entry.date);
+      }
+    } catch {
+      // Fallback: read date from localStorage
+      try {
+        const raw = localStorage.getItem(`journal:id:${objectId}`);
+        if (raw) {
+          const fallback = JSON.parse(raw);
+          if (fallback?.date) {
+            entryDate = fallback.date;
+            entryLabel = formatEntryDate(fallback.date);
+          }
+        }
+      } catch { /* ignore */ }
+      if (!entryLabel) {
+        entryLabel = formatEntryDate(time.toISODate(time.now()));
+      }
+    }
+
+    await editorStore.init(objectId, 'journal');
+    // Auto-focus the first paragraph block
+    await tick();
+    const blocks = getRootBlocks();
+    const firstBlock = blocks.find((b: any) => (b.content as any)?.style !== 0);
+    if (firstBlock?.id) {
+      editorStore.focusBlock(firstBlock.id);
+      focusBlock(firstBlock.id, 0);
+    } else if (blocks[0]?.id) {
+      editorStore.focusBlock(blocks[0].id);
+      focusBlock(blocks[0].id, 0);
     }
   });
+
+  function formatEntryDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
+  }
 
   // ── Save to journal service ──────────────────────────────────────
   async function handleSave() {
     isSaving = true;
     try {
-      // CRITICAL: Flush live text cache into the store so blocks reflect
-      // what the user actually typed (not stale store content).
-      // The editor uses _liveTextContent to avoid render freezes.
-      for (const block of blocks) {
+      // Flush live text cache into the store
+      for (const block of getRootBlocks()) {
         if (block.id) editorStore.syncBlockTextToStore(block.id);
       }
-      // Re-read blocks AFTER flushing live text
-      const freshBlocks = blocks;
+      const freshBlocks = getRootBlocks();
       const blocksJson = JSON.stringify(
         freshBlocks.map(b => ({
           id: b.id,
@@ -85,31 +105,26 @@
       const wc = textContent ? textContent.split(/\s+/).filter(Boolean).length : 0;
 
       try {
-        // Try Tauri backend first
-        await saveJournalEntry({
-          date: objectId,
-          blocks: blocksJson,
-          wordCount: wc,
-          mood: selectedMood || null,
-        });
+        await saveJournalEntry(objectId, entryDate || time.toISODate(time.now()), blocksJson, wc);
+        // Clear any stale localStorage entry now that DB save succeeded
+        localStorage.removeItem(`journal:id:${objectId}`);
       } catch {
         // Fallback to localStorage if Tauri backend not available
-        const key = `journal:${objectId}`;
-        const existing = JSON.parse(localStorage.getItem(key) || 'null');
-        const entry = {
-          id: existing?.id ?? crypto.randomUUID(),
-          date: objectId,
+        const existingRaw = localStorage.getItem(`journal:id:${objectId}`);
+        const existing = existingRaw ? JSON.parse(existingRaw) : null;
+        localStorage.setItem(`journal:id:${objectId}`, JSON.stringify({
+          id: objectId,
+          date: entryDate || time.toISODate(time.now()),
           blocks: blocksJson,
           wordCount: wc,
-          mood: selectedMood || null,
-          createdAt: existing?.createdAt ?? Date.now(),
-          updatedAt: Date.now(),
-        };
-        localStorage.setItem(key, JSON.stringify(entry));
+          mood: null,
+          createdAt: existing?.createdAt ?? time.now(),
+          updatedAt: time.now(),
+        }));
       }
 
       saved = true;
-      onsave();
+      onsaved();
     } catch (err) {
       console.error('[JournalEditor] save failed:', err);
     } finally {
@@ -120,7 +135,6 @@
 
   function handleClear() {
     editorStore.clearBlocks();
-    selectedMood = '';
     saved = false;
   }
 
@@ -163,9 +177,6 @@
   }
 
   function handleUpdate(blockId: string, text: string, marks: any[]) {
-    // Store update is intentionally NOT called on every keystroke —
-    // only persist to backend (debounced) and cache in live text map.
-    // This prevents cascading derived-store re-evaluations (freeze).
     editorStore.persistBlockText(blockId, text, marks);
   }
 
@@ -186,10 +197,10 @@
 
     if (e.key === 'Backspace' && value === '' && range.from === 0) {
       e.preventDefault();
-      if (blocks.length <= 1) return;
-      const idx = blocks.findIndex(b => b.id === blockId);
+      if (getRootBlocks().length <= 1) return;
+      const idx = getRootBlocks().findIndex((b: any) => b.id === blockId);
       if (idx <= 0) return;
-      const prev = blocks[idx - 1];
+      const prev = getRootBlocks()[idx - 1];
       await editorStore.deleteBlock(blockId);
       editorStore.focusBlock(prev.id!);
       focusBlock(prev.id!);
@@ -198,15 +209,15 @@
 
     if (e.key === 'ArrowUp' && range.from === 0) {
       e.preventDefault();
-      const idx = blocks.findIndex(b => b.id === blockId);
-      if (idx > 0) focusBlock(blocks[idx - 1].id!, 999);
+      const idx = getRootBlocks().findIndex((b: any) => b.id === blockId);
+      if (idx > 0) focusBlock(getRootBlocks()[idx - 1].id!, 999);
       return;
     }
 
     if (e.key === 'ArrowDown' && range.from >= value.length) {
       e.preventDefault();
-      const idx = blocks.findIndex(b => b.id === blockId);
-      if (idx < blocks.length - 1) focusBlock(blocks[idx + 1].id!, 0);
+      const idx = getRootBlocks().findIndex((b: any) => b.id === blockId);
+      if (idx < getRootBlocks().length - 1) focusBlock(getRootBlocks()[idx + 1].id!, 0);
       return;
     }
 
@@ -248,8 +259,8 @@
   }
 
   async function addBlockBelow(blockId?: string) {
-    const targetId = blockId ?? blocks[blocks.length - 1]?.id;
-    if (!targetId) return;
+    const rbs = getRootBlocks();
+    const targetId = blockId ?? rbs[rbs.length - 1]?.id;
     const newId = await editorStore.addBlock(targetId);
     if (newId) { editorStore.focusBlock(newId); focusBlock(newId, 0); }
   }
@@ -273,45 +284,26 @@
 
 <div class="journal-editor" bind:this={editorEl}>
 
-  <!-- ── Minimal header ─────────────────────────────────────────── -->
-  <div class="je-header">
+  <!-- ── Diary header ──────────────────────────────────────────── -->
+  <header class="je-header">
     <div class="je-header-left">
-      <h2 class="je-title">{todayLabel}</h2>
-      <p class="je-sub">{t('moduleJournalDayOfYear')} {dayOfYear}</p>
+      <span class="je-badge">{t('moduleJournalToday')}</span>
+      <h1 class="je-title">{entryLabel || 'Journal Entry'}</h1>
+      {#if entryDate}
+        <span class="je-date-sub">{entryDate}</span>
+      {/if}
     </div>
-    <div class="je-streak-pill">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="je-streak-icon"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      {streak} {t('moduleJournalDayStreak')}
-    </div>
-  </div>
-
-  <!-- ── Mood picker ─────────────────────────────────────────────── -->
-  <div class="je-mood-row" role="group" aria-label="How are you feeling?">
-    <span class="je-mood-label">{t('moduleJournalMoodToday')}</span>
-    {#each moods as mood}
-      <button
-        class="je-mood-btn"
-        class:je-mood-btn--active={selectedMood === mood.id}
-        style="--mood-color: {mood.color}"
-        onclick={() => { selectedMood = selectedMood === mood.id ? '' : mood.id; }}
-        title={mood.label}
-        aria-label={mood.label}
-        aria-pressed={selectedMood === mood.id}
-      >
-        {mood.emoji}
-      </button>
-    {/each}
-  </div>
+  </header>
 
   <!-- ── Editor surface ─────────────────────────────────────────── -->
-  {#if loading}
+  {#if getIsEditorLoading()}
     <div class="je-loading">
       <div class="je-spinner"></div>
-      <p>Loading…</p>
+      <p>{t('moduleJournalLoading') || 'Loading…'}</p>
     </div>
   {:else}
     <div class="je-blocks">
-      {#each blocks as block, i (block.id)}
+      {#each getRootBlocks() as block, i (block.id)}
         <div class="je-block-wrap">
           <BlockRenderer
             {block}
@@ -331,9 +323,10 @@
         </div>
       {/each}
 
-      {#if blocks.length === 0}
+      {#if getRootBlocks().length === 0}
         <div class="je-empty">
-          <p>Press <kbd>/</kbd> for commands or just start typing…</p>
+          <div class="je-empty-icon">✎</div>
+          <p>{t('moduleJournalEmptyPrompt') || 'Start writing your thoughts…'}</p>
         </div>
       {/if}
     </div>
@@ -357,11 +350,12 @@
   {/if}
 
   <!-- ── Footer ─────────────────────────────────────────────────── -->
-  <div class="je-footer">
+  <footer class="je-footer">
     <span class="je-stats">{wordCount} {t('moduleJournalWords')} · {charCount} {t('moduleJournalChars')}</span>
     <div class="je-actions">
-      <button class="je-btn" onclick={handleClear} title={t('commonClear')}>
+      <button class="je-btn je-btn--secondary" onclick={handleClear} title={t('commonClear')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="je-btn-icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        {t('moduleJournalClear') || 'Clear'}
       </button>
       <button
         class="je-btn je-btn--save"
@@ -381,7 +375,7 @@
         {/if}
       </button>
     </div>
-  </div>
+  </footer>
 </div>
 
 <style>
@@ -397,86 +391,41 @@
     min-height: calc(100vh - 140px);
   }
 
-  /* ── Header ───────────────────────────────────────────────────── */
+  /* ── Diary header ─────────────────────────────────────────────── */
   .je-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid color-mix(in srgb, var(--foreground) 6%, transparent);
     gap: 12px;
+  }
+
+  .je-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 4px;
   }
 
   .je-title {
     margin: 0;
-    font-size: 1.35rem;
-    font-weight: 650;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+    color: var(--foreground);
   }
 
-  .je-sub {
-    margin: 4px 0 0;
+  .je-date-sub {
     font-size: 0.75rem;
     color: var(--muted);
-  }
-
-  .je-streak-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #f59e0b, #ef4444);
-    color: #fff;
-    font-size: 0.82rem;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-
-  .je-streak-icon { width: 14px; height: 14px; }
-
-  /* ── Mood picker ──────────────────────────────────────────────── */
-  .je-mood-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-
-  .je-mood-label {
-    font-size: 0.82rem;
-    color: var(--muted);
     font-weight: 500;
-    white-space: nowrap;
-    margin-right: 4px;
-  }
-
-  .je-mood-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background: color-mix(in srgb, var(--foreground) 4%, transparent);
-    font-size: 1.25rem;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    transition: all 0.14s;
-    line-height: 1;
-  }
-
-  .je-mood-btn:hover {
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
-    transform: scale(1.1);
-  }
-
-  .je-mood-btn--active {
-    border-color: var(--mood-color);
-    background: color-mix(in srgb, var(--mood-color) 12%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mood-color) 20%, transparent);
-    transform: scale(1.08);
+    margin-top: 2px;
   }
 
   /* ── Block area ───────────────────────────────────────────────── */
@@ -518,23 +467,20 @@
 
   .je-empty {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 24px;
+    padding: 56px 24px 48px;
     color: var(--muted);
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     text-align: center;
+    gap: 10px;
   }
 
-  .je-empty kbd {
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 6px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--surface);
-    font-family: inherit;
-    font-size: 0.82rem;
+  .je-empty-icon {
+    font-size: 1.6rem;
+    opacity: 0.3;
+    line-height: 1;
   }
 
   /* ── Slash menu ───────────────────────────────────────────────── */
@@ -625,6 +571,15 @@
 
   .je-btn:hover { background: var(--muted-surface); }
 
+  .je-btn--secondary {
+    color: var(--muted);
+    border-color: transparent;
+  }
+  .je-btn--secondary:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+
   .je-btn--save {
     background: #818cf8;
     border-color: #818cf8;
@@ -682,7 +637,6 @@
 
   @media (max-width: 720px) {
     .journal-editor { padding: 20px 16px 40px; }
-    .je-header { flex-direction: column; align-items: flex-start; }
     .je-footer { flex-direction: column; gap: 10px; align-items: flex-start; }
   }
 </style>

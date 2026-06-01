@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { z } from 'zod';
+import { time } from '$lib/utils/time';
 
 // ─── Zod schemas ──────────────────────────────────────────────────────
 
@@ -139,7 +140,7 @@ export function formatTasksAsMarkdown(
   }>,
   title = 'Task List',
 ): string {
-  const lines: string[] = [`# ${title}`, '', `_Generated ${new Date().toLocaleString()}_`, '', '---', ''];
+  const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', '---', ''];
 
   const incomplete = items.filter((t) => !t.done);
   const complete = items.filter((t) => t.done);
@@ -152,7 +153,7 @@ export function formatTasksAsMarkdown(
         t.priority === 'high' ? ' 🟠' :
         t.priority === 'medium' ? ' 🔵' : '';
       const dueStr = t.dueAt
-        ? ` *(due ${new Date(t.dueAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})*`
+        ? ` *(due ${time.formatCustom(t.dueAt, 'M j')})*`
         : '';
       const projectStr = t.project && t.project !== 'inbox' ? ` \`[${t.project}]\`` : '';
       lines.push(`- [ ] **${t.title}**${priorityMark}${dueStr}${projectStr}`);
@@ -192,7 +193,7 @@ export function formatHealthAsMarkdown(
   }>,
   title = 'Health Log',
 ): string {
-  const lines: string[] = [`# ${title}`, '', `_Generated ${new Date().toLocaleString()}_`, '', '---', ''];
+  const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', '---', ''];
 
   for (const log of logs) {
     lines.push(`### ${log.dateKey}`);
@@ -230,7 +231,7 @@ export function formatVitalsAsMarkdown(
   const lines: string[] = [
     `# ${title}`,
     '',
-    `_Generated ${new Date().toLocaleString()}_`,
+    `_Generated ${time.format(time.now())}_`,
     '',
     '| Date | BP | HR | Weight | Temp | SpO₂ |',
     '|------|----|----|--------|------|------|',
@@ -257,7 +258,7 @@ export function formatMedsAsMarkdown(
   }>,
   title = 'Medications',
 ): string {
-  const lines: string[] = [`# ${title}`, '', `_Generated ${new Date().toLocaleString()}_`, '', ''];
+  const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', ''];
 
   for (const m of meds) {
     const status = m.takenToday ? '✅ Taken' : '⬜ Pending';

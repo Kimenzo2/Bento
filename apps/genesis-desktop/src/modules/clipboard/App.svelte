@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "./clipboard.css";
   import CodeIcon from "@lucide/svelte/icons/code";
   import CopyIcon from "@lucide/svelte/icons/copy";
   import DownloadIcon from "@lucide/svelte/icons/download";
@@ -103,7 +104,7 @@
   }
 </script>
 
-<MiniAppRoot class="gap-5 p-4 sm:p-6">
+<MiniAppRoot class="clipboard-app gap-5 p-4 sm:p-6">
   <MiniAppHeader
     eyebrow="Clipboard"
     title="History, snippets, and sensitive clips"

@@ -19,6 +19,7 @@
   } from "$lib/stores/module-sections.store";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { onMount } from "svelte";
+  import { time } from '$lib/utils/time';
 
   const moduleId = "mood";
   const sectionLabels = ["Check-in", "Calendar", "Activities", "Patterns", "Therapist", "Export"] as const;
@@ -77,7 +78,7 @@
   let newNoteText     = "";
   let savingNote      = false;
   let noteSaved       = false;
-  let currentMonth    = new Date().toISOString().slice(0, 7); // "2026-05"
+  let currentMonth    = time.toISOMonth(time.now()); // "2026-05"
 
   let selectedMoodEntry = $derived(moods.find(m => m.id === selectedMood) ?? moods[2]);
 
@@ -94,7 +95,7 @@
 
   let daysInMonth = $derived.by(() => {
     const [y, mo] = currentMonth.split("-").map(Number);
-    return new Date(y, mo, 0).getDate();
+    return time.getMonthDays(y)[mo];
   });
 
   function moodEmoji(mood: string) {
@@ -268,7 +269,7 @@
         filename = `mood-timeline-${currentMonth}.csv`;
       } else if (type === "pdf") {
         const lines = [
-          "MOOD REPORT — " + new Date().toLocaleDateString(),
+          "MOOD REPORT — " + time.formatDate(time.now(), 'MMMM D, YYYY'),
           "",
           `Streak: ${stats.streak} days | Total entries: ${stats.total}`,
           `Great days: ${stats.greatDays} | Calm days: ${stats.calmDays}`,
@@ -289,7 +290,7 @@
           : 0;
         content = [
           "WEEKLY MOOD RECAP",
-          `Generated: ${new Date().toLocaleDateString()}`,
+          `Generated: ${time.formatDate(time.now(), 'MMMM D, YYYY')}`,
           "",
           `Check-ins this period: ${monthCheckins.length}`,
           `Average intensity: ${avg}%`,
@@ -297,7 +298,7 @@
           "",
           patterns.length ? "Top pattern: " + patterns[0].label : "Log more to surface patterns.",
         ].join("\n");
-        filename = `mood-recap-${new Date().toISOString().slice(0,10)}.txt`;
+        filename = `mood-recap-${time.toISODate(time.now())}.txt`;
       }
 
       const { writeTextFile } = await import("@tauri-apps/plugin-fs");
@@ -492,7 +493,7 @@
           <CardContent class="mood-timeline">
             {#each todayCheckins as entry}
               <article class="mood-timeline__item">
-                <span>{new Date(entry.loggedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
+                <span>{time.formatTime(entry.loggedAt)}</span>
                 <div>
                   <strong>{moodEmoji(entry.mood)} {entry.mood} ({entry.intensity}%)</strong>
                   {#if entry.note}<p>{entry.note}</p>{/if}

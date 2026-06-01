@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { createClient } from '@supabase/supabase-js';
+  import { time } from '$lib/utils/time';
 
   // ── Types ────────────────────────────────────────────────────────────
   interface FeedbackReport {
@@ -38,8 +39,8 @@
 
   // ── Relative time helper ─────────────────────────────────────────────
   function relativeTime(dateStr: string): string {
-    const now = Date.now();
-    const then = new Date(dateStr).getTime();
+    const now = time.now();
+    const then = time.parseISO(dateStr);
     const diffMs = now - then;
     const diffSec = Math.floor(diffMs / 1000);
     if (diffSec < 60) return 'just now';

@@ -81,6 +81,7 @@
           severity: type === 'bug' ? severity : null,
           category: type === 'feature' ? category : null,
           active_module: activeModule || '',
+          screenshot: pastedImage ?? null,
         },
       });
       toast.success('Feedback submitted. Thank you!');
@@ -92,11 +93,52 @@
     }
   }
 
+  // ── Screenshot paste / drag-drop ─────────────────────────────────────
+  let pastedImage = $state<string | null>(null);   // base64 data URL
+  let isDragOver = $state(false);
+
+  function readImageFile(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { pastedImage = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  function handlePaste(e: ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();           // don't paste raw binary into textarea
+        const file = item.getAsFile();
+        if (file) readImageFile(file);
+        return;
+      }
+    }
+    // Not an image — let the default text paste happen
+  }
+
+  function handleDragOver(e: DragEvent) {
+    const hasImage = Array.from(e.dataTransfer?.items ?? []).some(i => i.type.startsWith('image/'));
+    if (!hasImage) return;
+    e.preventDefault();
+    isDragOver = true;
+  }
+
+  function handleDragLeave() { isDragOver = false; }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    isDragOver = false;
+    const file = Array.from(e.dataTransfer?.files ?? []).find(f => f.type.startsWith('image/'));
+    if (file) readImageFile(file);
+  }
+
+  function removeImage() { pastedImage = null; }
+
   // ── Escape key ────────────────────────────────────────────────────────
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && !submitting) {
-      onclose();
-    }
+    if (e.key === 'Escape' && !submitting) onclose();
   }
 </script>
 
@@ -174,17 +216,58 @@
       <div class="feedback-modal__field">
         <label for="feedback-desc">
           Describe it in detail
+          <span class="feedback-modal__label-hint">(or paste a screenshot)</span>
         </label>
-        <textarea
-          id="feedback-desc"
-          bind:value={description}
-          placeholder={type === 'bug'
-            ? 'What were you doing? What did you expect? What happened instead?'
-            : 'What problem does this solve? How would it work?'
-          }
-          maxlength={5000}
-          disabled={submitting}
-        ></textarea>
+
+        <!-- Drop zone wrapper — surrounds both textarea and preview -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="feedback-modal__drop-zone"
+          class:feedback-modal__drop-zone--over={isDragOver}
+          ondragover={handleDragOver}
+          ondragleave={handleDragLeave}
+          ondrop={handleDrop}
+        >
+          <textarea
+            id="feedback-desc"
+            bind:value={description}
+            placeholder={type === 'bug'
+              ? 'What were you doing? What did you expect? What happened instead?'
+              : 'What problem does this solve? How would it work?'
+            }
+            maxlength={5000}
+            disabled={submitting}
+            onpaste={handlePaste}
+          ></textarea>
+
+          <!-- Screenshot thumbnail — shown only when an image is attached -->
+          {#if pastedImage}
+            <div class="feedback-modal__screenshot">
+              <img src={pastedImage} alt="Attached screenshot" />
+              <button
+                class="feedback-modal__screenshot-remove"
+                type="button"
+                onclick={removeImage}
+                aria-label="Remove screenshot"
+                title="Remove screenshot"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          {:else if isDragOver}
+            <div class="feedback-modal__drop-hint">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              Drop image here
+            </div>
+          {/if}
+        </div>
+
         <div class="feedback-modal__char-count">
           {description.length}/5000
         </div>

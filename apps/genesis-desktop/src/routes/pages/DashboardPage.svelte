@@ -74,7 +74,7 @@
 
   const clientGreeting = $derived.by(() => {
     if (!browser) return data?.greeting ?? "Welcome back";
-    const hour = new Date().getHours();
+    const hour = time.getDate(time.now()).hours;
     const base = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     const serverGreeting = data?.greeting ?? "";
     const nameMatch = serverGreeting.match(/^Good (?:morning|afternoon|evening),?\s*(.+)?$/i);
@@ -84,7 +84,7 @@
   });
 
   function loadFallbackData() {
-    const hour = new Date().getHours();
+    const hour = time.getDate(time.now()).hours;
     const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     data = {
       greeting,
@@ -559,10 +559,14 @@
      ═══════════════════════════════════════════════════════════════════ */
   .dpi {
     list-style: none;
-    margin: 12px 0 0;
+    margin: 8px 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
+    min-width: 0;      /* crush horizontally — lets children truncate */
+    overflow: hidden;  /* clip anything that still escapes */
+    flex: 1;           /* fill remaining card height */
+    min-height: 0;
   }
 
   /* Each row: [rail | body] */
@@ -570,6 +574,7 @@
     display: flex;
     align-items: stretch;   /* rail stretches full row height */
     gap: 10px;
+    min-width: 0;           /* Anytype fix: flex rows must be crushable */
   }
 
   /* Left rail — fixed width, holds node at top + connector line below */
@@ -627,15 +632,15 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 2px;
-    padding: 1px 0 14px;    /* top aligns with node center; bottom = spacing between rows */
+    gap: 1px;
+    padding: 1px 0 6px;    /* was 14px — reduced so 6 items + action fit the card */
     min-width: 0;
     flex: 1;
+    overflow: hidden;
   }
 
-  /* Last item has no connector so no bottom padding needed */
   .dpi__item:last-child .dpi__body {
-    padding-bottom: 2px;
+    padding-bottom: 0;
   }
 
   .dpi__text {
@@ -656,8 +661,9 @@
   }
 
   .dpi__secondary {
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 500;
+    line-height: 1.1;      /* tight — it's a sub-label, not a full line */
     color: color-mix(in srgb, var(--foreground) 38%, transparent);
     letter-spacing: 0.01em;
   }
@@ -798,11 +804,16 @@
   /* Card 1 — Priority */
   .dashboard__card--priority {
     --card-accent: var(--accent);
-    padding: clamp(16px, 2.5vw, 24px);
+    padding: clamp(14px, 2vw, 20px);
     background: color-mix(in srgb, var(--card-accent) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--card-accent) 20%, transparent);
-    /* Internal layout: header → label → items (stretch) → action pinned bottom */
-    grid-template-rows: auto auto 1fr auto;
+    /* Flex column — dpi list gets flex:1 and fills space; action pinned to bottom */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+    /* remove grid-template-rows — flex handles layout now */
   }
 
   .dashboard__card-badge {
@@ -823,8 +834,7 @@
 
   .dashboard__card-count {
     font-family: var(--font-display);
-    /* 64px target, scales down on short/narrow screens */
-    font-size: clamp(40px, 6vh, 64px);
+    font-size: clamp(28px, 4vh, 48px);   /* was 64px — give the list more room */
     font-weight: 800;
     letter-spacing: var(--letter-spacing-tight);
     color: var(--card-accent);
@@ -832,9 +842,9 @@
   }
 
   .dashboard__card-primary-label {
-    margin: -0.15rem 0 0;
+    margin: 0 0 4px;
     color: var(--muted);
-    font-size: clamp(11px, 1.5vh, 14px);
+    font-size: clamp(10px, 1.3vh, 12px);
   }
 
   .dashboard__card-items {

@@ -13,6 +13,7 @@
   } from "$lib/desktop/tab-session.svelte";
   import { getModuleCatalogEntry, moduleCatalog } from "$lib/data/module-catalog";
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
+  import { activeModule } from "$lib/desktop/modules";
   import { tooltip } from "$lib/components/Tooltip.svelte";
 
   // ── Reactive state from store ───────────────────────────────────────
@@ -99,6 +100,24 @@
     void activeTabId;
     if (!isDragging) {
       requestAnimationFrame(() => updateAllPositions(false));
+    }
+  });
+
+  // Auto-create a tab for the currently active module when tabs are first enabled
+  // after being in module-switcher mode (e.g. user was in Notes via ModuleSwitcher
+  // then enables Tab mode — the Notes tab should appear automatically).
+  //
+  // IMPORTANT: `$activeModule` is read unconditionally at the top of the effect
+  // so it is always tracked as a reactive dependency. If read only inside the `if`
+  // body, it drops off the dependency list when the condition short-circuits,
+  // causing the effect to miss `$activeModule` changes made while tabs were
+  // disabled — and auto-create a tab for the wrong (stale) module.
+  $effect(() => {
+    const currentModuleId = $activeModule;
+    if (tabsEnabled && tabs.length === 0 && tabState.initialized) {
+      if (currentModuleId && currentModuleId !== "dashboard") {
+        addTab(currentModuleId);
+      }
     }
   });
 

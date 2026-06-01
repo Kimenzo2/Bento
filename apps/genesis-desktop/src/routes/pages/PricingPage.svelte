@@ -9,6 +9,7 @@
   import { goto } from "@mateothegreat/svelte5-router";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { openExternal } from "$lib/desktop/open-external";
+  import { time } from "$lib/utils/time";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -123,13 +124,13 @@
     if (finalizationPending) return _t('pricingPendingActivation') || "Pending activation";
     if (!billingProfile.hasActiveSubscription) return _t('pricingNotActive');
     if (billingProfile.cancelAtPeriodEnd && billingProfile.subscriptionEndDate) {
-      return _t('pricingCancelsOn').replace('{date}', new Date(billingProfile.subscriptionEndDate).toLocaleDateString());
+      return _t('pricingCancelsOn').replace('{date}', time.formatDate(time.parseISO(billingProfile.subscriptionEndDate), 'MMMM D, YYYY'));
     }
     return "active";
   });
   const downgradeEffectiveDate = $derived.by(() => {
     if (billingProfile?.cancelAtPeriodEnd && billingProfile.subscriptionEndDate) {
-      return new Date(billingProfile.subscriptionEndDate).toLocaleDateString();
+      return time.formatDate(time.parseISO(billingProfile.subscriptionEndDate), 'MMMM D, YYYY');
     }
 
     return null;

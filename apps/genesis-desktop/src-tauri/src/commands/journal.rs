@@ -47,15 +47,60 @@ pub struct JournalEntry {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SaveEntryParams {
+    pub id: String,
     pub date: String,
     pub blocks: String,
     pub word_count: i32,
     pub mood: Option<String>,
 }
 
-/// Save (upsert) a journal entry for a given date.
-/// If an entry for that date already exists, it is replaced.
+/// Create a new blank journal entry for the given date.
+/// Returns the new entry with empty blocks.
+#[tauri::command]
+pub async fn create_journal_entry(
+    state: State<'_, BentoAppState>,
+    search: State<'_, SearchService>,
+    date: String,
+) -> Result<JournalEntry, String> {
+    let db = state.db();
+    let now = now_ms();
+    let id = Uuid::new_v4().to_string();
+
+    sqlx::query(
+        "INSERT INTO journal_entries (id, date, blocks, word_count, mood, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&id)
+    .bind(&date)
+    .bind("[]")
+    .bind(0)
+    .bind(&None::<String>)
+    .bind(now)
+    .bind(now)
+    .execute(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let entry = JournalEntry {
+        id,
+        date,
+        blocks: "[]".to_string(),
+        word_count: 0,
+        mood: None,
+        created_at: now,
+        updated_at: now,
+    };
+
+    if let Err(error) = search.index_content(journal_search_document(&entry)).await {
+        eprintln!("journal search index update failed: {error}");
+    }
+
+    Ok(entry)
+}
+
+/// Save (update) a journal entry by ID.
+/// If the ID doesn't exist, inserts a new row.
 #[tauri::command]
 pub async fn save_journal_entry(
     state: State<'_, BentoAppState>,
@@ -64,94 +109,82 @@ pub async fn save_journal_entry(
 ) -> Result<JournalEntry, String> {
     let db = state.db();
     let now = now_ms();
-    let id = Uuid::new_v4().to_string();
 
-    // Check if an entry already exists for this date
-    let existing: Option<String> = sqlx::query("SELECT id FROM journal_entries WHERE date = ?")
-        .bind(&params.date)
+    // Check if the entry exists by ID
+    let exists: bool = sqlx::query("SELECT 1 FROM journal_entries WHERE id = ?")
+        .bind(&params.id)
         .fetch_optional(&db)
         .await
         .map_err(|e| e.to_string())?
-        .map(|row| row.try_get("id").unwrap_or_default());
+        .is_some();
 
-    match existing {
-        Some(existing_id) => {
-            // Update existing entry
-            sqlx::query(
-                "UPDATE journal_entries SET blocks = ?, word_count = ?, mood = ?, updated_at = ? WHERE id = ?",
-            )
+    if exists {
+        sqlx::query(
+            "UPDATE journal_entries SET blocks = ?, word_count = ?, mood = ?, updated_at = ? WHERE id = ?",
+        )
+        .bind(&params.blocks)
+        .bind(params.word_count)
+        .bind(&params.mood)
+        .bind(now)
+        .bind(&params.id)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+    } else {
+        // Insert a new row (shouldn't normally happen — use create_journal_entry instead)
+        sqlx::query(
+            "INSERT INTO journal_entries (id, date, blocks, word_count, mood, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&params.id)            .bind(&params.date)
             .bind(&params.blocks)
-            .bind(params.word_count)
-            .bind(&params.mood)
-            .bind(now)
-            .bind(&existing_id)
-            .execute(&db)
-            .await
-            .map_err(|e| e.to_string())?;
-
-            let entry = JournalEntry {
-                id: existing_id,
-                date: params.date,
-                blocks: params.blocks,
-                word_count: params.word_count,
-                mood: params.mood,
-                created_at: now,
-                updated_at: now,
-            };
-
-            if let Err(error) = search.index_content(journal_search_document(&entry)).await {
-                eprintln!("journal search index update failed: {error}");
-            }
-
-            Ok(entry)
-        }
-        None => {
-            // Insert new entry
-            sqlx::query(
-                "INSERT INTO journal_entries (id, date, blocks, word_count, mood, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&id)
-            .bind(&params.date)
-            .bind(&params.blocks)
-            .bind(params.word_count)
-            .bind(&params.mood)
-            .bind(now)
-            .bind(now)
-            .execute(&db)
-            .await
-            .map_err(|e| e.to_string())?;
-
-            let entry = JournalEntry {
-                id,
-                date: params.date,
-                blocks: params.blocks,
-                word_count: params.word_count,
-                mood: params.mood,
-                created_at: now,
-                updated_at: now,
-            };
-
-            if let Err(error) = search.index_content(journal_search_document(&entry)).await {
-                eprintln!("journal search index update failed: {error}");
-            }
-
-            Ok(entry)
-        }
+        .bind(params.word_count)
+        .bind(&params.mood)
+        .bind(now)
+        .bind(now)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
     }
+
+    // Fetch the full row to return accurate data (including date, created_at)
+    let row = sqlx::query(
+        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries WHERE id = ?",
+    )
+    .bind(&params.id)
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| "Entry not found after save".to_string())?;
+
+    let entry = JournalEntry {
+        id: row.try_get("id").unwrap_or_default(),
+        date: row.try_get("date").unwrap_or_default(),
+        blocks: row.try_get("blocks").unwrap_or_else(|_| "[]".to_string()),
+        word_count: row.try_get("word_count").unwrap_or(0),
+        mood: row.try_get("mood").ok().flatten(),
+        created_at: row.try_get("created_at").unwrap_or(0),
+        updated_at: row.try_get("updated_at").unwrap_or(0),
+    };
+
+    if let Err(error) = search.index_content(journal_search_document(&entry)).await {
+        eprintln!("journal search index update failed: {error}");
+    }
+
+    Ok(entry)
 }
 
-/// Get today's journal entry (or any date in 'YYYY-MM-DD' format).
+/// Get a journal entry by its ID.
 #[tauri::command]
 pub async fn get_journal_entry(
     state: State<'_, BentoAppState>,
-    date: String,
+    id: String,
 ) -> Result<Option<JournalEntry>, String> {
     let db = state.db();
 
     let row = sqlx::query(
-        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries WHERE date = ?",
+        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries WHERE id = ?",
     )
-    .bind(&date)
+    .bind(&id)
     .fetch_optional(&db)
     .await
     .map_err(|e| e.to_string())?;
@@ -189,7 +222,7 @@ pub async fn delete_journal_entry(
     Ok(())
 }
 
-/// List recent journal entries (newest first).
+/// List recent journal entries (newest first, by created_at).
 #[tauri::command]
 pub async fn list_journal_entries(
     state: State<'_, BentoAppState>,
@@ -199,7 +232,7 @@ pub async fn list_journal_entries(
     let limit = limit.unwrap_or(30).max(1).min(365);
 
     let rows = sqlx::query(
-        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries ORDER BY date DESC LIMIT ?",
+        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries ORDER BY created_at DESC LIMIT ?",
     )
     .bind(limit)
     .fetch_all(&db)

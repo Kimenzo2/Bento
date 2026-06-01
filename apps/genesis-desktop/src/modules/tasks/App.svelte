@@ -168,14 +168,13 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   let _todayTick = $state(0);
   let today = $derived.by(() => {
     void _todayTick; // reactive dependency — re-evaluates when tick changes
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
+    const nowMs = time.now();
+    return new Date(time.dayStart(nowMs));
   });
 
   // BUG-14 FIX: calendarMonth/Year must also follow today — init from live today
-  let calendarMonth = $state(new Date().getMonth());
-  let calendarYear  = $state(new Date().getFullYear());
+  let calendarMonth = $state(time.getDate(time.now()).month - 1);
+  let calendarYear  = $state(time.getDate(time.now()).year);
 
   let selectedTask = $derived(tasks.find(t => t.id === selectedTaskId) ?? null);
 
@@ -198,7 +197,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
         break;
       case 'overdue':
         // BUG-13 FIX: exclude done tasks — a completed task is never overdue
-        result = result.filter(t => !t.done && t.dueAt !== null && t.dueAt < now && t.project !== 'someday');
+        result = result.filter(t => !t.done && t.dueAt !== null && t.dueAt < today.getTime() && t.project !== 'someday');
         break;
       case 'no-date':
         result = result.filter(t => t.dueAt === null && t.project !== 'someday');
@@ -245,7 +244,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   let timelineGroups = $derived.by(() => {
     const groups = new Map<string, TaskEntry[]>();
     for (const task of visibleTasks) {
-      const key = task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 10) : 'No Date';
+      const key = task.dueAt ? time.toISODate(task.dueAt) : 'No Date';
       groups.set(key, [...(groups.get(key) ?? []), task]);
     }
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
@@ -253,7 +252,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
 
   let incompleteCount = $derived(tasks.filter(t => !t.done).length);
   let inboxCount = $derived(tasks.filter(t => t.project === 'inbox' && !t.done).length);
-  let overdueCount = $derived(tasks.filter(t => !t.done && t.dueAt !== null && t.dueAt < time.now()).length);
+  let overdueCount = $derived(tasks.filter(t => !t.done && t.dueAt !== null && t.dueAt < today.getTime()).length);
   let todayCount = $derived(tasks.filter(t => !t.done && t.dueAt !== null && t.dueAt < (today.getTime() + 86_400_000)).length);
   let upcomingCount = $derived(tasks.filter(t => !t.done && t.dueAt !== null && t.dueAt >= (today.getTime() + 86_400_000) && t.dueAt <= (today.getTime() + 7 * 86_400_000)).length);
 
@@ -442,13 +441,14 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
     const minuteInterval = setInterval(() => { _todayTick++; }, 60_000);
 
     function scheduleMidnightFlip() {
-      const now = new Date();
+      const nowMs = time.now();
+      const now = new Date(nowMs);
       const msUntilMidnight =
-        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - nowMs;
       return setTimeout(() => {
         _todayTick++;
         // Update calendarMonth/Year to follow the new day
-        const tomorrow = new Date();
+        const tomorrow = new Date(time.now());
         calendarMonth = tomorrow.getMonth();
         calendarYear  = tomorrow.getFullYear();
         scheduleMidnightFlip(); // re-schedule for next midnight
@@ -541,7 +541,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
      ═══════════════════════════════════════════════════════════════════ */
   function addContextDefaults(): { project: string; dueAt: number | null } {
     const endOfDay = (offsetDays: number) => {
-      const d = new Date();
+      const d = new Date(time.now());
       d.setDate(d.getDate() + offsetDays);
       d.setHours(23, 59, 59, 999);
       return d.getTime();
@@ -772,8 +772,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
 
   function formatDate(ts: number | null): string {
     if (ts === null) return '';
-    const d = new Date(ts);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return time.formatCustom(ts, 'M j');
   }
 
   async function addTag() {
@@ -893,28 +892,48 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
      ═══════════════════════════════════════════════════════════════════ */
 
   // Separate month/year state for the calendar VIEW (not the due-date picker)
-  let calViewMonth = $state(new Date().getMonth());
-  let calViewYear  = $state(new Date().getFullYear());
+  let calViewMonth = $state(time.getDate(time.now()).month - 1);
+  let calViewYear  = $state(time.getDate(time.now()).year);
 
-  // Calendar-scoped task list — only the visible month's tasks.
-  // Separate from the main `tasks` list so we don't thrash 10 000 rows.
-  let calTasks = $state<TaskEntry[]>([]);
+  let monthOptions = [
+    { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
+    { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
+    { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
+    { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
+  ];
+  let yearOptions = Array.from({ length: 20 }, (_, i) => ({
+    value: time.getDate(time.now()).year - 5 + i,
+    label: String(time.getDate(time.now()).year - 5 + i),
+  }));
+
+  // calTasks is DERIVED from the main tasks array so toggleDone/edits
+  // reflect instantly. A secondary fetch loads tasks not yet in memory.
+  let calExtraFetched = $state<TaskEntry[]>([]);
   let calLoading = $state(false);
+
+  const calRangeStart = $derived.by(() => {
+    const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+    const firstDow = (firstOfMonth.getDay() + 6) % 7;
+    return new Date(calViewYear, calViewMonth, 1 - firstDow, 0, 0, 0, 0).getTime();
+  });
+  const calRangeEnd = $derived(() => calRangeStart + 42 * 24 * 60 * 60 * 1000 - 1);
+
+  // Primary: live slice of main tasks. Secondary: extra fetched tasks.
+  const calTasks = $derived.by(() => {
+    const seen = new Set(tasks.map(t => t.id));
+    return [...tasks, ...calExtraFetched.filter(t => !seen.has(t.id))];
+  });
 
   async function loadCalMonth() {
     calLoading = true;
     try {
-      // Load the full visible 6-week range: from the Monday before the 1st
-      // to the Sunday after the last day of the month.
-      const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
-      const firstDow     = (firstOfMonth.getDay() + 6) % 7; // Mon=0
-      const rangeStart   = new Date(calViewYear, calViewMonth, 1 - firstDow, 0, 0, 0, 0);
-      const rangeEnd     = new Date(rangeStart.getTime() + 42 * 24 * 60 * 60 * 1000 - 1);
-      calTasks = await listTasks({
-        dueAfter:  rangeStart.getTime(),
-        dueBefore: rangeEnd.getTime(),
+      const fetched = await listTasks({
+        dueAfter:  calRangeStart,
+        dueBefore: calRangeEnd,
         limit:     500,
       });
+      const mainIds = new Set(tasks.map(t => t.id));
+      calExtraFetched = fetched.filter(t => !mainIds.has(t.id));
     } catch (err) {
       console.error('[cal] loadCalMonth failed:', err);
     } finally {
@@ -960,7 +979,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
     isWeekend: boolean; isFirstRow: boolean;
     wd: number; // 0=Mon … 6=Sun (Anytype convention)
   }> {
-    const todayObj = new Date();
+    const todayObj = new Date(time.now());
     const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
     const lastOfMonth  = new Date(calViewYear, calViewMonth + 1, 0);
 
@@ -1031,7 +1050,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   }
 
   function calGoToday() {
-    const n = new Date();
+    const n = new Date(time.now());
     calViewMonth = n.getMonth();
     calViewYear  = n.getFullYear();
   }
@@ -1101,7 +1120,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   }
 
   function isToday(day: number, month: number, year: number): boolean {
-    const d = new Date();
+    const d = new Date(time.now());
     return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
   }
 
@@ -1156,8 +1175,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
 
     // Date parsing
     const lower = title.toLowerCase();
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = new Date(time.dayStart(time.now()));
 
     // "tomorrow at 3pm" pattern
     const atTimeMatch = lower.match(/\b(tomorrow|today|next week|next month)\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
@@ -1266,8 +1284,8 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Tomorrow';
     if (diff === -1) return 'Yesterday';
-    if (diff > 0 && diff <= 7) return d.toLocaleDateString('en-US', { weekday: 'short' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (diff > 0 && diff <= 7) return time.formatCustom(ts, 'D');
+    return time.formatCustom(ts, 'M j');
   }
 
   function priorityLabel(p: string): string {
@@ -1427,7 +1445,8 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   }
 
   async function applyReschedule() {
-    const now = new Date();
+    const nowMs = time.now();
+    const now = new Date(nowMs);
     showReschedule = false;
 
     for (const [taskId, action] of rescheduleActions) {
@@ -1450,7 +1469,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
           else if (action === 'next-month') d.setMonth(d.getMonth() + 1);
           await updateTask({ id: taskId, dueAt: d.getTime() });
           tasks = tasks.map(t => t.id === taskId ? { ...t, dueAt: d.getTime() } : t);
-          logActivityEntry(taskId, `Rescheduled to ${new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} via overdue rescue`).catch(() => {});
+          logActivityEntry(taskId, `Rescheduled to ${time.formatCustom(d.getTime(), 'M j')} via overdue rescue`).catch(() => {});
         }
       } catch (err) {
         console.error('Failed to apply reschedule action:', err);
@@ -1663,7 +1682,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
       t.startAt?.toString() ?? '', t.estimatedMinutes?.toString() ?? '',
       t.trackedMinutes.toString(), t.recurrenceRule ?? '',
       t.archived ? 'true' : 'false',
-      t.completedAt?.toString() ?? '', new Date(t.createdAt).toISOString(),
+      t.completedAt?.toString() ?? '', time.toISODateTime(t.createdAt),
     ].map(v => escapeCsv(v)).join(','));
     return [headers.join(','), ...rows].join('\n');
   }
@@ -1673,7 +1692,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   }
 
   function generateMarkdown(all: TaskEntry[]): string {
-    const lines: string[] = ['# Bento Tasks Export', '', `_Generated ${new Date().toLocaleString()}_`, '', '---', ''];
+    const lines: string[] = ['# Bento Tasks Export', '', `_Generated ${time.format(time.now())}_`, '', '---', ''];
     const incomplete = all.filter(t => !t.done);
     const complete = all.filter(t => t.done);
 
@@ -1683,7 +1702,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
     } else {
       for (const t of incomplete) {
         const priorityMark = t.priority === 'urgent' ? ' 🔴' : t.priority === 'high' ? ' 🟠' : t.priority === 'medium' ? ' 🔵' : '';
-        const dueStr = t.dueAt ? ` *(due ${new Date(t.dueAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${t.dueTime ? ' at ' + t.dueTime : ''})*` : '';
+        const dueStr = t.dueAt ? ` *(due ${time.formatCustom(t.dueAt, 'M j')}${t.dueTime ? ' at ' + t.dueTime : ''})*` : '';
         const projectStr = t.project !== 'inbox' ? ` \`[${t.project}]\`` : '';
         lines.push(`- [ ] **${t.title}**${priorityMark}${dueStr}${projectStr}`);
         if (t.notes) lines.push(`  - ${t.notes.replace(/\n/g, '\n  ')}`);
@@ -1699,7 +1718,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
       lines.push('*No completed tasks.*', '');
     } else {
       for (const t of complete) {
-        const dateStr = t.completedAt ? ` *(completed ${new Date(t.completedAt).toLocaleDateString()})*` : '';
+        const dateStr = t.completedAt ? ` *(completed ${time.formatDate(t.completedAt)})*` : '';
         lines.push(`- [x] **${t.title}**${dateStr}`);
       }
     }
@@ -2127,24 +2146,26 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
       <!-- ── Date select bar ── -->
       <div class="tasks-cal-bar">
         <div class="tasks-cal-bar-left">
-          <select
-            class="tasks-cal-select"
-            bind:value={calViewMonth}
-            aria-label="Month"
-          >
-            {#each ['January','February','March','April','May','June','July','August','September','October','November','December'] as name, i}
-              <option value={i}>{name}</option>
-            {/each}
-          </select>
-          <select
-            class="tasks-cal-select"
-            bind:value={calViewYear}
-            aria-label="Year"
-          >
-            {#each Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - 5 + i) as yr}
-              <option value={yr}>{yr}</option>
-            {/each}
-          </select>
+          <Select.Root type="single" bind:value={calViewMonth}>
+            <Select.Trigger class="tasks-cal-select" id="tasks-cal-month" aria-label="Month">
+              {monthOptions.find(f => f.value === calViewMonth)?.label ?? 'Month'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each monthOptions as opt (opt.value)}
+                <Select.Item value={opt.value}>{opt.label}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+          <Select.Root type="single" bind:value={calViewYear}>
+            <Select.Trigger class="tasks-cal-select" id="tasks-cal-year" aria-label="Year">
+              {yearOptions.find(f => f.value === calViewYear)?.label ?? 'Year'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each yearOptions as opt (opt.value)}
+                <Select.Item value={opt.value}>{opt.label}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
         </div>
         <div class="tasks-cal-bar-right">
           <button class="tasks-cal-arrow" aria-label="Previous month" onclick={calPrevMonth}>
@@ -2240,8 +2261,9 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
           style="top: {calOverflow.y}px; left: {calOverflow.x}px"
         >
           <div class="tasks-cal-overflow-head">
-            {new Date(calOverflow.year, calOverflow.month, calOverflow.day)
-              .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {time.formatCustom(
+              time.fromComponents(calOverflow.year, calOverflow.month + 1, calOverflow.day),
+              'D, M j')}
           </div>
           {#each calOverflow.tasks as task (task.id)}
             <button
@@ -2263,8 +2285,9 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
       {#if calQuickAddTarget}
         <div class="tasks-cal-quick-add-bar">
           <span class="tasks-cal-quick-add-date">
-            {new Date(calQuickAddTarget.year, calQuickAddTarget.month, calQuickAddTarget.day)
-              .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {time.formatCustom(
+              time.fromComponents(calQuickAddTarget.year, calQuickAddTarget.month + 1, calQuickAddTarget.day),
+              'D, M j')}
           </span>
           <input
             class="tasks-cal-quick-add-input"
@@ -2321,7 +2344,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
         {#each timelineGroups as [date, dayTasks]}
           <Card class="card-surface tasks-timeline-group">
             <CardContent class="tasks-timeline-group-content">
-              <div class="tasks-timeline-date">{date === 'No Date' ? 'No Date' : formatDate(new Date(date).getTime())}</div>
+              <div class="tasks-timeline-date">{date === 'No Date' ? 'No Date' : time.formatCustom(parseInt(date), 'M j')}</div>
               <div class="tasks-timeline-items">
                 {#each dayTasks as task}
                   <button class="tasks-timeline-item" type="button" onclick={() => selectedTaskId = task.id}>
@@ -2484,29 +2507,26 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
               class="tasks-detail-date-btn"
               class:active={editDueAt !== null && formatDueDate(editDueAt) === 'Today'}
               onclick={() => {
-                const d = new Date(); d.setHours(23, 59, 59, 999);
-                setDueDate(d.getTime());
+                setDueDate(time.dayStart(time.now()) + time.DAY - 1000);
               }}
             >Today</button>
             <button
               class="tasks-detail-date-btn"
               class:active={editDueAt !== null && formatDueDate(editDueAt) === 'Tomorrow'}
               onclick={() => {
-                const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 59, 999);
-                setDueDate(d.getTime());
+                setDueDate(time.dayStart(time.now()) + 2 * time.DAY - 1000);
               }}
             >Tomorrow</button>
             <button
               class="tasks-detail-date-btn"
               onclick={() => {
-                const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 59, 999);
-                setDueDate(d.getTime());
+                setDueDate(time.dayStart(time.now()) + 8 * time.DAY - 1000);
               }}
             >Next Week</button>
             <button
               class="tasks-detail-date-btn"
               onclick={() => {
-                const d = new Date(); d.setMonth(d.getMonth() + 1); d.setHours(23, 59, 59, 999);
+                const d = new Date(time.now()); d.setMonth(d.getMonth() + 1); d.setHours(23, 59, 59, 999);
                 setDueDate(d.getTime());
               }}
             >Next Month</button>
@@ -2523,7 +2543,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
               <div class="tasks-detail-calendar-header">
                 <button onclick={prevMonth} aria-label="Previous month"><ChevronLeft size={14} /></button>
                 <span class="tasks-detail-calendar-month">
-                  {new Date(calendarYear, calendarMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  {time.formatCustom(time.fromComponents(calendarYear, calendarMonth + 1, 1), 'F Y')}
                 </span>
                 <button onclick={nextMonth} aria-label="Next month"><ChevronRight size={14} /></button>
               </div>
@@ -2568,8 +2588,8 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
               <span class="tasks-detail-field-label">{formatDate(editStartAt)}</span>
               <button class="tasks-detail-date-btn clear" onclick={() => { editStartAt = null; if (selectedTaskId) updateField({ startAt: null }); }}><X size={10} /></button>
             {/if}
-            <button class="tasks-detail-date-btn" onclick={() => { const d = new Date(); d.setHours(0,0,0,0); editStartAt = d.getTime(); if (selectedTaskId) updateField({ startAt: d.getTime() }); }}>Today</button>
-            <button class="tasks-detail-date-btn" onclick={() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0,0,0,0); editStartAt = d.getTime(); if (selectedTaskId) updateField({ startAt: d.getTime() }); }}>Tomorrow</button>
+            <button class="tasks-detail-date-btn" onclick={() => { const dS = time.dayStart(time.now()); editStartAt = dS; if (selectedTaskId) updateField({ startAt: dS }); }}>Today</button>
+            <button class="tasks-detail-date-btn" onclick={() => { const dT = time.dayStart(time.now()) + time.DAY; editStartAt = dT; if (selectedTaskId) updateField({ startAt: dT }); }}>Tomorrow</button>
             <button class="tasks-detail-date-btn" onclick={() => { editStartAt = null; if (selectedTaskId) updateField({ startAt: null }); }}>Clear</button>
           </div>
         </div>
@@ -2719,7 +2739,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
               <div class="tasks-detail-activity-item">
                 <span class="tasks-detail-activity-dot"></span>
                 <span class="tasks-detail-activity-text">{entry.text}</span>
-                <span class="tasks-detail-activity-time">{new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span class="tasks-detail-activity-time">{time.formatTime(entry.timestamp)}</span>
               </div>
             {/each}
           {/if}
@@ -2729,7 +2749,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   {/if}
 </div>
 
-<ShareSheet bind:open={showShare} content={shareContent} title="Share Tasks" label={viewTitle} filename={`bento-tasks-${new Date().toISOString().slice(0,10)}`} />
+<ShareSheet bind:open={showShare} content={shareContent} title="Share Tasks" label={viewTitle} filename={`bento-tasks-${time.toISODate(time.now())}`} />
 
 <!-- ─── UNDO TOASTS ─── -->
 {#if undoToasts.length > 0}
@@ -2993,7 +3013,7 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
                       {/if}
                     </Table.Cell>
                     <Table.Cell style="font-size: 10px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">
-                      {entry.dueDate ? new Date(parseInt(entry.dueDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                      {entry.dueDate ? time.formatCustom(parseInt(entry.dueDate), 'M j') : ''}
                     </Table.Cell>
                     <Table.Cell>
                       {#each entry.tags.slice(0, 3) as tag}

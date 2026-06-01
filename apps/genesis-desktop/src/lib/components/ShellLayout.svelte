@@ -23,7 +23,7 @@
 
   // Pages that NEVER show ShellSidebar — enforced here as the single source of truth.
   // Tab mode, direct navigation, deep-links — nothing bypasses this set.
-  const NO_SIDEBAR_PAGES = new Set<PageKey>(["dashboard", "settings", "pricing"]);
+  const NO_SIDEBAR_PAGES = new Set<PageKey>(["dashboard", "settings", "pricing", "notes"]);
 
   // AppTopbar is suppressed on:
   // – pages in NO_SIDEBAR_PAGES that have their own layout (dashboard)

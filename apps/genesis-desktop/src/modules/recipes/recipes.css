@@ -1,3 +1,6 @@
+/* ── Recipes Module Styles ──────────────────────────────────────────── */
+/* Matches the class names used in App.svelte exactly.                  */
+
 .recipes-app {
   --mod-accent: #F6A623;
   --recipes-bg: var(--mod-bg, var(--mod-bg-recipes));
@@ -15,135 +18,202 @@
   position: relative;
 }
 
-.search-container {
-  padding: 24px 24px 16px;
-}
+/* ── Toolbar / Search ─────────────────────────────────────────────── */
 
-.search-bar {
+.recipes-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: var(--recipes-surface);
-  border: 1px solid var(--recipes-border);
-  padding: 16px;
-  border-radius: 8px;
 }
 
-.search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  color: var(--recipes-ink);
-}
-
-.search-input:focus {
-  outline: none;
-}
-
-.text-muted {
-  color: var(--recipes-muted);
-}
-
-.filter-chips {
+.recipes-search {
   display: flex;
-  gap: 12px;
-  padding: 0 24px 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.25rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+  padding: 0.5rem 1rem;
 }
 
-.filter-chips::-webkit-scrollbar {
-  display: none;
+.recipes-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
 }
 
-.chip {
+/* ── Filter Chips ─────────────────────────────────────────────────── */
+
+.recipes-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.recipes-chip {
   background: transparent;
-  border: 1px solid var(--recipes-border);
-  color: var(--recipes-muted);
-  padding: 8px 16px;
-  border-radius: 24px;
-  font-size: 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  color: var(--muted);
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: default;
   white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 
-.chip.active {
+.recipes-chip:hover {
+  border-color: color-mix(in srgb, var(--foreground) 28%, var(--border));
+  color: var(--foreground);
+}
+
+.recipes-chip.is-active {
   background: var(--recipes-accent);
   color: var(--recipes-bg);
   border-color: var(--recipes-accent);
 }
 
-.recipe-grid {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 24px 120px;
+/* ── Recipe Grid ──────────────────────────────────────────────────── */
+
+.recipes-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 1rem;
 }
 
-/* Surface card — no border, no shadow */
-.recipe-card {
-  background: var(--card);
+/* ── Recipe Card ──────────────────────────────────────────────────── */
+
+.recipes-card {
+  display: flex;
+  flex-direction: column;
   border: none;
   box-shadow: none;
+  background: var(--card);
   border-radius: 20px;
   overflow: hidden;
   cursor: default;
-  display: flex;
-  flex-direction: column;
+  text-align: left;
+  width: 100%;
+  padding: 0;
+  color: var(--foreground);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.card-image {
+.recipes-card:hover {
+  transform: translateY(-1px);
+}
+
+.recipes-card:active {
+  transform: translateY(0);
+}
+
+.recipes-card-image {
+  display: block;
   width: 100%;
   height: 140px;
   background-size: cover;
   background-position: center;
   position: relative;
+  flex-shrink: 0;
 }
 
-.fav-badge {
+.recipes-fav {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: color-mix(in srgb, var(--recipes-bg) 72%, transparent);
-  color: var(--recipes-ink);
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+  color: var(--recipes-accent);
   width: 32px;
   height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
 }
 
-.card-content {
-  padding: 16px;
-}
-
-.recipe-title {
-  margin: 0 0 12px 0;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--recipes-ink);
-}
-
-.recipe-meta {
+.recipes-card-body {
   display: flex;
-  gap: 16px;
-  color: var(--recipes-muted);
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
 }
 
-.meta-item {
+.recipes-meta {
+  display: flex;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.recipes-meta span {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 0.375rem;
 }
 
-.fab-container {
+/* ── Section Scroll Area (Import / Cook Mode / Shopping / Export) ──── */
+
+.recipes-section-scroll {
+  overflow-y: auto;
+}
+
+/* ── Meal Plan Grid ───────────────────────────────────────────────── */
+
+.recipes-plan-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.recipes-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: calc(var(--radius) + 0.25rem);
+  background: color-mix(in srgb, var(--card) 96%, var(--background));
+  padding: 1rem 1.25rem;
+}
+
+.recipes-plan-card small {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Cook Mode Steps ──────────────────────────────────────────────── */
+
+.recipes-cook-step {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+}
+
+.recipes-cook-step > span:first-child {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--recipes-accent) 18%, transparent);
+  color: var(--recipes-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.recipes-cook-step p {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
+/* ── FAB (Floating Action Button) ─────────────────────────────────── */
+
+.recipes-fab {
   position: absolute;
   bottom: 32px;
   right: 32px;
@@ -153,61 +223,47 @@
   align-items: flex-end;
 }
 
-.fab.primary {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--recipes-accent);
-  color: var(--recipes-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: default;
-  z-index: 101;
-}
-
-.fab-icon {
-  transition: transform 0.2s ease;
-}
-
-.fab-container.open .fab-icon {
-  transform: rotate(45deg);
-}
-
-.fab-menu {
-  position: absolute;
-  bottom: 80px;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 101;
-}
-
-.fab-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--recipes-surface);
-  border: 1px solid var(--recipes-border);
-  color: var(--recipes-ink);
-  padding: 12px 20px;
-  border-radius: 32px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: default;
-  white-space: nowrap;
-}
-
-.fab-overlay {
+.recipes-fab-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--recipes-overlay);
+  background: color-mix(in srgb, var(--background) 60%, transparent);
   z-index: 99;
+  border: none;
+  cursor: default;
+}
+
+.recipes-fab-menu {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 101;
+}
+
+.recipes-fab-option {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  color: var(--foreground);
+  padding: 0.625rem 1.125rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: default;
+  white-space: nowrap;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.recipes-fab-option:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  border-color: var(--recipes-accent);
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */

@@ -4,7 +4,9 @@
   // Port of anytype-ts/block/tableOfContents.tsx
   // Reads all header blocks from the editor and renders clickable links
   // ════════════════════════════════════════════════════════════════════
-  import { rootBlocks } from '$lib/local-store/store';
+  import { getRootBlocks } from '$lib/local-store/store';
+
+  let rootBlocks = $derived(getRootBlocks());
   import { TextStyle } from '$lib/local-store/block';
   import type { Block } from '$lib/local-store/block';
 
@@ -25,7 +27,7 @@
 
   // $rootBlocks is reactive — auto-updates when the store changes
   let items = $derived(
-    $rootBlocks
+    rootBlocks
       .filter((b) => {
         if (b.type !== 'text' || !b.content) return false;
         const c = b.content as any;

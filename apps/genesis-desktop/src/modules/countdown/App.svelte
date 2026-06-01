@@ -14,6 +14,7 @@
     MiniAppStatGrid,
     miniAppAccent,
   } from "$lib/modules/mini-app/index.js";
+  import { time } from '$lib/utils/time';
   import {
     ensureModuleSection,
     getModuleSectionLabel,
@@ -31,7 +32,7 @@
   type CountdownEvent = {
     id: number;
     name: string;
-    date: Date;
+    date: number;
     category: EventCategory;
     cover?: string;
     accent: string;
@@ -41,7 +42,7 @@
     {
       id: 1,
       name: "Hawaii Trip",
-      date: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000),
+      date: time.now() + 17 * time.DAY,
       category: "Trip",
       cover: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800",
       accent: miniAppAccent(0),
@@ -49,28 +50,28 @@
     {
       id: 2,
       name: "Product Launch",
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      date: time.now() + 3 * time.DAY,
       category: "Deadline",
       accent: miniAppAccent(1),
     },
     {
       id: 3,
       name: "Mom's Birthday",
-      date: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
+      date: time.now() + 42 * time.DAY,
       category: "Birthday",
       accent: miniAppAccent(2),
     },
     {
       id: 4,
       name: "Project Presentation",
-      date: new Date(),
+      date: time.now(),
       category: "Work",
       accent: miniAppAccent(3),
     },
     {
       id: 5,
       name: "Genesis v1 ship",
-      date: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000),
+      date: time.now() - 120 * time.DAY,
       category: "Anniversary",
       accent: miniAppAccent(4),
     },
@@ -95,19 +96,19 @@
     ensureModuleSection(moduleId, sectionLabels);
   });
 
-  function formatDate(d: Date) {
-    return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(d);
+  function formatDate(d: number) {
+    return time.formatDate(d, 'MMMM D, YYYY');
   }
 
-  function getDaysAway(d: Date) {
-    const diff = d.getTime() - Date.now();
+  function getDaysAway(d: number) {
+    const diff = d - time.now();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
   const enrichedEvents = $derived(
     events
       .map((event) => ({ ...event, daysAway: getDaysAway(event.date) }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime()),
+      .sort((a, b) => a.date - b.date),
   );
 
   const filteredEvents = $derived.by(() => {

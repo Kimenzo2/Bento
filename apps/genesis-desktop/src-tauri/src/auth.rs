@@ -425,16 +425,26 @@ impl AuthManager {
         }
 
         let loaded_session = self.load_session_from_keyring()?;
-        let next_state = match loaded_session {
+        let next_state =                match loaded_session {
             Some(session) => {
                 if session.expires_at_ms <= unix_ms() {
-                    match self.refresh_session(&session.refresh_token).await {
-                        Ok(refreshed) => {
+                    match self.try_refresh_session(&session.refresh_token).await {
+                        Ok(Some(refreshed)) => {
                             self.persist_session(&refreshed)?;
                             self.set_session(refreshed.clone()).await;
                             self.ensure_refresh_loop(app.clone());
                             self.spawn_profile_sync(refreshed.clone());
                             AuthBootstrapState::restored(refreshed.user)
+                        }
+                        Ok(None) => {
+                            // Network error after sleep — keep cached session in memory so the
+                            // UI renders and the refresh loop will retry in 5 minutes.
+                            // Don't clear the keyring — the session is still valid there.
+                            // Skip profile sync — network is unavailable.
+                            eprintln!("[Auth] Token refresh failed on network error during bootstrap; keeping cached session.");
+                            self.set_session(session.clone()).await;
+                            self.ensure_refresh_loop(app.clone());
+                            AuthBootstrapState::restored(session.user)
                         }
                         Err(_) => {
                             self.clear_session().await;
@@ -764,20 +774,23 @@ impl AuthManager {
         let session = self
             .current_session()
             .await
-            .ok_or_else(|| "Sign in before continuing.".to_string())?;
-
-        if session.expires_at_ms - unix_ms() > 60_000 {
+            .ok_or_else(|| "Sign in before continuing.".to_string())?;                if session.expires_at_ms - unix_ms() > 60_000 {
             return Ok(session);
         }
 
-        match self.refresh_session(&session.refresh_token).await {
-            Ok(refreshed) => {
+        match self.try_refresh_session(&session.refresh_token).await {
+            Ok(Some(refreshed)) => {
                 self.persist_session(&refreshed)?;
                 self.set_session(refreshed.clone()).await;
                 self.set_bootstrap(AuthBootstrapState::restored(refreshed.user.clone()))
                     .await;
                 self.spawn_profile_sync(refreshed.clone());
                 Ok(refreshed)
+            }
+            Ok(None) => {
+                // Network error — return the stale session anyway; the caller
+                // will get a network error downstream rather than a silent log-out.
+                Err("Session refresh delayed: network unavailable. Please check your connection.".to_string())
             }
             Err(error) => {
                 self.clear_session().await;
@@ -851,8 +864,8 @@ impl AuthManager {
                     continue;
                 }
 
-                match manager.refresh_session(&session.refresh_token).await {
-                    Ok(refreshed) => {
+                match manager.try_refresh_session(&session.refresh_token).await {
+                    Ok(Some(refreshed)) => {
                         if manager.persist_session(&refreshed).is_ok() {
                             manager.set_session(refreshed.clone()).await;
                             manager
@@ -860,6 +873,10 @@ impl AuthManager {
                                 .await;
                             manager.spawn_profile_sync(refreshed.clone());
                         }
+                    }
+                    Ok(None) => {
+                        // Network error — don't clear session, keep trying on next tick.
+                        eprintln!("[Auth] Refresh loop: network error, will retry.");
                     }
                     Err(error) => {
                         manager.clear_session().await;
@@ -1163,16 +1180,27 @@ impl AuthManager {
         Ok(())
     }
 
-    async fn refresh_session(&self, refresh_token: &str) -> Result<StoredAuthSession, String> {
+    /// Try to refresh a session, distinguishing transient network errors from permanent auth errors.
+    ///
+    /// Returns:
+    /// - `Ok(Some(session))` — refresh succeeded, session is valid.
+    /// - `Ok(None)` — transient error (network timeout, DNS failure, etc.).
+    ///   Caller should keep the existing session and retry later.
+    /// - `Err(String)` — permanent auth error (invalid/expired refresh token).
+    ///   Caller should clear the session and force re-login.
+    async fn try_refresh_session(&self, refresh_token: &str) -> Result<Option<StoredAuthSession>, String> {
         let config = self.inner.config.clone();
-        let client = Client::new();
+        let client = Client::builder()
+            .timeout(Duration::from_secs(15))
+            .build()
+            .map_err(|e| e.to_string())?;
         let url = format!(
             "{}/auth/v1/token?grant_type=refresh_token",
             config.supabase_url.trim_end_matches('/')
         );
 
-        let response = client
-            .post(url)
+        let response = match client
+            .post(&url)
             .header("apikey", &config.supabase_anon_key)
             .header(
                 "Authorization",
@@ -1184,16 +1212,24 @@ impl AuthManager {
             }))
             .send()
             .await
-            .map_err(|error| error.to_string())?;
+        {
+            Ok(resp) => resp,
+            Err(error) => {
+                // Network error — transient. Don't clear session.
+                eprintln!("[Auth] Network error during token refresh: {error}");
+                return Ok(None);
+            }
+        };
 
         if !response.status().is_success() {
             let text = response.text().await.unwrap_or_default();
+            // Permanent auth error (invalid/expired refresh token).
             return Err(format!("Supabase refresh failed: {text}"));
         }
 
         let token: SupabaseTokenResponse =
             response.json().await.map_err(|error| error.to_string())?;
-        Ok(StoredAuthSession {
+        Ok(Some(StoredAuthSession {
             access_token: token.access_token,
             refresh_token: token.refresh_token,
             expires_at_ms: token
@@ -1201,7 +1237,7 @@ impl AuthManager {
                 .map(|seconds| seconds.saturating_mul(1000))
                 .unwrap_or_else(|| unix_ms() + (token.expires_in.saturating_mul(1000))),
             user: map_supabase_user(token.user),
-        })
+        }))
     }
 
     async fn fetch_billing_profile(
@@ -1680,6 +1716,69 @@ pub async fn get_billing_profile(
     manager: State<'_, AuthManager>,
 ) -> Result<BillingProfilePayload, String> {
     manager.get_billing_profile().await
+}
+
+/// Lightweight session validity check for wake-from-sleep / visibility-change events.
+///
+/// Unlike `bootstrap_auth_state`, this never clears the session on transient
+/// network errors — it always returns the current user if a session exists.
+/// If the token is expired but the network is unavailable, it returns `Restored`
+/// with cached user data so the UI stays functional while the refresh loop retries.
+#[tauri::command]
+pub async fn check_auth_session(
+    app: AppHandle,
+    manager: State<'_, AuthManager>,
+) -> Result<AuthBootstrapState, String> {
+    let snapshot = manager.snapshot().await;
+
+    // If already logged out, return immediately.
+    let AuthBootstrapState::Restored { ref user } = snapshot else {
+        return Ok(snapshot);
+    };
+
+    // Check if the in-memory session needs refreshing.
+    let session = {
+        let state = manager.inner.state.lock().await;
+        state.session.clone()
+    };
+
+    let Some(session) = session else {
+        // Session missing from memory but bootstrap says Restored? Try loading from keyring.
+        return manager.bootstrap(app).await;
+    };
+
+    // Session is still fresh — return Restored.
+    if session.expires_at_ms - unix_ms() > 120_000 {
+        return Ok(AuthBootstrapState::restored(user.clone()));
+    }
+
+    // Session is expired or close to expiry — try refreshing.
+    match manager.try_refresh_session(&session.refresh_token).await {
+        Ok(Some(refreshed)) => {
+            let _ = manager.persist_session(&refreshed);
+            manager.set_session(refreshed.clone()).await;
+            manager
+                .set_bootstrap(AuthBootstrapState::restored(refreshed.user.clone()))
+                .await;
+            Ok(AuthBootstrapState::restored(refreshed.user))
+        }
+        Ok(None) => {
+            // Network error — keep the current UI state, don't log out.
+            eprintln!("[Auth] check_auth_session: refresh blocked by network, keeping current session.");
+            Ok(AuthBootstrapState::restored(user.clone()))
+        }
+        Err(error) => {
+            // Permanent auth error — session is invalid.
+            eprintln!("[Auth] check_auth_session: permanent refresh failure, clearing session: {error}");
+            manager.clear_session().await;
+            manager.delete_session_from_keyring();
+            manager
+                .set_bootstrap(AuthBootstrapState::login_required())
+                .await;
+            manager.emit_session_expired(&app, error).await;
+            Ok(AuthBootstrapState::login_required())
+        }
+    }
 }
 
 /// Fetch billing profile with caching (Anytype cache.go pattern).

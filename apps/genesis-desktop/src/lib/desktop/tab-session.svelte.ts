@@ -76,7 +76,22 @@ export async function initTabSession(): Promise<void> {
     ]);
 
     tabState.tabs = existingTabs;
-    if (foregroundTab) {
+
+    // If the in-memory session on the Rust side is empty (e.g. after a
+    // full backend restart), try restoring from persisted tab IDs in SQLite.
+    if (existingTabs.length === 0) {
+      try {
+        const restoredTabs = await invoke<TabInfo[]>("tab_restore");
+        if (restoredTabs.length > 0) {
+          tabState.tabs = restoredTabs;
+          // Find the foreground tab from restored set (first by convention)
+          const restoredForeground = restoredTabs.find((t) => t.isForeground) ?? restoredTabs[0];
+          tabState.activeTabId = restoredForeground.id;
+        }
+      } catch (error) {
+        console.warn("[TabSession] Could not restore tabs from database:", error);
+      }
+    } else if (foregroundTab) {
       tabState.activeTabId = foregroundTab.id;
     }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
+  import { time } from "$lib/utils/time";
   import { toast } from "svelte-sonner";
   import { exportFormats } from "$lib/data/app-data";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -19,9 +20,9 @@
     isExporting = true;
 
     try {
-      const timestamp = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
+      const timestamp = time.toISODateTime(time.now()).replaceAll(":", "-").replaceAll(".", "-");
       const savedPath = await saveExportManifest({
-        createdAt: new Date().toISOString(),
+        createdAt: time.toISODateTime(time.now()),
         presets: exportFormats,
         pipeline: ["print-pdf", "viewer-sequence", "asset-pack-manifest"],
       });

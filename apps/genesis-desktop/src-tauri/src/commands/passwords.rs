@@ -100,6 +100,82 @@ pub async fn passwords_save(
     Ok(())
 }
 
+/// Get a single password vault entry by ID.
+#[tauri::command]
+pub async fn passwords_get(
+    crypto: State<'_, CryptoService>,
+    id: String,
+) -> Result<Option<VaultEntry>, String> {
+    let pool = crypto.pool("passwords").await?;
+
+    let row = sqlx::query(
+        "SELECT id, site, username, password_encrypted, notes_encrypted, \
+                created_at, updated_at \
+         FROM passwords \
+         WHERE id = ?",
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(row.map(|r| VaultEntry {
+        id: r.try_get::<String, _>("id").unwrap_or_default(),
+        site: r.try_get::<String, _>("site").unwrap_or_default(),
+        username: r.try_get::<String, _>("username").unwrap_or_default(),
+        password: r
+            .try_get::<String, _>("password_encrypted")
+            .unwrap_or_default(),
+        notes: r
+            .try_get::<String, _>("notes_encrypted")
+            .unwrap_or_default(),
+        created: r.try_get::<i64, _>("created_at").unwrap_or(0),
+        updated: r.try_get::<i64, _>("updated_at").unwrap_or(0),
+    }))
+}
+
+/// Search password vault entries by site or username.
+#[tauri::command]
+pub async fn passwords_search(
+    crypto: State<'_, CryptoService>,
+    query: String,
+) -> Result<Vec<VaultEntry>, String> {
+    let pool = crypto.pool("passwords").await?;
+    let pattern = format!("%{}%", query);
+
+    let rows = sqlx::query(
+        "SELECT id, site, username, password_encrypted, notes_encrypted, \
+                created_at, updated_at \
+         FROM passwords \
+         WHERE site LIKE ? OR username LIKE ? \
+         ORDER BY updated_at DESC",
+    )
+    .bind(&pattern)
+    .bind(&pattern)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let entries = rows
+        .iter()
+        .map(|row| VaultEntry {
+            id: row.try_get::<String, _>("id").unwrap_or_default(),
+            site: row.try_get::<String, _>("site").unwrap_or_default(),
+            username: row.try_get::<String, _>("username").unwrap_or_default(),
+            password: row
+                .try_get::<String, _>("password_encrypted")
+                .unwrap_or_default(),
+            notes: row
+                .try_get::<String, _>("notes_encrypted")
+                .unwrap_or_default(),
+            created: row.try_get::<i64, _>("created_at").unwrap_or(0),
+            updated: row.try_get::<i64, _>("updated_at").unwrap_or(0),
+        })
+        .collect();
+
+    Ok(entries)
+}
+
 /// Delete a password vault entry by ID.
 #[tauri::command]
 pub async fn passwords_delete(crypto: State<'_, CryptoService>, id: String) -> Result<(), String> {

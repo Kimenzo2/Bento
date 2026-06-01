@@ -7,8 +7,9 @@
   import GlobalSettings from "$lib/components/GlobalSettings.svelte";
   import StarterModuleHost from "$lib/modules/StarterModuleHost.svelte";
   import type { PageKey } from "$lib/router/routes";
-  import DashboardPage from "../../routes/pages/DashboardPage.svelte";
-  import LifeInColourPage from "../../routes/pages/LifeInColourPage.svelte";
+import DashboardPage from "../../routes/pages/DashboardPage.svelte";
+import LifeInColourPage from "../../routes/pages/LifeInColourPage.svelte";
+import NotesPage from "../../routes/pages/NotesPage.svelte";
 
   let {
     page,
@@ -84,6 +85,9 @@
     <LaunchReadyReporter moduleId={routeLaunchModuleId} />
   {:else if page === "lifeInColour"}
     <LifeInColourPage />
+    <LaunchReadyReporter moduleId={routeLaunchModuleId} />
+  {:else if page === "notes"}
+    <NotesPage />
     <LaunchReadyReporter moduleId={routeLaunchModuleId} />
   {:else if page === "starterApp"}
     <StarterModuleHost {appId} />

@@ -301,9 +301,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   NUCLEAR STRIP — remove every stray shadow/ring from any element
-   that bits-ui or Tailwind might inject globally
+   BUDGET SHELL — explicit background alignment with all other modules
+   Ensures .budget-shell never inherits a stale background from
+   any parent that might carry a non-standard color.
    ═══════════════════════════════════════════════════════════════════ */
+.budget-shell {
+  background: var(--background) !important;
+}
+
+/* All custom card-like elements inside budget also use var(--card) */
+.budget-shell .bcat-card,
+.budget-shell .subs-detail-card,
+.budget-shell .subs-analytics-card,
+.budget-shell .subs-cal-cell,
+.budget-shell .modal-sheet,
+.budget-shell .export-card,
+.budget-shell .ai-summary-card,
+.budget-shell .bill-card,
+.budget-shell .budget-card {
+  background: var(--card) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
 [data-slot] {
   --tw-shadow: none !important;
   --tw-ring-shadow: none !important;

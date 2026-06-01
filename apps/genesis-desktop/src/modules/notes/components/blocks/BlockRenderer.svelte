@@ -12,9 +12,11 @@
   import BlockRelation from './BlockRelation.svelte';
   import BlockRendererSelf from './BlockRenderer.svelte';
   import BlockActionMenu from './BlockActionMenu.svelte';
-  import { editorStore, toggleStateVersion } from '$lib/local-store/store';
-  import { TextStyle as TS, isTextToggle } from '$lib/local-store/block';
+  import { editorStore, getToggleStateVersion } from '$lib/local-store/store';
   import type { Block, ContentText } from '$lib/local-store/block';
+  import { TextStyle as TS, isTextToggle } from '$lib/local-store/block';
+
+  let toggleStateVersion = $derived(getToggleStateVersion());
 
   // ── Props (Svelte 5 runes) ──────────────────────────────────────────
   let {
@@ -58,7 +60,7 @@
   } = $props();
 
   let liveBlock = $derived.by(() => block);
-  let togglePulse = $derived($toggleStateVersion);
+  let togglePulse = $derived(toggleStateVersion);
 
   // ── Toggle open/closed state ────────────────────────────────────────
   let isToggleBlock = $derived.by(() => {

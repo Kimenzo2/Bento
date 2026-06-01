@@ -1,341 +1,361 @@
 <script lang="ts">
+  import { invoke } from "@tauri-apps/api/core";
+  import { onMount } from "svelte";
   import "./passwords.css";
-  import CopyIcon from "@lucide/svelte/icons/copy";
-  import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
-  import EyeIcon from "@lucide/svelte/icons/eye";
-  import EyeOffIcon from "@lucide/svelte/icons/eye-off";
-  import PlusIcon from "@lucide/svelte/icons/plus";
-  import SearchIcon from "@lucide/svelte/icons/search";
-  import XIcon from "@lucide/svelte/icons/x";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { MiniAppHeader, MiniAppRoot, MiniAppStatGrid } from "$lib/modules/mini-app/index.js";
+  import type { VaultEntry, VaultFormData } from "./types";
 
-  let { moduleId = "passwords", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
-    $props();
+  let { moduleId = "passwords", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } = $props();
 
-  type VaultEntry = {
-    id: number;
-    site: string;
-    user: string;
-    url: string;
-    pass: string;
-  };
+  // ── State ─────────────────────────────────────────────────────
 
-  type VaultGroup = {
-    section: string;
-    items: VaultEntry[];
-  };
-
+  let entries = $state<VaultEntry[]>([]);
+  let loading = $state(true);
+  let error = $state<string | null>(null);
   let searchQuery = $state("");
-  let showDetail = $state<VaultEntry | null>(null);
-  let revealPassword = $state(false);
-  let activeCategory = $state("All");
+  let selectedEntry = $state<VaultEntry | null>(null);
+  let showForm = $state(false);
+  let formData = $state<VaultFormData>({ site: "", username: "", password: "", notes: "" });
+  let editingId = $state<string | null>(null);
+  let visiblePasswords = $state<Set<string>>(new Set());
+  let copiedId = $state<string | null>(null);
+  let saving = $state(false);
 
-  // ── Filter (ported from Anytype) ──────────────────────────────
-  let isFocused = $state(false);
-  let isActive = $state(false);
-  let filterNode: HTMLDivElement | undefined = $state(undefined);
-  let inputRef: HTMLInputElement | undefined = $state(undefined);
+  // ── Load entries ──────────────────────────────────────────────
 
-  function onIconClick() {
-    isActive = !isActive;
-    if (!isActive) searchQuery = "";
-  }
-
-  function onFocus() {
-    isFocused = true;
-  }
-
-  function onBlur() {
-    isFocused = false;
-  }
-
-  function clear() {
-    searchQuery = "";
-    inputRef?.focus();
-  }
-
-  function onClearHandler(e: MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    clear();
-  }
-
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      clear();
+  async function loadEntries() {
+    loading = true;
+    error = null;
+    try {
+      entries = await invoke<VaultEntry[]>("passwords_list");
+    } catch (e) {
+      error = String(e);
+      entries = [];
+    } finally {
+      loading = false;
     }
   }
 
-  $effect(() => {
-    if (isActive) {
-      requestAnimationFrame(() => inputRef?.focus());
-      const onDocClick = (e: MouseEvent) => {
-        if (filterNode && !filterNode.contains(e.target as Node)) {
-          isActive = false;
-        }
+  onMount(loadEntries);
+
+  // ── Search ─────────────────────────────────────────────────────
+
+  let searchResults = $state<VaultEntry[]>([]);
+
+  async function doSearch() {
+    const q = searchQuery.trim();
+    if (!q) {
+      searchResults = [];
+      return;
+    }
+    try {
+      searchResults = await invoke<VaultEntry[]>("passwords_search", { query: q });
+    } catch {
+      searchResults = [];
+    }
+  }
+
+  // ── CRUD ──────────────────────────────────────────────────────
+
+  function openAddForm() {
+    editingId = null;
+    formData = { site: "", username: "", password: "", notes: "" };
+    showForm = true;
+  }
+
+  function openEditForm(entry: VaultEntry) {
+    editingId = entry.id;
+    formData = {
+      site: entry.site,
+      username: entry.username,
+      password: entry.password,
+      notes: entry.notes,
+    };
+    showForm = true;
+  }
+
+  function closeForm() {
+    showForm = false;
+    editingId = null;
+  }
+
+  async function saveEntry() {
+    if (!formData.site.trim() || !formData.username.trim() || !formData.password.trim()) return;
+    saving = true;
+    try {
+      const now = Date.now();
+      const entry: VaultEntry = {
+        id: editingId ?? crypto.randomUUID(),
+        site: formData.site.trim(),
+        username: formData.username.trim(),
+        password: formData.password,
+        notes: formData.notes.trim(),
+        created: editingId ? (entries.find(e => e.id === editingId)?.created ?? now) : now,
+        updated: now,
       };
-      document.addEventListener("click", onDocClick);
-      return () => document.removeEventListener("click", onDocClick);
+      await invoke("passwords_save", { entry });
+      closeForm();
+      await loadEntries();
+    } catch (e) {
+      error = String(e);
+    } finally {
+      saving = false;
     }
-  });
-
-  const categories = ["All", "Login", "Cards", "Notes", "Identity"];
-
-  const recentLogins: VaultEntry[] = [
-    { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV…" },
-    { id: 2, site: "Stripe", user: "admin@corp.com", url: "stripe.com", pass: "str_live_…" },
-    { id: 3, site: "AWS Console", user: "root-dev", url: "aws.amazon.com", pass: "aws_19192…" },
-  ];
-
-  const vault: VaultGroup[] = [
-    {
-      section: "A",
-      items: [
-        { id: 4, site: "Apple", user: "steve@mac.com", url: "apple.com", pass: "apple_xZ91…" },
-        { id: 5, site: "Adobe", user: "design@ui.com", url: "adobe.com", pass: "dobe_pass…" },
-      ],
-    },
-    {
-      section: "G",
-      items: [
-        { id: 1, site: "GitHub", user: "kimenzo", url: "github.com", pass: "gh_token_9xV…" },
-        { id: 6, site: "Google", user: "kimenzo@gmail.com", url: "google.com", pass: "g_99182…" },
-      ],
-    },
-  ];
-
-  function copyPass(pass: string) {
-    void pass;
   }
 
-  function openDetail(item: VaultEntry) {
-    showDetail = item;
-    revealPassword = false;
+  async function deleteEntry(id: string) {
+    try {
+      await invoke("passwords_delete", { id });
+      if (selectedEntry?.id === id) selectedEntry = null;
+      entries = entries.filter(e => e.id !== id);
+    } catch (e) {
+      error = String(e);
+    }
   }
 
-  function closeDetail() {
-    showDetail = null;
-    revealPassword = false;
+  // ── Utilities ─────────────────────────────────────────────────
+
+  function togglePassword(id: string) {
+    if (visiblePasswords.has(id)) visiblePasswords.delete(id);
+    else visiblePasswords.add(id);
+    visiblePasswords = new Set(visiblePasswords);
   }
+
+  async function copyText(text: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copiedId = id;
+      setTimeout(() => { copiedId = null; }, 1500);
+    } catch {}
+  }
+
+  function groupEntries(entries: VaultEntry[]): Map<string, VaultEntry[]> {
+    const groups = new Map<string, VaultEntry[]>();
+    for (const e of entries) {
+      const letter = e.site.charAt(0).toUpperCase();
+      if (!groups.has(letter)) groups.set(letter, []);
+      groups.get(letter)!.push(e);
+    }
+    return groups;
+  }
+
+  const displayEntries = $derived(searchQuery.trim() ? searchResults : entries);
+  const grouped = $derived(groupEntries(displayEntries));
+  const sortedGroups = $derived([...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+
+  // ── Derived stats ──────────────────────────────────────────────
+
+  const totalEntries = $derived(entries.length);
+  const strongEntries = $derived(entries.filter(e => e.password.length >= 12).length);
 </script>
 
-<MiniAppRoot class="passwords-app gap-5 p-4 sm:p-6">
-  <MiniAppHeader
-    eyebrow="Vault"
-    title="Password vault"
-    description="Local-first logins, secure notes, and passkeys — encrypted on this device."
-  >
-    {#snippet actions()}
-      <Button type="button" variant="outline" size="icon" aria-label="Add item">
-        <PlusIcon />
-      </Button>
-    {/snippet}
-  </MiniAppHeader>
-
-  <MiniAppStatGrid
-    columns={3}
-    stats={[
-      { label: "Saved items", value: "128", hint: "Across all categories" },
-      { label: "Health score", value: "94", hint: "Strong passwords" },
-      { label: "Breaches", value: "0", hint: "Monitored emails" },
-    ]}
-  />
-
-  <section class="passwords-toolbar">
-    <div class="passwords-toolbar-left">
-      <span class="passwords-section-title">Vault</span>
-    </div>
-    <div class="passwords-toolbar-right">
-      <button
-        type="button"
-        class="icon passwords-search-icon"
-        onclick={onIconClick}
-        aria-label={isActive ? "Close search" : "Search vault"}
-      >
-        <SearchIcon />
+<div class="pv-app">
+  <!-- Header -->
+  <header class="pv-header">
+    <div class="pv-header-top">
+      <div class="pv-header-info">
+        <span class="pv-eyebrow">Vault</span>
+        <h1 class="pv-title">Passwords</h1>
+      </div>
+      <button class="pv-add-btn" onclick={openAddForm} aria-label="Add entry">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>New</span>
       </button>
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div
-        class="filterWrap"
-        class:active={isActive}
-        bind:this={filterNode}
-      >
-        <div
-          class="filter size28 withIcon"
-          class:isFocused
-          class:active={searchQuery.length > 0}
-        >
-          <div class="inner">
-            <span class="icon search-icon">
-              <SearchIcon />
-            </span>
-            <div class="filterInputWrap">
-              <input
-                bind:this={inputRef}
-                bind:value={searchQuery}
-                type="text"
-                placeholder="Search vault…"
-                class="input"
-                onfocus={onFocus}
-                onblur={onBlur}
-                onkeydown={onKeyDown}
-              />
-            </div>
-            <button type="button" class="icon commonClear" onclick={onClearHandler}>
-              <XIcon />
-            </button>
-          </div>
-          <div class="line"></div>
-        </div>
-      </div>
     </div>
-  </section>
+    <p class="pv-desc">Encrypted credentials stored locally on this device.</p>
+  </header>
 
-  <section class="passwords-categories">
-    {#each categories as cat (cat)}
-      <Button
-        type="button"
-        variant={activeCategory === cat ? "default" : "outline"}
-        size="sm"
-        class="rounded-full"
-        onclick={() => (activeCategory = cat)}
-      >
-        {cat}
-      </Button>
-    {/each}
-  </section>
+  <!-- Stats bar -->
+  <div class="pv-stats">
+    <div class="pv-stat">
+      <span class="pv-stat-value">{totalEntries}</span>
+      <span class="pv-stat-label">Saved</span>
+    </div>
+    <div class="pv-stat">
+      <span class="pv-stat-value">{strongEntries}</span>
+      <span class="pv-stat-label">Strong</span>
+    </div>
+  </div>
 
-  <section class="passwords-scroll grid gap-1">
-    {#if !searchQuery}
-      <p class="passwords-section-title">Recently used</p>
-      {#each recentLogins as entry (entry.id)}
-        <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
-          <span class="flex min-w-0 items-center gap-3">
-            <span class="passwords-favicon">{entry.site.charAt(0)}</span>
-            <span class="min-w-0">
-              <span class="block truncate font-medium text-[var(--foreground)]">{entry.site}</span>
-              <span class="block truncate text-sm text-[var(--muted)]">{entry.user}</span>
-            </span>
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Copy password"
-            onclick={(e) => {
-              e.stopPropagation();
-              copyPass(entry.pass);
-            }}
-          >
-            <CopyIcon class="size-4" />
-          </Button>
-        </button>
-      {/each}
-
-      {#each vault as group (group.section)}
-        <p class="passwords-alpha">{group.section}</p>
-        {#each group.items as entry (entry.id)}
-          <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
-            <span class="flex min-w-0 items-center gap-3">
-              <span class="passwords-favicon">{entry.site.charAt(0)}</span>
-              <span class="min-w-0">
-                <span class="block truncate font-medium text-[var(--foreground)]">{entry.site}</span>
-                <span class="block truncate text-sm text-[var(--muted)]">{entry.user}</span>
-              </span>
-            </span>
-            <CopyIcon class="size-4 shrink-0 text-[var(--muted)]" />
-          </button>
-        {/each}
-      {/each}
-    {:else}
-      <p class="passwords-section-title">Results</p>
-      {#each recentLogins as entry (entry.id)}
-        <button type="button" class="mini-app-row w-full text-left" onclick={() => openDetail(entry)}>
-          <span class="flex min-w-0 items-center gap-3">
-            <span class="passwords-favicon">{entry.site.charAt(0)}</span>
-            <span class="min-w-0">
-              <span class="block truncate font-medium">{entry.site}</span>
-              <span class="block truncate text-sm text-[var(--muted)]">{entry.user}</span>
-            </span>
-          </span>
-        </button>
-      {/each}
+  <!-- Search -->
+  <div class="pv-search-wrap">
+    <svg class="pv-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input
+      class="pv-search-input"
+      type="text"
+      placeholder="Search sites or usernames…"
+      bind:value={searchQuery}
+      oninput={doSearch}
+    />
+    {#if searchQuery}
+      <button class="pv-search-clear" onclick={() => { searchQuery = ""; searchResults = []; }} aria-label="Clear search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     {/if}
-  </section>
+  </div>
 
-  {#if showDetail}
-    {@const detail = showDetail}
-    <div class="passwords-detail-overlay" role="presentation">
-      <button type="button" class="absolute inset-0" aria-label="Close detail" onclick={closeDetail}></button>
-      <div class="passwords-detail-pane relative z-10">
-        <div class="mb-6 flex items-start justify-between gap-4 border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pb-5">
-          <span class="flex items-center gap-3">
-            <span class="passwords-favicon passwords-favicon--lg">{detail.site.charAt(0)}</span>
-            <span>
-              <h2 class="font-[var(--font-heading)] text-xl font-semibold">{detail.site}</h2>
-              <Badge variant="outline" class="mt-1">Login</Badge>
-            </span>
-          </span>
-          <Button type="button" variant="ghost" size="sm">Edit</Button>
-        </div>
+  <!-- Content area -->
+  <div class="pv-content">
+    {#if loading}
+      <div class="pv-state">
+        <div class="pv-spinner"></div>
+        <p>Loading vault…</p>
+      </div>
+    {:else if error}
+      <div class="pv-state pv-state-error">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>Failed to load vault: {error}</p>
+        <button class="pv-retry-btn" onclick={loadEntries}>Retry</button>
+      </div>
+    {:else if displayEntries.length === 0}
+      <div class="pv-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        {#if searchQuery}
+          <p>No results for "{searchQuery}"</p>
+        {:else}
+          <p>Your vault is empty</p>
+          <button class="pv-retry-btn" onclick={openAddForm}>Add your first entry</button>
+        {/if}
+      </div>
+    {:else}
+      <div class="pv-list">
+        {#each sortedGroups as [letter, items]}
+          <div class="pv-group">
+            <span class="pv-group-letter">{letter}</span>
+            {#each items as entry (entry.id)}
+              <div
+                class="pv-item"
+                class:pv-item-selected={selectedEntry?.id === entry.id}
+                role="button"
+                tabindex="0"
+                onclick={() => selectedEntry = selectedEntry?.id === entry.id ? null : entry}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectedEntry = selectedEntry?.id === entry.id ? null : entry; } }}
+              >
+                <span class="pv-item-avatar">{entry.site.charAt(0).toUpperCase()}</span>
+                <span class="pv-item-info">
+                  <span class="pv-item-site">{entry.site}</span>
+                  <span class="pv-item-user">{entry.username}</span>
+                </span>
+                <span class="pv-item-actions" onclick={(e) => e.stopPropagation()}>
+                  <button class="pv-icon-btn" onclick={() => copyText(entry.password, `copy-${entry.id}`)} aria-label="Copy password">
+                    {#if copiedId === `copy-${entry.id}`}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    {:else}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    {/if}
+                  </button>
+                  <button class="pv-icon-btn" onclick={() => openEditForm(entry)} aria-label="Edit">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                  </button>
+                </span>
+              </div>
 
-        <div class="grid gap-4">
-          <div class="passwords-field">
-            <span class="passwords-field-label">Username</span>
-            <div class="passwords-field-row">
-              <span class="passwords-field-value">{detail.user}</span>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Copy username">
-                <CopyIcon class="size-4" />
-              </Button>
-            </div>
-          </div>
+              <!-- Expanded detail pane -->
+              {#if selectedEntry?.id === entry.id}
+                <div class="pv-detail">
+                  <div class="pv-detail-field">
+                    <span class="pv-detail-label">Username</span>
+                    <div class="pv-detail-row">
+                      <span class="pv-detail-value">{entry.username}</span>
+                      <button class="pv-icon-btn" onclick={() => copyText(entry.username, `user-${entry.id}`)} aria-label="Copy username">
+                        {#if copiedId === `user-${entry.id}`}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        {:else}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        {/if}
+                      </button>
+                    </div>
+                  </div>
 
-          <div class="passwords-field">
-            <span class="passwords-field-label">Password</span>
-            <div class="passwords-field-row">
-              <span class="passwords-field-value passwords-field-value--mono">
-                {revealPassword ? detail.pass : "••••••••••••"}
-              </span>
-              <span class="flex gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={revealPassword ? "Hide password" : "Show password"}
-                  onclick={() => (revealPassword = !revealPassword)}
-                >
-                  {#if revealPassword}
-                    <EyeOffIcon class="size-4" />
-                  {:else}
-                    <EyeIcon class="size-4" />
+                  <div class="pv-detail-field">
+                    <span class="pv-detail-label">Password</span>
+                    <div class="pv-detail-row">
+                      <span class="pv-detail-value pv-detail-value--mono">
+                        {visiblePasswords.has(entry.id) ? entry.password : "•".repeat(Math.min(entry.password.length, 24))}
+                      </span>
+                      <span class="pv-detail-actions">
+                        <button class="pv-icon-btn" onclick={() => togglePassword(entry.id)} aria-label={visiblePasswords.has(entry.id) ? "Hide" : "Show"}>
+                          {#if visiblePasswords.has(entry.id)}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                          {:else}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          {/if}
+                        </button>
+                        <button class="pv-icon-btn" onclick={() => copyText(entry.password, `pass-${entry.id}`)} aria-label="Copy password">
+                          {#if copiedId === `pass-${entry.id}`}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          {:else}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                          {/if}
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+
+                  {#if entry.notes}
+                    <div class="pv-detail-field">
+                      <span class="pv-detail-label">Notes</span>
+                      <p class="pv-detail-notes">{entry.notes}</p>
+                    </div>
                   {/if}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Copy password"
-                  onclick={() => copyPass(detail.pass)}
-                >
-                  <CopyIcon class="size-4" />
-                </Button>
-              </span>
-            </div>
-          </div>
 
-          <section class="passwords-field">
-            <span class="passwords-field-label">Website</span>
-            <div class="passwords-field-row">
-              <span class="passwords-field-value passwords-field-value--link">{detail.url}</span>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Open website">
-                <ExternalLinkIcon class="size-4" />
-              </Button>
-            </div>
-          </section>
-        </div>
+                  <div class="pv-detail-footer">
+                    <button class="pv-delete-btn" onclick={() => deleteEntry(entry.id)} aria-label="Delete entry">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      Delete
+                    </button>
+                    <button class="pv-edit-btn" onclick={() => openEditForm(entry)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              {/if}
+            {/each}
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+</div>
+
+<!-- Add/Edit modal -->
+{#if showForm}
+  <div class="pv-modal-overlay" role="presentation" onclick={closeForm}>
+    <div class="pv-modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-label={editingId ? "Edit entry" : "New entry"}>
+      <div class="pv-modal-header">
+        <h2 class="pv-modal-title">{editingId ? "Edit entry" : "New entry"}</h2>
+        <button class="pv-icon-btn" onclick={closeForm} aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="pv-modal-body">
+        <label class="pv-field">
+          <span class="pv-field-label">Site</span>
+          <input class="pv-input" type="text" placeholder="e.g. GitHub" bind:value={formData.site} />
+        </label>
+        <label class="pv-field">
+          <span class="pv-field-label">Username</span>
+          <input class="pv-input" type="text" placeholder="e.g. user@email.com" bind:value={formData.username} />
+        </label>
+        <label class="pv-field">
+          <span class="pv-field-label">Password</span>
+          <input class="pv-input pv-input--mono" type="text" placeholder="Enter password" bind:value={formData.password} />
+        </label>
+        <label class="pv-field">
+          <span class="pv-field-label">Notes</span>
+          <textarea class="pv-textarea" placeholder="Optional notes…" bind:value={formData.notes} rows={3}></textarea>
+        </label>
+      </div>
+      <div class="pv-modal-footer">
+        <button class="pv-btn pv-btn-cancel" onclick={closeForm}>Cancel</button>
+        <button
+          class="pv-btn pv-btn-save"
+          onclick={saveEntry}
+          disabled={!formData.site.trim() || !formData.username.trim() || !formData.password.trim() || saving}
+        >
+          {saving ? "Saving…" : editingId ? "Save changes" : "Add entry"}
+        </button>
       </div>
     </div>
-  {/if}
-</MiniAppRoot>
+  </div>
+{/if}

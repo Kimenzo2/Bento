@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+﻿use std::sync::Mutex;
 use std::time::Instant;
 
 use chrono::Timelike;
@@ -260,9 +260,10 @@ async fn query_featured_module(
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
 
                 let secondary = due_at.map(|ts| {
+                    let today_s = today_start_ms();
                     let diff = ts - now_ms();
-                    if diff < 0 {
-                        "Overdue".to_string()
+                    if ts < today_s {
+                        "Overdue".to_string()  // only past DAYS are overdue
                     } else if diff < 3_600_000 {
                         format!("{}m left", diff / 60_000)
                     } else if diff < 86_400_000 {
@@ -322,7 +323,7 @@ async fn query_featured_module(
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
                 let secondary = due_at.map(|ts| {
                     let diff = ts - now_ms();
-                    if diff < 0 { "Overdue".to_string() }
+                    if ts < today_start_ms() { "Overdue".to_string() }
                     else if diff < 86_400_000 { "Today".to_string() }
                     else {
                         chrono::DateTime::from_timestamp_millis(ts)

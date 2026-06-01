@@ -1,4 +1,4 @@
-use std::{
+﻿use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
@@ -1288,6 +1288,7 @@ pub async fn create_quick_task(
     }
 
     let created_at = crate::util::time::now_ms();
+    let due_at_ms: i64 = { use chrono::{Local,Datelike,TimeZone}; let t=Local::now(); Local.with_ymd_and_hms(t.year(),t.month(),t.day(),0,0,0).unwrap().timestamp_millis() };
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -1301,11 +1302,12 @@ pub async fn create_quick_task(
             parent_id,
             created_at,
             updated_at
-        ) VALUES (?, ?, 0, 'medium', NULL, NULL, ?, ?)
+        ) VALUES (?, ?, 0, 'medium', ?, NULL, ?, ?)
         "#,
     )
     .bind(&id)
     .bind(cleaned)
+    .bind(due_at_ms)
     .bind(created_at)
     .bind(created_at)
     .execute(&state.db())

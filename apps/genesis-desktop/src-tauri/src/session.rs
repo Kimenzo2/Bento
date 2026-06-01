@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 
 use crate::actors::{self, ModuleActorHandle};
 use crate::commands::{DashboardCache, emit_main_window_event};
-use crate::db::{BentoAppState, ModuleContext, record_dashboard_event, write_runtime_state};
+use crate::db::{BentoAppState, ModuleContext, record_dashboard_event, read_runtime_state, write_runtime_state};
 use crate::modules::is_installed;
 use crate::telemetry::{BackendTraceInput, Severity, TelemetryState};
 
@@ -100,6 +100,19 @@ impl TabSessionManager {
             tabs: HashMap::new(),
             foreground_tab_id: None,
         }
+    }
+
+    /// Return the sorted list of module IDs for all open tabs (for persistence).
+    pub fn open_module_ids(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self.tabs.values().map(|t| t.info.module_id.clone()).collect();
+        ids.sort();
+        ids.dedup();
+        ids
+    }
+
+    /// Return whether the session has any open tabs.
+    pub fn is_empty(&self) -> bool {
+        self.tabs.is_empty()
     }
 
     // ── Tab CRUD ──────────────────────────────────────────────────────────
@@ -370,6 +383,56 @@ impl ManagedTabSession {
     }
 }
 
+// ── Persistence helpers ─────────────────────────────────────────────────
+
+/// Persist the current list of open tab module IDs to `runtime_state`.
+async fn persist_open_tab_ids(state: &BentoAppState, manager: &TabSessionManager) -> Result<(), String> {
+    let ids = manager.open_module_ids();
+    let json = serde_json::to_string(&ids).map_err(|e| e.to_string())?;
+    write_runtime_state(&state.db(), "open_tab_ids", &json).await
+}
+
+/// Restore open tabs from persisted `runtime_state`.
+/// Called when the in-memory session is empty after a restart/reload.
+pub async fn restore_tabs_from_db(
+    session: &mut TabSessionManager,
+    state: &BentoAppState,
+    app: &AppHandle,
+) -> Result<Vec<TabInfo>, String> {
+    let raw = read_runtime_state(&state.db(), "open_tab_ids").await?;
+    let Some(raw) = raw else {
+        return Ok(Vec::new());
+    };
+
+    let module_ids: Vec<String> = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+    if module_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut restored = Vec::new();
+    for module_id in &module_ids {
+        // Skip dashboard, ai, settings — they're not tabbed
+        if matches!(module_id.as_str(), "dashboard" | "ai" | "settings") {
+            continue;
+        }
+
+        // Skip uninstalled modules
+        if !crate::modules::is_installed(state, module_id).await.unwrap_or(false) {
+            continue;
+        }
+
+        let telemetry: Option<TelemetryState> = app.try_state::<TelemetryState>().as_deref().cloned();
+        match session.open_tab(module_id.clone(), &state.db(), telemetry, app).await {
+            Ok(info) => restored.push(info),
+            Err(e) => {
+                eprintln!("[TabSession] Failed to restore tab for module \"{module_id}\": {e}");
+            }
+        }
+    }
+
+    Ok(restored)
+}
+
 // ---------------------------------------------------------------------------
 // Tauri commands
 // ---------------------------------------------------------------------------
@@ -421,16 +484,25 @@ pub async fn tab_open(
     cache.invalidate();
     let _ = emit_main_window_event(&app, "bento://dashboard-refresh", opened_module_id.clone());
 
+    // Persist open tab IDs after successful open
+    let _ = persist_open_tab_ids(&state, &manager).await;
+
     Ok(tab_info)
 }
 
 #[tauri::command]
 pub async fn tab_close(
+    state: tauri::State<'_, BentoAppState>,
     session: tauri::State<'_, ManagedTabSession>,
     tab_id: String,
 ) -> Result<(), String> {
     let mut manager = session.inner.lock().await;
-    manager.close_tab(&tab_id).await
+    let result = manager.close_tab(&tab_id).await;
+    // Persist after close
+    if result.is_ok() {
+        let _ = persist_open_tab_ids(&state, &manager).await;
+    }
+    result
 }
 
 #[tauri::command]
@@ -443,6 +515,8 @@ pub async fn tab_switch(
 ) -> Result<TabSwitchPayload, String> {
     let telemetry = app.try_state::<TelemetryState>();
     let mut manager = session.inner.lock().await;
+    // Persist active tab order after switch
+    let _ = persist_open_tab_ids(&state, &manager).await;
     let payload = manager
         .switch_tab(&tab_id, &state.db(), telemetry.as_deref(), &app)
         .await?;
@@ -521,6 +595,32 @@ pub async fn tab_is_module_open(
 ) -> Result<bool, String> {
     let manager = session.inner.lock().await;
     Ok(manager.is_module_open(&module_id))
+}
+
+/// Restore previously saved tabs from the database (after sleep/webview reload).
+/// Returns the restored tab infos, or an empty vec if no persisted tabs exist.
+#[tauri::command]
+pub async fn tab_restore(
+    app: AppHandle,
+    session: tauri::State<'_, ManagedTabSession>,
+    state: tauri::State<'_, BentoAppState>,
+) -> Result<Vec<TabInfo>, String> {
+    let mut manager = session.inner.lock().await;
+    // Only restore if the in-memory session is empty
+    if !manager.is_empty() {
+        return Ok(manager.list_tabs());
+    }
+
+    let restored = restore_tabs_from_db(&mut manager, &state, &app).await?;
+    drop(manager);
+
+    // Set last_active_module from the first restored tab
+    if let Some(first) = restored.first() {
+        write_runtime_state(&state.db(), "last_active_module", &first.module_id).await?;
+        state.set_active_module(&first.module_id);
+    }
+
+    Ok(restored)
 }
 
 #[tauri::command]

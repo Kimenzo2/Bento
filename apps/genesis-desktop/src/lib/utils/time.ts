@@ -624,6 +624,11 @@ function toISODate(ts: number): string {
   return formatCustom(ts, 'Y-m-d');
 }
 
+/** Format a timestamp as ISO month string ("2026-05") */
+function toISOMonth(ts: number): string {
+  return formatCustom(ts, 'Y-m');
+}
+
 /** Format a timestamp as ISO datetime string ("2024-07-15T14:30:00.000Z") */
 function toISODateTime(ts: number): string {
   return new Date(ts).toISOString();
@@ -689,6 +694,7 @@ export const time = {
 
   // ISO helpers
   toISODate,
+  toISOMonth,
   toISODateTime,
   toRFC3339,
 

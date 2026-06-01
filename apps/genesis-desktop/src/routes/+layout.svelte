@@ -170,12 +170,63 @@
       }
     );
 
+    // ── Wake-from-sleep / visibility recovery ───────────────────────
+    // When the laptop wakes from sleep, the webview may reload or the page
+    // may become visible again. Re-check the session to avoid showing a
+    // stale / logged-out state.
+    let checkAuthTimer: ReturnType<typeof setTimeout> | null = null;
+
+    async function checkSessionOnWake() {
+      if (!isTauri()) return;
+      if (get(authStore).status !== "restored") return;
+
+      try {
+        const result = await invoke<{
+          status: string;
+          user?: { id: string; name: string; email: string; avatarUrl: string };
+        }>("check_auth_session");
+
+        if (result.status === "loginRequired") {
+          setAuthLoginRequired();
+          clearBillingProfile();
+        } else if (result.status === "restored" && result.user) {
+          setAuthRestored(result.user);
+        }
+      } catch (error) {
+        console.warn("[Auth] check_auth_session failed on wake:", error);
+      }
+    }
+
+    // Debounced wake check: fires at most once per 10 seconds
+    function scheduleWakeCheck() {
+      if (checkAuthTimer) clearTimeout(checkAuthTimer);
+      checkAuthTimer = setTimeout(checkSessionOnWake, 500);
+    }
+
+    // visibilitychange fires when the page becomes visible after sleep
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    // window focus fires when the window regains focus (also on wake)
+    window.addEventListener("focus", onFocus);
+
     return () => {
       historyEvents.forEach((eventName) => window.removeEventListener(eventName, syncCurrentPath));
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onFocus);
+      if (checkAuthTimer) clearTimeout(checkAuthTimer);
       void unlistenSuccess.then((fn) => fn());
       void unlistenExpired.then((fn) => fn());
       void unlistenError.then((fn) => fn());
     };
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        scheduleWakeCheck();
+      }
+    }
+
+    function onFocus() {
+      scheduleWakeCheck();
+    }
   });
 </script>
 

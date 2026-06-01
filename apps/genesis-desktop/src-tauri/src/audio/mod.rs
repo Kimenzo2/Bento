@@ -63,6 +63,7 @@ pub struct RecordingSession {
     pub file_path: Option<String>,
     pub module_id: String,
     pub device_name: Option<String>,
+    pub sleep_detected: bool,
 }
 
 // ─── Recording Metadata (persisted in SQLite) ─────────────────────────
@@ -94,12 +95,20 @@ pub struct RecordingEngine {
     db: SqlitePool,
     /// Signalled by the background thread after WAV finalization + SQLite write.
     finalized: Arc<AtomicBool>,
+    /// Set to true while the sleep-detection watchdog is running.
+    /// Set to false to signal the watchdog to exit (e.g. on manual stop).
+    watchdog_active: Arc<AtomicBool>,
 }
 
 struct InnerSession {
     id: String,
     module_id: String,
+    /// Monotonic clock start — used for elapsed-time tracking (stops during sleep).
     start_time: std::time::Instant,
+    /// Wall-clock start (ms epoch) — used for sleep detection by comparing with monotonic elapsed.
+    start_time_ms: i64,
+    /// Set to true when the sleep-detection watchdog detects a sleep/wake cycle.
+    sleep_detected: bool,
     paused_duration: std::time::Duration,
     pause_start: Option<std::time::Instant>,
     device_name: String,
@@ -117,6 +126,7 @@ impl RecordingEngine {
             app_dir,
             db,
             finalized: Arc::new(AtomicBool::new(false)),
+            watchdog_active: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -241,10 +251,13 @@ impl RecordingEngine {
         let db_clone = self.db.clone();
         let device_name_clone = device_name.clone();
 
+        let now_ms = time::now_ms();
         let session = InnerSession {
             id: session_id_clone.clone(),
             module_id: module_id.to_string(),
             start_time: std::time::Instant::now(),
+            start_time_ms: now_ms,
+            sleep_detected: false,
             paused_duration: std::time::Duration::ZERO,
             pause_start: None,
             device_name: device_name.clone(),
@@ -255,6 +268,40 @@ impl RecordingEngine {
         };
 
         *self.session.lock().map_err(|e| e.to_string())? = Some(session);
+
+        // ── Sleep-detection watchdog ──────────────────────────────────────
+        // Compares monotonic elapsed time vs wall-clock elapsed time every 2s.
+        // If wall-clock elapsed exceeds monotonic elapsed by > 30s, the machine
+        // likely slept mid-recording — flag it so the frontend can alert the user.
+        const SLEEP_THRESHOLD_MS: i64 = 30_000;
+        let watchdog_session = Arc::clone(&self.session);
+        let watchdog_active = Arc::clone(&self.watchdog_active);
+        self.watchdog_active.store(true, Ordering::Release);
+        std::thread::spawn(move || {
+            while watchdog_active.load(Ordering::Acquire) {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                if !watchdog_active.load(Ordering::Acquire) {
+                    break;
+                }
+                let mut guard = match watchdog_session.lock() {
+                    Ok(g) => g,
+                    Err(_) => continue,
+                };
+                if let Some(ref mut inner) = *guard {
+                    let monotonic_elapsed = inner.start_time.elapsed().as_millis() as i64;
+                    let wall_clock_elapsed = time::now_ms() - inner.start_time_ms;
+                    let drift = wall_clock_elapsed - monotonic_elapsed;
+                    if drift > SLEEP_THRESHOLD_MS && !inner.sleep_detected {
+                        inner.sleep_detected = true;
+                        eprintln!(
+                            "[audio] Sleep detected mid-recording: drift={}ms (threshold={}ms)",
+                            drift, SLEEP_THRESHOLD_MS
+                        );
+                    }
+                }
+                drop(guard);
+            }
+        });
 
         // Spawn audio capture thread
         std::thread::spawn(move || {
@@ -366,6 +413,7 @@ impl RecordingEngine {
             file_path: Some(file_path.to_string_lossy().to_string()),
             module_id: module_id.to_string(),
             device_name: Some(device_name),
+            sleep_detected: false,
         })
     }
 
@@ -379,6 +427,9 @@ impl RecordingEngine {
         *status = RecordingStatus::Idle;
         drop(status);
 
+        // Stop the sleep-detection watchdog
+        self.watchdog_active.store(false, Ordering::Release);
+
         // Wait for background thread to finalize + persist (up to 3 seconds)
         for _ in 0..30 {
             if self.finalized.load(Ordering::Acquire) {
@@ -390,6 +441,7 @@ impl RecordingEngine {
 
         // Extract session data before clearing
         let mut guard = self.session.lock().map_err(|e| e.to_string())?;
+        let sleep_detected = guard.as_ref().map(|s| s.sleep_detected).unwrap_or(false);
         let session_data = guard.take();
         let elapsed = session_data
             .as_ref()
@@ -426,6 +478,7 @@ impl RecordingEngine {
                 .map(|s| s.module_id.clone())
                 .unwrap_or_default(),
             device_name: session_data.as_ref().map(|s| s.device_name.clone()),
+            sleep_detected,
         };
 
         drop(guard);
@@ -450,6 +503,8 @@ impl RecordingEngine {
             .map(|s| (s.start_time.elapsed() - s.paused_duration).as_millis() as i64)
             .unwrap_or(0);
 
+        let sleep_detected = guard.as_ref().map(|s| s.sleep_detected).unwrap_or(false);
+
         Ok(RecordingSession {
             id: guard.as_ref().map(|s| s.id.clone()).unwrap_or_default(),
             status: "paused".to_string(),
@@ -470,6 +525,7 @@ impl RecordingEngine {
                 .map(|s| s.module_id.clone())
                 .unwrap_or_default(),
             device_name: guard.as_ref().map(|s| s.device_name.clone()),
+            sleep_detected,
         })
     }
 
@@ -493,6 +549,8 @@ impl RecordingEngine {
             .map(|s| (s.start_time.elapsed() - s.paused_duration).as_millis() as i64)
             .unwrap_or(0);
 
+        let sleep_detected = guard.as_ref().map(|s| s.sleep_detected).unwrap_or(false);
+
         Ok(RecordingSession {
             id: guard.as_ref().map(|s| s.id.clone()).unwrap_or_default(),
             status: "recording".to_string(),
@@ -513,6 +571,7 @@ impl RecordingEngine {
                 .map(|s| s.module_id.clone())
                 .unwrap_or_default(),
             device_name: guard.as_ref().map(|s| s.device_name.clone()),
+            sleep_detected,
         })
     }
 
@@ -541,6 +600,7 @@ impl RecordingEngine {
                 file_path: Some(inner.file_path.to_string_lossy().to_string()),
                 module_id: inner.module_id.clone(),
                 device_name: Some(inner.device_name.clone()),
+                sleep_detected: inner.sleep_detected,
             }
         }))
     }
@@ -785,6 +845,9 @@ impl RecordingEngine {
         }
         *status = RecordingStatus::Idle;
         drop(status);
+
+        // Stop the sleep-detection watchdog
+        self.watchdog_active.store(false, Ordering::Release);
 
         // Wait for background thread to finalize
         for _ in 0..30 {

@@ -215,13 +215,12 @@
   // ── Helpers ────────────────────────────────────────────────────────────
 
   function formatDate(ts: number): string {
-    const d = new Date(ts);
-    const diff = time.now() - d.getTime();
+    const diff = time.now() - ts;
     if (diff < 60_000) return 'Just now';
     if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-    if (diff < 86_400_000) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    if (diff < 604_800_000) return d.toLocaleDateString('en-US', { weekday: 'short' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (diff < 86_400_000) return time.formatTime(ts, '12h', 'en-US');
+    if (diff < 604_800_000) return time.formatCustom(ts, 'D', 'en-US');
+    return time.formatCustom(ts, 'M j', 'en-US');
   }
 
   function truncate(text: string, max: number): string {

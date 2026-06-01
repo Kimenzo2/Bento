@@ -242,7 +242,7 @@
                   <article>
                     <div>
                       <strong>{exercises.find((e) => e.id === session.exerciseId)?.name ?? session.exerciseId}</strong>
-                      <p>{new Date(session.completed).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      <p>{time.format(session.completed)}</p>
                     </div>
                     <span>{Math.floor(session.duration / 60)}m {session.duration % 60}s</span>
                   </article>

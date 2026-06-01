@@ -446,6 +446,7 @@ pub fn run() {
             crate::notes::commands::notes_search,
             crate::auth::bootstrap_auth_state,
             crate::auth::get_auth_bootstrap_state,
+            crate::auth::check_auth_session,
             crate::auth::begin_google_auth,
             crate::auth::prepare_login_window,
             crate::auth::prepare_shell_window,
@@ -637,8 +638,10 @@ pub fn run() {
             crate::session::tab_get_foreground,
             crate::session::tab_get,
             crate::session::tab_is_module_open,
+            crate::session::tab_restore,
             crate::session::tab_handle_sync_event,
             // Journal
+            crate::commands::journal::create_journal_entry,
             crate::commands::journal::save_journal_entry,
             crate::commands::journal::get_journal_entry,
             crate::commands::journal::list_journal_entries,
@@ -662,6 +665,8 @@ pub fn run() {
             record_focus_session,
             // Passwords Vault (E2EE SQLCipher)
             crate::commands::passwords::passwords_list,
+            crate::commands::passwords::passwords_get,
+            crate::commands::passwords::passwords_search,
             crate::commands::passwords::passwords_save,
             crate::commands::passwords::passwords_delete,
             crate::commands::passwords::passwords_migrate_from_storage,

@@ -782,11 +782,13 @@
    DETAIL PANE
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* Click-outside scrim — removed fixed-inset approach (caused panel to be unclickable).
-   Dismiss is now handled via a document pointerdown listener in App.svelte that
-   checks whether the click target is outside the .tasks-detail element. */
+/* Click-outside scrim — closes detail pane on click */
 .tasks-detail-scrim {
-  display: none; /* kept in DOM for Escape-key binding only; no longer a visual/hit layer */
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: transparent;
+  cursor: default;
 }
 
 .tasks-detail {
@@ -796,8 +798,6 @@
   overflow: hidden;
   border-left: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
   background: color-mix(in srgb, var(--foreground) 1.5%, var(--background));
-  position: relative;
-  z-index: 20;
   min-width: 0;
   width: 100%;
 }
@@ -887,30 +887,6 @@
 /* ─── Detail Task Title ─── */
 .tasks-detail-header {
   margin-bottom: 24px;
-  position: relative;
-}
-
-/* Close button — top-right corner of the detail panel header */
-.tasks-detail-close {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: color-mix(in srgb, var(--foreground) 38%, transparent);
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-  flex-shrink: 0;
-}
-.tasks-detail-close:hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-  color: var(--foreground);
 }
 
 .tasks-detail-title-input {

@@ -16,6 +16,7 @@
     MiniAppRoot,
     MiniAppStatGrid,
   } from "$lib/modules/mini-app/index.js";
+  import { time } from '$lib/utils/time';
   import {
     ensureModuleSection,
     getModuleSectionLabel,
@@ -91,7 +92,7 @@
 
     items = [
       {
-        id: Date.now().toString(),
+        id: time.now().toString(),
         name: newItem.trim(),
         quantity: "1",
         category: "OTHER",

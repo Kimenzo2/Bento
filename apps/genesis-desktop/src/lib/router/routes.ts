@@ -4,7 +4,6 @@ import AuthPage from "../../routes/pages/AuthPage.svelte";
 import PaymentCallbackPage from "../../routes/pages/PaymentCallbackPage.svelte";
 import SharedViewerPage from "../../routes/pages/SharedViewerPage.svelte";
 import { routePatterns } from "$lib/router/route-patterns";
-import NotesPage from "../../routes/pages/NotesPage.svelte";
 
 export const pageMeta = {
   dashboard: {
@@ -59,6 +58,10 @@ export const pageMeta = {
     title: "Bento Apps",
     subtitle: "Focused offline-first personal tools inside the desktop shell.",
   },
+  notes: {
+    title: "Notes",
+    subtitle: "Capture everything in a standalone local notes app with rich blocks.",
+  },
 } as const;
 
 export type PageKey = keyof typeof pageMeta;
@@ -83,7 +86,8 @@ export const appRoutes = [
   },
   {
     path: "/notes",
-    component: NotesPage,
+    component: ShellRoute,
+    props: { page: "notes" satisfies PageKey },
   },
   {
     path: "/export",

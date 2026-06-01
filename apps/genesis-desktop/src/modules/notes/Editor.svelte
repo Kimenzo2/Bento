@@ -3,7 +3,12 @@
   import { invoke } from '@tauri-apps/api/core';
   import { Plus, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code2, CheckSquare, Minus, Bold, Italic, Underline, Strikethrough, Link2, GripVertical, Trash2, Copy } from 'lucide-svelte';
   import { BlockRenderer } from './components/blocks/index.js';
-  import { editorStore, rootBlocks, titleBlock, focusedBlock, isEditorLoading } from '$lib/local-store/store.js';
+  import { editorStore, getRootBlocks, getTitleBlock, getFocusedBlock, getIsEditorLoading, getObjectId } from '$lib/local-store/store.js';
+
+  let rootBlocks = $derived(getRootBlocks());
+  let titleBlock = $derived(getTitleBlock());
+  let focusedBlock = $derived(getFocusedBlock());
+  let isEditorLoading = $derived(getIsEditorLoading());
   import { TextStyle, MarkType } from '$lib/local-store/block.js';
   import type { Block, ContentText, Mark, TextRange } from '$lib/local-store/block.js';
   import { isTextBlock, isTextCode, isTextTitle, isTextDescription, isTextHeader, canHaveMarks } from '$lib/local-store/block.js';
@@ -12,12 +17,6 @@
     objectId?: string;
     onTitleChange?: (id: string, title: string) => void;
   } = $props();
-
-  // ── Init store on mount ───────────────────────────────────────────
-  let blocks = $derived($rootBlocks);
-  let title = $derived($titleBlock);
-  let focused = $derived($focusedBlock);
-  let loading = $derived($isEditorLoading);
 
   // ── Floating UI state ────────────────────────────────────────────
   let showBlockActions = $state<string | null>(null);
@@ -69,7 +68,7 @@
     if (!sourceId || sourceId === targetBlockId) return;
 
     // Compute new index
-    const ids = blocks.map(b => b.id!);
+    const ids = rootBlocks.map(b => b.id!);
     const fromIdx = ids.indexOf(sourceId);
     let toIdx = ids.indexOf(targetBlockId);
     if (dragOverPos === 'bottom') toIdx += 1;
@@ -106,16 +105,10 @@
 
   // Anytype pattern (page.tsx useEffect([rootId])): re-init whenever objectId
   // changes to a value the store doesn't already hold.
-  // BUG FIX 1: old guard `objectId === loadedObjectId` skipped re-init on
-  //   revisit (A -> B -> A): loadedObjectId was still 'A' but store held B's blocks.
-  // FIX: also check store.objectId; if it drifted, fire init regardless.
   $effect(() => {
     const id = objectId;
     if (!id) return;
-    let storeId = '';
-    const u = editorStore.subscribe((s: any) => { storeId = s.objectId ?? ''; });
-    u();
-    // Skip only when BOTH the prop guard AND store agree we are already loaded.
+    const storeId = getObjectId();
     if (id === loadedObjectId && storeId === id) return;
     loadedObjectId = id;
     showBlockActions = null;
@@ -190,9 +183,9 @@
   function handleUpdate(blockId: string, text: string, marks: Mark[]) {
     if (!blockId) return;
     editorStore.persistBlockText(blockId, text, marks);
-    if ($titleBlock?.id === blockId && onTitleChange) {
+    if (titleBlock?.id === blockId && onTitleChange) {
       onTitleChange(objectId, text);
-      void invoke('notes_object_update', { id: objectId, title: text })
+      void invoke('notes_object_update', { params: { id: objectId, title: text } })
         .catch((err) => console.error('[notes] title update failed:', err));
     }
   }
@@ -226,10 +219,10 @@
 
     if (e.key === 'Backspace' && value === '' && range.from === 0) {
       e.preventDefault();
-      if (blocks.length <= 1) return;
-      const idx = blocks.findIndex((b) => b.id === blockId);
+      if (rootBlocks.length <= 1) return;
+      const idx = rootBlocks.findIndex((b) => b.id === blockId);
       if (idx <= 0) return;
-      const prev = blocks[idx - 1];
+      const prev = rootBlocks[idx - 1];
       const prevId = prev.id;
       if (!prevId) return;
       const prevText = (prev.content as ContentText)?.text ?? '';
@@ -243,19 +236,19 @@
 
     if (e.key === 'ArrowUp' && range.from === 0) {
       e.preventDefault();
-      const idx = blocks.findIndex((b) => b.id === blockId);
+      const idx = rootBlocks.findIndex((b) => b.id === blockId);
       if (idx > 0) {
-        const prevId = blocks[idx - 1].id;
-        if (prevId) { editorStore.focusBlock(prevId); focusBlockElement(prevId, ((blocks[idx - 1].content as ContentText)?.text ?? '').length); }
+        const prevId = rootBlocks[idx - 1].id;
+        if (prevId) { editorStore.focusBlock(prevId); focusBlockElement(prevId, ((rootBlocks[idx - 1].content as ContentText)?.text ?? '').length); }
       }
       return;
     }
 
     if (e.key === 'ArrowDown' && range.from >= value.length) {
       e.preventDefault();
-      const idx = blocks.findIndex((b) => b.id === blockId);
-      if (idx < blocks.length - 1) {
-        const nextId = blocks[idx + 1].id;
+      const idx = rootBlocks.findIndex((b) => b.id === blockId);
+      if (idx < rootBlocks.length - 1) {
+        const nextId = rootBlocks[idx + 1].id;
         if (nextId) { editorStore.focusBlock(nextId); focusBlockElement(nextId, 0); }
       }
       return;
@@ -346,13 +339,10 @@
   }
 
   async function addBlockBelow(blockId?: string) {
-    if (blockId) {
-      const newId = await editorStore.addBlock(blockId);
-      if (newId) { editorStore.focusBlock(newId); focusBlockElement(newId, 0); }
-    } else {
-      const last = blocks[blocks.length - 1];
-      if (last?.id) addBlockBelow(last.id);
-    }
+    const targetId = blockId ?? rootBlocks[rootBlocks.length - 1]?.id;
+    // When targetId is undefined (empty doc), addBlock creates the first block
+    const newId = await editorStore.addBlock(targetId);
+    if (newId) { editorStore.focusBlock(newId); focusBlockElement(newId, 0); }
   }
 
   function handleToggle(blockId?: string) {
@@ -367,22 +357,22 @@
   role="presentation"
   onmousedown={handleEditorMouseDown}
 >
-  {#if loading}
+  {#if isEditorLoading}
     <div class="editor-loading">
       <div class="loading-spinner"></div>
       <p>Loading document...</p>
     </div>
   {:else}
     <div class="editor-header">
-      {#if title}
-        <BlockRenderer block={title} rootId="root" blockIndex={0}
+      {#if titleBlock}
+        <BlockRenderer block={titleBlock} rootId="root" blockIndex={0}
           onUpdate={handleUpdate} onFocus={handleFocus} onBlur={handleBlur}
           onKeyDown={handleKeyDown} onKeyUp={handleKeyUp}
           onToggle={handleToggle} onStyleConvert={handleStyleConvert} />
       {/if}
     </div>
 
-    {#each blocks as block, i (block.id)}
+    {#each rootBlocks as block, i (block.id)}
       {#if block.content && 'style' in block.content && isTextDescription((block.content as ContentText).style)}
         <div class="editor-description">
           <BlockRenderer {block} rootId="root" blockIndex={i}
@@ -394,7 +384,7 @@
     {/each}
 
     <div class="editor-blocks">
-      {#each blocks as block, i (block.id)}
+      {#each rootBlocks as block, i (block.id)}
         {#if !('style' in (block.content ?? {})) || (!isTextTitle((block.content as ContentText).style) && !isTextDescription((block.content as ContentText).style))}
           <div
             class="block-wrapper"
@@ -426,7 +416,7 @@
         {/if}
       {/each}
 
-      {#if blocks.length === 0}
+      {#if rootBlocks.length === 0}
         <div class="editor-empty">
           <p>Press <kbd>Enter</kbd> to start writing, or use <kbd>/</kbd> for commands</p>
         </div>

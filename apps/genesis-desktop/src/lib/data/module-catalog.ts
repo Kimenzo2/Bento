@@ -117,7 +117,7 @@ export type ModuleCatalogEntry = {
 const starterSidebarSpecs = {
   journal: {
     sectionLabel: "Journal",
-    items: ["Write", "Timeline", "Mood", "Photos", "Recap", "Export"],
+    items: ["Today", "History"],
   },
   tasks: {
     sectionLabel: "Tasks",
