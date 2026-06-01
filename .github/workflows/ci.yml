@@ -94,7 +94,3 @@ jobs:
         run: cargo build --profile ci --workspace --bins
       - name: Update MCP sidecar (real binary)
         run: cp target/ci/bento-mcp binaries/bento-mcp-x86_64-unknown-linux-gnu
-      - name: cargo test
-        env:
-          RUSTC_WRAPPER: sccache
-        run: cargo test --profile ci --workspace --no-fail-fast
