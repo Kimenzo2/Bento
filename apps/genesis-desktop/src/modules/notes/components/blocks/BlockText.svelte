@@ -31,7 +31,7 @@
 
   let isFocused = false;
   let isSyncing = false;
-  let editableEl = $state<HTMLDivElement>();
+  let editableEl = $state<HTMLDivElement>()!;
 
   // No debounce — call onUpdate immediately on every keystroke.
   // This matches the original Anytype-ts text.tsx behavior where
