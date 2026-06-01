@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.2.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${ { github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_DIR: apps/genesis-desktop
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${ { steps.get-version.outputs.version }}
+      tag_name: ${{ steps.get-version.outputs.tag_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@4      
+      - name: Get version
+        id: get-version
+        run: |
+          TAG_NAME=\"${{ inputs.tag || github.ref_name }}\"
+          VERSION=${TAG_NAME#v}
+          echo \"tag_name=$TAG_NAME\" >> \"$GATHUB_OUTPUT\"
+          echo \"version=$VERSION\" >> \"$GATHUB_OUTPUT\"
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get-version.outputs.tag_name }}
+          name: Bento v${ { steps.get-version.outputs.version }}
+          draft: true
+          generate_release_notes: true
+  build:
+    needs: prepare
+    runs-on: ${ { matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: dmg
+            arch: arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            arch: x64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+            arch: amd64
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@4
+      - name: Sccache
+        uses: mozilla-actions/sccache-action@v0.0.7
+      - name: Install Rust
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable --component rustfmt
+          rustup default stable
+          rustup target add ${ { matrix.target }}
+      - name: Linux deps
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -q             libwebkitgtk-4.1-dev             libayatana-appindicator3-dev            librsvg2-dev            patchelf            libxdo-dev            libssl-dev
+      - name: Build MCP sidecar
+        shell: bash
+        run: |
+          cargo build --profile ci --target ${ { matrix.target }} --manifest-path src-tauri/Cargo.toml --bin bento-mcp
+          mkdir -p src-tauri/binaries
+          if [ \"${{ runner.os }}\" = \"Windows\" ]; then
+            cp \"src-tauri/target/${{ matrix.target }}/ci/bento-mcp.exe\" \"src-tauri/binaries/bento-mcp-${ { matrix.target }}.exe\"
+          else
+            cp \"src-tauri/target/${{ matrix.target }}/ci/bento-mcp\" \"src-tauri/binaries/bento-mcp-${ { matrix.target }}\"
+          fi
+      - name: Build Tauri app
+        id: build-tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          projectPath: $${{ env.APP_DIR }}
+          tauriScript: bun run tauri
+          tagName: ${{ needs.prepare.outputs.tag_name }}
+          releaseName: Bento v${ { needs.prepare.outputs.version }}
+          releaseDraft: true
+          releaseId: ''
+          bundles: ${{ matrix.bundles }}
+          target: ${ { matrix.target }}
+          architecture: ${{ matrix.arch }}
+          includeUpdaterArtifacts: true
+          createUpdaterArtifacts: true
+      - name: Upload artifacts
+        uses: actions/upload-artifact@4      
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@4
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
+          name: Bento v$<{ { needs.prepare.outputs.version }}
+          draft: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
