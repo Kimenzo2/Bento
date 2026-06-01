@@ -930,8 +930,8 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     calLoading = true;
     try {
       const fetched = await listTasks({
-        dueAfter:  calRangeStart as number,
-        dueBefore: calRangeEnd,
+        dueAfter:  _calRangeStart(),
+        dueBefore: _calRangeStart() + 42 * 24 * 60 * 60 * 1000 - 1,
         limit:     500,
       });
       const mainIds = new Set(tasks.map(t => t.id));
