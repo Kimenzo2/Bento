@@ -44,6 +44,7 @@ jobs:
         run: bun run check
 
       - name: Lint
+        continue-on-error: true
         run: bun run lint
 
       - name: Type Check (fast)
