@@ -35,6 +35,8 @@ $vcpkgRoot = Get-VcpkgRoot
 $vcpkgCacheDir = Get-VcpkgCacheDir
 $vcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
 $tripletRoot = Join-Path $vcpkgRoot "installed\$vcpkgTriplet"
+$includeRoot = Join-Path $tripletRoot "include"
+$libRoot = Join-Path $tripletRoot "lib"
 
 New-Item -ItemType Directory -Force -Path $vcpkgCacheDir | Out-Null
 
@@ -61,9 +63,12 @@ if (-not (Test-Path (Join-Path $tripletRoot "include\sqlcipher\sqlite3.h"))) {
 [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", $vcpkgRoot, "Process")
 [System.Environment]::SetEnvironmentVariable("VCPKG_DEFAULT_TRIPLET", $vcpkgTriplet, "Process")
 [System.Environment]::SetEnvironmentVariable("VCPKG_TARGET_TRIPLET", $vcpkgTriplet, "Process")
+[System.Environment]::SetEnvironmentVariable("VCPKGRS_TRIPLET", $vcpkgTriplet, "Process")
 [System.Environment]::SetEnvironmentVariable("VCPKG_BINARY_SOURCES", "clear;files,$vcpkgCacheDir,readwrite", "Process")
 [System.Environment]::SetEnvironmentVariable("VCPKGRS_DYNAMIC", "0", "Process")
 [System.Environment]::SetEnvironmentVariable("SQLCIPHER_STATIC", "1", "Process")
+[System.Environment]::SetEnvironmentVariable("SQLCIPHER_INCLUDE_DIR", $includeRoot, "Process")
+[System.Environment]::SetEnvironmentVariable("SQLCIPHER_LIB_DIR", $libRoot, "Process")
 [System.Environment]::SetEnvironmentVariable("LIBCLANG_PATH", (Find-LibClangPath), "Process")
 
 $installedBin = Join-Path $tripletRoot "bin"
