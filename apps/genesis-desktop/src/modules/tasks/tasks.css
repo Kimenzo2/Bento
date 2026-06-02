@@ -2741,7 +2741,7 @@
 /* ── Day-of-week header ── */
 .tasks-cal-head {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
   margin-bottom: 0;
 }
@@ -2760,10 +2760,12 @@
 .tasks-cal-body {
   position: relative; /* popover anchors here, not .tasks-cal */
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-auto-rows: minmax(90px, auto);
   border-left: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
   border-top: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  width: 100%;
+  overflow: hidden;
 }
 
 /* ── Individual day cell ── */
@@ -2778,6 +2780,8 @@
   height: auto; /* grow with content — no overflow hidden */
   position: relative;
   transition: background 80ms ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .tasks-cal-day:hover {
