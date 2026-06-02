@@ -34,6 +34,7 @@ use chrono::Utc;
 use serde::Serialize;
 use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::Duration};
 use tauri::{AppHandle, Manager};
+use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(not(debug_assertions))]
 use tauri_plugin_window_state::StateFlags;
 
