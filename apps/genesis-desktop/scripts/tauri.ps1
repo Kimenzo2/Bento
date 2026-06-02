@@ -20,6 +20,7 @@ $srcTauri = Join-Path $appRoot "src-tauri"
 $cargoBin = Join-Path $HOME ".cargo\\bin"
 $gitUsrBin = "C:\\Program Files\\Git\\usr\\bin"
 $llvmBin = "C:\\Program Files\\LLVM\\bin"
+$skipVcpkgBootstrap = $env:GENESIS_DESKTOP_SKIP_VCPKG_BOOTSTRAP -eq "1"
 $isWindowsPlatform = $env:OS -eq "Windows_NT"
 $desktopBinary = Join-Path $srcTauri "target\\debug\\genesis-desktop.exe"
 $allowRustBuild = $env:GENESIS_DESKTOP_ALLOW_RUST_BUILD -eq "1"
@@ -36,6 +37,10 @@ if ((Test-Path $gitUsrBin) -and -not ($env:PATH -split ";" | Where-Object { $_ -
 
 if ((Test-Path (Join-Path $llvmBin "lld-link.exe")) -and -not ($env:PATH -split ";" | Where-Object { $_ -eq $llvmBin })) {
   $env:PATH = "$llvmBin;$env:PATH"
+}
+
+if ($isWindowsPlatform -and -not $skipVcpkgBootstrap) {
+  & (Join-Path $appRoot "scripts\\setup-vcpkg.ps1")
 }
 
 function Start-GenesisFrontend {

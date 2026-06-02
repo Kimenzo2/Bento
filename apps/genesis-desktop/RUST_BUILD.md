@@ -16,6 +16,8 @@ This keeps dev builds unoptimized, incrementally rebuildable, and light enough t
 
 `scripts/tauri.ps1` also caps `CARGO_BUILD_JOBS` to `1` for dev launches so Cargo does not fan out too many concurrent rustc jobs on this machine.
 
+On Windows, the launcher now bootstraps pinned vcpkg SQLCipher automatically unless `GENESIS_DESKTOP_SKIP_VCPKG_BOOTSTRAP=1` is set. If you want to preinstall it manually, run `bun run setup:vcpkg`.
+
 ## Release profile
 
 Release builds are kept separate from dev builds:
