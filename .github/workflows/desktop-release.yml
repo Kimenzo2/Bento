@@ -20,6 +20,8 @@ jobs:
     env:
       CI: true
       CARGO_BUILD_JOBS: 2
+      VCPKG_COMMIT: e1dfb369fc1c6e58d5850cf67c224caa955309e5
+      VCPKG_TRIPLET: x64-windows-static-md
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       GENESIS_DESKTOP_WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.GENESIS_DESKTOP_WINDOWS_CERTIFICATE_THUMBPRINT }}
@@ -36,27 +38,41 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install OpenSSL
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\vcpkg-bincache
+          key: windows-vcpkg-sqlcipher-${{ env.VCPKG_COMMIT }}-${{ env.VCPKG_TRIPLET }}
+
+      - name: Install SQLCipher with vcpkg
         shell: pwsh
         run: |
-          choco install openssl -y --no-progress
-          $opensslDir = 'C:\Program Files\OpenSSL-Win64'
-          if (-not (Test-Path $opensslDir)) {
-            $opensslDir = 'C:\Program Files\OpenSSL'
-          }
-          if (-not (Test-Path $opensslDir)) {
-            throw 'OpenSSL install directory was not found.'
-          }
+          $ErrorActionPreference = 'Stop'
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP 'vcpkg'
+          $vcpkgCache = Join-Path $env:RUNNER_TEMP 'vcpkg-bincache'
+          New-Item -ItemType Directory -Force -Path $vcpkgCache | Out-Null
 
-          $opensslLibDir = Join-Path $opensslDir 'lib\VC\x64\MD'
-          if (-not (Test-Path $opensslLibDir)) {
-            $opensslLibDir = Join-Path $opensslDir 'lib'
+          if (-not (Test-Path $vcpkgRoot)) {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           }
+          git -C $vcpkgRoot checkout $env:VCPKG_COMMIT
+          & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
+          & "$vcpkgRoot\vcpkg.exe" install "sqlcipher[fts5,json1,rtree]:$env:VCPKG_TRIPLET" --binarysource="clear;files,$vcpkgCache,readwrite"
 
-          "OPENSSL_DIR=$opensslDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "OPENSSL_INCLUDE_DIR=$(Join-Path $opensslDir 'include')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "OPENSSL_LIB_DIR=$opensslLibDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "$(Join-Path $opensslDir 'bin')" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKG_DEFAULT_TRIPLET=$env:VCPKG_TRIPLET" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKG_TARGET_TRIPLET=$env:VCPKG_TRIPLET" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKG_BINARY_SOURCES=clear;files,$vcpkgCache,readwrite" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKGRS_DYNAMIC=0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "SQLCIPHER_STATIC=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $libclang = Get-ChildItem -Path 'C:\Program Files\LLVM\bin', 'C:\Program Files (x86)\LLVM\bin' -Filter libclang.dll -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $libclang) {
+            throw 'libclang.dll was not found. SQLx sqlite-unbundled requires bindgen/libclang on Windows.'
+          }
+          "LIBCLANG_PATH=$($libclang.Directory.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          & "$vcpkgRoot\vcpkg.exe" list
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -67,6 +83,25 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./apps/genesis-desktop/src-tauri -> target
+
+      - name: Verify SQLCipher dependency strategy
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tree = cargo tree -e features -i libsqlite3-sys --manifest-path src-tauri/Cargo.toml
+          $tree | Write-Output
+          if ($tree -match 'bundled-sqlcipher|vendored-openssl|openssl-sys|openssl-src|sqlx-sqlite feature "bundled"') {
+            throw 'Unexpected bundled SQLCipher/OpenSSL dependency path detected.'
+          }
+
+          $opensslTree = & cargo tree -e features -i openssl-sys --manifest-path src-tauri/Cargo.toml 2>&1
+          if ($LASTEXITCODE -eq 0) {
+            $opensslTree | Write-Output
+            throw 'openssl-sys is still present in the active Cargo graph.'
+          }
+          if (($opensslTree | Out-String) -notmatch 'did not match any packages') {
+            $opensslTree | Write-Output
+            throw 'Unable to verify that openssl-sys is absent.'
+          }
 
       - name: Install dependencies
         run: bun install
