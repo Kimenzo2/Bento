@@ -38,6 +38,9 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Sccache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Cache vcpkg binaries
         uses: actions/cache@v4
         with:
