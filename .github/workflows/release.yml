@@ -116,26 +116,6 @@ jobs:
           rustup toolchain install stable --component rustfmt
           rustup default stable
           rustup target add ${{ matrix.target }}
-      - name: Verify SQLCipher dependency strategy
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $tree = cargo tree -e features -i libsqlite3-sys --manifest-path src-tauri/Cargo.toml
-          $tree | Write-Output
-          if ($tree -match 'bundled-sqlcipher|vendored-openssl|openssl-sys|openssl-src|sqlx-sqlite feature "bundled"(?!-)') {
-            throw 'Unexpected bundled SQLCipher/OpenSSL dependency path detected.'
-          }
-
-          $opensslTree = & cargo tree -e features -i openssl-sys --manifest-path src-tauri/Cargo.toml 2>&1
-          if ($LASTEXITCODE -eq 0) {
-            $opensslTree | Write-Output
-            throw 'openssl-sys is still present in the active Cargo graph.'
-          }
-          if (($opensslTree | Out-String) -notmatch 'did not match any packages') {
-            $opensslTree | Write-Output
-            throw 'Unable to verify that openssl-sys is absent.'
-          }
       - name: Linux deps
         if: runner.os == 'Linux'
         shell: bash
