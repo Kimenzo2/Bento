@@ -141,7 +141,19 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -q             libwebkitgtk-4.1-dev             libayatana-appindicator3-dev            librsvg2-dev            patchelf            libxdo-dev            libssl-dev
+          sudo apt-get install -y -q \
+            libwebkitgtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            pkg-config \
+            libsqlcipher-dev
+      - name: macOS deps
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install sqlcipher
       - name: Build MCP sidecar
         shell: bash
         run: |
