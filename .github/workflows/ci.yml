@@ -61,7 +61,16 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq             libwebkit2gtk-4.1-dev             libayatana-appindicator3-dev             librsvg2-dev             patchelf             libxdo-dev             libssl-dev             libasound2-dev
+          sudo apt-get install -y -qq \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev \
+            libasound2-dev \
+            libsqlcipher-dev \
+            pkg-config
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
