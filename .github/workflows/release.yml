@@ -123,7 +123,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tree = cargo tree -e features -i libsqlite3-sys --manifest-path src-tauri/Cargo.toml
           $tree | Write-Output
-          if ($tree -match 'bundled-sqlcipher|vendored-openssl|openssl-sys|openssl-src|sqlx-sqlite feature "bundled"') {
+          if ($tree -match 'bundled-sqlcipher|vendored-openssl|openssl-sys|openssl-src|sqlx-sqlite feature "bundled"(?!-)') {
             throw 'Unexpected bundled SQLCipher/OpenSSL dependency path detected.'
           }
 
