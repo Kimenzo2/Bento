@@ -39,6 +39,10 @@ lto = "thin"
 
 The Windows Rust toolchain currently uses the MSVC linker (`link.exe`) through `src-tauri/.cargo/config.toml`. `lld-link` was crashing in this environment during the Tauri link step, so stability takes priority here.
 
+## Sccache
+
+`src-tauri/.cargo/config.toml` now sets `rustc-wrapper = "sccache"` so local `cargo build` and the CI workflow use the same compiler cache path. `sccache.exe` is already available in the current Windows environment via `~/.cargo/bin`, so no extra build-step wrapper is needed.
+
 ## Defender exclusions
 
 The Rust build cache should be excluded from Windows Defender real-time scanning:

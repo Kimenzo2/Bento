@@ -47,13 +47,15 @@ Push-Location $vcpkgRoot
 try {
   git checkout $vcpkgCommit | Out-Null
   & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
-  & $vcpkgExe install "sqlcipher[fts5,json1,rtree]:$vcpkgTriplet" --binarysource="clear;files,$vcpkgCacheDir,readwrite"
+  # vcpkg's sqlcipher port supports fts5/json1/geopoly/tool.
+  # rtree is compiled into the port by default, so there is no rtree feature flag.
+  & $vcpkgExe install "sqlcipher[fts5,json1]:$vcpkgTriplet" --binarysource="clear;files,$vcpkgCacheDir,readwrite"
 } finally {
   Pop-Location
 }
 
-if (-not (Test-Path (Join-Path $tripletRoot "include\sqlite3.h"))) {
-  throw "vcpkg did not install sqlite3.h under $tripletRoot"
+if (-not (Test-Path (Join-Path $tripletRoot "include\sqlcipher\sqlite3.h"))) {
+  throw "vcpkg did not install sqlite3.h under $tripletRoot\\include\\sqlcipher"
 }
 
 [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", $vcpkgRoot, "Process")

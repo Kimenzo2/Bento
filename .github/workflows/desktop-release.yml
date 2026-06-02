@@ -57,7 +57,7 @@ jobs:
           }
           git -C $vcpkgRoot checkout $env:VCPKG_COMMIT
           & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
-          & "$vcpkgRoot\vcpkg.exe" install "sqlcipher[fts5,json1,rtree]:$env:VCPKG_TRIPLET" --binarysource="clear;files,$vcpkgCache,readwrite"
+          & "$vcpkgRoot\vcpkg.exe" install "sqlcipher[fts5,json1]:$env:VCPKG_TRIPLET" --binarysource="clear;files,$vcpkgCache,readwrite"
 
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "VCPKG_DEFAULT_TRIPLET=$env:VCPKG_TRIPLET" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
