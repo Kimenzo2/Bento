@@ -28,6 +28,9 @@ const SUPABASE_REFRESH_WINDOW_MS: i64 = 10 * 60 * 1000;
 const SUPABASE_OAUTH_PORT: u16 = 47831;
 const LOGIN_WINDOW_WIDTH: f64 = 400.0;
 const LOGIN_WINDOW_HEIGHT: f64 = 480.0;
+// Public desktop auth config. These values are safe to ship in the client.
+const BUNDLED_SUPABASE_URL: &str = "https://qjjocfnqwtccuxbnoult.supabase.co";
+const BUNDLED_SUPABASE_ANON_KEY: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9jZm5xd3RjY3V4Ym5vdWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NzY3MzUsImV4cCI6MjA3OTI1MjczNX0.oPqt-rffxO2gtX7xv4RisONqIdSSJ98hl7QNDjM_Y4c";
 
 // ── Keyring accounts ───────────────────────────────────────────
 const AUTH_KEYRING_SERVICE_ROLE_ACCOUNT: &str = "supabase-service-role";
@@ -107,7 +110,6 @@ impl BillingCache {
 /// RefreshController modeled exactly after Anytype's refresh.go.
 /// Normally polls every 60s. After `force()`, polls every 10s for 30min.
 struct BillingRefreshController {
-    shutdown_tx: tokio::sync::oneshot::Sender<()>,
     force_tx: tokio::sync::mpsc::UnboundedSender<std::time::Duration>,
 }
 
@@ -122,7 +124,6 @@ impl BillingRefreshController {
         F: Fn(AppHandle, AuthManager) -> Fut + Send + 'static,
         Fut: std::future::Future<Output = (bool, Option<String>)> + Send,
     {
-        let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel::<()>();
         let (force_tx, mut force_rx) = tokio::sync::mpsc::unbounded_channel::<Duration>();
 
         tokio::spawn(async move {
@@ -143,7 +144,6 @@ impl BillingRefreshController {
 
                 // Anytype: timer.Reset(interval) in the loop
                 tokio::select! {
-                    _ = &mut shutdown_rx => break,  // Anytype: <-rc.ctx.Done()
                     force_duration = force_rx.recv() => {
                         // Anytype: Force(duration) → extend deadline
                         let now = Instant::now();
@@ -183,7 +183,6 @@ impl BillingRefreshController {
         });
 
         Self {
-            shutdown_tx,
             force_tx,
         }
     }
@@ -195,10 +194,7 @@ impl BillingRefreshController {
         let _ = self.force_tx.send(d);
     }
 
-    /// Stop the refresh loop. Modeled after Anytype's `Stop()`.
-    fn stop(self) {
-        let _ = self.shutdown_tx.send(());
-    }
+
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -1466,7 +1462,7 @@ fn map_supabase_user(user: SupabaseUser) -> AuthUser {
                 .get("display_name")
                 .and_then(Value::as_str)
         })
-        .or_else(|| user.email.as_deref())
+        .or(user.email.as_deref())
         .unwrap_or(&user.id)
         .to_string();
 
@@ -1618,10 +1614,28 @@ impl AuthConfig {
     fn from_env() -> Result<Self, String> {
         let supabase_url = env::var("VITE_SUPABASE_URL")
             .or_else(|_| env::var("SUPABASE_URL"))
-            .map_err(|_| "Missing SUPABASE_URL / VITE_SUPABASE_URL.".to_string())?;
+            .ok()
+            .or_else(|| {
+                let value = BUNDLED_SUPABASE_URL.trim();
+                if value.is_empty() {
+                    None
+                } else {
+                    Some(value.to_string())
+                }
+            })
+            .ok_or_else(|| "Missing SUPABASE_URL / VITE_SUPABASE_URL.".to_string())?;
         let supabase_anon_key = env::var("VITE_SUPABASE_ANON_KEY")
             .or_else(|_| env::var("SUPABASE_ANON_KEY"))
-            .map_err(|_| "Missing SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY.".to_string())?;
+            .ok()
+            .or_else(|| {
+                let value = BUNDLED_SUPABASE_ANON_KEY.trim();
+                if value.is_empty() {
+                    None
+                } else {
+                    Some(value.to_string())
+                }
+            })
+            .ok_or_else(|| "Missing SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY.".to_string())?;
 
         Ok(Self {
             supabase_url,

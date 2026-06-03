@@ -1,4 +1,4 @@
-name: Publish Genesis Desktop
+name: Publish Bento Desktop
 
 on:
   workflow_dispatch:
@@ -100,7 +100,7 @@ jobs:
             throw 'Windows installer not found.'
           }
 
-          $stableInstaller = Join-Path $bundleRoot 'Genesis_Windows_x64-setup.exe'
+          $stableInstaller = Join-Path $bundleRoot 'Bento_Windows_x64-setup.exe'
           Copy-Item -LiteralPath $installer.FullName -Destination $stableInstaller -Force
 
       - name: Publish GitHub Release
@@ -109,7 +109,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          name: Genesis Desktop ${{ github.ref_name }}
+          name: Bento Desktop ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            apps/genesis-desktop/src-tauri/target/release/bundle/nsis/Genesis_Windows_x64-setup.exe
+            apps/genesis-desktop/src-tauri/target/release/bundle/nsis/Bento_Windows_x64-setup.exe
