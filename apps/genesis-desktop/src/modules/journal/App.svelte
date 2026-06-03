@@ -368,6 +368,7 @@
     width: 100%;
     min-width: 0;
     overflow: hidden;
+    border-radius: 18px;
     background: var(--background);
     color: var(--foreground);
     font-size: 13px;
@@ -382,6 +383,7 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+    border-radius: 18px;
     border-right: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
     background: color-mix(in srgb, var(--foreground) 2%, var(--background));
   }

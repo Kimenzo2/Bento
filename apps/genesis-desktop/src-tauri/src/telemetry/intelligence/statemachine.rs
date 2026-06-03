@@ -4,6 +4,7 @@ use crate::telemetry::ModuleState;
 pub struct ModuleStateMachine;
 
 impl ModuleStateMachine {
+    #[allow(clippy::too_many_arguments)]
     pub fn transition(
         &self,
         previous: ModuleState,

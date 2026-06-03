@@ -90,7 +90,10 @@
     {#if showTopbar}
       <AppTopbar currentPage={page} {title} {subtitle} />
     {/if}
-    <main class="desktop-workspace__main">
+    <main
+      class:desktop-workspace__main--notes={page === "notes"}
+      class="desktop-workspace__main"
+    >
       {@render children?.()}
     </main>
   </div>

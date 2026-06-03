@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -759,20 +760,20 @@ pub async fn clear_local_data() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn save_api_key(provider: String, key: String) -> Result<(), String> {
-    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
     byok::save_api_key(&provider, key.trim())
 }
 #[tauri::command]
 pub async fn get_api_key_status(provider: String) -> Result<ApiKeyStatus, String> {
     let parsed =
-        ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+        ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
     let is_set = !parsed.requires_key() || byok::has_api_key(&provider);
     Ok(ApiKeyStatus { is_set })
 }
 
 #[tauri::command]
 pub async fn test_ai_connection(provider: String) -> Result<ConnectionTestResult, String> {
-    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
     let result = byok::test_connection(&provider).await;
     Ok(ConnectionTestResult {
         ok: result.ok,

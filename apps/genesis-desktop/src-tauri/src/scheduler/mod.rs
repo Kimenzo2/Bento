@@ -31,14 +31,18 @@ impl ScheduleType {
             Self::Custom => "custom",
         }
     }
+}
 
-    pub fn from_str(value: &str) -> Option<Self> {
+impl std::str::FromStr for ScheduleType {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
-            "once" => Some(Self::Once),
-            "daily" => Some(Self::Daily),
-            "weekly" => Some(Self::Weekly),
-            "custom" => Some(Self::Custom),
-            _ => None,
+            "once" => Ok(Self::Once),
+            "daily" => Ok(Self::Daily),
+            "weekly" => Ok(Self::Weekly),
+            "custom" => Ok(Self::Custom),
+            other => Err(format!("Unknown schedule type: {other}")),
         }
     }
 }
@@ -108,29 +112,29 @@ impl Schedule {
             }
         }
 
-        match ScheduleType::from_str(&self.schedule_type) {
-            Some(ScheduleType::Once) => {
+        match self.schedule_type.parse::<ScheduleType>() {
+            Ok(ScheduleType::Once) => {
                 self.enabled = false;
                 self.next_fire_at = None;
             }
-            Some(ScheduleType::Daily) => {
+            Ok(ScheduleType::Daily) => {
                 // Advance 24h from last fire
                 if let Some(last) = self.last_fired_at {
                     self.next_fire_at = Some(last + 86_400_000);
                 }
             }
-            Some(ScheduleType::Weekly) => {
+            Ok(ScheduleType::Weekly) => {
                 if let Some(last) = self.last_fired_at {
                     self.next_fire_at = Some(last + 604_800_000);
                 }
             }
-            Some(ScheduleType::Custom) => {
+            Ok(ScheduleType::Custom) => {
                 if let Some(interval) = self.interval_seconds {
                     let now = time::now_ms();
                     self.next_fire_at = Some(now + interval * 1000);
                 }
             }
-            None => {}
+            Err(_) => {}
         }
         self.updated_at = time::now_ms();
     }

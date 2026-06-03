@@ -432,6 +432,7 @@ pub async fn delete_task(
 }
 
 /// List tasks with optional filters.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn list_tasks(
     state: State<'_, BentoAppState>,
@@ -444,7 +445,7 @@ pub async fn list_tasks(
     limit: Option<i32>,
 ) -> Result<Vec<TaskEntry>, String> {
     let db = state.db();
-    let limit = limit.unwrap_or(100).max(1).min(10000);
+    let limit = limit.unwrap_or(100).clamp(1, 10000);
 
     let mut q = sqlx::query_builder::QueryBuilder::new(
         "SELECT id, title, done, priority, project, tags, notes, due_at, due_time, start_at, estimated_minutes, tracked_minutes, recurrence_rule, archived, parent_id, completed_at, created_at, updated_at, sort_order FROM tasks WHERE 1=1",
@@ -778,7 +779,7 @@ pub async fn list_activity_for_task(
     limit: Option<i32>,
 ) -> Result<Vec<ActivityEntry>, String> {
     let db = state.db();
-    let limit = limit.unwrap_or(50).max(1).min(200);
+    let limit = limit.unwrap_or(50).clamp(1, 200);
 
     // Ensure table exists
     sqlx::query(

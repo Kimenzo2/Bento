@@ -86,6 +86,12 @@ pub struct ModuleRegistry {
     slots: HashMap<String, ModuleSlot>,
 }
 
+impl Default for ModuleRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ModuleRegistry {
     pub fn new() -> Self {
         let mut order = Vec::with_capacity(TRACKED_MINI_APPS.len());

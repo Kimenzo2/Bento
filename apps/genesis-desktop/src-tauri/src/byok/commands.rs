@@ -4,6 +4,7 @@
 //! Bring Your Own Key (BYOK) operations.
 
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use tauri::AppHandle;
 
 use super::{ByokProvider, ByokSettings, ConnectionTestResult};
@@ -26,7 +27,7 @@ pub struct ProviderKeyStatus {
 #[tauri::command]
 pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Result<(), String> {
     // Validate provider name
-    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
 
     if key.trim().is_empty() {
         return Err("API key cannot be empty.".to_string());
@@ -57,7 +58,7 @@ pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Res
 /// Never returns the full key — only a masked version for UI display.
 #[tauri::command]
 pub async fn byok_get_key_preview(provider: String) -> Result<Option<String>, String> {
-    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
 
     match super::get_api_key(&provider) {
         Ok(Some(key)) => Ok(Some(super::mask_api_key(&key))),
@@ -104,7 +105,7 @@ pub async fn byok_list_providers(app: AppHandle) -> Result<Vec<ProviderKeyStatus
 /// Delete an API key from the OS keyring.
 #[tauri::command]
 pub async fn byok_delete_key(app: AppHandle, provider: String) -> Result<(), String> {
-    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
 
     super::delete_api_key(&provider)?;
 
@@ -125,7 +126,7 @@ pub async fn byok_delete_key(app: AppHandle, provider: String) -> Result<(), Str
 /// Returns available models on success, or an error message on failure.
 #[tauri::command]
 pub async fn byok_test_connection(provider: String) -> Result<ConnectionTestResult, String> {
-    ByokProvider::from_str(&provider).ok_or_else(|| format!("Unknown provider: {provider}"))?;
+    ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
 
     Ok(super::test_connection(&provider).await)
 }

@@ -192,7 +192,7 @@ pub async fn block_add(db: &SqlitePool, params: BlockAddParams) -> OpResult<Bloc
     .bind(now)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     // Update the object's updated_at timestamp
     sqlx::query("UPDATE objects SET updated_at = ? WHERE id = ?")
@@ -200,7 +200,7 @@ pub async fn block_add(db: &SqlitePool, params: BlockAddParams) -> OpResult<Bloc
         .bind(&params.object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     let row = get_block_by_id(db, &block_id)
         .await?
@@ -253,7 +253,7 @@ pub async fn block_update(db: &SqlitePool, params: BlockUpdateParams) -> OpResul
     .bind(&params.id)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     // Update the object's updated_at
     sqlx::query(
@@ -263,7 +263,7 @@ pub async fn block_update(db: &SqlitePool, params: BlockUpdateParams) -> OpResul
     .bind(&params.id)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     get_block_by_id(db, &params.id)
         .await?
@@ -289,7 +289,7 @@ pub async fn block_delete(db: &SqlitePool, block_id: &str, object_id: &str) -> O
         .bind(object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     Ok(())
 }
@@ -316,7 +316,7 @@ pub async fn block_move(db: &SqlitePool, params: BlockMoveParams) -> OpResult<Bl
     .bind(&params.block_id)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     // Re-index positions of siblings
     reindex_positions(db, &params.object_id, params.target_parent_id.as_deref()).await?;
@@ -327,7 +327,7 @@ pub async fn block_move(db: &SqlitePool, params: BlockMoveParams) -> OpResult<Bl
         .bind(&params.object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     get_block_by_id(db, &params.block_id)
         .await?
@@ -392,7 +392,7 @@ pub async fn block_split(db: &SqlitePool, params: BlockSplitParams) -> OpResult<
         .bind(&params.block_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     // Create new block with right part of text
     let mut right_content = content_value.clone();
@@ -434,7 +434,7 @@ pub async fn block_split(db: &SqlitePool, params: BlockSplitParams) -> OpResult<
     .bind(&params.block_id)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     sqlx::query(
         r#"
@@ -455,7 +455,7 @@ pub async fn block_split(db: &SqlitePool, params: BlockSplitParams) -> OpResult<
     .bind(now)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     // Update object timestamp
     sqlx::query("UPDATE objects SET updated_at = ? WHERE id = ?")
@@ -463,7 +463,7 @@ pub async fn block_split(db: &SqlitePool, params: BlockSplitParams) -> OpResult<
         .bind(&block.object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     let original = get_block_by_id(db, &params.block_id)
         .await?
@@ -544,7 +544,7 @@ pub async fn block_merge(db: &SqlitePool, params: BlockMergeParams) -> OpResult<
         .bind(&params.target_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     // Delete the source block (and its children)
     delete_block_tree(db, &params.source_id).await?;
@@ -555,7 +555,7 @@ pub async fn block_merge(db: &SqlitePool, params: BlockMergeParams) -> OpResult<
         .bind(&params.object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     let target_block = get_block_by_id(db, &params.target_id)
         .await?
@@ -578,7 +578,7 @@ pub async fn get_block_by_id(db: &SqlitePool, block_id: &str) -> OpResult<Option
     .bind(block_id)
     .fetch_optional(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     Ok(row)
 }
@@ -592,7 +592,7 @@ pub async fn get_blocks_by_object(db: &SqlitePool, object_id: &str) -> OpResult<
     .bind(object_id)
     .fetch_all(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     Ok(rows)
 }
@@ -611,7 +611,7 @@ pub async fn get_block_children(
     .bind(parent_id)
     .fetch_all(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     Ok(rows)
 }
@@ -734,7 +734,7 @@ async fn delete_block_tree(db: &SqlitePool, root_id: &str) -> OpResult<()> {
         .bind(&id)
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
         for child in &children {
             stack.push(child.id.clone());
@@ -748,7 +748,7 @@ async fn delete_block_tree(db: &SqlitePool, root_id: &str) -> OpResult<()> {
             .bind(block_id)
             .execute(db)
             .await
-            .map_err(|e| OperationError::db_error(e))?;
+            .map_err(OperationError::db_error)?;
 
         // Delete from object_children
         sqlx::query("DELETE FROM object_children WHERE block_id = ? OR child_id = ?")
@@ -756,14 +756,14 @@ async fn delete_block_tree(db: &SqlitePool, root_id: &str) -> OpResult<()> {
             .bind(block_id)
             .execute(db)
             .await
-            .map_err(|e| OperationError::db_error(e))?;
+            .map_err(OperationError::db_error)?;
 
         // Delete the block itself
         sqlx::query("DELETE FROM blocks WHERE id = ?")
             .bind(block_id)
             .execute(db)
             .await
-            .map_err(|e| OperationError::db_error(e))?;
+            .map_err(OperationError::db_error)?;
     }
 
     Ok(())
@@ -783,7 +783,7 @@ async fn reindex_positions(
         .bind(parent_id)
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?
+        .map_err(OperationError::db_error)?
     } else {
         sqlx::query_as::<_, BlockRow>(
             "SELECT id, object_id, parent_id, type, content, fields, align, bg_color, position, created_at, updated_at FROM blocks WHERE object_id = ? AND parent_id IS NULL ORDER BY position ASC, created_at ASC",
@@ -791,7 +791,7 @@ async fn reindex_positions(
         .bind(object_id)
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?
+        .map_err(OperationError::db_error)?
     };
 
     for (i, child) in children.iter().enumerate() {
@@ -802,7 +802,7 @@ async fn reindex_positions(
                 .bind(&child.id)
                 .execute(db)
                 .await
-                .map_err(|e| OperationError::db_error(e))?;
+                .map_err(OperationError::db_error)?;
         }
     }
 
@@ -855,7 +855,7 @@ pub async fn create_object(db: &SqlitePool, object_id: &str, object_type: &str) 
     .bind(now)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
     Ok(())
 }
 
@@ -867,7 +867,7 @@ pub async fn get_object(db: &SqlitePool, object_id: &str) -> OpResult<ObjectRow>
     .bind(object_id)
     .fetch_optional(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?
+    .map_err(OperationError::db_error)?
     .ok_or_else(|| OperationError::not_found("Object", object_id))
 }
 
@@ -907,7 +907,7 @@ pub async fn get_objects(
     query
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))
+        .map_err(OperationError::db_error)
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -966,7 +966,7 @@ pub async fn update_object(db: &SqlitePool, params: UpdateObjectParams) -> OpRes
     .bind(&params.id)
     .execute(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?;
+    .map_err(OperationError::db_error)?;
 
     get_object(db, &params.id).await
 }
@@ -979,7 +979,7 @@ pub async fn delete_object(db: &SqlitePool, object_id: &str) -> OpResult<()> {
         .bind(object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
     Ok(())
 }
 
@@ -1023,7 +1023,7 @@ pub async fn search_objects(
     query
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))
+        .map_err(OperationError::db_error)
 }
 
 /// Gets recently updated objects for a given type, limited to n results.
@@ -1066,7 +1066,7 @@ pub async fn get_favorite_objects(
     query
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))
+        .map_err(OperationError::db_error)
 }
 
 /// Toggles the `is_favorite` flag in an object's details.
@@ -1088,7 +1088,7 @@ pub async fn toggle_object_favorite(db: &SqlitePool, object_id: &str) -> OpResul
         .bind(object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     get_object(db, object_id).await
 }
@@ -1111,7 +1111,7 @@ pub async fn set_relation(
         .bind(value)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     let row = sqlx::query_as::<_, RelationRow>(
         "SELECT id, object_id, key, value FROM relations WHERE object_id = ? AND key = ?",
@@ -1120,7 +1120,7 @@ pub async fn set_relation(
     .bind(key)
     .fetch_optional(db)
     .await
-    .map_err(|e| OperationError::db_error(e))?
+    .map_err(OperationError::db_error)?
     .ok_or_else(|| OperationError::not_found("Relation", &format!("{}/{}", object_id, key)))?;
 
     // Also update object updated_at
@@ -1130,7 +1130,7 @@ pub async fn set_relation(
         .bind(object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     Ok(row)
 }
@@ -1143,7 +1143,7 @@ pub async fn get_relations(db: &SqlitePool, object_id: &str) -> OpResult<Vec<Rel
     .bind(object_id)
     .fetch_all(db)
     .await
-    .map_err(|e| OperationError::db_error(e))
+    .map_err(OperationError::db_error)
 }
 
 /// Gets objects that have a relation with a specific key and value.
@@ -1181,7 +1181,7 @@ pub async fn get_objects_by_relation(
     query
         .fetch_all(db)
         .await
-        .map_err(|e| OperationError::db_error(e))
+        .map_err(OperationError::db_error)
 }
 
 /// Deletes a relation from an object.
@@ -1191,7 +1191,7 @@ pub async fn delete_relation(db: &SqlitePool, object_id: &str, key: &str) -> OpR
         .bind(key)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     let now = time::now_ms();
     sqlx::query("UPDATE objects SET updated_at = ? WHERE id = ?")
@@ -1199,7 +1199,7 @@ pub async fn delete_relation(db: &SqlitePool, object_id: &str, key: &str) -> OpR
         .bind(object_id)
         .execute(db)
         .await
-        .map_err(|e| OperationError::db_error(e))?;
+        .map_err(OperationError::db_error)?;
 
     Ok(())
 }

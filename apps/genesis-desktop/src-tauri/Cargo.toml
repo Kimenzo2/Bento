@@ -28,9 +28,7 @@ sqlx = { version = "0.8", default-features = false, features = [
   "derive",
   "json",
 ] }
-libsqlite3-sys = { version = "0.30", features = [
-  "sqlcipher",
-] }
+libsqlite3-sys = { version = "0.30", features = ["sqlcipher"] }
 
 # Cryptography
 argon2 = { version = "0.5", features = ["std"] }
@@ -75,6 +73,13 @@ tantivy = "0.26"
 
 [target."cfg(any(target_os = \"macos\", target_os = \"linux\", windows))".dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+
+[target."cfg(not(windows))".dependencies]
+libsqlite3-sys = { version = "0.30", features = [
+  "sqlcipher",
+  "loadable_extension",
+  "unlock_notify",
+] }
 
 # ---------------------------------------------------------------------------
 # Profiles

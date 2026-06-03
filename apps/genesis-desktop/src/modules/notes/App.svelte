@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { Plus, FileText, Star, Clock, Search, MoreHorizontal, Archive, Trash2, Pin } from 'lucide-svelte';
+  import { Plus, FileText, Star, Clock, Search, X, MoreHorizontal, Archive, Trash2, Pin } from 'lucide-svelte';
   import { time } from '$lib/utils/time';
   import { editorStore } from '$lib/local-store/store';
 
@@ -51,6 +51,59 @@
   let contextMenu = $state<{ id: string; x: number; y: number } | null>(null);
   let errorMsg    = $state<string | null>(null);
   let errorTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── Anytype-style Filter ───────────────────────────────────────────────
+  // Icon-only at rest. Click → input expands. Click-away or ESC → collapses.
+  let filterActive  = $state(false);
+  let filterFocused = $state(false);
+  let filterInputEl = $state<HTMLInputElement | null>(null);
+
+  function onFilterIconClick() {
+    filterActive = true;
+    requestAnimationFrame(() => { filterInputEl?.focus(); });
+    attachFilterClickAway();
+    attachFilterEsc();
+  }
+
+  function onFilterHide() {
+    filterActive  = false;
+    filterFocused = false;
+    searchQuery   = '';
+    filterInputEl?.blur();
+    removeFilterClickAway();
+    removeFilterEsc();
+  }
+
+  function onFilterClear(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    searchQuery = '';
+    filterInputEl?.focus();
+  }
+
+  let _filterMouseDown: ((e: MouseEvent) => void) | null = null;
+  function attachFilterClickAway() {
+    removeFilterClickAway();
+    _filterMouseDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.filter-wrap')) onFilterHide();
+    };
+    setTimeout(() => window.addEventListener('mousedown', _filterMouseDown!), 0);
+  }
+  function removeFilterClickAway() {
+    if (_filterMouseDown) { window.removeEventListener('mousedown', _filterMouseDown); _filterMouseDown = null; }
+  }
+
+  let _filterKeydown: ((e: KeyboardEvent) => void) | null = null;
+  function attachFilterEsc() {
+    removeFilterEsc();
+    _filterKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onFilterHide(); }
+    };
+    window.addEventListener('keydown', _filterKeydown, true);
+  }
+  function removeFilterEsc() {
+    if (_filterKeydown) { window.removeEventListener('keydown', _filterKeydown, true); _filterKeydown = null; }
+  }
 
   function showError(msg: string) {
     if (errorTimer) clearTimeout(errorTimer);
@@ -236,30 +289,63 @@
   <!-- ── Panel 1: Note list sidebar ──────────────────────────────────── -->
   <aside class="notes-sidebar">
 
-    <!-- Header + New Note button -->
+    <!-- Header + controls row -->
     <div class="sidebar-header">
       <span class="sidebar-title">Notes</span>
-      <button
-        class="new-note-btn"
-        onclick={createNote}
-        disabled={creating}
-        aria-label="New note"
-        title="New note (Ctrl+N)"
-      >
-        <Plus size={16} strokeWidth={2.2} />
-      </button>
-    </div>
+      <div class="sidebar-header-actions">
+        <!-- Anytype-ported Filter: icon at rest, expands on click -->
+        <div
+          class="filter-wrap"
+          class:filter-active={filterActive}
+          class:filter-has-value={searchQuery.length > 0}
+          role="search"
+          aria-label="Search notes"
+        >
+          <button
+            class="filter-icon-btn"
+            onclick={onFilterIconClick}
+            aria-label="Search"
+            tabindex="0"
+            type="button"
+          >
+            <Search size={14} strokeWidth={2} />
+          </button>
+          <div class="filter-input-wrap">
+            <input
+              bind:this={filterInputEl}
+              class="filter-input"
+              type="text"
+              placeholder="Search notes…"
+              bind:value={searchQuery}
+              onfocus={() => { filterFocused = true; }}
+              onblur={() => { filterFocused = false; }}
+              aria-label="Search notes"
+              tabindex={filterActive ? 0 : -1}
+            />
+          </div>
+          {#if searchQuery.length > 0}
+            <button
+              class="filter-clear-btn"
+              type="button"
+              aria-label="Clear search"
+              onmousedown={onFilterClear}
+            >
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          {/if}
+        </div>
 
-    <!-- Search -->
-    <div class="sidebar-search">
-      <Search size={13} class="search-icon" />
-      <input
-        class="search-input"
-        type="text"
-        placeholder="Search notes…"
-        bind:value={searchQuery}
-        aria-label="Search notes"
-      />
+        <button
+          class="new-note-btn"
+          onclick={createNote}
+          disabled={creating}
+          aria-label="New note"
+          title="New note (Ctrl+N)"
+          type="button"
+        >
+          <Plus size={15} strokeWidth={2.2} />
+        </button>
+      </div>
     </div>
 
     <!-- Error banner -->
@@ -421,10 +507,7 @@
 {/if}
 
 <style>
-  /* ══════════════════════════════════════════════════════════════════════
-     ROOT — fills the module host completely
-  ══════════════════════════════════════════════════════════════════════ */
-
+  /* ROOT */
   .notes-root {
     display: grid;
     grid-template-columns: 260px 1fr;
@@ -437,26 +520,28 @@
     font-size: 13px;
   }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     SIDEBAR — narrow note list, Anytype-style
-  ══════════════════════════════════════════════════════════════════════ */
-
+  /* SIDEBAR */
   .notes-sidebar {
     display: flex;
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+    border-top-left-radius: 18px;
+    border-bottom-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border-bottom-right-radius: 18px;
     border-right: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
     background: color-mix(in srgb, var(--foreground) 2%, var(--background));
   }
 
-  /* Header */
+  /* ── Header row: title left, [search icon → expands right] + [+] right ── */
   .sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 14px 10px;
+    padding: 18px 10px 10px 14px;
     flex-shrink: 0;
+    gap: 4px;
   }
 
   .sidebar-title {
@@ -465,19 +550,133 @@
     text-transform: uppercase;
     letter-spacing: 0.07em;
     color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    flex-shrink: 0;
   }
 
+  /* Right side actions — filter + new button */
+  .sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════
+     ANYTYPE FILTER — icon at rest, expands LEFT-TO-RIGHT on click.
+     Icon is leftmost inside the pill. Input grows to the right.
+     Matches Anytype: width 200ms cubic-bezier(0.55,0,1,0.45) easeInQuint
+  ════════════════════════════════════════════════════════════════════ */
+
+  .filter-wrap {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    border-radius: 14px;
+    /* overflow hidden so the expanding input is clipped until open */
+    overflow: hidden;
+    transition: background 140ms ease;
+    /* flex-direction: row keeps icon LEFT, input grows RIGHT */
+    flex-direction: row;
+  }
+
+  /* Search icon — always visible, leftmost */
+  .filter-icon-btn {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    color: color-mix(in srgb, var(--foreground) 45%, transparent);
+    cursor: pointer;
+    transition: color 140ms ease;
+    padding: 0;
+    z-index: 1;
+  }
+
+  .filter-icon-btn:hover {
+    color: var(--foreground);
+  }
+
+  /* Input container — 0px wide at rest, expands right */
+  .filter-input-wrap {
+    width: 0;
+    overflow: hidden;
+    transition: width 200ms cubic-bezier(0.55, 0, 1, 0.45);
+    flex-shrink: 0;
+  }
+
+  .filter-input {
+    display: block;
+    height: 28px;
+    width: 148px;
+    padding: 0 2px 0 0;
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 12.5px;
+    outline: none;
+    white-space: nowrap;
+  }
+
+  .filter-input::placeholder {
+    color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  }
+
+  /* Clear × button */
+  .filter-clear-btn {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    cursor: pointer;
+    padding: 0;
+    margin-right: 4px;
+    transition: color 120ms ease;
+  }
+
+  .filter-clear-btn:hover { color: var(--foreground); }
+
+  /* ACTIVE — background appears, input expands to the right */
+  .filter-wrap.filter-active {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  .filter-wrap.filter-active .filter-icon-btn {
+    color: var(--foreground);
+  }
+
+  .filter-wrap.filter-active .filter-input-wrap {
+    width: 148px;
+  }
+
+  .filter-wrap.filter-active:hover {
+    background: color-mix(in srgb, var(--foreground) 11%, transparent);
+  }
+
+  /* New note button */
   .new-note-btn {
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border: none;
-    border-radius: 7px;
+    border-radius: 8px;
     background: transparent;
     color: color-mix(in srgb, var(--foreground) 50%, transparent);
     cursor: pointer;
     transition: background 120ms ease, color 120ms ease;
+    flex-shrink: 0;
   }
 
   .new-note-btn:hover {
@@ -488,44 +687,7 @@
   .new-note-btn:active { transform: scale(0.93); }
   .new-note-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Search */
-  .sidebar-search {
-    position: relative;
-    padding: 0 10px 8px;
-    flex-shrink: 0;
-  }
-
-  :global(.search-icon) {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-60%);
-    color: color-mix(in srgb, var(--foreground) 35%, transparent);
-    pointer-events: none;
-  }
-
-  .search-input {
-    width: 100%;
-    height: 30px;
-    padding: 0 10px 0 30px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--foreground) 4%, transparent);
-    color: var(--foreground);
-    font: inherit;
-    font-size: 12px;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 120ms ease, background 120ms ease;
-  }
-
-  .search-input::placeholder { color: color-mix(in srgb, var(--foreground) 30%, transparent); }
-  .search-input:focus {
-    border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
-    background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  }
-
-  /* Note list scroll area */
+  /* Note list */
   .note-list {
     flex: 1;
     overflow-y: auto;
@@ -555,7 +717,6 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Group labels */
   .list-group-label {
     padding: 8px 8px 4px;
     font-size: 10px;
@@ -565,7 +726,6 @@
     color: color-mix(in srgb, var(--foreground) 30%, transparent);
   }
 
-  /* Note row — Anytype-style */
   .note-row {
     display: flex;
     align-items: center;
@@ -580,10 +740,7 @@
 
   .note-row:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
   .note-row:hover .note-row-menu { opacity: 1; }
-
-  .note-row.active {
-    background: color-mix(in srgb, var(--foreground) 9%, transparent);
-  }
+  .note-row.active { background: color-mix(in srgb, var(--foreground) 9%, transparent); }
 
   .note-row-icon {
     font-size: 16px;
@@ -646,10 +803,8 @@
     opacity: 0;
     transition: background 100ms ease, opacity 100ms ease;
   }
-
   .note-row-menu:hover { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
 
-  /* Loading / empty states in sidebar */
   .sidebar-loading, .sidebar-empty {
     display: flex;
     flex-direction: column;
@@ -685,13 +840,9 @@
     font-size: 12px;
     cursor: pointer;
   }
-
   .empty-create-btn:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     EDITOR PANE — fills remaining width
-  ══════════════════════════════════════════════════════════════════════ */
-
+  /* EDITOR PANE */
   .notes-editor-pane {
     display: flex;
     flex-direction: column;
@@ -711,7 +862,6 @@
     font-size: 13px;
   }
 
-  /* Empty / no-selection state */
   .editor-empty {
     display: flex;
     flex-direction: column;
@@ -722,9 +872,7 @@
     color: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
 
-  .editor-empty-icon {
-    opacity: 0.25;
-  }
+  .editor-empty-icon { opacity: 0.25; }
 
   .editor-empty-title {
     margin: 0;
@@ -755,14 +903,10 @@
     cursor: pointer;
     transition: opacity 120ms ease;
   }
-
   .editor-empty-btn:hover { opacity: 0.88; }
   .editor-empty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     CONTEXT MENU
-  ══════════════════════════════════════════════════════════════════════ */
-
+  /* CONTEXT MENU */
   .ctx-menu {
     position: fixed;
     z-index: 9999;
@@ -799,7 +943,6 @@
     width: 100%;
     transition: background 100ms ease;
   }
-
   .ctx-item:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
   .ctx-item.ctx-danger { color: #ef4444; }
   .ctx-item.ctx-danger:hover { background: color-mix(in srgb, #ef4444 8%, transparent); }

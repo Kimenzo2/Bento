@@ -92,9 +92,24 @@ export type AppLaunchIdentity = {
   launchBg: string;
 };
 
+export type SidebarItemSpec = {
+  label: string;
+  /** Lucide icon name (kebab-case, e.g. 'calendar-days', 'history') */
+  icon: string;
+  /**
+   * If 'flyout', clicking this item opens a flyout panel (Avnac-style)
+   * instead of setting the module section.
+   */
+  action?: 'section' | 'flyout';
+};
+
 type SidebarSpec = {
   sectionLabel: string;
-  items: readonly string[];
+  /**
+   * Items can be plain strings (legacy — will cycle through generic icons)
+   * or objects with `label` + `icon` for fully custom per-item icons.
+   */
+  items: readonly (string | SidebarItemSpec)[];
 };
 
 export type ModuleCatalogEntry = {
@@ -112,98 +127,234 @@ export type ModuleCatalogEntry = {
 const starterSidebarSpecs = {
   journal: {
     sectionLabel: 'Journal',
-    items: ['Today', 'History'],
+    items: [
+      { label: 'Today', icon: 'calendar-days' },
+      { label: 'History', icon: 'history' },
+    ],
   },
   tasks: {
     sectionLabel: 'Tasks',
-    items: ['Today', 'Inbox', 'Upcoming', 'Projects', 'Board', 'Recurring', 'Search', 'Completed'],
+    items: [
+      { label: 'Recurring', icon: 'repeat-2', action: 'flyout' },
+      { label: 'Tags', icon: 'tags', action: 'flyout' },
+      { label: 'Views', icon: 'eye', action: 'flyout' },
+      { label: 'History', icon: 'history', action: 'flyout' },
+      { label: 'Search', icon: 'search', action: 'flyout' },
+    ],
   },
   habits: {
     sectionLabel: 'Habits',
-    items: ['Today', 'Heatmap', 'Stacks', 'Review', 'Widgets', 'Export'],
+    items: [
+      { label: 'Today', icon: 'calendar-days' },
+      { label: 'Heatmap', icon: 'grid-3x3' },
+      { label: 'Stacks', icon: 'layers' },
+      { label: 'Review', icon: 'search' },
+      { label: 'Widgets', icon: 'layout-dashboard' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   focus: {
     sectionLabel: 'Focus',
-    items: ['Timer', 'Sessions', 'Sounds', 'Blocking', 'History', 'Review', 'Quick Timer'],
+    items: [
+      { label: 'Timer', icon: 'timer' },
+      { label: 'Sessions', icon: 'list' },
+      { label: 'Sounds', icon: 'music' },
+      { label: 'Blocking', icon: 'ban' },
+      { label: 'History', icon: 'history' },
+      { label: 'Review', icon: 'search' },
+      { label: 'Quick Timer', icon: 'clock' },
+    ],
   },
   passwords: {
     sectionLabel: 'Vault',
-    items: ['Vault', 'Health', 'Passkeys', 'Secure Notes', 'Travel Mode', 'Audit'],
+    items: [
+      { label: 'Vault', icon: 'shield-check' },
+      { label: 'Health', icon: 'heart' },
+      { label: 'Passkeys', icon: 'key-round' },
+      { label: 'Secure Notes', icon: 'file-text' },
+      { label: 'Travel Mode', icon: 'plane' },
+      { label: 'Audit', icon: 'list-checks' },
+    ],
   },
   health: {
     sectionLabel: 'Health',
-    items: ['Dashboard', 'Daily Log', 'Vitals', 'Insights', 'Medications'],
+    items: [
+      { label: 'Dashboard', icon: 'layout-dashboard' },
+      { label: 'Daily Log', icon: 'clipboard-list' },
+      { label: 'Vitals', icon: 'activity' },
+      { label: 'Insights', icon: 'brain' },
+      { label: 'Medications', icon: 'pill' },
+    ],
   },
   sleep: {
     sectionLabel: 'Sleep',
-    items: ['Tonight', 'Score', 'Routine', 'Trends', 'Alarm', 'Export', 'Log'],
+    items: [
+      { label: 'Tonight', icon: 'moon' },
+      { label: 'Score', icon: 'gauge' },
+      { label: 'Routine', icon: 'clock-4' },
+      { label: 'Trends', icon: 'chart-line' },
+      { label: 'Alarm', icon: 'alarm-clock' },
+      { label: 'Export', icon: 'download' },
+      { label: 'Log', icon: 'file-text' },
+    ],
   },
   nutrition: {
     sectionLabel: 'Nutrition',
-    items: ['Today', 'Water', 'Meals', 'Macros', 'Reminders', 'Export', 'Journal'],
+    items: [
+      { label: 'Today', icon: 'calendar-days' },
+      { label: 'Water', icon: 'droplets' },
+      { label: 'Meals', icon: 'utensils-crossed' },
+      { label: 'Macros', icon: 'pie-chart' },
+      { label: 'Reminders', icon: 'bell' },
+      { label: 'Export', icon: 'download' },
+      { label: 'Journal', icon: 'book-heart' },
+    ],
   },
   mood: {
     sectionLabel: 'Mood',
-    items: ['Check-in', 'Calendar', 'Activities', 'Patterns', 'Therapist', 'Export'],
+    items: [
+      { label: 'Check-in', icon: 'smile-plus' },
+      { label: 'Calendar', icon: 'calendar-days' },
+      { label: 'Activities', icon: 'activity' },
+      { label: 'Patterns', icon: 'brain' },
+      { label: 'Therapist', icon: 'message-circle' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   budget: {
     sectionLabel: 'Budget',
-    items: ['Overview', 'Transactions', 'Budgets', 'Bills', 'AI Costs', 'Forecast', 'Export'],
+    items: [
+      { label: 'Overview', icon: 'layout-dashboard' },
+      { label: 'Transactions', icon: 'arrow-right-left' },
+      { label: 'Budgets', icon: 'wallet' },
+      { label: 'Bills', icon: 'receipt' },
+      { label: 'AI Costs', icon: 'bot' },
+      { label: 'Forecast', icon: 'chart-line' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   flashcards: {
     sectionLabel: 'Flashcards',
-    items: ['Decks', 'Due Today', 'Learn', 'Cram', 'Generate', 'Progress'],
+    items: [
+      { label: 'Decks', icon: 'layers' },
+      { label: 'Due Today', icon: 'calendar-days' },
+      { label: 'Learn', icon: 'brain' },
+      { label: 'Cram', icon: 'zap' },
+      { label: 'Generate', icon: 'sparkles' },
+      { label: 'Progress', icon: 'trending-up' },
+    ],
   },
   reading: {
     sectionLabel: 'Reading',
     items: [
-      'Library',
-      'Reader',
-      'Discover',
-      'Collections',
-      'Sessions',
-      'Bookmarks',
-      'Highlights',
-      'Notes',
-      'Goals',
-      'Export',
+      { label: 'Library', icon: 'book-open' },
+      { label: 'Reader', icon: 'book-open-text' },
+      { label: 'Discover', icon: 'compass' },
+      { label: 'Collections', icon: 'folder-open' },
+      { label: 'Sessions', icon: 'timer' },
+      { label: 'Bookmarks', icon: 'bookmark' },
+      { label: 'Highlights', icon: 'highlighter' },
+      { label: 'Notes', icon: 'file-text' },
+      { label: 'Goals', icon: 'target' },
+      { label: 'Export', icon: 'download' },
     ],
   },
   grocery: {
     sectionLabel: 'Grocery',
-    items: ['List', 'Shared', 'Sections', 'Recipes', 'Prices', 'Export'],
+    items: [
+      { label: 'List', icon: 'list-checks' },
+      { label: 'Shared', icon: 'users' },
+      { label: 'Sections', icon: 'layout-grid' },
+      { label: 'Recipes', icon: 'utensils-crossed' },
+      { label: 'Prices', icon: 'tag' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   recipes: {
     sectionLabel: 'Recipes',
-    items: ['Recipes', 'Discover', 'Import', 'Cook Mode', 'Meal Plan', 'Shopping', 'Export'],
+    items: [
+      { label: 'Recipes', icon: 'utensils-crossed' },
+      { label: 'Discover', icon: 'compass' },
+      { label: 'Import', icon: 'upload' },
+      { label: 'Cook Mode', icon: 'cooking-pot' },
+      { label: 'Meal Plan', icon: 'calendar-check' },
+      { label: 'Shopping', icon: 'shopping-cart' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   time: {
     sectionLabel: 'Time',
-    items: ['Timer', 'Projects', 'Timeline', 'Idle', 'Invoices', 'Export'],
+    items: [
+      { label: 'Timer', icon: 'timer' },
+      { label: 'Projects', icon: 'folder' },
+      { label: 'Timeline', icon: 'timeline' },
+      { label: 'Idle', icon: 'clock' },
+      { label: 'Invoices', icon: 'file-text' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   goals: {
     sectionLabel: 'Goals',
-    items: ['Goals', 'Milestones', 'Check-ins', 'Vision', 'Review', 'Export'],
+    items: [
+      { label: 'Goals', icon: 'target' },
+      { label: 'Milestones', icon: 'flag' },
+      { label: 'Check-ins', icon: 'calendar-check' },
+      { label: 'Vision', icon: 'eye' },
+      { label: 'Review', icon: 'search' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   clipboard: {
     sectionLabel: 'Clipboard',
-    items: ['History', 'Pinned', 'Snippets', 'Images', 'Sensitive', 'Settings'],
+    items: [
+      { label: 'History', icon: 'history' },
+      { label: 'Pinned', icon: 'pin' },
+      { label: 'Snippets', icon: 'scissors' },
+      { label: 'Images', icon: 'image' },
+      { label: 'Sensitive', icon: 'shield' },
+      { label: 'Settings', icon: 'settings' },
+    ],
   },
   breathing: {
     sectionLabel: 'Calm',
-    items: ['Breathe', 'Sessions', 'Sounds', 'Check-ins', 'Streaks', 'Export'],
+    items: [
+      { label: 'Breathe', icon: 'wind' },
+      { label: 'Sessions', icon: 'list' },
+      { label: 'Sounds', icon: 'music' },
+      { label: 'Check-ins', icon: 'calendar-check' },
+      { label: 'Streaks', icon: 'flame' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   'voice-memos': {
     sectionLabel: 'Voice Memos',
-    items: ['Record', 'Transcripts', 'Speakers', 'Search', 'Tags', 'Export'],
+    items: [
+      { label: 'Record', icon: 'mic' },
+      { label: 'Transcripts', icon: 'file-text' },
+      { label: 'Speakers', icon: 'users' },
+      { label: 'Search', icon: 'search' },
+      { label: 'Tags', icon: 'tag' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   countdown: {
     sectionLabel: 'Countdown',
-    items: ['Events', 'Birthdays', 'Since', 'Cards', 'Widgets', 'Export'],
+    items: [
+      { label: 'Events', icon: 'calendar-check' },
+      { label: 'Birthdays', icon: 'cake' },
+      { label: 'Since', icon: 'history' },
+      { label: 'Cards', icon: 'image' },
+      { label: 'Widgets', icon: 'layout-dashboard' },
+      { label: 'Export', icon: 'download' },
+    ],
   },
   telemetry: {
     sectionLabel: 'Telemetry',
-    items: ['Brain Overview', 'Module Detail', 'Insights'],
+    items: [
+      { label: 'Brain Overview', icon: 'brain' },
+      { label: 'Module Detail', icon: 'layout-grid' },
+      { label: 'Insights', icon: 'chart-line' },
+    ],
   },
 } as const satisfies Record<StarterModuleId, SidebarSpec>;
 

@@ -94,6 +94,12 @@ pub struct TabSessionManager {
     foreground_tab_id: Option<String>,
 }
 
+impl Default for TabSessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TabSessionManager {
     pub fn new() -> Self {
         Self {
@@ -254,7 +260,7 @@ impl TabSessionManager {
         self.foreground_tab_id = Some(tab_id.to_string());
 
         // ── Phase 3: telemetry handover ──────────────────────────────────
-        if let Some(ref telemetry) = telemetry {
+        if let Some(telemetry) = telemetry {
             let _ = telemetry
                 .record_backend_trace(BackendTraceInput {
                     source: "tab_session".into(),
@@ -373,6 +379,12 @@ impl TabSessionManager {
 #[derive(Clone)]
 pub struct ManagedTabSession {
     pub inner: Arc<Mutex<TabSessionManager>>,
+}
+
+impl Default for ManagedTabSession {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ManagedTabSession {

@@ -5,8 +5,8 @@
 //!
 //! Architecture:
 //!   - Each key is stored as a separate keyring entry:
-//!       service = "Bento Desktop BYOK"
-//!       account = "{provider}"
+//!     service = "Bento Desktop BYOK"
+//!     account = "{provider}"
 //!   - Provider metadata (which providers have keys configured) is tracked
 //!     in `DesktopSettings.byok` so we don't have to iterate all keyring entries.
 //!   - Keys are never sent to any server — they stay in the local keyring.
@@ -28,6 +28,21 @@ pub enum ByokProvider {
     Ollama,
 }
 
+impl std::str::FromStr for ByokProvider {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_lowercase().as_str() {
+            "openai" => Ok(Self::OpenAI),
+            "anthropic" => Ok(Self::Anthropic),
+            "gemini" => Ok(Self::Gemini),
+            "grok" => Ok(Self::Grok),
+            "ollama" => Ok(Self::Ollama),
+            other => Err(format!("Unknown BYOK provider: {other}")),
+        }
+    }
+}
+
 impl ByokProvider {
     /// All supported providers.
     pub fn all() -> Vec<Self> {
@@ -38,18 +53,6 @@ impl ByokProvider {
             Self::Grok,
             Self::Ollama,
         ]
-    }
-
-    /// Parse from a string.
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.trim().to_lowercase().as_str() {
-            "openai" => Some(Self::OpenAI),
-            "anthropic" => Some(Self::Anthropic),
-            "gemini" => Some(Self::Gemini),
-            "grok" => Some(Self::Grok),
-            "ollama" => Some(Self::Ollama),
-            _ => None,
-        }
     }
 
     /// Human-readable display name.
@@ -161,7 +164,7 @@ pub fn mask_api_key(key: &str) -> String {
 /// BYOK settings stored in DesktopSettings.
 /// Note: the actual API keys are stored in the OS keyring, NOT in settings.json.
 /// This struct only tracks which providers are configured and the user's preferences.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ByokSettings {
     /// Whether BYOK mode is enabled (only meaningful for Power plan users).
@@ -190,18 +193,7 @@ pub struct ByokSettings {
     pub onboarding_dismissed: bool,
 }
 
-impl Default for ByokSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            active_provider: None,
-            active_model: None,
-            configured_providers: Vec::new(),
-            base_url_overrides: std::collections::HashMap::new(),
-            onboarding_dismissed: false,
-        }
-    }
-}
+
 
 impl ByokSettings {
     /// Verify which providers actually have keys, and update the configured list.

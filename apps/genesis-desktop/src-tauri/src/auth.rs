@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc};
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
@@ -22,6 +22,7 @@ use url::Url;
 
 const AUTH_KEYRING_SERVICE: &str = "Bento Desktop";
 const AUTH_KEYRING_ACCOUNT: &str = "supabase-session";
+const AUTH_SESSION_FILENAME: &str = "session.json";
 const SUPABASE_REDIRECT_STATE_TTL_MS: i64 = 5 * 60 * 1000;
 const SUPABASE_REFRESH_CHECK_INTERVAL_MS: u64 = 5 * 60 * 1000;
 const SUPABASE_REFRESH_WINDOW_MS: i64 = 10 * 60 * 1000;
@@ -385,6 +386,7 @@ struct AuthInner {
     state: Mutex<AuthRuntimeState>,
     billing_cache: Mutex<BillingCache>, // cached billing profile
     refresh_controller: Mutex<Option<BillingRefreshController>>, // background poller
+    data_dir: PathBuf, // app data directory — used for file-based session fallback
 }
 
 #[derive(Clone)]
@@ -393,7 +395,7 @@ pub struct AuthManager {
 }
 
 impl AuthManager {
-    pub fn new() -> Result<Self, String> {
+    pub fn new(data_dir: PathBuf) -> Result<Self, String> {
         migrate_service_role_key_to_keyring();
         Ok(Self {
             inner: Arc::new(AuthInner {
@@ -401,6 +403,7 @@ impl AuthManager {
                 state: Mutex::new(AuthRuntimeState::default()),
                 billing_cache: Mutex::new(BillingCache::new()),
                 refresh_controller: Mutex::new(None),
+                data_dir,
             }),
         })
     }
@@ -813,10 +816,61 @@ impl AuthManager {
         state.refresh_task_started = false;
     }
 
+    /// Path to the file-based session fallback.
+    fn session_file_path(&self) -> PathBuf {
+        self.inner.data_dir.join(AUTH_SESSION_FILENAME)
+    }
+
+    /// Save session to a JSON file in the app data directory.
+    /// Acts as a fallback when the OS keyring is unavailable.
+    fn save_session_to_file(&self, session: &StoredAuthSession) -> Result<(), String> {
+        let path = self.session_file_path();
+        // Ensure the app data directory exists before writing
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        let raw = serde_json::to_string(session).map_err(|e| e.to_string())?;
+        std::fs::write(&path, &raw).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// Load session from the file-based fallback.
+    fn load_session_from_file(&self) -> Result<Option<StoredAuthSession>, String> {
+        let path = self.session_file_path();
+        if !path.exists() {
+            return Ok(None);
+        }
+        let raw = match std::fs::read_to_string(&path) {
+            Ok(content) => content,
+            Err(err) => {
+                eprintln!("[Auth] Failed to read session file: {err}");
+                return Ok(None);
+            }
+        };
+        match serde_json::from_str::<StoredAuthSession>(&raw) {
+            Ok(session) => Ok(Some(session)),
+            Err(err) => {
+                eprintln!("[Auth] Corrupt session file, removing: {err}");
+                let _ = std::fs::remove_file(&path);
+                Ok(None)
+            }
+        }
+    }
+
+    /// Remove the file-based session fallback.
+    fn delete_session_file(&self) {
+        let path = self.session_file_path();
+        if path.exists() {
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+
     fn delete_session_from_keyring(&self) {
         if let Ok(entry) = Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_ACCOUNT) {
             let _ = entry.delete_credential();
         }
+        // Also clean up file-based fallback
+        self.delete_session_file();
     }
 
     async fn set_bootstrap(&self, bootstrap: AuthBootstrapState) {
@@ -1025,25 +1079,61 @@ impl AuthManager {
     }
 
     fn load_session_from_keyring(&self) -> Result<Option<StoredAuthSession>, String> {
+        // Try OS keyring first (secure storage)
         let entry = Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_ACCOUNT)
             .map_err(|error| error.to_string())?;
 
-        match entry.get_password() {
+        let keyring_result: Option<StoredAuthSession> = match entry.get_password() {
             Ok(raw) => {
-                let session: StoredAuthSession =
-                    serde_json::from_str(&raw).map_err(|error| error.to_string())?;
-                Ok(Some(session))
+                match serde_json::from_str::<StoredAuthSession>(&raw) {
+                    Ok(session) => {
+                        // Keyring hit — also persist to file so the file is fresh
+                        let _ = self.save_session_to_file(&session);
+                        return Ok(Some(session));
+                    }
+                    Err(_) => None, // Corrupt keyring entry, fall through to file
+                }
             }
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(error) => Err(error.to_string()),
+            Err(keyring::Error::NoEntry) => None, // Not in keyring, try file
+            Err(error) => {
+                // Keyring access error (e.g., credential service unavailable)
+                eprintln!("[Auth] Keyring read failed, falling back to file: {error}");
+                None
+            }
+        };
+
+        // Fallback: try file-based session store
+        if keyring_result.is_none() {
+            eprintln!("[Auth] Keyring had no session, trying file-based fallback");
         }
+        self.load_session_from_file()
     }
 
     fn persist_session(&self, session: &StoredAuthSession) -> Result<(), String> {
-        let entry = Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_ACCOUNT)
-            .map_err(|error| error.to_string())?;
         let raw = serde_json::to_string(session).map_err(|error| error.to_string())?;
-        entry.set_password(&raw).map_err(|error| error.to_string())
+
+        // Always write to file-based fallback
+        let file_result = self.save_session_to_file(session);
+        if let Err(ref err) = file_result {
+            eprintln!("[Auth] Failed to persist session to file: {err}");
+        }
+
+        // Try OS keyring (primary secure storage)
+        match Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_ACCOUNT) {
+            Ok(entry) => {
+                if let Err(error) = entry.set_password(&raw) {
+                    eprintln!("[Auth] Keyring write failed, file fallback is active: {error}");
+                    // Don't fail — file fallback has the session
+                }
+            }
+            Err(error) => {
+                eprintln!("[Auth] Keyring entry creation failed, file fallback is active: {error}");
+                // Don't fail — file fallback has the session
+            }
+        }
+
+        // If file write also failed, only then report error
+        file_result
     }
 
     async fn exchange_code_for_session(

@@ -58,7 +58,7 @@
       ...s,
       workspace: { ...s.workspace, tabsEnabled: next },
     }));
-    toast.success(next ? "Tab mode enabled." : "Module switcher restored.");
+    toast.success(next ? "Tab mode enabled." : "App switcher restored.");
   }
 
   function showAbout() {

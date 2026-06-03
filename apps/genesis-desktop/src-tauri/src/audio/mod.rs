@@ -327,7 +327,7 @@ impl RecordingEngine {
                         for &sample in data {
                             // Convert f32 [-1.0, 1.0] to i16
                             let amplitude = (sample * i16::MAX as f32) as i16;
-                            if let Err(_) = inner.file.write_sample(amplitude) {
+                            if inner.file.write_sample(amplitude).is_err() {
                                 break;
                             }
                         }
@@ -379,7 +379,7 @@ impl RecordingEngine {
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"#,
                             )
                             .bind(&id)
-                            .bind(&format!("Recording {}", &id[..8]))
+                            .bind(format!("Recording {}", &id[..8]))
                             .bind(dur.as_secs_f64())
                             .bind(&fpath)
                             .bind(size as i64)
@@ -960,6 +960,12 @@ enum PlaybackCommand {
 pub struct PlaybackEngine {
     command_tx: mpsc::Sender<PlaybackCommand>,
     is_playing: Arc<AtomicBool>,
+}
+
+impl Default for PlaybackEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PlaybackEngine {

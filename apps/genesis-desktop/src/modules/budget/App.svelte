@@ -90,6 +90,50 @@
 
   // Bills
   let bills = $state<Bill[]>([]);
+  let selectedBill = $state<Bill | null>(null);
+
+  // ── Brand colors + popular services (Subscription Day) ────────────
+  const SUB_COLORS: Record<string, string> = {
+    'Netflix': '#E50914', 'Spotify': '#1DB954', 'Apple Music': '#FC3C44',
+    'YouTube': '#FF0000', 'YouTube Premium': '#FF0000', 'Claude': '#D97706',
+    'ChatGPT': '#10A37F', 'Cursor': '#1C1C1C', 'Notion': '#000000',
+    'Figma': '#F24E1E', 'Linear': '#5E6AD2', 'GitHub': '#181717',
+    'Dropbox': '#0061FF', 'iCloud': '#3693F3', 'iCloud+': '#3693F3',
+    'Google One': '#4285F4', 'Microsoft 365': '#D83B01', 'Adobe': '#FF0000',
+    'Slack': '#4A154B', 'Zoom': '#2D8CFF', 'Headspace': '#F47D31',
+    'Duolingo': '#58CC02', 'LinkedIn': '#0A66C2', 'Twitter': '#1DA1F2',
+    'Perplexity': '#1FB8CD', 'Midjourney': '#1D1D1D', 'Grok': '#1D1D1D',
+    'Gemini': '#4285F4', 'DeepSeek': '#4D6BFE', 'GitHub Copilot': '#181717',
+  };
+  const POPULAR_SERVICES = [
+    { name: 'Netflix',         color: '#E50914', icon: '🎬' },
+    { name: 'Spotify',         color: '#1DB954', icon: '🎵' },
+    { name: 'YouTube Premium', color: '#FF0000', icon: '▶️' },
+    { name: 'Claude',          color: '#D97706', icon: '🤖' },
+    { name: 'ChatGPT',         color: '#10A37F', icon: '💬' },
+    { name: 'Cursor',          color: '#6366f1', icon: '⌨️' },
+    { name: 'iCloud+',         color: '#3693F3', icon: '☁️' },
+    { name: 'GitHub Copilot',  color: '#181717', icon: '🐙' },
+    { name: 'Notion',          color: '#000000', icon: '📝' },
+    { name: 'Figma',           color: '#F24E1E', icon: '🎨' },
+    { name: 'Linear',          color: '#5E6AD2', icon: '📋' },
+    { name: 'Duolingo',        color: '#58CC02', icon: '🦉' },
+  ];
+
+  // ── Calendar constants (computed once, never change) ─────────────
+  const calNow       = new Date();
+  const calYear      = calNow.getFullYear();
+  const calMonth     = calNow.getMonth();
+  const calMonthLabel= calNow.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const calDays      = new Date(calYear, calMonth + 1, 0).getDate();
+  const calFirstDow  = new Date(calYear, calMonth, 1).getDay();
+  const calToday     = calNow.getDate();
+
+  // ── Calendar derived ──────────────────────────────────────────────
+  let calMonthlyTotal = $derived(bills.filter(b => b.active).reduce((s, b) => s + b.amount, 0));
+  let calPaidCount    = $derived(bills.filter(b => b.paidThisMonth).length);
+  let calUnpaidCount  = $derived(bills.filter(b => b.active && !b.paidThisMonth).length);
+  let calYearlyTotal  = $derived(calMonthlyTotal * 12);
 
   // AI Costs
   let aiEntries = $state<AiCostEntry[]>([]);
@@ -351,6 +395,18 @@
     'ellipsis': Ellipsis, 'wallet': Wallet,
   };
   function resolveIcon(name: string): typeof Wallet { return iconMap[name] || Wallet; }
+
+  // ── Per-section header copy ───────────────────────────────────────
+  const sectionHeaders: Record<string, { eyebrow: string; title: string; subtitle: string }> = {
+    'Overview':     { eyebrow: "This month",           title: "Your money, in full view.",                    subtitle: "Income, spending, savings — everything that happened this month, right here." },
+    'Transactions': { eyebrow: "Money in, money out",  title: "Every transaction you've made.",              subtitle: "The complete record. Add one, review one, delete one — this is your ledger." },
+    'Budgets':      { eyebrow: "Spending limits",      title: "You decide what each category gets.",         subtitle: "Set a ceiling. Track how close you are. Adjust when life changes." },
+    'Bills':        { eyebrow: "Recurring commitments",title: "What's due, what's paid, what's next.",       subtitle: "Your fixed obligations, tracked so nothing catches you off guard." },
+    'AI Costs':     { eyebrow: "Tool spending",        title: "What your AI tools are actually costing.",    subtitle: "Claude, Cursor, GPT — log every subscription and API charge. Know the number." },
+    'Forecast':     { eyebrow: "Looking ahead",        title: "Where your finances are heading.",            subtitle: "Projected income, projected expenses, projected balance — based on how you actually spend." },
+    'Export':       { eyebrow: "Take your data",       title: "Download everything, keep it forever.",       subtitle: "CSV for your spreadsheet. PDF for your accountant. It's your data — take it." },
+  };
+  let currentHeader = $derived(sectionHeaders[selectedSection as string] ?? sectionHeaders['Overview']);
 
   // ── Init ──────────────────────────────────────────────────────────
   $effect(() => { loadAll(); });
@@ -750,70 +806,227 @@
         </div>
       {/if}
 
-    <!-- ══════════════════════════════════════════════════════════════════
-         TAB: BILLS
-         ══════════════════════════════════════════════════════════════════ -->
+    <!-- ══════════════════════════════════════════════════════════════
+         TAB: BILLS — Subscription Day calendar
+    ════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'Bills'}
-      <div class="tab-content">
-        <div class="tab-actions">
-          <span class="tab-subtitle">{bills.length} active {bills.length === 1 ? 'bill' : 'bills'}</span>
-          <button class="action-btn primary" onclick={() => { resetNewBill(); showAddBill = true; }}>
-            <Plus size={16} /> <span>Add Bill</span>
-          </button>
-        </div>
-        {#if bills.length === 0}
-          <div class="empty-state">
-            <CreditCard size={40} class="empty-icon" />
-            <p>No bills tracked yet. Add your recurring expenses.</p>
+      <div class="subs-shell">
+
+        <!-- ── LEFT: Calendar pane ───────────────────────────────── -->
+        <div class="subs-cal-pane">
+
+          <!-- Month headline -->
+          <div class="subs-month-hd">
+            <div class="subs-month-left">
+              <span class="subs-month-name">{calMonthLabel}</span>
+              {#if calUnpaidCount === 0 && bills.length > 0}
+                <span class="subs-badge subs-badge--paid">All paid ✓</span>
+              {:else if calUnpaidCount > 0}
+                <span class="subs-badge subs-badge--unpaid">{calUnpaidCount} upcoming</span>
+              {/if}
+            </div>
+            <div class="subs-month-total">
+              <span class="subs-total-amt">€{calMonthlyTotal.toFixed(2)}</span>
+              <span class="subs-total-label">/ month</span>
+            </div>
           </div>
-        {:else}
-          <div class="bills-grid">
-            {#each bills as bill}
-              <div class="bill-card" class:paid={bill.paidThisMonth}>
-                <div class="bill-header">
-                  <div class="bill-info">
-                    <span class="bill-name">{bill.name}</span>
-                    <span class="bill-due">Due day {bill.dueDay}</span>
+
+          <!-- Day-of-week row -->
+          <div class="subs-dow">
+            {#each ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as d}
+              <span>{d}</span>
+            {/each}
+          </div>
+
+          <!-- Calendar grid — squircle day cells -->
+          <div class="subs-grid">
+            {#each Array(calFirstDow) as _}
+              <div class="subs-cell subs-cell--empty"></div>
+            {/each}
+
+            {#each Array(calDays) as _, i}
+              {@const day = i + 1}
+              {@const dayBills = bills.filter(b => b.dueDay === day && b.active)}
+              {@const isToday = day === calToday}
+              {@const hasBill = dayBills.length > 0}
+              <div
+                class="subs-cell"
+                class:subs-cell--today={isToday}
+                class:subs-cell--active={hasBill}
+              >
+                <!-- Day number — squircle if has bills -->
+                <span class="subs-day-num" class:subs-day-num--today={isToday}>{day}</span>
+
+                {#if hasBill}
+                  <div class="subs-badges">
+                    {#each dayBills.slice(0, 2) as bill}
+                      <button
+                        class="subs-sqircle"
+                        class:subs-sqircle--paid={bill.paidThisMonth}
+                        style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}"
+                        onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
+                        title="{bill.name} — €{bill.amount.toFixed(2)}"
+                      >
+                        {bill.name.charAt(0).toUpperCase()}
+                      </button>
+                    {/each}
+                    {#if dayBills.length > 2}
+                      <span class="subs-overflow">+{dayBills.length - 2}</span>
+                    {/if}
                   </div>
-                  <span class="bill-amount">€{bill.amount.toFixed(2)}</span>
-                </div>
-                <div class="bill-footer">
-                  <button class="pay-btn" class:paid={bill.paidThisMonth} onclick={() => toggleBillPaid(bill.id)}>
-                    <CheckCircle2 size={16} />
-                    <span>{bill.paidThisMonth ? 'Paid' : 'Mark Paid'}</span>
-                  </button>
-                  <button class="icon-btn danger" onclick={() => deleteBill(bill.id)}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {/if}
               </div>
             {/each}
           </div>
-        {/if}
+
+          <!-- Add subscription -->
+          <button class="subs-add-btn" onclick={() => { resetNewBill(); showAddBill = true; }}>
+            <Plus size={15} /> Add Subscription
+          </button>
+        </div>
+
+        <!-- ── RIGHT: Detail + analytics ─────────────────────────── -->
+        <div class="subs-side">
+
+          <!-- Detail card — brand-color tinted -->
+          {#if selectedBill}
+            {@const sb = selectedBill}
+            {@const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
+            <div class="subs-detail" style="--sb:{sbColor}">
+              <div class="subs-detail-hd">
+                <div class="subs-detail-icon" style="background:{sbColor}">
+                  {sb.name.charAt(0).toUpperCase()}
+                </div>
+                <div class="subs-detail-meta">
+                  <span class="subs-detail-name">{sb.name}</span>
+                  <span class="subs-detail-cycle">Monthly · Day {sb.dueDay}</span>
+                </div>
+                <button class="subs-close" onclick={() => selectedBill = null}>×</button>
+              </div>
+
+              <div class="subs-detail-rows">
+                <div class="subs-dr"><span>Amount</span><strong>€{sb.amount.toFixed(2)}</strong></div>
+                <div class="subs-dr"><span>Yearly cost</span><strong>€{(sb.amount * 12).toFixed(2)}</strong></div>
+                <div class="subs-dr">
+                  <span>Status</span>
+                  <span class="subs-status" class:subs-status--paid={sb.paidThisMonth}>
+                    {sb.paidThisMonth ? 'Paid this month' : 'Unpaid'}
+                  </span>
+                </div>
+                {#if sb.categoryName}<div class="subs-dr"><span>Category</span><strong>{sb.categoryName}</strong></div>{/if}
+                {#if sb.autoPay}<div class="subs-dr"><span>Auto-pay</span><strong>Yes</strong></div>{/if}
+              </div>
+
+              <div class="subs-detail-actions">
+                <button
+                  class="subs-pay-btn"
+                  class:subs-pay-btn--paid={sb.paidThisMonth}
+                  onclick={() => { toggleBillPaid(sb.id); selectedBill = { ...sb, paidThisMonth: !sb.paidThisMonth }; }}
+                >
+                  <CheckCircle2 size={15} />
+                  {sb.paidThisMonth ? 'Mark Unpaid' : 'Mark as Paid'}
+                </button>
+                <button class="subs-del-btn" onclick={() => { deleteBill(sb.id); selectedBill = null; }}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          {/if}
+
+          <!-- Analytics card -->
+          <div class="subs-analytics">
+            <p class="subs-analytics-title">
+              {bills.filter(b => b.active).length} active subscription{bills.filter(b => b.active).length !== 1 ? 's' : ''}
+            </p>
+            <div class="subs-stats">
+              <div class="subs-stat">
+                <span class="subs-stat-lbl">Yearly forecast</span>
+                <span class="subs-stat-val">€{calYearlyTotal.toFixed(0)}</span>
+              </div>
+              <div class="subs-stat">
+                <span class="subs-stat-lbl">Average monthly</span>
+                <span class="subs-stat-val">€{calMonthlyTotal.toFixed(0)}</span>
+              </div>
+              <div class="subs-stat subs-stat--full">
+                <span class="subs-stat-lbl">Paid this month</span>
+                <span class="subs-stat-val">{calPaidCount}/{bills.length}</span>
+              </div>
+            </div>
+
+            <!-- Subscription list — sorted by due day -->
+            <div class="subs-list">
+              {#each [...bills].sort((a, b) => a.dueDay - b.dueDay) as bill}
+                <button
+                  class="subs-row"
+                  class:subs-row--paid={bill.paidThisMonth}
+                  class:subs-row--sel={selectedBill?.id === bill.id}
+                  onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
+                >
+                  <div class="subs-row-icon" style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}">
+                    {bill.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div class="subs-row-info">
+                    <span class="subs-row-name">{bill.name}</span>
+                    <span class="subs-row-due">Day {bill.dueDay}</span>
+                  </div>
+                  <div class="subs-row-right">
+                    <span class="subs-row-amt">€{bill.amount.toFixed(2)}</span>
+                    {#if bill.paidThisMonth}
+                      <CheckCircle2 size={12} color="#22c55e" />
+                    {/if}
+                  </div>
+                </button>
+              {/each}
+
+              {#if bills.length === 0}
+                <div class="subs-empty">
+                  <CreditCard size={28} />
+                  <p>No subscriptions yet.</p>
+                  <p>Add Netflix, Spotify, Claude…</p>
+                </div>
+              {/if}
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- Add subscription modal — popular services grid -->
       {#if showAddBill}
         <div class="modal-overlay" onclick={() => showAddBill = false} onkeydown={(e) => { if (e.key === 'Escape') showAddBill = false; }}>
           <div class="modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
             <div class="modal-handle"></div>
-            <h3>New Bill</h3>
+            <h3>Add Subscription</h3>
+
+            <!-- Popular services -->
+            <div class="popular-services">
+              <span class="popular-label">Popular services</span>
+              <div class="popular-grid">
+                {#each POPULAR_SERVICES as svc}
+                  <button class="popular-btn" onclick={() => { newBill.name = svc.name; }}>
+                    <span class="popular-icon" style="background:{svc.color}">{svc.icon}</span>
+                    <span class="popular-name">{svc.name}</span>
+                  </button>
+                {/each}
+              </div>
+            </div>
+
             <div class="modal-form">
               <div class="form-field">
                 <label for="bill-name">Name</label>
-                <input id="bill-name" type="text" bind:value={newBill.name} placeholder="e.g. Rent, Netflix" />
+                <input id="bill-name" type="text" bind:value={newBill.name} placeholder="e.g. Netflix, Spotify" />
               </div>
               <div class="form-field">
                 <label for="bill-amount">Amount (€)</label>
                 <input id="bill-amount" type="number" step="0.01" min="0" bind:value={newBill.amount} placeholder="0.00" />
               </div>
               <div class="form-field">
-                <label for="bill-due">Due Day (1–31)</label>
+                <label for="bill-due">Billing day (1–31)</label>
                 <input id="bill-due" type="number" min="1" max="31" bind:value={newBill.dueDay} />
               </div>
               <div class="form-field">
-                <label for="bill-category">Category</label>
-                <select id="bill-category" bind:value={newBill.categoryId}>
-                  <option value="">Select category…</option>
+                <label for="bill-cat">Category</label>
+                <select id="bill-cat" bind:value={newBill.categoryId}>
+                  <option value="">Uncategorized</option>
                   {#each categories as cat}
                     <option value={cat.id}>{cat.name}</option>
                   {/each}
@@ -821,9 +1034,11 @@
               </div>
               <label class="checkbox-field">
                 <input type="checkbox" bind:checked={newBill.autoPay} />
-                <span>Auto-pay (reminder only)</span>
+                <span>Auto-pay enabled</span>
               </label>
-              <button class="submit-btn" onclick={addBill}><CheckCircle2 size={16} /> Save Bill</button>
+              <button class="submit-btn" onclick={addBill}>
+                <CheckCircle2 size={15} /> Add Subscription
+              </button>
             </div>
           </div>
         </div>

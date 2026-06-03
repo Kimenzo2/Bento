@@ -358,7 +358,7 @@ pub struct CreateNoteParams {
 
 /// Params for updating note metadata (not blocks).
 /// Go source: block/details.go — SetDetails (top-level object fields)
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct UpdateNoteParams {
     pub id: String,
@@ -369,21 +369,6 @@ pub struct UpdateNoteParams {
     pub pinned: Option<bool>,
     pub is_archived: Option<bool>,
     pub details: Option<Value>,
-}
-
-impl Default for UpdateNoteParams {
-    fn default() -> Self {
-        Self {
-            id: String::new(),
-            title: None,
-            icon: None,
-            cover: None,
-            tags: None,
-            pinned: None,
-            is_archived: None,
-            details: None,
-        }
-    }
 }
 
 /// Result of Undo/Redo.

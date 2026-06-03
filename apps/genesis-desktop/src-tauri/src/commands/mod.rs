@@ -578,7 +578,7 @@ pub fn save_export_manifest(
         let default_directory = settings::resolve_export_directory(&app, &runtime.settings());
         let default_name = format!(
             "bento-export-{}.json",
-            manifest.created_at.replace(':', "-").replace('.', "-")
+            manifest.created_at.replace([':', '.'], "-")
         );
 
         let path = app

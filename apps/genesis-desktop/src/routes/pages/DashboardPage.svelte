@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PromptDialog from "$lib/components/PromptDialog.svelte";
   import { onMount } from "svelte";
   import { browser } from "$app/environment";
   import { invoke, isTauri } from "@tauri-apps/api/core";
@@ -67,8 +68,9 @@
   }
 
   let data = $state<DashboardPayload | null>(null);
-  let loading = $state(true);
-  let error = $state<string | null>(null);
+  let loading = $state(true);    let error = $state<string | null>(null);
+  let quickAddOpen = $state(false);
+  let quickAddValue = $state("");
 
   const canUseTauri = browser && isTauri();
 
@@ -88,37 +90,17 @@
     const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     data = {
       greeting,
-      insightLine: "You have 3 tasks due today and a habit streak to protect.",
+      insightLine: "Open a module to get started",
       featuredModule: {
-        id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#3B82F6",
-        primaryCount: 5, primaryLabel: "Pending tasks", descriptorLabel: "Open tasks",
-        items: [
-          { text: "Review Q2 project brief", secondary: "Today at 3pm", completed: false },
-          { text: "Update habit tracker streak", secondary: "Overdue", completed: false },
-          { text: "Outline journal entry for May", secondary: "Tomorrow", completed: true },
-          { text: "Export budget as CSV", secondary: null, completed: true },
-        ],
+        id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#52b788",
+        primaryCount: 0, primaryLabel: "tasks", descriptorLabel: "Open Tasks →",
+        items: [{ text: "Add a task to get started", secondary: null, completed: false }],
       },
-      recentActivity: [
-        { moduleId: "journal", moduleName: "Journal", moduleIcon: "file-text", moduleAccent: "#f59e0b", action: "Wrote a new entry", timestampRelative: "12 min ago", timestampMs: time.now() - 720_000 },
-        { moduleId: "tasks", moduleName: "Tasks", moduleIcon: "clipboard-list", moduleAccent: "#3B82F6", action: "Completed 'Review draft'", timestampRelative: "34 min ago", timestampMs: time.now() - 2_040_000 },
-        { moduleId: "focus", moduleName: "Focus", moduleIcon: "timer", moduleAccent: "#10b981", action: "Finished a 25-min session", timestampRelative: "1 hr ago", timestampMs: time.now() - 3_600_000 },
-        { moduleId: "reading", moduleName: "Reading", moduleIcon: "book-heart", moduleAccent: "#ec4899", action: "Logged 12 pages", timestampRelative: "2 hr ago", timestampMs: time.now() - 7_200_000 },
-        { moduleId: "water", moduleName: "Water", moduleIcon: "droplets", moduleAccent: "#3b82f6", action: "Logged 2 glasses", timestampRelative: "3 hr ago", timestampMs: time.now() - 10_800_000 },
-      ],
-      streak: { count: 12, moduleId: "habits", moduleName: "Habit Tracker" },
-      featuredMetric: { label: "Focus sessions this week", value: "18", moduleId: "focus", trend: { direction: "up", percentage: 22.5 } },
-      recentModules: [
-        { id: "journal", name: "Journal", icon: "file-text", accentHex: "#f59e0b", lastUsedMs: time.now() - 720_000 },
-        { id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#3B82F6", lastUsedMs: time.now() - 2_040_000 },
-        { id: "focus", name: "Focus", icon: "timer", accentHex: "#10b981", lastUsedMs: time.now() - 3_600_000 },
-        { id: "reading", name: "Reading", icon: "book-heart", accentHex: "#ec4899", lastUsedMs: time.now() - 7_200_000 },
-        { id: "water", name: "Water", icon: "droplets", accentHex: "#3b82f6", lastUsedMs: time.now() - 10_800_000 },
-        { id: "habits", name: "Habits", icon: "activity", accentHex: "#22c55e", lastUsedMs: time.now() - 14_400_000 },
-        { id: "mood", name: "Mood", icon: "smile-plus", accentHex: "#eab308", lastUsedMs: time.now() - 21_600_000 },
-        { id: "budget", name: "Budget", icon: "wallet", accentHex: "#06b6d4", lastUsedMs: time.now() - 28_800_000 },
-      ],
-      gradientColors: ["#8b5cf6", "#ec4899"],
+      recentActivity: [],
+      streak: { count: 0, moduleId: "habits", moduleName: "Habits" },
+      featuredMetric: { label: "tasks done today", value: "0", moduleId: "tasks", trend: null },
+      recentModules: [],
+      gradientColors: ["#52b788", "#818cf8"],
     };
   }
 
@@ -162,19 +144,55 @@
   const LAST_MODULE_KEY = "bento:lastModule";
   const LAST_MODULE_AT_KEY = "bento:lastModuleAt";
 
-  // Persist last module whenever we navigate away from dashboard
-  async function navigateToModule(id: string) {
-    const parsed = moduleIdSchema.safeParse(id);
-    if (!parsed.success) {
+  // The live "last used" module — Rust backend is the sole source of truth.
+  const lastModule = $derived.by(() => {
+    const liveFirst = data?.recentModules?.[0];
+    if (liveFirst) {
+      // Keep localStorage in sync so the app switcher can reference it
+      if (browser) {
+        try {
+          const at = localStorage.getItem(LAST_MODULE_AT_KEY);
+          const existingAt = at ? Number(at) : 0;
+          if (liveFirst.lastUsedMs >= existingAt) {
+            localStorage.setItem(LAST_MODULE_KEY, liveFirst.id);
+            localStorage.setItem(LAST_MODULE_AT_KEY, String(liveFirst.lastUsedMs));
+          }
+        } catch {}
+      }
+      return { id: liveFirst.id, name: liveFirst.name };
+    }
+    return null;
+  });
+
+  function openQuickAdd() {
+    if (!canUseTauri) {
+      window.dispatchEvent(new CustomEvent("bento:quick-add"));
       return;
     }
+    quickAddValue = "";
+    quickAddOpen = true;
+  }
 
-    if (browser) {
-      try {
-        localStorage.setItem(LAST_MODULE_KEY, parsed.data);
-        localStorage.setItem(LAST_MODULE_AT_KEY, String(time.now()));
-      } catch {}
+  async function handleQuickAddConfirm(value: string) {
+    quickAddOpen = false;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    try {
+      await invoke("create_quick_task", { title: trimmed });
+      await loadDashboard();
+    } catch (err) {
+      error = typeof err === "string" ? err : _t('dashboardFailedToAdd');
     }
+  }
+
+  function handleQuickAddCancel() {
+    quickAddOpen = false;
+  }
+  // Navigate to a module — Rust backend is the sole source of truth for detection.
+  async function navigateToModule(id: string) {
+    const parsed = moduleIdSchema.safeParse(id);
+    if (!parsed.success) return;
 
     try {
       await switchModule(parsed.data as BentoModuleId);
@@ -183,78 +201,6 @@
     }
   }
 
-  // Read the persisted last module on startup — used before Tauri data arrives
-  let persistedLastModuleId = $state<string | null>(null);
-  let persistedLastModuleName = $state<string | null>(null);
-  let persistedLastModuleAt = $state<number>(0);
-
-  // Map of module id → display name (kept in sync with recentModules once loaded)
-  const MODULE_NAMES: Record<string, string> = {
-    tasks: "Tasks", notes: "Notes", habits: "Habits", focus: "Focus Timer",
-    health: "Health", budget: "Budget", journal: "Journal", flashcards: "Flashcards",
-    reading: "Reading", goals: "Goals", time: "Time Tracker", mood: "Mood",
-    grocery: "Grocery", recipes: "Recipes", countdown: "Countdown",
-    "voice-memos": "Voice Memos", clipboard: "Clipboard", nutrition: "Nutrition",
-    sleep: "Sleep", breathing: "Breathing", passwords: "Passwords",
-    water: "Water", telemetry: "Telemetry",
-  };
-
-  if (browser) {
-    try {
-      const saved = localStorage.getItem(LAST_MODULE_KEY);
-      const savedAt = Number(localStorage.getItem(LAST_MODULE_AT_KEY) ?? "0");
-      if (saved) {
-        persistedLastModuleId = saved;
-        persistedLastModuleName = MODULE_NAMES[saved] ?? saved;
-        persistedLastModuleAt = Number.isFinite(savedAt) ? savedAt : 0;
-      }
-    } catch {}
-  }
-
-  // The live "last used" module — prefers live Tauri data, falls back to persisted
-  const lastModule = $derived.by(() => {
-    const liveFirst = data?.recentModules?.[0];
-    if (liveFirst) {
-      const liveIsNewer =
-        !persistedLastModuleAt || liveFirst.lastUsedMs >= persistedLastModuleAt;
-
-      // Keep localStorage in sync with what the backend considers most recent,
-      // but do not let a cached backend snapshot overwrite a newer local switch.
-      if (browser && liveIsNewer) {
-        try {
-          localStorage.setItem(LAST_MODULE_KEY, liveFirst.id);
-          localStorage.setItem(LAST_MODULE_AT_KEY, String(liveFirst.lastUsedMs));
-        } catch {}
-      }
-
-      if (liveIsNewer) {
-        return { id: liveFirst.id, name: liveFirst.name };
-      }
-    }
-    if (persistedLastModuleId) {
-      return { id: persistedLastModuleId, name: persistedLastModuleName ?? persistedLastModuleId };
-    }
-    return null;
-  });
-
-  async function openQuickAdd() {
-    if (!canUseTauri) {
-      window.dispatchEvent(new CustomEvent("bento:quick-add"));
-      return;
-    }
-
-    const title = window.prompt("Quick add task", "");
-    if (!title || !title.trim()) {
-      return;
-    }
-
-    try {
-      await invoke("create_quick_task", { title: title.trim() });
-      await loadDashboard();
-    } catch (err) {
-      error = typeof err === "string" ? err : _t('dashboardFailedToAdd');
-    }
-  }
   function openFocusMode() { void navigateToModule("focus"); }
   function continueLastModule() {
     if (lastModule) void navigateToModule(lastModule.id);
@@ -460,6 +406,16 @@
 
   {/if}
 </section>
+
+<PromptDialog
+  bind:open={quickAddOpen}
+  title="Quick add task"
+  placeholder="What needs to be done?"
+  confirmLabel="Add"
+  cancelLabel="Cancel"
+  onconfirm={(value) => void handleQuickAddConfirm(value)}
+  oncancel={handleQuickAddCancel}
+/>
 
 <style>
   /* ═══════════════════════════════════════════════════════════════════
@@ -719,6 +675,7 @@
     gap: 8px;
     flex-wrap: nowrap;                 /* never wrap — pills clip gracefully */
     margin-top: clamp(10px, 1.5vh, 16px);
+    transform: translateY(4px);
     overflow: hidden;                  /* clip if truly tiny screen */
   }
 

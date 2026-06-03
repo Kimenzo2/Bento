@@ -30,14 +30,6 @@ fn current_year_month() -> String {
     now.format("%Y-%m").to_string()
 }
 
-fn year_month_from_key(date_key: &str) -> String {
-    if date_key.len() >= 7 {
-        date_key[..7].to_string()
-    } else {
-        current_year_month()
-    }
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
 // SHARED TYPES
 // ═════════════════════════════════════════════════════════════════════════════

@@ -380,7 +380,9 @@ function readBrowserSettingsBlob(): DesktopSettings | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     const result = desktopSettingsSchema.safeParse(parsed);
-    return result.success ? result.data : null;
+    return result.success
+      ? { ...result.data, workspace: { ...result.data.workspace, sidebarCollapsed: true } }
+      : null;
   } catch {
     return null;
   }
@@ -417,7 +419,7 @@ function readLegacyBrowserSettings() {
       code: normalizeLanguageCode(window.localStorage.getItem(LANGUAGE_KEY) ?? defaultLanguageCode),
     },
     workspace: {
-      sidebarCollapsed: window.localStorage.getItem(SIDEBAR_KEY) === 'true',
+      sidebarCollapsed: true, // Always start collapsed — user toggle is per-session only
       sidebarHidden: false,
       sidebarWidth:
         Number.parseInt(window.localStorage.getItem(SIDEBAR_WIDTH_KEY) ?? '', 10) ||
@@ -617,9 +619,7 @@ async function readStoreSettings(): Promise<DesktopSettings> {
         : defaultDesktopSettings.language.firstDay,
     },
     workspace: {
-      sidebarCollapsed:
-        (await store.get<boolean>(storeKeys.sidebarCollapsed)) ??
-        defaultDesktopSettings.workspace.sidebarCollapsed,
+      sidebarCollapsed: true, // Always start collapsed — user toggle is per-session only
       sidebarHidden:
         (await store.get<boolean>(storeKeys.sidebarHidden)) ??
         defaultDesktopSettings.workspace.sidebarHidden,
@@ -780,7 +780,12 @@ async function readNativeSettingsMirror(): Promise<DesktopSettings | null> {
   try {
     const settings = await invoke<unknown>('load_desktop_settings');
     const parsed = desktopSettingsSchema.safeParse(settings);
-    return parsed.success ? normalizeSettings(parsed.data) : null;
+    if (!parsed.success) return null;
+    const normalized = normalizeSettings(parsed.data);
+    return {
+      ...normalized,
+      workspace: { ...normalized.workspace, sidebarCollapsed: true },
+    };
   } catch {
     return null;
   }

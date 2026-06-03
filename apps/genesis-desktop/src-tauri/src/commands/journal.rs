@@ -229,7 +229,7 @@ pub async fn list_journal_entries(
     limit: Option<i32>,
 ) -> Result<Vec<JournalEntry>, String> {
     let db = state.db();
-    let limit = limit.unwrap_or(30).max(1).min(365);
+    let limit = limit.unwrap_or(30).clamp(1, 365);
 
     let rows = sqlx::query(
         "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries ORDER BY created_at DESC LIMIT ?",

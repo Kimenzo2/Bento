@@ -773,14 +773,14 @@
                   class:global-settings__segment-active={$desktopSettings.cloudBackup.scope === "selected"}
                   onclick={() => void setCloudBackupScope("selected")}
                 >
-                  Selected modules
+                  Selected apps
                 </button>
               </div>
             </div>
 
             {#if $desktopSettings.cloudBackup.scope === "selected"}
               <div class="gs-enc-card">
-                <div class="global-settings__label">Which modules should be backed up?</div>
+                <div class="global-settings__label">Which apps should be backed up?</div>
                 <div class="cloud-backup-module-grid">
                   {#each cloudBackupModules as module}
                     <label class="cloud-backup-module">

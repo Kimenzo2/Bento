@@ -19,7 +19,6 @@ pub mod notes;
 pub mod notifications;
 pub mod payments;
 pub mod recipes;
-pub mod reading;
 pub mod runtime;
 pub mod scheduler;
 pub mod search;
@@ -34,6 +33,7 @@ use chrono::Utc;
 use serde::Serialize;
 use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::Duration};
 use tauri::{AppHandle, Manager};
+#[cfg(not(debug_assertions))]
 use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(not(debug_assertions))]
 use tauri_plugin_window_state::StateFlags;
@@ -65,7 +65,6 @@ use crate::modules::{
 };
 use crate::notes::undo::HistoryRegistry;
 use crate::notes::NoteFullCache;
-use crate::reading::*;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
 use crate::session::ManagedTabSession;
@@ -269,7 +268,7 @@ pub fn run() {
         let data_dir = app
             .path()
             .app_data_dir()
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            .map_err(|e| std::io::Error::other(e))?;
 
         if let Err(error) = apply_pending_restore(app.handle()) {
             eprintln!("[cloud-backup] pending restore skipped: {error}");
@@ -286,7 +285,7 @@ pub fn run() {
         let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
             Ok(db) => db,
             Err(error) => {
-                return Err(std::io::Error::new(std::io::ErrorKind::Other, error).into());
+                return Err(std::io::Error::other(error).into());
             }
         };
         app.manage(BentoAppState::new(db));
@@ -294,13 +293,13 @@ pub fn run() {
         let search_base_dir = app
             .path()
             .app_data_dir()
-            .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
+            .map_err(|error| std::io::Error::other(error))?;
         let search_service = SearchService::new(search_base_dir)
-            .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
+            .map_err(|error| std::io::Error::other(error))?;
         app.manage(search_service);
 
         let auth_manager =
-            AuthManager::new().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            AuthManager::new(data_dir.clone()).map_err(|e| std::io::Error::other(e))?;
         app.manage(auth_manager);
 
         #[cfg(not(debug_assertions))]
@@ -591,34 +590,6 @@ pub fn run() {
             crate::flashcards::flashcards_card_restore,
             crate::flashcards::flashcards_search,
             crate::flashcards::flashcards_review_queue,
-            // Reading
-            reading_list_books,
-            reading_get_book,
-            reading_save_book,
-            reading_delete_book,
-            reading_update_progress,
-            reading_list_collections,
-            reading_save_collection,
-            reading_delete_collection,
-            reading_set_book_collections,
-            reading_add_bookmark,
-            reading_delete_bookmark,
-            reading_add_highlight,
-            reading_delete_highlight,
-            reading_add_note,
-            reading_delete_note,
-            reading_start_session,
-            reading_end_session,
-            reading_list_sessions,
-            reading_list_bookmarks,
-            reading_list_highlights,
-            reading_list_notes,
-            reading_discover_categories,
-            reading_discover_search,
-            reading_discover_detail,
-            reading_discover_random,
-            reading_import_files,
-            reading_import_discover_book,
             // TheMealDB Discover & Import
             crate::meal_db::discover_search,
             crate::meal_db::discover_random,

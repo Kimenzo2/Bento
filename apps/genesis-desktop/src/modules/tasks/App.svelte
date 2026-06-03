@@ -962,6 +962,31 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
       window.removeEventListener('bento:task-created',      refresh);
     };
   });
+
+  // Listen for flyout panel navigation (Search, Activity panels)
+  onMount(() => {
+    const handleNavigate = (e: Event) => {
+      const { taskId } = (e as CustomEvent<{ taskId: string }>).detail;
+      if (taskId) selectedTaskId = taskId;
+    };
+    window.addEventListener('bento:tasks-navigate', handleNavigate);
+    return () => window.removeEventListener('bento:tasks-navigate', handleNavigate);
+  });
+
+  // Listen for saved-views flyout applying a view
+  onMount(() => {
+    const handleApplyView = (e: Event) => {
+      const { viewFilter: vf, viewMode: vm, priorityFilter: pf, projectFilter: proj, query: q } = (e as CustomEvent).detail;
+      if (vf) viewFilter = vf as ViewFilter;
+      if (vm) viewMode = vm as ViewMode;
+      if (pf) priorityFilter = pf as Priority | 'all';
+      if (proj) projectFilter = proj;
+      if (q !== undefined) customFilterText = q;
+    };
+    window.addEventListener('bento:tasks-apply-view', handleApplyView);
+    return () => window.removeEventListener('bento:tasks-apply-view', handleApplyView);
+  });
+
   // Overflow popover state
   let calOverflow = $state<{
     x: number; y: number;

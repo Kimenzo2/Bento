@@ -106,19 +106,6 @@ struct CloudBackupFile {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct StorageBucketInfo {
-    id: String,
-    name: String,
-    #[serde(default)]
-    public: bool,
-    #[serde(default)]
-    created_at: Option<String>,
-    #[serde(default)]
-    updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct StorageObjectInfo {
     name: String,
     #[serde(default)]
@@ -340,24 +327,6 @@ async fn current_access_token(auth: &crate::auth::AuthManager) -> Result<Option<
         .current_session()
         .await
         .map(|session| session.access_token))
-}
-
-async fn auth_headers(
-    auth: &crate::auth::AuthManager,
-    settings: &DesktopSettings,
-) -> Result<(String, String), String> {
-    let project_url = project_url(settings)?;
-    let _anon_key = anon_key(settings)?;
-
-    if let Some(key) = service_role_key()? {
-        return Ok((project_url, key));
-    }
-
-    if let Some(token) = current_access_token(auth).await? {
-        return Ok((project_url, token));
-    }
-
-    Err("Cloud backup requires either an active Supabase session or a configured service role key.".to_string())
 }
 
 async fn ensure_bucket(
@@ -622,13 +591,9 @@ async fn state_snapshot(
     let settings = read_current_settings(app);
     let project_url = project_url(&settings)?;
     let anon_key = anon_key(&settings)?;
-    let auth_header = if let Some(key) = service_role_key()? {
-        key
-    } else if let Some(token) = current_access_token(auth).await? {
-        token
-    } else {
-        String::new()
-    };
+    let auth_header = service_role_key()?
+        .or(current_access_token(auth).await?)
+        .unwrap_or_default();
     let has_service_role = service_role_key()?.is_some();
     if auth_header.is_empty() {
         return Err(
@@ -701,27 +666,6 @@ fn write_staged_restore(
         .map_err(|error| error.to_string())?;
 
     Ok(root)
-}
-
-fn local_backup_files_for_restore(app: &AppHandle, root: &Path) -> Result<Vec<(PathBuf, PathBuf)>, String> {
-    let payload_dir = staging_payload_dir(root);
-    let data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|error| error.to_string())?;
-
-    let mut pairs = Vec::new();
-    for entry in fs::read_dir(&payload_dir).map_err(|error| error.to_string())? {
-        let entry = entry.map_err(|error| error.to_string())?;
-        let relative = entry.path();
-        let Some(rel) = relative.strip_prefix(&payload_dir).ok().map(Path::to_path_buf) else {
-            continue;
-        };
-        let destination = data_dir.join(rel);
-        pairs.push((entry.path(), destination));
-    }
-
-    Ok(pairs)
 }
 
 fn merge_preserving_cloud_backup_config(

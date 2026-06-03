@@ -21,6 +21,12 @@ pub struct DashboardCache {
     cached: Mutex<Option<(DashboardPayload, Instant)>>,
 }
 
+impl Default for DashboardCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DashboardCache {
     pub fn new() -> Self {
         Self {
@@ -742,7 +748,7 @@ async fn query_recent_modules(
     module_scores
         .retain(|(id, _)| !matches!(id.as_str(), "dashboard" | "ai" | "settings" | "notes"));
 
-    module_scores.sort_by(|a, b| b.1.cmp(&a.1));
+    module_scores.sort_by_key(|b| std::cmp::Reverse(b.1));
     let top = &module_scores[..module_scores.len().min(8)];
 
     let modules: Vec<RecentModule> = top

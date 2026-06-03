@@ -61,7 +61,7 @@ fn intersection_area(a: Bounds, b: Bounds) -> u64 {
     }
 }
 
-fn best_monitor<'a>(window_bounds: Bounds, monitors: &'a [Monitor]) -> Option<&'a Monitor> {
+fn best_monitor(window_bounds: Bounds, monitors: &[Monitor]) -> Option<&Monitor> {
     monitors
         .iter()
         .max_by_key(|m| intersection_area(window_bounds, bounds_from_monitor(m)))

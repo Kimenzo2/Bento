@@ -153,37 +153,6 @@ async fn fetch_cards_for_deck(
         })
         .collect())
 }
-
-async fn fetch_deck_row(
-    pool: &sqlx::SqlitePool,
-    deck_id: &str,
-) -> Result<Option<RecallDeckRow>, String> {
-    use sqlx::Row;
-    let row = sqlx::query(
-        "SELECT id,title,context,note,created_at,archived
-         FROM flashcard_decks WHERE id = ?",
-    )
-    .bind(deck_id)
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| e.to_string())?;
-
-    let Some(row) = row else { return Ok(None) };
-
-    let id: String = row.try_get("id").unwrap_or_default();
-    let cards = fetch_cards_for_deck(pool, &id).await?;
-
-    Ok(Some(RecallDeckRow {
-        id,
-        title: row.try_get("title").unwrap_or_default(),
-        context: row.try_get("context").unwrap_or_default(),
-        note: row.try_get("note").unwrap_or_default(),
-        created_at: row.try_get("created_at").unwrap_or(0),
-        archived: row.try_get::<i64, _>("archived").unwrap_or(0) == 1,
-        cards,
-    }))
-}
-
 // ═══ LIST ALL DECKS ═══════════════════════════════════════════════════════════
 
 #[tauri::command]

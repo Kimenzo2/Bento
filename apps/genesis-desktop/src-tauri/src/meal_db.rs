@@ -268,8 +268,7 @@ fn meal_detail_to_recipe_payload(meal: &MealDbFullMeal) -> NewRecipePayload {
         .split('\n')
         .map(|line| line.trim())
         .filter(|line| !line.is_empty() && line.len() > 3)
-        .enumerate()
-        .map(|(_, instruction)| NewStep {
+        .map(|instruction| NewStep {
             instruction: instruction.to_string(),
             duration_min: None,
             video_url: None,

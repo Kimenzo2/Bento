@@ -111,7 +111,13 @@
   let showFabMenu = $state(false);
 
   const catalogEntry = $derived(getModuleCatalogEntry(moduleId));
-  const sectionLabels = $derived(catalogEntry?.sidebar?.items ?? [...fallbackSections]);
+  const sectionLabels = $derived(
+    catalogEntry?.sidebar?.items
+      ? catalogEntry.sidebar.items.map((item) =>
+          typeof item === 'string' ? item : item.label
+        )
+      : [...fallbackSections]
+  );
   const selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   const filteredRecipes = $derived(

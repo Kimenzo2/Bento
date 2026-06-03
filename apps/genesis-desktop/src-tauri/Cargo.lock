@@ -3070,6 +3070,9 @@ checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
 dependencies = [
  "bindgen 0.69.5",
  "pkg-config",
+ "prettyplease",
+ "quote",
+ "syn 2.0.117",
  "vcpkg",
 ]
 
