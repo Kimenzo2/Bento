@@ -875,14 +875,8 @@ pub async fn get_dashboard_data(
         insight = String::from("Welcome back! Open a module to get started");
     }
 
-    let accent_a = featured_module.accent_hex.clone();
-    let accent_b = if streak.count > 0 {
-        String::from("#c8f535")
-    } else if !recent_activity.is_empty() {
-        module_meta(&recent_activity[0].module_id).2.to_string()
-    } else {
-        String::from("#818cf8")
-    };
+    let accent_a = String::from("#4F6EF7");
+    let accent_b = String::from("#5B7BFA");
 
     let payload = DashboardPayload {
         greeting: compute_greeting(&display_name),

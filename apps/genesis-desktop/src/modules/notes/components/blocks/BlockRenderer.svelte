@@ -25,6 +25,7 @@
     readonly = false,
     blockIndex = 0,
     depth = 0,
+    softEnter = false,
     onUpdate = () => {},
     onFocus = () => {},
     onBlur = () => {},
@@ -44,6 +45,7 @@
     readonly?: boolean;
     blockIndex?: number;
     depth?: number;
+    softEnter?: boolean;
     onUpdate?: (blockId: string, text: string, marks: any[]) => void;
     onFocus?: (e?: any) => void;
     onBlur?: (e?: any) => void;
@@ -140,6 +142,7 @@
       {rootId}
       {readonly}
       {blockIndex}
+      {softEnter}
       {onUpdate}
       {onFocus}
       {onBlur}
@@ -159,6 +162,7 @@
             {readonly}
             blockIndex={i}
             depth={depth + 1}
+            {softEnter}
             {onUpdate}
             {onFocus}
             {onBlur}

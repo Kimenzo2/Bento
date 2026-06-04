@@ -107,7 +107,6 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   // Panel resize
   let sidebarWidth = $state(220);
   let listWidth = $state(380);
-  let isResizing = $state(false);
 
   // View mode
   const TASKS_VIEW_KEY = "bento:tasks:viewMode";
@@ -267,6 +266,13 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
     { id: 'all' as ViewFilter, label: 'All Tasks', icon: Layers, count: incompleteCount },
   ]);
 
+  function openSidebarView(nextViewFilter: ViewFilter, nextProjectFilter: string = 'all') {
+    viewFilter = nextViewFilter;
+    projectFilter = nextProjectFilter;
+    viewMode = 'list';
+    selectedTaskId = null;
+  }
+
   let viewTitle = $derived.by(() => {
     switch (viewFilter) {
       case 'inbox': return 'Inbox';
@@ -418,24 +424,6 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
   onMount(() => {
     document.addEventListener('keydown', handleGlobalKeydown);
 
-    // ── Outside-click dismiss for the detail panel ──────────────────────
-    // Using pointerdown (not click) so it fires before focus changes.
-    // We check if the event target is OUTSIDE the panel element — if so, close.
-    // Clicks INSIDE the panel (inputs, buttons, selects) are never intercepted.
-    function handleOutsideClick(e: PointerEvent) {
-      if (!selectedTaskId) return;
-      if (!detailPanelEl) return;
-      const target = e.target as Node;
-      // If the click is inside the panel — do nothing
-      if (detailPanelEl.contains(target)) return;
-      // Also ignore clicks on task cards that open the panel (they set selectedTaskId themselves)
-      const card = (target as Element).closest?.('[data-task-id]');
-      if (card) return;
-      // Click was outside panel and not on a task card — dismiss
-      selectedTaskId = null;
-    }
-    document.addEventListener('pointerdown', handleOutsideClick, { capture: true });
-
     // BUG-12 FIX: tick _todayTick every minute so today/overdue deriveds stay accurate.
     // Also schedule an exact midnight flip so the date rolls over precisely.
     const minuteInterval = setInterval(() => { _todayTick++; }, 60_000);
@@ -458,7 +446,6 @@ import { formatTasksAsMarkdown } from '$lib/services/share-service';
 
     return () => {
       document.removeEventListener('keydown', handleGlobalKeydown);
-      document.removeEventListener('pointerdown', handleOutsideClick, { capture: true });
       clearInterval(minuteInterval);
       clearTimeout(midnightTimer);
     };
@@ -1360,31 +1347,6 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     }
   }
 
-  /* ═══════════════════════════════════════════════════════════════════
-     RESIZE HANDLERS
-     ═══════════════════════════════════════════════════════════════════ */
-  function startResize(e: MouseEvent) {
-    e.preventDefault();
-    isResizing = true;
-    const startX = e.clientX;
-    const startWidth = listWidth;
-
-    function onMouseMove(ev: MouseEvent) {
-      const delta = ev.clientX - startX;
-      const newWidth = Math.max(300, Math.min(500, startWidth + delta));
-      listWidth = newWidth;
-    }
-
-    function onMouseUp() {
-      isResizing = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    }
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }
-
   function openContextMenu(e: MouseEvent, taskId: string) {
     contextMenuX = e.clientX;
     contextMenuY = e.clientY;
@@ -1901,7 +1863,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
         <button
           class="tasks-sidebar-item"
           class:active={viewFilter === item.id}
-          onclick={() => { viewFilter = item.id; selectedTaskId = null; }}
+          onclick={() => openSidebarView(item.id)}
         >
           <svelte:component this={item.icon} class="tasks-sidebar-item-icon" size={16} />
           <span>{item.label}</span>
@@ -1919,7 +1881,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
         <button
           class="tasks-sidebar-project"
           class:active={projectFilter === project.id}
-          onclick={() => { viewFilter = 'all'; projectFilter = projectFilter === project.id ? 'all' : project.id; }}
+          onclick={() => openSidebarView('all', projectFilter === project.id ? 'all' : project.id)}
         >
           <span class="tasks-sidebar-project-dot" style="background: {project.color}"></span>
           <span>{project.name}</span>
@@ -2451,22 +2413,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
   </section>
 
   {#if selectedTask}
-  <!-- ─── RESIZE HANDLE ─── -->
-  <button
-    type="button"
-    class="tasks-resize-handle"
-    aria-label="Resize task panels"
-    onmousedown={startResize}
-    onkeydown={(e) => {
-      if (e.key === 'ArrowLeft') listWidth = Math.max(300, listWidth - 20);
-      if (e.key === 'ArrowRight') listWidth = Math.min(500, listWidth + 20);
-    }}
-  ></button>
-
   <!-- ─── DETAIL PANE ─── -->
-  <!-- Scrim kept only for Escape-key dismiss — display:none so it has no hit area.
-       Outside-click dismiss is handled by the document pointerdown listener in onMount. -->
-  {#if selectedTask}<div class="tasks-detail-scrim" role="presentation" onkeydown={(e) => e.key === 'Escape' && (selectedTaskId = null)}></div>{/if}
   <section class="tasks-detail" bind:this={detailPanelEl}>
       <!-- Detail — Task Content -->
       <div class="tasks-detail-scroll">

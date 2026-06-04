@@ -10,6 +10,20 @@
   import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { clearBillingProfile, refreshBillingProfile } from "$lib/stores/billing.store";
   import { hydrateLanguage } from "$lib/stores/language.store";
+  import { getEditorFontFamily, fontPairings } from "$lib/data/preferences";
+  import { initJournalFont } from "$lib/stores/journal-font.store";
+  import { initNotesFont } from "$lib/stores/notes-font.store";
+
+  function applyEditorFont(fontPairingId: string) {
+    if (!browser) return;
+    const fontFamily = getEditorFontFamily(fontPairingId);
+    document.documentElement.style.setProperty('--editor-font-family', fontFamily);
+    // Set heading font from the pairing
+    const pairing = fontPairings.find(p => p.id === fontPairingId);
+    if (pairing) {
+      document.documentElement.style.setProperty('--editor-font-family-heading', pairing.heading);
+    }
+  }
   import DatabaseUnlockGate from "$lib/components/DatabaseUnlockGate.svelte";
   import LoginPage from "./pages/LoginPage.svelte";
   import AuthPage from "./pages/AuthPage.svelte";
@@ -54,6 +68,12 @@
         const settings = await hydrateDesktopSettings();
         await dbg("settings hydrated: " + JSON.stringify(settings.language));
         try { await hydrateLanguage(settings.language?.code ?? "en"); } catch (e) { await dbg("hydrateLanguage failed: " + String(e)); }
+        // Apply editor font from settings
+        applyEditorFont(settings.appearance.fontPairingId);
+        // Apply Journal font from localStorage store
+        initJournalFont();
+        // Apply Notes font from localStorage store
+        initNotesFont();
       } catch (e) {
         await dbg("hydrateDesktopSettings failed: " + String(e));
       }

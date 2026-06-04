@@ -7,7 +7,6 @@
   import PauseIcon from "@lucide/svelte/icons/pause";
   import PlayIcon from "@lucide/svelte/icons/play";
   import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import Volume2Icon from "@lucide/svelte/icons/volume-2";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -247,17 +246,6 @@
         </div>
         <h1>{_t('moduleFocusDesc')}</h1>
         <p>The original focus timer remains the center of gravity while the shell sections unlock adjacent tools.</p>
-      </div>
-
-      <div class="focus-shell__actions">
-        <Button variant="outline">
-          <Volume2Icon data-icon="inline-start" />
-          {_t('moduleFocusSounds')}
-        </Button>
-        <Button>
-          <SparklesIcon data-icon="inline-start" />
-          {_t('moduleFocusAIReview')}
-        </Button>
       </div>
     </header>
 
@@ -807,11 +795,6 @@
     margin: 12px 0 0;
     max-width: 42rem;
     color: var(--focus-muted);
-  }
-
-  :global(.focus-shell__actions) {
-    display: flex;
-    gap: 12px;
   }
 
   :global(.focus-status-banner) {

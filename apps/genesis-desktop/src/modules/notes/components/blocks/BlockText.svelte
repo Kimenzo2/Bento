@@ -6,11 +6,12 @@
   import { editorStore } from '$lib/local-store/store';
   import { Link2, Unlink2 } from 'lucide-svelte';
 
-  let { block, rootId, readonly = false, blockIndex = 0, onUpdate = () => {}, onFocus = () => {}, onBlur = () => {}, onKeyDown = () => {}, onKeyUp = () => {}, onToggle = () => {}, onStyleConvert = () => {}, onOpenLinkDialog = () => {} }: {
+  let { block, rootId, readonly = false, blockIndex = 0, softEnter = false, onUpdate = () => {}, onFocus = () => {}, onBlur = () => {}, onKeyDown = () => {}, onKeyUp = () => {}, onToggle = () => {}, onStyleConvert = () => {}, onOpenLinkDialog = () => {} }: {
     block: Block;
     rootId: string;
     readonly?: boolean;
     blockIndex?: number;
+    softEnter?: boolean;
     onUpdate?: (blockId: string, text: string, marks: Mark[]) => void;
     onFocus?: (e?: any) => void;
     onBlur?: (e?: any) => void;
@@ -348,10 +349,20 @@
       return;
     }
 
-    // ── Enter: split block or handle shift+enter ────────────────────
+    // ── Enter: insert newline or delegate to parent ─────────────
     if (e.key === 'Enter' && !e.shiftKey && !isTextCode(style)) {
       e.preventDefault();
-      onKeyDown(e, textValue, marks, range, { block, rootId, readonly });
+      if (softEnter) {
+        // Insert soft newline within the same block (journal-style)
+        const insertAt = getCaretPosition(editableEl);
+        textValue = textValue.slice(0, insertAt) + '\n' + textValue.slice(insertAt);
+        syncEditable();
+        setCaretPosition(editableEl, insertAt + 1);
+        onUpdate(block.id || '', textValue, marks);
+      } else {
+        // Delegate to parent (creates new block — notes-style)
+        onKeyDown(e, textValue, marks, range, { block, rootId, readonly });
+      }
       return;
     }
 

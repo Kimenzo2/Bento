@@ -4,6 +4,7 @@
   import { Plus, FileText, Star, Clock, Search, X, MoreHorizontal, Archive, Trash2, Pin } from 'lucide-svelte';
   import { time } from '$lib/utils/time';
   import { editorStore } from '$lib/local-store/store';
+  import NotesFontPreferencePanel from '$lib/components/NotesFontPreferencePanel.svelte';
 
   let { moduleId = 'notes' } = $props();
 
@@ -51,6 +52,7 @@
   let contextMenu = $state<{ id: string; x: number; y: number } | null>(null);
   let errorMsg    = $state<string | null>(null);
   let errorTimer: ReturnType<typeof setTimeout> | null = null;
+  let showFontPref = $state(false);
 
   // ── Anytype-style Filter ───────────────────────────────────────────────
   // Icon-only at rest. Click → input expands. Click-away or ESC → collapses.
@@ -450,7 +452,18 @@
         {/if}
       {/if}
     </div>
+    <!-- ── Font preference button at bottom of sidebar ──────────── -->
+    <div class="sidebar-footer">
+      <button class="sidebar-font-btn" onclick={() => showFontPref = true} aria-label="Change editor font" title="Editor font">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+        <span>Font</span>
+      </button>
+    </div>
   </aside>
+
+  {#if showFontPref}
+    <NotesFontPreferencePanel onclose={() => showFontPref = false} />
+  {/if}
 
   <!-- ── Panel 2: Editor ─────────────────────────────────────────────── -->
   <main class="notes-editor-pane">
@@ -804,6 +817,34 @@
     transition: background 100ms ease, opacity 100ms ease;
   }
   .note-row-menu:hover { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
+
+  /* ── Sidebar footer: font preference button ─────────────────────── */
+  .sidebar-footer {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-top: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+
+  .sidebar-font-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .sidebar-font-btn:hover {
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+    color: var(--foreground);
+  }
 
   .sidebar-loading, .sidebar-empty {
     display: flex;

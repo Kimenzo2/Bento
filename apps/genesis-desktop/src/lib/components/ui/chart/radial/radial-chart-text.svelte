@@ -90,15 +90,15 @@
       Paints the solid background circle so the transparent arc hole
       shows the page background colour instead of the chart background.
     -->
-    <svelte:fragment slot="belowMarks">
+    {#snippet belowMarks()}
       <circle cx="0" cy="0" r={bgRadius} class="fill-background" />
-    </svelte:fragment>
+    {/snippet}
 
     <!--
       slot="aboveMarks": rendered inside the SVG, above the arc marks.
       Renders the centred numeric value and the label below it.
     -->
-    <svelte:fragment slot="aboveMarks">
+    {#snippet aboveMarks()}
       <Text
         value={displayValue}
         textAnchor="middle"
@@ -113,6 +113,6 @@
         class="fill-muted-foreground!"
         dy={displayValue ? 22 : 4}
       />
-    </svelte:fragment>
+    {/snippet}
   </PieChart>
 </Container>

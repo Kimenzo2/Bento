@@ -535,7 +535,7 @@
   .editor-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 16px; color: var(--muted); }
   .loading-spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .editor-blocks :global([contenteditable]) { font-family: 'Instrument Serif', serif; font-size: 16px; font-weight: 400; line-height: 1.75; }
+    .editor-blocks :global([contenteditable]) { font-family: var(--notes-body-font, 'Instrument Serif', serif); font-size: 16px; font-weight: 400; line-height: 1.75; }
   .editor-blocks :global(code), .editor-blocks :global(pre) { font-family: var(--font-mono, 'JetBrains Mono Variable', ui-monospace, monospace); font-size: 13px; }
   .slash-menu { position: absolute; z-index: 100; width: 260px; background: var(--background); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
   .slash-menu-header { padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }

@@ -25,6 +25,23 @@
 @import '@fontsource-variable/jetbrains-mono/wght.css';
 @import '@fontsource/instrument-serif/latin-400.css';
 @import '@fontsource/instrument-serif/latin-400-italic.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-sans/latin-700.css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/source-sans-pro/latin-400.css';
+@import '@fontsource/source-sans-pro/latin-600.css';
+@import '@fontsource/source-sans-pro/latin-700.css';
+@import '@fontsource/poppins/latin-400.css';
+@import '@fontsource/poppins/latin-500.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
+@import '@fontsource/merriweather/latin-400.css';
+@import '@fontsource/merriweather/latin-700.css';
 
 @font-face {
   font-family: 'General Sans';
@@ -97,6 +114,9 @@
   --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif;
   --font-body: 'General Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'JetBrains Mono', monospace;
+  /* Editor font — overridden by font preference setting (FontPreferencePanel) */
+  --editor-font-family: 'Instrument Serif', serif;
+  --editor-font-family-heading: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   /* Tailwind alias — keeps @theme inline working */
   --font-heading: var(--font-display);
   --font-sans: var(--font-body);
@@ -3744,6 +3764,17 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
    Source: anytype-ts/src/scss/component/tooltip.scss
    Container: #tooltipContainer (fixed, pointer-events:none, z:1002)
    ═══════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIALOG / SHEET OVERLAYS — blurred scrim
+   Applied via data-slot so it works even if bits-ui doesn't forward
+   style prop. Same pattern as FontPreferencePanel & GlobalSettings.
+   ═══════════════════════════════════════════════════════════════════ */
+[data-slot="dialog-overlay"],
+[data-slot="sheet-overlay"] {
+  background: color-mix(in srgb, var(--background) 60%, transparent) !important;
+  backdrop-filter: blur(12px) !important;
+}
 
 #tooltipContainer {
   position: fixed;

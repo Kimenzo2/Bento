@@ -100,7 +100,7 @@
       streak: { count: 0, moduleId: "habits", moduleName: "Habits" },
       featuredMetric: { label: "tasks done today", value: "0", moduleId: "tasks", trend: null },
       recentModules: [],
-      gradientColors: ["#52b788", "#818cf8"],
+      gradientColors: ["#4F6EF7", "#5B7BFA"],
     };
   }
 

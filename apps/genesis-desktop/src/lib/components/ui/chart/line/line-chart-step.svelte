@@ -42,7 +42,6 @@
     xScale={scaleUtc()}
     axis="x"
     series={resolvedSeries}
-    tooltip={true}
     props={{
       spline: { curve: curveStep, strokeWidth },
       xAxis: {

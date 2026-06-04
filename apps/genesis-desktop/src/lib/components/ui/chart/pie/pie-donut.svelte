@@ -29,6 +29,5 @@
     {value}
     c={colorField}
     {innerRadius}
-    tooltip={true}
   />
 </Container>

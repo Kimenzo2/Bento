@@ -195,7 +195,8 @@ const starterSidebarSpecs = {
       { label: 'Trends', icon: 'chart-line' },
       { label: 'Alarm', icon: 'alarm-clock' },
       { label: 'Export', icon: 'download' },
-      { label: 'Log', icon: 'file-text' },
+      { label: 'Sessions', icon: 'history' },
+      { label: 'Goal', icon: 'target' },
     ],
   },
   nutrition: {

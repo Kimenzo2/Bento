@@ -1,7 +1,6 @@
 # Dashboard Layout Reference Images
 
 ## Overview
-
 This document catalogs dashboard design references used for the Genesis Life in Color Pages layout redesign.
 All images are stored in `design-references/life-in-color-layout-inspiration/`
 
@@ -10,7 +9,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ## Image Catalog
 
 ### 1. **Donezo Project Management Dashboard**
-
 - **Type:** Project Management Dashboard
 - **Key Features:**
   - Sidebar navigation (fixed left, ~200px)
@@ -26,7 +24,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 2. **Course Learning Platform Dashboard**
-
 - **Type:** Learning/Onboarding Dashboard
 - **Key Features:**
   - Sidebar navigation (left, with icons + labels)
@@ -41,7 +38,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 3. **Crextio HR Dashboard**
-
 - **Type:** HR/Employee Management Dashboard
 - **Key Features:**
   - Centered content with max-width constraint
@@ -56,7 +52,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 4. **Workflow Management (Lime/Yellow Accent)**
-
 - **Type:** Enterprise Workflow Dashboard
 - **Key Features:**
   - Vertical sidebar (ultra-thin icons, ~60px)
@@ -71,7 +66,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 5. **Codename CRM/Sales Dashboard**
-
 - **Type:** Sales/Analytics Dashboard
 - **Key Features:**
   - Nested left sidebar with collapsible sections
@@ -86,7 +80,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 6. **Personal Productivity Dashboard (Gradient Cards)**
-
 - **Type:** Personal/Wellness Dashboard
 - **Key Features:**
   - Left sidebar (narrow, icon-based)
@@ -101,7 +94,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 7. **Operations Live Tracking Dashboard (Dark)**
-
 - **Type:** Real-time Operations Dashboard
 - **Key Features:**
   - Vertical sidebar (icon-based, dark theme)
@@ -115,7 +107,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 8. **Content Management Dashboard (Dark/Purple)**
-
 - **Type:** Content + Schedule Management
 - **Key Features:**
   - Sidebar with search + categories
@@ -130,7 +121,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 9. **Workspace Collaboration Dashboard (Green Accent)**
-
 - **Type:** Team Collaboration & Task Management
 - **Key Features:**
   - Horizontal schedule bar (top, sticky/semi-fixed)
@@ -145,7 +135,6 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 ---
 
 ### 10. **Image Generator Node-Based Interface (Dark)**
-
 - **Type:** Creative Tool / Wizard Interface
 - **Key Features:**
   - Left node-building panel (options/controls)
@@ -161,17 +150,17 @@ All images are stored in `design-references/life-in-color-layout-inspiration/`
 
 ## Design Patterns to Apply to Life in Color Pages
 
-| Pattern                                  | Source Images                            | Implementation                                             |
-| ---------------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
-| **Sidebar Navigation**                   | Donezo, Course, Operations, Content Mgmt | Move book options to fixed/sticky right sidebar            |
-| **2-Column Layout**                      | Crextio, Personal Dashboard, Workspace   | Photo canvas (left) + Book options (right)                 |
-| **3-Section Layout (Left/Center/Right)** | Image Generator, Workspace               | Photo (left/center), Options (left), Preview (right)       |
-| **Horizontal Scrolling**                 | Course Platform, Content Mgmt, Workspace | Carousel for saved generations instead of vertical list    |
-| **Max-Width Constraints**                | Crextio, Personal Dashboard              | Bounded main content (max-w-6xl) with fixed heights        |
-| **Fixed-Height Containers**              | All dashboards                           | Constrain photo canvas and option cards to viewport        |
-| **Tab Navigation**                       | Codename CRM, Workflow Mgmt              | Tabs for "Photo", "Generations", "Book Options", "Preview" |
-| **Icon Sidebar**                         | Operations, Dark Dashboard, Workspace    | Ultra-thin left sidebar with icons only                    |
-| **Card-Based Compartmentalization**      | All dashboards                           | Wrap book options in fixed-size cards instead of long form |
+| Pattern | Source Images | Implementation |
+|---------|---------------|-----------------|
+| **Sidebar Navigation** | Donezo, Course, Operations, Content Mgmt | Move book options to fixed/sticky right sidebar |
+| **2-Column Layout** | Crextio, Personal Dashboard, Workspace | Photo canvas (left) + Book options (right) |
+| **3-Section Layout (Left/Center/Right)** | Image Generator, Workspace | Photo (left/center), Options (left), Preview (right) |
+| **Horizontal Scrolling** | Course Platform, Content Mgmt, Workspace | Carousel for saved generations instead of vertical list |
+| **Max-Width Constraints** | Crextio, Personal Dashboard | Bounded main content (max-w-6xl) with fixed heights |
+| **Fixed-Height Containers** | All dashboards | Constrain photo canvas and option cards to viewport |
+| **Tab Navigation** | Codename CRM, Workflow Mgmt | Tabs for "Photo", "Generations", "Book Options", "Preview" |
+| **Icon Sidebar** | Operations, Dark Dashboard, Workspace | Ultra-thin left sidebar with icons only |
+| **Card-Based Compartmentalization** | All dashboards | Wrap book options in fixed-size cards instead of long form |
 
 ---
 

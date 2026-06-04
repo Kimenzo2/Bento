@@ -41,6 +41,18 @@ export const fontPairings: FontPairing[] = [
     heading: 'Bricolage Grotesque Variable',
     body: 'General Sans',
   },
+  {
+    id: 'anytype',
+    name: 'Anytype',
+    heading: 'IBM Plex Sans',
+    body: 'IBM Plex Sans',
+  },
+  {
+    id: 'instrument-serif',
+    name: 'Instrument Serif',
+    heading: 'Bricolage Grotesque Variable',
+    body: 'Instrument Serif',
+  },
 ];
 
 /**
@@ -70,6 +82,103 @@ export const reopenShortcutOptions: ReopenShortcutOption[] = [
     description: 'Easy to remember if you want a global palette-style shortcut.',
   },
 ];
+
+/**
+ * Get the body font-family string for a given font pairing ID.
+ * Used by the Notes and Journal editors to dynamically switch fonts.
+ */
+export function getEditorFontFamily(fontPairingId: string): string {
+  const pairing = fontPairings.find(p => p.id === fontPairingId);
+  if (!pairing) return 'Instrument Serif, serif';
+
+  switch (pairing.id) {
+    case 'anytype':
+      return "'IBM Plex Sans', sans-serif";
+    case 'instrument-serif':
+      return "'Instrument Serif', serif";
+    case 'bento-classic':
+    default:
+      return "'Instrument Serif', serif";
+  }
+}
+
+/**
+ * Get the font pairing name for display purposes.
+ */
+export function getFontPairingName(fontPairingId: string): string {
+  return fontPairings.find(p => p.id === fontPairingId)?.name ?? 'Instrument Serif';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// JOURNAL FONT VARIATIONS — 6 options, all with IBM Plex Sans heading
+// ═══════════════════════════════════════════════════════════════════
+
+export type JournalFontVariation = {
+  id: string;
+  name: string;
+  heading: string;
+  body: string;
+  description: string;
+};
+
+export const journalFontVariations: JournalFontVariation[] = [
+  {
+    id: 'jv-plex-plex',
+    name: 'Plex Sans + Plex Sans',
+    heading: "'IBM Plex Sans', sans-serif",
+    body: "'IBM Plex Sans', sans-serif",
+    description: 'IBM Plex Sans for both headings and body — clean and consistent',
+  },
+  {
+    id: 'jv-plex-inter',
+    name: 'Plex Sans + Inter',
+    heading: "'IBM Plex Sans', sans-serif",
+    body: "'Inter', sans-serif",
+    description: 'IBM Plex Sans headings with Inter body — modern and readable',
+  },
+  {
+    id: 'jv-plex-source',
+    name: 'Plex Sans + Source Sans Pro',
+    heading: "'IBM Plex Sans', sans-serif",
+    body: "'Source Sans Pro', sans-serif",
+    description: 'IBM Plex Sans headings with Source Sans Pro body — clean journal',
+  },
+  {
+    id: 'jv-plex-poppins',
+    name: 'Plex Sans + Poppins',
+    heading: "'IBM Plex Sans', sans-serif",
+    body: "'Poppins', sans-serif",
+    description: 'IBM Plex Sans headings with Poppins body — geometric and warm',
+  },
+  {
+    id: 'jv-plex-merriweather',
+    name: 'Plex Sans + Merriweather',
+    heading: "'IBM Plex Sans', sans-serif",
+    body: "'Merriweather', serif",
+    description: 'IBM Plex Sans headings with Merriweather body — editorial serif',
+  },
+  {
+    id: 'jv-plex-instrument',
+    name: 'Plex Sans + Instrument Serif',
+    heading: "'IBM Plex Sans', sans-serif",
+    body: "'Instrument Serif', serif",
+    description: 'IBM Plex Sans headings with Instrument Serif body — best of both',
+  },
+];
+
+export const defaultJournalFontVariationId = 'jv-plex-instrument';
+
+export function getJournalFontBody(variationId: string): string {
+  return journalFontVariations.find(v => v.id === variationId)?.body ?? "'Instrument Serif', serif";
+}
+
+export function getJournalFontHeading(variationId: string): string {
+  return journalFontVariations.find(v => v.id === variationId)?.heading ?? "'IBM Plex Sans', sans-serif";
+}
+
+export function getJournalFontVariationName(variationId: string): string {
+  return journalFontVariations.find(v => v.id === variationId)?.name ?? 'Instrument Serif';
+}
 
 export const defaultFontPairingId = fontPairings[0]?.id ?? 'bento-classic';
 export const defaultLanguageCode: LanguageCode = 'en';

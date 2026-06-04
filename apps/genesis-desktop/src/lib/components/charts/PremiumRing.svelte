@@ -178,12 +178,7 @@
 
 {:else}
   <!-- ══════════════ MODE A — Layerchart segmented dots ══════════════ -->
-  <!--
-    tooltipContext is intentionally NOT passed.
-    layerchart 1.x types it as Writable<{...}> — passing false or null
-    is a TypeScript error. Omitting it leaves tooltips disabled by default
-    when no Tooltip component is provided as a child slot.
-  -->
+  <!--      -->
   <div class="pr-dots-wrap" style="--pr-size:{size}px">
     <PieChart
       data={dotsData}
@@ -197,10 +192,8 @@
       props={{ tooltip: { context: { disabled: true } as any } }}
     >
       <!--
-        Svelte 4 named slot syntax. Do NOT use {#snippet} — layerchart@1.x
-        ignores Svelte 5 snippets entirely (they are NOT the same as slots).
       -->
-      <svelte:fragment slot="aboveMarks">
+      {#snippet aboveMarks()}
         {#if value !== undefined}
           <Text
             value={Math.round(pct)}
@@ -219,7 +212,7 @@
             class="pr-dots-label fill-muted-foreground"
           />
         {/if}
-      </svelte:fragment>
+      {/snippet}
     </PieChart>
   </div>
 {/if}

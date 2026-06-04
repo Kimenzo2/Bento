@@ -959,6 +959,7 @@
                 centerLabel={_t('moduleHealthTodaysAdherence')}
                 centerValue={`${adherencePct}%`}
                 centerNote="confirmed"
+                showLegend
               />
             </div>              <div class="hl-score-meta">
               <div><PillIcon size={12}/><strong>{takenCount} {_t('moduleHealthTaken')}</strong><span>{_t('moduleHealthOf')} {medications.length} {_t('moduleHealthDoses')}</span></div>
@@ -1048,6 +1049,7 @@
                     centerLabel={_t('moduleHealthTodayLabel')}
                     centerValue={`${adherencePct}%`}
                     centerNote={_t('moduleHealthDosesConfirmed')}
+                    showLegend
                   />
                 </div>
                 <div class="hl-adherence__meta">

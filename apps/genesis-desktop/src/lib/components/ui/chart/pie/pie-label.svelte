@@ -32,6 +32,5 @@
     {value}
     cRange={data.map((d) => d[colorField] as string)}
     c={colorField}
-    tooltip={true}
   />
 </Container>

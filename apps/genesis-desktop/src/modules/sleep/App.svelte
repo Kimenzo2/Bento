@@ -1,7 +1,8 @@
-﻿<script lang="ts">
-  import MoonStarIcon from "@lucide/svelte/icons/moon-star";
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import DownloadIcon from "@lucide/svelte/icons/download";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
+  import PlusIcon from "@lucide/svelte/icons/plus";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -13,12 +14,13 @@
   } from "$lib/components/ui/card/index.js";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import {
+    ensureModuleSection,
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "sleep";
-  const sectionLabels = ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export", "Log"] as const;
+  const sectionLabels = ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export", "Sessions", "Goal"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -31,72 +33,425 @@
       Trends: _t("moduleSleepSectionTrends"),
       Alarm: _t("moduleSleepSectionAlarm"),
       Export: _t("moduleSleepSectionExport"),
+      Sessions: "Sessions",
+      Goal: "Goal",
     };
     return labels[selectedSection] ?? selectedSection;
   });
 
-  const tonightFocus = [
-    { label: "Wind-down", value: "22:15", note: "Reading lamp and no inbox after 10pm." },
-    { label: "Target sleep", value: "7h 50m", note: "Enough recovery for tomorrow’s training block." },
-    { label: "Bedroom", value: "19°C", note: "Cooling mode starts 30 minutes before bed." },
+  // ═══════════════════════════════════════════════════════
+  // BACKEND TYPES
+  // ═══════════════════════════════════════════════════════
+
+  interface SleepRoutine {
+    id: string;
+    title: string;
+    sortOrder: number;
+    createdAt: number;
+  }
+
+  interface RoutineTracking {
+    routineId: string;
+    dateKey: string;
+    completed: boolean;
+  }
+
+  interface SleepAlarm {
+    id: string;
+    label: string;
+    time: string;
+    wakeWindow: string;
+    mode: string;
+    active: boolean;
+    createdAt: number;
+  }
+
+  // NEW: Sleep session types
+  interface SleepSession {
+    id: string;
+    date: string;
+    sleepOnsetTs: number;
+    wakeTs: number;
+    lastActiveTs: number | null;
+    durationMin: number;
+    qualityScore: number | null;
+    notes: string | null;
+    source: string;
+    confirmationPending: boolean;
+    createdAt: number;
+  }
+
+  interface SleepGoal {
+    targetBedtime: string;
+    targetWaketime: string;
+    targetDurationMin: number;
+    updatedAt: number;
+  }
+
+  interface SleepStats {
+    avgDurationMin: number;
+    avgBedtime: string;
+    avgWaketime: string;
+    consistencyScore: number;
+    sleepDebtMin: number;
+    longestStreakDays: number;
+    currentStreakDays: number;
+    weekdayAvgMin: number;
+    weekendAvgMin: number;
+    socialJetLagMin: number;
+    totalSessions: number;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // STATE — all loaded from backend
+  // ═══════════════════════════════════════════════════════
+
+  let loading = $state(true);
+  let routines = $state<SleepRoutine[]>([]);
+  let routineTracked = $state<RoutineTracking[]>([]);
+  let alarmList = $state<SleepAlarm[]>([]);
+
+  // Routine add form
+  let routineInput = $state("");
+  let routineSaving = $state(false);
+
+  // Alarm add form
+  let alarmLabel = $state("");
+  let alarmTime = $state("07:00");
+  let alarmSaving = $state(false);
+
+  // NEW: Session state
+  let sleepSessions = $state<SleepSession[]>([]);
+  let sleepGoal = $state<SleepGoal>({ targetBedtime: "23:00", targetWaketime: "07:00", targetDurationMin: 480, updatedAt: 0 });
+  let sleepStats = $state<SleepStats | null>(null);
+  let sessionSaving = $state(false);
+  let sessionDeleteLoading = $state<string | null>(null);
+
+  // Manual session form
+  let manualDate = $state(todayKey());
+  let manualBedtime = $state("23:00");
+  let manualWake = $state("07:00");
+  let manualNotes = $state("");
+  let showManualForm = $state(false);
+
+  // Goal form
+  let goalBedtime = $state("23:00");
+  let goalWaketime = $state("07:00");
+  let goalDuration = $state(480);
+  let goalSaving = $state(false);
+  let goalSaved = $state(false);
+
+  // ═══════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════
+
+  function todayKey(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function dayLabel(dateKey: string): string {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const d = new Date(dateKey + "T00:00:00");
+    return days[d.getDay()];
+  }
+
+  function shortDate(dateKey: string): string {
+    const parts = dateKey.split("-");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${months[parseInt(parts[1]) - 1]} ${parseInt(parts[2])}`;
+  }
+
+  function formatDuration(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // DERIVED — all from sleep_sessions (manual + OS-detected)
+  // ═══════════════════════════════════════════════════════
+
+  const weekColors = [
+    '#6366f1',  // Mon - indigo
+    '#7c3aed',  // Tue - violet
+    '#a855f7',  // Wed - purple
+    '#818cf8',  // Thu - light indigo
+    '#6366f1',  // Fri - indigo
+    '#8b5cf6',  // Sat - medium violet
+    '#a78bfa',  // Sun - soft violet
   ];
 
-  const sleepStages = [
-    { label: "Deep", value: "2h 04m", fill: 72 },
-    { label: "REM", value: "1h 41m", fill: 58 },
-    { label: "Light", value: "3h 57m", fill: 83 },
-    { label: "Awake", value: "18m", fill: 16 },
-  ];
-
-  const routine = [
-    { title: "Dim lights", status: "Done", note: "Started 45 minutes before bed." },
-    { title: "Phone docked", status: "Done", note: "Charging outside the room." },
-    { title: "Stretch shoulders", status: "Next", note: "6 minute unwind queued." },
-    { title: "Set smart alarm", status: "Ready", note: "Wake window 06:15 to 06:45." },
-  ];
-
-  const weeklyTrend = [
-    { day: "Mon", score: 62 },
-    { day: "Tue", score: 74 },
-    { day: "Wed", score: 58 },
-    { day: "Thu", score: 82 },
-    { day: "Fri", score: 69 },
-    { day: "Sat", score: 77 },
-    { day: "Sun", score: 71 },
-  ];
-
-  const alarms = [
-    { label: "Weekday sunrise", time: "06:35", window: "20 min light-sleep window", mode: "Smart" },
-    { label: "Saturday recovery", time: "07:25", window: "Gentle chime + blinds", mode: "Flexible" },
-    { label: "Travel fallback", time: "06:00", window: "Hotel vibration only", mode: "Backup" },
-  ];
-
-  const exportOptions = [
-    { title: "Sleep PDF", detail: "Last 30 nights with score, debt, and routine adherence." },
-    { title: "CSV stages", detail: "Nightly deep, REM, and wake events for external analysis." },
-    { title: "Shareable recap", detail: "A one-page summary for coach or clinician review." },
-  ];
-
-  // ── Log section (ported exactly from Journal's Sleep section) ────────
-  let logSleepHours = $state(7.2);
-  let logSleepQuality = $state(4);
-  let logSleepData = $state([
-    { date: 'May 21', hours: 7.2, quality: 4, bedtime: '11:10 PM', wake: '6:22 AM' },
-    { date: 'May 20', hours: 6.8, quality: 3, bedtime: '11:45 PM', wake: '6:35 AM' },
-    { date: 'May 19', hours: 8.1, quality: 5, bedtime: '10:30 PM', wake: '6:36 AM' },
-    { date: 'May 18', hours: 7.5, quality: 4, bedtime: '11:00 PM', wake: '6:30 AM' },
-    { date: 'May 17', hours: 5.9, quality: 2, bedtime: '12:15 AM', wake: '6:10 AM' },
-  ]);
-
-  let logAvgHours = $derived(
-    logSleepData.length > 0
-      ? (logSleepData.reduce((s, r) => s + r.hours, 0) / logSleepData.length).toFixed(1)
-      : '7.0'
+  // Most recent completed session (last night)
+  const lastNight = $derived(
+    sleepSessions.length > 0 ? sleepSessions[0] : null
   );
 
-  function toggleLogStar(star: number) {
-    logSleepQuality = star;
+  function tsToHHMM(tsMs: number): string {
+    const d = new Date(tsMs);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   }
+
+  // Weekly trend for arc chart from sleep_sessions
+  const weeklyTrend = $derived.by(() => {
+    const days: { day: string; score: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const session = sleepSessions.find((s) => s.date === key);
+      days.push({
+        day: dayLabel(key),
+        score: session ? Math.round(session.qualityScore ?? 0) : 0,
+      });
+    }
+    return days;
+  });
+
+  // Average weekly score (only days with data)
+  const weeklyAvgScore = $derived.by(() => {
+    const withData = weeklyTrend.filter(d => d.score > 0);
+    return withData.length > 0
+      ? Math.round(withData.reduce((s, d) => s + d.score, 0) / withData.length)
+      : 0;
+  });
+
+  // Best and worst nights from sessions
+  const bestNight = $derived(sleepSessions.length > 0
+    ? [...sleepSessions].sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0))[0]
+    : null
+  );
+  const worstNight = $derived(sleepSessions.length > 0
+    ? [...sleepSessions].sort((a, b) => (a.qualityScore ?? 0) - (b.qualityScore ?? 0))[0]
+    : null
+  );
+
+  // ── Concentric arc chart (one ring per day) ─
+  const arcSegments = $derived.by(() => {
+    const cx = 120, cy = 120;
+    const minR = 28, ringW = 14, gap = 4;
+
+    return weeklyTrend.map((d, i) => {
+      const r = minR + i * (ringW + gap);
+      const circumference = 2 * Math.PI * r;
+      const fillRatio = Math.min(d.score / 100, 1);
+      const filled = circumference * fillRatio;
+      const empty = circumference - filled;
+      const rotation = -90;
+      return {
+        cx, cy, r,
+        strokeWidth: ringW,
+        circumference, filled, empty, rotation,
+        color: weekColors[i],
+        day: d.day,
+        score: d.score,
+      };
+    });
+  });
+
+  // Stages are not available for auto-detected sessions
+  const sleepStages = $derived([
+    { label: "Deep", value: "--", fill: 0 },
+    { label: "REM", value: "--", fill: 0 },
+    { label: "Light", value: "--", fill: 0 },
+    { label: "Awake", value: "--", fill: 0 },
+  ]);
+
+  // Score breakdown from last night's session
+  const scoreBreakdown = $derived.by(() => {
+    const qs = lastNight?.qualityScore ?? 0;
+    const durMin = lastNight?.durationMin ?? 0;
+    const hours = durMin / 60;
+    return [
+      { label: "Duration", value: hours >= 7 && hours <= 9 ? 90 : hours >= 6 ? 70 : 40 },
+      { label: "Quality", value: Math.round(qs) },
+      { label: "Score", value: Math.round(qs) },
+    ];
+  });
+
+  // Last night description
+  const lastNightDesc = $derived(
+    lastNight
+      ? `${formatDuration(lastNight.durationMin)} total${lastNight.sleepOnsetTs ? ` · bed ${tsToHHMM(lastNight.sleepOnsetTs)}` : ""}`
+      : _t("moduleSleepLastNightDesc")
+  );
+
+  // Tonight focus — from last session + defaults
+  const tonightFocus = $derived([
+    { label: "Wind-down", value: "22:15", note: "Reading lamp and no inbox after 10pm." },
+    {
+      label: "Target sleep",
+      value: lastNight ? `${formatDuration(lastNight.durationMin)}` : "7h 50m",
+      note: "Enough recovery for tomorrow's training block.",
+    },
+    { label: "Bedroom", value: "19°C", note: "Cooling mode starts 30 minutes before bed." },
+  ]);
+
+  // Routine items with status merged
+  const routineWithStatus = $derived(
+    routines.map((r) => {
+      const track = routineTracked.find((t) => t.routineId === r.id);
+      const status = track?.completed ? "Done" : "Ready";
+      return {
+        id: r.id,
+        title: r.title,
+        status,
+        note: status === "Done" ? "Completed tonight." : "Ready for tonight.",
+      };
+    })
+  );
+
+  // ═══════════════════════════════════════════════════════
+  // ACTIONS
+  // ═══════════════════════════════════════════════════════
+
+  async function addRoutine() {
+    if (!routineInput.trim()) return;
+    routineSaving = true;
+    try {
+      await invoke<SleepRoutine>("sleep_routine_save", {
+        input: { title: routineInput.trim() },
+      });
+      routineInput = "";
+      await Promise.all([
+        invoke<SleepRoutine[]>("sleep_routine_list").then(r => routines = r),
+        invoke<RoutineTracking[]>("sleep_routine_status").then(r => routineTracked = r),
+      ]);
+    } catch (e) {
+      console.error("Failed to add routine:", e);
+    } finally {
+      routineSaving = false;
+    }
+  }
+
+  async function addAlarm() {
+    if (!alarmLabel.trim() || !alarmTime.trim()) return;
+    alarmSaving = true;
+    try {
+      await invoke<SleepAlarm>("sleep_alarm_save", {
+        alarm: { label: alarmLabel.trim(), time: alarmTime.trim() },
+      });
+      alarmLabel = "";
+      alarmTime = "07:00";
+      alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
+    } catch (e) {
+      console.error("Failed to add alarm:", e);
+    } finally {
+      alarmSaving = false;
+    }
+  }
+
+  async function toggleRoutine(routineId: string) {
+    try {
+      const completed = await invoke<boolean>("sleep_routine_toggle", {
+        routineId,
+      });
+      // Reload routine status
+      const status = await invoke<RoutineTracking[]>("sleep_routine_status");
+      routineTracked = status;
+    } catch (e) {
+      console.error("Failed to toggle routine:", e);
+    }
+  }
+
+  // NEW: Session actions
+  async function addManualSession() {
+    sessionSaving = true;
+    try {
+      await invoke<SleepSession>("add_manual_sleep_session", {
+        input: {
+          date: manualDate,
+          sleepTime: manualBedtime,
+          wakeTime: manualWake,
+          notes: manualNotes || null,
+        },
+      });
+      showManualForm = false;
+      manualNotes = "";
+      await loadSessionData();
+    } catch (e) {
+      console.error("Failed to add session:", e);
+    } finally {
+      sessionSaving = false;
+    }
+  }
+
+  async function deleteSession(id: string) {
+    sessionDeleteLoading = id;
+    try {
+      await invoke<boolean>("delete_sleep_session", { id });
+      await loadSessionData();
+    } catch (e) {
+      console.error("Failed to delete session:", e);
+    } finally {
+      sessionDeleteLoading = null;
+    }
+  }
+
+  async function loadSessionData() {
+    try {
+      const [sessions, goal, stats] = await Promise.all([
+        invoke<SleepSession[]>("get_sleep_sessions", { days: 30 }),
+        invoke<SleepGoal>("get_sleep_goal"),
+        invoke<SleepStats>("get_sleep_stats", { days: 30 }),
+      ]);
+      sleepSessions = sessions;
+      sleepGoal = goal;
+      sleepStats = stats;
+      goalBedtime = goal.targetBedtime;
+      goalWaketime = goal.targetWaketime;
+      goalDuration = goal.targetDurationMin;
+    } catch (e) {
+      console.error("Failed to load session data:", e);
+    }
+  }
+
+  async function saveSleepGoal() {
+    goalSaving = true;
+    goalSaved = false;
+    try {
+      const result = await invoke<SleepGoal>("update_sleep_goal", {
+        bedtime: goalBedtime,
+        waketime: goalWaketime,
+        duration: goalDuration,
+      });
+      sleepGoal = result;
+      goalSaved = true;
+      setTimeout(() => { goalSaved = false; }, 2000);
+    } catch (e) {
+      console.error("Failed to save goal:", e);
+    } finally {
+      goalSaving = false;
+    }
+  }
+
+  async function loadData() {
+    try {
+      // Load session data (powers Tonight, Score, Trends)
+      await loadSessionData();
+
+      // Load routine + alarm data
+      const [rList, rStatus, alarms] = await Promise.all([
+        invoke<SleepRoutine[]>("sleep_routine_list"),
+        invoke<RoutineTracking[]>("sleep_routine_status"),
+        invoke<SleepAlarm[]>("sleep_alarm_list"),
+      ]);
+      routines = rList;
+      routineTracked = rStatus;
+      alarmList = alarms;
+    } catch (e) {
+      console.error("Failed to load sleep data:", e);
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    ensureModuleSection(moduleId, sectionLabels);
+    loadData();
+  });
 </script>
 
 <main class="sleep-workspace module-root" data-module="sleep">
@@ -110,34 +465,25 @@
         <h1>{_t('moduleSleepDesc')}</h1>
         <p>{_t('moduleSleepHeaderDesc')}</p>
       </div>
-
-      <div class="sleep-shell__actions">
-        <Button variant="outline">
-          <MoonStarIcon data-icon="inline-start" />
-          {_t('moduleSleepNightMode')}
-        </Button>
-        <Button>
-          <SparklesIcon data-icon="inline-start" />
-          {_t('moduleSleepAIBedtime')}
-        </Button>
-      </div>
     </header>
 
-    {#if selectedSection === "Tonight"}
+    {#if loading}
+      <div class="sleep-loading"></div>
+    {:else if selectedSection === "Tonight"}
     <section class="sleep-hero-grid">
       <Card class="sleep-orb-card">
         <CardHeader>
           <CardTitle>{_t('moduleSleepLastNight')}</CardTitle>
-          <CardDescription>{_t('moduleSleepLastNightDesc')}</CardDescription>
+          <CardDescription>{lastNightDesc}</CardDescription>
         </CardHeader>
         <CardContent class="sleep-orb-card__content">
-          <div class="sleep-orb">
-            <strong>82</strong>
+          <div class="sleep-orb" style="background: conic-gradient(var(--sleep-accent) {Math.round(lastNight?.qualityScore ?? 0)}%, color-mix(in srgb, var(--border) 80%, transparent) 0);">
+            <strong>{Math.round(lastNight?.qualityScore ?? 0)}</strong>
             <small>{_t('moduleSleepScore')}</small>
           </div>
           <div class="sleep-meta">
-            <div><strong>+11%</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
-            <div><strong>06:35</strong><span>{_t('moduleSleepSmartWake')}</span></div>
+            <div><strong>{lastNight && sleepStats ? lastNight.durationMin >= sleepStats.avgDurationMin ? `+${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : `${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : '--'}</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
+            <div><strong>{lastNight ? tsToHHMM(lastNight.wakeTs) : '--:--'}</strong><span>{_t('moduleSleepSmartWake')}</span></div>
           </div>
         </CardContent>
       </Card>
@@ -157,65 +503,6 @@
           {/each}
         </CardContent>
       </Card>
-    </section>
-    {/if}
-
-    {#if selectedSection === "Log"}
-    <section class="sl-bento">
-      <!-- SLEEP HERO CARD (accent) — ported exactly from Journal -->
-      <div class="sl-card sl-card--accent sl-card--hero">
-        <div class="sl-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          {_t('moduleJournalLastNight')}
-        </div>
-        <div class="sl-hero-num">{logSleepHours}<span class="sl-unit">{_t('moduleJournalHrs')}</span></div>
-        <!-- Quality stars -->
-        <div class="sl-stars">
-          {#each [1,2,3,4,5] as star}
-            <button class="sl-star" class:sl-star--on={star <= logSleepQuality} onclick={() => toggleLogStar(star)}>
-              <svg viewBox="0 0 24 24" fill={star <= logSleepQuality ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-          {/each}
-        </div>
-        <p class="sl-card-hint">{_t('moduleJournalQualityRating')}</p>
-      </div>
-
-      <!-- SLEEP LOG LIST CARD (surface) — ported exactly from Journal -->
-      <div class="sl-card sl-card--surface sl-card--log">
-        <div class="sl-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
-          {_t('moduleJournal5DayLog')}
-        </div>
-        {#each logSleepData as row}
-        <div class="sl-log-row">
-          <span class="sl-log-date">{row.date}</span>
-          <div class="sl-bar-wrap">
-            <div class="sl-bar" style="width:{(row.hours / 9) * 100}%;background:color-mix(in srgb, #8b5cf6 {Math.round((row.quality/5)*100)}%, #3b82f6)"></div>
-          </div>
-          <span class="sl-log-hrs">{row.hours}{_t('moduleJournalH')}</span>
-          <div class="sl-stars-mini">
-            {#each [1,2,3,4,5] as s}
-              <svg viewBox="0 0 24 24" fill={s<=row.quality?'#8b5cf6':'none'} stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sl-star-mini"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            {/each}
-          </div>
-        </div>
-        {/each}
-      </div>
-
-      <!-- SLEEP AVG CARD (dark) — ported exactly from Journal -->
-      <div class="sl-card sl-card--dark sl-card--avg">
-        <div class="sl-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          {_t('moduleJournalAvgThisWeek')}
-        </div>
-        <div class="sl-stat-big">{logAvgHours}<span class="sl-unit">{_t('moduleJournalHrs')}</span></div>
-        <p class="sl-card-hint" style="color:#22c55e">{_t('moduleJournalAvgIncrease')}</p>
-        <div class="sl-tips">
-          <span class="sl-tip">{_t('moduleJournalGoal7')}</span>
-          <span class="sl-tip">{_t('moduleJournalBedtime')}</span>
-        </div>
-      </div>
-
     </section>
     {/if}
 
@@ -244,15 +531,20 @@
               <CardDescription>{_t('moduleSleepPreSleepChecklistDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-routine-list">
-              {#each routine as step}
+              {#each routineWithStatus as step}
                 <article>
                   <div>
                     <strong>{step.title}</strong>
                     <p>{step.note}</p>
                   </div>
-                  <Badge variant={step.status === 'Done' ? 'default' : 'secondary'}>{_t('moduleSleep' + step.status)}</Badge>
+                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)}>
+                    {step.status === 'Done' ? '✓' : '○'}
+                  </button>
                 </article>
               {/each}
+              {#if routines.length === 0}
+                <p style="text-align:center;color:var(--muted);padding:12px;">No routine items yet.</p>
+              {/if}
             </CardContent>
           </Card>
         </div>
@@ -282,10 +574,9 @@
               <CardDescription>{_t('moduleSleepScoreBreakdownDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-breakdown">
-              <div><span>{_t('moduleSleepDuration')}</span><strong>88</strong></div>
-              <div><span>{_t('moduleSleepConsistency')}</span><strong>79</strong></div>
-              <div><span>{_t('moduleSleepRecovery')}</span><strong>84</strong></div>
-              <div><span>{_t('moduleSleepWakeStability')}</span><strong>81</strong></div>
+              {#each scoreBreakdown as item}
+                <div><span>{item.label}</span><strong>{item.value}</strong></div>
+              {/each}
             </CardContent>
           </Card>
         </div>
@@ -296,16 +587,28 @@
             <CardDescription>{_t('moduleSleepBedtimeRoutineDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="sleep-routine-board">
-            {#each routine as step, index}
+            <!-- Add routine form -->
+            <div class="sr-add-form">
+              <input type="text" bind:value={routineInput} placeholder="New routine step..." class="sr-input" onkeydown={(e) => e.key === 'Enter' && addRoutine()} />
+              <button class="sr-add-btn" onclick={addRoutine} disabled={routineSaving || !routineInput.trim()}>
+                {routineSaving ? 'Adding...' : 'Add'}
+              </button>
+            </div>
+            {#each routineWithStatus as step, index}
               <article>
                 <div class="sleep-routine-board__count">{index + 1}</div>
                 <div>
                   <strong>{step.title}</strong>
                   <p>{step.note}</p>
                 </div>
-                <Badge variant={step.status === 'Done' ? 'default' : 'outline'}>{_t('moduleSleep' + step.status)}</Badge>
+                <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)}>
+                  {step.status === 'Done' ? '✓' : '○'}
+                </button>
               </article>
             {/each}
+            {#if routines.length === 0}
+              <p style="text-align:center;color:var(--muted);padding:20px;">No routine items set up yet.</p>
+            {/if}
           </CardContent>
         </Card>
       {:else if selectedSection === "Trends"}
@@ -316,13 +619,42 @@
               <CardDescription>{_t('moduleSleepWeeklyTrendDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-trend-chart">
-              {#each weeklyTrend as item}
-                <article>
-                  <span>{item.day}</span>
-                  <i style={`--bar:${item.score}%`}></i>
-                  <strong>{item.score}</strong>
-                </article>
-              {/each}
+              <svg viewBox="0 0 240 240" class="sleep-arc-svg" aria-label="Weekly sleep score rings">
+                {#each arcSegments as seg}
+                  <circle
+                    cx={seg.cx} cy={seg.cy} r={seg.r}
+                    fill="none"
+                    stroke="color-mix(in srgb, {seg.color} 18%, transparent)"
+                    stroke-width={seg.strokeWidth}
+                  />
+                {/each}
+                {#each arcSegments as seg}
+                  <circle
+                    cx={seg.cx} cy={seg.cy} r={seg.r}
+                    fill="none"
+                    stroke={seg.color}
+                    stroke-width={seg.strokeWidth}
+                    stroke-linecap="round"
+                    stroke-dasharray="{seg.filled} {seg.empty}"
+                    transform="rotate({seg.rotation} {seg.cx} {seg.cy})"
+                  />
+                {/each}
+                <text x="120" y="114" text-anchor="middle" dominant-baseline="central" class="sleep-arc-score">
+                  {weeklyAvgScore}
+                </text>
+                <text x="120" y="134" text-anchor="middle" dominant-baseline="central" class="sleep-arc-label">
+                  AVG
+                </text>
+              </svg>
+              <div class="sleep-arc-legend">
+                {#each arcSegments as seg}
+                  <span class="sleep-arc-legend-item">
+                    <i style="background:{seg.color}"></i>
+                    <span>{seg.day}</span>
+                    <strong>{seg.score}</strong>
+                  </span>
+                {/each}
+              </div>
             </CardContent>
           </Card>
 
@@ -332,9 +664,13 @@
               <CardDescription>{_t('moduleSleepPatternNotesDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-list">
-              <article><span>{_t('moduleSleepBestNight')}</span><strong>{_t('moduleSleepBestNightValue')}</strong><p>{_t('moduleSleepBestNightDesc')}</p></article>
-              <article><span>{_t('moduleSleepWeakestNight')}</span><strong>{_t('moduleSleepWeakestNightValue')}</strong><p>{_t('moduleSleepWeakestNightDesc')}</p></article>
-              <article><span>{_t('moduleSleepTrend')}</span><strong>{_t('moduleSleepRising')}</strong><p>{_t('moduleSleepTrendDesc')}</p></article>
+              {#if bestNight && worstNight}
+                <article><span>Best night</span><strong>{Math.round(bestNight.qualityScore ?? 0)}</strong><p>{shortDate(bestNight.date)} — {formatDuration(bestNight.durationMin)}</p></article>
+                <article><span>Weakest night</span><strong>{Math.round(worstNight.qualityScore ?? 0)}</strong><p>{shortDate(worstNight.date)} — {formatDuration(worstNight.durationMin)}</p></article>
+                <article><span>Trend</span><strong>{weeklyAvgScore >= 70 ? 'Rising' : 'Building'}</strong><p>{weeklyTrend.filter(d => d.score > 0).length} nights logged this week.</p></article>
+              {:else}
+                <article><span>No data yet</span><strong>--</strong><p>Start logging your sleep to see patterns.</p></article>
+              {/if}
             </CardContent>
           </Card>
         </div>
@@ -345,32 +681,174 @@
             <CardDescription>{_t('moduleSleepAlarmOrchDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="sleep-alarm-list">
-            {#each alarms as alarm}
+            <!-- Add alarm form -->
+            <div class="sa-add-form">
+              <input type="text" bind:value={alarmLabel} placeholder="Alarm label..." class="sa-input" />
+              <input type="time" bind:value={alarmTime} class="sa-time" />
+              <button class="sa-add-btn" onclick={addAlarm} disabled={alarmSaving || !alarmLabel.trim() || !alarmTime.trim()}>
+                {alarmSaving ? 'Adding...' : 'Add'}
+              </button>
+            </div>
+            {#each alarmList as alarm}
               <article>
                 <div>
                   <strong>{alarm.label}</strong>
-                  <p>{alarm.window}</p>
+                  <p>{alarm.wakeWindow}</p>
                 </div>
                 <div class="sleep-alarm-list__time">{alarm.time}</div>
                 <Badge variant="secondary">{alarm.mode}</Badge>
               </article>
             {/each}
+            {#if alarmList.length === 0}
+              <p style="text-align:center;color:var(--muted);padding:20px;">No alarms configured yet.</p>
+            {/if}
           </CardContent>
         </Card>
-      {:else if selectedSection === "Log"}
+      {:else if selectedSection === "Sessions"}
+        <div class="sleep-grid-sessions">
+          <!-- Stats bento -->
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Sleep stats</CardTitle>
+              <CardDescription>30-day overview from tracked sessions</CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-session-stats">
+              {#if sleepStats}
+                <div class="ss-stat">
+                  <span class="ss-stat-value">{formatDuration(sleepStats.avgDurationMin)}</span>
+                  <span class="ss-stat-label">Avg duration</span>
+                </div>
+                <div class="ss-stat">
+                  <span class="ss-stat-value">{sleepStats.avgBedtime}</span>
+                  <span class="ss-stat-label">Avg bedtime</span>
+                </div>
+                <div class="ss-stat">
+                  <span class="ss-stat-value">{sleepStats.avgWaketime}</span>
+                  <span class="ss-stat-label">Avg wake</span>
+                </div>
+                <div class="ss-stat">
+                  <span class="ss-stat-value" class:ss-stat--good={sleepStats.consistencyScore >= 70} class:ss-stat--warn={sleepStats.consistencyScore >= 40 && sleepStats.consistencyScore < 70} class:ss-stat--bad={sleepStats.consistencyScore < 40}>{Math.round(sleepStats.consistencyScore)}</span>
+                  <span class="ss-stat-label">Consistency</span>
+                </div>
+                <div class="ss-stat">
+                  <span class="ss-stat-value" class:ss-stat--bad={sleepStats.sleepDebtMin > 0}>{sleepStats.sleepDebtMin > 0 ? `-${formatDuration(sleepStats.sleepDebtMin)}` : 'On track'}</span>
+                  <span class="ss-stat-label">Sleep debt</span>
+                </div>
+                <div class="ss-stat">
+                  <span class="ss-stat-value">{sleepStats.totalSessions}</span>
+                  <span class="ss-stat-label">Sessions</span>
+                </div>
+              {:else}
+                <p style="color:var(--muted);text-align:center;grid-column:1/-1;padding:20px;">No session data yet.</p>
+              {/if}
+            </CardContent>
+          </Card>
+
+          <!-- Session list + manual log -->
+          <Card class="sleep-panel">
+            <CardHeader>
+              <CardTitle>Session log</CardTitle>
+              <CardDescription>
+                {#if !showManualForm}
+                  OS-detected + manual sessions
+                {:else}
+                  Log a past night manually
+                {/if}
+              </CardDescription>
+            </CardHeader>
+            <CardContent class="sleep-session-list">
+              {#if showManualForm}
+                <div class="ss-manual-form">
+                  <label class="ss-field">
+                    <span>Date</span>
+                    <input type="date" bind:value={manualDate} />
+                  </label>
+                  <label class="ss-field">
+                    <span>Bedtime</span>
+                    <input type="time" bind:value={manualBedtime} />
+                  </label>
+                  <label class="ss-field">
+                    <span>Wake time</span>
+                    <input type="time" bind:value={manualWake} />
+                  </label>
+                  <label class="ss-field">
+                    <span>Notes</span>
+                    <input type="text" bind:value={manualNotes} placeholder="Optional..." />
+                  </label>
+                  <div class="ss-form-actions">
+                    <Button onclick={() => showManualForm = false} variant="outline">Cancel</Button>
+                    <Button onclick={addManualSession} disabled={sessionSaving}>{sessionSaving ? 'Saving...' : 'Save session'}</Button>
+                  </div>
+                </div>
+              {:else}
+                <div class="ss-toolbar">
+                  <Button onclick={() => showManualForm = true}>
+                    <PlusIcon data-icon="inline-start" size={14} />
+                    Log sleep
+                  </Button>
+                </div>
+              {/if}
+
+              <div class="ss-list">
+                {#each sleepSessions as session}
+                  <article class="ss-row">
+                    <div class="ss-row-main">
+                      <span class="ss-row-date">{shortDate(session.date)}</span>
+                      <div class="ss-row-bar-wrap">
+                        <div
+                          class="ss-row-bar"
+                          style="width:{(session.durationMin / (sleepGoal?.targetDurationMin ?? 480)) * 100}%;background:{session.qualityScore != null && session.qualityScore >= 70 ? 'var(--sleep-accent)' : session.qualityScore != null && session.qualityScore >= 40 ? '#f59e0b' : '#ef4444'}">
+                        </div>
+                      </div>
+                      <span class="ss-row-time">{formatDuration(session.durationMin)}</span>
+                      <Badge variant="outline">{session.source === 'auto' ? 'Detected' : 'Manual'}</Badge>
+                    </div>
+                    {#if sessionDeleteLoading !== session.id}
+                      <button class="ss-row-delete" onclick={() => deleteSession(session.id)} aria-label="Delete session">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      </button>
+                    {:else}
+                      <span style="color:var(--muted);font-size:11px;">Deleting...</span>
+                    {/if}
+                  </article>
+                {/each}
+                {#if sleepSessions.length === 0}
+                  <p style="text-align:center;color:var(--muted);padding:20px;">No sessions yet. OS detection will auto-record when your laptop sleeps.</p>
+                {/if}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      {:else if selectedSection === "Goal"}
         <Card class="sleep-panel sleep-panel--full">
           <CardHeader>
-            <CardTitle>Sleep schedule details</CardTitle>
-            <CardDescription>Bedtime and wake time for the last 5 nights.</CardDescription>
+            <CardTitle>Sleep goal</CardTitle>
+            <CardDescription>Set your target bedtime, wake time, and duration. The quality score uses these as the baseline.</CardDescription>
           </CardHeader>
-          <CardContent class="sleep-breakdown">
-            {#each logSleepData as row}
-              <div>
-                <span>{row.date}</span>
-                <strong>{row.hours}h</strong>
-                <span>Bed: {row.bedtime} · Wake: {row.wake}</span>
-              </div>
-            {/each}
+          <CardContent class="sleep-goal-form">
+            <div class="sg-grid">
+              <label class="sg-field">
+                <span class="sg-label">Target bedtime</span>
+                <input type="time" bind:value={goalBedtime} class="sg-input" />
+              </label>
+              <label class="sg-field">
+                <span class="sg-label">Target wake time</span>
+                <input type="time" bind:value={goalWaketime} class="sg-input" />
+              </label>
+              <label class="sg-field sg-field--wide">
+                <span class="sg-label">Target duration: <strong>{formatDuration(goalDuration)}</strong></span>
+                <input type="range" min="360" max="600" step="15" bind:value={goalDuration} class="sg-slider" />
+                <div class="sg-slider-labels">
+                  <span>6h</span>
+                  <span>10h</span>
+                </div>
+              </label>
+            </div>
+            <div class="sg-actions">
+              <Button onclick={saveSleepGoal} disabled={goalSaving}>
+                {goalSaving ? 'Saving...' : goalSaved ? 'Saved!' : 'Save goal'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       {:else}
@@ -379,19 +857,19 @@
             <CardTitle>{_t('moduleSleepExportTitle')}</CardTitle>
             <CardDescription>{_t('moduleSleepExportDesc')}</CardDescription>
           </CardHeader>
-          <CardContent class="sleep-export-list">
-            {#each exportOptions as option}
-              <article>
-                <div>
-                  <strong>{option.title}</strong>
-                  <p>{option.detail}</p>
-                </div>
-                <Button variant="outline">
-                  <DownloadIcon data-icon="inline-start" />
-                  {_t('moduleSleepExportBtn')}
-                </Button>
-              </article>
-            {/each}
+          <CardContent class="sleep-list">
+            <article>
+              <div><strong>Sleep PDF</strong><p>Last 30 nights with score, debt, and routine adherence.</p></div>
+              <Button variant="outline"><DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}</Button>
+            </article>
+            <article>
+              <div><strong>CSV stages</strong><p>Nightly deep, REM, and wake events for external analysis.</p></div>
+              <Button variant="outline"><DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}</Button>
+            </article>
+            <article>
+              <div><strong>Shareable recap</strong><p>A one-page summary for coach or clinician review.</p></div>
+              <Button variant="outline"><DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}</Button>
+            </article>
           </CardContent>
         </Card>
       {/if}
@@ -467,11 +945,6 @@
     font-size: 0.98rem;
   }
 
-  :global(.sleep-shell__actions) {
-    display: flex;
-    gap: 12px;
-  }
-
   :global(.sleep-hero-grid) {
     display: grid;
     grid-template-columns: 1.1fr 1fr;
@@ -503,7 +976,7 @@
     width: 180px;
     aspect-ratio: 1;
     border-radius: 999px;
-    background: conic-gradient(var(--sleep-accent) 82%, color-mix(in srgb, var(--border) 80%, transparent) 0);
+    background: conic-gradient(var(--sleep-accent) 50%, color-mix(in srgb, var(--border) 80%, transparent) 0);
     box-shadow: none;
   }
 
@@ -536,7 +1009,6 @@
   :global(.sleep-list),
   :global(.sleep-routine-list),
   :global(.sleep-stage-list),
-  :global(.sleep-export-list),
   :global(.sleep-alarm-list) {
     display: grid;
     gap: 12px;
@@ -548,7 +1020,6 @@
   :global(.sleep-list) article,
   :global(.sleep-routine-list) article,
   :global(.sleep-stage-list) article,
-  :global(.sleep-export-list) article,
   :global(.sleep-alarm-list) article,
   :global(.sleep-routine-board) article,
   :global(.sleep-breakdown) div {
@@ -619,6 +1090,10 @@
     padding: 16px 18px;
   }
 
+  :global(.sleep-routine-board) article {
+    grid-template-columns: 46px 1fr auto;
+  }
+
   :global(.sleep-stage-list) article {
     padding: 16px 18px;
   }
@@ -637,14 +1112,10 @@
     overflow: hidden;
   }
 
-  :global(.sleep-meter) i,
-  :global(.sleep-trend-chart) i {
+  :global(.sleep-meter) i {
     display: block;
     border-radius: inherit;
     background: linear-gradient(180deg, var(--sleep-accent), var(--sleep-accent-soft));
-  }
-
-  :global(.sleep-meter) i {
     width: var(--fill);
     height: 100%;
   }
@@ -671,19 +1142,11 @@
     font-size: 2rem;
   }
 
-  :global(.sleep-routine-board),
-  :global(.sleep-trend-chart) {
+  :global(.sleep-routine-board) {
     display: grid;
     gap: 12px;
     min-height: 0;
-  }
-
-  :global(.sleep-routine-board) {
     overflow: auto;
-  }
-
-  :global(.sleep-routine-board) article {
-    grid-template-columns: 46px 1fr auto;
   }
 
   :global(.sleep-routine-board__count) {
@@ -698,30 +1161,173 @@
   }
 
   :global(.sleep-trend-chart) {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    align-items: end;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 200px;
     height: 100%;
   }
 
-  :global(.sleep-trend-chart) article {
-    display: grid;
-    justify-items: center;
-    align-items: end;
-    gap: 10px;
-    height: 100%;
+  :global(.sleep-arc-svg) {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    overflow: visible;
   }
 
-  :global(.sleep-trend-chart) i {
-    width: 28px;
-    height: var(--bar);
-    min-height: 18px;
-    align-self: end;
+  :global(.sleep-arc-score) {
+    font-size: 2rem;
+    font-weight: 700;
+    fill: var(--sleep-ink);
+    font-variant-numeric: tabular-nums;
   }
 
-  :global(.sleep-trend-chart) span,
-  :global(.sleep-trend-chart) strong {
-    font-size: 0.8rem;
+  :global(.sleep-arc-label) {
+    font-size: 0.7rem;
+    font-weight: 600;
+    fill: var(--sleep-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
+
+  :global(.sleep-arc-legend) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    justify-content: center;
+    max-width: 260px;
+  }
+
+  :global(.sleep-arc-legend-item) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  :global(.sleep-arc-legend-item) i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  :global(.sleep-arc-legend-item) span {
+    color: var(--sleep-muted);
+    min-width: 22px;
+  }
+
+  :global(.sleep-arc-legend-item) strong {
+    font-weight: 600;
+    color: var(--sleep-ink);
+    min-width: 16px;
+    text-align: right;
+  }
+
+  /* ── Routine add form ── */
+  :global(.sr-add-form) {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
+    flex-shrink: 0;
+  }
+
+  :global(.sr-input) {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.88rem;
+    font-family: inherit;
+  }
+
+  :global(.sr-input:focus) {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.sr-add-btn) {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: none;
+    background: var(--sleep-accent);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+
+  :global(.sr-add-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
+  :global(.sr-add-btn:hover:not(:disabled)) { opacity: 0.85; }
+
+  /* ── Alarm add form ── */
+  :global(.sa-add-form) {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  :global(.sa-input) {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.88rem;
+    font-family: inherit;
+  }
+
+  :global(.sa-input:focus) {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.sa-time) {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    width: 100px;
+  }
+
+  :global(.sa-time:focus) {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.sa-add-btn) {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: none;
+    background: var(--sleep-accent);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+
+  :global(.sa-add-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
+  :global(.sa-add-btn:hover:not(:disabled)) { opacity: 0.85; }
 
   :global(.sleep-alarm-list) article {
     grid-template-columns: 1fr auto auto;
@@ -731,194 +1337,290 @@
     font: 600 1.4rem "JetBrains Mono", monospace;
   }
 
-  :global(.sleep-export-list) article {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: center;
-    padding: 16px 18px;
-  }
-  /* ── Log section (ported exactly from Journal's Sleep bento cards) ── */
-  .sl-bento {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
-    gap: 16px;
-  }
-
-  .sl-card {
-    border-radius: 20px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    transition: all 0.2s ease;
-  }
-
-  .sl-card--accent {
-    background: var(--sleep-accent, var(--primary));
-    color: #fff;
-    align-items: center;
-    text-align: center;
-  }
-
-  .sl-card--surface {
-    background: var(--card);
-    border: 1px solid var(--border);
-  }
-
-  .sl-card--dark {
-    background: var(--surface);
-    color: var(--surface-foreground, #fff);
-  }
-
-  .sl-card-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    opacity: 0.7;
+  :global(.sleep-loading) {
+    height: 200px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    width: 100%;
+    justify-content: center;
+    color: var(--sleep-muted);
+    animation: sleep-pulse 1.5s ease-in-out infinite;
   }
 
-  .sl-card-label svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-
-  .sl-card-hint {
-    font-size: 12px;
-    opacity: 0.65;
-    margin: 0;
-  }
-
-  .sl-hero-num {
-    font-size: 48px;
-    font-weight: 700;
-    line-height: 1;
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-
-  .sl-unit {
-    font-size: 16px;
-    font-weight: 500;
+  :global(.sleep-loading)::after {
+    content: "Loading sleep data...";
+    font-size: 0.9rem;
     opacity: 0.6;
   }
 
-  .sl-stars {
+  @keyframes sleep-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ── Sessions view ── */
+  :global(.sleep-grid-sessions) {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  :global(.sleep-session-stats) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    min-height: 0;
+  }
+
+  :global(.ss-stat) {
+    border-radius: 16px;
+    padding: 14px 12px;
+    background: color-mix(in srgb, var(--sleep-surface-strong) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
+    text-align: center;
+  }
+
+  :global(.ss-stat-value) {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :global(.ss-stat-label) {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--sleep-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  :global(.ss-stat--good) { color: #22c55e; }
+  :global(.ss-stat--warn) { color: #f59e0b; }
+  :global(.ss-stat--bad) { color: #ef4444; }
+
+  :global(.sleep-session-list) {
     display: flex;
-    gap: 6px;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    overflow: auto;
   }
 
-  .sl-star {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 2px;
-    color: rgba(255,255,255,0.3);
-    transition: all 0.15s;
-  }
-
-  .sl-star:hover {
-    transform: scale(1.15);
-  }
-
-  .sl-star--on {
-    color: #fbbf24;
-  }
-
-  .sl-star svg {
-    width: 22px;
-    height: 22px;
-  }
-
-  .sl-card--log {
-    padding: 18px;
-  }
-
-  .sl-log-row {
+  :global(.ss-toolbar) {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .sl-log-row:last-child {
-    border-bottom: none;
-  }
-
-  .sl-log-date {
-    width: 60px;
-    font-size: 12px;
-    color: var(--muted);
+    gap: 8px;
     flex-shrink: 0;
   }
 
-  .sl-bar-wrap {
+  :global(.ss-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+  }
+
+  :global(.ss-row) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
+    background: color-mix(in srgb, var(--sleep-surface-strong) 94%, transparent);
+  }
+
+  :global(.ss-row-main) {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  :global(.ss-row-date) {
+    font-size: 0.78rem;
+    font-weight: 600;
+    width: 60px;
+    flex-shrink: 0;
+    color: var(--sleep-muted);
+  }
+
+  :global(.ss-row-bar-wrap) {
     flex: 1;
     height: 10px;
     border-radius: 999px;
-    background: var(--muted-surface);
+    background: color-mix(in srgb, var(--sleep-border) 72%, transparent);
     overflow: hidden;
+    min-width: 40px;
   }
 
-  .sl-bar {
+  :global(.ss-row-bar) {
     height: 100%;
     border-radius: 999px;
     transition: width 0.4s ease;
   }
 
-  .sl-log-hrs {
-    width: 36px;
-    font-size: 12px;
+  :global(.ss-row-time) {
+    font-size: 0.78rem;
     font-weight: 600;
+    width: 52px;
     text-align: right;
+    font-variant-numeric: tabular-nums;
   }
 
-  .sl-stars-mini {
+  :global(.ss-row-delete) {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--sleep-muted);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  :global(.ss-row-delete:hover) {
+    background: color-mix(in srgb, #ef4444 14%, transparent);
+    color: #ef4444;
+  }
+
+  :global(.ss-manual-form) {
     display: flex;
-    gap: 2px;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
+    background: color-mix(in srgb, var(--sleep-surface-strong) 94%, transparent);
+    flex-shrink: 0;
   }
 
-  .sl-star-mini {
-    width: 12px;
-    height: 12px;
-  }
-
-  .sl-card--avg {
-    padding: 22px;
-  }
-
-  .sl-stat-big {
-    font-size: 40px;
-    font-weight: 700;
-    line-height: 1;
+  :global(.ss-field) {
     display: flex;
-    align-items: baseline;
+    flex-direction: column;
     gap: 4px;
   }
 
-  .sl-tips {
+  :global(.ss-field) span {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--sleep-muted);
+  }
+
+  :global(.ss-field) input {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.88rem;
+    font-family: inherit;
+  }
+
+  :global(.ss-field) input:focus {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.ss-form-actions) {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  /* ── Goal view ── */
+  :global(.sleep-goal-form) {
+    max-width: 420px;
+    margin: 0 auto;
+    padding-top: 20px;
+  }
+
+  :global(.sg-grid) {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  :global(.sg-field) {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .sl-tip {
-    font-size: 12px;
-    opacity: 0.7;
-    padding: 6px 10px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 8px;
+  :global(.sg-field--wide) {
+    gap: 10px;
+  }
+
+  :global(.sg-label) {
+    font-size: 0.82rem;
+    color: var(--sleep-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  :global(.sg-label) strong {
+    color: var(--sleep-ink);
+    font-weight: 700;
+  }
+
+  :global(.sg-input) {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 1.1rem;
+    font-family: 'JetBrains Mono', monospace;
+    width: 160px;
+  }
+
+  :global(.sg-input:focus) {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.sg-slider) {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sleep-border) 80%, transparent);
+    outline: none;
+  }
+
+  :global(.sg-slider::-webkit-slider-thumb) {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--sleep-accent);
+    cursor: pointer;
+    border: 2px solid var(--sleep-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  :global(.sg-slider-labels) {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--sleep-muted);
+  }
+
+  :global(.sg-actions) {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
   }
 
   @media (max-width: 860px) {
-    .sl-bento { grid-template-columns: 1fr; }
+    :global(.sleep-grid-sessions) { grid-template-columns: 1fr; }
   }
 </style>

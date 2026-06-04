@@ -25,6 +25,7 @@ pub mod search;
 pub mod session;
 pub mod share;
 pub mod settings;
+pub mod sleep;
 pub mod telemetry;
 pub mod util;
 pub mod window_bounds;
@@ -338,6 +339,9 @@ pub fn run() {
 
         spawn_cloud_backup_worker(app.handle().clone());
 
+        // Spawn OS sleep detection monitor
+        crate::sleep::spawn_sleep_monitor(app.handle().clone());
+
         Ok(())
     });
 
@@ -579,6 +583,35 @@ pub fn run() {
             crate::recipes::cook_history_list,
             crate::recipes::cook_history_add,
             crate::recipes::recipes_seed_if_empty,
+            // Sleep — session system (OS + manual)
+            crate::sleep::get_sleep_sessions,
+            crate::sleep::get_last_night,
+            crate::sleep::get_sleep_goal,
+            crate::sleep::update_sleep_goal,
+            crate::sleep::add_manual_sleep_session,
+            crate::sleep::delete_sleep_session,
+            crate::sleep::confirm_sleep_session,
+            crate::sleep::get_sleep_stats,
+            // Sleep — legacy manual logs
+            crate::sleep::sleep_log_save,
+            crate::sleep::sleep_log_save_for_date,
+            crate::sleep::sleep_log_today,
+            crate::sleep::sleep_log_get,
+            crate::sleep::sleep_logs_week,
+            crate::sleep::sleep_logs_recent,
+            crate::sleep::sleep_log_delete,
+            // Sleep — legacy routines
+            crate::sleep::sleep_routine_list,
+            crate::sleep::sleep_routine_save,
+            crate::sleep::sleep_routine_delete,
+            crate::sleep::sleep_routine_reorder,
+            crate::sleep::sleep_routine_status,
+            crate::sleep::sleep_routine_toggle,
+            // Sleep — legacy alarms
+            crate::sleep::sleep_alarm_list,
+            crate::sleep::sleep_alarm_save,
+            crate::sleep::sleep_alarm_delete,
+            crate::sleep::sleep_alarm_toggle,
             // Flashcards (Bento Recall)
             crate::flashcards::flashcards_list,
             crate::flashcards::flashcards_deck_create,

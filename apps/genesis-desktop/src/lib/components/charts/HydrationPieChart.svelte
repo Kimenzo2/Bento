@@ -51,7 +51,6 @@
     cornerRadius={4}
     padAngle={0.02}
     {height}
-    tooltip={false}
   />
 </div>
 

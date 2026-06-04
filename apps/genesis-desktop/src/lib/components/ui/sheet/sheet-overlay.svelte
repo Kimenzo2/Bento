@@ -12,6 +12,7 @@
 <SheetPrimitive.Overlay
 	bind:ref
 	data-slot="sheet-overlay"
-	class={cn("fixed inset-0 z-50 bg-[color:color-mix(in_srgb,var(--background)_20%,black_80%)]", className)}
+	class={cn("fixed inset-0 z-50", className)}
+	style="background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px);"
 	{...restProps}
 />

@@ -45,7 +45,5 @@
     {series}
     range={[90, -270]}
     {maxValue}
-    tooltip={true}
-    
   />
 </Container>
