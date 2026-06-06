@@ -39,7 +39,6 @@ export const starterModuleIds = [
   'mood',
   'budget',
   'flashcards',
-  'reading',
   'grocery',
   'recipes',
   'time',
@@ -65,7 +64,6 @@ export const moduleIdValues = [
   'mood',
   'budget',
   'flashcards',
-  'reading',
   'grocery',
   'recipes',
   'time',
@@ -78,6 +76,17 @@ export const moduleIdValues = [
   'ai',
   'settings',
 ] as const;
+
+/** Modules awaiting polish — hidden from launcher, switcher, and tabs dropdown. */
+export const hiddenModuleIds = new Set<string>([
+  'recipes',
+  'time',
+  'grocery',
+  'flashcards',
+  'telemetry',
+  'ai',
+  'breathing',
+]);
 
 export type ShellNativeModuleId = (typeof shellNativeModuleIds)[number];
 export type StarterModuleId = (typeof starterModuleIds)[number];
@@ -146,11 +155,10 @@ const starterSidebarSpecs = {
     sectionLabel: 'Habits',
     items: [
       { label: 'Today', icon: 'calendar-days' },
+      { label: 'Streaks', icon: 'flame' },
       { label: 'Heatmap', icon: 'grid-3x3' },
-      { label: 'Stacks', icon: 'layers' },
       { label: 'Review', icon: 'search' },
-      { label: 'Widgets', icon: 'layout-dashboard' },
-      { label: 'Export', icon: 'download' },
+      { label: 'Settings', icon: 'settings' },
     ],
   },
   focus: {
@@ -162,7 +170,6 @@ const starterSidebarSpecs = {
       { label: 'Blocking', icon: 'ban' },
       { label: 'History', icon: 'history' },
       { label: 'Review', icon: 'search' },
-      { label: 'Quick Timer', icon: 'clock' },
     ],
   },
   passwords: {
@@ -208,7 +215,6 @@ const starterSidebarSpecs = {
       { label: 'Macros', icon: 'pie-chart' },
       { label: 'Reminders', icon: 'bell' },
       { label: 'Export', icon: 'download' },
-      { label: 'Journal', icon: 'book-heart' },
     ],
   },
   mood: {
@@ -217,8 +223,6 @@ const starterSidebarSpecs = {
       { label: 'Check-in', icon: 'smile-plus' },
       { label: 'Calendar', icon: 'calendar-days' },
       { label: 'Activities', icon: 'activity' },
-      { label: 'Patterns', icon: 'brain' },
-      { label: 'Therapist', icon: 'message-circle' },
       { label: 'Export', icon: 'download' },
     ],
   },
@@ -243,21 +247,6 @@ const starterSidebarSpecs = {
       { label: 'Cram', icon: 'zap' },
       { label: 'Generate', icon: 'sparkles' },
       { label: 'Progress', icon: 'trending-up' },
-    ],
-  },
-  reading: {
-    sectionLabel: 'Reading',
-    items: [
-      { label: 'Library', icon: 'book-open' },
-      { label: 'Reader', icon: 'book-open-text' },
-      { label: 'Discover', icon: 'compass' },
-      { label: 'Collections', icon: 'folder-open' },
-      { label: 'Sessions', icon: 'timer' },
-      { label: 'Bookmarks', icon: 'bookmark' },
-      { label: 'Highlights', icon: 'highlighter' },
-      { label: 'Notes', icon: 'file-text' },
-      { label: 'Goals', icon: 'target' },
-      { label: 'Export', icon: 'download' },
     ],
   },
   grocery: {
@@ -298,11 +287,9 @@ const starterSidebarSpecs = {
     sectionLabel: 'Goals',
     items: [
       { label: 'Goals', icon: 'target' },
-      { label: 'Milestones', icon: 'flag' },
-      { label: 'Check-ins', icon: 'calendar-check' },
-      { label: 'Vision', icon: 'eye' },
-      { label: 'Review', icon: 'search' },
-      { label: 'Export', icon: 'download' },
+      { label: 'Focus Areas', icon: 'compass' },
+      { label: 'Timeline', icon: 'timeline' },
+      { label: 'New Goal', icon: 'flag' },
     ],
   },
   clipboard: {
@@ -342,10 +329,9 @@ const starterSidebarSpecs = {
     sectionLabel: 'Countdown',
     items: [
       { label: 'Events', icon: 'calendar-check' },
+      { label: 'Milestones', icon: 'flag' },
       { label: 'Birthdays', icon: 'cake' },
       { label: 'Since', icon: 'history' },
-      { label: 'Cards', icon: 'image' },
-      { label: 'Widgets', icon: 'layout-dashboard' },
       { label: 'Export', icon: 'download' },
     ],
   },
@@ -633,24 +619,6 @@ const starterModules = [
       launchBg: '#2f247f',
     },
     sidebar: starterSidebarSpecs.flashcards,
-  },
-  {
-    id: 'reading',
-    name: 'Reading Tracker',
-    navLabel: 'Reading',
-    subtitle: 'Book logs, sessions, highlights, and annual reading goals.',
-    route: '/apps/reading',
-    host: 'starter',
-    installKind: 'builtin',
-    launch: {
-      id: 'reading',
-      name: 'Reading',
-      tagline: 'Read more books',
-      icon: 'library',
-      accentColor: '#e11d48',
-      launchBg: '#881337',
-    },
-    sidebar: starterSidebarSpecs.reading,
   },
   {
     id: 'grocery',

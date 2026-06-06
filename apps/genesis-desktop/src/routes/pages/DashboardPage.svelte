@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { browser } from "$app/environment";
   import { invoke, isTauri } from "@tauri-apps/api/core";
+  import { hiddenModuleIds } from "$lib/data/module-catalog";
   import { switchModule, moduleIdSchema, type BentoModuleId } from "$lib/desktop/modules";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { time } from "$lib/utils/time";
@@ -394,7 +395,7 @@
       <h2 class="dashboard__modules-heading">{_t('dashboardRecentModules')}</h2>
       <div class="dashboard__modules-scroll">
         <div class="dashboard__modules-track">
-          {#each data.recentModules.slice(0, 8) as module}
+          {#each data.recentModules.filter(m => !hiddenModuleIds.has(m.id)).slice(0, 8) as module}
             <button class="dashboard__module-chip" style="--chip-accent: {module.accentHex};" onclick={() => navigateToModule(module.id)}>
               <span class="dashboard__module-chip-icon" style="color: {module.accentHex};">{@html moduleIconSVG(module.icon)}</span>
               <span class="dashboard__module-chip-name">{module.name}</span>

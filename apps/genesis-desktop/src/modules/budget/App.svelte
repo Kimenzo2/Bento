@@ -3,13 +3,18 @@
   import {
     Wallet, TrendingUp, TrendingDown, PiggyBank, Home, ShoppingCart, Car, Zap,
     UtensilsCrossed, Tv, ShoppingBag, Activity, BookOpen, Bot, Ellipsis,
-    Plus, Trash2, CheckCircle2, Download, Sparkles, ArrowRight, AlertCircle,
+    Plus, Trash2, CheckCircle2, Download, AlertCircle,
     Calendar, DollarSign, BarChart3, Target, Receipt, CreditCard, LineChart,
     Landmark, TrendingUp as TrendingUpIcon
   } from 'lucide-svelte';
   import { getModuleSectionLabel, ensureModuleSection, moduleSectionStore } from '$lib/stores/module-sections.store';
   import ForecastingChart from './ForecastingChart.svelte';
   import * as Table from '$lib/components/ui/table/index.js';
+  import { Badge } from '$lib/components/ui/badge/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import {
+    Card, CardContent, CardDescription, CardHeader, CardTitle,
+  } from '$lib/components/ui/card/index.js';
 
   let { moduleId = "budget" } = $props<{ moduleId?: string }>();
   $effect(() => { void moduleId; });
@@ -43,27 +48,12 @@
     topCategories: Array<{ categoryId: string; categoryName: string; icon: string; color: string; spent: number; budget: number; percentUsed: number }>;
     transactionCount: number;
   }
-  interface FinancialHealth {
-    score: number; savingsRateGrade: string; budgetAdherence: string;
-    billPaymentRate: string; debtIncomeRatio: string; insights: string[];
-  }
-  interface SuggestedBudget {
-    categoryId: string; categoryName: string; groupName: string;
-    icon: string; color: string;
-    averageSpent: number; suggestedBudget: number;
-    currentBudget: number; monthsOfData: number;
-  }
   interface CashFlowProjection {
     month: string; projectedIncome: number; projectedExpenses: number; projectedBalance: number;
   }
   interface ForecastChartMonth {
     month: string; incomeActual: number; expensesActual: number;
-    incomeForecast: number; expensesForecast: number; isForecast: boolean;
-  }
-  interface CrossModuleSpending {
-    grocerySpending: number; readingSpending: number; aiCostTotal: number; totalCrossModule: number;
-  }
-
+    incomeForecast: number; expensesForecast: number; isForecast: boolean;  }
   // ── Sidebar section state ─────────────────────────────────────────
   const sectionLabels = ['Overview', 'Transactions', 'Budgets', 'Bills', 'AI Costs', 'Forecast', 'Export'] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
@@ -78,8 +68,6 @@
 
   // Overview
   let overview = $state<MonthlyOverview | null>(null);
-  let health = $state<FinancialHealth | null>(null);
-  let crossModule = $state<CrossModuleSpending | null>(null);
 
   // Transactions
   let transactions = $state<Transaction[]>([]);
@@ -144,10 +132,6 @@
   let chartData = $state<ForecastChartMonth[]>([]);
   let forecastMonths = $state(6);
 
-  // ── Suggestions state ─────────────────────────────────────────────────
-  let suggestedLimits = $state<SuggestedBudget[]>([]);
-  let showSuggestions = $state(false);
-  let loadingSuggestions = $state(false);
 
   // ── Form state ─────────────────────────────────────────────────────
   let showAddTx = $state(false);
@@ -164,16 +148,6 @@
 
   // ── Derived ───────────────────────────────────────────────────────
   let thisMonth = $derived(new Date().toISOString().slice(0, 7));
-
-  let healthColor = $derived.by(() => {
-    if (!health) return '#6b7280';
-    if (health.score >= 80) return '#22c55e';
-    if (health.score >= 60) return '#f59e0b';
-    if (health.score >= 40) return '#f97316';
-    return '#ef4444';
-  });
-
-  let isEditorial = $derived(health && health.score >= 60 ? 'positive' : 'needs-attention');
 
   let categoryGroups = $derived.by(() => {
     const groups = [...new Set(categories.map(c => c.groupName))];
@@ -192,9 +166,7 @@
     try {
       await Promise.all([
         loadOverview().catch(e => { console.error('overview', e); return null; }),
-        loadHealth().catch(e => { console.error('health', e); return null; }),
         loadCategories().catch(e => { console.error('categories', e); return null; }),
-        loadCrossModule().catch(e => { console.error('crossModule', e); return null; }),
         loadTransactions().catch(e => { console.error('transactions', e); return null; }),
         loadBills().catch(e => { console.error('bills', e); return null; }),
         loadAiCosts().catch(e => { console.error('aiCosts', e); return null; }),
@@ -210,14 +182,8 @@
   async function loadOverview() {
     overview = await invoke<MonthlyOverview>('budget_monthly_overview', {});
   }
-  async function loadHealth() {
-    health = await invoke<FinancialHealth>('budget_financial_health', {});
-  }
   async function loadCategories() {
     categories = await invoke<BudgetCategory[]>('budget_list_categories', {});
-  }
-  async function loadCrossModule() {
-    crossModule = await invoke<CrossModuleSpending>('budget_cross_module_spending', {});
   }
   async function loadTransactions() {
     transactions = await invoke<Transaction[]>('budget_list_transactions', { month: txMonth, limit: 200, offset: 0 });
@@ -251,12 +217,12 @@
       });
       showAddTx = false;
       resetNewTx();
-      await Promise.all([loadTransactions(), loadOverview(), loadCategories(), loadHealth(), loadCrossModule()]);
+      await Promise.all([loadTransactions(), loadOverview(), loadCategories()]);
     } catch (e) { error = String(e); }
   }
 
   async function deleteTransaction(id: string) {
-    try { await invoke('budget_delete_transaction', { id }); await Promise.all([loadTransactions(), loadOverview(), loadCategories(), loadHealth()]);
+    try { await invoke('budget_delete_transaction', { id }); await Promise.all([loadTransactions(), loadOverview(), loadCategories()]);
     } catch (e) { error = String(e); }
   }
 
@@ -292,7 +258,7 @@
       });
       showAddAi = false;
       resetNewAi();
-      await Promise.all([loadAiCosts(), loadCrossModule()]);
+      await Promise.all([loadAiCosts()]);
     } catch (e) { error = String(e); }
   }
 
@@ -304,42 +270,6 @@
   async function setCategoryBudget(id: string, amount: number) {
     try { await invoke('budget_set_category_budget', { categoryId: id, monthlyBudget: amount }); await loadCategories(); }
     catch (e) { error = String(e); }
-  }
-
-  async function loadSuggestions() {
-    loadingSuggestions = true;
-    try {
-      suggestedLimits = await invoke<SuggestedBudget[]>('budget_suggest_limits', {});
-      showSuggestions = true;
-    } catch (e) {
-      error = String(e);
-    }
-    loadingSuggestions = false;
-  }
-
-  async function applySuggestion(catId: string, budget: number) {
-    try {
-      await invoke('budget_set_category_budget', { categoryId: catId, monthlyBudget: budget });
-      await loadCategories();
-      // Update the suggestion to reflect current budget
-      const idx = suggestedLimits.findIndex(s => s.categoryId === catId);
-      if (idx >= 0) {
-        suggestedLimits[idx].currentBudget = budget;
-      }
-    } catch (e) { error = String(e); }
-  }
-
-  async function applyAllSuggestions() {
-    try {
-      for (const s of suggestedLimits) {
-        if (s.suggestedBudget > 0) {
-          await invoke('budget_set_category_budget', { categoryId: s.categoryId, monthlyBudget: s.suggestedBudget });
-        }
-      }
-      await loadCategories();
-      // Mark all as applied
-      suggestedLimits = suggestedLimits.map(s => ({ ...s, currentBudget: s.suggestedBudget }));
-    } catch (e) { error = String(e); }
   }
 
   async function exportCsv() {
@@ -416,240 +346,190 @@
   $effect(() => { if (selectedSection === 'Bills') loadBills(); });
 </script>
 
-<div class="budget-shell">
-  <!-- ── Header ──────────────────────────────────────────────────── -->
-  <header class="budget-header">
-    <div class="header-left">
-      <span class="header-badge">Financial Co-Pilot</span>
-      <h1 class="header-title">Intelligent Budget</h1>
-    </div>
-    {#if health}
-      <div class="health-pill" style="--health-color: {healthColor}">
-        <span class="health-score">{health.score}</span>
-        <span class="health-label">Health</span>
-      </div>
-    {/if}
-  </header>
+<main class="bg-workspace module-root" data-module="budget">
 
-  <!-- ── Section label (the sidebar handles navigation) ─────────── -->
-
-  <!-- ── Error Banner ────────────────────────────────────────────── -->
   {#if error}
-    <div class="error-banner">
+    <div class="bg-error-banner">
       <AlertCircle size={16} />
       <span>{error}</span>
-      <button class="dismiss-btn" onclick={() => error = null}>×</button>
+      <button class="bg-dismiss-btn" onclick={() => error = null}>×</button>
     </div>
   {/if}
 
-  <!-- ── Loading ──────────────────────────────────────────────────── -->
   {#if loading}
-    <div class="loading-state">
-      <div class="loading-spinner"></div>
+    <section class="bg-page bg-loading">
+      <div class="bg-loading__orb"></div>
       <span>Loading your financial data…</span>
-    </div>
+    </section>
+
   {:else}
     <!-- ══════════════════════════════════════════════════════════════════
          TAB: OVERVIEW
          ══════════════════════════════════════════════════════════════════ -->
     {#if selectedSection === 'Overview'}
-      <div class="tab-content overview-tab">
-        <!-- Hero metrics -->
-        <div class="metrics-grid">
-          <div class="metric-card income">
-            <div class="metric-icon">
-              <TrendingDown size={20} />
-            </div>
-            <span class="metric-label">Income</span>
-            <span class="metric-value">€{overview?.totalIncome.toFixed(2) ?? '0.00'}</span>
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><DollarSign size={13}/><span>Financial Co-Pilot</span><Badge variant="outline">{currentHeader.eyebrow}</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
           </div>
-          <div class="metric-card expense">
-            <div class="metric-icon">
-              <TrendingUp size={20} />
-            </div>
-            <span class="metric-label">Expenses</span>
-            <span class="metric-value">€{overview?.totalExpenses.toFixed(2) ?? '0.00'}</span>
+          <div class="bg-page__actions">
           </div>
-          <div class="metric-card savings">
-            <div class="metric-icon">
-              <PiggyBank size={20} />
-            </div>
-            <span class="metric-label">Net Savings</span>
-            <span class="metric-value">€{overview?.netSavings.toFixed(2) ?? '0.00'}</span>
-          </div>
-          <div class="metric-card rate">
-            <div class="metric-icon">
-              <BarChart3 size={20} />
-            </div>
-            <span class="metric-label">Savings Rate</span>
-            <span class="metric-value">{overview?.savingsRate.toFixed(1) ?? '0.0'}%</span>
-          </div>
-        </div>
+        </header>
 
-        <!-- Cross-module spending -->
-        {#if crossModule}
-          <div class="section-card">
-            <div class="section-header">
-              <Sparkles size={18} />
-              <h2>Cross-Module Intelligence</h2>
-            </div>
-            <div class="cross-module-grid">
-              <div class="cm-item">
-                <span class="cm-label">🍽️ Groceries</span>
-                <span class="cm-value">€{crossModule.grocerySpending.toFixed(2)}</span>
+        <section class="bg-hero-grid">
+          <Card class="bg-score-card">
+            <CardHeader><CardTitle>Income</CardTitle><CardDescription>This month's earnings</CardDescription></CardHeader>
+            <CardContent class="bg-score-card__content">
+              <div class="bg-score-orb bg-orb--income">
+                <TrendingDown size={24} />
               </div>
-              <div class="cm-item">
-                <span class="cm-label">📚 Reading</span>
-                <span class="cm-value">€{crossModule.readingSpending.toFixed(2)}</span>
+              <div class="bg-score-meta">
+                <div><strong>€{overview?.totalIncome.toFixed(2) ?? '0.00'}</strong><span>Total income</span></div>
+                <div><span>{overview?.transactionCount ?? 0}</span><span>Transactions</span></div>
               </div>
-              <div class="cm-item">
-                <span class="cm-label">🤖 AI Costs</span>
-                <span class="cm-value">€{crossModule.aiCostTotal.toFixed(2)}</span>
-              </div>
-              <div class="cm-item total">
-                <span class="cm-label">Total Cross-Module</span>
-                <span class="cm-value">€{crossModule.totalCrossModule.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        {/if}
+            </CardContent>
+          </Card>
 
-        <!-- Financial Health -->
-        {#if health}
-          <div class="section-card health-section" style="--health-color: {healthColor}">
-            <div class="section-header">
-              <Target size={18} />
-              <h2>Financial Health Score</h2>
-            </div>
-            <div class="health-ring">
-              <svg viewBox="0 0 120 120" class="health-ring-svg">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="8" />
-                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--health-color)" stroke-width="8"
-                  stroke-dasharray="326.73" stroke-dashoffset={326.73 - (326.73 * health.score / 100)}
-                  stroke-linecap="round" transform="rotate(-90 60 60)"
-                  style="transition: stroke-dashoffset 1s cubic-bezier(0.32, 0.72, 0, 1);" />
-                <text x="60" y="52" text-anchor="middle" class="health-ring-score" fill="currentColor">{health.score}</text>
-                <text x="60" y="72" text-anchor="middle" class="health-ring-label" fill="var(--muted)">/ 100</text>
-              </svg>
-            </div>
-            <div class="health-grades">
-              <div class="grade-item"><span>Savings</span><span class="grade-badge" class:good={health.savingsRateGrade === 'Excellent' || health.savingsRateGrade === 'Good'}>{health.savingsRateGrade}</span></div>
-              <div class="grade-item"><span>Budget</span><span class="grade-badge" class:good={health.budgetAdherence === 'Excellent' || health.budgetAdherence === 'Good'}>{health.budgetAdherence}</span></div>
-              <div class="grade-item"><span>Bills</span><span class="grade-badge" class:good={health.billPaymentRate === 'Excellent' || health.billPaymentRate === 'Good'}>{health.billPaymentRate}</span></div>
-            </div>
-            <div class="insights-list">
-              {#each health.insights as insight}
-                <div class="insight-item">
-                  <Sparkles size={14} />
-                  <span>{insight}</span>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
+          <Card class="bg-hero-card">
+            <CardHeader><CardTitle>Spending snapshot</CardTitle><CardDescription>Core financial metrics</CardDescription></CardHeader>
+            <CardContent class="bg-hero-list">
+              <article>
+                <span>Expenses</span>
+                <div class="bg-hero-bar"><i style="--fill:{overview ? Math.min((overview.totalExpenses/(overview.totalIncome||1))*100, 100) : 0}%"></i></div>
+                <strong class="bg-expense">€{overview?.totalExpenses.toFixed(2) ?? '0.00'}</strong>
+              </article>
+              <article>
+                <span>Net Savings</span>
+                <div class="bg-hero-bar"><i style="--fill:{overview ? Math.min((overview.netSavings/(overview.totalIncome||1))*100, 100) : 0}%"></i></div>
+                <strong class="bg-savings">€{overview?.netSavings.toFixed(2) ?? '0.00'}</strong>
+              </article>
+              <article>
+                <span>Savings Rate</span>
+                <div class="bg-hero-bar"><i style="--fill:{overview?.savingsRate ?? 0}%"></i></div>
+                <strong>{overview?.savingsRate.toFixed(1) ?? '0.0'}%</strong>
+              </article>
+            </CardContent>
+          </Card>
+        </section>
 
-        <!-- Top spending categories -->
-        {#if overview && overview.topCategories.length > 0}
-          <div class="section-card">
-            <div class="section-header">
-              <BarChart3 size={18} />
-              <h2>Top Spending Categories</h2>
-            </div>
-            <div class="top-cats-list">
-              {#each overview.topCategories.slice(0, 5) as cat}
-                <div class="top-cat-item">
-                  <div class="top-cat-left">
-                    <span class="cat-dot" style="background: {cat.color}"></span>
-                    <span class="cat-name">{cat.categoryName}</span>
-                  </div>
-                  <div class="top-cat-right">
-                    <div class="cat-bar-track">
-                      <div class="cat-bar-fill" style="width: {Math.min(cat.percentUsed, 100)}%; background: {cat.color}"></div>
+        <section class="bg-body">
+          <div class="bg-grid bg-grid--2col">
+          </div>
+
+          <!-- Top spending categories -->
+          {#if overview && overview.topCategories.length > 0}
+            <Card class="bg-panel bg-panel--full-row" style="margin-top: 16px;">
+              <CardHeader><CardTitle><BarChart3 size={15} /> Top Spending Categories</CardTitle><CardDescription>Where your money went this month</CardDescription></CardHeader>
+              <CardContent>
+                <div class="bg-top-cats">
+                  {#each overview.topCategories.slice(0, 5) as cat}
+                    <div class="bg-top-cat-item">
+                      <div class="bg-top-cat-left">
+                        <span class="bg-cat-dot" style="background: {cat.color}"></span>
+                        <span class="bg-cat-name">{cat.categoryName}</span>
+                      </div>
+                      <div class="bg-top-cat-right">
+                        <div class="bg-cat-bar-track">
+                          <div class="bg-cat-bar-fill" style="width: {Math.min(cat.percentUsed, 100)}%; background: {cat.color}"></div>
+                        </div>
+                        <span class="bg-cat-amount">€{cat.spent.toFixed(0)}</span>
+                      </div>
                     </div>
-                    <span class="cat-amount">€{cat.spent.toFixed(0)}</span>
-                  </div>
+                  {/each}
                 </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      </div>
+              </CardContent>
+            </Card>
+          {/if}
+        </section>
+      </section>
 
     <!-- ══════════════════════════════════════════════════════════════════
          TAB: TRANSACTIONS
          ══════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'Transactions'}
-      <div class="tab-content">
-        <div class="tab-actions">
-          <div class="month-filter">
-            <input type="month" bind:value={txMonth} onchange={() => loadTransactions()} class="month-input" />
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><Receipt size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">{transactions.length} entries</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
           </div>
-          <button class="action-btn primary" onclick={() => { resetNewTx(); showAddTx = true; }}>
-            <Plus size={16} />
-            <span>Add Transaction</span>
-          </button>
-        </div>
+          <div class="bg-page__actions">
+            <input type="month" bind:value={txMonth} onchange={() => loadTransactions()} class="bg-month-input" />
+            <Button onclick={() => { resetNewTx(); showAddTx = true; }}>
+              <Plus size={16} /> Add Transaction
+            </Button>
+          </div>
+        </header>
 
-        <Table.Root>
-          {#if transactions.length === 0}
-            <Table.Caption>No transactions this month. Add one to get started.</Table.Caption>
-          {:else}
-            <Table.Caption>Transactions for {txMonth}</Table.Caption>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>Category</Table.Head>
-                <Table.Head>Note</Table.Head>
-                <Table.Head>Date</Table.Head>
-                <Table.Head class="text-end">Amount</Table.Head>
-                <Table.Head><span class="sr-only">Action</span></Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each transactions as tx}
-                <Table.Row class={tx.txType === 'income' ? 'tx-row-income' : ''}>
-                  <Table.Cell>
-                    {#if tx.categoryName}
-                      <span class="tx-cat-dot" style="background: {categories.find(c => c.id === tx.categoryId)?.color ?? '#6b7280'}"></span>
-                    {/if}
-                    <span class="font-medium">{tx.categoryName ?? 'Uncategorized'}</span>
-                  </Table.Cell>
-                  <Table.Cell class="text-[var(--muted-foreground)] max-w-[200px] truncate">{tx.note ?? ''}</Table.Cell>
-                  <Table.Cell class="text-[var(--muted-foreground)]">{tx.dateKey.slice(5)}</Table.Cell>
-                  <Table.Cell class="text-end font-semibold {tx.txType === 'expense' ? 'text-budget-expense' : 'text-budget-income'}">
-                    {tx.txType === 'expense' ? '-' : '+'}€{tx.amount.toFixed(2)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <button class="icon-btn danger" onclick={() => deleteTransaction(tx.id)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </Table.Cell>
-                </Table.Row>
-              {/each}
-            </Table.Body>
-          {/if}
-        </Table.Root>
-      </div>
+        <section class="bg-body">
+          <Card class="bg-panel bg-panel--full-row">
+            <CardContent style="padding: 0;">
+              <Table.Root>
+                {#if transactions.length === 0}
+                  <Table.Caption>No transactions this month.</Table.Caption>
+                {:else}
+                  <Table.Caption>Transactions for {txMonth}</Table.Caption>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.Head>Category</Table.Head>
+                      <Table.Head>Note</Table.Head>
+                      <Table.Head>Date</Table.Head>
+                      <Table.Head class="text-end">Amount</Table.Head>
+                      <Table.Head><span class="sr-only">Action</span></Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {#each transactions as tx}
+                      <Table.Row class={tx.txType === 'income' ? 'bg-tx-income-row' : ''}>
+                        <Table.Cell>
+                          {#if tx.categoryName}
+                            <span class="bg-tx-dot" style="background: {categories.find(c => c.id === tx.categoryId)?.color ?? '#6b7280'}"></span>
+                          {/if}
+                          <span class="font-medium">{tx.categoryName ?? 'Uncategorized'}</span>
+                        </Table.Cell>
+                        <Table.Cell class="text-[var(--bg-muted)] max-w-[200px] truncate">{tx.note ?? ''}</Table.Cell>
+                        <Table.Cell class="text-[var(--bg-muted)]">{tx.dateKey.slice(5)}</Table.Cell>
+                        <Table.Cell class="text-end font-semibold {tx.txType === 'expense' ? 'bg-tx-expense' : 'bg-tx-income'}">
+                          {tx.txType === 'expense' ? '-' : '+'}€{tx.amount.toFixed(2)}
+                        </Table.Cell>
+                        <Table.Cell>
+                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteTransaction(tx.id)}>
+                            <Trash2 size={14} />
+                          </button>
+                        </Table.Cell>
+                      </Table.Row>
+                    {/each}
+                  </Table.Body>
+                {/if}
+              </Table.Root>
+            </CardContent>
+          </Card>
+        </section>
+      </section>
 
       <!-- Add Transaction Modal -->
       {#if showAddTx}
-        <div class="modal-overlay" onclick={() => showAddTx = false} onkeydown={(e) => { if (e.key === 'Escape') showAddTx = false; }}>
-          <div class="modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
-            <div class="modal-handle"></div>
+        <div class="bg-modal-overlay" onclick={() => showAddTx = false} onkeydown={(e) => { if (e.key === 'Escape') showAddTx = false; }}>
+          <div class="bg-modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+            <div class="bg-modal-handle"></div>
             <h3>New Transaction</h3>
-            <div class="modal-form">
-              <div class="type-toggle">
-                <button class="type-btn" class:active={newTx.txType === 'expense'} onclick={() => newTx.txType = 'expense'}>
+            <div class="bg-modal-form">
+              <div class="bg-type-toggle">
+                <button class="bg-type-btn" class:bg-type-btn--active={newTx.txType === 'expense'} onclick={() => newTx.txType = 'expense'}>
                   <TrendingUp size={16} /> Expense
                 </button>
-                <button class="type-btn" class:active={newTx.txType === 'income'} onclick={() => newTx.txType = 'income'}>
+                <button class="bg-type-btn" class:bg-type-btn--active={newTx.txType === 'income'} onclick={() => newTx.txType = 'income'}>
                   <TrendingDown size={16} /> Income
                 </button>
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="tx-amount">Amount (€)</label>
                 <input id="tx-amount" type="number" step="0.01" min="0" bind:value={newTx.amount} placeholder="0.00" />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="tx-category">Category</label>
                 <select id="tx-category" bind:value={newTx.categoryId}>
                   <option value="">Select category…</option>
@@ -658,23 +538,23 @@
                   {/each}
                 </select>
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="tx-note">Note</label>
                 <input id="tx-note" type="text" bind:value={newTx.note} placeholder="What was this for?" />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="tx-date">Date</label>
                 <input id="tx-date" type="date" bind:value={newTx.dateKey} />
               </div>
-              <div class="form-field">
-                <label for="tx-project">Project <span class="field-hint">(optional)</span></label>
+              <div class="bg-form-field">
+                <label for="tx-project">Project <span class="bg-field-hint">(optional)</span></label>
                 <input id="tx-project" type="text" bind:value={newTx.project} placeholder="e.g. Bento Development" />
               </div>
-              <label class="checkbox-field">
+              <label class="bg-checkbox-field">
                 <input type="checkbox" bind:checked={newTx.recurring} />
                 <span>Recurring transaction</span>
               </label>
-              <button class="submit-btn" onclick={addTransaction}>
+              <button class="bg-submit-btn" onclick={addTransaction}>
                 <CheckCircle2 size={16} /> Save Transaction
               </button>
             </div>
@@ -686,344 +566,304 @@
          TAB: BUDGETS (Category Allocation)
          ══════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'Budgets'}
-      <div class="tab-content">
-        <div class="tab-actions">
-          <span class="tab-subtitle">{categories.length} {categories.length === 1 ? 'category' : 'categories'} tracked</span>
-          <button class="action-btn secondary" onclick={loadSuggestions} disabled={loadingSuggestions}>
-            <Sparkles size={16} />
-            <span>{loadingSuggestions ? 'Analyzing…' : 'Suggest Budgets'}</span>
-          </button>
-        </div>
-
-        {#if categories.length === 0}
-          <div class="empty-state">
-            <Target size={40} class="empty-icon" />
-            <p>No budget categories yet. Start by adding a transaction — categories are created as you go.</p>
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><Target size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">{categories.length} {categories.length === 1 ? 'category' : 'categories'}</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
           </div>
-        {:else}
-          {#each categoryGroups as group}
-            {@const groupCats = categories.filter(c => c.groupName === group)}
-            {#if groupCats.length > 0}
-              <div class="budget-group">
-                <h3 class="group-title">{group}</h3>
-                <div class="budget-cards">
-                  {#each groupCats as cat}
-                    {@const Icon = resolveIcon(cat.icon)}
-                    <div class="budget-card" style="--cat-color: {cat.color}">
-                      <div class="budget-card-header">
-                        <Icon size={18} />
-                        <span class="budget-cat-name">{cat.name}</span>
-                        <button class="edit-budget-btn" onclick={() => showEditBudget = showEditBudget === cat.id ? null : cat.id}>
-                          <span class="budget-cat-amount">{cat.monthlyBudget > 0 ? '€' + cat.monthlyBudget.toFixed(0) : '–'}</span>
-                        </button>
-                      </div>
-                      <div class="budget-bar-track">
-                        <div class="budget-bar-fill" style="width: {Math.min(cat.percentUsed, 100)}%"
-                          class:over={cat.percentUsed >= 100}></div>
-                      </div>
-                      <div class="budget-card-footer">
-                        <span>€{cat.spent.toFixed(2)} spent</span>
-                        <span class:remaining-positive={cat.remaining >= 0} class:remaining-negative={cat.remaining < 0}>
-                          {cat.monthlyBudget > 0 ? '€' + cat.remaining.toFixed(2) + ' left' : ''}
-                        </span>
-                      </div>
-                      {#if showEditBudget === cat.id}
-                        <div class="budget-edit-inline">
-                          <input type="number" step="50" min="0" value={cat.monthlyBudget}
-                            onchange={(e) => {
-                              const val = parseFloat((e.target as HTMLInputElement).value);
-                              if (!isNaN(val)) setCategoryBudget(cat.id, val);
-                            }}
-                            placeholder="Monthly budget" />
-                          <button class="save-mini" onclick={() => showEditBudget = null}>Done</button>
-                        </div>
-                      {/if}
-                    </div>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-          {/each}
-        {/if}
-      </div>
+          <div class="bg-page__actions">
+          </div>
+        </header>
 
-      <!-- Suggest Budgets Modal -->
-      {#if showSuggestions}
-        <div class="modal-overlay" onclick={() => showSuggestions = false} onkeydown={(e) => { if (e.key === 'Escape') showSuggestions = false; }}>
-          <div class="modal-sheet suggestion-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
-            <div class="modal-handle"></div>
-            <div class="suggestion-header">
-              <Sparkles size={20} />
-              <h3>Smart Budget Suggestions</h3>
-              <p class="suggestion-subtitle">Based on your average spending over the last {suggestedLimits[0]?.monthsOfData ?? 3} months, with a 20% buffer.</p>
+        <section class="bg-body">
+          {#if categories.length === 0}
+            <div class="bg-empty-state">
+              <Target size={40} />
+              <p>No budget categories yet. Start by adding a transaction — categories are created as you go.</p>
             </div>
-
-            <div class="suggestion-list">
-              {#each suggestedLimits as s}
-                <div class="suggestion-row" style="--sug-color: {s.color}">
-                  <div class="suggestion-info">
-                    <span class="suggestion-cat-name">{s.categoryName}</span>
-                    <span class="suggestion-group">{s.groupName}</span>
-                  </div>
-                  <div class="suggestion-details">
-                    <div class="suggestion-avg">
-                      <span class="sug-label">Avg/mo</span>
-                      <span class="sug-value">€{s.averageSpent.toFixed(0)}</span>
-                    </div>
-                    <ArrowRight size={14} class="suggestion-arrow" />
-                    <div class="suggestion-budget">
-                      <span class="sug-label">Suggested</span>
-                      <span class="sug-value suggested">€{s.suggestedBudget.toFixed(0)}</span>
-                    </div>
-                    <button class="apply-btn"
-                      onclick={() => applySuggestion(s.categoryId, s.suggestedBudget)}
-                      disabled={s.suggestedBudget <= 0 || s.currentBudget === s.suggestedBudget}>
-                      <CheckCircle2 size={14} />
-                      <span>{s.currentBudget === s.suggestedBudget && s.suggestedBudget > 0 ? 'Applied' : 'Apply'}</span>
-                    </button>
+          {:else}
+            {#each categoryGroups as group}
+              {@const groupCats = categories.filter(c => c.groupName === group)}
+              {#if groupCats.length > 0}
+                <div class="bg-budget-group">
+                  <h3 class="bg-group-title">{group}</h3>
+                  <div class="bg-budget-cards">
+                    {#each groupCats as cat}
+                      {@const Icon = resolveIcon(cat.icon)}
+                      <Card class="bg-budget-card" style="--bg-cat-color: {cat.color}">
+                        <CardContent style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
+                          <div class="bg-budget-card-header">
+                            <Icon size={18} />
+                            <span class="bg-budget-cat-name">{cat.name}</span>
+                            <button class="bg-edit-budget-btn" onclick={() => showEditBudget = showEditBudget === cat.id ? null : cat.id}>
+                              <span class="bg-budget-cat-amount">{cat.monthlyBudget > 0 ? '€' + cat.monthlyBudget.toFixed(0) : '–'}</span>
+                            </button>
+                          </div>
+                          <div class="bg-budget-bar-track">
+                            <div class="bg-budget-bar-fill" style="width: {Math.min(cat.percentUsed, 100)}%"
+                              class:bg-budget-bar--over={cat.percentUsed >= 100}></div>
+                          </div>
+                          <div class="bg-budget-card-footer">
+                            <span>€{cat.spent.toFixed(2)} spent</span>
+                            <span class:bg-remaining-pos={cat.remaining >= 0} class:bg-remaining-neg={cat.remaining < 0}>
+                              {cat.monthlyBudget > 0 ? '€' + cat.remaining.toFixed(2) + ' left' : ''}
+                            </span>
+                          </div>
+                          {#if showEditBudget === cat.id}
+                            <div class="bg-budget-edit">
+                              <input type="number" step="50" min="0" value={cat.monthlyBudget}
+                                onchange={(e) => {
+                                  const val = parseFloat((e.target as HTMLInputElement).value);
+                                  if (!isNaN(val)) setCategoryBudget(cat.id, val);
+                                }}
+                                placeholder="Monthly budget" />
+                              <button class="bg-save-mini" onclick={() => showEditBudget = null}>Done</button>
+                            </div>
+                          {/if}
+                        </CardContent>
+                      </Card>
+                    {/each}
                   </div>
                 </div>
-              {/each}
-            </div>
-
-            {#if suggestedLimits.length > 0}
-              <div class="suggestion-footer">
-                <button class="action-btn primary apply-all" onclick={applyAllSuggestions}>
-                  <CheckCircle2 size={16} />
-                  <span>Apply All Suggestions</span>
-                </button>
-                <button class="action-btn ghost" onclick={() => showSuggestions = false}>
-                  Dismiss
-                </button>
-              </div>
-            {:else}
-              <div class="empty-state">
-                <Sparkles size={40} class="empty-icon" />
-                <p>No spending data yet. Add transactions over a few months to get budget suggestions.</p>
-              </div>
-            {/if}
-          </div>
-        </div>
-      {/if}
-
+              {/if}
+            {/each}
+          {/if}
+        </section>
+      </section>
     <!-- ══════════════════════════════════════════════════════════════
          TAB: BILLS — Subscription Day calendar
     ════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'Bills'}
-      <div class="subs-shell">
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><CreditCard size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">{bills.filter(b => b.active).length} subscriptions</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
+          </div>
+          <div class="bg-page__actions">
+          </div>
+        </header>
 
-        <!-- ── LEFT: Calendar pane ───────────────────────────────── -->
-        <div class="subs-cal-pane">
+        <section class="bg-body">
+          <div class="subs-shell">
 
-          <!-- Month headline -->
-          <div class="subs-month-hd">
-            <div class="subs-month-left">
-              <span class="subs-month-name">{calMonthLabel}</span>
-              {#if calUnpaidCount === 0 && bills.length > 0}
-                <span class="subs-badge subs-badge--paid">All paid ✓</span>
-              {:else if calUnpaidCount > 0}
-                <span class="subs-badge subs-badge--unpaid">{calUnpaidCount} upcoming</span>
+            <!-- ── LEFT: Calendar pane ───────────────────────────────── -->
+            <div class="subs-cal-pane">
+
+              <!-- Month headline -->
+              <div class="subs-month-hd">
+                <div class="subs-month-left">
+                  <span class="subs-month-name">{calMonthLabel}</span>
+                  {#if calUnpaidCount === 0 && bills.length > 0}
+                    <span class="subs-badge subs-badge--paid">All paid ✓</span>
+                  {:else if calUnpaidCount > 0}
+                    <span class="subs-badge subs-badge--unpaid">{calUnpaidCount} upcoming</span>
+                  {/if}
+                </div>
+                <div class="subs-month-total">
+                  <span class="subs-total-amt">€{calMonthlyTotal.toFixed(2)}</span>
+                  <span class="subs-total-label">/ month</span>
+                </div>
+              </div>
+
+              <!-- Day-of-week row -->
+              <div class="subs-dow">
+                {#each ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as d}
+                  <span>{d}</span>
+                {/each}
+              </div>
+
+              <!-- Calendar grid — squircle day cells -->
+              <div class="subs-grid">
+                {#each Array(calFirstDow) as _}
+                  <div class="subs-cell subs-cell--empty"></div>
+                {/each}
+
+                {#each Array(calDays) as _, i}
+                  {@const day = i + 1}
+                  {@const dayBills = bills.filter(b => b.dueDay === day && b.active)}
+                  {@const isToday = day === calToday}
+                  {@const hasBill = dayBills.length > 0}
+                  <div
+                    class="subs-cell"
+                    class:subs-cell--today={isToday}
+                    class:subs-cell--active={hasBill}
+                  >
+                    <!-- Day number — squircle if has bills -->
+                    <span class="subs-day-num" class:subs-day-num--today={isToday}>{day}</span>
+
+                    {#if hasBill}
+                      <div class="subs-badges">
+                        {#each dayBills.slice(0, 2) as bill}
+                          <button
+                            class="subs-sqircle"
+                            class:subs-sqircle--paid={bill.paidThisMonth}
+                            style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}"
+                            onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
+                            title="{bill.name} — €{bill.amount.toFixed(2)}"
+                          >
+                            {bill.name.charAt(0).toUpperCase()}
+                          </button>
+                        {/each}
+                        {#if dayBills.length > 2}
+                          <span class="subs-overflow">+{dayBills.length - 2}</span>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+
+              <!-- Add subscription -->
+              <button class="subs-add-btn" onclick={() => { resetNewBill(); showAddBill = true; }}>
+                <Plus size={15} /> Add Subscription
+              </button>
+            </div>
+
+            <!-- ── RIGHT: Detail + analytics ─────────────────────────── -->
+            <div class="subs-side">
+
+              <!-- Detail card — brand-color tinted -->
+              {#if selectedBill}
+                {@const sb = selectedBill}
+                {@const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
+                <div class="subs-detail" style="--sb:{sbColor}">
+                  <div class="subs-detail-hd">
+                    <div class="subs-detail-icon" style="background:{sbColor}">
+                      {sb.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="subs-detail-meta">
+                      <span class="subs-detail-name">{sb.name}</span>
+                      <span class="subs-detail-cycle">Monthly · Day {sb.dueDay}</span>
+                    </div>
+                    <button class="subs-close" onclick={() => selectedBill = null}>×</button>
+                  </div>
+
+                  <div class="subs-detail-rows">
+                    <div class="subs-dr"><span>Amount</span><strong>€{sb.amount.toFixed(2)}</strong></div>
+                    <div class="subs-dr"><span>Yearly cost</span><strong>€{(sb.amount * 12).toFixed(2)}</strong></div>
+                    <div class="subs-dr">
+                      <span>Status</span>
+                      <span class="subs-status" class:subs-status--paid={sb.paidThisMonth}>
+                        {sb.paidThisMonth ? 'Paid this month' : 'Unpaid'}
+                      </span>
+                    </div>
+                    {#if sb.categoryName}<div class="subs-dr"><span>Category</span><strong>{sb.categoryName}</strong></div>{/if}
+                    {#if sb.autoPay}<div class="subs-dr"><span>Auto-pay</span><strong>Yes</strong></div>{/if}
+                  </div>
+
+                  <div class="subs-detail-actions">
+                    <button
+                      class="subs-pay-btn"
+                      class:subs-pay-btn--paid={sb.paidThisMonth}
+                      onclick={() => { toggleBillPaid(sb.id); selectedBill = { ...sb, paidThisMonth: !sb.paidThisMonth }; }}
+                    >
+                      <CheckCircle2 size={15} />
+                      {sb.paidThisMonth ? 'Mark Unpaid' : 'Mark as Paid'}
+                    </button>
+                    <button class="subs-del-btn" onclick={() => { deleteBill(sb.id); selectedBill = null; }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
               {/if}
-            </div>
-            <div class="subs-month-total">
-              <span class="subs-total-amt">€{calMonthlyTotal.toFixed(2)}</span>
-              <span class="subs-total-label">/ month</span>
-            </div>
-          </div>
 
-          <!-- Day-of-week row -->
-          <div class="subs-dow">
-            {#each ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as d}
-              <span>{d}</span>
-            {/each}
-          </div>
+              <!-- Analytics card -->
+              <div class="subs-analytics">
+                <p class="subs-analytics-title">
+                  {bills.filter(b => b.active).length} active subscription{bills.filter(b => b.active).length !== 1 ? 's' : ''}
+                </p>
+                <div class="subs-stats">
+                  <div class="subs-stat">
+                    <span class="subs-stat-lbl">Yearly forecast</span>
+                    <span class="subs-stat-val">€{calYearlyTotal.toFixed(0)}</span>
+                  </div>
+                  <div class="subs-stat">
+                    <span class="subs-stat-lbl">Average monthly</span>
+                    <span class="subs-stat-val">€{calMonthlyTotal.toFixed(0)}</span>
+                  </div>
+                  <div class="subs-stat subs-stat--full">
+                    <span class="subs-stat-lbl">Paid this month</span>
+                    <span class="subs-stat-val">{calPaidCount}/{bills.length}</span>
+                  </div>
+                </div>
 
-          <!-- Calendar grid — squircle day cells -->
-          <div class="subs-grid">
-            {#each Array(calFirstDow) as _}
-              <div class="subs-cell subs-cell--empty"></div>
-            {/each}
-
-            {#each Array(calDays) as _, i}
-              {@const day = i + 1}
-              {@const dayBills = bills.filter(b => b.dueDay === day && b.active)}
-              {@const isToday = day === calToday}
-              {@const hasBill = dayBills.length > 0}
-              <div
-                class="subs-cell"
-                class:subs-cell--today={isToday}
-                class:subs-cell--active={hasBill}
-              >
-                <!-- Day number — squircle if has bills -->
-                <span class="subs-day-num" class:subs-day-num--today={isToday}>{day}</span>
-
-                {#if hasBill}
-                  <div class="subs-badges">
-                    {#each dayBills.slice(0, 2) as bill}
-                      <button
-                        class="subs-sqircle"
-                        class:subs-sqircle--paid={bill.paidThisMonth}
-                        style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}"
-                        onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
-                        title="{bill.name} — €{bill.amount.toFixed(2)}"
-                      >
+                <!-- Subscription list — sorted by due day -->
+                <div class="subs-list">
+                  {#each [...bills].sort((a, b) => a.dueDay - b.dueDay) as bill}
+                    <button
+                      class="subs-row"
+                      class:subs-row--paid={bill.paidThisMonth}
+                      class:subs-row--sel={selectedBill?.id === bill.id}
+                      onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
+                    >
+                      <div class="subs-row-icon" style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}">
                         {bill.name.charAt(0).toUpperCase()}
-                      </button>
-                    {/each}
-                    {#if dayBills.length > 2}
-                      <span class="subs-overflow">+{dayBills.length - 2}</span>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-            {/each}
-          </div>
+                      </div>
+                      <div class="subs-row-info">
+                        <span class="subs-row-name">{bill.name}</span>
+                        <span class="subs-row-due">Day {bill.dueDay}</span>
+                      </div>
+                      <div class="subs-row-right">
+                        <span class="subs-row-amt">€{bill.amount.toFixed(2)}</span>
+                        {#if bill.paidThisMonth}
+                          <CheckCircle2 size={12} color="#22c55e" />
+                        {/if}
+                      </div>
+                    </button>
+                  {/each}
 
-          <!-- Add subscription -->
-          <button class="subs-add-btn" onclick={() => { resetNewBill(); showAddBill = true; }}>
-            <Plus size={15} /> Add Subscription
-          </button>
-        </div>
-
-        <!-- ── RIGHT: Detail + analytics ─────────────────────────── -->
-        <div class="subs-side">
-
-          <!-- Detail card — brand-color tinted -->
-          {#if selectedBill}
-            {@const sb = selectedBill}
-            {@const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
-            <div class="subs-detail" style="--sb:{sbColor}">
-              <div class="subs-detail-hd">
-                <div class="subs-detail-icon" style="background:{sbColor}">
-                  {sb.name.charAt(0).toUpperCase()}
+                  {#if bills.length === 0}
+                    <div class="subs-empty">
+                      <CreditCard size={28} />
+                      <p>No subscriptions yet.</p>
+                      <p>Add Netflix, Spotify, Claude…</p>
+                    </div>
+                  {/if}
                 </div>
-                <div class="subs-detail-meta">
-                  <span class="subs-detail-name">{sb.name}</span>
-                  <span class="subs-detail-cycle">Monthly · Day {sb.dueDay}</span>
-                </div>
-                <button class="subs-close" onclick={() => selectedBill = null}>×</button>
               </div>
-
-              <div class="subs-detail-rows">
-                <div class="subs-dr"><span>Amount</span><strong>€{sb.amount.toFixed(2)}</strong></div>
-                <div class="subs-dr"><span>Yearly cost</span><strong>€{(sb.amount * 12).toFixed(2)}</strong></div>
-                <div class="subs-dr">
-                  <span>Status</span>
-                  <span class="subs-status" class:subs-status--paid={sb.paidThisMonth}>
-                    {sb.paidThisMonth ? 'Paid this month' : 'Unpaid'}
-                  </span>
-                </div>
-                {#if sb.categoryName}<div class="subs-dr"><span>Category</span><strong>{sb.categoryName}</strong></div>{/if}
-                {#if sb.autoPay}<div class="subs-dr"><span>Auto-pay</span><strong>Yes</strong></div>{/if}
-              </div>
-
-              <div class="subs-detail-actions">
-                <button
-                  class="subs-pay-btn"
-                  class:subs-pay-btn--paid={sb.paidThisMonth}
-                  onclick={() => { toggleBillPaid(sb.id); selectedBill = { ...sb, paidThisMonth: !sb.paidThisMonth }; }}
-                >
-                  <CheckCircle2 size={15} />
-                  {sb.paidThisMonth ? 'Mark Unpaid' : 'Mark as Paid'}
-                </button>
-                <button class="subs-del-btn" onclick={() => { deleteBill(sb.id); selectedBill = null; }}>
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </div>
-          {/if}
-
-          <!-- Analytics card -->
-          <div class="subs-analytics">
-            <p class="subs-analytics-title">
-              {bills.filter(b => b.active).length} active subscription{bills.filter(b => b.active).length !== 1 ? 's' : ''}
-            </p>
-            <div class="subs-stats">
-              <div class="subs-stat">
-                <span class="subs-stat-lbl">Yearly forecast</span>
-                <span class="subs-stat-val">€{calYearlyTotal.toFixed(0)}</span>
-              </div>
-              <div class="subs-stat">
-                <span class="subs-stat-lbl">Average monthly</span>
-                <span class="subs-stat-val">€{calMonthlyTotal.toFixed(0)}</span>
-              </div>
-              <div class="subs-stat subs-stat--full">
-                <span class="subs-stat-lbl">Paid this month</span>
-                <span class="subs-stat-val">{calPaidCount}/{bills.length}</span>
-              </div>
-            </div>
-
-            <!-- Subscription list — sorted by due day -->
-            <div class="subs-list">
-              {#each [...bills].sort((a, b) => a.dueDay - b.dueDay) as bill}
-                <button
-                  class="subs-row"
-                  class:subs-row--paid={bill.paidThisMonth}
-                  class:subs-row--sel={selectedBill?.id === bill.id}
-                  onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
-                >
-                  <div class="subs-row-icon" style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}">
-                    {bill.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div class="subs-row-info">
-                    <span class="subs-row-name">{bill.name}</span>
-                    <span class="subs-row-due">Day {bill.dueDay}</span>
-                  </div>
-                  <div class="subs-row-right">
-                    <span class="subs-row-amt">€{bill.amount.toFixed(2)}</span>
-                    {#if bill.paidThisMonth}
-                      <CheckCircle2 size={12} color="#22c55e" />
-                    {/if}
-                  </div>
-                </button>
-              {/each}
-
-              {#if bills.length === 0}
-                <div class="subs-empty">
-                  <CreditCard size={28} />
-                  <p>No subscriptions yet.</p>
-                  <p>Add Netflix, Spotify, Claude…</p>
-                </div>
-              {/if}
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </section>
 
       <!-- Add subscription modal — popular services grid -->
       {#if showAddBill}
-        <div class="modal-overlay" onclick={() => showAddBill = false} onkeydown={(e) => { if (e.key === 'Escape') showAddBill = false; }}>
-          <div class="modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
-            <div class="modal-handle"></div>
+        <div class="bg-modal-overlay" onclick={() => showAddBill = false} onkeydown={(e) => { if (e.key === 'Escape') showAddBill = false; }}>
+          <div class="bg-modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+            <div class="bg-modal-handle"></div>
             <h3>Add Subscription</h3>
 
             <!-- Popular services -->
-            <div class="popular-services">
-              <span class="popular-label">Popular services</span>
-              <div class="popular-grid">
+            <div class="bg-popular-services">
+              <span class="bg-popular-label">Popular services</span>
+              <div class="bg-popular-grid">
                 {#each POPULAR_SERVICES as svc}
-                  <button class="popular-btn" onclick={() => { newBill.name = svc.name; }}>
-                    <span class="popular-icon" style="background:{svc.color}">{svc.icon}</span>
-                    <span class="popular-name">{svc.name}</span>
+                  <button class="bg-popular-btn" onclick={() => { newBill.name = svc.name; }}>
+                    <span class="bg-popular-icon" style="background:{svc.color}">{svc.icon}</span>
+                    <span class="bg-popular-name">{svc.name}</span>
                   </button>
                 {/each}
               </div>
             </div>
 
-            <div class="modal-form">
-              <div class="form-field">
+            <div class="bg-modal-form">
+              <div class="bg-form-field">
                 <label for="bill-name">Name</label>
                 <input id="bill-name" type="text" bind:value={newBill.name} placeholder="e.g. Netflix, Spotify" />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="bill-amount">Amount (€)</label>
                 <input id="bill-amount" type="number" step="0.01" min="0" bind:value={newBill.amount} placeholder="0.00" />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="bill-due">Billing day (1–31)</label>
                 <input id="bill-due" type="number" min="1" max="31" bind:value={newBill.dueDay} />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="bill-cat">Category</label>
                 <select id="bill-cat" bind:value={newBill.categoryId}>
                   <option value="">Uncategorized</option>
@@ -1032,11 +872,11 @@
                   {/each}
                 </select>
               </div>
-              <label class="checkbox-field">
+              <label class="bg-checkbox-field">
                 <input type="checkbox" bind:checked={newBill.autoPay} />
                 <span>Auto-pay enabled</span>
               </label>
-              <button class="submit-btn" onclick={addBill}>
+              <button class="bg-submit-btn" onclick={addBill}>
                 <CheckCircle2 size={15} /> Add Subscription
               </button>
             </div>
@@ -1048,78 +888,93 @@
          TAB: AI COSTS
          ══════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'AI Costs'}
-      <div class="tab-content">
-        <div class="tab-actions">
-          <button class="action-btn primary" onclick={() => { resetNewAi(); showAddAi = true; }}>
-            <Plus size={16} /> <span>Log AI Cost</span>
-          </button>
-        </div>
-
-        {#if aiSummary.length > 0}
-          <div class="ai-summary-grid">
-            {#each aiSummary as summary}
-              <div class="ai-summary-card">
-                <div class="ai-provider-header">
-                  <Bot size={18} />
-                  <span class="ai-provider-name">{summary.provider}</span>
-                </div>
-                <span class="ai-total-cost">€{summary.totalCost.toFixed(2)}</span>
-                <div class="ai-tokens">
-                  <span>Tokens: {(summary.totalTokensIn + summary.totalTokensOut).toLocaleString()}</span>
-                  <span class="ai-months">{summary.monthCount} {summary.monthCount === 1 ? 'month' : 'months'}</span>
-                </div>
-              </div>
-            {/each}
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><Bot size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">{aiEntries.length} entries</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
           </div>
-        {:else}
-          <div class="empty-state">
-            <Bot size={40} class="empty-icon" />
-            <p>No AI costs logged this month. Track Claude, Cursor, OpenAI, Grok, etc.</p>
+          <div class="bg-page__actions">
+            <Button onclick={() => { resetNewAi(); showAddAi = true; }}>
+              <Plus size={16} /> Log AI Cost
+            </Button>
           </div>
-        {/if}
+        </header>
 
-        {#if aiEntries.length > 0}
-          <Table.Root>
-            <Table.Caption>Recent AI cost entries</Table.Caption>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>Provider / Model</Table.Head>
-                <Table.Head class="text-right">Cost</Table.Head>
-                <Table.Head class="text-right">Tokens</Table.Head>
-                <Table.Head><span class="sr-only">Action</span></Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each aiEntries as entry}
-                <Table.Row>
-                  <Table.Cell>
-                    <div class="flex items-center gap-2">
-                      <span class="font-medium">{entry.provider}</span>
-                      <span class="text-xs text-[var(--muted-foreground)]">{entry.model}</span>
-                      {#if entry.note}<span class="text-xs text-[var(--muted-foreground)]">— {entry.note}</span>{/if}
+        <section class="bg-body">
+          {#if aiSummary.length > 0}
+            <div class="bg-ai-summary-grid">
+              {#each aiSummary as summary}
+                <Card class="bg-ai-card">
+                  <CardContent style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="bg-ai-provider">
+                      <Bot size={18} />
+                      <span class="bg-ai-name">{summary.provider}</span>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell class="text-right font-mono">€{entry.cost.toFixed(4)}</Table.Cell>
-                  <Table.Cell class="text-right text-[var(--muted-foreground)]">{(entry.tokensIn + entry.tokensOut).toLocaleString()}</Table.Cell>
-                  <Table.Cell>
-                    <button class="icon-btn danger" onclick={() => deleteAiCost(entry.id)}>
-                      <Trash2 size={12} />
-                    </button>
-                  </Table.Cell>
-                </Table.Row>
+                    <span class="bg-ai-total">€{summary.totalCost.toFixed(2)}</span>
+                    <div class="bg-ai-tokens">
+                      <span>Tokens: {(summary.totalTokensIn + summary.totalTokensOut).toLocaleString()}</span>
+                      <span class="bg-ai-months">{summary.monthCount} {summary.monthCount === 1 ? 'month' : 'months'}</span>
+                    </div>
+                  </CardContent>
+                </Card>
               {/each}
-            </Table.Body>
-          </Table.Root>
-        {/if}
-      </div>
+            </div>
+          {:else}
+            <div class="bg-empty-state">
+              <Bot size={40} />
+              <p>No AI costs logged this month. Track Claude, Cursor, OpenAI, Grok, etc.</p>
+            </div>
+          {/if}
+
+          {#if aiEntries.length > 0}
+            <Card class="bg-panel bg-panel--full-row" style="margin-top: 16px;">
+              <CardContent style="padding: 0;">
+                <Table.Root>
+                  <Table.Caption>Recent AI cost entries</Table.Caption>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.Head>Provider / Model</Table.Head>
+                      <Table.Head class="text-right">Cost</Table.Head>
+                      <Table.Head class="text-right">Tokens</Table.Head>
+                      <Table.Head><span class="sr-only">Action</span></Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {#each aiEntries as entry}
+                      <Table.Row>
+                        <Table.Cell>
+                          <div class="flex items-center gap-2">
+                            <span class="font-medium">{entry.provider}</span>
+                            <span class="text-xs text-[var(--bg-muted)]">{entry.model}</span>
+                            {#if entry.note}<span class="text-xs text-[var(--bg-muted)]">— {entry.note}</span>{/if}
+                          </div>
+                        </Table.Cell>
+                        <Table.Cell class="text-right font-mono">€{entry.cost.toFixed(4)}</Table.Cell>
+                        <Table.Cell class="text-right text-[var(--bg-muted)]">{(entry.tokensIn + entry.tokensOut).toLocaleString()}</Table.Cell>
+                        <Table.Cell>
+                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteAiCost(entry.id)}>
+                            <Trash2 size={12} />
+                          </button>
+                        </Table.Cell>
+                      </Table.Row>
+                    {/each}
+                  </Table.Body>
+                </Table.Root>
+              </CardContent>
+            </Card>
+          {/if}
+        </section>
+      </section>
 
       {#if showAddAi}
-        <div class="modal-overlay" onclick={() => showAddAi = false} onkeydown={(e) => { if (e.key === 'Escape') showAddAi = false; }}>
-          <div class="modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
-            <div class="modal-handle"></div>
+        <div class="bg-modal-overlay" onclick={() => showAddAi = false} onkeydown={(e) => { if (e.key === 'Escape') showAddAi = false; }}>
+          <div class="bg-modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+            <div class="bg-modal-handle"></div>
             <h3>Log AI Cost</h3>
-            <div class="modal-form">
-              <div class="form-field">
+            <div class="bg-modal-form">
+              <div class="bg-form-field">
                 <label for="ai-provider">Provider</label>
                 <select id="ai-provider" bind:value={newAi.provider}>
                   <option value="">Select provider…</option>
@@ -1133,33 +988,33 @@
                   <option value="Other">Other</option>
                 </select>
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="ai-model">Model</label>
                 <input id="ai-model" type="text" bind:value={newAi.model} placeholder="e.g. claude-3.5-sonnet, gpt-4o" />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="ai-cost">Cost (€)</label>
                 <input id="ai-cost" type="number" step="0.0001" min="0" bind:value={newAi.cost} placeholder="0.00" />
               </div>
-              <div class="form-row">
-                <div class="form-field half">
+              <div class="bg-form-row">
+                <div class="bg-form-field bg-form-field--half">
                   <label for="ai-tokens-in">Tokens In</label>
                   <input id="ai-tokens-in" type="number" min="0" bind:value={newAi.tokensIn} />
                 </div>
-                <div class="form-field half">
+                <div class="bg-form-field bg-form-field--half">
                   <label for="ai-tokens-out">Tokens Out</label>
                   <input id="ai-tokens-out" type="number" min="0" bind:value={newAi.tokensOut} />
                 </div>
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="ai-date">Date</label>
                 <input id="ai-date" type="date" bind:value={newAi.dateKey} />
               </div>
-              <div class="form-field">
+              <div class="bg-form-field">
                 <label for="ai-note">Note</label>
                 <input id="ai-note" type="text" bind:value={newAi.note} placeholder="What was this for?" />
               </div>
-              <button class="submit-btn" onclick={addAiCost}><CheckCircle2 size={16} /> Log Cost</button>
+              <button class="bg-submit-btn" onclick={addAiCost}><CheckCircle2 size={16} /> Log Cost</button>
             </div>
           </div>
         </div>
@@ -1169,816 +1024,585 @@
          TAB: FORECAST
          ══════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'Forecast'}
-      <div class="tab-content">
-        {#if chartData.length === 0 && cashFlow.length === 0}
-          <div class="empty-state">
-            <LineChart size={40} class="empty-icon" />
-            <p>Not enough data for forecasting. Add a few months of transactions first.</p>
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><LineChart size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">{forecastMonths} months</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
           </div>
-        {:else}
-          <ForecastingChart
-            data={chartData}
-            months={forecastMonths}
-            onMonthsChange={handleForecastMonthsChange}
-          />
-          <Table.Root>
-            <Table.Caption>Cash flow forecast for the next {forecastMonths} months.</Table.Caption>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>Month</Table.Head>
-                <Table.Head>Income</Table.Head>
-                <Table.Head>Expenses</Table.Head>
-                <Table.Head class="text-end">Balance</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each cashFlow as proj}
-                <Table.Row>
-                  <Table.Cell class="font-medium">{proj.month}</Table.Cell>
-                  <Table.Cell class="text-budget-income">€{proj.projectedIncome.toFixed(0)}</Table.Cell>
-                  <Table.Cell class="text-budget-expense">€{proj.projectedExpenses.toFixed(0)}</Table.Cell>
-                  <Table.Cell class="text-end font-semibold {proj.projectedBalance >= 0 ? 'positive' : ''}">
-                    €{proj.projectedBalance.toFixed(0)}
-                  </Table.Cell>
-                </Table.Row>
-            {/each}
-            </Table.Body>
-            {#if cashFlow.length > 0}
-              {@const last = cashFlow[cashFlow.length - 1]}
-              <Table.Footer>
-                <Table.Row>
-                  <Table.Cell colspan={3}>Projected End Balance</Table.Cell>
-                  <Table.Cell class="text-end font-bold {last.projectedBalance >= 0 ? 'positive' : ''}">
-                    €{last.projectedBalance.toFixed(0)}
-                  </Table.Cell>
-                </Table.Row>
-              </Table.Footer>
-            {/if}
-          </Table.Root>
-        {/if}
-      </div>
+          <div class="bg-page__actions">
+          </div>
+        </header>
+
+        <section class="bg-body">
+          {#if chartData.length === 0 && cashFlow.length === 0}
+            <Card class="bg-panel">
+              <CardContent>
+                <div class="bg-empty-state">
+                  <LineChart size={40} />
+                  <p>Not enough data for forecasting. Add a few months of transactions first.</p>
+                </div>
+              </CardContent>
+            </Card>
+          {:else}
+            <ForecastingChart
+              data={chartData}
+              months={forecastMonths}
+              onMonthsChange={handleForecastMonthsChange}
+            />
+            <Card class="bg-panel bg-panel--full-row" style="margin-top: 16px;">
+              <CardContent style="padding: 0;">
+                <Table.Root>
+                  <Table.Caption>Cash flow forecast for the next {forecastMonths} months.</Table.Caption>
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.Head>Month</Table.Head>
+                      <Table.Head>Income</Table.Head>
+                      <Table.Head>Expenses</Table.Head>
+                      <Table.Head class="text-end">Balance</Table.Head>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {#each cashFlow as proj}
+                      <Table.Row>
+                        <Table.Cell class="font-medium">{proj.month}</Table.Cell>
+                        <Table.Cell class="bg-tx-income">€{proj.projectedIncome.toFixed(0)}</Table.Cell>
+                        <Table.Cell class="bg-tx-expense">€{proj.projectedExpenses.toFixed(0)}</Table.Cell>
+                        <Table.Cell class="text-end font-semibold {proj.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
+                          €{proj.projectedBalance.toFixed(0)}
+                        </Table.Cell>
+                      </Table.Row>
+                  {/each}
+                  </Table.Body>
+                  {#if cashFlow.length > 0}
+                    {@const last = cashFlow[cashFlow.length - 1]}
+                    <Table.Footer>
+                      <Table.Row>
+                        <Table.Cell colspan={3}>Projected End Balance</Table.Cell>
+                        <Table.Cell class="text-end font-bold {last.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
+                          €{last.projectedBalance.toFixed(0)}
+                        </Table.Cell>
+                      </Table.Row>
+                    </Table.Footer>
+                  {/if}
+                </Table.Root>
+              </CardContent>
+            </Card>
+          {/if}
+        </section>
+      </section>
 
     <!-- ══════════════════════════════════════════════════════════════════
          TAB: EXPORT
          ══════════════════════════════════════════════════════════════════ -->
     {:else if selectedSection === 'Export'}
-      <div class="tab-content">
-        <div class="export-cards">
-          <button class="export-card" onclick={exportCsv} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') exportCsv(); }}>
-            <Download size={28} />
-            <h3>Export as CSV</h3>
-            <p>Download all transactions for {thisMonth} as a CSV file. Compatible with Excel, Google Sheets, and accounting software.</p>
-            <span class="export-hint">Includes: date, type, amount, category, note, project</span>
-          </button>
-          <button class="export-card" onclick={exportPdf} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') exportPdf(); }}>
-            <BarChart3 size={28} />
-            <h3>Monthly Report (PDF)</h3>
-            <p>Generate a comprehensive PDF report with charts, category breakdowns, health insights, and more.</p>
-            <span class="export-hint">Overview • Categories • Health • Bills • AI Costs • Forecast</span>
-          </button>
-        </div>
-      </div>
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><Download size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">CSV / PDF</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
+          </div>
+          <div class="bg-page__actions">
+          </div>
+        </header>
+
+        <section class="bg-body">
+          <div class="bg-grid bg-grid--2col">                <Card class="bg-export-card" role="button" tabindex={0} onclick={exportCsv} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') exportCsv(); }}>
+              <CardHeader><CardTitle><Download size={22} /></CardTitle><CardTitle>Export as CSV</CardTitle></CardHeader>
+              <CardContent>
+                <p>Download all transactions for {thisMonth} as a CSV file. Compatible with Excel, Google Sheets, and accounting software.</p>
+                <span class="bg-export-hint">Includes: date, type, amount, category, note, project</span>
+              </CardContent>
+            </Card>
+            <Card class="bg-export-card" role="button" tabindex={0} onclick={exportPdf} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') exportPdf(); }}>
+              <CardHeader><CardTitle><BarChart3 size={22} /></CardTitle><CardTitle>Monthly Report (PDF)</CardTitle></CardHeader>
+              <CardContent>
+                <p>Generate a comprehensive PDF report with charts, category breakdowns, health insights, and more.</p>
+                <span class="bg-export-hint">Overview • Categories • Health • Bills • AI Costs • Forecast</span>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </section>
     {/if}
   {/if}
-</div>
+</main>
 
 <style>
-  /* ── Shell ──────────────────────────────────────────────────────── */
-  .budget-shell {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    color: var(--foreground);
-    --budget-accent: #e05a3a;
-    --budget-green: #22c55e;
-    --budget-red: #ef4444;
-    --budget-amber: #f59e0b;
-    --budget-surface: var(--card);
-    --budget-surface-hover: color-mix(in srgb, var(--foreground) 8%, var(--card));
-    --budget-border: color-mix(in srgb, var(--border) 80%, transparent);
+  /* ═══════════════════════════════════════════════════════════════════
+     BUDGET WORKSPACE — Health Card System Tokens
+     ═══════════════════════════════════════════════════════════════════ */
+  :global(.bg-workspace) {
+    --bg-accent:             #e05a3a;
+    --bg-green:              #22c55e;
+    --bg-red:                #ef4444;
+    --bg-amber:              #f59e0b;
+    --bg-bg:                 var(--background);
+    --bg-surface:            color-mix(in srgb, var(--surface) 96%, var(--background));
+    --bg-surface-strong:     color-mix(in srgb, var(--surface) 88%, var(--background));
+    --bg-border:             color-mix(in srgb, var(--border) 86%, transparent);
+    --bg-ink:                var(--foreground);
+    --bg-muted:              var(--muted);
+    height:     100%;
+    background: var(--bg-bg);
+    color:      var(--bg-ink);
+    overflow:   hidden;
+    font-family: var(--font-body);
+    box-sizing: border-box;
   }
 
-  /* ── Header ──────────────────────────────────────────────────────── */
-  .budget-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 24px 28px 8px;
-  }
-  .header-left { display: flex; flex-direction: column; gap: 4px; }
-  .header-badge {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: var(--budget-accent);
-  }
-  .header-title {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.01em;
-  }
-  .health-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 16px 6px 12px;
-    border-radius: 100px;
-    background: color-mix(in srgb, var(--health-color) 15%, var(--budget-surface));
-    border: 1px solid color-mix(in srgb, var(--health-color) 30%, transparent);
-    color: var(--health-color);
-  }
-  .health-score { font-size: 20px; font-weight: 800; }
-  .health-label { font-size: 11px; font-weight: 500; opacity: 0.8; }
-
-  /* ── Tab Navigation ────────────────────────────────────────────── */
-  .tab-nav {
-    display: flex;
-    gap: 4px;
-    padding: 8px 28px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    border-bottom: 1px solid var(--budget-border);
-  }
-  .tab-nav::-webkit-scrollbar { display: none; }
-  .tab-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 10px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-  .tab-btn:hover { background: var(--budget-surface-hover); color: var(--foreground); }
-  .tab-btn.active {
-    background: var(--budget-accent);
-    color: white;
+  /* ── Page Layout ──────────────────────────────────────────────────── */
+  :global(.bg-page) {
+    display:             grid;
+    grid-template-rows:  auto auto minmax(0, 1fr);
+    gap:                 18px;
+    height:              100%;
+    min-height:          0;
+    padding:             28px 30px;
+    box-sizing:          border-box;
+    overflow:            hidden;
   }
 
-  /* ── Tab Content ────────────────────────────────────────────────── */
-  .tab-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px 28px 100px;
+  :global(.bg-page__header) {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
   }
-  .tab-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    gap: 12px;
+  :global(.bg-page__intro) { max-width: 56rem; }
+  :global(.bg-page__eyebrow) {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    color: var(--bg-muted); font-size: 0.82rem; letter-spacing: 0.18em; text-transform: uppercase;
   }
-  .tab-subtitle { font-size: 13px; color: var(--muted); }
-  .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    border-radius: 10px;
-    border: none;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .action-btn.primary {
-    background: var(--budget-accent);
-    color: white;
-  }
-  .action-btn.primary:hover {
-    background: color-mix(in srgb, var(--budget-accent) 85%, black);
-    transform: translateY(-1px);
-  }
-  .icon-btn {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .icon-btn:hover { background: var(--budget-surface-hover); color: var(--foreground); }
-  .icon-btn.danger:hover { color: var(--budget-red); background: color-mix(in srgb, var(--budget-red) 12%, transparent); }
+  :global(.bg-page__intro) h1 { margin: 0; font-size: clamp(1.7rem, 2.5vw, 2.6rem); line-height: 1.05; }
+  :global(.bg-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--bg-muted); font-size: 0.97rem; line-height: 1.55; }
+  :global(.bg-page__actions) { display: flex; gap: 12px; flex-shrink: 0; align-items: center; }
 
-  /* ── Loading & Empty ──────────────────────────────────────────── */
-  .loading-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-  .loading-spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--budget-border);
-    border-top-color: var(--budget-accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    color: var(--muted);
-    gap: 12px;
-    text-align: center;
-  }
-  .empty-icon { opacity: 0.4; }
-  .error-banner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0 28px 12px;
-    padding: 10px 16px;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--budget-red) 12%, transparent);
-    color: var(--budget-red);
-    font-size: 13px;
-  }
-  .dismiss-btn {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 0 4px;
+  /* ── Hero Grid ──────────────────────────────────────────────────── */
+  :global(.bg-hero-grid) {
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; min-height: 0;
   }
 
-  /* ── Metrics Grid ──────────────────────────────────────────────── */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .metric-card {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    transition: all 0.2s;
-  }
-  .metric-card:hover { transform: translateY(-2px); }
-  .metric-icon { opacity: 0.7; }
-  .metric-card.income .metric-icon { color: var(--budget-green); }
-  .metric-card.expense .metric-icon { color: var(--budget-red); }
-  .metric-card.savings .metric-icon { color: var(--budget-accent); }
-  .metric-card.rate .metric-icon { color: var(--budget-amber); }
-  .metric-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
-  .metric-value { font-size: 20px; font-weight: 700; }
-
-  /* ── Section Cards ────────────────────────────────────────────── */
-  .section-card {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 16px;
-  }
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .section-header h2 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
+  :global(.bg-score-card),
+  :global(.bg-hero-card),
+  :global(.bg-panel) {
+    border-color: var(--bg-border);
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-surface) 98%, var(--bg-bg)),
+      color-mix(in srgb, var(--bg-surface) 86%, var(--bg-bg)));
   }
 
-  /* ── Cross Module ────────────────────────────────────────────── */
-  .cross-module-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+  :global(.bg-score-card__content) {
+    display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center;
   }
-  .cm-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--background) 50%, transparent);
-  }
-  .cm-item.total { background: color-mix(in srgb, var(--budget-accent) 10%, transparent); }
-  .cm-label { font-size: 12px; color: var(--muted); }
-  .cm-value { font-size: 18px; font-weight: 700; }
 
-  /* ── Health Ring ──────────────────────────────────────────────── */
-  .health-section { text-align: center; }
-  .health-ring {
-    width: 120px;
-    margin: 0 auto 16px;
+  :global(.bg-score-orb) {
+    display: grid; place-items: center; width: 80px; aspect-ratio: 1;
+    border-radius: 999px; flex-shrink: 0;
+    background: color-mix(in srgb, var(--bg-accent) 14%, var(--bg-surface));
+    color: var(--bg-accent);
   }
-  .health-ring-svg { width: 120px; height: 120px; }
-  :global(.health-ring-score) { font-size: 28px; font-weight: 800; }
-  :global(.health-ring-label) { font-size: 10px; font-weight: 500; }
-  .health-grades {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 16px;
+  :global(.bg-orb--income) {
+    background: color-mix(in srgb, var(--bg-green) 14%, var(--bg-surface));
+    color: var(--bg-green);
   }
-  .grade-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .grade-badge {
-    padding: 2px 10px;
-    border-radius: 100px;
-    font-size: 11px;
-    font-weight: 600;
-    background: color-mix(in srgb, var(--budget-red) 15%, transparent);
-    color: var(--budget-red);
-  }
-  .grade-badge.good {
-    background: color-mix(in srgb, var(--budget-green) 15%, transparent);
-    color: var(--budget-green);
-  }
-  .insights-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-align: left;
-  }
-  .insight-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--muted);
-  }
-  .insight-item :global(svg) { margin-top: 2px; flex-shrink: 0; color: var(--budget-accent); }
 
-  /* ── Top Categories ──────────────────────────────────────────── */
-  .top-cats-list { display: flex; flex-direction: column; gap: 10px; }
-  .top-cat-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+  :global(.bg-score-meta) { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  :global(.bg-score-meta) > div {
+    display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
+    border-radius: 14px; border: 1px solid color-mix(in srgb, var(--bg-border) 80%, transparent);
+    background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
   }
-  .top-cat-left { display: flex; align-items: center; gap: 8px; min-width: 120px; }
-  .cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .cat-name { font-size: 13px; font-weight: 500; }
-  .top-cat-right { display: flex; align-items: center; gap: 12px; flex: 1; }
-  .cat-bar-track {
-    flex: 1;
+  :global(.bg-score-meta) strong { font-size: 0.93rem; font-weight: 600; }
+  :global(.bg-score-meta) span   { color: var(--bg-muted); font-size: 0.72rem; }
+
+  :global(.bg-hero-list) { display: grid; gap: 7px; }
+  :global(.bg-hero-list) article {
+    padding: 11px 14px; border: 1px solid color-mix(in srgb, var(--bg-border) 88%, transparent);
+    border-radius: 13px; background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent); display: grid; gap: 4px;
+  }
+  :global(.bg-hero-list) span   { color: var(--bg-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  :global(.bg-hero-list) strong { font-size: 0.93rem; font-weight: 600; }
+
+  :global(.bg-hero-bar) {
+    height: 5px; border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-border) 70%, transparent); overflow: hidden;
+  }
+  :global(.bg-hero-bar) i {
+    display: block; width: var(--fill); height: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, var(--bg-accent), color-mix(in srgb, var(--accent) 40%, var(--bg-accent)));
+  }
+
+  /* ── Body ────────────────────────────────────────────────────────── */
+  :global(.bg-body) { min-height: 0; overflow: auto; }
+  :global(.bg-grid) { display: grid; gap: 16px; }
+  :global(.bg-grid--2col) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :global(.bg-panel) { display: flex; flex-direction: column; }
+  :global(.bg-panel--full-row) { grid-column: 1 / -1; }
+
+  /* ── Utils ───────────────────────────────────────────────────────── */
+  :global(.bg-expense) { color: var(--bg-red); }
+  :global(.bg-savings) { color: var(--bg-accent); }
+  :global(.bg-muted)   { color: var(--bg-muted); font-size: 0.83rem; }
+
+  /* ── Top Categories ────────────────────────────────────────────── */
+  :global(.bg-top-cats) { display: flex; flex-direction: column; gap: 10px; }
+  :global(.bg-top-cat-item) {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  :global(.bg-top-cat-left) { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+  :global(.bg-cat-dot) { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  :global(.bg-cat-name) { font-size: 13px; font-weight: 500; }
+  :global(.bg-top-cat-right) { display: flex; align-items: center; gap: 12px; flex: 1; }
+  :global(.bg-cat-bar-track) {
+    flex: 1; height: 6px;
+    background: color-mix(in srgb, var(--bg-border) 70%, transparent);
+    border-radius: 3px; overflow: hidden;
+  }
+  :global(.bg-cat-bar-fill) { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  :global(.bg-cat-amount) { font-size: 13px; font-weight: 600; min-width: 60px; text-align: right; }
+
+  /* ── Month Input ─────────────────────────────────────────────────── */
+  :global(.bg-month-input) {
+    background: var(--bg-surface);
+    border: 1px solid var(--bg-border);
+    padding: 8px 12px; border-radius: 10px;
+    color: var(--bg-ink); font-size: 13px; font-weight: 500;
+  }
+
+  /* ── Transaction table ─────────────────────────────────────────── */
+  :global(.bg-tx-dot) { width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 4px; }
+  :global(.bg-tx-income) { color: var(--bg-green); }
+  :global(.bg-tx-expense) { color: var(--bg-red); }
+  :global(.bg-tx-income-row) { background: color-mix(in srgb, var(--bg-green) 6%, transparent); }
+  :global(.bg-icon-btn) {
+    background: transparent; border: none; color: var(--bg-muted);
+    cursor: pointer; padding: 6px; border-radius: 8px;
+    transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+  }
+  :global(.bg-icon-btn:hover) { background: color-mix(in srgb, var(--bg-ink) 8%, var(--bg-surface)); color: var(--bg-ink); }
+  :global(.bg-icon-btn--danger:hover) { color: var(--bg-red); background: color-mix(in srgb, var(--bg-red) 12%, transparent); }
+
+  /* ── Budget Groups ──────────────────────────────────────────────── */
+  :global(.bg-budget-group) { margin-bottom: 24px; }
+  :global(.bg-group-title) {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--bg-muted); margin: 0 0 10px 4px;
+  }
+  :global(.bg-budget-cards) { display: flex; flex-direction: column; gap: 8px; }
+  :global(.bg-budget-card) {
+    border-color: color-mix(in srgb, var(--bg-border) 88%, transparent);
+  }
+  :global(.bg-budget-card:hover) { border-color: color-mix(in srgb, var(--bg-cat-color) 40%, var(--bg-border)); }
+  :global(.bg-budget-card-header) {
+    display: flex; align-items: center; gap: 8px;
+  }
+  :global(.bg-budget-cat-name) { flex: 1; font-size: 14px; font-weight: 600; }
+  :global(.bg-budget-cat-amount) { font-size: 13px; font-weight: 700; }
+  :global(.bg-edit-budget-btn) {
+    background: none; border: none; color: var(--bg-muted); cursor: pointer; transition: color 0.2s;
+  }
+  :global(.bg-edit-budget-btn:hover) { color: var(--bg-ink); }
+  :global(.bg-budget-bar-track) {
     height: 6px;
-    background: var(--budget-border);
-    border-radius: 3px;
-    overflow: hidden;
+    background: color-mix(in srgb, var(--bg-border) 70%, transparent);
+    border-radius: 3px; overflow: hidden;
   }
-  .cat-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-  .cat-amount { font-size: 13px; font-weight: 600; min-width: 60px; text-align: right; }
+  :global(.bg-budget-bar-fill) {
+    height: 100%; background: var(--bg-cat-color); border-radius: 3px; transition: width 0.6s ease;
+  }
+  :global(.bg-budget-bar--over) { background: var(--bg-red); }
+  :global(.bg-budget-card-footer) {
+    display: flex; justify-content: space-between; font-size: 12px; color: var(--bg-muted);
+  }
+  :global(.bg-remaining-pos) { color: var(--bg-green); }
+  :global(.bg-remaining-neg) { color: var(--bg-red); }
+  :global(.bg-budget-edit) {
+    display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--bg-border);
+  }
+  :global(.bg-budget-edit) input {
+    flex: 1; background: var(--bg-bg); border: 1px solid var(--bg-border);
+    padding: 6px 10px; border-radius: 8px; color: var(--bg-ink); font-size: 13px;
+  }
+  :global(.bg-save-mini) {
+    padding: 6px 14px; border-radius: 8px; border: none;
+    background: var(--bg-accent); color: white; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
 
-  /* ── Transactions ────────────────────────────────────────────── */
-  .month-input {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    padding: 8px 12px;
-    border-radius: 10px;
-    color: var(--foreground);
-    font-size: 13px;
-    font-weight: 500;
+  /* ── Loading & Empty ────────────────────────────────────────────── */
+  :global(.bg-loading) {
+    display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
   }
-  .tx-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; vertical-align: middle; margin-right: 4px; }
-  :global(.tx-row-income) { background: color-mix(in srgb, var(--budget-green) 6%, transparent); }
+  :global(.bg-loading__orb) {
+    width: 48px; height: 48px; border-radius: 999px;
+    border: 3px solid color-mix(in srgb, var(--bg-accent) 30%, transparent);
+    border-top-color: var(--bg-accent);
+    animation: bg-spin 0.8s linear infinite;
+  }
+  :global(.bg-loading) span { color: var(--bg-muted); font-size: 0.9rem; }
+  @keyframes bg-spin { to { transform: rotate(360deg); } }
+  :global(.bg-empty-state) {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px; color: var(--bg-muted); gap: 12px; text-align: center;
+  }
+  :global(.bg-empty-state svg) { opacity: 0.4; }
 
-  /* ── Budget Groups ────────────────────────────────────────────── */
-  .budget-group { margin-bottom: 24px; }
-  .group-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 10px 4px;
+  /* ── Error ────────────────────────────────────────────────────────── */
+  :global(.bg-error-banner) {
+    display: flex; align-items: center; gap: 10px; margin: 12px 30px 0;
+    padding: 10px 16px; border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-red) 12%, transparent); color: var(--bg-red); font-size: 13px;
   }
-  .budget-cards { display: flex; flex-direction: column; gap: 8px; }
-  .budget-card {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    transition: all 0.2s;
+  :global(.bg-dismiss-btn) {
+    margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; font-size: 18px; padding: 0 4px;
   }
-  .budget-card:hover { border-color: color-mix(in srgb, var(--cat-color) 40%, var(--budget-border)); }
-  .budget-card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+
+  /* ── AI Costs ──────────────────────────────────────────────────── */
+  :global(.bg-ai-summary-grid) {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;
   }
-  .budget-cat-name { flex: 1; font-size: 14px; font-weight: 600; }
-  .budget-cat-amount { font-size: 13px; font-weight: 700; min-width: 60px; text-align: right; }
-  .edit-budget-btn {
-    background: none;
+  :global(.bg-ai-card) {
+    border-color: color-mix(in srgb, var(--bg-border) 88%, transparent);
+  }
+  :global(.bg-ai-provider) { display: flex; align-items: center; gap: 8px; }
+  :global(.bg-ai-name) { font-size: 13px; font-weight: 600; }
+  :global(.bg-ai-total) { font-size: 22px; font-weight: 700; }
+  :global(.bg-ai-tokens) { font-size: 12px; color: var(--bg-muted); display: flex; flex-direction: column; gap: 2px; }
+  :global(.bg-ai-months) { font-size: 11px; }
+
+  /* ── Export Cards ──────────────────────────────────────────────── */
+  :global(.bg-export-card) {
+    cursor: pointer; transition: all 0.2s; border-color: var(--bg-border);
+  }
+  :global(.bg-export-card:hover) { border-color: var(--bg-accent); }
+  :global(.bg-export-card) p { margin: 0; font-size: 13px; color: var(--bg-muted); line-height: 1.5; }
+  :global(.bg-export-hint) { font-size: 11px; color: var(--bg-muted); font-style: italic; }
+
+  /* ── Modals ─────────────────────────────────────────────────────── */
+  :global(.bg-modal-overlay) {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: color-mix(in srgb, var(--bg-bg) 70%, transparent);
+    backdrop-filter: blur(4px); z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    animation: bg-fade-in 0.2s ease;
+  }
+  @keyframes bg-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  :global(.bg-modal-sheet) {
+    background: var(--bg-surface); border: 1px solid var(--bg-border);
+    width: min(440px, 92vw); max-height: 85vh; overflow-y: auto;
+    border-radius: 24px; padding: 24px 28px 32px;
+    animation: bg-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes bg-slide-up { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  :global(.bg-modal-handle) {
+    width: 40px; height: 4px; background: var(--bg-border); border-radius: 4px; margin: 0 auto 20px;
+  }
+  :global(.bg-modal-sheet) h3 { margin: 0 0 20px; font-size: 18px; text-align: center; font-weight: 700; }
+  :global(.bg-modal-form) { display: flex; flex-direction: column; gap: 14px; }
+  :global(.bg-form-field) { display: flex; flex-direction: column; gap: 4px; }
+  :global(.bg-form-field) label { font-size: 12px; font-weight: 600; color: var(--bg-muted); }
+  :global(.bg-field-hint) { font-weight: 400; opacity: 0.7; }
+  :global(.bg-form-field) input, :global(.bg-form-field) select {
+    background: var(--bg-bg); border: 1px solid var(--bg-border);
+    padding: 10px 14px; border-radius: 10px; color: var(--bg-ink); font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  :global(.bg-form-field) input:focus, :global(.bg-form-field) select:focus { border-color: var(--bg-accent); }
+  :global(.bg-form-row) { display: flex; gap: 10px; }
+  :global(.bg-form-field--half) { flex: 1; }
+  :global(.bg-checkbox-field) {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;
+  }
+  :global(.bg-checkbox-field) input[type="checkbox"] { accent-color: var(--bg-accent); }
+  :global(.bg-type-toggle) { display: flex; gap: 8px; }
+  :global(.bg-type-btn) {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px; border-radius: 10px; border: 1px solid var(--bg-border);
+    background: transparent; color: var(--bg-muted); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  :global(.bg-type-btn--active) {
+    background: var(--bg-accent); color: white; border-color: var(--bg-accent);
+  }
+  :global(.bg-submit-btn) {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px; border-radius: 12px; border: none;
+    background: var(--bg-accent); color: white; font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 4px; transition: background 0.2s;
+  }
+  :global(.bg-submit-btn:hover) { background: color-mix(in srgb, var(--bg-accent) 85%, black); }
+
+  /* ── Bills — Subscription Day Calendar ────────────────────────── */
+  :global(.subs-shell) {
+    display: grid; grid-template-columns: 1fr 320px; gap: 20px; height: 100%;
+  }
+  :global(.subs-cal-pane) {
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 20px; border: none; border-radius: 20px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bg-surface) 98%, var(--bg-bg)), color-mix(in srgb, var(--bg-surface) 86%, var(--bg-bg)));
+  }
+  :global(.subs-month-hd) {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  :global(.subs-month-left) { display: flex; align-items: center; gap: 12px; }
+  :global(.subs-month-name) { font-size: 17px; font-weight: 700; }
+  :global(.subs-badge) {
+    font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 100px;
+  }
+  :global(.subs-badge--paid) { background: color-mix(in srgb, var(--bg-green) 15%, transparent); color: var(--bg-green); }
+  :global(.subs-badge--unpaid) { background: color-mix(in srgb, var(--bg-amber) 15%, transparent); color: var(--bg-amber); }
+  :global(.subs-month-total) { text-align: right; }
+  :global(.subs-total-amt) { font-size: 22px; font-weight: 800; }
+  :global(.subs-total-label) { font-size: 11px; color: var(--bg-muted); margin-left: 4px; }
+  :global(.subs-dow) {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    text-align: center; font-size: 11px; font-weight: 600; color: var(--bg-muted); text-transform: uppercase;
+  }
+  :global(.subs-grid) {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  }
+  :global(.subs-cell) {
+    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 4px; border-radius: 12px; position: relative; gap: 2px;
+  }
+  :global(.subs-cell--empty) { opacity: 0; }
+  :global(.subs-cell--today) { background: color-mix(in srgb, var(--bg-accent) 12%, transparent); }
+  :global(.subs-cell--active) { background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent); }
+  :global(.subs-day-num) {
+    font-size: 13px; font-weight: 600; line-height: 1;
+  }
+  :global(.subs-day-num--today) { color: var(--bg-accent); font-weight: 800; }
+  :global(.subs-badges) {
+    display: flex; gap: 2px; flex-wrap: wrap; justify-content: center;
+  }
+  :global(.subs-sqircle) {
+    width: 22px; height: 22px; border-radius: 8px; border: none;
+    color: white; font-size: 10px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  :global(.subs-sqircle:hover) { transform: scale(1.15); }
+  :global(.subs-sqircle--paid) { opacity: 0.4; }
+  :global(.subs-overflow) { font-size: 9px; color: var(--bg-muted); font-weight: 600; }
+  :global(.subs-add-btn) {
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+    padding: 10px; border-radius: 12px; border: 1px dashed var(--bg-border);
+    background: transparent; color: var(--bg-muted); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; margin-top: auto;
+  }
+  :global(.subs-add-btn:hover) { border-color: var(--bg-accent); color: var(--bg-accent); }
+
+  :global(.subs-side) { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+  :global(.subs-detail) {
+    padding: 18px; border-radius: 20px;
     border: none;
-    color: var(--muted);
-    cursor: pointer;
-    transition: color 0.2s;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--sb) 10%, var(--bg-surface)), color-mix(in srgb, var(--sb) 6%, var(--bg-surface)));
   }
-  .edit-budget-btn:hover { color: var(--foreground); }
-  .budget-bar-track {
-    height: 6px;
-    background: var(--budget-border);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 6px;
+  :global(.subs-detail-hd) { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  :global(.subs-detail-icon) {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 16px; font-weight: 700;
   }
-  .budget-bar-fill {
-    height: 100%;
-    background: var(--cat-color);
-    border-radius: 3px;
-    transition: width 0.6s ease;
+  :global(.subs-detail-meta) { flex: 1; }
+  :global(.subs-detail-name) { font-size: 16px; font-weight: 700; display: block; }
+  :global(.subs-detail-cycle) { font-size: 12px; color: var(--bg-muted); }
+  :global(.subs-close) {
+    width: 28px; height: 28px; border-radius: 999px; border: none;
+    background: transparent; color: var(--bg-muted); font-size: 18px;
+    cursor: pointer; display: grid; place-items: center;
   }
-  .budget-bar-fill.over { background: var(--budget-red); }
-  .budget-card-footer {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--muted);
+  :global(.subs-close:hover) { background: color-mix(in srgb, var(--bg-ink) 8%, transparent); }
+  :global(.subs-detail-rows) { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  :global(.subs-dr) {
+    display: flex; justify-content: space-between; font-size: 13px;
+    padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--bg-border) 60%, transparent);
   }
-  .remaining-positive { color: var(--budget-green); }
-  .remaining-negative { color: var(--budget-red); }
-  .budget-edit-inline {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--budget-border);
+  :global(.subs-dr) span { color: var(--bg-muted); }
+  :global(.subs-status) { font-size: 12px; font-weight: 600; }
+  :global(.subs-status--paid) { color: var(--bg-green); }
+  :global(.subs-detail-actions) { display: flex; gap: 8px; }
+  :global(.subs-pay-btn) {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px; border-radius: 12px; border: 1px solid var(--bg-border);
+    background: transparent; color: var(--bg-ink); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
   }
-  .budget-edit-inline input {
-    flex: 1;
-    background: var(--background);
-    border: 1px solid var(--budget-border);
-    padding: 6px 10px;
-    border-radius: 8px;
-    color: var(--foreground);
-    font-size: 13px;
+  :global(.subs-pay-btn:hover) { border-color: var(--bg-green); color: var(--bg-green); }
+  :global(.subs-pay-btn--paid) {
+    background: color-mix(in srgb, var(--bg-green) 12%, transparent);
+    border-color: var(--bg-green); color: var(--bg-green);
   }
-  .save-mini {
-    padding: 6px 14px;
-    border-radius: 8px;
+  :global(.subs-del-btn) {
+    width: 40px; border-radius: 12px; border: 1px solid var(--bg-border);
+    background: transparent; color: var(--bg-muted); cursor: pointer;
+    display: grid; place-items: center; transition: all 0.2s;
+  }
+  :global(.subs-del-btn:hover) { border-color: var(--bg-red); color: var(--bg-red); }
+
+  :global(.subs-analytics) {
+    padding: 18px; border-radius: 20px;
     border: none;
-    background: var(--budget-accent);
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bg-surface) 98%, var(--bg-bg)), color-mix(in srgb, var(--bg-surface) 86%, var(--bg-bg)));
+  }
+  :global(.subs-analytics-title) { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+  :global(.subs-stats) { display: grid; gap: 8px; margin-bottom: 16px; }
+  :global(.subs-stat) {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
+  }
+  :global(.subs-stat--full) { grid-column: 1 / -1; }
+  :global(.subs-stat-lbl) { font-size: 12px; color: var(--bg-muted); }
+  :global(.subs-stat-val) { font-size: 14px; font-weight: 700; }
+  :global(.subs-list) { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+  :global(.subs-row) {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 12px; border-radius: 12px; border: 1px solid transparent;
+    background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
+    cursor: pointer; transition: all 0.15s; text-align: left; font: inherit;
+  }
+  :global(.subs-row:hover) { border-color: color-mix(in srgb, var(--bg-border) 88%, transparent); }
+  :global(.subs-row--sel) { border-color: var(--bg-accent); }
+  :global(.subs-row--paid) { opacity: 0.5; }
+  :global(.subs-row-icon) {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  :global(.subs-row-info) { flex: 1; }
+  :global(.subs-row-name) { font-size: 13px; font-weight: 600; display: block; }
+  :global(.subs-row-due) { font-size: 11px; color: var(--bg-muted); }
+  :global(.subs-row-right) { display: flex; align-items: center; gap: 6px; }
+  :global(.subs-row-amt) { font-size: 14px; font-weight: 700; }
+  :global(.subs-empty) {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 30px 20px; color: var(--bg-muted); text-align: center;
   }
 
-  /* ── Bills ──────────────────────────────────────────────────────── */
-  .bills-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .bill-card {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    border-radius: 16px;
-    padding: 16px;
-    transition: all 0.2s;
+  /* ── Popular Services (Bills) ──────────────────────────────────── */
+  :global(.bg-popular-services) { margin-bottom: 16px; }
+  :global(.bg-popular-label) {
+    font-size: 11px; font-weight: 600; color: var(--bg-muted); text-transform: uppercase;
+    letter-spacing: 0.05em; display: block; margin-bottom: 8px;
   }
-  .bill-card.paid { border-color: color-mix(in srgb, var(--budget-green) 30%, transparent); }
-  .bill-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 14px;
+  :global(.bg-popular-grid) { display: flex; flex-wrap: wrap; gap: 6px; }
+  :global(.bg-popular-btn) {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    border: 1px solid var(--bg-border); border-radius: 100px;
+    background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
+    color: var(--bg-ink); font-size: 12px; cursor: pointer; transition: all 0.15s;
   }
-  .bill-info { display: flex; flex-direction: column; gap: 2px; }
-  .bill-name { font-size: 15px; font-weight: 600; }
-  .bill-due { font-size: 12px; color: var(--muted); }
-  .bill-amount { font-size: 18px; font-weight: 700; }
-  .bill-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .pay-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--budget-border);
-    background: transparent;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .pay-btn:hover { border-color: var(--budget-green); color: var(--budget-green); }
-  .pay-btn.paid {
-    background: color-mix(in srgb, var(--budget-green) 12%, transparent);
-    border-color: var(--budget-green);
-    color: var(--budget-green);
-  }
-
-  /* ── AI Costs ────────────────────────────────────────────────── */
-  .ai-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .ai-summary-card {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .ai-provider-header { display: flex; align-items: center; gap: 8px; }
-  .ai-provider-name { font-size: 13px; font-weight: 600; }
-  .ai-total-cost { font-size: 22px; font-weight: 700; }
-  .ai-tokens { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
-  .ai-months { font-size: 11px; }
-  .list-subtitle { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: var(--muted); }
-
-  /* ── Forecast Table ──────────────────────────────────────────────── */
-  :global(.text-budget-income) { color: var(--budget-green); }
-  :global(.text-budget-expense) { color: var(--budget-red); }
-  :global(.positive) { color: var(--budget-green) !important; }
-
-  /* ── Export ────────────────────────────────────────────────── */
-  .export-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-  .export-card {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    border-radius: 20px;
-    padding: 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .export-card:hover:not(.disabled) { border-color: var(--budget-accent); transform: translateY(-2px); }
-  .export-card.disabled { opacity: 0.5; cursor: default; }
-  .export-card h3 { margin: 0; font-size: 16px; font-weight: 600; }
-  .export-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
-  .export-hint { font-size: 11px; color: var(--muted); font-style: italic; }
-
-  /* ── Modals ──────────────────────────────────────────────────── */
-  .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: color-mix(in srgb, var(--background) 70%, transparent);
-    backdrop-filter: blur(4px);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.2s ease;
-  }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  .modal-sheet {
-    background: var(--budget-surface);
-    border: 1px solid var(--budget-border);
-    width: min(440px, 92vw);
-    max-height: 85vh;
-    overflow-y: auto;
-    border-radius: 24px;
-    padding: 24px 28px 32px;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .modal-handle {
-    width: 40px; height: 4px;
-    background: var(--budget-border);
-    border-radius: 4px;
-    margin: 0 auto 20px;
-  }
-  .modal-sheet h3 { margin: 0 0 20px; font-size: 18px; text-align: center; font-weight: 700; }
-  .modal-form { display: flex; flex-direction: column; gap: 14px; }
-  .form-field { display: flex; flex-direction: column; gap: 4px; }
-  .form-field label { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .field-hint { font-weight: 400; opacity: 0.7; }
-  .form-field input, .form-field select {
-    background: var(--background);
-    border: 1px solid var(--budget-border);
-    padding: 10px 14px;
-    border-radius: 10px;
-    color: var(--foreground);
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .form-field input:focus, .form-field select:focus { border-color: var(--budget-accent); }
-  .form-row { display: flex; gap: 10px; }
-  .form-field.half { flex: 1; }
-  .checkbox-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .checkbox-field input[type="checkbox"] { accent-color: var(--budget-accent); }
-  .type-toggle {
-    display: flex;
-    gap: 8px;
-  }
-  .type-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid var(--budget-border);
-    background: transparent;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .type-btn.active {
-    background: var(--budget-accent);
-    color: white;
-    border-color: var(--budget-accent);
-  }
-  .submit-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    border-radius: 12px;
-    border: none;
-    background: var(--budget-accent);
-    color: white;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 4px;
-    transition: background 0.2s;
-  }
-  .submit-btn:hover { background: color-mix(in srgb, var(--budget-accent) 85%, black); }
-
-  /* ── Suggest Budgets Modal ─────────────────────────────────────── */
-  .suggestion-sheet {
-    width: min(520px, 94vw);
-    max-height: 80vh;
-  }
-  .suggestion-header {
-    text-align: center;
-    margin-bottom: 4px;
-  }
-  .suggestion-header :global(svg) {
-    color: var(--budget-accent);
-    margin-bottom: 4px;
-  }
-  .suggestion-header h3 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
-  .suggestion-subtitle {
-    margin: 0 0 16px;
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.4;
-  }
-  .suggestion-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 400px;
-    overflow-y: auto;
-    margin: 0 -8px;
-    padding: 0 8px;
-  }
-  .suggestion-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--background) 50%, transparent);
-    border-left: 3px solid var(--sug-color);
-    transition: background 0.2s;
-    gap: 12px;
-  }
-  .suggestion-row:hover { background: var(--budget-surface-hover); }
-  .suggestion-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 100px;
-  }
-  .suggestion-cat-name { font-size: 14px; font-weight: 600; }
-  .suggestion-group { font-size: 11px; color: var(--muted); }
-  .suggestion-details {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    justify-content: flex-end;
-  }
-  .suggestion-avg, .suggestion-budget {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-  }
-  .sug-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
-  .sug-value { font-size: 15px; font-weight: 700; }
-  .sug-value.suggested { color: var(--budget-accent); }
-  .suggestion-arrow { color: var(--muted); opacity: 0.5; flex-shrink: 0; }
-  .apply-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--sug-color);
-    background: color-mix(in srgb, var(--sug-color) 12%, transparent);
-    color: var(--sug-color);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  .apply-btn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--sug-color) 25%, transparent);
-  }
-  .apply-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-    background: color-mix(in srgb, var(--budget-green) 12%, transparent);
-    border-color: var(--budget-green);
-    color: var(--budget-green);
-  }
-  .suggestion-footer {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-    justify-content: center;
-  }
-  .action-btn.secondary {
-    background: color-mix(in srgb, var(--budget-accent) 12%, transparent);
-    color: var(--budget-accent);
-    border: 1px solid color-mix(in srgb, var(--budget-accent) 25%, transparent);
-  }
-  .action-btn.secondary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--budget-accent) 22%, transparent);
-  }
-  .action-btn.secondary:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .action-btn.ghost {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--budget-border);
-  }
-  .action-btn.ghost:hover { background: var(--budget-surface-hover); color: var(--foreground); }
-  .apply-all { min-width: 200px; justify-content: center; }
+  :global(.bg-popular-btn:hover) { border-color: var(--bg-accent); }
+  :global(.bg-popular-icon) { font-size: 14px; }
+  :global(.bg-popular-name) { font-weight: 500; }
 
   /* ── Responsive ────────────────────────────────────────────────── */
   @media (max-width: 768px) {
-    .budget-header { padding: 20px 16px 8px; }
-    .tab-nav { padding: 8px 16px; }
-    .tab-content { padding: 16px 16px 100px; }
-    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-    .cross-module-grid { grid-template-columns: repeat(2, 1fr); }
-    .health-grades { flex-wrap: wrap; }
-    .ai-summary-grid { grid-template-columns: 1fr; }
-    .export-cards { grid-template-columns: 1fr; }
-    .bills-grid { grid-template-columns: 1fr; }
+    :global(.bg-page) { padding: 20px 16px; }
+    :global(.bg-hero-grid) { grid-template-columns: 1fr; }
+    :global(.bg-grid--2col) { grid-template-columns: 1fr; }
+    :global(.bg-ai-summary-grid) { grid-template-columns: 1fr; }
+    :global(.bg-score-card__content) { grid-template-columns: 1fr; text-align: center; }
+    :global(.bg-score-meta) { grid-template-columns: repeat(2, 1fr); }
   }
 </style>

@@ -3,6 +3,10 @@
   import { invoke } from "@tauri-apps/api/core";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import PlusIcon from "@lucide/svelte/icons/plus";
+  import Trash2Icon from "@lucide/svelte/icons/trash-2";
+  import BellIcon from "@lucide/svelte/icons/bell";
+  import BellOffIcon from "@lucide/svelte/icons/bell-off";
+  import MoonIcon from "@lucide/svelte/icons/moon";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -251,12 +255,12 @@
     });
   });
 
-  // Stages are not available for auto-detected sessions
-  const sleepStages = $derived([
-    { label: "Deep", value: "--", fill: 0 },
-    { label: "REM", value: "--", fill: 0 },
-    { label: "Light", value: "--", fill: 0 },
-    { label: "Awake", value: "--", fill: 0 },
+  // Session-derived sub-scores (replaces unmeasurable stages)
+  const scoreSubScores = $derived([
+    { label: "Duration", value: lastNight ? `${formatDuration(lastNight.durationMin)}` : '--', fill: lastNight ? Math.round((lastNight.durationMin / (sleepGoal?.targetDurationMin ?? 480)) * 100) : 0, desc: "vs goal" },
+    { label: "Quality", value: lastNight ? `${Math.round(lastNight.qualityScore ?? 0)}` : '--', fill: Math.round(lastNight?.qualityScore ?? 0), desc: "0-100 score" },
+    { label: "Consistency", value: sleepStats ? `${Math.round(sleepStats.consistencyScore)}` : '--', fill: Math.round(sleepStats?.consistencyScore ?? 0), desc: "bedtime regularity" },
+    { label: "Debt", value: sleepStats && sleepStats.sleepDebtMin > 0 ? `-${formatDuration(sleepStats.sleepDebtMin)}` : 'On track', fill: sleepStats ? Math.max(0, 100 - Math.round(sleepStats.sleepDebtMin / 3)) : 0, desc: `${sleepStats?.totalSessions ?? 0} sessions tracked` },
   ]);
 
   // Score breakdown from last night's session
@@ -299,6 +303,7 @@
         title: r.title,
         status,
         note: status === "Done" ? "Completed tonight." : "Ready for tonight.",
+        tracked: track !== undefined,
       };
     })
   );
@@ -343,16 +348,39 @@
     }
   }
 
+  async function deleteAlarm(id: string) {
+    try {
+      await invoke<void>("sleep_alarm_delete", { alarmId: id });
+      alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
+    } catch (e) {
+      console.error("Failed to delete alarm:", e);
+    }
+  }
+
+  async function toggleAlarm(id: string) {
+    try {
+      await invoke<boolean>("sleep_alarm_toggle", { alarmId: id });
+      alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
+    } catch (e) {
+      console.error("Failed to toggle alarm:", e);
+    }
+  }
+
   async function toggleRoutine(routineId: string) {
     try {
-      const completed = await invoke<boolean>("sleep_routine_toggle", {
-        routineId,
-      });
-      // Reload routine status
-      const status = await invoke<RoutineTracking[]>("sleep_routine_status");
-      routineTracked = status;
+      await invoke<boolean>("sleep_routine_toggle", { routineId });
+      routineTracked = await invoke<RoutineTracking[]>("sleep_routine_status");
     } catch (e) {
       console.error("Failed to toggle routine:", e);
+    }
+  }
+
+  async function deleteRoutine(id: string) {
+    try {
+      await invoke<void>("sleep_routine_delete", { ids: [id] });
+      routines = await invoke<SleepRoutine[]>("sleep_routine_list");
+    } catch (e) {
+      console.error("Failed to delete routine:", e);
     }
   }
 
@@ -552,17 +580,18 @@
         <div class="sleep-grid sleep-grid--score">
           <Card class="sleep-panel">
             <CardHeader>
-              <CardTitle>{_t('moduleSleepStageBalance')}</CardTitle>
-              <CardDescription>{_t('moduleSleepStageBalanceDesc')}</CardDescription>
+              <CardTitle>Sub-scores</CardTitle>
+              <CardDescription>Breakdown from tracked sleep sessions (stages not measurable via laptop sensors)</CardDescription>
             </CardHeader>
             <CardContent class="sleep-stage-list">
-              {#each sleepStages as stage}
+              {#each scoreSubScores as sub}
                 <article>
                   <div class="sleep-stage-copy">
-                    <strong>{stage.label}</strong>
-                    <span>{stage.value}</span>
+                    <strong>{sub.label}</strong>
+                    <span>{sub.value}</span>
+                    <p>{sub.desc}</p>
                   </div>
-                  <div class="sleep-meter"><i style={`--fill:${stage.fill}%`}></i></div>
+                  <div class="sleep-meter"><i style={`--fill:${sub.fill}%`}></i></div>
                 </article>
               {/each}
             </CardContent>
@@ -586,8 +615,7 @@
             <CardTitle>{_t('moduleSleepBedtimeRoutine')}</CardTitle>
             <CardDescription>{_t('moduleSleepBedtimeRoutineDesc')}</CardDescription>
           </CardHeader>
-          <CardContent class="sleep-routine-board">
-            <!-- Add routine form -->
+          <CardContent class="sleep-routine-board">                <!-- Add routine form -->
             <div class="sr-add-form">
               <input type="text" bind:value={routineInput} placeholder="New routine step..." class="sr-input" onkeydown={(e) => e.key === 'Enter' && addRoutine()} />
               <button class="sr-add-btn" onclick={addRoutine} disabled={routineSaving || !routineInput.trim()}>
@@ -601,9 +629,12 @@
                   <strong>{step.title}</strong>
                   <p>{step.note}</p>
                 </div>
-                <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)}>
-                  {step.status === 'Done' ? '✓' : '○'}
-                </button>
+                <div class="sr-actions">
+                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)}>
+                    {step.status === 'Done' ? '✓' : '○'}
+                  </button>
+                  <button class="sr-del" onclick={() => deleteRoutine(step.id)} aria-label="Delete routine"><Trash2Icon size={14} /></button>
+                </div>
               </article>
             {/each}
             {#if routines.length === 0}
@@ -688,15 +719,23 @@
               <button class="sa-add-btn" onclick={addAlarm} disabled={alarmSaving || !alarmLabel.trim() || !alarmTime.trim()}>
                 {alarmSaving ? 'Adding...' : 'Add'}
               </button>
-            </div>
-            {#each alarmList as alarm}
+            </div>                {#each alarmList as alarm}
               <article>
                 <div>
                   <strong>{alarm.label}</strong>
                   <p>{alarm.wakeWindow}</p>
                 </div>
-                <div class="sleep-alarm-list__time">{alarm.time}</div>
-                <Badge variant="secondary">{alarm.mode}</Badge>
+                <div class="sleep-alarm-list__time" class:sa-time--inactive={!alarm.active}>{alarm.time}</div>
+                <div class="sa-actions">
+                  <button class="sa-toggle" onclick={() => toggleAlarm(alarm.id)} aria-label={alarm.active ? 'Disable alarm' : 'Enable alarm'}>
+                    {#if alarm.active}
+                      <BellIcon size={16} />
+                    {:else}
+                      <BellOffIcon size={16} />
+                    {/if}
+                  </button>
+                  <button class="sr-del" onclick={() => deleteAlarm(alarm.id)} aria-label="Delete alarm"><Trash2Icon size={14} /></button>
+                </div>
               </article>
             {/each}
             {#if alarmList.length === 0}
@@ -1335,6 +1374,47 @@
 
   :global(.sleep-alarm-list__time) {
     font: 600 1.4rem "JetBrains Mono", monospace;
+  }
+
+  :global(.sa-time--inactive) {
+    opacity: 0.35;
+    text-decoration: line-through;
+  }
+
+  :global(.sa-actions),
+  :global(.sr-actions) {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  :global(.sa-toggle) {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--sleep-accent);
+    transition: all 0.15s;
+  }
+
+  :global(.sa-toggle:hover) {
+    background: color-mix(in srgb, var(--sleep-accent) 14%, transparent);
+  }
+
+  :global(.sr-del) {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--sleep-muted);
+    transition: all 0.15s;
+  }
+
+  :global(.sr-del:hover) {
+    background: color-mix(in srgb, #ef4444 14%, transparent);
+    color: #ef4444;
   }
 
   :global(.sleep-loading) {

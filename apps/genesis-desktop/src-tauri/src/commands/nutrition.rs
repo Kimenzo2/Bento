@@ -11,6 +11,7 @@
 //   Export    → CSV/JSON data dumps
 // ══════════════════════════════════════════════════════════════════════════
 
+use chrono::Datelike;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use tauri::State;
@@ -858,7 +859,7 @@ pub async fn nutrition_get_hydration_stats(
     let mut weekly_sum = 0i64;
     let mut weekly_days = 0i64;
     let week_cutoff = today_start_ms() - 6 * 86_400_000;
-    let today_str = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let _today_str = chrono::Local::now().format("%Y-%m-%d").to_string();
 
     for (i, row) in rows.iter().enumerate() {
         let day: String = row.try_get("day").unwrap_or_default();

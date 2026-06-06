@@ -293,9 +293,7 @@
 
     <!-- Header + controls row -->
     <div class="sidebar-header">
-      <span class="sidebar-title">Notes</span>
       <div class="sidebar-header-actions">
-        <!-- Anytype-ported Filter: icon at rest, expands on click -->
         <div
           class="filter-wrap"
           class:filter-active={filterActive}
@@ -528,9 +526,13 @@
     width: 100%;
     min-width: 0;
     overflow: hidden;
+    border-radius: 18px;
     background: var(--background);
     color: var(--foreground);
     font-size: 13px;
+    padding: 8px 0 8px 8px;
+    gap: 0;
+    box-sizing: border-box;
   }
 
   /* SIDEBAR */
@@ -539,11 +541,7 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-    border-top-left-radius: 18px;
-    border-bottom-left-radius: 18px;
-    border-top-right-radius: 18px;
-    border-bottom-right-radius: 18px;
-    border-right: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+    border-radius: 18px;
     background: color-mix(in srgb, var(--foreground) 2%, var(--background));
   }
 
@@ -551,50 +549,30 @@
   .sidebar-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 18px 10px 10px 14px;
-    flex-shrink: 0;
-    gap: 4px;
-  }
-
-  .sidebar-title {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    padding: 12px 10px 8px 10px;
     flex-shrink: 0;
   }
 
-  /* Right side actions — filter + new button */
   .sidebar-header-actions {
     display: flex;
     align-items: center;
     gap: 2px;
-    flex: 1;
-    justify-content: flex-end;
-    min-width: 0;
+    width: 100%;
   }
 
-  /* ════════════════════════════════════════════════════════════════════
-     ANYTYPE FILTER — icon at rest, expands LEFT-TO-RIGHT on click.
-     Icon is leftmost inside the pill. Input grows to the right.
-     Matches Anytype: width 200ms cubic-bezier(0.55,0,1,0.45) easeInQuint
-  ════════════════════════════════════════════════════════════════════ */
-
+  /* filter-wrap takes all remaining space, pushing + to the right */
   .filter-wrap {
     display: flex;
     align-items: center;
+    flex-direction: row;
     height: 28px;
     border-radius: 14px;
-    /* overflow hidden so the expanding input is clipped until open */
     overflow: hidden;
     transition: background 140ms ease;
-    /* flex-direction: row keeps icon LEFT, input grows RIGHT */
-    flex-direction: row;
+    flex: 1;
+    min-width: 28px; /* collapsed = just the icon */
   }
 
-  /* Search icon — always visible, leftmost */
   .filter-icon-btn {
     display: grid;
     place-items: center;
@@ -608,14 +586,11 @@
     cursor: pointer;
     transition: color 140ms ease;
     padding: 0;
-    z-index: 1;
   }
 
-  .filter-icon-btn:hover {
-    color: var(--foreground);
-  }
+  .filter-icon-btn:hover { color: var(--foreground); }
 
-  /* Input container — 0px wide at rest, expands right */
+  /* Input grows to fill all space filter-wrap has, minus icon (28px) and optional clear btn (24px) */
   .filter-input-wrap {
     width: 0;
     overflow: hidden;
@@ -626,7 +601,8 @@
   .filter-input {
     display: block;
     height: 28px;
-    width: 148px;
+    /* 260px sidebar - 10px left pad - 10px right pad - 28px icon - 2px gap - 28px + btn - 24px clear = 158px */
+    width: 158px;
     padding: 0 2px 0 0;
     border: none;
     background: transparent;
@@ -641,7 +617,6 @@
     color: color-mix(in srgb, var(--foreground) 30%, transparent);
   }
 
-  /* Clear × button */
   .filter-clear-btn {
     display: grid;
     place-items: center;
@@ -660,22 +635,13 @@
 
   .filter-clear-btn:hover { color: var(--foreground); }
 
-  /* ACTIVE — background appears, input expands to the right */
   .filter-wrap.filter-active {
     background: color-mix(in srgb, var(--foreground) 8%, transparent);
   }
 
-  .filter-wrap.filter-active .filter-icon-btn {
-    color: var(--foreground);
-  }
-
-  .filter-wrap.filter-active .filter-input-wrap {
-    width: 148px;
-  }
-
-  .filter-wrap.filter-active:hover {
-    background: color-mix(in srgb, var(--foreground) 11%, transparent);
-  }
+  .filter-wrap.filter-active .filter-icon-btn { color: var(--foreground); }
+  .filter-wrap.filter-active .filter-input-wrap { width: 158px; }
+  .filter-wrap.filter-active:hover { background: color-mix(in srgb, var(--foreground) 11%, transparent); }
 
   /* New note button */
   .new-note-btn {

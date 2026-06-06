@@ -137,6 +137,14 @@ fn format_duration(minutes: f64) -> String {
     }
 }
 
+fn csv_escape(s: &str) -> String {
+    if s.contains(',') || s.contains('"') || s.contains('\n') {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_string()
+    }
+}
+
 fn metadata_string(metadata: &Value, keys: &[&str]) -> Option<String> {
     for key in keys {
         if let Some(value) = metadata.get(*key).and_then(|value| value.as_str()) {
@@ -320,4 +328,65 @@ pub async fn record_focus_session(
     .map_err(|error| error.to_string())?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn export_focus_sessions(
+    state: State<'_, BentoAppState>,
+    _dummy: Option<String>,
+) -> Result<String, String> {
+    let db = state.db();
+    let all_time = 0i64;
+
+    let rows = sqlx::query(
+        r#"
+        SELECT id, value, metadata, started_at, ended_at, logged_at
+        FROM health_events
+        WHERE module_id = 'focus'
+          AND event_type = 'focus_session'
+          AND logged_at >= ?
+        ORDER BY logged_at DESC
+        "#,
+    )
+    .bind(all_time)
+    .fetch_all(&db)
+    .await
+    .map_err(|error| error.to_string())?;
+
+    let mut csv = String::from("Date,Label,Duration (min),Note,Logged At\n");
+    for row in rows {
+        let value: f64 = row.try_get("value").unwrap_or(0.0);
+        let logged_at: i64 = row.try_get("logged_at").unwrap_or(0);
+        let started_at: Option<i64> = row.try_get("started_at").ok().flatten();
+        let ended_at: Option<i64> = row.try_get("ended_at").ok().flatten();
+        let metadata = parse_metadata(row.try_get::<String, _>("metadata").ok());
+
+        let minutes = match (started_at, ended_at) {
+            (Some(start), Some(end)) if end > start => ((end - start) as f64 / 60_000.0).round() as i64,
+            _ => value.round().max(0.0) as i64,
+        };
+
+        let date_key = started_at
+            .or(Some(logged_at))
+            .map(time::date_key)
+            .unwrap_or_else(|| "unknown".to_string());
+
+        let label = metadata_string(&metadata, &["label", "title", "mode"])
+            .unwrap_or_else(|| "Focus session".to_string());
+        let note = metadata_string(&metadata, &["note", "description"])
+            .unwrap_or_else(|| String::new());
+
+        let logged_at_str = time::datetime_key(logged_at);
+
+        csv.push_str(&format!(
+            "{},{},{},{},{}\n",
+            csv_escape(&date_key),
+            csv_escape(&label),
+            minutes,
+            csv_escape(&note),
+            csv_escape(&logged_at_str),
+        ));
+    }
+
+    Ok(csv)
 }

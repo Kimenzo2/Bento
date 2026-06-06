@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
   import DownloadIcon from "@lucide/svelte/icons/download";
@@ -22,7 +22,7 @@
   import { time } from '$lib/utils/time';
 
   const moduleId = "mood";
-  const sectionLabels = ["Check-in", "Calendar", "Activities", "Patterns", "Therapist", "Export"] as const;
+  const sectionLabels = ["Check-in", "Calendar", "Activities", "Export"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -63,10 +63,10 @@
   // DB data
   let stats:           MoodStats   = $state({ streak: 0, total: 0, greatDays: 0, calmDays: 0 });
   let todayCheckins:   CheckinRow[] = $state([]);
-  let monthCheckins:   CheckinRow[] = [];
+  let monthCheckins:   CheckinRow[] = $state([]);
   let activityLibrary: ActivityRow[] = $state([]);
   let patterns:        MoodPattern[] = $state([]);
-  let privateNotes:    PrivateNote[] = [];
+  let privateNotes:    PrivateNote[] = $state([]);
 
   // UI state
   let saving          = $state(false);
@@ -100,6 +100,17 @@
 
   function moodEmoji(mood: string) {
     return moods.find(m => m.id === mood)?.emoji ?? "·";
+  }
+
+  function moodColor(moodId: string): string {
+    const map: Record<string, string> = {
+      drained:   'var(--mood-muted)',
+      restless:  '#f97316',
+      steady:    '#eab308',
+      bright:    '#22c55e',
+      energized: '#8b5cf6',
+    };
+    return map[moodId] ?? 'var(--mood-muted)';
   }
 
   // ── Activity helpers ──────────────────────────────────────────────────────
@@ -311,13 +322,6 @@
     }
   }
 
-  const therapistCards = $derived.by(() => [
-    { title: _t('moduleMoodSleepPatterns'), description: _t('moduleMoodSleepPatternsDesc') },
-    { title: _t('moduleMoodActivityImpact'), description: _t('moduleMoodActivityImpactDesc') },
-    { title: _t('moduleMoodSocialConnections'), description: _t('moduleMoodSocialConnectionsDesc') },
-    { title: _t('moduleMoodWorkStress'), description: _t('moduleMoodWorkStressDesc') },
-  ]);
-
   const exportOptions = $derived.by(() => [
     { label: _t('moduleMoodExportCSVTitle'), detail: _t('moduleMoodExportCSVDetail') },
     { label: _t('moduleMoodExportPDFTitle'), detail: _t('moduleMoodExportPDFDetail') },
@@ -339,8 +343,6 @@
           {#if selectedSection === "Check-in"}{_t('moduleMoodHeadingCheckin')}
           {:else if selectedSection === "Calendar"}{_t('moduleMoodHeadingCalendar')}
           {:else if selectedSection === "Activities"}{_t('moduleMoodHeadingActivities')}
-          {:else if selectedSection === "Patterns"}{_t('moduleMoodHeadingPatterns')}
-          {:else if selectedSection === "Therapist"}{_t('moduleMoodHeadingTherapist')}
           {:else if selectedSection === "Export"}{_t('moduleMoodHeadingExport')}
           {/if}
         </h1>
@@ -348,107 +350,35 @@
           {#if selectedSection === "Check-in"}{_t('moduleMoodDescCheckin')}
           {:else if selectedSection === "Calendar"}{_t('moduleMoodDescCalendar')}
           {:else if selectedSection === "Activities"}{_t('moduleMoodDescActivities')}
-          {:else if selectedSection === "Patterns"}{_t('moduleMoodDescPatterns')}
-          {:else if selectedSection === "Therapist"}{_t('moduleMoodDescTherapist')}
           {:else if selectedSection === "Export"}{_t('moduleMoodDescExport')}
           {/if}
         </p>
       </div>
-
-      <div class="mood-shell__actions">
-        <Button variant="outline">
-          <CalendarDaysIcon data-icon="inline-start" />
-          {_t('moduleMoodViewMonth')}
-        </Button>
-        <Button>
-          <SparklesIcon data-icon="inline-start" />
-          {_t('moduleMoodAIRecap')}
-        </Button>
-      </div>
     </header>
 
     {#if selectedSection === "Check-in"}
-    <section class="mood-hero-grid">
-      <!-- Journal-ported mood checker card -->
-      <Card class="mood-bento-card mood-bento-card--accent mood-bento-mood">
-        <CardContent class="mood-bento-mood__content">
-          <div class="mood-bento-mood__label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mood-bento-icon"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-            Quick Mood Check
-          </div>
-          <div class="mood-bento-mood__grid">
-            {#each journalMoods as mood}
-              <button
-                class="mood-bento-mood__btn"
-                class:mood-bento-mood__btn--active={selectedJournalMood === mood.id}
-                style="--m-color: {mood.color}"
-                onclick={() => { selectedJournalMood = mood.id; }}
-              >
-                <span class="mood-bento-mood__dot" style="background: {mood.color}"></span>
-                {mood.label}
-              </button>
-            {/each}
-          </div>
-          <div class="mood-bento-mood__selected">
-            <span class="mood-bento-mood__big" style="color: {journalMoodColor(selectedJournalMood)}">{journalMoods.find(m=>m.id===selectedJournalMood)?.label}</span>
-            <span class="mood-bento-hint">How are you feeling today?</span>
-          </div>
-        </CardContent>
-      </Card>
+      <section class="mood-hero-grid">
+        <!-- Profile card -->
+        <Card class="mood-profile-card">
+          <CardContent class="mood-profile-card__content">
+            <div class="mood-avatar">
+              {selectedMoodEntry.emoji}
+            </div>
+            <div class="mood-now">
+              <p class="mood-now__label">{_t('moduleMoodProfileTitle')}</p>
+              <strong class="mood-now__mood">{_t('moduleMoodMood' + (selectedMoodEntry.id.charAt(0).toUpperCase() + selectedMoodEntry.id.slice(1)))}</strong>
+            </div>
+            <div class="mood-stats-row">
+              <div class="mood-stat"><strong>{stats.streak}</strong><span>{_t('moduleMoodStreak')}</span></div>
+              <div class="mood-stat"><strong>{stats.total}</strong><span>{_t('moduleMoodEntries')}</span></div>
+              <div class="mood-stat"><strong>{stats.greatDays}</strong><span>{_t('moduleMoodGreatDays')}</span></div>
+              <div class="mood-stat"><strong>{stats.calmDays}</strong><span>{_t('moduleMoodCalmDays')}</span></div>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card class="mood-profile-card">
-        <CardHeader>
-          <CardTitle>{_t('moduleMoodProfileTitle')}</CardTitle>
-          <CardDescription>{_t('moduleMoodProfileDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent class="mood-profile-card__content">
-          <div class="mood-avatar">
-            {selectedMoodEntry.emoji}
-          </div>
-          <div class="mood-profile-card__stats">
-            <div><strong>{stats.streak}</strong><span>{_t('moduleMoodStreak')}</span></div>
-            <div><strong>{stats.total}</strong><span>{_t('moduleMoodEntries')}</span></div>
-            <div><strong>{stats.greatDays}</strong><span>{_t('moduleMoodGreatDays')}</span></div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card class="mood-gradient-card mood-gradient-card--warm">
-        <CardHeader>
-          <CardTitle>{_t('moduleMoodGreatDaysTitle')}</CardTitle>
-          <CardDescription>{_t('moduleMoodGreatDaysDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent><strong>{stats.greatDays}</strong></CardContent>
-      </Card>
-
-      <Card class="mood-gradient-card mood-gradient-card--cool">
-        <CardHeader>
-          <CardTitle>{_t('moduleMoodCalmDays')}</CardTitle>
-          <CardDescription>{_t('moduleMoodCalmDaysDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent><strong>{stats.calmDays}</strong></CardContent>
-      </Card>
-
-      <Card class="mood-tools-card">
-        <CardHeader>
-          <CardTitle>{_t('moduleMoodTodayCheckins')}</CardTitle>
-          <CardDescription>{_t('moduleMoodTodayCheckinsDesc').replace('{count}', String(todayCheckins.length))}</CardDescription>
-        </CardHeader>
-        <CardContent class="mood-chip-row">
-          {#each todayCheckins as c}
-            <Badge variant="secondary">{moodEmoji(c.mood)} {c.mood}</Badge>
-          {/each}
-          {#if todayCheckins.length === 0}
-            <span style="color:var(--mood-muted);font-size:0.85rem">{_t('moduleMoodNoCheckinsYet')}</span>
-          {/if}
-        </CardContent>
-      </Card>
-    </section>
-    {/if}
-
-    {#if selectedSection === "Check-in"}
-      <section class="mood-two-column">
-        <Card class="mood-panel">
+        <!-- Check-in form -->
+        <Card class="mood-checkin-card">
           <CardHeader>
             <CardTitle>{_t('moduleMoodFeelingTitle')}</CardTitle>
             <CardDescription>{_t('moduleMoodFeelingDesc')}</CardDescription>
@@ -457,35 +387,41 @@
             <div class="mood-picker">
               {#each moods as mood}
                 <button
-                  class:mood-picker__item--active={selectedMood === mood.id}
                   class="mood-picker__item"
+                  class:mood-picker__item--active={selectedMood === mood.id}
                   type="button"
                   onclick={() => (selectedMood = mood.id)}
+                  aria-label={mood.label}
                 >
-                  <span>{mood.emoji}</span>
-                  <strong>{_t('moduleMoodMood' + (mood.id.charAt(0).toUpperCase() + mood.id.slice(1)))}</strong>
+                  <span class="mood-picker__emoji">{mood.emoji}</span>
+                  <span class="mood-picker__label">{_t('moduleMoodMood' + (mood.id.charAt(0).toUpperCase() + mood.id.slice(1)))}</span>
                 </button>
               {/each}
             </div>
-            <Input bind:value={noteText} placeholder={_t('moduleMoodNotePlaceholder')} />
-            <div class="mood-chip-row">
-              {#each selectedActivities as activity}
-                <Badge variant="outline">{activity}</Badge>
-              {/each}
-            </div>
-            {#if saveError}<p style="color:color-mix(in srgb,red 70%,var(--mood-muted));font-size:0.82rem">{saveError}</p>{/if}
+            <Input bind:value={noteText} placeholder={_t('moduleMoodNotePlaceholder')} class="mood-note-input" />
+            {#if selectedActivities.length > 0}
+              <div class="mood-chip-row">
+                {#each selectedActivities as activity}
+                  <Badge variant="secondary" class="mood-chip">{activity}</Badge>
+                {/each}
+              </div>
+            {/if}
+            {#if saveError}<p class="mood-error">{saveError}</p>{/if}
             <div class="mood-checkin__footer">
-              <span>{_t('moduleMoodIntensity').replace('{value}', String(selectedMoodEntry.intensity))}</span>
-              <Button onclick={saveCheckin} disabled={saving}>
-                {#if saving}<Loader2Icon data-icon="inline-start" style="animation:spin 0.8s linear infinite"/>{_t('moduleMoodSaving')}
+              <span class="mood-intensity-hint">{_t('moduleMoodIntensity').replace('{value}', String(selectedMoodEntry.intensity))}</span>
+              <Button onclick={saveCheckin} disabled={saving} class="mood-save-btn">
+                {#if saving}<Loader2Icon data-icon="inline-start" class="mood-spin"/>{_t('moduleMoodSaving')}
                 {:else if saved}<CheckIcon data-icon="inline-start"/>{_t('moduleMoodSaved')}
-                {:else}<PlusIcon data-icon="inline-start"/>{_t('moduleMoodSaveCheckin')}{/if}
+                {:else}<HeartHandshakeIcon data-icon="inline-start"/>{_t('moduleMoodSaveCheckin')}{/if}
               </Button>
             </div>
           </CardContent>
         </Card>
+      </section>
 
-        <Card class="mood-panel">
+      <!-- Today's timeline -->
+      <section class="mood-body">
+        <Card class="mood-timeline-card">
           <CardHeader>
             <CardTitle>{_t('moduleMoodTimelineTitle')}</CardTitle>
             <CardDescription>{_t('moduleMoodTimelineDesc')}</CardDescription>
@@ -493,605 +429,792 @@
           <CardContent class="mood-timeline">
             {#each todayCheckins as entry}
               <article class="mood-timeline__item">
-                <span>{time.formatTime(entry.loggedAt)}</span>
-                <div>
-                  <strong>{moodEmoji(entry.mood)} {entry.mood} ({entry.intensity}%)</strong>
-                  {#if entry.note}<p>{entry.note}</p>{/if}
+                <span class="mood-timeline__time">{time.formatTime(entry.loggedAt)}</span>
+                <div class="mood-timeline__mood-dot" style="background:{moodColor(entry.mood)}"></div>
+                <div class="mood-timeline__body">
+                  <div class="mood-timeline__head">
+                    <strong>{moodEmoji(entry.mood)} {entry.mood}</strong>
+                    <span class="mood-timeline__pct">{entry.intensity}%</span>
+                  </div>
+                  {#if entry.note}<p class="mood-timeline__note">{entry.note}</p>{/if}
                   {#if entry.activities.length > 0}
-                    <p style="font-size:0.78rem;color:var(--mood-muted)">{entry.activities.join(" · ")}</p>
+                    <div class="mood-timeline__acts">{entry.activities.join(" · ")}</div>
                   {/if}
                 </div>
-                <button onclick={() => deleteCheckin(entry.id)} style="background:none;border:none;cursor:pointer;color:var(--mood-muted);opacity:0.5;padding:4px" title={_t('commonDelete')}>×</button>
+                <button class="mood-timeline__del" onclick={() => deleteCheckin(entry.id)} title={_t('commonDelete')}>
+                  <TrashIcon size={13} />
+                </button>
               </article>
             {/each}
             {#if todayCheckins.length === 0}
-              <p style="color:var(--mood-muted);text-align:center;padding:20px 0;font-size:0.88rem">{_t('moduleMoodNoTimelineYet')}</p>
+              <div class="mood-empty">
+                <span class="mood-empty__emoji">🌱</span>
+                <p>{_t('moduleMoodNoTimelineYet')}</p>
+              </div>
             {/if}
           </CardContent>
         </Card>
       </section>
     {:else if selectedSection === "Calendar"}
-      <div class="mood-calendar-wrapper">
-        <Card class="mood-panel">
-          <CardHeader>
-            <CardTitle>{_t('moduleMoodCalendarTitle')}</CardTitle>
-            <CardDescription>{_t('moduleMoodCalendarDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="mood-calendar">
+      <Card class="mood-calendar-card">
+        <CardHeader>
+          <CardTitle>{_t('moduleMoodCalendarTitle')}</CardTitle>
+          <CardDescription>{_t('moduleMoodCalendarDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent class="mood-calendar">
+          <div class="mood-calendar__grid">
             {#each Array.from({ length: daysInMonth }, (_, i) => i + 1) as day}
               {@const key = `${currentMonth}-${String(day).padStart(2,"0")}`}
               {@const entry = calendarMap.get(key)}
-              <button class="mood-calendar__day" type="button" style={entry ? "border-color:color-mix(in srgb,var(--primary) 40%,var(--mood-border))" : ""}>
-                <small>{day}</small>
-                <span>{entry ? moodEmoji(entry.mood) : "·"}</span>
-                {#if entry}<small style="font-size:0.65rem;color:var(--mood-muted)">{entry.intensity}%</small>{/if}
-              </button>
+              {@const mood = entry ? moods.find(m => m.id === entry.mood) ?? moods[2] : null}
+              <div class="mood-cal-day" class:mood-cal-day--logged={!!entry}>
+                {#if entry}
+                  <div class="mood-cal-day__ring" style="background:color-mix(in srgb, {moodColor(entry.mood)} 20%, transparent)">
+                    <span class="mood-cal-day__emoji">{moodEmoji(entry.mood)}</span>
+                  </div>
+                {:else}
+                  <span class="mood-cal-day__num">{day}</span>
+                {/if}
+              </div>
             {/each}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     {:else if selectedSection === "Activities"}
-      <section class="mood-two-column">
-        <Card class="mood-panel">
+      <div class="mood-grid-2col">
+        <Card class="mood-activities-card">
           <CardHeader>
             <CardTitle>{_t('moduleMoodActivityTitle')}</CardTitle>
             <CardDescription>{_t('moduleMoodActivityDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-activity-grid">
             {#each activityLibrary as activity}
-              <div style="position:relative">
-                <button
-                  class:mood-activity-grid__item--selected={selectedActivities.includes(activity.name)}
-                  class="mood-activity-grid__item"
-                  type="button"
-                  onclick={() => toggleActivity(activity.name)}
-                >{activity.name}</button>
-                <button onclick={() => deleteActivity(activity.id)}
-                  style="position:absolute;top:4px;right:4px;background:none;border:none;cursor:pointer;color:var(--mood-muted);font-size:0.7rem;opacity:0.4;line-height:1"
-                  title={_t('moduleMoodActivityRemove')}>×</button>
+              <div
+                class="mood-act-btn"
+                class:mood-act-btn--selected={selectedActivities.includes(activity.name)}
+                role="button"
+                tabindex="0"
+                onclick={() => toggleActivity(activity.name)}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleActivity(activity.name); }}
+              >
+                <span class="mood-act-btn__label">{activity.name}</span>
+                <button class="mood-act-btn__del" onclick={(e) => { e.stopPropagation(); deleteActivity(activity.id); }} title={_t('moduleMoodActivityRemove')}>
+                  ×
+                </button>
               </div>
             {/each}
           </CardContent>
-          <div style="padding:16px 24px;border-top:1px solid var(--mood-border);display:flex;gap:10px">
-            <Input bind:value={newActivityName} placeholder={_t('moduleMoodActivityPlaceholder')} style="flex:1"/>
+          <div class="mood-act-add">
+            <Input bind:value={newActivityName} placeholder={_t('moduleMoodActivityPlaceholder')} />
             <Button onclick={addActivity} disabled={addingActivity} variant="outline">
-              {#if addingActivity}<Loader2Icon data-icon="inline-start"/>{_t('moduleMoodAdding')}
+              {#if addingActivity}<Loader2Icon data-icon="inline-start" class="mood-spin"/>{_t('moduleMoodAdding')}
               {:else}<PlusIcon data-icon="inline-start"/>{_t('moduleMoodAdd')}{/if}
             </Button>
           </div>
         </Card>
 
-        <Card class="mood-panel">
+        <Card class="mood-correlations-card">
           <CardHeader>
             <CardTitle>{_t('moduleMoodContextTitle')}</CardTitle>
             <CardDescription>{_t('moduleMoodContextDesc')}</CardDescription>
           </CardHeader>
-          <CardContent class="mood-summary-list">
+          <CardContent class="mood-correlations">
             {#if activityCorrelations.length > 0}
               {#each activityCorrelations as c}
-                <article>
-                  <strong>{c.name}</strong>
-                  <p>{_t('moduleMoodAvgIntensity').replace('{avg}', String(c.avg)).replace('{count}', String(c.count)).replace('{s}', c.count > 1 ? 's' : '')}</p>
+                <article class="mood-correlation">
+                  <div class="mood-correlation__head">
+                    <strong>{c.name}</strong>
+                    <span class="mood-correlation__count">{c.count}x</span>
+                  </div>
+                  <div class="mood-meter">
+                    <i style="--fill:{Math.min(c.avg, 100)}%"></i>
+                  </div>
+                  <span class="mood-correlation__avg">{_t('moduleMoodAvgIntensity').replace('{avg}', String(c.avg)).replace('{count}', String(c.count))}</span>
                 </article>
               {/each}
             {:else}
-              <p style="color:var(--mood-muted);font-size:0.85rem;padding:10px 0">
-                {_t('moduleMoodNoCorrelations')}
-              </p>
+              <div class="mood-empty">
+                <span class="mood-empty__emoji">🧘</span>
+                <p>{_t('moduleMoodNoCorrelations')}</p>
+              </div>
             {/if}
-          </CardContent>
-        </Card>
-      </section>
-    {:else if selectedSection === "Patterns"}
-      <section class="mood-two-column">
-        <Card class="mood-panel mood-panel--wide">
-          <CardHeader>
-            <CardTitle>{_t('moduleMoodPatternReview')}</CardTitle>
-            <CardDescription>{_t('moduleMoodPatternReviewDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="mood-pattern-list">
-            {#if patterns.length > 0}
-              {#each patterns as pattern}
-                <article class="mood-pattern-list__item">
-                  <div>
-                    <strong>{pattern.label}</strong>
-                    <p>{pattern.note}</p>
-                  </div>
-                  <div class="mood-pattern-list__metric">
-                    <div style={`--fill:${pattern.value}%`}></div>
-                    <span>{pattern.value}%</span>
-                  </div>
-                </article>
-              {/each}
-            {:else}
-              <p style="color:var(--mood-muted);font-size:0.88rem;padding:12px 0">
-                {_t('moduleMoodNoPatternsYet')}
-              </p>
-            {/if}
-          </CardContent>
-        </Card>
-
-        <Card class="mood-panel">
-          <CardHeader>
-            <CardTitle>{_t('moduleMoodAINote')}</CardTitle>
-            <CardDescription>{_t('moduleMoodAINoteDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="mood-ai-note">
-            <p>{_t('moduleMoodAINoteText')}</p>
-          </CardContent>
-        </Card>
-      </section>
-    {:else if selectedSection === "Therapist"}
-      <section class="mood-two-column">
-        <Card class="mood-panel">
-          <CardHeader>
-            <CardTitle>{_t('moduleMoodTherapyTitle')}</CardTitle>
-            <CardDescription>{_t('moduleMoodTherapyDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="mood-summary-list">
-            {#each therapistCards as card}
-              <article>
-                <strong>{card.title}</strong>
-                <p>{card.description}</p>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
-
-        <Card class="mood-panel">
-          <CardHeader>
-            <CardTitle>{_t('moduleMoodTalkPointsTitle')}</CardTitle>
-            <CardDescription>{_t('moduleMoodTalkPointsDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="mood-summary-list">
-            <article>
-              <strong>{_t('moduleMoodTalkMeetingOverload')}</strong>
-              <p>{_t('moduleMoodTalkMeetingOverloadDesc')}</p>
-            </article>
-            <article>
-              <strong>{_t('moduleMoodTalkWeekendReset')}</strong>
-              <p>{_t('moduleMoodTalkWeekendResetDesc')}</p>
-            </article>
-            <article>
-              <strong>{_t('moduleMoodTalkSleepPatience')}</strong>
-              <p>{_t('moduleMoodTalkSleepPatienceDesc')}</p>
-            </article>
-          </CardContent>
-        </Card>
-      </section>
-    {:else if selectedSection === "Export"}
-      <div class="mood-export-wrapper">
-        <Card class="mood-panel">
-          <CardHeader>
-            <CardTitle>{_t('moduleMoodExportTitle')}</CardTitle>
-            <CardDescription>{_t('moduleMoodExportDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="mood-export-list">
-            {#each exportOptions as option}
-              <article class="mood-export-list__item">
-                <div>
-                  <strong>{option.label}</strong>
-                  <p>{option.detail}</p>
-                </div>
-                <Button variant="outline">
-                  <DownloadIcon data-icon="inline-start" />
-                  {_t('moduleMoodExportBtn')}
-                </Button>
-              </article>
-            {/each}
           </CardContent>
         </Card>
       </div>
+    {:else if selectedSection === "Export"}
+      <Card class="mood-export-card">
+        <CardHeader>
+          <CardTitle>{_t('moduleMoodExportTitle')}</CardTitle>
+          <CardDescription>{_t('moduleMoodExportDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent class="mood-export-list">
+          {#each exportOptions as option}
+            <article class="mood-export-item">
+              <div>
+                <strong>{option.label}</strong>
+                <p>{option.detail}</p>
+              </div>
+              <Button variant="outline" class="mood-export-btn">
+                <DownloadIcon data-icon="inline-start" />
+                {_t('moduleMoodExportBtn')}
+              </Button>
+            </article>
+          {/each}
+        </CardContent>
+      </Card>
     {/if}
   </section>
 </main>
 
 <style>
-  .mood-workspace {
+  :global(.mood-workspace) {
     --mood-bg: var(--background);
-    --mood-surface: color-mix(in srgb, var(--surface) 95%, var(--background));
+    --mood-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
     --mood-surface-strong: color-mix(in srgb, var(--surface) 88%, var(--background));
     --mood-border: color-mix(in srgb, var(--border) 84%, transparent);
     --mood-muted: var(--muted);
     --mood-accent-warm: color-mix(in srgb, var(--primary) 30%, var(--surface));
     --mood-accent-cool: color-mix(in srgb, var(--accent) 34%, var(--surface));
-    min-height: 100%;
+    height: 100%;
     background: var(--mood-bg);
+    font-family: var(--font-body);
+    overflow: hidden;
   }
 
-  .mood-shell {
-    display: grid;
-    gap: 20px;
-    min-height: 100%;
-    padding: 28px;
-    box-sizing: border-box;
-  }
-
-  .mood-shell__header,
-  .mood-shell__actions,
-  .mood-shell__eyebrow,
-  .mood-profile-card__stats,
-  .mood-chip-row,
-  .mood-checkin__footer {
+  :global(.mood-shell) {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+    padding: 28px 30px;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
-  .mood-shell__header {
+  :global(.mood-shell__header) {
+    display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 20px;
+    flex-shrink: 0;
   }
 
-  .mood-shell__intro {
-    max-width: 760px;
-    display: grid;
+  :global(.mood-shell__intro) {
+    max-width: 640px;
+  }
+
+  :global(.mood-shell__eyebrow) {
+    display: flex;
+    align-items: center;
     gap: 10px;
-  }
-
-  .mood-shell__eyebrow {
+    margin-bottom: 10px;
+    color: var(--mood-muted);
     font-size: 0.78rem;
-    text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: var(--mood-muted);
+    text-transform: uppercase;
   }
 
-  .mood-shell__intro h1 {
+  :global(.mood-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.7rem, 2vw, 2.35rem);
-    line-height: 1.1;
+    font-size: clamp(1.4rem, 2vw, 2.2rem);
+    line-height: 1.15;
+    font-weight: 600;
   }
 
-  .mood-shell__intro p {
-    margin: 0;
-    line-height: 1.6;
+  :global(.mood-shell__intro) p {
+    margin: 8px 0 0;
+    line-height: 1.5;
     color: var(--mood-muted);
+    font-size: 0.92rem;
   }
 
-  .mood-hero-grid,
-  .mood-two-column {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .mood-two-column {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
+  /* ════════════════════════════════════════
+     CARDS — Health-style gradient, no borders
+     ════════════════════════════════════════ */
   :global(.mood-profile-card),
-  :global(.mood-gradient-card),
-  :global(.mood-tools-card),
-  :global(.mood-panel) {
-    background: var(--mood-surface);
-    border-color: var(--mood-border);
+  :global(.mood-checkin-card),
+  :global(.mood-timeline-card),
+  :global(.mood-calendar-card),
+  :global(.mood-activities-card),
+  :global(.mood-correlations-card),
+  :global(.mood-export-card) {
+    border: none;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--mood-surface) 98%, var(--mood-bg)),
+      color-mix(in srgb, var(--mood-surface) 86%, var(--mood-bg)));
   }
 
-  :global(.mood-profile-card) {
-    grid-column: span 1;
-  }
-
-  :global(.mood-profile-card__content) {
+  /* ════════════════════════════════════════
+     HERO GRID — Profile + Check-in
+     ════════════════════════════════════════ */
+  :global(.mood-hero-grid) {
     display: grid;
-    gap: 18px;
-    justify-items: center;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    flex-shrink: 0;
   }
 
-  .mood-avatar {
-    width: 104px;
-    height: 104px;
+  /* ── Profile card ─────────────────────── */
+  :global(.mood-profile-card__content) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 28px 20px 20px;
+  }
+
+  :global(.mood-avatar) {
+    width: 96px;
+    height: 96px;
     border-radius: 999px;
     display: grid;
     place-items: center;
     background: linear-gradient(135deg, var(--primary), var(--accent));
     color: var(--background);
-    font-weight: 700;
-    font-size: 1.8rem;
+    font-size: 2.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  .mood-profile-card__stats {
-    justify-content: center;
+  :global(.mood-avatar):hover {
+    transform: scale(1.04);
   }
 
-  .mood-profile-card__stats div {
+  :global(.mood-now) {
+    text-align: center;
+  }
+
+  :global(.mood-now__label) {
+    margin: 0 0 4px;
+    color: var(--mood-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  :global(.mood-now__mood) {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  :global(.mood-stats-row) {
     display: grid;
-    justify-items: center;
-    gap: 2px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
   }
 
-  .mood-profile-card__stats strong,
-  :global(.mood-gradient-card) strong {
-    font-size: 2rem;
+  :global(.mood-stat) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 8px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--mood-surface-strong) 70%, transparent);
+  }
+
+  :global(.mood-stat) strong {
+    font-size: 1.35rem;
+    line-height: 1;
+    font-weight: 700;
+  }
+
+  :global(.mood-stat) span {
+    color: var(--mood-muted);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+  }
+
+  /* ── Check-in form ────────────────────── */
+  :global(.mood-checkin) {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  :global(.mood-picker) {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+
+  :global(.mood-picker__item) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 8px 12px;
+    border: none;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    color: var(--mood-muted);
+    font: inherit;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  :global(.mood-picker__item):hover {
+    background: color-mix(in srgb, var(--mood-surface-strong) 90%, transparent);
+    transform: translateY(-2px);
+  }
+
+  :global(.mood-picker__item--active) {
+    background: color-mix(in srgb, var(--primary) 14%, var(--mood-surface));
+    color: var(--foreground);
+    transform: translateY(-2px);
+  }
+
+  :global(.mood-picker__emoji) {
+    font-size: 1.8rem;
     line-height: 1;
   }
 
-  .mood-profile-card__stats span {
-    color: var(--mood-muted);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+  :global(.mood-picker__label) {
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-align: center;
   }
 
-  :global(.mood-gradient-card--warm) {
-    background: linear-gradient(135deg, var(--mood-surface), var(--mood-accent-warm), color-mix(in srgb, var(--primary) 18%, var(--surface)));
+  :global(.mood-note-input) {
+    border: none;
+    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    border-radius: 14px;
   }
 
-  :global(.mood-gradient-card--cool) {
-    background: linear-gradient(135deg, var(--mood-surface), var(--mood-accent-cool), color-mix(in srgb, var(--accent) 16%, var(--surface)));
+  :global(.mood-chip-row) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  :global(.mood-tools-card) {
-    grid-column: span 2;
+  :global(.mood-chip) {
+    border: none;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 999px;
   }
 
-  :global(.mood-checkin),
-  :global(.mood-timeline),
-  :global(.mood-pattern-list),
-  :global(.mood-summary-list),
-  :global(.mood-export-list) {
-    display: grid;
-    gap: 14px;
+  :global(.mood-error) {
+    color: color-mix(in srgb, #ef4444 78%, var(--foreground));
+    font-size: 0.82rem;
+    margin: 0;
   }
 
-  .mood-picker {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .mood-picker__item,
-  .mood-activity-grid__item,
-  .mood-calendar__day {
-    border: 1px solid var(--mood-border);
-    background: var(--mood-surface-strong);
-    border-radius: calc(var(--radius) * 1.25);
-  }
-
-  .mood-picker__item {
-    padding: 16px 12px;
-    display: grid;
-    justify-items: center;
-    gap: 8px;
-  }
-
-  .mood-picker__item--active {
-    border-color: color-mix(in srgb, var(--primary) 42%, var(--mood-border));
-    background: color-mix(in srgb, var(--primary) 14%, var(--mood-surface));
-  }
-
-  .mood-picker__item span {
-    font-size: 1.75rem;
-  }
-
-  .mood-checkin__footer {
+  :global(.mood-checkin__footer) {
+    display: flex;
     justify-content: space-between;
+    align-items: center;
     color: var(--mood-muted);
+    font-size: 0.82rem;
+  }
+
+  :global(.mood-intensity-hint) {
+    font-size: 0.78rem;
+  }
+
+  :global(.mood-save-btn) {
+    border-radius: 999px;
+    padding: 8px 20px;
     font-size: 0.85rem;
   }
 
-  .mood-timeline__item,
-  .mood-pattern-list__item,
-  :global(.mood-summary-list) article,
-  .mood-export-list__item {
+  /* ════════════════════════════════════════
+     TIMELINE
+     ════════════════════════════════════════ */
+  :global(.mood-body) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  :global(.mood-timeline-card) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  :global(.mood-timeline) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: auto;
+    min-height: 0;
+  }
+
+  :global(.mood-timeline__item) {
     display: grid;
+    grid-template-columns: 52px 8px 1fr 20px;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 14px;
+    transition: background 0.15s;
+  }
+
+  :global(.mood-timeline__item):hover {
+    background: color-mix(in srgb, var(--mood-surface-strong) 60%, transparent);
+  }
+
+  :global(.mood-timeline__time) {
+    font-size: 0.75rem;
+    color: var(--mood-muted);
+    font-variant: tabular-nums;
+    text-align: right;
+  }
+
+  :global(.mood-timeline__mood-dot) {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  :global(.mood-timeline__body) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  :global(.mood-timeline__head) {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    padding: 14px 16px;
-    border: 1px solid var(--mood-border);
-    border-radius: calc(var(--radius) * 1.25);
-    background: var(--mood-surface-strong);
   }
 
-  .mood-timeline__item {
-    grid-template-columns: 64px 1fr;
+  :global(.mood-timeline__head) strong {
+    font-size: 0.88rem;
+    font-weight: 600;
   }
 
-  .mood-timeline__item span,
-  .mood-pattern-list__item p,
-  :global(.mood-summary-list) p,
-  .mood-export-list__item p,
-  :global(.mood-ai-note) p {
+  :global(.mood-timeline__pct) {
+    font-size: 0.72rem;
+    color: var(--mood-muted);
+  }
+
+  :global(.mood-timeline__note) {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--mood-muted);
+  }
+
+  :global(.mood-timeline__acts) {
+    font-size: 0.72rem;
+    color: color-mix(in srgb, var(--mood-muted) 80%, transparent);
+  }
+
+  :global(.mood-timeline__del) {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: var(--mood-muted);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+
+  :global(.mood-timeline__item):hover :global(.mood-timeline__del) {
+    opacity: 0.5;
+  }
+
+  :global(.mood-timeline__del):hover {
+    opacity: 1 !important;
+    background: color-mix(in srgb, #ef4444 14%, transparent);
+    color: #ef4444;
+  }
+
+  /* ── Empty state ──────────────────── */
+  :global(.mood-empty) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px 0;
+    text-align: center;
+  }
+
+  :global(.mood-empty__emoji) {
+    font-size: 2rem;
+  }
+
+  :global(.mood-empty) p {
     margin: 0;
     color: var(--mood-muted);
-    line-height: 1.55;
+    font-size: 0.85rem;
+    max-width: 280px;
   }
 
-  :global(.mood-calendar) {
+  /* ════════════════════════════════════════
+     CALENDAR
+     ════════════════════════════════════════ */
+  :global(.mood-calendar-card) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  :global(.mood-calendar__grid) {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
   }
 
-  .mood-calendar__day {
-    min-height: 92px;
-    padding: 12px;
+  :global(.mood-cal-day) {
     display: grid;
-    align-content: space-between;
-    justify-items: start;
+    place-items: center;
+    min-height: 80px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--mood-surface-strong) 50%, transparent);
+    padding: 8px;
   }
 
-  .mood-calendar__day small {
+  :global(.mood-cal-day--logged) {
+    background: color-mix(in srgb, var(--mood-surface-strong) 76%, transparent);
+  }
+
+  :global(.mood-cal-day__ring) {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 1.3rem;
+  }
+
+  :global(.mood-cal-day__num) {
     color: var(--mood-muted);
+    font-size: 0.82rem;
   }
 
-  .mood-calendar__day span {
-    font-size: 1.4rem;
+  /* ════════════════════════════════════════
+     ACTIVITIES
+     ════════════════════════════════════════ */
+  :global(.mood-grid-2col) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  :global(.mood-activities-card),
+  :global(.mood-correlations-card) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   :global(.mood-activity-grid) {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .mood-activity-grid__item {
-    padding: 14px 12px;
-    text-align: left;
-  }
-
-  .mood-activity-grid__item--selected {
-    border-color: color-mix(in srgb, var(--accent) 38%, var(--mood-border));
-    background: color-mix(in srgb, var(--accent) 14%, var(--mood-surface));
-  }
-
-  .mood-pattern-list__item,
-  .mood-export-list__item {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-  }
-
-  .mood-pattern-list__metric {
-    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    min-width: 180px;
-    justify-items: end;
+    overflow: auto;
   }
 
-  .mood-pattern-list__metric div {
-    width: 180px;
-    height: 10px;
+  :global(.mood-act-btn) {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    overflow: hidden;
+  }
+
+  :global(.mood-act-btn):hover {
+    background: color-mix(in srgb, var(--accent) 10%, var(--mood-surface-strong));
+    transform: translateY(-1px);
+  }
+
+  :global(.mood-act-btn--selected) {
+    background: color-mix(in srgb, var(--accent) 16%, var(--mood-surface));
+    font-weight: 500;
+  }
+
+  :global(.mood-act-btn__del) {
+    width: 16px;
+    height: 16px;
     border-radius: 999px;
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--primary) 54%, var(--foreground)) var(--fill),
-        color-mix(in srgb, var(--mood-border) 82%, transparent) 0
-      );
+    border: none;
+    background: transparent;
+    color: var(--mood-muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
   }
 
-  :global(.mood-panel--wide) {
-    min-height: 0;
+  :global(.mood-act-btn):hover :global(.mood-act-btn__del) {
+    opacity: 0.5;
   }
 
-  :global(.mood-ai-note) {
-    line-height: 1.6;
+  :global(.mood-act-btn__del):hover {
+    opacity: 1 !important;
+    color: #ef4444;
   }
 
-  /* ── Ported Journal mood bento card ─────────────────────────────── */
-  .mood-bento-card {
-    border-radius: 20px;
-    padding: 20px;
+  :global(.mood-act-add) {
+    display: flex;
+    gap: 10px;
+    padding: 14px 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--mood-border) 60%, transparent);
+  }
+
+  :global(.mood-act-add) :global(input) {
+    flex: 1;
+    border: none;
+    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    border-radius: 12px;
+  }
+
+  /* ── Correlations ──────────────────── */
+  :global(.mood-correlations) {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    transition: all 0.2s ease;
-  }
-
-  .mood-bento-card--accent {
-    background: linear-gradient(135deg, #818cf8, #6366f1);
-    color: #fff;
-  }
-
-  .mood-bento-mood {
-    grid-column: span 2;
-  }
-
-  .mood-bento-mood__content {
-    display: grid;
-    gap: 14px;
-  }
-
-  .mood-bento-mood__label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    opacity: 0.7;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .mood-bento-icon {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-
-  .mood-bento-mood__grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .mood-bento-mood__btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: transparent;
-    color: rgba(255,255,255,0.8);
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .mood-bento-mood__btn:hover {
-    background: rgba(255,255,255,0.1);
-  }
-
-  .mood-bento-mood__btn--active {
-    background: rgba(255,255,255,0.2);
-    border-color: rgba(255,255,255,0.5);
-    color: #fff;
-  }
-
-  .mood-bento-mood__dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .mood-bento-mood__selected {
-    display: flex;
-    align-items: center;
     gap: 10px;
-    margin-top: 4px;
+    overflow: auto;
   }
 
-  .mood-bento-mood__big {
-    font-size: 20px;
-    font-weight: 700;
+  :global(.mood-correlation) {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--mood-surface-strong) 60%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  .mood-bento-hint {
-    font-size: 12px;
-    opacity: 0.65;
-    margin: 0;
+  :global(.mood-correlation__head) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  @media (max-width: 1180px) {
-    .mood-hero-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    :global(.mood-tools-card) {
-      grid-column: span 2;
-    }
+  :global(.mood-correlation__head) strong {
+    font-size: 0.85rem;
+    font-weight: 600;
   }
 
-  @media (max-width: 960px) {
-    .mood-shell {
-      padding: 20px;
-    }
+  :global(.mood-correlation__count) {
+    font-size: 0.72rem;
+    color: var(--mood-muted);
+  }
 
-    .mood-shell__header,
-    .mood-shell__actions,
-    .mood-checkin__footer,
-    .mood-two-column {
-      flex-direction: column;
+  :global(.mood-meter) {
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mood-border) 60%, transparent);
+    overflow: hidden;
+  }
+
+  :global(.mood-meter) i {
+    display: block;
+    height: 100%;
+    width: var(--fill);
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--accent) 50%, var(--primary)));
+    transition: width 0.4s ease;
+  }
+
+  :global(.mood-correlation__avg) {
+    font-size: 0.74rem;
+    color: var(--mood-muted);
+  }
+
+  /* ════════════════════════════════════════
+     EXPORT
+     ════════════════════════════════════════ */
+  :global(.mood-export-card) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(.mood-export-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  :global(.mood-export-item) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--mood-surface-strong) 60%, transparent);
+  }
+
+  :global(.mood-export-item) strong {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  :global(.mood-export-item) p {
+    margin: 3px 0 0;
+    font-size: 0.8rem;
+    color: var(--mood-muted);
+  }
+
+  :global(.mood-export-btn) {
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* ════════════════════════════════════════
+     SPINNER
+     ════════════════════════════════════════ */
+  :global(.mood-spin) {
+    animation: mood-spin 0.8s linear infinite;
+  }
+
+  @keyframes mood-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ════════════════════════════════════════
+     RESPONSIVE
+     ════════════════════════════════════════ */
+  @media (max-width: 1100px) {
+    :global(.mood-hero-grid) {
       grid-template-columns: 1fr;
     }
+    :global(.mood-profile-card) {
+      display: none;
+    }
+  }
 
-    .mood-picker,
-    :global(.mood-calendar),
-    :global(.mood-activity-grid),
-    .mood-hero-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+  @media (max-width: 860px) {
+    :global(.mood-shell) {
+      padding: 18px;
+    }
+    :global(.mood-picker),
+    :global(.mood-grid-2col) {
+      grid-template-columns: 1fr;
     }
   }
 </style>

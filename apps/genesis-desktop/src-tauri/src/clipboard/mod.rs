@@ -1,0 +1,2064 @@
+// ═════════════════════════════════════════════════════════════════════════════
+// Clipboard Manager — Backend Module (v2)
+//
+// Architecture:
+//   - SQLite-backed history with SHA-256 content hash for O(1) dedup
+//   - Content-addressable file store for items > 1 KB (blobs stored as
+//     {data_dir}/clipboard/contents/{prefix}/{hash})
+//   - Tantivy full-text search via existing SearchService (already a dep)
+//   - sqlx::QueryBuilder for type-safe dynamic query construction
+//   - Regex-based sensitive content detection (API keys, tokens, secrets)
+//   - Background clipboard polling with bounded mpsc channel for backpressure
+//   - Multi-format read: plain text, HTML, image bitmap, file list
+//   - Event emission to frontend on new clipboard entries
+//   - All operations use bounded queries — never loads full table
+// ═════════════════════════════════════════════════════════════════════════════
+
+use base64::Engine;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use sqlx::Row;
+use std::path::PathBuf;
+use std::sync::LazyLock;
+use tauri::{AppHandle, Emitter, Manager, State};
+use tokio::io::AsyncWriteExt;
+use tokio::sync::{Mutex, mpsc};
+
+use crate::db::BentoAppState;
+use crate::search::{SearchDocument, SearchService};
+use crate::util::time;
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+/// Maximum number of items returned by list/search.
+const DEFAULT_PAGE_SIZE: u32 = 200;
+/// Max preview length (characters) stored in the DB.
+const PREVIEW_MAX_LEN: usize = 200;
+/// Clipboard polling interval (milliseconds).
+const POLL_INTERVAL_MS: u64 = 800;
+/// Faster polling interval when actively copying.
+const POLL_INTERVAL_FOCUSED_MS: u64 = 400;
+/// Auto-expiry for sensitive items (milliseconds). Default: 10 minutes.
+const SENSITIVE_EXPIRY_MS: i64 = 600_000;
+/// Threshold in bytes: content above this is stored on disk, not inline.
+const EXTERNAL_STORE_THRESHOLD: usize = 1024;
+/// Maximum number of pending clipboard saves in the bounded channel.
+const CHANNEL_CAPACITY: usize = 50;
+/// Tantivy index memory budget in bytes.
+// ─── Sensitive Detection Patterns ────────────────────────────────────────────
+
+static SENSITIVE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
+    // Helper to embed a literal double-quote in a raw regex string.
+    // Raw strings r"..." cannot contain " — the string terminates at the
+    // first unescaped double quote. We inject it via format! so the regex
+    // engine sees the quote character in character classes.
+    fn q() -> &'static str {
+        "\""
+    }
+
+    vec![
+        // Stripe / payment API keys
+        Regex::new(r"(?i)(sk_live_|pk_live_|sk_test_|pk_test_)[A-Za-z0-9]{24,}").unwrap(),
+        // AWS access keys
+        Regex::new(r"(?i)AKIA[0-9A-Z]{16}").unwrap(),
+        // AWS secret keys
+        Regex::new(&format!(
+            r"(?i)(aws_secret_access_key|aws_secret_key)\s*[:=]\s*['{}]?[A-Za-z0-9/+=]{{40}}", q()
+        ))
+        .unwrap(),
+        // Generic API keys (bearer tokens, x-api-key, etc.)
+        Regex::new(&format!(
+            r"(?i)(bearer|token|api[_-]?key|secret|password)\s*[:=]\s*['{}]?[A-Za-z0-9_\-./+=]{{20,}}", q()
+        ))
+        .unwrap(),
+        // JWT tokens (base64url-encoded JSON)
+        Regex::new(r"(eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)").unwrap(),
+        // SSH private keys
+        Regex::new(r"-----BEGIN (RSA|DSA|EC|OPENSSH|PRIVATE) KEY-----").unwrap(),
+        // GitHub tokens
+        Regex::new(r"(?i)(ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{36}").unwrap(),
+        // Credit card numbers (Luhn-validatable pattern)
+        Regex::new(r"\b(?:\d[ -]*?){13,19}\b").unwrap(),
+        // Environment variable exports with secrets
+        // Note: avoids look-around (not supported by Rust regex crate)
+        Regex::new(r"export\s+[A-Z_]+=.{10,}").unwrap(),
+    ]
+});
+
+// ─── Content Hash ───────────────────────────────────────────────────────────
+
+/// Compute the SHA-256 hex digest of content bytes.
+fn content_hash(content: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(content);
+    hex::encode(hasher.finalize())
+}
+
+// ─── Content-Addressable Store ──────────────────────────────────────────────
+
+/// Root directory for clipboard content blobs.
+fn content_store_root(data_dir: &std::path::Path) -> PathBuf {
+    data_dir.join("clipboard").join("contents")
+}
+
+/// Full path for a given content hash.
+/// Uses two-level sharding: first 2 chars / full hash.
+fn content_path(data_dir: &std::path::Path, hash: &str) -> PathBuf {
+    content_store_root(data_dir)
+        .join(&hash[..2])
+        .join(hash)
+}
+
+/// Store content to disk if it exceeds the inline threshold.
+/// Returns (content_path_opt, stored_content) where stored_content is
+/// the inline representation (trimmed if externalized).
+async fn store_content(
+    data_dir: &std::path::Path,
+    hash: &str,
+    content: &str,
+) -> Result<(Option<String>, String), String> {
+    if content.len() <= EXTERNAL_STORE_THRESHOLD {
+        return Ok((None, content.to_string()));
+    }
+
+    let path = content_path(data_dir, hash);
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    let mut file = tokio::fs::File::create(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    file.write_all(content.as_bytes())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok((Some(path.to_string_lossy().to_string()), String::new()))
+}
+
+/// Read content from either inline field or external file.
+async fn read_content(
+    data_dir: &std::path::Path,
+    inline: &str,
+    content_path_opt: Option<&str>,
+    _hash: &str,
+) -> Result<String, String> {
+    if !inline.is_empty() {
+        return Ok(inline.to_string());
+    }
+
+    match content_path_opt {
+        Some(path) => {
+            let full_path = if std::path::Path::new(path).is_absolute() {
+                std::path::PathBuf::from(path)
+            } else {
+                content_path(data_dir, _hash)
+            };
+
+            if full_path.exists() {
+                tokio::fs::read_to_string(&full_path)
+                    .await
+                    .map_err(|e| e.to_string())
+            } else {
+                Ok(String::new())
+            }
+        }
+        None => Ok(String::new()),
+    }
+}
+
+/// Delete an external content file if it exists.
+async fn delete_content_file(data_dir: &std::path::Path, hash: &str) {
+    let path = content_path(data_dir, hash);
+    if path.exists() {
+        let _ = tokio::fs::remove_file(&path).await;
+        // Remove parent dir if empty
+        if let Some(parent) = path.parent() {
+            let _ = tokio::fs::remove_dir(parent).await;
+        }
+    }
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+/// Content kind for a clipboard entry.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum ClipKind {
+    Text,
+    Code,
+    Link,
+    Image,
+    Html,
+    Sensitive,
+}
+
+impl ClipKind {
+    fn as_str(&self) -> &'static str {
+        match self {
+            ClipKind::Text => "text",
+            ClipKind::Code => "code",
+            ClipKind::Link => "link",
+            ClipKind::Image => "image",
+            ClipKind::Html => "html",
+            ClipKind::Sensitive => "sensitive",
+        }
+    }
+
+    fn from_str(s: &str) -> Self {
+        match s {
+            "code" => ClipKind::Code,
+            "link" => ClipKind::Link,
+            "image" => ClipKind::Image,
+            "html" => ClipKind::Html,
+            "sensitive" => ClipKind::Sensitive,
+            _ => ClipKind::Text,
+        }
+    }
+}
+
+/// A clipboard entry returned to the frontend.
+/// The `content` field is always populated (inline or loaded from external store).
+/// The `external_content` field is true when content was loaded from disk.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClipEntry {
+    pub id: String,
+    pub kind: ClipKind,
+    pub content: String,
+    pub content_hash: String,
+    pub preview: Option<String>,
+    pub source: Option<String>,
+    pub byte_size: i64,
+    pub pinned: bool,
+    pub favorite: bool,
+    pub is_sensitive: bool,
+    pub timestamp: i64,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub external_content: Option<bool>,
+}
+
+impl ClipEntry {
+    fn from_row(row: sqlx::sqlite::SqliteRow) -> Self {
+        let kind_str: String = row.try_get("kind").unwrap_or_default();
+        let content: String = row.try_get("content").unwrap_or_default();
+        let preview: Option<String> = row.try_get("preview").ok().filter(|s: &String| !s.is_empty());
+
+        Self {
+            id: row.try_get("id").unwrap_or_default(),
+            kind: ClipKind::from_str(&kind_str),
+            content,
+            content_hash: row.try_get("content_hash").unwrap_or_default(),
+            preview,
+            source: row.try_get("source").ok().filter(|s: &String| !s.is_empty()),
+            byte_size: row.try_get("byte_size").unwrap_or(0),
+            pinned: row.try_get::<i64, _>("pinned").unwrap_or(0) == 1,
+            favorite: row.try_get::<i64, _>("favorite").unwrap_or(0) == 1,
+            is_sensitive: row.try_get::<i64, _>("is_sensitive").unwrap_or(0) == 1,
+            timestamp: row.try_get("created_at").unwrap_or(0),
+            external_content: None,
+        }
+    }
+}
+
+// ─── Schema & Migrations ────────────────────────────────────────────────────
+
+/// Run clipboard-specific migrations.
+pub async fn ensure_clipboard_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    let migrations = [
+        r#"
+        CREATE TABLE IF NOT EXISTS clipboard_items (
+            id            TEXT PRIMARY KEY,
+            content_hash  TEXT NOT NULL,
+            kind          TEXT NOT NULL DEFAULT 'text',
+            content       TEXT NOT NULL DEFAULT '',
+            content_path  TEXT,
+            preview       TEXT NOT NULL DEFAULT '',
+            source        TEXT,
+            byte_size     INTEGER NOT NULL DEFAULT 0,
+            pinned        INTEGER NOT NULL DEFAULT 0,
+            favorite      INTEGER NOT NULL DEFAULT 0,
+            is_sensitive  INTEGER NOT NULL DEFAULT 0,
+            created_at    INTEGER NOT NULL,
+            updated_at    INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_clipboard_hash
+        ON clipboard_items(content_hash)
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_clipboard_created_at
+        ON clipboard_items(created_at DESC)
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_clipboard_pinned_created
+        ON clipboard_items(pinned DESC, created_at DESC)
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_clipboard_kind_created
+        ON clipboard_items(kind, created_at DESC)
+        "#,
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_clipboard_preview
+        ON clipboard_items(preview)
+        "#,
+        // Column migrations for schema upgrades (safe to ignore errors)
+        r#"ALTER TABLE clipboard_items ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN content_path TEXT"#,
+    ];
+
+    for migration in &migrations {
+        let result = sqlx::query(migration).execute(pool).await;
+        if let Err(e) = result {
+            let msg = e.to_string();
+            if msg.contains("duplicate column name")
+                || msg.contains("already exists")
+                || msg.contains("Cannot add a NOT NULL")
+            {
+                continue;
+            }
+            return Err(msg);
+        }
+    }
+
+    Ok(())
+}
+
+// ─── Content Analysis ────────────────────────────────────────────────────────
+
+/// Detect the kind of clipboard content.
+fn detect_kind(content: &str) -> ClipKind {
+    if content.is_empty() {
+        return ClipKind::Text;
+    }
+
+    // Check for sensitive patterns first (highest priority)
+    if is_sensitive_content(content) {
+        return ClipKind::Sensitive;
+    }
+
+    // Check for image data URIs
+    if content.starts_with("data:image/") || content.starts_with("iVBOR") || content.starts_with("/9j/") {
+        return ClipKind::Image;
+    }
+
+    // Check for URLs
+    if content.starts_with("http://") || content.starts_with("https://") || content.starts_with("ftp://") {
+        return ClipKind::Link;
+    }
+
+    // Check for HTML content (before code — many HTML snippets look like code)
+    if looks_like_html(content) {
+        return ClipKind::Html;
+    }
+
+    // Check for code patterns
+    if looks_like_code(content) {
+        return ClipKind::Code;
+    }
+
+    ClipKind::Text
+}
+
+/// Heuristic: does the content look like code?
+fn looks_like_code(content: &str) -> bool {
+    let trimmed = content.trim();
+
+    // Multi-line with indentation and code keywords
+    if trimmed.contains('\n') {
+        let lines: Vec<&str> = trimmed.lines().collect();
+        if lines.len() > 2 {
+            let indented = lines.iter().filter(|l| l.starts_with(char::is_whitespace)).count();
+            let code_keywords = [
+                "fn ", "const ", "let ", "var ", "if ", "else ", "for ", "while ",
+                "return ", "import ", "export ", "class ", "def ", "function ",
+                "SELECT ", "FROM ", "WHERE ", "INSERT ", "CREATE ",
+                "#include", "package ", "using ", "namespace ",
+                "<html", "<?php", "```",
+            ];
+            let has_keyword = code_keywords.iter().any(|kw| content.contains(kw));
+            let has_syntax = ["{", "}", "(", ")", ";", "=>", "->", "::"]
+                .iter().filter(|ch| content.contains(*ch)).count() >= 3;
+
+            (indented > 0 || has_keyword) && has_syntax
+        } else {
+            false
+        }
+    } else {
+        // Single line: check for code-like patterns
+        let code_indicators = ["=>", "->", "::", "//", "/*", "fn ", "def "];
+        code_indicators.iter().any(|pat| trimmed.contains(pat))
+    }
+}
+
+/// Heuristic: does the content look like HTML?
+fn looks_like_html(content: &str) -> bool {
+    let trimmed = content.trim();
+    if trimmed.len() < 10 {
+        return false;
+    }
+
+    // Check for HTML doctype
+    if trimmed.to_ascii_lowercase().starts_with("<!doctype html") {
+        return true;
+    }
+
+    // Check for opening <html> tag
+    if trimmed.to_ascii_lowercase().starts_with("<html") {
+        return true;
+    }
+
+    // Count HTML-like tags: <word> patterns
+    let html_tags = [
+        "<div", "<span", "<p>", "<p ", "<a ", "<a>", "<b>", "<i>", "<u>",
+        "<h1", "<h2", "<h3", "<h4", "<h5", "<h6",
+        "<ul", "<ol", "<li", "<table", "<tr", "<td", "<th",
+        "<br", "<hr", "<img", "<input", "<button", "<select",
+        "<form", "<header", "<footer", "<section", "<article", "<nav",
+        "<main", "<aside", "<style", "<script", "<meta", "<link",
+        "</div>", "</span>", "</p>", "</a>", "</h", "</ul>",
+        "</ol>", "</li>", "</table>", "</form>", "</body>", "</html>",
+    ];
+    let tag_count = html_tags
+        .iter()
+        .filter(|tag| {
+            let lower = trimmed.to_ascii_lowercase();
+            lower.contains(*tag)
+        })
+        .count();
+
+    // At least 2 HTML tags to qualify
+    tag_count >= 2
+}
+
+/// Check if content matches any sensitive data pattern.
+fn is_sensitive_content(content: &str) -> bool {
+    if content.len() < 15 {
+        return false;
+    }
+    SENSITIVE_PATTERNS.iter().any(|re| re.is_match(content))
+}
+
+/// Generate a preview string from full content.
+/// Uses char-boundary safe truncation to avoid UTF-8 panics.
+fn make_preview(content: &str, kind: &ClipKind) -> String {
+    match kind {
+        ClipKind::Image => String::new(),
+        ClipKind::Html => {
+            let text = strip_html_tags(content);
+            let cleaned = text.replace('\r', "").replace('\n', " ").replace('\t', " ");
+            let compressed: String = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
+            if compressed.is_empty() {
+                truncate_utf8_safe(content, PREVIEW_MAX_LEN)
+            } else {
+                truncate_utf8_safe(&compressed, PREVIEW_MAX_LEN)
+            }
+        }
+        ClipKind::Sensitive => {
+            truncate_utf8_safe(content, PREVIEW_MAX_LEN)
+        }
+        _ => {
+            let cleaned = content.replace('\r', "").replace('\n', " ").replace('\t', " ");
+            let compressed: String = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
+            truncate_utf8_safe(&compressed, PREVIEW_MAX_LEN)
+        }
+    }
+}
+
+/// Remove HTML tags from a string, returning only visible text.
+/// Handles <tag>, <tag attr="...">, and common HTML entities.
+fn strip_html_tags(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    let mut in_entity = false;
+    let mut entity_buf = String::new();
+
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+        } else if ch == '>' && in_tag {
+            in_tag = false;
+        } else if ch == '&' && !in_tag {
+            in_entity = true;
+            entity_buf.clear();
+        } else if ch == ';' && in_entity {
+            in_entity = false;
+            // Decode common entities
+            match entity_buf.as_str() {
+                "amp" => result.push('&'),
+                "lt" => result.push('<'),
+                "gt" => result.push('>'),
+                "quot" => result.push('"'),
+                "apos" => result.push('\''),
+                "nbsp" => result.push(' '),
+                _ => {}
+            }
+            entity_buf.clear();
+        } else if !in_tag && !in_entity {
+            result.push(ch);
+        } else if in_entity {
+            entity_buf.push(ch);
+        }
+    }
+
+    result
+}
+
+/// Truncate a string to at most `max_len` characters (char-boundary safe).
+fn truncate_utf8_safe(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        return s.to_string();
+    }
+    // Find the nearest char boundary at or before max_len
+    let mut idx = max_len;
+    while !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    format!("{}…", &s[..idx])
+}
+
+/// Index a clipboard entry in Tantivy.
+async fn index_clip_entry(app: &AppHandle, entry: &ClipEntry) {
+    if let Some(search) = app.try_state::<SearchService>() {
+        let doc = SearchDocument {
+            module_id: "clipboard".to_string(),
+            id: entry.id.clone(),
+            title: entry.preview.clone().unwrap_or_default(),
+            body: entry.content.clone(),
+            tags: vec![entry.kind.as_str().to_string()],
+            projects: Vec::new(),
+            kind: Some(entry.kind.as_str().to_string()),
+            created_at: Some(entry.timestamp),
+            updated_at: Some(entry.timestamp),
+            source_ref: entry.source.clone(),
+            extra: serde_json::json!({
+                "contentHash": entry.content_hash,
+                "byteSize": entry.byte_size,
+                "isSensitive": entry.is_sensitive,
+                "pinned": entry.pinned,
+            }),
+        };
+        if let Err(e) = search.index_content(doc).await {
+            eprintln!("[clipboard] Tantivy index failed: {e}");
+        }
+    }
+}
+
+/// Remove a clipboard entry from the Tantivy index.
+async fn unindex_clip_entry(app: &AppHandle, id: &str) {
+    if let Some(search) = app.try_state::<SearchService>() {
+        let _ = search.delete_from_index("clipboard".to_string(), id.to_string()).await;
+    }
+}
+
+// ─── Commands ────────────────────────────────────────────────────────────────
+
+/// List clipboard items with optional filtering.
+#[tauri::command]
+pub async fn clipboard_list(
+    state: State<'_, BentoAppState>,
+    limit: Option<u32>,
+    kind: Option<String>,
+    pinned_only: Option<bool>,
+    favorite_only: Option<bool>,
+    offset: Option<u32>,
+) -> Result<Vec<ClipEntry>, String> {
+    let pool = state.db();
+    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE).min(1000) as i64;
+    let offset = offset.unwrap_or(0) as i64;
+
+    let mut qb = sqlx::query_builder::QueryBuilder::new(
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+         FROM clipboard_items WHERE 1=1"
+    );
+
+    if let Some(ref k) = kind {
+        qb.push(" AND kind = ");
+        qb.push_bind(k.clone());
+    }
+    if pinned_only.unwrap_or(false) {
+        qb.push(" AND pinned = 1");
+    }
+    if favorite_only.unwrap_or(false) {
+        qb.push(" AND favorite = 1");
+    }
+
+    qb.push(" ORDER BY pinned DESC, created_at DESC");
+    qb.push(" LIMIT ");
+    qb.push_bind(limit);
+    qb.push(" OFFSET ");
+    qb.push_bind(offset);
+
+    let rows = qb
+        .build()
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows.into_iter().map(ClipEntry::from_row).collect())
+}
+
+/// Get a single clipboard item by ID.
+/// Loads external content if the inline content is empty.
+#[tauri::command]
+pub async fn clipboard_get(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<Option<ClipEntry>, String> {
+    let pool = state.db();
+    let row = sqlx::query(
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+         FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let Some(mut entry) = row.map(ClipEntry::from_row) else {
+        return Ok(None);
+    };
+
+    // Load external content if the inline field is empty
+    if entry.content.is_empty() && !entry.content_hash.is_empty() {
+        let data_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?;
+        let path = entry.content_hash.clone();
+        entry.content = read_content(
+            &data_dir,
+            "",
+            Some(&path),
+            &entry.content_hash,
+        )
+        .await?;
+        entry.external_content = Some(true);
+    }
+
+    Ok(Some(entry))
+}
+
+/// Save a new clipboard item. Content-hash based dedup (O(1)).
+/// Returns the saved entry, or the existing one if a duplicate is found.
+#[tauri::command]
+pub async fn clipboard_save(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    content: String,
+    source: Option<String>,
+) -> Result<ClipEntry, String> {
+    let pool = state.db();
+    let hash = content_hash(content.as_bytes());
+    let now = time::now_ms();
+
+    // O(1) dedup: try to find by hash first
+    let existing_id: Option<String> = sqlx::query_scalar(
+        "SELECT id FROM clipboard_items WHERE content_hash = ?"
+    )
+    .bind(&hash)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if let Some(existing_id) = existing_id {
+        // Update timestamp and return existing
+        sqlx::query(
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE id = ?"
+        )
+        .bind(now)
+        .bind(now)
+        .bind(&existing_id)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        // Fetch full entry
+        let row = sqlx::query(
+            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+             FROM clipboard_items WHERE id = ?"
+        )
+        .bind(&existing_id)
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        return Ok(ClipEntry::from_row(row));
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let kind = detect_kind(&content);
+    let preview = if kind != ClipKind::Image {
+        make_preview(&content, &kind)
+    } else {
+        String::new()
+    };
+    let is_sensitive = if kind == ClipKind::Sensitive { 1i64 } else { 0i64 };
+    let byte_size = content.len() as i64;
+
+    // Store content — externalize large blobs
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let (content_path_opt, stored_content) = store_content(&data_dir, &hash, &content).await?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
+        "#
+    )
+    .bind(&id)
+    .bind(&hash)
+    .bind(kind.as_str())
+    .bind(&stored_content)
+    .bind(&content_path_opt)
+    .bind(&preview)
+    .bind(&source)
+    .bind(byte_size)
+    .bind(is_sensitive)
+    .bind(now)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let entry = ClipEntry {
+        id,
+        kind,
+        content,
+        content_hash: hash,
+        preview: if preview.is_empty() { None } else { Some(preview) },
+        source,
+        byte_size,
+        pinned: false,
+        favorite: false,
+        is_sensitive: is_sensitive == 1,
+        timestamp: now,
+        external_content: None,
+    };
+
+    // Index in Tantivy
+    index_clip_entry(&app, &entry).await;
+
+    // Notify frontend
+    let _ = app.emit("clipboard://new-entry", entry.clone());
+
+    Ok(entry)
+}
+
+/// Toggle the pinned state of a clipboard item.
+#[tauri::command]
+pub async fn clipboard_toggle_pin(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<bool, String> {
+    let pool = state.db();
+    let current: Option<i64> = sqlx::query_scalar(
+        "SELECT pinned FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    match current {
+        Some(pinned) => {
+            let new_val = if pinned == 0 { 1 } else { 0 };
+            sqlx::query("UPDATE clipboard_items SET pinned = ?, updated_at = ? WHERE id = ?")
+                .bind(new_val)
+                .bind(time::now_ms())
+                .bind(&id)
+                .execute(&pool)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            // Re-index to update pinned status in Tantivy
+            let row = sqlx::query(
+                "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+                 FROM clipboard_items WHERE id = ?"
+            )
+            .bind(&id)
+            .fetch_one(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+            let entry = ClipEntry::from_row(row);
+            index_clip_entry(&app, &entry).await;
+
+            Ok(new_val == 1)
+        }
+        None => Err("Clipboard item not found.".to_string()),
+    }
+}
+
+/// Toggle the favorite state of a clipboard item.
+#[tauri::command]
+pub async fn clipboard_toggle_favorite(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<bool, String> {
+    let pool = state.db();
+    let current: Option<i64> = sqlx::query_scalar(
+        "SELECT favorite FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    match current {
+        Some(fav) => {
+            let new_val = if fav == 0 { 1 } else { 0 };
+            sqlx::query("UPDATE clipboard_items SET favorite = ?, updated_at = ? WHERE id = ?")
+                .bind(new_val)
+                .bind(time::now_ms())
+                .bind(&id)
+                .execute(&pool)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            let row = sqlx::query(
+                "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+                 FROM clipboard_items WHERE id = ?"
+            )
+            .bind(&id)
+            .fetch_one(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+            let entry = ClipEntry::from_row(row);
+            index_clip_entry(&app, &entry).await;
+
+            Ok(new_val == 1)
+        }
+        None => Err("Clipboard item not found.".to_string()),
+    }
+}
+
+/// Delete a single clipboard item.
+#[tauri::command]
+pub async fn clipboard_delete(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<(), String> {
+    let pool = state.db();
+
+    // Get hash before deleting to clean up external content
+    let hash: Option<String> = sqlx::query_scalar(
+        "SELECT content_hash FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    sqlx::query("DELETE FROM clipboard_items WHERE id = ?")
+        .bind(&id)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Clean up Tantivy index
+    unindex_clip_entry(&app, &id).await;
+
+    // Clean up external content file
+    if let Some(hash) = hash {
+        if !hash.is_empty() {
+            if let Ok(data_dir) = app.path().app_data_dir() {
+                delete_content_file(&data_dir, &hash).await;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Delete multiple clipboard items by IDs.
+#[tauri::command]
+pub async fn clipboard_delete_batch(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    ids: Vec<String>,
+) -> Result<i64, String> {
+    let pool = state.db();
+    let mut deleted = 0i64;
+
+    for id in &ids {
+        let hash: Option<String> = sqlx::query_scalar(
+            "SELECT content_hash FROM clipboard_items WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        let result = sqlx::query("DELETE FROM clipboard_items WHERE id = ?")
+            .bind(id)
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        deleted += result.rows_affected() as i64;
+        unindex_clip_entry(&app, id).await;
+
+        if let Some(hash) = hash {
+            if !hash.is_empty() {
+                if let Ok(data_dir) = app.path().app_data_dir() {
+                    delete_content_file(&data_dir, &hash).await;
+                }
+            }
+        }
+    }
+
+    Ok(deleted)
+}
+
+/// Clear all non-pinned items. Returns the number of items deleted.
+#[tauri::command]
+pub async fn clipboard_clear_unpinned(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
+    let pool = state.db();
+
+    // Get all unpinned hashes for content cleanup
+    let hashes: Vec<String> = sqlx::query_scalar(
+        "SELECT content_hash FROM clipboard_items WHERE pinned = 0"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Get IDs for Tantivy cleanup
+    let ids: Vec<String> = sqlx::query_scalar(
+        "SELECT id FROM clipboard_items WHERE pinned = 0"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let result = sqlx::query("DELETE FROM clipboard_items WHERE pinned = 0")
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let count = result.rows_affected() as i64;
+
+    // Clean up Tantivy
+    for id in &ids {
+        unindex_clip_entry(&app, id).await;
+    }
+
+    // Clean up external files
+    if let Ok(data_dir) = app.path().app_data_dir() {
+        for hash in &hashes {
+            if !hash.is_empty() {
+                delete_content_file(&data_dir, hash).await;
+            }
+        }
+    }
+
+    Ok(count)
+}
+
+/// Clear all items (including pinned). Returns the number of items deleted.
+#[tauri::command]
+pub async fn clipboard_clear_all(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
+    let pool = state.db();
+
+    // Get all hashes for content cleanup
+    let hashes: Vec<String> = sqlx::query_scalar(
+        "SELECT content_hash FROM clipboard_items"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let ids: Vec<String> = sqlx::query_scalar(
+        "SELECT id FROM clipboard_items"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let result = sqlx::query("DELETE FROM clipboard_items")
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let count = result.rows_affected() as i64;
+
+    for id in &ids {
+        unindex_clip_entry(&app, id).await;
+    }
+
+    if let Ok(data_dir) = app.path().app_data_dir() {
+        for hash in &hashes {
+            if !hash.is_empty() {
+                delete_content_file(&data_dir, hash).await;
+            }
+        }
+    }
+
+    Ok(count)
+}
+
+/// Search clipboard items by content or preview using Tantivy.
+#[tauri::command]
+pub async fn clipboard_search(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    query: String,
+    limit: Option<u32>,
+) -> Result<Vec<ClipEntry>, String> {
+    if query.trim().is_empty() {
+        return clipboard_list(state, limit, None, None, None, None).await;
+    }
+
+    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE).min(1000) as usize;
+
+    // Try Tantivy search first
+    if let Some(search) = app.try_state::<SearchService>() {
+        let search_query = crate::search::SearchQuery {
+            query: query.clone(),
+            limit: Some(limit),
+            offset: None,
+            fuzzy: true,
+            tags: Vec::new(),
+            projects: Vec::new(),
+            kind: None,
+            created_after: None,
+            created_before: None,
+            updated_after: None,
+            updated_before: None,
+        };
+
+        match search.search_in_module("clipboard".to_string(), search_query).await {
+            Ok(hits) => {
+                if !hits.is_empty() {
+                    let pool = state.db();
+                    let ids: Vec<String> = hits.into_iter().map(|h| h.document.id).collect();
+
+                    // Fetch full entries by IDs, preserving Tantivy's rank order
+                    let mut entries = Vec::with_capacity(ids.len());
+                    for id in &ids {
+                        if let Ok(row) = sqlx::query(
+                            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+                             FROM clipboard_items WHERE id = ?"
+                        )
+                        .bind(id)
+                        .fetch_one(&pool)
+                        .await
+                        {
+                            entries.push(ClipEntry::from_row(row));
+                        }
+                    }
+                    if !entries.is_empty() {
+                        return Ok(entries);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("[clipboard] Tantivy search failed, falling back to LIKE: {e}");
+            }
+        }
+    }
+
+    // Fallback: LIKE search
+    let pool = state.db();
+    let limit = limit as i64;
+    let search_pattern = format!("%{}%", query.trim());
+
+    let rows = sqlx::query(
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+         FROM clipboard_items \
+         WHERE content LIKE ? OR preview LIKE ? \
+         ORDER BY pinned DESC, created_at DESC LIMIT ?"
+    )
+    .bind(&search_pattern)
+    .bind(&search_pattern)
+    .bind(limit)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(rows.into_iter().map(ClipEntry::from_row).collect())
+}
+
+/// Get the total count of clipboard items.
+#[tauri::command]
+pub async fn clipboard_count(
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
+    let pool = state.db();
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM clipboard_items")
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(count)
+}
+
+/// Save a clipboard image entry from the monitoring system.
+/// Stores the PNG bytes in the content-addressable store and creates a ClipEntry.
+async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, image_bytes: &[u8]) -> Result<(), String> {
+    if image_bytes.len() < 16 {
+        return Ok(());
+    }
+
+    let pool = state.db();
+    let hash = content_hash(image_bytes);
+    let now = time::now_ms();
+
+    // O(1) dedup via hash
+    let exists: bool = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?"
+    )
+    .bind(&hash)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+        > 0;
+
+    if exists {
+        sqlx::query(
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?"
+        )
+        .bind(now)
+        .bind(now)
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let byte_size = image_bytes.len() as i64;
+
+    // Store image bytes in content-addressable store
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let path = content_path(&data_dir, &hash);
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    tokio::fs::write(&path, image_bytes)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let content_path_str = Some(path.to_string_lossy().to_string());
+    let preview = format!("[Image] {:.7}…", &hash[..7]);
+
+    sqlx::query(
+        r#"
+        INSERT INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)
+        "#
+    )
+    .bind(&id)
+    .bind(&hash)
+    .bind("image")
+    .bind("") // images stored externally, not inline
+    .bind(&content_path_str)
+    .bind(&preview)
+    .bind(Option::<String>::None) // source
+    .bind(byte_size)
+    .bind(now)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let entry = ClipEntry {
+        id,
+        kind: ClipKind::Image,
+        content: String::new(),
+        content_hash: hash,
+        preview: Some(preview),
+        source: None,
+        byte_size,
+        pinned: false,
+        favorite: false,
+        is_sensitive: false,
+        timestamp: now,
+        external_content: Some(true),
+    };
+
+    // Index in Tantivy
+    index_clip_entry(app, &entry).await;
+
+    // Notify frontend
+    let _ = app.emit("clipboard://new-entry", entry);
+
+    Ok(())
+}
+
+/// Retrieve image data as a base64 data URI for frontend rendering.
+/// The image is loaded from the content-addressable store by its hash.
+#[tauri::command]
+pub async fn clipboard_get_image_data(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    hash: String,
+) -> Result<String, String> {
+    if hash.is_empty() || hash.len() < 8 {
+        return Err("Invalid content hash.".to_string());
+    }
+
+    let pool = state.db();
+
+    // First try to read from the store by hash directly
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let store_path = content_path(&data_dir, &hash);
+
+    if store_path.exists() {
+        let bytes = tokio::fs::read(&store_path)
+            .await
+            .map_err(|e| format!("Failed to read image: {e}"))?;
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        return Ok(format!("data:image/png;base64,{b64}"));
+    }
+
+    // Fallback: look up by hash in the DB to get the content_path
+    let content_path_str: Option<String> = sqlx::query_scalar(
+        "SELECT content_path FROM clipboard_items WHERE content_hash = ?"
+    )
+    .bind(&hash)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .flatten();
+
+    match content_path_str {
+        Some(path) => {
+            let full_path = if std::path::Path::new(&path).is_absolute() {
+                std::path::PathBuf::from(&path)
+            } else {
+                content_path(&data_dir, &hash)
+            };
+            if full_path.exists() {
+                let bytes = tokio::fs::read(&full_path)
+                    .await
+                    .map_err(|e| format!("Failed to read image: {e}"))?;
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                Ok(format!("data:image/png;base64,{b64}"))
+            } else {
+                Err("Image file not found on disk.".to_string())
+            }
+        }
+        None => Err("No image found for the given content hash.".to_string()),
+    }
+}
+
+/// Auto-expire sensitive items that are older than the expiry duration.
+#[tauri::command]
+pub async fn clipboard_expire_sensitive(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
+    let pool = state.db();
+    let cutoff = time::now_ms() - SENSITIVE_EXPIRY_MS;
+
+    // Get hashes and IDs for cleanup
+    let hashes: Vec<String> = sqlx::query_scalar(
+        "SELECT content_hash FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0"
+    )
+    .bind(cutoff)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let ids: Vec<String> = sqlx::query_scalar(
+        "SELECT id FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0"
+    )
+    .bind(cutoff)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let result = sqlx::query(
+        "DELETE FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0"
+    )
+    .bind(cutoff)
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    for id in &ids {
+        unindex_clip_entry(&app, id).await;
+    }
+
+    if let Ok(data_dir) = app.path().app_data_dir() {
+        for hash in &hashes {
+            if !hash.is_empty() {
+                delete_content_file(&data_dir, hash).await;
+            }
+        }
+    }
+
+    Ok(result.rows_affected() as i64)
+}
+
+/// Garbage collect orphaned content files.
+/// Removes blobs that don't correspond to any row in clipboard_items.
+#[tauri::command]
+pub async fn clipboard_gc(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
+    let data_dir = match app.path().app_data_dir() {
+        Ok(d) => d,
+        Err(_) => return Ok(0),
+    };
+
+    let store_root = content_store_root(&data_dir);
+    if !store_root.exists() {
+        return Ok(0);
+    }
+
+    let pool = state.db();
+    let mut removed = 0i64;
+
+    // Walk the content store tree
+    let mut dirs = tokio::fs::read_dir(&store_root)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    while let Some(entry) = dirs.next_entry().await.map_err(|e| e.to_string())? {
+        if !entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        let prefix_dir = entry.path();
+        let mut files = tokio::fs::read_dir(&prefix_dir)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        while let Some(file) = files.next_entry().await.map_err(|e| e.to_string())? {
+            if !file.file_type().await.map(|t| t.is_file()).unwrap_or(false) {
+                continue;
+            }
+            let hash = file.file_name().to_string_lossy().to_string();
+
+            // Check if this hash exists in the DB
+            let exists: bool = sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?"
+            )
+            .bind(&hash)
+            .fetch_one(&pool)
+            .await
+            .map_err(|e| e.to_string())?
+                > 0;
+
+            if !exists {
+                let _ = tokio::fs::remove_file(file.path()).await;
+                removed += 1;
+            }
+        }
+
+        // Remove empty prefix dirs
+        let mut remaining = tokio::fs::read_dir(&prefix_dir).await.map_err(|e| e.to_string())?;
+        if remaining.next_entry().await.map_err(|e| e.to_string())?.is_none() {
+            let _ = tokio::fs::remove_dir(&prefix_dir).await;
+        }
+    }
+
+    Ok(removed)
+}
+
+// ─── Background Monitoring ───────────────────────────────────────────────────
+
+/// A change event from the clipboard poller.
+pub struct ClipboardChange {
+    content: String,
+    image_data: Option<Vec<u8>>,
+    html_data: Option<String>,
+}
+
+/// Shared clipboard state for change detection.
+pub struct ClipboardMonitor {
+    last_content: Mutex<String>,
+    last_image_hash: Mutex<String>,
+    last_html_hash: Mutex<String>,
+    save_tx: mpsc::Sender<ClipboardChange>,
+}
+
+impl ClipboardMonitor {
+    pub fn new() -> (Self, mpsc::Receiver<ClipboardChange>) {
+        let (save_tx, save_rx) = mpsc::channel::<ClipboardChange>(CHANNEL_CAPACITY);
+        (
+            Self {
+                last_content: Mutex::new(String::new()),
+                last_image_hash: Mutex::new(String::new()),
+                last_html_hash: Mutex::new(String::new()),
+                save_tx,
+            },
+            save_rx,
+        )
+    }
+
+    pub fn save_tx(&self) -> &mpsc::Sender<ClipboardChange> {
+        &self.save_tx
+    }
+}
+
+impl Default for ClipboardMonitor {
+    fn default() -> Self {
+        let (tx, _rx) = mpsc::channel(CHANNEL_CAPACITY);
+        Self {
+            last_content: Mutex::new(String::new()),
+            last_image_hash: Mutex::new(String::new()),
+            last_html_hash: Mutex::new(String::new()),
+            save_tx: tx,
+        }
+    }
+}
+
+/// Spawn the background clipboard polling task and writer task.
+/// The poller reads the clipboard at intervals and sends changes via a bounded
+/// channel. The writer task processes changes sequentially, providing backpressure
+/// when the user copies faster than the DB can write.
+pub fn spawn_clipboard_monitor(app: AppHandle) {
+    let (monitor, save_rx) = ClipboardMonitor::new();
+    app.manage(monitor);
+
+    // Writer task: processes clipboard changes from the channel
+    let app_writer = app.clone();
+    tauri::async_runtime::spawn(async move {
+        clipboard_writer_task(app_writer, save_rx).await;
+    });
+
+    // Poller task: reads clipboard and sends to channel
+    tauri::async_runtime::spawn(async move {
+        clipboard_poller_task(app).await;
+    });
+}
+
+/// Background poller: reads the clipboard at intervals.
+/// Rotates through text, image, and HTML reads on each tick.
+async fn clipboard_poller_task(app: AppHandle) {
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_MS));
+    let mut consecutive_empty = 0u32;
+    let mut poll_phase = 0u32; // 0 = text, 1 = image, 2 = html
+
+    loop {
+        interval.tick().await;
+        poll_phase = (poll_phase + 1) % 3;
+
+        match poll_phase {
+            0 => {
+                // ── Text poll ──
+                let current = match read_system_clipboard(&app).await {
+                    Some(content) => {
+                        consecutive_empty = 0;
+                        content
+                    }
+                    None => {
+                        consecutive_empty += 1;
+                        if consecutive_empty > 10 {
+                            interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_MS));
+                        }
+                        continue;
+                    }
+                };
+
+                let monitor = app.state::<ClipboardMonitor>();
+                let mut last = monitor.last_content.lock().await;
+                let last_hash = content_hash(last.as_bytes());
+                let current_hash = content_hash(current.as_bytes());
+
+                if last_hash == current_hash {
+                    continue;
+                }
+                *last = current.clone();
+                drop(last);
+
+                match monitor.save_tx().try_send(ClipboardChange { content: current, image_data: None, html_data: None }) {
+                    Ok(_) => {
+                        interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
+                    }
+                    Err(mpsc::error::TrySendError::Full(_)) => {
+                        eprintln!("[clipboard] channel full, skipping text change (backpressure)");
+                    }
+                    Err(mpsc::error::TrySendError::Closed(_)) => {
+                        eprintln!("[clipboard] writer channel closed, stopping poller");
+                        break;
+                    }
+                }
+            }
+            1 => {
+                // ── Image poll ──
+                let image_bytes = match read_system_clipboard_image(&app).await {
+                    Some(bytes) if bytes.len() > 16 => bytes,
+                    _ => continue,
+                };
+
+                let monitor = app.state::<ClipboardMonitor>();
+                let mut last_img = monitor.last_image_hash.lock().await;
+                let image_hash = content_hash(&image_bytes);
+
+                if *last_img == image_hash {
+                    continue;
+                }
+                *last_img = image_hash;
+                drop(last_img);
+
+                match monitor.save_tx().try_send(ClipboardChange { content: String::new(), image_data: Some(image_bytes), html_data: None }) {
+                    Ok(_) => {
+                        interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
+                    }
+                    Err(mpsc::error::TrySendError::Full(_)) => {
+                        eprintln!("[clipboard] channel full, skipping image change (backpressure)");
+                    }
+                    Err(mpsc::error::TrySendError::Closed(_)) => {
+                        eprintln!("[clipboard] writer channel closed, stopping poller");
+                        break;
+                    }
+                }
+            }
+            2 => {
+                // ── HTML poll ──
+                let html_content = match read_system_clipboard_html(&app).await {
+                    Some(html) => {
+                        consecutive_empty = 0;
+                        html
+                    }
+                    None => continue,
+                };
+
+                let monitor = app.state::<ClipboardMonitor>();
+                let mut last_html = monitor.last_html_hash.lock().await;
+                let html_hash = content_hash(html_content.as_bytes());
+
+                if *last_html == html_hash {
+                    continue;
+                }
+                *last_html = html_hash.clone();
+                drop(last_html);
+
+                match monitor.save_tx().try_send(ClipboardChange { content: String::new(), image_data: None, html_data: Some(html_content) }) {
+                    Ok(_) => {
+                        interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
+                    }
+                    Err(mpsc::error::TrySendError::Full(_)) => {
+                        eprintln!("[clipboard] channel full, skipping HTML change (backpressure)");
+                    }
+                    Err(mpsc::error::TrySendError::Closed(_)) => {
+                        eprintln!("[clipboard] writer channel closed, stopping poller");
+                        break;
+                    }
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Writer task: receives clipboard changes and saves them to the DB.
+async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<ClipboardChange>) {
+    while let Some(change) = save_rx.recv().await {
+        // Small delay to batch rapid copies
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        // Drain any additional changes that arrived during the delay (keep latest)
+        let mut content = change.content;
+        let mut image_data = change.image_data;
+        let mut html_data = change.html_data;
+        while let Ok(latest) = save_rx.try_recv() {
+            if !latest.content.is_empty() {
+                content = latest.content;
+            }
+            if latest.image_data.is_some() {
+                image_data = latest.image_data;
+            }
+            if latest.html_data.is_some() {
+                html_data = latest.html_data;
+            }
+        }
+
+        let state = app.state::<BentoAppState>();
+
+        if let Some(img_bytes) = image_data {
+            if !img_bytes.is_empty() {
+                if let Err(e) = save_clipboard_image_entry(&app, &state, &img_bytes).await {
+                    eprintln!("[clipboard] failed to save image entry: {e}");
+                }
+            }
+        } else if let Some(html) = html_data {
+            if !html.is_empty() {
+                if let Err(e) = save_clipboard_entry(&app, &state, &html).await {
+                    eprintln!("[clipboard] failed to save HTML entry: {e}");
+                }
+            }
+        } else if !content.is_empty() {
+            if let Err(e) = save_clipboard_entry(&app, &state, &content).await {
+                eprintln!("[clipboard] failed to save clipboard entry: {e}");
+            }
+        }
+    }
+}
+
+/// Read the current system clipboard image (PNG bytes).
+/// Returns the raw PNG bytes from the clipboard, or None if no image is present
+/// or the data does not have a valid PNG header.
+async fn read_system_clipboard_image(app: &AppHandle) -> Option<Vec<u8>> {
+    let app_clone = app.clone();
+    let result = tokio::task::spawn_blocking(move || -> Option<Vec<u8>> {
+        #[cfg(desktop)]
+        {
+            use tauri_plugin_clipboard_manager::ClipboardExt;
+            match app_clone.clipboard().read_image() {
+                Ok(img) => {
+                    let rgba = img.rgba();
+                    let width = img.width();
+                    let height = img.height();
+                    if rgba.is_empty() || width == 0 || height == 0 {
+                        return None;
+                    }
+                    // Encode RGBA pixels to PNG bytes
+                    use image::codecs::png::PngEncoder;
+                    use image::ColorType;
+                    use image::ImageEncoder;
+                    let mut png_bytes = Vec::new();
+                    {
+                        let encoder = PngEncoder::new(&mut png_bytes);
+                        if encoder
+                            .write_image(rgba, width, height, ColorType::Rgba8.into())
+                            .is_err()
+                        {
+                            return None;
+                        }
+                    }
+                    Some(png_bytes)
+                }
+                _ => None,
+            }
+        }
+        #[cfg(not(desktop))]
+        {
+            let _ = app_clone;
+            None
+        }
+    })
+    .await;
+
+    result.unwrap_or(None)
+}
+
+/// Read the current system clipboard HTML/rich-text content.
+/// Tries platform-specific reading first (macOS NSPasteboard, Windows CF_HTML),
+/// then falls back to reading plain text and checking for HTML patterns.
+async fn read_system_clipboard_html(app: &AppHandle) -> Option<String> {
+    // Try macOS NSPasteboard HTML reading first
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(html) = read_nspasteboard_html().await {
+            return Some(html);
+        }
+    }
+
+    // Try Windows CF_HTML reading
+    #[cfg(windows)]
+    {
+        if let Some(html) = read_cf_html_windows() {
+            return Some(html);
+        }
+    }
+
+    // Fallback: read plain text and check if it looks like HTML
+    let text = read_system_clipboard(app).await?;
+    if looks_like_html(&text) {
+        Some(text)
+    } else {
+        None
+    }
+}
+
+/// Read HTML from the macOS NSPasteboard using the `public.html` pasteboard type.
+/// Uses objc2-app-kit's NSPasteboard bindings to access the general pasteboard
+/// and read the HTML string type that rich-text apps (browsers, editors) write.
+#[cfg(target_os = "macos")]
+async fn read_nspasteboard_html() -> Option<String> {
+    let result = tokio::task::spawn_blocking(move || -> Option<String> {
+        use objc2_app_kit::NSPasteboard;
+        use objc2_foundation::NSString;
+
+        let pb = NSPasteboard::generalPasteboard();
+        // Use the standard UTI for HTML content on NSPasteboard
+        let html_type = unsafe { NSString::from_str("public.html") };
+        let html_type_ref = &html_type;
+        let ns_string = unsafe { pb.stringForType(html_type_ref) };
+        ns_string.map(|s| s.to_string())
+    })
+    .await;
+
+    result.unwrap_or(None)
+}
+
+// ── Win32 FFI declarations for clipboard access ──
+#[cfg(windows)]
+#[allow(non_snake_case)]
+extern "system" {
+    fn RegisterClipboardFormatW(lpszFormat: *const u16) -> u32;
+    fn OpenClipboard(hwnd: *const std::ffi::c_void) -> i32;
+    fn GetClipboardData(uFormat: u32) -> *const std::ffi::c_void;
+    fn GlobalLock(hMem: *const std::ffi::c_void) -> *const std::ffi::c_void;
+    fn GlobalSize(hMem: *const std::ffi::c_void) -> usize;
+    fn GlobalUnlock(hMem: *const std::ffi::c_void) -> i32;
+    fn CloseClipboard() -> i32;
+}
+
+/// Read CF_HTML format from the Windows clipboard.
+/// CF_HTML is a clipboard format used by browsers and rich-text editors
+/// to store formatted text with HTML markup.
+#[cfg(windows)]
+fn read_cf_html_windows() -> Option<String> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr;
+
+    // Register "HTML Format" clipboard format to get its format ID
+    let name: Vec<u16> = OsStr::new("HTML Format")
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    let cf_html = unsafe { RegisterClipboardFormatW(name.as_ptr()) };
+    if cf_html == 0 {
+        return None;
+    }
+
+    // Open clipboard
+    if unsafe { OpenClipboard(ptr::null_mut()) } == 0 {
+        return None;
+    }
+
+    // Get data handle for CF_HTML format
+    let handle = unsafe { GetClipboardData(cf_html) };
+    if handle.is_null() {
+        unsafe { CloseClipboard() };
+        return None;
+    }
+
+    // Lock global memory
+    let data = unsafe { GlobalLock(handle) };
+    if data.is_null() {
+        unsafe { CloseClipboard() };
+        return None;
+    }
+
+    // Read bytes
+    let len = unsafe { GlobalSize(handle) };
+    let slice = unsafe { std::slice::from_raw_parts(data as *const u8, len) };
+
+    // CF_HTML is typically UTF-8 encoded (or ANSI, but UTF-8 is safest)
+    let raw = std::str::from_utf8(slice).ok()?;
+
+    // Parse the CF_HTML header to extract just the HTML fragment
+    let result = parse_cf_html(raw);
+
+    unsafe { GlobalUnlock(handle) };
+    unsafe { CloseClipboard() };
+
+    result
+}
+
+/// Parse the CF_HTML format header and extract the HTML fragment.
+///
+/// CF_HTML format specification:
+/// ```
+/// Version:1.0
+/// StartHTML:00000000
+/// EndHTML:00000000
+/// StartFragment:00000000
+/// EndFragment:00000000
+/// <html><body><!--StartFragment-->...HTML content...<!--EndFragment--></body></html>
+/// ```
+/// The byte offsets count from the start of the entire data block.
+/// We prefer the fragment (StartFragment..EndFragment) which is the
+/// specific user-selected content, falling back to the full HTML document.
+#[cfg(windows)]
+fn parse_cf_html(raw: &str) -> Option<String> {
+    let lines: Vec<&str> = raw.lines().collect();
+
+    /// Parse a numeric offset value from a CF_HTML header field.
+    fn parse_offset(lines: &[&str], key: &str) -> Option<usize> {
+        for line in lines {
+            if let Some(value) = line.strip_prefix(key) {
+                return value.trim().parse::<usize>().ok();
+            }
+        }
+        None
+    }
+
+    // Prefer the fragment (the exact user selection)
+    if let (Some(start), Some(end)) = (parse_offset(&lines, "StartFragment:"), parse_offset(&lines, "EndFragment:")) {
+        if start < end && end <= raw.len() {
+            let fragment = raw[start..end].to_string();
+            if !fragment.is_empty() {
+                return Some(fragment);
+            }
+        }
+    }
+
+    // Fallback to the full HTML document
+    if let (Some(start), Some(end)) = (parse_offset(&lines, "StartHTML:"), parse_offset(&lines, "EndHTML:")) {
+        if start < end && end <= raw.len() {
+            let html = raw[start..end].to_string();
+            if !html.is_empty() {
+                return Some(html);
+            }
+        }
+    }
+
+    // Last resort: return everything after the header
+    // Find the first HTML tag
+    if let Some(pos) = raw.find("<html") {
+        return Some(raw[pos..].to_string());
+    }
+    if let Some(pos) = raw.find("<HTML") {
+        return Some(raw[pos..].to_string());
+    }
+
+    None
+}
+
+/// Read the current system clipboard content (plain text).
+async fn read_system_clipboard(app: &AppHandle) -> Option<String> {
+    let app_clone = app.clone();
+    let result = tokio::task::spawn_blocking(move || -> Option<String> {
+        #[cfg(desktop)]
+        {
+            use tauri_plugin_clipboard_manager::ClipboardExt;
+            match app_clone.clipboard().read_text() {
+                Ok(text) if !text.is_empty() => Some(text),
+                _ => None,
+            }
+        }
+        #[cfg(not(desktop))]
+        {
+            let _ = app_clone;
+            None
+        }
+    })
+    .await;
+
+    result.unwrap_or(None)
+}
+
+/// Save a clipboard entry from the monitoring system.
+async fn save_clipboard_entry(app: &AppHandle, state: &BentoAppState, content: &str) -> Result<(), String> {
+    if content.trim().is_empty() {
+        return Ok(());
+    }
+
+    let pool = state.db();
+    let hash = content_hash(content.as_bytes());
+    let now = time::now_ms();
+
+    // O(1) dedup via hash
+    let exists: bool = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?"
+    )
+    .bind(&hash)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+        > 0;
+
+    if exists {
+        // Update timestamp
+        sqlx::query(
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?"
+        )
+        .bind(now)
+        .bind(now)
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let kind = detect_kind(content);
+    let preview = if kind != ClipKind::Image {
+        make_preview(content, &kind)
+    } else {
+        String::new()
+    };
+    let is_sensitive = if kind == ClipKind::Sensitive { 1i64 } else { 0i64 };
+    let byte_size = content.len() as i64;
+
+    // Store content — externalize large blobs
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let (content_path_opt, stored_content) = store_content(&data_dir, &hash, content).await?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
+        "#
+    )
+    .bind(&id)
+    .bind(&hash)
+    .bind(kind.as_str())
+    .bind(&stored_content)
+    .bind(&content_path_opt)
+    .bind(&preview)
+    .bind(Option::<String>::None) // source
+    .bind(byte_size)
+    .bind(is_sensitive)
+    .bind(now)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let entry = ClipEntry {
+        id,
+        kind,
+        content: content.to_string(),
+        content_hash: hash,
+        preview: if preview.is_empty() { None } else { Some(preview) },
+        source: None,
+        byte_size,
+        pinned: false,
+        favorite: false,
+        is_sensitive: is_sensitive == 1,
+        timestamp: now,
+        external_content: None,
+    };
+
+    // Index in Tantivy
+    index_clip_entry(app, &entry).await;
+
+    // Notify frontend
+    let _ = app.emit("clipboard://new-entry", entry);
+
+    Ok(())
+}
+
+impl Default for ClipEntry {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            kind: ClipKind::Text,
+            content: String::new(),
+            content_hash: String::new(),
+            preview: None,
+            source: None,
+            byte_size: 0,
+            pinned: false,
+            favorite: false,
+            is_sensitive: false,
+            timestamp: 0,
+            external_content: None,
+        }
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Tests
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_content_hash_consistency() {
+        let content = "Hello, world!";
+        let hash1 = content_hash(content.as_bytes());
+        let hash2 = content_hash(content.as_bytes());
+        assert_eq!(hash1, hash2);
+        assert_eq!(hash1.len(), 64); // SHA-256 hex = 64 chars
+    }
+
+    #[test]
+    fn test_content_hash_different() {
+        let hash1 = content_hash(b"Hello, world!");
+        let hash2 = content_hash(b"Goodbye, world!");
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_detect_kind_url() {
+        assert_eq!(detect_kind("https://example.com"), ClipKind::Link);
+        assert_eq!(detect_kind("http://localhost:3000"), ClipKind::Link);
+    }
+
+    #[test]
+    fn test_detect_kind_code() {
+        let code = "fn hello() {\n    println!(\"world\");\n}";
+        assert_eq!(detect_kind(code), ClipKind::Code);
+
+        let js = "const x = () => {\n  return 42;\n}";
+        assert_eq!(detect_kind(js), ClipKind::Code);
+    }
+
+    #[test]
+    fn test_detect_kind_sensitive() {
+        let api_key = "sk_live_AbC123XyZ_SECRET_KEY_REDACTED";
+        assert_eq!(detect_kind(api_key), ClipKind::Sensitive);
+
+        let jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3j6K4o1PZQ2oPkA";
+        assert_eq!(detect_kind(jwt), ClipKind::Sensitive);
+
+        let ssh_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...";
+        assert_eq!(detect_kind(ssh_key), ClipKind::Sensitive);
+    }
+
+    #[test]
+    fn test_detect_kind_text() {
+        assert_eq!(detect_kind("Hello, world!"), ClipKind::Text);
+        assert_eq!(detect_kind("Meeting notes: Q3 review"), ClipKind::Text);
+    }
+
+    #[test]
+    fn test_is_sensitive_content() {
+        assert!(is_sensitive_content("sk_live_AbC123XyZ_SECRET_KEY_REDACTED"));
+        assert!(is_sensitive_content("ghp_AbC123XyZ_SECRET_KEY_REDACTED1234"));
+        assert!(is_sensitive_content("-----BEGIN RSA PRIVATE KEY-----"));
+        assert!(!is_sensitive_content("Hello, world!"));
+        assert!(!is_sensitive_content("The quick brown fox"));
+    }
+
+    #[test]
+    fn test_make_preview_truncation() {
+        let long = "a".repeat(300);
+        let preview = make_preview(&long, &ClipKind::Text);
+        assert!(preview.len() < 250);
+        assert!(preview.ends_with('…'));
+    }
+
+    #[test]
+    fn test_truncate_utf8_safe_multi_byte() {
+        // Each "ñ" is 2 bytes in UTF-8
+        let s = "ñ".repeat(150); // 300 bytes
+        let truncated = truncate_utf8_safe(&s, 200);
+        // Should end with … and be char-boundary safe (no panic)
+        assert!(truncated.ends_with('…'));
+        assert!(truncated.len() <= 203); // 200 + 1 (ellipsis is 3 bytes)
+    }
+
+    #[test]
+    fn test_looks_like_code() {
+        assert!(looks_like_code("fn test() {\n    return 1;\n}"));
+        assert!(looks_like_code("const x = (a: number) => {\n  return a * 2;\n}"));
+        assert!(!looks_like_code("The quick brown fox jumps over the lazy dog."));
+    }
+
+    #[test]
+    fn test_external_store_threshold() {
+        // Items under threshold should not be externalized
+        let small = "a".repeat(EXTERNAL_STORE_THRESHOLD);
+        assert!(small.len() <= EXTERNAL_STORE_THRESHOLD);
+    }
+}

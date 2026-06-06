@@ -256,7 +256,7 @@ pub async fn budget_suggest_limits(
     let rows = sqlx::query(
         r#"SELECT
             c.id, c.name, c.group_name, c.icon, c.color, c.monthly_budget,
-            COALESCE(SUM(t.amount), 0) AS total_spent,
+            COALESCE(SUM(t.amount), 0.0) AS total_spent,
             COUNT(DISTINCT substr(t.date_key,1,7)) AS active_months
          FROM budget_categories c
          LEFT JOIN budget_transactions t ON t.category_id = c.id
@@ -462,7 +462,7 @@ pub async fn budget_list_categories(
     let rows = sqlx::query(
         r#"SELECT
             c.id, c.name, c.group_name, c.icon, c.monthly_budget, c.color, c.created_at,
-            COALESCE(SUM(CASE WHEN t.tx_type = 'expense' AND t.date_key LIKE ? THEN t.amount ELSE 0 END), 0) AS spent
+            COALESCE(SUM(CASE WHEN t.tx_type = 'expense' AND t.date_key LIKE ? THEN t.amount ELSE 0.0 END), 0.0) AS spent
          FROM budget_categories c
          LEFT JOIN budget_transactions t ON t.category_id = c.id
          GROUP BY c.id
@@ -971,7 +971,7 @@ pub async fn budget_monthly_overview(
 
     // Total income
     let total_income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
     )
     .bind(&pattern)
     .fetch_one(&state.db())
@@ -980,7 +980,7 @@ pub async fn budget_monthly_overview(
 
     // Total expenses
     let total_expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
     )
     .bind(&pattern)
     .fetch_one(&state.db())
@@ -1007,7 +1007,7 @@ pub async fn budget_monthly_overview(
     use sqlx::Row;
     let cat_rows = sqlx::query(
         r#"SELECT c.id, c.name, c.icon, c.color,
-                  COALESCE(SUM(t.amount), 0) AS spent, c.monthly_budget
+                  COALESCE(SUM(t.amount), 0.0) AS spent, c.monthly_budget
            FROM budget_categories c
            LEFT JOIN budget_transactions t ON t.category_id = c.id AND t.tx_type = 'expense' AND t.date_key LIKE ?
            GROUP BY c.id
@@ -1068,7 +1068,7 @@ pub async fn budget_financial_health(
 
     // Average savings rate over last 3 months
     let income_3: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions
          WHERE tx_type = 'income' AND date_key >= ?",
     )
     .bind(format!("{}%", last_3_months))
@@ -1077,7 +1077,7 @@ pub async fn budget_financial_health(
     .map_err(|e| e.to_string())?;
 
     let expense_3: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions
          WHERE tx_type = 'expense' AND date_key >= ?",
     )
     .bind(format!("{}%", last_3_months))
@@ -1101,7 +1101,7 @@ pub async fn budget_financial_health(
 
     let cat_over: f64 = sqlx::query_scalar::<_, i64>(
         r#"SELECT COUNT(*) FROM (
-            SELECT c.id, COALESCE(SUM(t.amount), 0) AS spent, c.monthly_budget
+            SELECT c.id, COALESCE(SUM(t.amount), 0.0) AS spent, c.monthly_budget
             FROM budget_categories c
             LEFT JOIN budget_transactions t ON t.category_id = c.id AND t.tx_type = 'expense'
                 AND t.date_key LIKE ?
@@ -1214,7 +1214,7 @@ pub async fn budget_cash_flow_forecast(
     };
 
     let avg_monthly_income: f64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(amount), 0) / 3.0 FROM budget_transactions
+        sqlx::query_scalar("SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions
                            WHERE tx_type = 'income' AND date_key >= ?")
             .bind(&three_months_ago)
             .fetch_one(&state.db())
@@ -1222,7 +1222,7 @@ pub async fn budget_cash_flow_forecast(
             .map_err(|e| e.to_string())?;
 
     let avg_monthly_expenses: f64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(amount), 0) / 3.0 FROM budget_transactions
+        sqlx::query_scalar("SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions
                            WHERE tx_type = 'expense' AND date_key >= ?")
             .bind(&three_months_ago)
             .fetch_one(&state.db())
@@ -1232,7 +1232,7 @@ pub async fn budget_cash_flow_forecast(
     // Current balance (this month's income - expenses so far)
     let current_pattern = format!("{}%", current_year_month());
     let current_income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
     )
     .bind(&current_pattern)
     .fetch_one(&state.db())
@@ -1240,7 +1240,7 @@ pub async fn budget_cash_flow_forecast(
     .map_err(|e| e.to_string())?;
 
     let current_expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
     )
     .bind(&current_pattern)
     .fetch_one(&state.db())
@@ -1314,8 +1314,8 @@ pub async fn budget_forecast_chart_data(
     let historical_rows = sqlx::query(
         r#"SELECT
             substr(date_key,1,7) AS ym,
-            COALESCE(SUM(CASE WHEN tx_type = 'income' THEN amount ELSE 0 END), 0) AS income,
-            COALESCE(SUM(CASE WHEN tx_type = 'expense' THEN amount ELSE 0 END), 0) AS expenses
+            COALESCE(SUM(CASE WHEN tx_type = 'income' THEN amount ELSE 0.0 END), 0.0) AS income,
+            COALESCE(SUM(CASE WHEN tx_type = 'expense' THEN amount ELSE 0.0 END), 0.0) AS expenses
          FROM budget_transactions
          WHERE date_key >= ?
          GROUP BY ym
@@ -1340,7 +1340,7 @@ pub async fn budget_forecast_chart_data(
     // ── 2. Calculate averages for projection ────────────────────────────────
     let three_months_ago = (today - chrono::Months::new(3)).format("%Y-%m-%d").to_string();
     let avg_income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) / 3.0 FROM budget_transactions WHERE tx_type = 'income' AND date_key >= ?",
+        "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions WHERE tx_type = 'income' AND date_key >= ?",
     )
     .bind(&three_months_ago)
     .fetch_one(&state.db())
@@ -1348,7 +1348,7 @@ pub async fn budget_forecast_chart_data(
     .map_err(|e| e.to_string())?;
 
     let avg_expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) / 3.0 FROM budget_transactions WHERE tx_type = 'expense' AND date_key >= ?",
+        "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions WHERE tx_type = 'expense' AND date_key >= ?",
     )
     .bind(&three_months_ago)
     .fetch_one(&state.db())
@@ -1404,7 +1404,7 @@ pub async fn budget_cross_module_spending(
     // Grocery spending — from budget transactions categorized as Groceries
     let month_pattern = format!("{}%", current_year_month());
     let grocery_spending: f64 = sqlx::query_scalar(
-        r#"SELECT COALESCE(SUM(t.amount), 0)
+        r#"SELECT COALESCE(SUM(t.amount), 0.0)
            FROM budget_transactions t
            JOIN budget_categories c ON c.id = t.category_id
            WHERE t.tx_type = 'expense' AND t.date_key LIKE ?
@@ -1417,7 +1417,7 @@ pub async fn budget_cross_module_spending(
 
     // AI costs total this month
     let ai_total: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(cost), 0) FROM budget_ai_costs WHERE date_key LIKE ?",
+        "SELECT COALESCE(SUM(cost), 0.0) FROM budget_ai_costs WHERE date_key LIKE ?",
     )
     .bind(&month_pattern)
     .fetch_one(&state.db())
@@ -1426,7 +1426,7 @@ pub async fn budget_cross_module_spending(
 
     // Reading spending — from budget transactions categorized as Reading/Education
     let reading_spending: f64 = sqlx::query_scalar(
-        r#"SELECT COALESCE(SUM(t.amount), 0)
+        r#"SELECT COALESCE(SUM(t.amount), 0.0)
            FROM budget_transactions t
            JOIN budget_categories c ON c.id = t.category_id
            WHERE t.tx_type = 'expense' AND t.date_key LIKE ?
@@ -1610,7 +1610,7 @@ async fn budget_monthly_overview_inner(
     let pattern = format!("{}%", month);
 
     let total_income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
     )
     .bind(&pattern)
     .fetch_one(pool)
@@ -1618,7 +1618,7 @@ async fn budget_monthly_overview_inner(
     .map_err(|e| e.to_string())?;
 
     let total_expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
     )
     .bind(&pattern)
     .fetch_one(pool)
@@ -1657,7 +1657,7 @@ async fn budget_list_categories_inner(
     let rows = sqlx::query(
         r#"SELECT
             c.id, c.name, c.group_name, c.icon, c.monthly_budget, c.color, c.created_at,
-            COALESCE(SUM(CASE WHEN t.tx_type = 'expense' AND t.date_key LIKE ? THEN t.amount ELSE 0 END), 0) AS spent
+            COALESCE(SUM(CASE WHEN t.tx_type = 'expense' AND t.date_key LIKE ? THEN t.amount ELSE 0.0 END), 0.0) AS spent
          FROM budget_categories c
          LEFT JOIN budget_transactions t ON t.category_id = c.id
          GROUP BY c.id
@@ -1694,11 +1694,11 @@ async fn budget_financial_health_inner(
     let pattern = format!("{}%", current_ym);
 
     let income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
     ).bind(&pattern).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
     ).bind(&pattern).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let savings_rate = if income > 0.0 { ((income - expenses) / income * 100.0).max(0.0) } else { 0.0 };
@@ -1827,20 +1827,20 @@ async fn budget_cash_flow_forecast_inner(
     };
 
     let avg_income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) / 3.0 FROM budget_transactions WHERE tx_type = 'income' AND date_key >= ?",
+        "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions WHERE tx_type = 'income' AND date_key >= ?",
     ).bind(&three_months_ago).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let avg_expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) / 3.0 FROM budget_transactions WHERE tx_type = 'expense' AND date_key >= ?",
+        "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions WHERE tx_type = 'expense' AND date_key >= ?",
     ).bind(&three_months_ago).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let current_pattern = format!("{}%", current_year_month());
     let current_income: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
     ).bind(&current_pattern).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let current_expenses: f64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
     ).bind(&current_pattern).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let mut balance = current_income - current_expenses;

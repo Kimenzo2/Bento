@@ -347,6 +347,7 @@ async fn purge_local_user_content(pool: &SqlitePool) -> Result<(), String> {
         "telemetry_snapshots",
         "anomaly_log",
         "performance_baselines",
+        "clipboard_items",
     ] {
         delete_from_table_if_exists(pool, table_name).await?;
     }
@@ -982,6 +983,42 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
             mode       TEXT NOT NULL DEFAULT 'Active',
             schedule   TEXT NOT NULL DEFAULT '{}',
             enabled    INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        "#,
+        // ── Countdown ──────────────────────────────────────────────────────
+        r#"
+        CREATE TABLE IF NOT EXISTS countdown_events (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            target_ms  INTEGER NOT NULL,
+            category   TEXT NOT NULL DEFAULT 'Personal',
+            accent     TEXT NOT NULL DEFAULT '#6366f1',
+            note       TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS countdown_milestones (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            target_ms  INTEGER NOT NULL,
+            progress   INTEGER NOT NULL DEFAULT 0,
+            accent     TEXT NOT NULL DEFAULT '#6366f1',
+            note       TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        "#,
+        r#"
+        CREATE TABLE IF NOT EXISTS countdown_birthdays (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            month      INTEGER NOT NULL,
+            day        INTEGER NOT NULL,
+            accent     TEXT NOT NULL DEFAULT '#6366f1',
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
         )

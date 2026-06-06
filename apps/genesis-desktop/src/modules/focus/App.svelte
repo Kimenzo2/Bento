@@ -2,11 +2,13 @@
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { exportContentToFile } from "$lib/services/task-service";
   import BanIcon from "@lucide/svelte/icons/ban";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import PauseIcon from "@lucide/svelte/icons/pause";
   import PlayIcon from "@lucide/svelte/icons/play";
   import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
+  import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import Volume2Icon from "@lucide/svelte/icons/volume-2";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -17,6 +19,7 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  import TrafficLogsChart from "./TrafficLogsChart.svelte";
   import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
   import {
     ensureModuleSection,
@@ -26,7 +29,7 @@
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "focus";
-  const sectionLabels = ["Timer", "Sessions", "Sounds", "Blocking", "History", "Review", "Quick Timer"] as const;
+  const sectionLabels = ["Timer", "Sessions", "Sounds", "Blocking", "History", "Review"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   type FocusPreset = {
@@ -139,15 +142,39 @@
     }
   }
 
+  function getDefaultPresets(): FocusPreset[] {
+    return [
+      { label: "Pomodoro", description: "Classic 25 min", minutes: 25 },
+      { label: "Short Break", description: "5 min reset", minutes: 5 },
+      { label: "Long Break", description: "15 min recharge", minutes: 15 },
+      { label: "Deep Focus", description: "52 min block", minutes: 52 },
+    ];
+  }
+
+  let timerPresets = $derived(
+    focusDashboard.timerPresets.length > 0
+      ? focusDashboard.timerPresets
+      : getDefaultPresets()
+  );
+
   let isRunning = $state(false);
   let timeRemaining = $state(25 * 60);
-  let currentSession = "Pomodoro";
+  let totalDuration = $state(25 * 60);
+  let currentSession = $state("Pomodoro");
   let interval: ReturnType<typeof setInterval> | undefined;
 
   function formatTime(seconds: number) {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  function selectPreset(preset: FocusPreset) {
+    if (isRunning) stopTimer();
+    currentSession = preset.label;
+    const mins = preset.minutes ?? 25;
+    totalDuration = mins * 60;
+    timeRemaining = mins * 60;
   }
 
   function stopTimer() {
@@ -169,85 +196,41 @@
       if (timeRemaining > 0) {
         timeRemaining -= 1;
       } else {
+        // Timer completed — log the session via backend
         stopTimer();
+        const elapsedMinutes = Math.round(totalDuration / 60);
+        void logFocusSession(elapsedMinutes, currentSession);
       }
     }, 1000);
   }
 
   function resetTimer() {
     stopTimer();
-    timeRemaining = 25 * 60;
+    timeRemaining = totalDuration;
   }
 
-  onDestroy(() => stopTimer());
-
-  // ── Quick Timer (ported from Journal's Focus section) ────────────────
-  let qtActive = $state(false);
-  let qtSeconds = $state(25 * 60);
-  let qtInterval: ReturnType<typeof setInterval> | null = null;
-
-  let qtMin = $derived(String(Math.floor(qtSeconds / 60)).padStart(2, '0'));
-  let qtSec = $derived(String(qtSeconds % 60).padStart(2, '0'));
-  let qtProgress = $derived(1 - qtSeconds / (25 * 60));
-
-  let qtSessions = $derived(
-    focusDashboard.sessions.map((session) => ({
-      label: session.label,
-      duration: session.duration,
-      date: session.date,
-    }))
-  );
-
-  let qtWeekCount = $derived(focusDashboard.history.map((item) => item.sessions));
-
-  let totalQtMin = $derived(focusDashboard.todayMinutes);
-  let totalQtSessions = $derived(focusDashboard.thisWeekSessions);
-
-  function toggleQtTimer() {
-    if (qtActive) {
-      if (qtInterval) clearInterval(qtInterval);
-      qtActive = false;
-      qtInterval = null;
-      const elapsed = 25 * 60 - qtSeconds;
-      if (elapsed > 60) {
-        const mins = Math.round(elapsed / 60);
-        void logFocusSession(mins, "Focus session");
+  async function handleExport() {
+    try {
+      const csv = await invoke<string>("export_focus_sessions");
+      const saved = await exportContentToFile(
+        csv,
+        "focus-sessions-export.csv",
+        "csv",
+        "CSV files"
+      );
+      if (saved) {
+        console.log("[focus] export saved to:", saved);
       }
-    } else {
-      qtActive = true;
-      qtInterval = setInterval(() => {
-        if (qtSeconds > 0) qtSeconds--;
-        else {
-          if (qtInterval) clearInterval(qtInterval);
-          qtActive = false;
-          qtInterval = null;
-          qtSeconds = 25 * 60;
-          void logFocusSession(25, "Completed focus");
-        }
-      }, 1000);
+    } catch (error) {
+      console.warn("[focus] export failed:", error);
     }
   }
 
-  function resetQtTimer() {
-    if (qtInterval) clearInterval(qtInterval);
-    qtActive = false;
-    qtInterval = null;
-    qtSeconds = 25 * 60;
-  }
+  onDestroy(() => stopTimer());
 </script>
 
 <main class="focus-workspace module-root" data-module="focus">
   <section class="focus-shell">
-    <header class="focus-shell__header">
-      <div class="focus-shell__intro">
-        <div class="focus-shell__eyebrow">
-          <span>{_t('moduleFocusTitle')}</span>
-          <Badge variant="outline">{selectedSection}</Badge>
-        </div>
-        <h1>{_t('moduleFocusDesc')}</h1>
-        <p>The original focus timer remains the center of gravity while the shell sections unlock adjacent tools.</p>
-      </div>
-    </header>
 
     {#if focusLoading}
       <div class="focus-status-banner" role="status" aria-live="polite">
@@ -265,7 +248,7 @@
     {/if}
 
     {#if selectedSection === "Timer"}
-    <section class="focus-hero-grid">
+    <section class="focus-hero-grid focus-hero-grid--full">
       <Card class="focus-timer-card">
         <CardHeader>
           <CardTitle>{currentSession}</CardTitle>
@@ -274,243 +257,63 @@
         <CardContent class="focus-timer-card__content">
           <div class="focus-ring">
             <PremiumRing
-              size={148}
-              thickness={12}
-              segments={[{ value: (timeRemaining / (25 * 60)) * 100, color: "var(--mod-accent)", label: "Remaining" }]}
+              size={200}
+              thickness={13}
+              segments={[{ value: totalDuration > 0 ? (timeRemaining / totalDuration) * 100 : 0, color: "var(--mod-accent)", label: "Remaining" }]}
               centerLabel={currentSession}
               centerValue={formatTime(timeRemaining)}
               centerNote={isRunning ? "In session" : "Ready"}
             />
           </div>
           <div class="focus-controls">
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="icon"
               class="focus-controls__button focus-controls__button--reset"
               aria-label={_t('commonRestart')}
               onclick={resetTimer}
             >
-              <RotateCcwIcon size={22} />
-            </Button>
-            <Button
+              <RotateCcwIcon size={20} />
+            </button>
+            <button
               type="button"
-              variant="default"
               class="focus-controls__button focus-controls__button--play"
               aria-label={isRunning ? _t('moduleFocusPause') : _t('moduleFocusStart')}
               onclick={toggleTimer}
             >
               {#if isRunning}
-                <PauseIcon size={28} />
+                <PauseIcon size={26} />
               {:else}
-                <PlayIcon size={28} />
+                <PlayIcon size={26} />
               {/if}
-            </Button>
+            </button>
           </div>
         </CardContent>
-      </Card>
-
-      <Card class="focus-hero-card">
-        <CardHeader>
-          <CardTitle>{_t('moduleFocusToday')}</CardTitle>
-          <CardDescription>Deep work minutes and protected time.</CardDescription>
-        </CardHeader>
-        <CardContent class="focus-hero-list">
-          {#if focusLoading}
-            <div class="focus-empty-state focus-empty-state--center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M12 6v6l4 2"></path>
-              </svg>
-              <div>
-                <strong>Loading focus summary</strong>
-                <p>Rust is fetching today’s minutes and session totals.</p>
-              </div>
-            </div>
-          {:else if focusDashboard.todayMinutes === 0 && focusDashboard.todaySessions === 0 && !focusDashboard.blockingProfile}
-            <div class="focus-empty-state focus-empty-state--center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M12 7v5l3 2"></path>
-              </svg>
-              <div>
-                <strong>No focus sessions yet</strong>
-                <p>Start a timer and Rust will keep the summary cards in sync.</p>
-              </div>
-            </div>
-          {:else}
-            <article><span>Deep work</span><strong>{Math.floor(focusDashboard.todayMinutes / 60)}h {focusDashboard.todayMinutes % 60}m</strong></article>
-            <article><span>Completed sessions</span><strong>{focusDashboard.todaySessions}</strong></article>
-            <article><span>Blocking profile</span><strong>{focusDashboard.blockingProfile ?? "Not set"}</strong></article>
-          {/if}
-        </CardContent>
-      </Card>
-    </section>
-    {/if}
-
-    {#if selectedSection === "Quick Timer"}
-    <!-- Ported exactly from Journal's Focus section — bento cards -->
-    <section class="qt-bento">
-      <!-- TIMER RING CARD (accent) -->
-      <div class="qt-card qt-card--accent qt-card--timer">
-        <div class="qt-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M12 2v2"/><path d="M10 2h4"/></svg>
-          {_t('moduleFocusPomodoro')}
-        </div>
-        <div class="qt-ring-wrap">
-          <PremiumRing
-            size={156}
-            thickness={12}
-            segments={[{ value: qtProgress * 100, color: "var(--mod-accent)", label: "Progress" }]}
-            centerLabel="Pomodoro"
-            centerValue={`${qtMin}:${qtSec}`}
-            centerNote={qtActive ? _t('moduleFocusInSession') : _t('moduleFocusReady')}
-          />
-        </div>
-        <div class="qt-timer-btns">
-          <button class="qt-timer-btn qt-timer-btn--main" onclick={toggleQtTimer}>
-            {#if qtActive}
-              <PauseIcon size={18} strokeWidth={2.4} />
-              {_t('moduleFocusPause')}
-            {:else}
-              <PlayIcon size={18} strokeWidth={2.4} />
-              {_t('moduleFocusStart')}
-            {/if}
-          </button>
-          <button class="qt-timer-btn qt-timer-btn--ghost" onclick={resetQtTimer} title={_t('commonRestart')}>
-            <RotateCcwIcon size={18} strokeWidth={2.2} />
-          </button>
-        </div>
-      </div>
-
-      <!-- SESSIONS LOG CARD (surface) -->
-      <div class="qt-card qt-card--surface qt-card--log">
-        <div class="qt-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
-          {_t('moduleFocusRecentSessions')}
-        </div>
-        {#if focusLoading}
-        <div class="focus-empty-state focus-empty-state--center qt-empty-small">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>
-          </svg>
-          <div>
-            <strong>Loading sessions</strong>
-            <p>Waiting on the Rust backend to load recent focus history.</p>
-          </div>
-        </div>
-        {:else if qtSessions.length === 0}
-        <div class="focus-empty-state focus-empty-state--center qt-empty-small">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-          <div>
-            <strong>No sessions yet</strong>
-            <p>{_t('moduleFocusNoSessions')}</p>
-          </div>
-        </div>
-        {:else}
-          {#each qtSessions.slice(0, 8) as s}
-          <div class="qt-session-row">
-            <div class="qt-session-dot"></div>
-            <div class="qt-session-info">
-              <span class="qt-session-label">{s.label}</span>
-              <span class="qt-session-meta">{s.date}</span>
-            </div>
-            <span class="qt-session-dur">{s.duration}</span>
-          </div>
-          {/each}
-        {/if}
-        <div class="qt-session-total">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          {totalQtMin} {_t('moduleFocusMinTotal')}
-        </div>
-      </div>
-
-      <!-- WEEKLY STATS CARD (dark) -->
-      <div class="qt-card qt-card--dark qt-card--stats">
-        <div class="qt-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          {_t('moduleFocusThisWeek')}
-        </div>
-        {#if focusLoading}
-          <div class="focus-empty-state focus-empty-state--center qt-empty-small">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            <div>
-              <strong>Loading weekly stats</strong>
-              <p>Rust is building this week’s focus summary.</p>
-            </div>
-          </div>
-        {:else if totalQtSessions === 0 || qtWeekCount.length === 0}
-          <div class="focus-empty-state focus-empty-state--center qt-empty-small">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            <div>
-              <strong>No weekly data yet</strong>
-              <p>Run a few sessions and the chart will appear here.</p>
-            </div>
-          </div>
-        {:else}
-          <div class="qt-stat-big" style="color:#10b981">{totalQtSessions}<span class="qt-stat-unit">{_t('moduleFocusSessions')}</span></div>
-          <p class="qt-card-hint" style="color:#22c55e">{_t('moduleFocusIncrease')}</p>
-          <div class="qt-mini-bars">
-            {#each qtWeekCount as h, i}
-              <div class="qt-mini-bar-wrap">
-                <div class="qt-mini-bar" style="height:{h*14}px;background:#10b981"></div>
-                <span class="qt-mini-bar-label">{['M','T','W','T','F','S','S'][i]}</span>
-              </div>
+        <div class="focus-timer-presets">
+          <div class="focus-preset-grid">
+            {#each timerPresets as preset}
+              <button
+                type="button"
+                class:focus-preset-btn--active={currentSession === preset.label}
+                onclick={() => selectPreset(preset)}
+                disabled={isRunning}
+              >
+                <strong>{preset.label}</strong>
+                {#if preset.description}
+                  <p>{preset.description}</p>
+                {/if}
+              </button>
             {/each}
           </div>
-        {/if}
-      </div>
-
-    </section>
+        </div>
+      </Card>
+        </section>
     {/if}
 
+
+
+        {#if selectedSection !== "Timer"}
     <section class="focus-shell__body">
-      {#if selectedSection === "Timer"}
-        <Card class="focus-panel focus-panel--full">
-          <CardHeader>
-            <CardTitle>{_t('moduleFocusTimerPresets')}</CardTitle>
-            <CardDescription>Stay close to the original timer screen while adding session variants.</CardDescription>
-          </CardHeader>
-          <CardContent class="focus-preset-grid">
-            {#if focusLoading}
-              <div class="focus-empty-state focus-empty-state--wide">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <path d="M12 7v5l3 2"></path>
-                </svg>
-                <div>
-                  <strong>Loading presets</strong>
-                  <p>Rust will load saved timer presets here.</p>
-                </div>
-              </div>
-            {:else if focusDashboard.timerPresets.length === 0}
-              <div class="focus-empty-state focus-empty-state--wide">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <path d="M12 7v5l3 2"></path>
-                </svg>
-                <div>
-                  <strong>No presets saved yet</strong>
-                  <p>Timer presets can be stored from Rust settings without changing this layout.</p>
-                </div>
-              </div>
-            {:else}
-              {#each focusDashboard.timerPresets as preset}
-                <button type="button">
-                  {preset.label}
-                </button>
-              {/each}
-            {/if}
-          </CardContent>
-        </Card>
-      {:else if selectedSection === "Sessions"}
+      {#if selectedSection === "Sessions"}
         <Card class="focus-panel focus-panel--full">
           <CardHeader>
             <CardTitle>{_t('moduleFocusRecentSessions')}</CardTitle>
@@ -636,53 +439,7 @@
           </CardContent>
         </Card>
       {:else if selectedSection === "History"}
-        <Card class="focus-panel focus-panel--full">
-          <CardHeader>
-            <CardTitle>{_t('moduleFocusWeeklyHistory')}</CardTitle>
-            <CardDescription>Compact charting that still fits inside the desktop shell.</CardDescription>
-          </CardHeader>
-          <CardContent class="focus-history-chart">
-            {#if focusLoading}
-              <div class="focus-empty-state focus-empty-state--wide">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-                </svg>
-                <div>
-                  <strong>Loading history</strong>
-                  <p>The Rust analytics layer is computing the weekly chart.</p>
-                </div>
-              </div>
-            {:else if focusDashboard.history.length === 0}
-              <div class="focus-empty-state focus-empty-state--wide">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-                </svg>
-                <div>
-                  <strong>No weekly history yet</strong>
-                  <p>Focus history will populate after a few completed sessions.</p>
-                </div>
-              </div>
-            {:else}
-              {#each focusDashboard.history as item}
-                <article>
-                  <span>{item.day}</span>
-                  <i style={`--bar:${Math.max(item.minutes / 2, 20)}px`}></i>
-                  <strong>{item.minutes}m</strong>
-                </article>
-              {/each}
-            {/if}
-          </CardContent>
-        </Card>
-      {:else if selectedSection === "Quick Timer"}
-        <Card class="focus-panel focus-panel--full">
-          <CardHeader>
-            <CardTitle>{_t('moduleFocusQuickTimer')}</CardTitle>
-            <CardDescription>{_t('moduleFocusQuickTimerDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="focus-quick-info">
-            <p>{_t('moduleFocusQuickTimerInfo')}</p>
-          </CardContent>
-        </Card>
+        <TrafficLogsChart />
       {:else}
         <Card class="focus-panel focus-panel--full">
           <CardHeader>
@@ -726,7 +483,7 @@
                 <strong>Export session log</strong>
                 <p>Download today’s timeline and blocker profile.</p>
               </div>
-              <Button variant="outline" disabled={focusDashboard.sessions.length === 0}>
+              <Button variant="outline" disabled={focusDashboard.sessions.length === 0} onclick={handleExport}>
                 <DownloadIcon data-icon="inline-start" />
                 {_t('commonExport')}
               </Button>
@@ -735,6 +492,7 @@
         </Card>
       {/if}
     </section>
+    {/if}
   </section>
 </main>
 
@@ -748,7 +506,7 @@
     --focus-muted: var(--muted);
     --focus-accent: var(--primary);
     height: 100%;
-    padding: 28px 30px;
+    padding: 0;
     background: var(--focus-bg);
     color: var(--focus-ink);
     overflow: hidden;
@@ -756,9 +514,9 @@
   }
 
   :global(.focus-shell) {
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     height: 100%;
     min-height: 0;
   }
@@ -787,14 +545,16 @@
 
   :global(.focus-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
-    line-height: 1.04;
+    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+    line-height: 1.3;
+    font-weight: 600;
   }
 
   :global(.focus-shell__intro) p {
-    margin: 12px 0 0;
+    margin: 6px 0 0;
     max-width: 42rem;
     color: var(--focus-muted);
+    font-size: 0.85rem;
   }
 
   :global(.focus-status-banner) {
@@ -831,8 +591,24 @@
     gap: 16px;
   }
 
+  :global(.focus-hero-grid--full) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  :global(.focus-hero-grid--full > .focus-timer-card) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 48px);
+    border-radius: 16px;
+    margin: 16px 24px 24px;
+  }
+
   :global(.focus-timer-card),
-  :global(.focus-hero-card),
   :global(.focus-panel) {
     border-color: var(--focus-border);
     background:
@@ -843,7 +619,14 @@
       );
   }
 
+  :global(.focus-hero-grid--full > .focus-timer-card > div) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
   :global(.focus-timer-card__content) {
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 24px;
@@ -903,11 +686,9 @@
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    transition:
-      transform 160ms ease,
-      background-color 160ms ease,
-      border-color 160ms ease,
-      color 160ms ease;
+    cursor: pointer;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+    flex-shrink: 0;
   }
 
   :global(.focus-controls__button:hover) {
@@ -915,26 +696,32 @@
   }
 
   :global(.focus-controls__button:active) {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.97);
   }
 
   :global(.focus-controls__button--reset) {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
     border: 1px solid var(--focus-border);
-    background: color-mix(in srgb, var(--focus-surface-strong) 96%, transparent);
-    color: inherit;
+    background: color-mix(in srgb, var(--focus-surface-strong) 90%, transparent);
+    color: var(--focus-ink);
+  }
+
+  :global(.focus-controls__button--reset:hover) {
+    background: color-mix(in srgb, var(--focus-surface-strong) 100%, transparent);
+    border-color: color-mix(in srgb, var(--focus-border) 140%, transparent);
   }
 
   :global(.focus-controls__button--play) {
-    width: 72px !important;
-    height: 72px !important;
-    background: var(--foreground) !important;
-    color: var(--background) !important;
+    width: 68px;
+    height: 68px;
+    border: none;
+    background: var(--focus-ink);
+    color: var(--focus-bg);
   }
 
   :global(.focus-controls__button--play:hover) {
-    background: color-mix(in srgb, var(--foreground) 92%, white) !important;
+    background: color-mix(in srgb, var(--focus-ink) 88%, transparent);
   }
 
   :global(.focus-hero-list),
@@ -986,10 +773,6 @@
     color: currentColor;
   }
 
-  :global(.qt-empty-small) {
-    padding-top: 4px;
-  }
-
   :global(.focus-empty-state p) {
     margin: 0;
     line-height: 1.45;
@@ -1013,6 +796,10 @@
   :global(.focus-panel),
   :global(.focus-panel) :global(.card-content) {
     min-height: 0;
+  }
+
+  :global(.focus-shell__body) {
+    flex: 1;
   }
 
   :global(.focus-panel) {
@@ -1047,6 +834,34 @@
     background: color-mix(in srgb, var(--focus-accent) 10%, var(--focus-surface));
     color: inherit;
     font: inherit;
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+
+  :global(.focus-preset-btn--active) {
+    border-color: var(--focus-accent) !important;
+    background: color-mix(in srgb, var(--focus-accent) 22%, var(--focus-surface)) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus-accent) 30%, transparent);
+  }
+
+  :global(.focus-preset-grid) button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  :global(.focus-preset-grid) button:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--focus-accent) 60%, var(--focus-border));
+    background: color-mix(in srgb, var(--focus-accent) 16%, var(--focus-surface));
+  }
+
+  :global(.focus-preset-grid) button p {
+    margin: 4px 0 0;
+    font-size: 0.8rem;
+    color: var(--focus-muted);
+  }
+
+  :global(.focus-timer-presets) {
+    padding: 0 24px 20px;
   }
 
   :global(.focus-session-list) article {
@@ -1100,259 +915,4 @@
     align-items: center;
   }
 
-  /* ── Quick Timer bento cards (ported from Journal's Focus section) ── */
-  .qt-bento {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr;
-    gap: 16px;
-  }
-
-  .qt-card {
-    border-radius: 20px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    transition: all 0.2s ease;
-  }
-
-  .qt-card--accent {
-    background: var(--focus-accent, var(--primary));
-    color: #fff;
-  }
-
-  .qt-card--surface {
-    background: var(--card);
-    border: 1px solid var(--border);
-  }
-
-  .qt-card--dark {
-    background: var(--surface);
-    color: var(--surface-foreground, #fff);
-  }
-
-  .qt-card-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    opacity: 0.7;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .qt-card-label svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-
-  .qt-card-hint {
-    font-size: 12px;
-    opacity: 0.65;
-    margin: 0;
-  }
-
-  /* Timer ring */
-  .qt-card--timer {
-    align-items: center;
-    text-align: center;
-  }
-
-  .qt-ring-wrap {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    margin: 0 auto;
-  }
-
-  .qt-ring-svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .qt-ring-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .qt-ring-time {
-    font-size: 26px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-
-  .qt-ring-sub {
-    font-size: 11px;
-    opacity: 0.65;
-    margin-top: 4px;
-  }
-
-  .qt-timer-btns {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .qt-timer-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 20px;
-    border-radius: 999px;
-    border: none;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .qt-timer-btn--main {
-    background: rgba(255,255,255,0.2);
-    color: #fff;
-  }
-
-  .qt-timer-btn--main:hover {
-    background: rgba(255,255,255,0.3);
-  }
-
-  .qt-timer-btn--ghost {
-    background: none;
-    color: rgba(255,255,255,0.6);
-    padding: 10px;
-  }
-
-  .qt-timer-btn--ghost:hover {
-    color: #fff;
-  }
-
-  .qt-timer-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  /* Session log */
-  .qt-card--log {
-    padding: 18px;
-  }
-
-  .qt-session-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .qt-session-row:last-child {
-    border-bottom: none;
-  }
-
-  .qt-session-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--focus-accent, var(--primary));
-    flex-shrink: 0;
-  }
-
-  .qt-session-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .qt-session-label {
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .qt-session-meta {
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .qt-session-dur {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-
-  .qt-session-total {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--focus-accent, var(--primary));
-  }
-
-  .qt-session-total svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .qt-empty-small {
-    padding: 12px 0;
-    text-align: center;
-  }
-
-  /* Stats card */
-  .qt-card--stats {
-    padding: 22px;
-  }
-
-  .qt-stat-big {
-    font-size: 40px;
-    font-weight: 700;
-    line-height: 1;
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-
-  .qt-stat-unit {
-    font-size: 16px;
-    font-weight: 500;
-    opacity: 0.6;
-  }
-
-  .qt-mini-bars {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    margin-top: 8px;
-  }
-
-  .qt-mini-bar-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .qt-mini-bar {
-    width: 16px;
-    border-radius: 4px 4px 0 0;
-    transition: height 0.3s ease;
-  }
-
-  .qt-mini-bar-label {
-    font-size: 9px;
-    opacity: 0.5;
-  }
-
-  @media (max-width: 860px) {
-    .qt-bento { grid-template-columns: 1fr; }
-  }
 </style>

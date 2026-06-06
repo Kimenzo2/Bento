@@ -12,8 +12,6 @@
   let switching = $state<BentoModuleId | null>(null);
   let stackContainer: HTMLDivElement | null = $state(null);
   let triggerButton: HTMLButtonElement | null = $state(null);
-  const comingSoonModules = new Set<BentoModuleId>(["ai"]);
-
   type SwitcherSlot = {
     id: BentoModuleId;
     label: string;
@@ -22,7 +20,7 @@
   const rows: ReadonlyArray<ReadonlyArray<SwitcherSlot>> = [
     [
       { id: "dashboard", label: "Home" },
-      { id: "telemetry", label: "Telemetry" },
+      null,
       { id: "settings", label: "Settings" },
       { id: "journal", label: "Journal" },
       { id: "tasks", label: "Tasks" },
@@ -35,9 +33,9 @@
       { id: "budget", label: "Budget" },
     ],
     [
-      { id: "reading", label: "Reading" },
+      null,
       { id: "goals", label: "Goals" },
-      { id: "time", label: "Time" },
+      null,
       { id: "sleep", label: "Sleep" },
       { id: "passwords", label: "Vault" },
     ],
@@ -45,13 +43,13 @@
       { id: "clipboard", label: "Clipboard" },
       { id: "voice-memos", label: "Voice" },
       { id: "mood", label: "Mood" },
-      { id: "grocery", label: "Grocery" },
-      { id: "recipes", label: "Recipes" },
+      null,
+      null,
     ],
     [
       { id: "nutrition", label: "Water" },
       { id: "countdown", label: "Countdown" },
-      { id: "ai", label: "AI" },
+      null,
       null,
       null,
     ],
@@ -98,13 +96,6 @@
   }
 
   async function selectModule(moduleId: BentoModuleId) {
-    if (comingSoonModules.has(moduleId)) {
-      beginAppLaunch(moduleId);
-      signalAppLaunchError(moduleId, new Error(_t('switcherComingSoon')));
-      expanded = false;
-      return;
-    }
-
     if (switching || moduleId === $activeModule) {
       expanded = false;
       return;

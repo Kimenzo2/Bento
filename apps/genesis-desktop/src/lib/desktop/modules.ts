@@ -197,7 +197,6 @@ const MODULE_TITLES: Record<string, string> = {
   focus: 'Focus — Bento',
   health: 'Health — Bento',
   budget: 'Budget — Bento',
-  reading: 'Reading — Bento',
   grocery: 'Grocery — Bento',
   passwords: 'Vault — Bento',
   telemetry: 'System — Bento',

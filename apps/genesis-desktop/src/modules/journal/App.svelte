@@ -1,6 +1,6 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { onMount } from 'svelte';
-  import { Plus, FileText, Trash2, PenLine, BookHeart } from 'lucide-svelte';
+  import { Plus, FileText, Trash2, PenLine, BookHeart, Search, X } from 'lucide-svelte';
   import JournalEditor from './JournalEditor.svelte';
   import { editorStore } from '$lib/local-store/store';
   import JournalFontPreferencePanel from '$lib/components/JournalFontPreferencePanel.svelte';
@@ -11,7 +11,7 @@
   const moduleId = 'journal';
   const sectionLabels = ['Today', 'History'] as const;
 
-  // ── State ──────────────────────────────────────────────────────────────
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   let entries     = $state<JournalEntry[]>([]);
   let loading     = $state(true);
@@ -25,7 +25,60 @@
   let editorLoadPromise: Promise<void> | null = null;
   let showFontPref = $state(false);
 
-  // ── Error helper ───────────────────────────────────────────────────────
+  // ── Anytype-style Filter ───────────────────────────────────────────────
+  let filterActive  = $state(false);
+  let filterFocused = $state(false);
+  let filterInputEl = $state<HTMLInputElement | null>(null);
+  let searchQuery   = $state('');
+
+  function onFilterIconClick() {
+    filterActive = true;
+    requestAnimationFrame(() => { filterInputEl?.focus(); });
+    attachFilterClickAway();
+    attachFilterEsc();
+  }
+
+  function onFilterHide() {
+    filterActive  = false;
+    filterFocused = false;
+    searchQuery   = '';
+    filterInputEl?.blur();
+    removeFilterClickAway();
+    removeFilterEsc();
+  }
+
+  function onFilterClear(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    searchQuery = '';
+    filterInputEl?.focus();
+  }
+
+  let _filterMouseDown: ((e: MouseEvent) => void) | null = null;
+  function attachFilterClickAway() {
+    removeFilterClickAway();
+    _filterMouseDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.filter-wrap')) onFilterHide();
+    };
+    setTimeout(() => window.addEventListener('mousedown', _filterMouseDown!), 0);
+  }
+  function removeFilterClickAway() {
+    if (_filterMouseDown) { window.removeEventListener('mousedown', _filterMouseDown); _filterMouseDown = null; }
+  }
+
+  let _filterKeydown: ((e: KeyboardEvent) => void) | null = null;
+  function attachFilterEsc() {
+    removeFilterEsc();
+    _filterKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onFilterHide(); }
+    };
+    window.addEventListener('keydown', _filterKeydown, true);
+  }
+  function removeFilterEsc() {
+    if (_filterKeydown) { window.removeEventListener('keydown', _filterKeydown, true); _filterKeydown = null; }
+  }
+
+  // â”€â”€ Error helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function showError(msg: string) {
     if (errorTimer) clearTimeout(errorTimer);
@@ -33,7 +86,7 @@
     errorTimer = setTimeout(() => { errorMsg = null; }, 5000);
   }
 
-  // ── Derived ────────────────────────────────────────────────────────────
+  // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   let selectedSection = $derived(
     getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels)
@@ -42,9 +95,14 @@
   let todayStr = $derived(time.toISODate(time.now()));
 
   let filteredEntries = $derived(
-    selectedSection === 'Today'
+    (selectedSection === 'Today'
       ? entries.filter(e => e.date === todayStr)
       : entries
+    ).filter(e =>
+      !searchQuery.trim() ||
+      getEntryPreview(e).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getEntryLabel(e).toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   let sortedEntries = $derived(
@@ -53,7 +111,7 @@
 
   let showingToday = $derived(selectedSection === 'Today');
 
-  // ── Lazy-load editor component ─────────────────────────────────────────
+  // â”€â”€ Lazy-load editor component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function ensureEditorLoaded() {
     if (EditorComponent) return;
@@ -74,7 +132,7 @@
     return editorLoadPromise;
   }
 
-  // ── Load ───────────────────────────────────────────────────────────────
+  // â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function loadLocalEntries(): JournalEntry[] {
     const result: JournalEntry[] = [];
@@ -95,7 +153,7 @@
     try {
       const remote = await listJournalEntries(100);
       const local = loadLocalEntries();
-      // Merge: remote (DB) first, then local (localStorage) — dedup by ID
+      // Merge: remote (DB) first, then local (localStorage) â€” dedup by ID
       const merged = new Map<string, JournalEntry>();
       for (const e of remote) merged.set(e.id, e);
       for (const e of local) merged.set(e.id, e);
@@ -113,7 +171,7 @@
     void loadEntries();
   });
 
-  // ── Create ─────────────────────────────────────────────────────────────
+  // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function createLocalEntry(date: string) {
     const id = crypto.randomUUID();
@@ -152,7 +210,7 @@
     }
   }
 
-  // ── Select ─────────────────────────────────────────────────────────────
+  // â”€â”€ Select â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function selectEntry(id: string) {
     await editorStore.flushPendingSaves();
@@ -161,7 +219,7 @@
     void ensureEditorLoaded();
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────
+  // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function handleDelete(id: string) {
     // Clean up localStorage regardless of Tauri outcome
@@ -179,7 +237,7 @@
     }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function formatDate(ts: number): string {
     const diff = time.now() - ts;
@@ -197,7 +255,7 @@
         const ct = typeof b.content === 'string' ? JSON.parse(b.content) : b.content;
         const text = ct?.text?.trim();
         if (text && text.length > 0) {
-          return text.length > 65 ? text.slice(0, 65) + '…' : text;
+          return text.length > 65 ? text.slice(0, 65) + 'â€¦' : text;
         }
       }
     } catch { /* ignore parse errors */ }
@@ -223,7 +281,7 @@
     return time.formatCustom(d.getTime(), 'M j, Y', 'en-US');
   }
 
-  // ── Callbacks from editor ──────────────────────────────────────────────
+  // â”€â”€ Callbacks from editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function onEntryUpdated(event: CustomEvent<{ id: string; preview?: string }>) {
     const { id, preview } = event.detail;
@@ -237,26 +295,66 @@
   }
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════════════
-     ROOT — two-panel: narrow sidebar + full editor (same as Notes)
-════════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     ROOT â€” two-panel: narrow sidebar + full editor (same as Notes)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="journal-root">
 
-  <!-- ── Panel 1: Entry list sidebar ─────────────────────────────────── -->
+  <!-- â”€â”€ Panel 1: Entry list sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <aside class="journal-sidebar">
 
-    <!-- Header + New Entry button -->
+    <!-- Header + Filter + New Entry -->
     <div class="sidebar-header">
-      <span class="sidebar-title">Journal</span>
-      <button
-        class="new-entry-btn"
-        onclick={createEntry}
-        disabled={creating}
-        aria-label="New entry"
-        title="New entry"
-      >
-        <Plus size={16} strokeWidth={2.2} />
-      </button>
+      <div class="sidebar-header-actions">
+        <div
+          class="filter-wrap"
+          class:filter-active={filterActive}
+          role="search"
+          aria-label="Search entries"
+        >
+          <button
+            class="filter-icon-btn"
+            onclick={onFilterIconClick}
+            aria-label="Search"
+            tabindex="0"
+            type="button"
+          >
+            <Search size={14} strokeWidth={2} />
+          </button>
+          <div class="filter-input-wrap">
+            <input
+              bind:this={filterInputEl}
+              class="filter-input"
+              type="text"
+              placeholder="Search entries…"
+              bind:value={searchQuery}
+              onfocus={() => { filterFocused = true; }}
+              onblur={() => { filterFocused = false; }}
+              tabindex={filterActive ? 0 : -1}
+            />
+          </div>
+          {#if searchQuery.length > 0}
+            <button
+              class="filter-clear-btn"
+              type="button"
+              aria-label="Clear search"
+              onmousedown={onFilterClear}
+            >
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          {/if}
+        </div>
+        <button
+          class="new-entry-btn"
+          onclick={createEntry}
+          disabled={creating}
+          aria-label="New entry"
+          title="New entry"
+          type="button"
+        >
+          <Plus size={15} strokeWidth={2.2} />
+        </button>
+      </div>
     </div>
 
     <!-- Error banner -->
@@ -269,7 +367,7 @@
       {#if loading}
         <div class="sidebar-loading">
           <div class="spinner"></div>
-          <span>Loading…</span>
+          <span>Loadingâ€¦</span>
         </div>
 
       {:else if sortedEntries.length === 0}
@@ -327,7 +425,7 @@
         {/each}
       {/if}
     </div>
-    <!-- ── Font preference button at bottom of sidebar ──────────── -->
+    <!-- â”€â”€ Font preference button at bottom of sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="sidebar-footer">
       <button class="sidebar-font-btn" onclick={() => showFontPref = true} aria-label="Change editor font" title="Editor font">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
@@ -340,7 +438,7 @@
     <JournalFontPreferencePanel onclose={() => showFontPref = false} />
   {/if}
 
-  <!-- ── Panel 2: Editor ─────────────────────────────────────────────── -->
+  <!-- â”€â”€ Panel 2: Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <main class="journal-editor-pane">
     {#if activeId}
       {#key `${activeId}-${editorRev}`}
@@ -349,7 +447,7 @@
         {:else}
           <div class="editor-loading">
             <div class="spinner"></div>
-            <span>Loading editor…</span>
+            <span>Loading editorâ€¦</span>
           </div>
         {/if}
       {/key}
@@ -370,10 +468,6 @@
 </div>
 
 <style>
-  /* ══════════════════════════════════════════════════════════════════════
-     ROOT — fills the module host completely
-  ══════════════════════════════════════════════════════════════════════ */
-
   .journal-root {
     display: grid;
     grid-template-columns: 260px 1fr;
@@ -386,10 +480,6 @@
     color: var(--foreground);
     font-size: 13px;
   }
-
-  /* ══════════════════════════════════════════════════════════════════════
-     SIDEBAR
-  ══════════════════════════════════════════════════════════════════════ */
 
   .journal-sidebar {
     display: flex;
@@ -404,30 +494,111 @@
   .sidebar-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 18px 14px 10px;
+    padding: 12px 10px 8px 10px;
     flex-shrink: 0;
   }
 
-  .sidebar-title {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  .sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
   }
 
+  /* ── Anytype Filter ─────────────────────────────────────────────── */
+  .filter-wrap {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    height: 28px;
+    border-radius: 14px;
+    overflow: hidden;
+    transition: background 140ms ease;
+    flex: 1;
+    min-width: 28px;
+  }
+
+  .filter-icon-btn {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    color: color-mix(in srgb, var(--foreground) 45%, transparent);
+    cursor: pointer;
+    transition: color 140ms ease;
+    padding: 0;
+  }
+
+  .filter-icon-btn:hover { color: var(--foreground); }
+
+  .filter-input-wrap {
+    width: 0;
+    overflow: hidden;
+    transition: width 200ms cubic-bezier(0.55, 0, 1, 0.45);
+    flex-shrink: 0;
+  }
+
+  .filter-input {
+    display: block;
+    height: 28px;
+    width: 158px;
+    padding: 0 2px 0 0;
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 12.5px;
+    outline: none;
+    white-space: nowrap;
+  }
+
+  .filter-input::placeholder {
+    color: color-mix(in srgb, var(--foreground) 30%, transparent);
+  }
+
+  .filter-clear-btn {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    cursor: pointer;
+    padding: 0;
+    margin-right: 4px;
+    transition: color 120ms ease;
+  }
+
+  .filter-clear-btn:hover { color: var(--foreground); }
+
+  .filter-wrap.filter-active {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  .filter-wrap.filter-active .filter-icon-btn { color: var(--foreground); }
+  .filter-wrap.filter-active .filter-input-wrap { width: 158px; }
+  .filter-wrap.filter-active:hover { background: color-mix(in srgb, var(--foreground) 11%, transparent); }
+
+  /* ── New entry button ───────────────────────────────────────────── */
   .new-entry-btn {
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border: none;
-    border-radius: 7px;
+    border-radius: 8px;
     background: transparent;
     color: color-mix(in srgb, var(--foreground) 50%, transparent);
     cursor: pointer;
     transition: background 120ms ease, color 120ms ease;
+    flex-shrink: 0;
   }
 
   .new-entry-btn:hover {
@@ -438,7 +609,7 @@
   .new-entry-btn:active { transform: scale(0.93); }
   .new-entry-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Entry list scroll area */
+  /* ── Entry list ─────────────────────────────────────────────────── */
   .entry-list {
     flex: 1;
     overflow-y: auto;
@@ -448,7 +619,6 @@
   }
   .entry-list::-webkit-scrollbar { display: none; }
 
-  /* Error banner */
   .journal-error-banner {
     margin: 0 10px 8px;
     padding: 8px 12px;
@@ -468,7 +638,6 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Entry row */
   .entry-row {
     display: flex;
     align-items: flex-start;
@@ -482,10 +651,7 @@
 
   .entry-row:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
   .entry-row:hover .entry-row-delete { opacity: 1; }
-
-  .entry-row.active {
-    background: color-mix(in srgb, var(--foreground) 9%, transparent);
-  }
+  .entry-row.active { background: color-mix(in srgb, var(--foreground) 9%, transparent); }
 
   .entry-row-icon {
     flex-shrink: 0;
@@ -564,7 +730,6 @@
     background: color-mix(in srgb, #ef4444 10%, transparent);
   }
 
-  /* Loading / empty states */
   .sidebar-loading, .sidebar-empty {
     display: flex;
     flex-direction: column;
@@ -614,7 +779,6 @@
   .sidebar-empty-btn:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
   .sidebar-empty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* ── Sidebar footer: font preference button ─────────────────────── */
   .sidebar-footer {
     flex-shrink: 0;
     padding: 6px 10px;
@@ -642,10 +806,7 @@
     color: var(--foreground);
   }
 
-  /* ══════════════════════════════════════════════════════════════════════
-     EDITOR PANE
-  ══════════════════════════════════════════════════════════════════════ */
-
+  /* ── Editor pane ────────────────────────────────────────────────── */
   .journal-editor-pane {
     display: flex;
     flex-direction: column;
@@ -665,7 +826,6 @@
     font-size: 13px;
   }
 
-  /* Empty / no-selection state */
   .editor-empty {
     display: flex;
     flex-direction: column;
@@ -673,7 +833,6 @@
     justify-content: center;
     height: 100%;
     gap: 14px;
-    color: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
 
   .editor-empty-icon { opacity: 0.25; }

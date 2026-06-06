@@ -63,7 +63,6 @@
   "commonSaveGoal": "Save Goal",
   "commonWeeklyCheckin": "Weekly Check-in",
   "commonSearchPlaceholder": "Search...",
-
   "settingsTitle": "Settings",
   "settingsSectionAccount": "Account",
   "settingsSectionAppearance": "Appearance",
@@ -79,7 +78,6 @@
   "settingsSectionLanguage": "Language & Region",
   "settingsSectionUpdates": "Updates",
   "settingsSectionAbout": "About",
-
   "settingsLanguageTitle": "Language & Region",
   "settingsLanguageSubtitle": "Interface language and regional date, time, and number formats.",
   "settingsLanguageSectionInterface": "Interface Language",
@@ -96,7 +94,6 @@
   "settingsLanguageCurrentDate": "Current date",
   "settingsLanguageCurrentTime": "Current time",
   "settingsLanguagePreview": "Preview",
-
   "settingsAppearanceTitle": "Appearance",
   "settingsAppearanceSubtitle": "Theme, accent color, and layout density.",
   "settingsAppearanceModeLabel": "Color mode",
@@ -109,12 +106,10 @@
   "settingsAppearanceSidebarLabels": "Sidebar labels",
   "settingsAppearanceSidebarLabelsHint": "Show icon + label instead of icon only.",
   "settingsAppearanceFontScale": "Font scale",
-
   "settingsNotificationsTitle": "Notifications",
   "settingsNotificationsSubtitle": "Alert preferences and quiet hours.",
   "settingsNotificationsBackgroundAlerts": "Background alerts",
   "settingsNotificationsBackgroundAlertsHint": "Permit native notifications for scheduled work.",
-
   "settingsSystemTitle": "System & Startup",
   "settingsSystemSubtitle": "Launch behavior and window preferences.",
   "settingsSystemSidebarCollapsed": "Start with sidebar collapsed",
@@ -123,25 +118,21 @@
   "settingsSystemRestoreWindowHint": "Reopens the last valid window bounds.",
   "settingsSystemStartHidden": "Start hidden",
   "settingsSystemStartHiddenHint": "Useful when the shell is used as a background helper.",
-
   "settingsPrivacyTitle": "Privacy & Security",
   "settingsPrivacySubtitle": "Telemetry, crash reports, and session lock.",
   "settingsPrivacyTelemetry": "Telemetry",
   "settingsPrivacyCrashReports": "Crash reports",
   "settingsPrivacyCrashReportsHint": "Remote upload allowed",
   "settingsPrivacyLocalOnly": "Local files only",
-
   "settingsShortcutsTitle": "Keyboard Shortcuts",
   "settingsShortcutsSubtitle": "Customize global and per-module shortcuts.",
   "settingsShortcutsOpenSettings": "Open Settings",
   "settingsShortcutsToggleSidebar": "Toggle Sidebar",
   "settingsShortcutsToggleSettings": "⌘,",
   "settingsShortcutsToggleSidebarShortcut": "⌘B",
-
   "settingsAboutTitle": "About",
   "settingsAboutSubtitle": "App information and system details.",
   "settingsAboutTagline": "A personal productivity shell with 20+ mini-apps.",
-
   "settingsAccountTitle": "Account",
   "settingsAccountSubtitle": "Your profile, subscription, and connected devices.",
   "settingsAccountSubscription": "Subscription",
@@ -155,7 +146,6 @@
   "settingsAccountSignedOut": "Sign in to view account details.",
   "settingsAccountDeleteConfirm": "Type DELETE to confirm account deletion",
   "settingsAccountCurrent": "Current",
-
   "navCore": "Core",
   "navDashboard": "Dashboard",
   "navProjectView": "Project View",
@@ -170,59 +160,47 @@
   "navExpandSidebar": "Expand sidebar",
   "navCollapseSidebar": "Collapse sidebar",
   "navGoToDashboard": "Go to Bento dashboard",
-
   "stripeLight": "Light",
   "stripeDark": "Dark",
-
   "settingsTypographyTitle": "Typography",
   "settingsTypographySubtitle": "Font pairings and size scaling.",
   "settingsTypographyFontPairing": "Font pairing",
   "settingsTypographyPreview": "Typography preview — updates instantly.",
-
   "settingsModulesTitle": "Apps",
   "settingsModulesSubtitle": "Installed apps and app store.",
   "settingsModulesLoading": "Loading registry…",
   "settingsModulesOpen": "Open",
   "settingsModulesLaunch": "Launch",
   "settingsModulesLocked": "Locked",
-
   "settingsSyncTitle": "Sync & Storage",
   "settingsSyncSubtitle": "Cross-device sync and local data management.",
   "settingsSyncStatus": "Sync status",
   "settingsSyncSignedIn": "Signed in",
   "settingsSyncSignedOut": "Signed out",
   "settingsSyncLastSynced": "Last synced",
-
   "settingsAITitle": "AI & Intelligence",
   "settingsAISubtitle": "Provider configuration and model selection.",
   "settingsAIStreamingTransport": "Streaming transport",
   "settingsAINativeChannel": "Native Tauri channel.",
-
   "settingsA11yTitle": "Accessibility",
   "settingsA11ySubtitle": "Motion, contrast, and focus indicators.",
   "settingsA11yScreenReaderLabel": "Screen reader support",
   "settingsA11yScreenReaderValue": "Tested with VoiceOver & NVDA",
-
   "settingsUpdatesTitle": "Updates",
   "settingsUpdatesSubtitle": "Check for new versions and manage update preferences.",
   "settingsUpdatesCurrentVersion": "Current version",
-
   "settingsAppearanceRadiusNone": "None",
   "settingsAppearanceRadiusSm": "Sm",
   "settingsAppearanceRadiusMd": "Md",
   "settingsAppearanceRadiusLg": "Lg",
   "settingsAppearanceRadiusFull": "Full",
-
   "settingsAppearanceDensityCompact": "Compact",
   "settingsAppearanceDensityDefault": "Default",
   "settingsAppearanceDensityComfortable": "Comfortable",
-
   "settingsTypographyPairingPlayfulClassic": "Playful Classic",
   "settingsTypographyPairingEditorialFocus": "Editorial Focus",
   "settingsTypographyPairingBilingualModern": "Bilingual Modern",
-
   "navSectionCore": "Core",
-
   "day1": "Monday",
   "day2": "Tuesday",
   "day3": "Wednesday",
@@ -230,7 +208,6 @@
   "day5": "Friday",
   "day6": "Saturday",
   "day7": "Sunday",
-
   "shellSessionExpired": "Session expired",
   "shellSessionExpiredDesc": "Sign in again to continue.",
   "shellPlanRequired": "Plan required",
@@ -240,12 +217,10 @@
   "shellAppFailedToLoadDesc": "The selected Bento app could not be mounted.",
   "shellAppNotFound": "App not found",
   "shellAppNotFoundDesc": "The requested Bento mini-app is not registered in this shell.",
-
   "authWelcomeBack": "Welcome back to Bento",
   "authDesktopEntry": "Desktop auth entrypoint for returning creators and payment callbacks.",
   "authContinueToDesktop": "Continue to desktop",
   "authViewPlans": "View plans",
-
   "pricingDesktopBilling": "Desktop Billing",
   "pricingTitle": "Choose the desktop plan that matches how much of Bento you want to own.",
   "pricingSubtitle": "Core gets users in the door. Pro is the main subscription. Power unlocks the telemetry brain and everything around it.",
@@ -271,7 +246,6 @@
   "pricingWillSchedule": "Will be scheduled on confirm",
   "pricingFree": "Free",
   "pricingCancelsOn": "Cancels on {date}",
-
   "dashboardLoading": "Loading your dashboard…",
   "dashboardRetry": "Retry",
   "dashboardQuickAdd": "Quick Add",
@@ -287,14 +261,12 @@
   "dashboardFailedToLoad": "Failed to load dashboard data",
   "dashboardFailedToAdd": "Failed to add item",
   "dashboardFailedToOpen": "Failed to open module",
-
   "windowMinimize": "Minimize Bento",
   "windowRestore": "Restore Bento",
   "windowMaximize": "Maximize Bento",
   "windowClose": "Close Bento",
   "windowAuthControls": "Auth window controls",
   "windowWindowControls": "Window controls",
-
   "topbarBackToSettings": "Back to Settings",
   "topbarToggleTheme": "Toggle theme",
   "topbarOpenAlerts": "Open alerts",
@@ -302,13 +274,10 @@
   "topbarOpenedSettings": "Opened Settings for alerts and telemetry.",
   "topbarJumpedToAlerts": "Jumped to alerts and telemetry.",
   "topbarThemeToggleFailed": "Theme toggle failed.",
-
   "switcherOpenModules": "Open Bento apps",
   "switcherApps": "Apps",
   "switcherModulesLabel": "Bento apps",
-  "switcherComingSoon": "Coming soon",
   "switcherSwitchFailed": "App switch failed.",
-
   "updateTitle": "Update available",
   "updateLater": "Later",
   "updateInstallRestart": "Install & Restart",
@@ -318,16 +287,12 @@
   "updateDismiss": "Dismiss update notification",
   "updateNotificationTitle": "Bento update available",
   "updateVersionReady": "Version {version} is ready to install.",
-
   "moduleBreathingTitle": "Breathing",
   "moduleBreathingDesc": "Guided breathing exercises for focus and calm.",
-
   "moduleBudgetTitle": "Budget",
   "moduleBudgetLogTransaction": "Log Transaction",
-
   "moduleClipboardTitle": "Clipboard",
   "moduleClipboardDesc": "Clipboard history, pinned and searchable.",
-
   "moduleCountdownTitle": "Countdown",
   "moduleCountdownDesc": "Count down to what matters.",
   "moduleCountdownDesc2": "Track the moments, milestones, and deadlines you care about.",
@@ -341,7 +306,6 @@
   "moduleCountdownColor": "Color",
   "moduleCountdownColorPicker": "Pick a countdown color",
   "moduleCountdownCreateEvent": "Create event",
-
   "moduleFlashcardsTitle": "Flashcards",
   "moduleFlashcardsDesc": "Recall cards that fit Bento, not school.",
   "moduleFlashcardsSubhead": "Keep the right cue in reach.",
@@ -480,7 +444,6 @@
   "moduleFlashcardsRestore": "Restore",
   "moduleFlashcardsNoArchive": "No archived cards yet.",
   "moduleFlashcardsNoArchiveDesc": "Archive a cue from any deck if you want to get it out of the active queue.",
-
   "moduleFocusTitle": "Focus",
   "moduleFocusDesc": "Keep the timer-first feel, then add sessions, sounds, blocking, history, and review inside one viewport.",
   "moduleFocusSounds": "Sounds",
@@ -500,23 +463,17 @@
   "moduleFocusBackgroundSounds": "Background Sounds",
   "moduleFocusBlockingRules": "Blocking Rules",
   "moduleFocusWeeklyHistory": "Weekly History",
-  "moduleFocusQuickTimer": "Quick Timer",
-  "moduleFocusQuickTimerDesc": "A lightweight timer for immediate focus sessions.",
-  "moduleFocusQuickTimerInfo": "Start a session instantly without leaving the Focus viewport.",
   "moduleFocusReview": "Review",
-
   "moduleGoalsTitle": "Your Goals",
   "moduleGoalsWeeklyCheckin": "Time for your weekly check-in",
   "moduleGoalsCreateNew": "Create New Goal",
   "moduleGoalsStartCheckin": "Start Check-in",
   "moduleGoalsPlaceholderName": "e.g. Learn Spanish",
-
   "moduleGroceryTitle": "Grocery",
   "moduleGroceryDesc": "Shop smarter, waste less, never run out of what matters.",
   "moduleGroceryItemPlaceholder": "Item name...",
   "moduleGroceryQtyPlaceholder": "Qty",
   "moduleGrocerySearchPlaceholder": "Search list...",
-
   "moduleHabitsTitle": "Habits",
   "moduleHabitsToday": "Your habits for today.",
   "moduleHabitsChain": "Don't break the chain.",
@@ -530,7 +487,6 @@
   "moduleHabitsPlaceholderWhy": "The identity reason...",
   "moduleHabitsPlaceholderUnitMin": "min",
   "moduleHabitsPlaceholderUnitGlasses": "glasses",
-
   "moduleHealthTitle": "Health",
   "moduleHealthDesc": "Track your health metrics, medications, and patterns.",
   "moduleHealthSectionMornings": "Mornings",
@@ -722,7 +678,6 @@
   "moduleHealthToday": "Today",
   "moduleHealthWeek": "Week",
   "moduleHealthMonth": "Month",
-
   "moduleTelemetryErrorLoad": "Failed to load telemetry data",
   "moduleTelemetryLoading": "Loading telemetry data...",
   "moduleTelemetrySystemStatus": "System Status",
@@ -743,7 +698,6 @@
   "moduleTelemetryExportJSON": "Export JSON",
   "moduleTelemetryExportCSV": "Export CSV",
   "moduleTelemetryExportPDF": "Export PDF",
-
   "moduleWaterErrorLoad": "Failed to load water data",
   "moduleWaterGoal": "Goal",
   "moduleWaterCupsDay": "cups/day",
@@ -757,14 +711,12 @@
   "moduleWaterTodayEntries": "Today's entries",
   "moduleWaterNoEntries": "No water logged today. Tap a button above!",
   "moduleWaterNoHistory": "No history yet.",
-
   "modulePasswordsErrorLoad": "Failed to load vault",
   "modulePasswordsTotal": "{n} passwords saved",
   "modulePasswordsAddFirst": "Add Your First Password",
   "modulePasswordsUpdate": "Update Password",
   "modulePasswordsSave": "Save Password",
   "modulePasswordsNoResults": "No results for \"{q}\"",
-
   "moduleVoiceMemosErrorLoad": "Failed to load memos",
   "moduleVoiceMemosMicDenied": "Microphone access denied. Please allow microphone permissions.",
   "moduleVoiceMemosMemo": "Memo",
@@ -772,11 +724,9 @@
   "moduleVoiceMemosDescLong": "Capture ideas and reminders with your voice. All recordings stay local.",
   "moduleVoiceMemosRecord": "Record",
   "moduleVoiceMemosStop": "Stop",
-
   "moduleTimeToday": "Today",
   "moduleTimeAddProject": "Add Project",
   "moduleTimeTotal": "Total",
-
   "moduleJournalTitle": "Journal",
   "moduleJournalTodayEntry": "Today's Entry",
   "moduleJournalDayOfYear": "Day",
@@ -860,7 +810,6 @@
   "moduleJournalGalleryCaptionPlaceholder": "Add a caption…",
   "moduleJournalGalleryImages": "images",
   "moduleJournalGalleryLocalOnly": "All images stored locally · never uploaded",
-
   "moduleJournalExportYear": "Export this year's journal",
   "moduleJournalExport": "Export",
   "moduleJournalExportDesc": "Your data, your way",
@@ -956,7 +905,6 @@
   "moduleJournalWritePlaceholder": "Write what's on your mind…",
   "moduleJournalWords": "words",
   "moduleJournalYearProgress": "Year progress",
-
   "moduleMoodTitle": "Mood studio",
   "moduleMoodSectionCheckin": "Check-in",
   "moduleMoodSectionCalendar": "Calendar",
@@ -964,20 +912,17 @@
   "moduleMoodSectionPatterns": "Patterns",
   "moduleMoodSectionTherapist": "Therapist",
   "moduleMoodSectionExport": "Export",
-
   "moduleMoodMoodDrained": "Drained",
   "moduleMoodMoodRestless": "Restless",
   "moduleMoodMoodSteady": "Steady",
   "moduleMoodMoodBright": "Bright",
   "moduleMoodMoodEnergized": "Energized",
-
   "moduleMoodHeadingCheckin": "How are you really feeling right now?",
   "moduleMoodHeadingCalendar": "Every day of the month, coloured by how it felt.",
   "moduleMoodHeadingActivities": "See what lights you up — and what quietly drains you.",
   "moduleMoodHeadingPatterns": "Your mood, decoded into patterns worth knowing.",
   "moduleMoodHeadingTherapist": "Walk into your next session with something real to say.",
   "moduleMoodHeadingExport": "Take your emotional data wherever it needs to go.",
-
   "moduleMoodDescCheckin": "One tap, a note, a feeling. No pressure — just an honest snapshot of right now.",
   "moduleMoodDescCalendar": "Scroll back through the month and spot the days that stood out.",
   "moduleMoodDescActivities": "Tag what you were doing and watch the correlations emerge over time.",
@@ -990,10 +935,8 @@
   "moduleMoodExportPDFDetail": "A polished report you can print or share.",
   "moduleMoodExportRecapTitle": "Weekly recap",
   "moduleMoodExportRecapDetail": "A concise summary of the week’s emotional patterns.",
-
   "moduleMoodViewMonth": "View month",
   "moduleMoodAIRecap": "AI recap",
-
   "moduleMoodProfileTitle": "Your mood profile",
   "moduleMoodProfileDesc": "Live stats from your database",
   "moduleMoodStreak": "streak",
@@ -1006,7 +949,6 @@
   "moduleMoodTodayCheckins": "Today's check-ins",
   "moduleMoodTodayCheckinsDesc": "{count} saved so far today",
   "moduleMoodNoCheckinsYet": "None yet — save your first below.",
-
   "moduleMoodFeelingTitle": "How are you feeling right now?",
   "moduleMoodFeelingDesc": "Quick emotional capture with enough detail to be useful later.",
   "moduleMoodNotePlaceholder": "What influenced this feeling?",
@@ -1014,22 +956,18 @@
   "moduleMoodSaving": "Saving…",
   "moduleMoodSaved": "Saved!",
   "moduleMoodSaveCheckin": "Save check-in",
-
   "moduleMoodTimelineTitle": "Today's timeline",
   "moduleMoodTimelineDesc": "Recent emotional snapshots you can revisit or edit.",
   "moduleMoodNoTimelineYet": "No check-ins yet today. Fill in the form and save.",
   "moduleMoodDeleteConfirm": "Delete this check-in?",
-
   "moduleMoodCalendarTitle": "Calendar view",
   "moduleMoodCalendarDesc": "Month-at-a-glance logging so mood capture does not stay locked to one day.",
-
   "moduleMoodActivityTitle": "Activity tags",
   "moduleMoodActivityDesc": "Tag the patterns that shape mood without needing a second app.",
   "moduleMoodActivityRemove": "Remove",
   "moduleMoodActivityPlaceholder": "Add custom activity…",
   "moduleMoodAdding": "Adding…",
   "moduleMoodAdd": "Add",
-
   "moduleMoodContextTitle": "Context summary",
   "moduleMoodContextDesc": "Selected activities connected to the strongest emotional shifts.",
   "moduleMoodAvgIntensity": "Avg intensity {avg}% across {count} check-in{s}",
@@ -1042,14 +980,12 @@
   "moduleMoodSocialConnectionsDesc": "Compare mood with time spent around people versus alone.",
   "moduleMoodWorkStress": "Work stress",
   "moduleMoodWorkStressDesc": "Spot how meetings, deadlines, and workload shape your day.",
-
   "moduleMoodPatternReview": "Pattern review",
   "moduleMoodPatternReviewDesc": "Correlations surfaced from repeated check-ins, not guesswork.",
   "moduleMoodNoPatternsYet": "Log at least 3 check-ins with activity tags to surface patterns.",
   "moduleMoodAINote": "AI pattern note",
   "moduleMoodAINoteDesc": "A plain-language interpretation before you export or share.",
   "moduleMoodAINoteText": "Your strongest mood days cluster around movement, quiet mornings, and fewer than three meetings. The biggest dips happen after long meeting blocks without a reset window.",
-
   "moduleMoodTherapyTitle": "Therapy prep",
   "moduleMoodTherapyDesc": "Gather the important emotional signals before your next session.",
   "moduleMoodTalkPointsTitle": "Suggested talking points",
@@ -1060,11 +996,9 @@
   "moduleMoodTalkWeekendResetDesc": "Understand which rituals are actually producing the Sunday rebound.",
   "moduleMoodTalkSleepPatience": "Sleep and patience",
   "moduleMoodTalkSleepPatienceDesc": "Notice how shorter sleep windows correlate with irritability before lunch.",
-
   "moduleMoodExportTitle": "Export",
   "moduleMoodExportDesc": "Move your data out cleanly without losing the context behind it.",
   "moduleMoodExportBtn": "Export",
-
   "moduleNotesTitle": "Notes",
   "moduleNotesDesc": "Capture everything with the rich block editor",
   "moduleNotesNewNote": "New Note",
@@ -1113,7 +1047,6 @@
   "moduleNotesCmdBullet": "Bullet list",
   "moduleNotesCmdQuote": "Quote",
   "moduleNotesCmdDivider": "Divider",
-
   "moduleNutritionTitle": "Nutrition",
   "moduleNutritionDesc": "Hydration remains the anchor, with meals, macros, reminders, and exports added around it.",
   "moduleNutritionSubtitle": "The module keeps its crisp ring-first layout and expands into shell-driven nutrition sections.",
@@ -1149,7 +1082,6 @@
   "moduleNutritionCustom": "Custom",
   "moduleNutritionMeal": "Meal",
   "moduleNutritionExport": "Export",
-
   "modulePasswordsTitle": "Passwords",
   "modulePasswordsDesc": "Secure credential vault.",
   "modulePasswordsRetry": "Retry",
@@ -1185,7 +1117,6 @@
   "modulePasswordsStrengthFair": "Fair",
   "modulePasswordsStrengthGood": "Good",
   "modulePasswordsStrengthStrong": "Strong",
-
   "moduleReadingTitle": "Reading",
   "moduleReadingDesc": "Track your reading journey",
   "moduleReadingPageOf": "Page {current} of {total}",
@@ -1206,7 +1137,6 @@
   "moduleReadingNavDiscover": "Discover",
   "moduleReadingNavStats": "Stats",
   "moduleReadingCoverAlt": "Cover for {title}",
-
   "moduleRecipesTitle": "Recipes",
   "moduleRecipesDesc": "Discover, save, and cook your favorite recipes.",
   "moduleRecipesSearchPlaceholder": "Search recipes...",
@@ -1422,7 +1352,6 @@
   "moduleRecipesHeard": "Heard: \"{cmd}\"",
   "moduleRecipesVoiceNotSupported": "Voice not supported in this browser",
   "moduleRecipesMicError": "Mic error — check permissions",
-
   "moduleSleepTitle": "Sleep",
   "moduleSleepDesc": "Sleep score, routine, and alarm planning stay inside one calm desktop surface.",
   "moduleSleepSomna": "Somna",
@@ -1506,15 +1435,12 @@
   "moduleSleepSectionTrends": "Trends",
   "moduleSleepSectionAlarm": "Alarm",
   "moduleSleepSectionExport": "Export",
-
   "moduleTasksAdd": "Add task",
   "moduleTasksCancel": "Cancel",
   "moduleTasksPlaceholderTitle": "Task title…",
   "moduleTasksPlaceholderTime": "3:00 PM",
   "moduleTasksPlaceholderNotes": "Notes (optional)…",
-
   "moduleTelemetryTitle": "System Monitor",
-
   "moduleTimeTitle": "Time Tracker",
   "moduleTimeDesc": "Time tracking and analytics.",
   "moduleTimeThisWeek": "This Week",
@@ -1553,7 +1479,6 @@
   "moduleTimeHours": "h",
   "moduleTimeMinutes": "m",
   "moduleTimeSeconds": "s",
-
   "moduleVoiceMemosTitle": "Voice Memos",
   "moduleVoiceMemosDesc": "Record, play back, and keep voice notes.",
   "moduleVoiceMemosPlaceholder": "Add a title (optional)",
@@ -1575,7 +1500,6 @@
   "moduleVoiceMemosMemos": "memos",
   "moduleVoiceMemosSearchPlaceholder": "Search memos...",
   "moduleVoiceMemosNoResults": "No matching memos",
-
   "moduleTelemetryTitle": "System Monitor",
   "moduleTelemetryDesc": "System monitoring and telemetry data.",
   "moduleTelemetrySearchPlaceholder": "Search logs...",
@@ -1608,7 +1532,6 @@
   "moduleTelemetryLevel": "Level",
   "moduleTelemetryMessage": "Message",
   "moduleTelemetrySource": "Source",
-
   "moduleTasksTitle": "Tasks",
   "moduleTasksDesc": "Manage your tasks and stay on top of your day.",
   "moduleTasksMyDay": "My Day",
@@ -1693,7 +1616,6 @@
   "moduleTasksSleepProgress": "{pct}% of {goal}hr goal",
   "moduleTasksDeepFocus": "Deep focus today",
   "moduleTasksTodaySection": "Today",
-
   "moduleWaterTitle": "Water",
   "moduleWaterDesc": "Track your daily water intake and stay hydrated.",
   "moduleWaterAddEntry": "Add entry",
@@ -1738,7 +1660,6 @@
   "moduleWaterDeleteEntry": "Delete entry",
   "moduleWaterDeleteConfirm": "Delete this entry?",
   "moduleWaterEntryDeleted": "Entry deleted",
-
   "moduleGrocerySubtitle": "Smart lists, pantry tracking, meal planning, and budget control — all in one place.",
   "moduleGroceryThisWeek": "This Week",
   "moduleGroceryShoppingProgress": "Shopping progress",

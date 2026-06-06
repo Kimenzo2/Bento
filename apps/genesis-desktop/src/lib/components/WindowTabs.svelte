@@ -11,7 +11,7 @@
     switchTab,
     reorderTabs,
   } from "$lib/desktop/tab-session.svelte";
-  import { getModuleCatalogEntry, moduleCatalog } from "$lib/data/module-catalog";
+  import { getModuleCatalogEntry, hiddenModuleIds, moduleCatalog } from "$lib/data/module-catalog";
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
   import { activeModule } from "$lib/desktop/modules";
   import { tooltip } from "$lib/components/Tooltip.svelte";
@@ -49,7 +49,7 @@
   const openModuleIds = $derived(new Set(tabs.map((t) => t.moduleId)));
 
   const availableModules = $derived(
-    moduleCatalog.filter((m) => m.id !== "dashboard" && !openModuleIds.has(m.id)),
+    moduleCatalog.filter((m) => m.id !== "dashboard" && !openModuleIds.has(m.id) && !hiddenModuleIds.has(m.id)),
   );
 
   // ── Marker & Background Positioning (Anytype's exact logic) ─────────

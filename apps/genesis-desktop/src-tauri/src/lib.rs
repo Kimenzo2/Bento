@@ -3,12 +3,15 @@ pub mod audio;
 pub mod auth;
 pub mod budget;
 pub mod byok;
+pub mod clipboard;
 pub mod cloud_backup;
 pub mod commands;
 pub mod crypto;
 pub mod crypto_commands;
 pub mod db;
 pub mod flashcards;
+pub mod goals;
+pub mod habits;
 pub mod health;
 pub mod local_store;
 pub mod mcp;
@@ -51,7 +54,7 @@ use crate::commands::{
     finish_background_task, get_dashboard_data, get_feedback_by_id, get_feedback_realtime_config,
     get_focus_dashboard, get_lifecycle_state, get_my_feedback, load_desktop_settings,
     pick_export_directory, pick_import_file, pick_transcription_model, quit_app,
-    record_focus_session, restore_desktop_settings_backup, restore_window, save_desktop_settings,
+    record_focus_session, export_focus_sessions, restore_desktop_settings_backup, restore_window, save_desktop_settings,
     save_export_manifest, send_mcp_request, start_mcp_sidecar, submit_feedback, write_debug_log,
 };
 use crate::crypto::CryptoService;
@@ -212,6 +215,7 @@ fn queue_deep_link(app: &AppHandle, pending: &PendingDeepLink, url: String) {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[allow(dependency_on_unit_never_type_fallback)]
 pub fn run() {
     configure_webview2_user_data_folder();
     load_desktop_env();
@@ -339,8 +343,20 @@ pub fn run() {
 
         spawn_cloud_backup_worker(app.handle().clone());
 
+        // Spawn last-active timestamp tracker (updates every 60s)
+        crate::sleep::spawn_last_active_tracker();
+
         // Spawn OS sleep detection monitor
         crate::sleep::spawn_sleep_monitor(app.handle().clone());
+
+        // Ensure clipboard database tables exist before starting the monitor
+        let clipboard_pool = app.state::<BentoAppState>().inner().db();
+        if let Err(e) = tauri::async_runtime::block_on(crate::clipboard::ensure_clipboard_tables(&clipboard_pool)) {
+            eprintln!("[clipboard] failed to ensure clipboard tables: {e}");
+        }
+
+        // Spawn clipboard background monitor (poller + writer tasks)
+        crate::clipboard::spawn_clipboard_monitor(app.handle().clone());
 
         Ok(())
     });
@@ -474,6 +490,21 @@ pub fn run() {
             crate::byok::commands::byok_update_settings,
             crate::byok::commands::byok_toggle_enabled,
             crate::byok::commands::byok_dismiss_onboarding,
+            // Clipboard Manager
+            crate::clipboard::clipboard_list,
+            crate::clipboard::clipboard_get,
+            crate::clipboard::clipboard_save,
+            crate::clipboard::clipboard_toggle_pin,
+            crate::clipboard::clipboard_toggle_favorite,
+            crate::clipboard::clipboard_delete,
+            crate::clipboard::clipboard_delete_batch,
+            crate::clipboard::clipboard_clear_unpinned,
+            crate::clipboard::clipboard_clear_all,
+            crate::clipboard::clipboard_search,
+            crate::clipboard::clipboard_count,
+            crate::clipboard::clipboard_expire_sensitive,
+            crate::clipboard::clipboard_gc,
+            crate::clipboard::clipboard_get_image_data,
             // Budget — Intelligent Budget Planner
             crate::budget::budget_list_categories,
             crate::budget::budget_suggest_limits,
@@ -612,6 +643,37 @@ pub fn run() {
             crate::sleep::sleep_alarm_save,
             crate::sleep::sleep_alarm_delete,
             crate::sleep::sleep_alarm_toggle,
+            // Countdown — events, milestones, birthdays
+            crate::commands::countdown::countdown_list_events,
+            crate::commands::countdown::countdown_save_event,
+            crate::commands::countdown::countdown_delete_event,
+            crate::commands::countdown::countdown_list_milestones,
+            crate::commands::countdown::countdown_save_milestone,
+            crate::commands::countdown::countdown_update_milestone_progress,
+            crate::commands::countdown::countdown_delete_milestone,
+            crate::commands::countdown::countdown_list_birthdays,
+            crate::commands::countdown::countdown_save_birthday,
+            crate::commands::countdown::countdown_delete_birthday,
+            // Nutrition — hydration, meals, macros, goals, reminders
+            crate::commands::nutrition::nutrition_log_water,
+            crate::commands::nutrition::nutrition_get_today_water,
+            crate::commands::nutrition::nutrition_reset_water,
+            crate::commands::nutrition::nutrition_get_weekly_water,
+            crate::commands::nutrition::nutrition_log_meal,
+            crate::commands::nutrition::nutrition_get_today_meals,
+            crate::commands::nutrition::nutrition_get_meals_for_date,
+            crate::commands::nutrition::nutrition_delete_meal,
+            crate::commands::nutrition::nutrition_add_food_to_meal,
+            crate::commands::nutrition::nutrition_get_goals,
+            crate::commands::nutrition::nutrition_update_goals,
+            crate::commands::nutrition::nutrition_get_today_summary,
+            crate::commands::nutrition::nutrition_get_macro_totals,
+            crate::commands::nutrition::nutrition_get_reminders,
+            crate::commands::nutrition::nutrition_save_reminder,
+            crate::commands::nutrition::nutrition_delete_reminder,
+            crate::commands::nutrition::nutrition_toggle_reminder,
+            crate::commands::nutrition::nutrition_get_hydration_stats,
+            crate::commands::nutrition::nutrition_export_data,
             // Flashcards (Bento Recall)
             crate::flashcards::flashcards_list,
             crate::flashcards::flashcards_deck_create,
@@ -623,6 +685,28 @@ pub fn run() {
             crate::flashcards::flashcards_card_restore,
             crate::flashcards::flashcards_search,
             crate::flashcards::flashcards_review_queue,
+            // Habits — Habit Tracker
+            crate::habits::habits_list,
+            crate::habits::habits_save,
+            crate::habits::habits_delete,
+            crate::habits::habits_toggle_complete,
+            crate::habits::habits_increment,
+            crate::habits::habits_get_stats,
+            crate::habits::habits_export_csv,
+            // Goals — Goal Tracker
+            crate::goals::goals_list,
+            crate::goals::goals_save,
+            crate::goals::goals_delete,
+            crate::goals::goals_progress_update,
+            crate::goals::goal_subtasks_list,
+            crate::goals::goal_subtask_save,
+            crate::goals::goal_subtask_toggle,
+            crate::goals::goal_add_review,
+            crate::goals::goal_reviews_list,
+            crate::goals::goals_toggle_big_3,
+            crate::goals::focus_areas_list,
+            crate::goals::focus_area_save,
+            crate::goals::focus_area_delete,
             // TheMealDB Discover & Import
             crate::meal_db::discover_search,
             crate::meal_db::discover_random,
@@ -668,6 +752,7 @@ pub fn run() {
             crate::commands::tasks::update_subtask_status,
             crate::commands::tasks::reorder_tasks,
             record_focus_session,
+            export_focus_sessions,
             // Passwords Vault (E2EE SQLCipher)
             crate::commands::passwords::passwords_list,
             crate::commands::passwords::passwords_get,

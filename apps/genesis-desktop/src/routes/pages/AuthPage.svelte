@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "@mateothegreat/svelte5-router";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
+  import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
@@ -15,7 +15,7 @@
     <CardHeader class="gap-4">
       <div class="flex items-center gap-3">
         <div class="desktop-gate__mark">
-          <SparklesIcon />
+          <AuthLogo size={36} />
         </div>
         <div>
           <CardTitle class="font-[var(--font-heading)] text-3xl text-[var(--foreground)]">
@@ -79,13 +79,6 @@
     place-items: center;
     width: 2.75rem;
     height: 2.75rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--foreground);
-  }
-
-  .desktop-gate__mark :global(svg) {
-    width: 1.1rem;
-    height: 1.1rem;
+    flex-shrink: 0;
   }
 </style>

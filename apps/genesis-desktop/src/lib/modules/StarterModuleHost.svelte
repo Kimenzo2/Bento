@@ -4,6 +4,7 @@
   import { invoke, isTauri } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import LaunchReadyReporter from "$lib/components/LaunchReadyReporter.svelte";
+  import { hiddenModuleIds } from "$lib/data/module-catalog";
   import { canAccessModuleByPlan } from "$lib/desktop/billing-access";
   import { isStarterModuleId, loadStarterModule } from "$lib/modules/starter-module-registry";
   import { ensureBillingProfile } from "$lib/stores/billing.store";
@@ -26,6 +27,11 @@
 
     if (!isStarterModuleId(appId)) {
       accessDenied = true;
+      return;
+    }
+
+    if (hiddenModuleIds.has(appId)) {
+      if (browser) await goto("/");
       return;
     }
 
@@ -94,10 +100,14 @@
   {:then module}
     <module.default />
     <LaunchReadyReporter moduleId={appId} />
-  {:catch}
+  {:catch error}
+    {console.error(`[StarterModuleHost] Failed to mount app "${appId}":`, error)}
     <section class="starter-app-not-found surface-card">
       <h2>{_t('shellAppFailedToLoad')}</h2>
       <p>{_t('shellAppFailedToLoadDesc')}</p>
+      {#if error instanceof Error}
+        <p class="text-xs text-[var(--muted)] mt-2 font-mono">{error.message}</p>
+      {/if}
     </section>
     <LaunchReadyReporter moduleId={appId} />
   {/await}

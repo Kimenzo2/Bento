@@ -12,9 +12,7 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
@@ -202,28 +200,13 @@ pub async fn get_last_night(
     Ok(row.map(session_from_row))
 }
 
-/// Get the current sleep goal (creates default if none exists).
+/// Get the current sleep goal (returns default if none exists — never fails).
 #[tauri::command]
 pub async fn get_sleep_goal(
     state: State<'_, BentoAppState>,
 ) -> Result<SleepGoal, String> {
     ensure_sleep_tables(&state.db()).await?;
-    ensure_default_goal(&state.db()).await?;
-
-    let row = sqlx::query(
-        "SELECT target_bedtime, target_waketime, target_duration_min, updated_at
-         FROM sleep_goals WHERE id = 'default'",
-    )
-    .fetch_one(&state.db())
-    .await
-    .map_err(|e| e.to_string())?;
-
-    Ok(SleepGoal {
-        target_bedtime: row.get("target_bedtime"),
-        target_waketime: row.get("target_waketime"),
-        target_duration_min: row.get::<i64, _>("target_duration_min") as i32,
-        updated_at: row.get("updated_at"),
-    })
+    Ok(get_sleep_goal_inner(&state.db()).await)
 }
 
 /// Update the sleep goal.
@@ -274,31 +257,29 @@ pub async fn add_manual_sleep_session(
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
 
-    // Parse local time strings to UTC ms for the given date
-    // Use space separator to match parse_naive_datetime format "%Y-%m-%d %H:%M:%S"
+    // Parse local time strings to UTC ms for the given date.
+    // Sleep: the given date at sleep_time. If it wraps past midnight, we detect
+    // that by checking whether wake_time < sleep_time (relative to same date).
     let sleep_dt = format!("{} {}:00", input.date, input.sleep_time);
-    let wake_dt = format!("{} {}:00", input.date, input.wake_time);
+    let sleep_ms = time::parse_naive_datetime(&sleep_dt).unwrap_or(now);
 
-    let sleep_ms = time::parse_naive_datetime(&sleep_dt)
-        .or_else(|| {
-            // Try next day for wake time (went to bed before midnight but after)
-            let next = add_day(&input.date);
-            let next_dt = format!("{}T{}:00", next, input.wake_time);
-            time::parse_naive_datetime(&next_dt)
-        })
-        .unwrap_or(now);
-
-    let wake_ms = time::parse_naive_datetime(&wake_dt)
-        .or_else(|| {
-            let next = add_day(&input.date);
-            let next_dt = format!("{}T{}:00", next, input.wake_time);
-            time::parse_naive_datetime(&next_dt)
+    // Wake: same date first, then advance by a day if wake comes before sleep
+    // (i.e. user went to bed at 23:00 and woke at 07:00).
+    let wake_raw = format!("{} {}:00", input.date, input.wake_time);
+    let wake_ms = time::parse_naive_datetime(&wake_raw)
+        .map(|w| {
+            if w <= sleep_ms {
+                // Wake time is on the next day
+                w + 86_400_000
+            } else {
+                w
+            }
         })
         .unwrap_or(now);
 
     let duration_min = ((wake_ms - sleep_ms) / 60_000) as i32;
     let capped = duration_min.clamp(20, 720);
-    let quality = compute_quality(capped, &state.db()).await;
+    let quality = compute_quality_for_session(capped, sleep_ms, &state.db()).await;
 
     sqlx::query(
         "INSERT INTO sleep_sessions (id, date, sleep_onset_ts, wake_ts, last_active_ts, duration_min, quality_score, notes, source, confirmation_pending, created_at)
@@ -384,7 +365,7 @@ pub async fn get_sleep_stats(
     ensure_sleep_tables(&state.db()).await?;
     let n = days.unwrap_or(30).max(1).min(365);
 
-    let sessions = sqlx::query(
+    let rows = sqlx::query(
         "SELECT id, date, sleep_onset_ts, wake_ts, last_active_ts, duration_min, quality_score, notes, source, confirmation_pending, created_at
          FROM sleep_sessions WHERE duration_min >= 20 AND wake_ts > 0 ORDER BY date DESC LIMIT ?",
     )
@@ -393,7 +374,7 @@ pub async fn get_sleep_stats(
     .await
     .map_err(|e| e.to_string())?;
 
-    let sessions: Vec<SleepSession> = sessions.into_iter().map(session_from_row).collect();
+    let sessions: Vec<SleepSession> = rows.into_iter().map(session_from_row).collect();
     let count = sessions.len() as i32;
 
     if count == 0 {
@@ -459,7 +440,6 @@ pub async fn get_sleep_stats(
             run = 0;
         }
     }
-    let current = run; // most recent streak
 
     // Weekday vs weekend averages
     let mut wday_sum = 0.0_f64;
@@ -488,7 +468,7 @@ pub async fn get_sleep_stats(
         consistency_score: (consistency * 10.0).round() / 10.0,
         sleep_debt_min: debt,
         longest_streak_days: longest,
-        current_streak_days: current,
+        current_streak_days: run,
         weekday_avg_min: (wday_avg * 10.0).round() / 10.0,
         weekend_avg_min: (wend_avg * 10.0).round() / 10.0,
         social_jet_lag_min: (jetlag * 10.0).round() / 10.0,
@@ -497,33 +477,45 @@ pub async fn get_sleep_stats(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// LAST ACTIVITY TRACKING (background thread)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Global: most recent wall-clock timestamp (unix ms) when user was active.
+/// Updated every 60s by the tracker thread. Read by the sleep monitor
+/// to estimate how long before sleep the user was last active.
+pub static LAST_ACTIVE_TS: AtomicU64 = AtomicU64::new(0);
+
+/// Spawn a background thread that writes the current timestamp to
+/// `LAST_ACTIVE_TS` every 60 seconds. The sleep monitor reads this
+/// value when recording an auto-detected session to populate the
+/// `last_active_ts` field.
+pub fn spawn_last_active_tracker() {
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(60));
+            // Use a coarse timestamp (unix seconds * 1000) to stay in u64 range
+            let now_ms = crate::util::time::now_ms();
+            if now_ms > 0 {
+                LAST_ACTIVE_TS.store(now_ms as u64, Ordering::Relaxed);
+            }
+        }
+    });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // OS SLEEP DETECTION (background thread)
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// Global shared: timestamp of last user activity (updated every 60s)
-pub static LAST_ACTIVE_TS: AtomicU64 = AtomicU64::new(0);
-
-/// Spawn the background thread that:
-/// 1. Updates LAST_ACTIVE_TS every 60 seconds
-/// 2. Monitors system uptime to detect sleep/wake cycles
-/// 3. Records auto-detected sessions
+/// Spawn a background thread that polls system uptime every 30s.
+/// When uptime jumps by >120s, the system was asleep — we estimate
+/// the sleep onset time and record an auto-detected session.
 pub fn spawn_sleep_monitor(app: AppHandle) {
     std::thread::spawn(move || {
         let mut system = sysinfo::System::new();
         let mut last_uptime: u64 = 0;
-        let mut sleep_onset: Option<i64> = None;
 
         loop {
             std::thread::sleep(std::time::Duration::from_secs(30));
-
-            // Update last active timestamp
-            LAST_ACTIVE_TS.store(
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0),
-                Ordering::Relaxed,
-            );
 
             system.refresh_cpu_all();
             let uptime = sysinfo::System::uptime();
@@ -532,19 +524,15 @@ pub fn spawn_sleep_monitor(app: AppHandle) {
                 let elapsed = uptime as i64 - last_uptime as i64;
 
                 if elapsed > 120 {
-                    // System was asleep (uptime jumped by >2min)
+                    // System was asleep (uptime jumped by >2min).
+                    // Estimate sleep onset by working backwards from now.
                     let now_ms = time::now_ms();
-                    let _sleep_start = now_ms - (elapsed * 1000) as i64;
+                    let sleep_onset_estimate_ms = now_ms - (elapsed * 1000) as i64;
 
-                    if let Some(onset) = sleep_onset {
-                        // Complete the pending session
-                        let app_clone = app.clone();
-                        let handle = app_clone;
-                        tauri::async_runtime::spawn(async move {
-                            record_auto_session(&handle, onset, now_ms).await;
-                        });
-                        sleep_onset = None;
-                    }
+                    let app_clone = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        record_auto_session(&app_clone, sleep_onset_estimate_ms, now_ms).await;
+                    });
                 }
             }
 
@@ -554,8 +542,7 @@ pub fn spawn_sleep_monitor(app: AppHandle) {
 }
 
 async fn record_auto_session(app: &AppHandle, onset_ms: i64, wake_ms: i64) {
-    let state = app.state::<BentoAppState>();
-    let pool = state.db();
+    let pool = app.state::<BentoAppState>().db();
 
     let _ = ensure_sleep_tables(&pool).await;
 
@@ -566,11 +553,12 @@ async fn record_auto_session(app: &AppHandle, onset_ms: i64, wake_ms: i64) {
     let capped = duration_min.min(720);
 
     let date = time::date_key(onset_ms);
-    let last_active = Some(LAST_ACTIVE_TS.load(Ordering::Relaxed) as i64);
-    let quality = compute_quality(capped, &pool).await;
+    let quality = compute_quality_for_session(capped, onset_ms, &pool).await;
 
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
+    let last_active = LAST_ACTIVE_TS.load(Ordering::Relaxed) as i64;
+    let last_active_opt: Option<i64> = if last_active > 0 { Some(last_active) } else { None };
 
     let _ = sqlx::query(
         "INSERT INTO sleep_sessions (id, date, sleep_onset_ts, wake_ts, last_active_ts, duration_min, quality_score, source, confirmation_pending, created_at)
@@ -580,7 +568,7 @@ async fn record_auto_session(app: &AppHandle, onset_ms: i64, wake_ms: i64) {
     .bind(&date)
     .bind(onset_ms)
     .bind(wake_ms)
-    .bind(last_active)
+    .bind(last_active_opt)
     .bind(capped as i64)
     .bind(quality)
     .bind(now)
@@ -588,58 +576,56 @@ async fn record_auto_session(app: &AppHandle, onset_ms: i64, wake_ms: i64) {
     .await;
 }
 
-async fn ensure_default_goal(pool: &sqlx::SqlitePool) -> Result<(), String> {
-    let exists: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sleep_goals WHERE id = 'default'")
-        .fetch_one(pool)
-        .await
-        .map_err(|e| e.to_string())?;
+// ═════════════════════════════════════════════════════════════════════════════
+// QUALITY SCORE
+// ═════════════════════════════════════════════════════════════════════════════
 
-    if exists == 0 {
-        let now = time::now_ms();
-        sqlx::query(
-            "INSERT INTO sleep_goals (id, target_bedtime, target_waketime, target_duration_min, updated_at)
-             VALUES ('default', '23:00', '07:00', 480, ?)",
-        )
-        .bind(now)
-        .execute(pool)
-        .await
-        .map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-async fn get_sleep_goal_inner(pool: &sqlx::SqlitePool) -> SleepGoal {
-    let _ = ensure_default_goal(pool).await;
-    sqlx::query_as::<_, (String, String, i64, i64)>(
-        "SELECT target_bedtime, target_waketime, target_duration_min, updated_at FROM sleep_goals WHERE id = 'default'",
-    )
-    .fetch_one(pool)
-    .await
-    .map(|(b, w, d, u)| SleepGoal {
-        target_bedtime: b,
-        target_waketime: w,
-        target_duration_min: d as i32,
-        updated_at: u,
-    })
-    .unwrap_or(SleepGoal {
-        target_bedtime: "23:00".into(),
-        target_waketime: "07:00".into(),
-        target_duration_min: 480,
-        updated_at: time::now_ms(),
-    })
-}
-
-async fn compute_quality(duration_min: i32, pool: &sqlx::SqlitePool) -> f64 {
+/// Compute 0‑100 quality from duration + bedtime deviation vs goal.
+///   base   = ratio × 60      (duration component, 0-60 pts)
+///   offset = 40 - penalty    (fixed offset minus bedtime drift)
+///   score  = clamp(base + offset, 0, 100)
+async fn compute_quality_for_session(duration_min: i32, sleep_onset_ms: i64, pool: &sqlx::SqlitePool) -> f64 {
     let goal = get_sleep_goal_inner(pool).await;
     let target = goal.target_duration_min as f64;
     let ratio = (duration_min as f64 / target).clamp(0.0, 1.0);
     let base = ratio * 60.0;
 
-    // consistency penalty uses goal bedtime
-    let penalty = 0.0; // simplified: we don't have the actual bedtime here
+    // Bedtime consistency penalty: 5 pts per hour deviation from goal
+    let goal_hour = goal.target_bedtime.split(':').next()
+        .and_then(|h| h.parse::<f64>().ok())
+        .unwrap_or(23.0);
+    let actual_hour = ts_to_local_hour(sleep_onset_ms);
+    let hour_diff = (actual_hour - goal_hour).abs().min(12.0); // wrap-around safe
+    let penalty = hour_diff * 5.0;
 
     (base + 40.0 - penalty).clamp(0.0, 100.0)
 }
+
+fn ts_to_local_hour(ts_ms: i64) -> f64 {
+    let secs = ts_ms / 1000;
+    let local = chrono::Local::now();
+    let offset = local.offset().local_minus_utc();
+    let local_secs = secs + offset as i64;
+    let total_min = (local_secs % 86400) / 60;
+    total_min as f64 / 60.0
+}
+
+/// The legacy sleep_logs quality score (duration-based only).
+fn compute_legacy_score(entry: &SleepLogEntry) -> i32 {
+    let mut score = 50i32;
+    let hours = entry.hours;
+    if hours >= 7.0 && hours <= 9.0 { score += 30; }
+    else if hours >= 6.0 && hours < 7.0 { score += 20; }
+    else if hours >= 9.0 && hours <= 10.0 { score += 20; }
+    else if hours >= 5.0 && hours < 6.0 { score += 10; }
+    else if hours > 10.0 { score += 10; }
+    if let Some(q) = entry.quality { score += (q - 1) * 5; }
+    score.clamp(0, 100)
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// INTERNAL HELPERS (shared)
+// ═════════════════════════════════════════════════════════════════════════════
 
 fn session_from_row(row: sqlx::sqlite::SqliteRow) -> SleepSession {
     SleepSession {
@@ -654,6 +640,41 @@ fn session_from_row(row: sqlx::sqlite::SqliteRow) -> SleepSession {
         source: row.get("source"),
         confirmation_pending: row.get::<i64, _>("confirmation_pending") == 1,
         created_at: row.get("created_at"),
+    }
+}
+
+/// Return the current sleep goal. If no row exists yet, insert and return defaults.
+async fn get_sleep_goal_inner(pool: &sqlx::SqlitePool) -> SleepGoal {
+    // Attempt read first — most calls hit this path.
+    if let Ok(row) = sqlx::query_as::<_, (String, String, i64, i64)>(
+        "SELECT target_bedtime, target_waketime, target_duration_min, updated_at FROM sleep_goals WHERE id = 'default'",
+    )
+    .fetch_one(pool)
+    .await
+    {
+        return SleepGoal {
+            target_bedtime: row.0,
+            target_waketime: row.1,
+            target_duration_min: row.2 as i32,
+            updated_at: row.3,
+        };
+    }
+
+    // No row yet — insert default.
+    let now = time::now_ms();
+    let _ = sqlx::query(
+        "INSERT OR IGNORE INTO sleep_goals (id, target_bedtime, target_waketime, target_duration_min, updated_at)
+         VALUES ('default', '23:00', '07:00', 480, ?)",
+    )
+    .bind(now)
+    .execute(pool)
+    .await;
+
+    SleepGoal {
+        target_bedtime: "23:00".into(),
+        target_waketime: "07:00".into(),
+        target_duration_min: 480,
+        updated_at: now,
     }
 }
 
@@ -672,7 +693,6 @@ fn average_time(sessions: &[SleepSession], extract: fn(&SleepSession) -> i64) ->
 }
 
 fn ts_to_local_minutes(ts_ms: i64) -> f64 {
-    // Convert unix ms to local time minutes since midnight
     let secs = ts_ms / 1000;
     let local = chrono::Local::now();
     let offset = local.offset().local_minus_utc();
@@ -690,13 +710,8 @@ fn is_weekend(date: &str) -> bool {
     }
 }
 
-fn add_day(date: &str) -> String {
-    if let Ok(d) = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d") {
-        let next = d + chrono::Duration::days(1);
-        next.format("%Y-%m-%d").to_string()
-    } else {
-        date.to_string()
-    }
+fn today_key() -> String {
+    time::date_key(time::now_ms())
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -905,22 +920,8 @@ pub async fn sleep_alarm_toggle(state: State<'_, BentoAppState>, alarm_id: Strin
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// INTERNAL HELPERS (legacy)
+// LEGACY INTERNAL HELPERS
 // ═════════════════════════════════════════════════════════════════════════════
-
-fn today_key() -> String { time::date_key(time::now_ms()) }
-
-fn compute_legacy_score(entry: &SleepLogEntry) -> i32 {
-    let mut score = 50i32;
-    let hours = entry.hours;
-    if hours >= 7.0 && hours <= 9.0 { score += 30; }
-    else if hours >= 6.0 && hours < 7.0 { score += 20; }
-    else if hours >= 9.0 && hours <= 10.0 { score += 20; }
-    else if hours >= 5.0 && hours < 6.0 { score += 10; }
-    else if hours > 10.0 { score += 10; }
-    if let Some(q) = entry.quality { score += (q - 1) * 5; }
-    score.clamp(0, 100)
-}
 
 async fn legacy_row_from_date(pool: &sqlx::SqlitePool, date: &str) -> Result<Option<SleepLogRow>, String> {
     let row = sqlx::query("SELECT id, date_key, bedtime, wake_time, hours, score, quality, notes, stages, created_at, updated_at FROM sleep_logs WHERE date_key = ?")
@@ -947,7 +948,7 @@ fn legacy_map_row(row: sqlx::sqlite::SqliteRow) -> SleepLogRow {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// TABLE BOOTSTRAP (all tables)
+// TABLE BOOTSTRAP (all tables + default goal row)
 // ═════════════════════════════════════════════════════════════════════════════
 
 pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
@@ -979,6 +980,9 @@ pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
             id TEXT PRIMARY KEY, target_bedtime TEXT NOT NULL DEFAULT '23:00',
             target_waketime TEXT NOT NULL DEFAULT '07:00',
             target_duration_min INTEGER NOT NULL DEFAULT 480, updated_at INTEGER NOT NULL)"#,
+        // Insert default goal row once (id = 'default' ensures single row)
+        r#"INSERT OR IGNORE INTO sleep_goals (id, target_bedtime, target_waketime, target_duration_min, updated_at)
+           VALUES ('default', '23:00', '07:00', 480, 0)"#,
     ];
 
     for sql in migrations {

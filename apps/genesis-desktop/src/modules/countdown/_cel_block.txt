@@ -1,0 +1,47 @@
+      {#if pastEvents.length > 0}
+        <div class="cd-celebration-section">
+          <p class="cd-celebration-label">
+            <span class="cd-celebration-emoji">🎉</span> It happened
+          </p>
+          <div class="cd-celebration-grid">
+            {#each pastEvents as ev}
+              {@const daysGone = Math.abs(daysTo(ev.targetMs))}
+              <TiltCard class="cd-cel-card" maxTilt={15} style="--cd-accent:{ev.accent}">
+                <div class="cd-cel-strip" style="background:{ev.accent}"></div>
+                <div class="cd-cel-body">
+                  <div class="cd-cel-meta">
+                    <span class="cd-cel-date">{fmtDate(ev.targetMs)}</span>
+                    <Badge variant="outline" class="cd-cel-cat">{ev.category}</Badge>
+                  </div>
+                  <h3 class="cd-cel-name">{ev.name}</h3>
+                  <p class="cd-cel-since">
+                    <strong>{daysGone}</strong> {daysGone === 1 ? "day" : "days"} ago
+                    {#if daysGone >= 365}&nbsp;&middot; {(daysGone/365).toFixed(1)} yrs{/if}
+                  </p>
+                  {#if ev.note}
+                    <p class="cd-cel-note">{ev.note}</p>
+                  {/if}
+                  <div class="cd-cel-actions">
+                    <button
+                      class="cd-cel-share"
+                      onclick={() => { shareEventId = shareEventId === ev.id ? null : ev.id; }}
+                      aria-label="Share {ev.name}"
+                    >
+                      <ShareIcon size={13}/> Share
+                    </button>
+                    <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeEvent(ev.id)} aria-label="Remove"><Trash2Icon size={13}/></button>
+                  </div>
+                  {#if shareEventId === ev.id}
+                    <div class="cd-cel-share-panel">
+                      <button class="cd-share-opt" onclick={() => { navigator.clipboard.writeText(ev.name + " — happened on " + fmtDate(ev.targetMs) + ". " + daysGone + " days ago. 🎉"); shareEventId = null; }}>
+                        Copy text
+                      </button>
+                      <button class="cd-share-opt" onclick={() => { shareEventId = null; }}>Close</button>
+                    </div>
+                  {/if}
+                </div>
+              </TiltCard>
+            {/each}
+          </div>
+        </div>
+      {/if}

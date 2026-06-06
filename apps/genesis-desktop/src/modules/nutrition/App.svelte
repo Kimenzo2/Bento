@@ -5,6 +5,7 @@
   import MinusIcon from "@lucide/svelte/icons/minus";
   import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
+  import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import UtensilsCrossedIcon from "@lucide/svelte/icons/utensils-crossed";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -17,6 +18,8 @@
   } from "$lib/components/ui/card/index.js";
   // PieChart / Text kept for any other chart usage in this module.
   // PremiumRing wraps the segmented ring — used for the hydration Today card.
+  import { invoke } from "@tauri-apps/api/core";
+  import { onMount } from "svelte";
   import { PieChart, Text } from 'layerchart';
   import { activeBundle, createTranslator } from "$lib/i18n";
   import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
@@ -27,76 +30,342 @@
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "nutrition";
-  const sectionLabels = ["Today", "Water", "Meals", "Macros", "Reminders", "Export", "Journal"] as const;
+  const sectionLabels = ["Today", "Water", "Meals", "Macros", "Reminders", "Export"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
-  // Hydration tracking
-  let hydrationCurrent = $state(0.7); // in Liters
-  let hydrationGoal = $state(2.4); // in Liters
+  // ── Backend types ──
+  interface WaterEntryType {
+    id: string;
+    amountMl: number;
+    loggedAt: number;
+  }
+
+  interface TodayWaterType {
+    totalMl: number;
+    goalMl: number;
+    percentage: number;
+    entries: WaterEntryType[];
+  }
+
+  interface HydrationStatsType {
+    streakDays: number;
+    weeklyAvgMl: number;
+    bestDayMl: number;
+    bestDayDate: string;
+  }
+
+  interface MealFoodType {
+    id: string;
+    mealId: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    createdAt: number;
+  }
+
+  interface MealEntryType {
+    id: string;
+    name: string;
+    mealType: string;
+    notes: string;
+    totalKcal: number;
+    loggedAt: number;
+    foods: MealFoodType[];
+  }
+
+  interface MacroTotalsType {
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+  }
+
+  interface NutritionGoalsType {
+    waterGoalMl: number;
+    calorieGoal: number;
+    proteinGoalG: number;
+    carbsGoalG: number;
+    fatGoalG: number;
+  }
+
+  interface TodaySummaryType {
+    mealsLogged: number;
+    caloriesRemaining: number;
+    nextCue: string | null;
+    macros: MacroTotalsType;
+    goals: NutritionGoalsType;
+    water: TodayWaterType;
+    meals: MealEntryType[];
+  }
+
+  interface NutritionReminderType {
+    id: string;
+    label: string;
+    detail: string;
+    mode: string;
+    schedule: string;
+    enabled: boolean;
+    createdAt: number;
+    updatedAt: number;
+  }
+
+  // ── Hydration stats (separate endpoint, not in summary) ──
+  let hydrationStats = $state<HydrationStatsType>({ streakDays: 0, weeklyAvgMl: 0, bestDayMl: 0, bestDayDate: "" });
+
+  async function loadHydrationStats() {
+    try {
+      hydrationStats = await invoke<HydrationStatsType>("nutrition_get_hydration_stats");
+    } catch (e) {
+      console.error("Failed to load hydration stats:", e);
+    }
+  }
+
+  // ── Today summary (single source of truth) ──
+  let todaySummary = $state<TodaySummaryType>({
+    mealsLogged: 0,
+    caloriesRemaining: 0,
+    nextCue: null,
+    macros: { caloriesKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+    goals: { waterGoalMl: 2000, calorieGoal: 2200, proteinGoalG: 150, carbsGoalG: 250, fatGoalG: 70 },
+    water: { totalMl: 0, goalMl: 2000, percentage: 0, entries: [] },
+    meals: [],
+  });
+
+  // ── Derived from todaySummary ──
+  let hydrationTotal = $derived(todaySummary.water.totalMl);
+  let hydrationGoalMl = $derived(todaySummary.water.goalMl);
+  let hydrationPct = $derived(Math.min(100, Math.round((hydrationTotal / hydrationGoalMl) * 100)));
+  let hydrationEntries = $derived(todaySummary.water.entries);
+  let hydrationCurrent = $derived(hydrationTotal / 1000);
+  let hydrationGoal = $derived(hydrationGoalMl / 1000);
   let hydrationPercentage = $derived(Math.round((hydrationCurrent / hydrationGoal) * 100));
 
-  const drinks = [
-    { time: "07:20", amount: "250 ml" },
-    { time: "09:45", amount: "500 ml" },
-    { time: "12:05", amount: "250 ml" },
-    { time: "15:40", amount: "150 ml" },
-  ];
+  let drinks = $derived(
+    hydrationEntries.map(e => {
+      const d = new Date(e.loggedAt);
+      const h = String(d.getHours()).padStart(2, "0");
+      const m = String(d.getMinutes()).padStart(2, "0");
+      const amount = e.amountMl >= 1000 ? `${(e.amountMl / 1000).toFixed(1)} L` : `${e.amountMl} ml`;
+      return { time: `${h}:${m}`, amount };
+    })
+  );
 
-  const meals = [
-    { title: "Oatmeal bowl", detail: "Berries, chia, almond butter", kcal: "450 kcal" },
-    { title: "Chicken grain salad", detail: "Greens, couscous, citrus dressing", kcal: "620 kcal" },
-    { title: "Protein yogurt", detail: "Quick afternoon top-up", kcal: "190 kcal" },
-  ];
+  let macroTotals = $derived(todaySummary.macros);
+  let nutritionGoals = $derived(todaySummary.goals);
+  let meals = $derived(todaySummary.meals);
 
-  const macros = [
-    { label: "Protein", value: "112 g", fill: 74 },
-    { label: "Carbs", value: "168 g", fill: 63 },
-    { label: "Fats", value: "52 g", fill: 57 },
-  ];
+  async function addWater(ml: number) {
+    try {
+      await invoke("nutrition_log_water", { params: { amountMl: ml } });
+      await Promise.all([loadTodaySummary(), loadHydrationStats()]);
+    } catch (e) {
+      console.error("Failed to log water:", e);
+    }
+  }
 
-  const reminders = [
-    { label: "Hydration pulse", detail: "Every 90 minutes from 08:00 to 18:00", mode: "Active" },
-    { label: "Lunch break", detail: "12:30 with focus-session cooldown", mode: "Scheduled" },
-    { label: "Protein check", detail: "20:00 fallback if intake is low", mode: "Smart" },
-  ];
+  async function resetHydration() {
+    try {
+      await invoke("nutrition_reset_water");
+      await Promise.all([loadTodaySummary(), loadHydrationStats()]);
+    } catch (e) {
+      console.error("Failed to reset hydration:", e);
+    }
+  }
 
-  const exportOptions = [
-    { title: "Nutrition PDF", detail: "Meals, hydration, and adherence for the past 14 days." },
-    { title: "Macro CSV", detail: "Daily totals for coaching or spreadsheet tracking." },
-    { title: "Reminder log", detail: "Prompt timing and response completion history." },
-  ];
-  // ── Journal section (ported exactly from Journal's Nutrition section) ──
-  let journalCalories = $state(1840);
-  let journalWater = $state(6);
-  let journalMacros = $state({ protein: 98, carbs: 210, fat: 62 });
-  let journalMeals = $state([
-    { name: 'Breakfast', kcal: 380, items: 'Oats, berries, coffee' },
-    { name: 'Lunch', kcal: 620, items: 'Chicken salad, sourdough' },
-    { name: 'Snack', kcal: 180, items: 'Almonds, apple' },
-    { name: 'Dinner', kcal: 660, items: 'Salmon, quinoa, greens' },
+  async function loadTodaySummary() {
+    try {
+      todaySummary = await invoke<TodaySummaryType>("nutrition_get_today_summary");
+    } catch (e) {
+      console.error("Failed to load today summary:", e);
+    }
+  }
+
+  // ── Quick-add meal (Today section) ──
+  let mealName = $state("");
+  let mealKcal = $state<number | null>(null);
+  let quickAddLoading = $state(false);
+
+  async function addQuickMeal() {
+    const name = mealName.trim();
+    const kcal = mealKcal;
+    if (!name) return;
+    quickAddLoading = true;
+    try {
+      await invoke("nutrition_log_meal", {
+        params: {
+          name,
+          mealType: "snack",
+          totalKcal: kcal ?? null,
+        },
+      });
+      mealName = "";
+      mealKcal = null;
+      await loadTodaySummary();
+    } catch (e) {
+      console.error("Failed to log meal:", e);
+    } finally {
+      quickAddLoading = false;
+    }
+  }
+
+  onMount(() => {
+    loadTodaySummary();
+    loadHydrationStats();
+    loadReminders();
+  });
+
+  // ── Macro goal editor ──
+  let pendingGoals = $state<NutritionGoalsType>({ waterGoalMl: 2000, calorieGoal: 2200, proteinGoalG: 150, carbsGoalG: 250, fatGoalG: 70 });
+  let goalsSaving = $state(false);
+
+  // Sync pendingGoals when nutritionGoals changes (from summary refresh)
+  $effect(() => {
+    pendingGoals = { ...nutritionGoals };
+  });
+
+  async function updateGoals() {
+    goalsSaving = true;
+    try {
+      await invoke("nutrition_update_goals", {
+        params: {
+          calorieGoal: pendingGoals.calorieGoal,
+          proteinGoalG: pendingGoals.proteinGoalG,
+          carbsGoalG: pendingGoals.carbsGoalG,
+          fatGoalG: pendingGoals.fatGoalG,
+        },
+      });
+      await loadTodaySummary();
+    } catch (e) {
+      console.error("Failed to update goals:", e);
+    } finally {
+      goalsSaving = false;
+    }
+  }
+
+  // ── Macros derived (from todaySummary) ──
+  let macros = $derived([
+    { label: "Protein", value: `${Math.round(macroTotals.proteinG)} g`, fill: nutritionGoals.proteinGoalG > 0 ? Math.min(100, Math.round((macroTotals.proteinG / nutritionGoals.proteinGoalG) * 100)) : 0 },
+    { label: "Carbs", value: `${Math.round(macroTotals.carbsG)} g`, fill: nutritionGoals.carbsGoalG > 0 ? Math.min(100, Math.round((macroTotals.carbsG / nutritionGoals.carbsGoalG) * 100)) : 0 },
+    { label: "Fats", value: `${Math.round(macroTotals.fatG)} g`, fill: nutritionGoals.fatGoalG > 0 ? Math.min(100, Math.round((macroTotals.fatG / nutritionGoals.fatGoalG) * 100)) : 0 },
   ]);
 
-  function updateJournalNut() {
-    // placeholder for persistence
+  // ── Reminders (saved in DB, separate from summary) ──
+  let reminders = $state<NutritionReminderType[]>([]);
+  let reminderActionLoading = $state<string | null>(null);
+
+  // New reminder form
+  let newReminderLabel = $state("");
+  let newReminderDetail = $state("");
+  let newReminderMode = $state("Active");
+  let newReminderSaving = $state(false);
+
+  async function saveReminder() {
+    const label = newReminderLabel.trim();
+    if (!label) return;
+    newReminderSaving = true;
+    try {
+      await invoke("nutrition_save_reminder", {
+        params: {
+          label,
+          detail: newReminderDetail.trim() || null,
+          mode: newReminderMode,
+          enabled: true,
+        },
+      });
+      newReminderLabel = "";
+      newReminderDetail = "";
+      newReminderMode = "Active";
+      await loadReminders();
+    } catch (e) {
+      console.error("Failed to save reminder:", e);
+    } finally {
+      newReminderSaving = false;
+    }
   }
 
-  let journalProgress = $derived((journalCalories / 2200) * 100);
-
-  // ── Hydration ring (Today section) ──
-  // PremiumRing handles its own segment data internally.
-  // We only need the raw ml value and the derived percentage.
-  const hydrationGoalMl = 2000;
-  let hydrationTotal = $state(580);
-  let hydrationPct = $derived(Math.min(100, Math.round((hydrationTotal / hydrationGoalMl) * 100)));
-
-  function addWater(ml: number) {
-    hydrationTotal = Math.min(hydrationGoalMl, Math.max(0, hydrationTotal + ml));
+  async function loadReminders() {
+    try {
+      reminders = await invoke<NutritionReminderType[]>("nutrition_get_reminders");
+    } catch (e) {
+      console.error("Failed to load reminders:", e);
+    }
   }
 
-  function resetHydration() {
-    hydrationTotal = 0;
+  async function toggleReminder(id: string, currentEnabled: boolean) {
+    const key = `toggle-${id}`;
+    reminderActionLoading = key;
+    try {
+      await invoke("nutrition_toggle_reminder", { id, enabled: !currentEnabled });
+      await loadReminders();
+    } catch (e) {
+      console.error("Failed to toggle reminder:", e);
+    } finally {
+      reminderActionLoading = null;
+    }
+  }
+
+  async function deleteReminder(id: string) {
+    const key = `delete-${id}`;
+    reminderActionLoading = key;
+    try {
+      await invoke("nutrition_delete_reminder", { id });
+      await loadReminders();
+    } catch (e) {
+      console.error("Failed to delete reminder:", e);
+    } finally {
+      reminderActionLoading = null;
+    }
+  }
+
+  // ── Export (backend-backed) ──
+  interface NutritionExportRowType {
+    date: string;
+    waterMl: number;
+    caloriesKcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    mealsCount: number;
+  }
+
+  let exportLoading = $state<string | null>(null);
+
+  async function exportData(format: 'nutrition-csv' | 'macro-csv' | 'reminder-log') {
+    exportLoading = format;
+    try {
+      if (format === 'nutrition-csv') {
+        const rows = await invoke<NutritionExportRowType[]>("nutrition_export_data", { days: 14 });
+        const header = "Date,Water ml,Calories kcal,Protein g,Carbs g,Fat g,Meals\n";
+        const csv = header + rows.map(r =>
+          `${r.date},${r.waterMl},${r.caloriesKcal},${r.proteinG.toFixed(1)},${r.carbsG.toFixed(1)},${r.fatG.toFixed(1)},${r.mealsCount}`
+        ).join("\n");
+        await invoke("export_content_to_file", { content: csv, defaultName: "bento-nutrition-14d.csv", extension: "csv", filterName: "CSV files" });
+      } else if (format === 'macro-csv') {
+        const rows = await invoke<NutritionExportRowType[]>("nutrition_export_data", { days: 30 });
+        const header = "Date,Calories kcal,Protein g,Carbs g,Fat g\n";
+        const csv = header + rows.map(r =>
+          `${r.date},${r.caloriesKcal},${r.proteinG.toFixed(1)},${r.carbsG.toFixed(1)},${r.fatG.toFixed(1)}`
+        ).join("\n");
+        await invoke("export_content_to_file", { content: csv, defaultName: "bento-macros-30d.csv", extension: "csv", filterName: "CSV files" });
+      } else if (format === 'reminder-log') {
+        const reminders = await invoke<NutritionReminderType[]>("nutrition_get_reminders");
+        const header = "Label,Detail,Mode,Enabled\n";
+        const csv = header + reminders.map(r =>
+          `"${r.label}","${r.detail}",${r.mode},${r.enabled}`
+        ).join("\n");
+        await invoke("export_content_to_file", { content: csv, defaultName: "bento-reminders.csv", extension: "csv", filterName: "CSV files" });
+      }
+    } catch (e) {
+      console.error("Failed to export:", e);
+    } finally {
+      exportLoading = null;
+    }
   }
 </script>
 
@@ -112,16 +381,6 @@
         <p>{_t('moduleNutritionSubtitle')}</p>
       </div>
 
-      <div class="nutrition-shell__actions">
-        <Button variant="outline">
-          <DropletsIcon data-icon="inline-start" />
-          {_t('moduleNutritionQuickAdd')}
-        </Button>
-        <Button>
-          <SparklesIcon data-icon="inline-start" />
-          {_t('moduleNutritionMealInsight')}
-        </Button>
-      </div>
     </header>
 
     {#if selectedSection === "Today"}
@@ -189,9 +448,9 @@
           <CardDescription>{_t('moduleNutritionTodaysTargetDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="nutrition-hero-list">
-          <article><span>{_t('moduleNutritionCalories')}</span><strong>1,860 / 2,300</strong></article>
-          <article><span>{_t('moduleNutritionMealsLogged')}</span><strong>3 so far</strong></article>
-          <article><span>{_t('moduleNutritionNextCue')}</span><strong>{_t('moduleNutritionWaterReminder')}</strong></article>
+          <article><span>{_t('moduleNutritionCalories')}</span><strong>{todaySummary.macros.caloriesKcal.toLocaleString()} / {todaySummary.goals.calorieGoal.toLocaleString()}</strong></article>
+          <article><span>{_t('moduleNutritionMealsLogged')}</span><strong>{todaySummary.mealsLogged} so far</strong></article>
+          <article><span>{_t('moduleNutritionNextCue')}</span><strong>{todaySummary.nextCue ?? _t('moduleNutritionWaterReminder')}</strong></article>
         </CardContent>
       </Card>
     </section>
@@ -206,7 +465,7 @@
               <CardDescription>{_t('moduleNutritionTimelineDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-timeline">
-              {#each [...drinks.map((drink) => ({ type: "Water", title: drink.amount, detail: drink.time })), ...meals.map((meal, index) => ({ type: `Meal ${index + 1}`, title: meal.title, detail: meal.kcal }))] as entry}
+              {#each [...drinks.map((drink) => ({ type: "Water", title: drink.amount, detail: drink.time })), ...meals.map((meal, index) => ({ type: `Meal ${index + 1}`, title: meal.name, detail: `${meal.totalKcal} kcal` }))] as entry}
                 <article>
                   <span>{entry.type}</span>
                   <strong>{entry.title}</strong>
@@ -222,9 +481,50 @@
               <CardDescription>{_t('moduleNutritionQuickAddDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-quick-add">
-              {#each ["150 ml", "250 ml", "500 ml", _t('moduleNutritionSnack'), _t('moduleNutritionMeal'), _t('moduleNutritionCustom')] as item}
-                <button type="button">{item}</button>
-              {/each}
+              <div class="nutrition-quick-add__section">
+                <span class="nutrition-quick-add__label">{_t('moduleNutritionHydration')}</span>
+                <div class="nutrition-quick-add__row">
+                  {#each [
+                    { label: "150 ml", value: 150 },
+                    { label: "250 ml", value: 250 },
+                    { label: "500 ml", value: 500 },
+                    { label: "1 L", value: 1000 },
+                  ] as preset}
+                    <button
+                      type="button"
+                      class="nutrition-quick-add__pill"
+                      onclick={() => addWater(preset.value)}
+                      disabled={hydrationTotal >= hydrationGoalMl}
+                    >+{preset.label}</button>
+                  {/each}
+                </div>
+              </div>
+              <div class="nutrition-quick-add__section">
+                <span class="nutrition-quick-add__label">{_t('moduleNutritionMeal')}</span>
+                <div class="nutrition-quick-add__row">
+                  <input
+                    type="text"
+                    class="nutrition-quick-add__input"
+                    placeholder="Meal name…"
+                    bind:value={mealName}
+                    onkeydown={(e) => e.key === 'Enter' && addQuickMeal()}
+                  />
+                  <input
+                    type="number"
+                    class="nutrition-quick-add__input nutrition-quick-add__input--narrow"
+                    placeholder="kcal"
+                    min="0"
+                    bind:value={mealKcal}
+                    onkeydown={(e) => e.key === 'Enter' && addQuickMeal()}
+                  />
+                  <button
+                    type="button"
+                    class="nutrition-quick-add__pill nutrition-quick-add__pill--primary"
+                    onclick={addQuickMeal}
+                    disabled={!mealName.trim() || quickAddLoading}
+                  >+</button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -260,9 +560,9 @@
               <CardDescription>{_t('moduleNutritionHydrationStatsDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-stat-list">
-              <article><span>{_t('moduleNutritionStreak')}</span><strong>12 days</strong></article>
-              <article><span>{_t('moduleNutritionWeeklyAvg')}</span><strong>1.9L</strong></article>
-              <article><span>{_t('moduleNutritionBestDay')}</span><strong>2.8L</strong></article>
+              <article><span>{_t('moduleNutritionStreak')}</span><strong>{hydrationStats.streakDays} days</strong></article>
+              <article><span>{_t('moduleNutritionWeeklyAvg')}</span><strong>{(hydrationStats.weeklyAvgMl / 1000).toFixed(1)}L</strong></article>
+              <article><span>{_t('moduleNutritionBestDay')}</span><strong>{(hydrationStats.bestDayMl / 1000).toFixed(1)}L</strong></article>
             </CardContent>
           </Card>
         </div>
@@ -272,39 +572,78 @@
             <CardTitle>{_t('moduleNutritionMeals')}</CardTitle>
             <CardDescription>{_t('moduleNutritionMealsDesc')}</CardDescription>
           </CardHeader>
-          <CardContent class="nutrition-meal-list">
-            {#each meals as meal}
+          <CardContent class="nutrition-meal-list">              {#each meals as meal}
               <article>
                 <div class="nutrition-meal-list__icon">
                   <UtensilsCrossedIcon size={18} />
                 </div>
                 <div>
-                  <strong>{meal.title}</strong>
-                  <p>{meal.detail}</p>
+                  <strong>{meal.name}</strong>
+                  <p>{meal.notes}</p>
                 </div>
-                <span>{meal.kcal}</span>
+                <span>{meal.totalKcal} kcal</span>
               </article>
             {/each}
           </CardContent>
         </Card>
       {:else if selectedSection === "Macros"}
-        <Card class="nutrition-panel nutrition-panel--full">
-          <CardHeader>
-            <CardTitle>{_t('moduleNutritionMacroBreakdown')}</CardTitle>
-            <CardDescription>{_t('moduleNutritionMacroBreakdownDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent class="nutrition-macro-list">
-            {#each macros as macro}
-              <article>
-                <div class="nutrition-macro-list__copy">
-                  <strong>{macro.label}</strong>
-                  <span>{macro.value}</span>
-                </div>
-                <div class="nutrition-meter"><i style={`--fill:${macro.fill}%`}></i></div>
-              </article>
-            {/each}
-          </CardContent>
-        </Card>
+        <div class="nutrition-macros-layout">
+          <Card class="nutrition-panel">
+            <CardHeader>
+              <CardTitle>{_t('moduleNutritionMacroBreakdown')}</CardTitle>
+              <CardDescription>{_t('moduleNutritionMacroBreakdownDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent class="nutrition-macro-list">
+              {#each macros as macro}
+                <article>
+                  <div class="nutrition-macro-list__copy">
+                    <strong>{macro.label}</strong>
+                    <span>{macro.value}</span>
+                  </div>
+                  <div class="nutrition-meter"><i style={`--fill:${macro.fill}%`}></i></div>
+                </article>
+              {/each}
+            </CardContent>
+          </Card>
+          <Card class="nutrition-panel">
+            <CardHeader>
+              <CardTitle>Daily Targets</CardTitle>
+              <CardDescription>Set your daily macro targets</CardDescription>
+            </CardHeader>
+            <CardContent class="nutrition-goal-editor">
+              <div class="nutrition-goal-editor__grid">
+                <label class="nutrition-goal-editor__field">
+                  <span>Calories</span>
+                  <input type="number" min="0" step="50" bind:value={pendingGoals.calorieGoal} />
+                  <small>kcal</small>
+                </label>
+                <label class="nutrition-goal-editor__field">
+                  <span>Protein</span>
+                  <input type="number" min="0" step="5" bind:value={pendingGoals.proteinGoalG} />
+                  <small>g</small>
+                </label>
+                <label class="nutrition-goal-editor__field">
+                  <span>Carbs</span>
+                  <input type="number" min="0" step="5" bind:value={pendingGoals.carbsGoalG} />
+                  <small>g</small>
+                </label>
+                <label class="nutrition-goal-editor__field">
+                  <span>Fats</span>
+                  <input type="number" min="0" step="5" bind:value={pendingGoals.fatGoalG} />
+                  <small>g</small>
+                </label>
+              </div>
+              <Button
+                variant="default"
+                class="nutrition-goal-editor__save"
+                onclick={updateGoals}
+                disabled={goalsSaving}
+              >
+                {goalsSaving ? 'Saving…' : 'Save Targets'}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       {:else if selectedSection === "Reminders"}
         <Card class="nutrition-panel nutrition-panel--full">
           <CardHeader>
@@ -312,79 +651,75 @@
             <CardDescription>{_t('moduleNutritionReminderCadenceDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="nutrition-reminder-list">
+            <!-- New reminder form -->
+            <div class="nutrition-reminder-form">
+              <div class="nutrition-reminder-form__row">
+                <input
+                  type="text"
+                  class="nutrition-reminder-form__input"
+                  placeholder="Reminder label…"
+                  bind:value={newReminderLabel}
+                  onkeydown={(e) => e.key === 'Enter' && saveReminder()}
+                />
+                <input
+                  type="text"
+                  class="nutrition-reminder-form__input nutrition-reminder-form__input--detail"
+                  placeholder="Optional detail…"
+                  bind:value={newReminderDetail}
+                  onkeydown={(e) => e.key === 'Enter' && saveReminder()}
+                />
+                <select
+                  class="nutrition-reminder-form__select"
+                  bind:value={newReminderMode}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="Smart">Smart</option>
+                </select>
+                <button
+                  type="button"
+                  class="nutrition-reminder-form__add"
+                  onclick={saveReminder}
+                  disabled={!newReminderLabel.trim() || newReminderSaving}
+                >+</button>
+              </div>
+            </div>
             {#each reminders as reminder}
-              <article>
+              <article class="nutrition-reminder-item">
                 <div class="nutrition-reminder-list__icon">
                   <BellIcon size={18} />
                 </div>
-                <div>
+                <div class="nutrition-reminder-item__body">
                   <strong>{reminder.label}</strong>
                   <p>{reminder.detail}</p>
+                  <Badge variant="secondary">{reminder.mode}</Badge>
                 </div>
-                <Badge variant="secondary">{reminder.mode}</Badge>
+                <div class="nutrition-reminder-item__actions">
+                  <button
+                    type="button"
+                    class="nutrition-reminder-toggle"
+                    role="switch"
+                    aria-checked={reminder.enabled}
+                    aria-label="Toggle {reminder.label}"
+                    onclick={() => toggleReminder(reminder.id, reminder.enabled)}
+                    disabled={reminderActionLoading === `toggle-${reminder.id}`}
+                  >
+                    <span class="nutrition-reminder-toggle__thumb"></span>
+                  </button>
+                  <button
+                    type="button"
+                    class="nutrition-reminder-delete"
+                    aria-label="Delete {reminder.label}"
+                    onclick={() => deleteReminder(reminder.id)}
+                    disabled={reminderActionLoading === `delete-${reminder.id}`}
+                  >
+                    <Trash2Icon size={14} />
+                  </button>
+                </div>
               </article>
             {/each}
           </CardContent>
         </Card>
-      {:else if selectedSection === "Journal"}
-    <section class="nj-bento">
-      <!-- CALORIE RING CARD (accent, focus-ring style) -->
-      <div class="nj-card nj-card--accent nj-card--calring">
-        <div class="nj-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-          {_t('moduleNutritionCaloriesToday')}
-        </div>
-        <div class="nj-ring-wrap">
-          <PremiumRing
-            size={156}
-            thickness={12}
-            segments={[{ value: journalProgress, color: "white", label: "Calories" }]}
-            centerLabel={_t('moduleNutritionCaloriesToday')}
-            centerValue={String(journalCalories)}
-            centerNote={`/ 2200 ${_t('moduleNutritionKcal')}`}
-          />
-        </div>
-        <div class="nj-macro-row">
-          <span class="nj-macro"><b>{journalMacros.protein}g</b><span>{_t('moduleNutritionProtein')}</span></span>
-          <span class="nj-macro"><b>{journalMacros.carbs}g</b><span>{_t('moduleNutritionCarbs')}</span></span>
-          <span class="nj-macro"><b>{journalMacros.fat}g</b><span>{_t('moduleNutritionFat')}</span></span>
-        </div>
-      </div>
-
-      <!-- MEALS LIST CARD (surface) -->
-      <div class="nj-card nj-card--surface nj-card--meals">
-        <div class="nj-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
-          {_t('moduleNutritionMeals')}
-        </div>
-        {#each journalMeals as meal}
-        <div class="nj-meal-row">
-          <div class="nj-meal-info">
-            <span class="nj-meal-name">{meal.name}</span>
-            <span class="nj-meal-items">{meal.items}</span>
-          </div>
-          <span class="nj-meal-kcal">{meal.kcal} kcal</span>
-        </div>
-        {/each}
-      </div>
-
-      <!-- WATER CARD (dark) -->
-      <div class="nj-card nj-card--dark nj-card--water">
-        <div class="nj-card-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-          {_t('moduleNutritionWater')}
-        </div>
-        <div class="nj-stat-big" style="color:#3b82f6">{journalWater}<span class="nj-stat-unit">{_t('moduleNutritionGlasses')}</span></div>
-        <div class="nj-water-dots">
-          {#each [1,2,3,4,5,6,7,8] as g}
-            <button class="nj-water-dot" class:nj-water-dot--filled={g <= journalWater} onclick={() => { journalWater = g; updateJournalNut(); }}>
-              <svg viewBox="0 0 24 24" fill={g<=journalWater?'#3b82f6':'none'} stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-            </button>
-          {/each}
-        </div>
-        <p class="nj-card-hint">{_t('moduleNutritionGoalGlasses')}</p>
-      </div>
-    </section>
       {:else}
         <Card class="nutrition-panel nutrition-panel--full">
           <CardHeader>
@@ -392,18 +727,36 @@
             <CardDescription>{_t('moduleNutritionExportDataDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="nutrition-export-list">
-            {#each exportOptions as option}
-              <article>
+            <article>
                 <div>
-                  <strong>{option.title}</strong>
-                  <p>{option.detail}</p>
+                  <strong>Nutrition CSV</strong>
+                  <p>Meals, hydration, and adherence for the past 14 days.</p>
                 </div>
-                <Button variant="outline">
+                <Button variant="outline" onclick={() => exportData('nutrition-csv')} disabled={exportLoading !== null}>
                   <DownloadIcon data-icon="inline-start" />
-                  {_t('moduleNutritionExport')}
+                  {exportLoading === 'nutrition-csv' ? 'Exporting...' : _t('moduleNutritionExport')}
                 </Button>
               </article>
-            {/each}
+              <article>
+                <div>
+                  <strong>Macro CSV</strong>
+                  <p>Daily totals for coaching or spreadsheet tracking.</p>
+                </div>
+                <Button variant="outline" onclick={() => exportData('macro-csv')} disabled={exportLoading !== null}>
+                  <DownloadIcon data-icon="inline-start" />
+                  {exportLoading === 'macro-csv' ? 'Exporting...' : _t('moduleNutritionExport')}
+                </Button>
+              </article>
+              <article>
+                <div>
+                  <strong>Reminder log</strong>
+                  <p>Prompt timing and response completion history.</p>
+                </div>
+                <Button variant="outline" onclick={() => exportData('reminder-log')} disabled={exportLoading !== null}>
+                  <DownloadIcon data-icon="inline-start" />
+                  {exportLoading === 'reminder-log' ? 'Exporting...' : _t('moduleNutritionExport')}
+                </Button>
+              </article>
           </CardContent>
         </Card>
       {/if}
@@ -746,13 +1099,91 @@
     align-content: start;
   }
 
-  :global(.nutrition-quick-add) button {
-    padding: 16px;
+  :global(.nutrition-quick-add) {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  :global(.nutrition-quick-add__section) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  :global(.nutrition-quick-add__label) {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--nutrition-muted);
+    font-weight: 600;
+  }
+
+  :global(.nutrition-quick-add__row) {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  :global(.nutrition-quick-add__pill) {
+    padding: 10px 16px;
     border: 1px solid color-mix(in srgb, var(--nutrition-accent) 38%, var(--nutrition-border));
     border-radius: 999px;
     background: color-mix(in srgb, var(--nutrition-accent) 12%, var(--nutrition-surface));
     color: var(--nutrition-ink);
     font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  :global(.nutrition-quick-add__pill:hover:not(:disabled)) {
+    background: color-mix(in srgb, var(--nutrition-accent) 22%, var(--nutrition-surface));
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-quick-add__pill:disabled) {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  :global(.nutrition-quick-add__pill--primary) {
+    background: var(--nutrition-accent);
+    color: var(--nutrition-surface);
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-quick-add__pill--primary:hover:not(:disabled)) {
+    opacity: 0.85;
+  }
+
+  :global(.nutrition-quick-add__input) {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    color: var(--nutrition-ink);
+    font: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  :global(.nutrition-quick-add__input:focus) {
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-quick-add__input::placeholder) {
+    color: var(--nutrition-muted);
+    opacity: 0.6;
+  }
+
+  :global(.nutrition-quick-add__input--narrow) {
+    flex: 0 0 80px;
   }
 
   :global(.nutrition-stat-list) {
@@ -814,6 +1245,247 @@
     grid-template-columns: 38px 1fr auto;
     gap: 14px;
     align-items: center;
+  }
+
+  :global(.nutrition-reminder-item) {
+    grid-template-columns: 38px 1fr auto !important;
+  }
+
+  :global(.nutrition-reminder-item__body) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  :global(.nutrition-reminder-item__body) strong {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  :global(.nutrition-reminder-item__body) p {
+    font-size: 0.82rem;
+    margin: 0;
+  }
+
+  :global(.nutrition-reminder-item__actions) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Toggle switch ── */
+  :global(.nutrition-reminder-toggle) {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nutrition-border) 72%, transparent);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  :global(.nutrition-reminder-toggle[aria-checked="true"]) {
+    background: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-reminder-toggle:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  :global(.nutrition-reminder-toggle__thumb) {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--nutrition-surface);
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  :global(.nutrition-reminder-toggle[aria-checked="true"] .nutrition-reminder-toggle__thumb) {
+    transform: translateX(16px);
+  }
+
+  /* ── Delete button ── */
+  :global(.nutrition-reminder-delete) {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--nutrition-muted) 30%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--nutrition-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  :global(.nutrition-reminder-delete:hover:not(:disabled)) {
+    border-color: color-mix(in srgb, var(--destructive, #e74c3c) 50%, transparent);
+    color: var(--destructive, #e74c3c);
+    background: color-mix(in srgb, var(--destructive, #e74c3c) 10%, transparent);
+  }
+
+  :global(.nutrition-reminder-delete:disabled) {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* ── New reminder form ── */
+  :global(.nutrition-reminder-form) {
+    border: 1px dashed color-mix(in srgb, var(--nutrition-accent) 30%, var(--nutrition-border));
+    border-radius: 20px;
+    padding: 16px 18px;
+    background: color-mix(in srgb, var(--nutrition-accent) 4%, var(--nutrition-surface));
+  }
+
+  :global(.nutrition-reminder-form__row) {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  :global(.nutrition-reminder-form__input) {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    color: var(--nutrition-ink);
+    font: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  :global(.nutrition-reminder-form__input:focus) {
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-reminder-form__input::placeholder) {
+    color: var(--nutrition-muted);
+    opacity: 0.6;
+  }
+
+  :global(.nutrition-reminder-form__input--detail) {
+    flex: 0.7;
+  }
+
+  :global(.nutrition-reminder-form__select) {
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    color: var(--nutrition-ink);
+    font: inherit;
+    font-size: 0.82rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+
+  :global(.nutrition-reminder-form__select:focus) {
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-reminder-form__add) {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: var(--nutrition-accent);
+    color: var(--nutrition-surface);
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  :global(.nutrition-reminder-form__add:hover:not(:disabled)) {
+    opacity: 0.85;
+  }
+
+  :global(.nutrition-reminder-form__add:disabled) {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* ── Macro goal editor ── */
+  :global(.nutrition-goal-editor__grid) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  :global(.nutrition-goal-editor__field) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  :global(.nutrition-goal-editor__field) span {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--nutrition-muted);
+    font-weight: 600;
+  }
+
+  :global(.nutrition-goal-editor__field) input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    color: var(--nutrition-ink);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+  }
+
+  :global(.nutrition-goal-editor__field) input:focus {
+    border-color: var(--nutrition-accent);
+  }
+
+  :global(.nutrition-goal-editor__field) small {
+    font-size: 0.72rem;
+    color: var(--nutrition-muted);
+  }
+
+  :global(.nutrition-goal-editor__save) {
+    margin-top: 16px;
+    width: 100%;
+  }
+
+  :global(.nutrition-macros-layout) {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  :global(.nutrition-macros-layout) :global(.nutrition-panel) {
+    flex-shrink: 0;
+    overflow: auto;
   }
 
   :global(.nutrition-export-list) article {

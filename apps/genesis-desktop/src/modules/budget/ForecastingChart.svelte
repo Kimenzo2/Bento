@@ -429,8 +429,8 @@
     --fc-expenses-actual: #ef4444;
     --fc-income-forecast: #86efac;
     --fc-expenses-forecast: #fca5a5;
-    background: var(--card);
-    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, var(--background)), color-mix(in srgb, var(--surface) 86%, var(--background)));
+    border: none;
     border-radius: 20px;
     padding: 20px 20px 16px;
     margin-bottom: 16px;

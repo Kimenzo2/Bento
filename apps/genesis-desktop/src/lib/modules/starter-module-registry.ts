@@ -20,7 +20,6 @@ export const starterModuleLoaders = {
   budget: () => import('../../modules/budget/App.svelte') as unknown as Promise<StarterModule>,
   flashcards: () =>
     import('../../modules/flashcards/App.svelte') as unknown as Promise<StarterModule>,
-  reading: () => import('../../modules/reading/App.svelte') as unknown as Promise<StarterModule>,
   grocery: () => import('../../modules/grocery/App.svelte') as unknown as Promise<StarterModule>,
   recipes: () => import('../../modules/recipes/App.svelte') as unknown as Promise<StarterModule>,
   time: () => import('../../modules/time/App.svelte') as unknown as Promise<StarterModule>,
