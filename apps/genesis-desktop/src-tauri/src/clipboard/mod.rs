@@ -1200,8 +1200,60 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     Ok(())
 }
 
+/// Get the absolute file path for an image stored in the content-addressable store.
+/// The frontend uses `convertFileSrc()` to turn this into a webview-loadable URL.
+/// This avoids base64-encoding the entire image through IPC.
+#[tauri::command]
+pub async fn clipboard_get_image_path(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    hash: String,
+) -> Result<Option<String>, String> {
+    if hash.is_empty() || hash.len() < 8 {
+        return Err("Invalid content hash.".to_string());
+    }
+
+    // First try direct store path
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let store_path = content_path(&data_dir, &hash);
+    if store_path.exists() {
+        return Ok(Some(store_path.to_string_lossy().to_string()));
+    }
+
+    // Fallback: look up by hash in the DB to get the content_path
+    let pool = state.db();
+    let content_path_str: Option<String> = sqlx::query_scalar(
+        "SELECT content_path FROM clipboard_items WHERE content_hash = ?"
+    )
+    .bind(&hash)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .flatten();
+
+    match content_path_str {
+        Some(path) => {
+            let full_path = if std::path::Path::new(&path).is_absolute() {
+                std::path::PathBuf::from(&path)
+            } else {
+                content_path(&data_dir, &hash)
+            };
+            if full_path.exists() {
+                Ok(Some(full_path.to_string_lossy().to_string()))
+            } else {
+                eprintln!("[clipboard] image file not found at: {path}");
+                Ok(None)
+            }
+        }
+        None => {
+            eprintln!("[clipboard] no content path for hash: {hash}");
+            Ok(None)
+        }
+    }
+}
+
 /// Retrieve image data as a base64 data URI for frontend rendering.
-/// The image is loaded from the content-addressable store by its hash.
+/// Kept for backward compatibility — prefer `clipboard_get_image_path` for new code.
 #[tauri::command]
 pub async fn clipboard_get_image_data(
     app: AppHandle,
@@ -1212,9 +1264,6 @@ pub async fn clipboard_get_image_data(
         return Err("Invalid content hash.".to_string());
     }
 
-    let pool = state.db();
-
-    // First try to read from the store by hash directly
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let store_path = content_path(&data_dir, &hash);
 
@@ -1226,7 +1275,7 @@ pub async fn clipboard_get_image_data(
         return Ok(format!("data:image/png;base64,{b64}"));
     }
 
-    // Fallback: look up by hash in the DB to get the content_path
+    let pool = state.db();
     let content_path_str: Option<String> = sqlx::query_scalar(
         "SELECT content_path FROM clipboard_items WHERE content_hash = ?"
     )

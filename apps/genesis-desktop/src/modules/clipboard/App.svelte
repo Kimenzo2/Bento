@@ -1,5 +1,6 @@
 <script lang="ts">
   import "./clipboard.css";
+  import ClipboardImage from "./ClipboardImage.svelte";
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
@@ -41,6 +42,7 @@ import { time } from "$lib/utils/time";
     id: string;
     kind: ClipKind;
     content: string;
+    contentHash: string;
     preview?: string;
     timestamp: number;
     pinned: boolean;
@@ -55,7 +57,7 @@ import { time } from "$lib/utils/time";
   let clips       = $state<ClipEntry[]>([]);
   let searchQuery = $state("");
   let activeId    = $state<string | null>(null);
-  let lightboxSrc = $state<string | null>(null);
+  let lightboxHash = $state<string | null>(null);
   let copyFeedback= $state<string | null>(null);
   let loading     = $state(true);
   let pasteMode   = $state<"plain" | "rich" | "image">("plain");
@@ -127,7 +129,7 @@ import { time } from "$lib/utils/time";
   async function loadHistory() {
     loading = true;
     try {
-      const rows = await invoke<ClipEntry[]>("clipboard_list", { limit: 500 });
+      const rows = await invoke<ClipEntry[]>("clipboard_list", { limit: 100 });
       clips = rows;
       if (clips.length > 0 && !activeId) activeId = clips[0].id;
     } catch {
@@ -192,13 +194,27 @@ import { time } from "$lib/utils/time";
     }, 10_000);
   }
 
+  let pendingEntries: ClipEntry[] = [];
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flushPending() {
+    const batch = pendingEntries;
+    pendingEntries = [];
+    for (const entry of batch) {
+      if (clips.find(c => c.content === entry.content)) continue;
+      clips = [entry, ...clips];
+    }
+    if (!activeId && clips.length > 0) activeId = clips[0].id;
+  }
+
   async function startListening() {
     try {
       unlisten = await listen<ClipEntry>("clipboard://new-entry", (event) => {
         const entry = event.payload;
         if (clips.find(c => c.content === entry.content)) return;
-        clips = [entry, ...clips];
-        if (!activeId) activeId = entry.id;
+        pendingEntries.push(entry);
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = setTimeout(flushPending, 200);
       });
     } catch { /* silent */ }
   }
@@ -206,7 +222,7 @@ import { time } from "$lib/utils/time";
   // ── Keyboard ──────────────────────────────────────────────────────
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      if (lightboxSrc) { lightboxSrc = null; return; }
+      if (lightboxHash) { lightboxHash = null; return; }
       activeId = null; return;
     }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -240,6 +256,7 @@ import { time } from "$lib/utils/time";
   });
 
   onDestroy(() => {
+    if (flushTimer) clearTimeout(flushTimer);
     unlisten?.();
     window.removeEventListener("keydown", handleKeydown);
   });
@@ -413,8 +430,10 @@ import { time } from "$lib/utils/time";
               <CardContent class="cb-detail__content">
                 {#if clip.kind === "image"}
                   <div class="cb-detail__image-wrap">
-                    <img src={clip.content} alt="" class="cb-detail__image" onclick={() => lightboxSrc = clip.content} />
-                    <button class="cb-detail__zoom" onclick={() => lightboxSrc = clip.content}><ZoomInIcon size={14}/></button>
+                    <div class="cb-detail__image-wrap" onclick={() => lightboxHash = clip.contentHash}>
+                      <ClipboardImage hash={clip.contentHash} alt="" class="cb-detail__image" immediate />
+                      <button class="cb-detail__zoom" onclick={(e) => { e.stopPropagation(); lightboxHash = clip.contentHash; }}><ZoomInIcon size={14}/></button>
+                    </div>
                   </div>
                 {:else if clip.isSensitive && !clip.revealed}
                   <div class="cb-detail__sensitive">
@@ -490,7 +509,7 @@ import { time } from "$lib/utils/time";
                 aria-label="View in detail panel"
               >
                 <span class="cb-image-card__frame">
-                  <img src={clip.preview ?? clip.content} alt="" class="cb-image-card__img" />
+                  <ClipboardImage hash={clip.contentHash} alt="" class="cb-image-card__img" />
                   <span class="cb-image-card__cue">View details</span>
                 </span>
                 <span class="cb-image-card__meta">
@@ -588,12 +607,11 @@ import { time } from "$lib/utils/time";
   </section>
 </main>
 
-<!-- ═══ LIGHTBOX ═══ -->
-{#if lightboxSrc}
+<!-- ═══ LIGHTBOX ═══ -->    {#if lightboxHash}
   <div class="cb-lightbox" role="dialog" aria-modal="true" aria-label="Image preview"
-    onclick={() => lightboxSrc = null} onkeydown={(e) => { if (e.key === "Escape") lightboxSrc = null; }} tabindex="-1">
-    <button class="cb-lightbox__close" onclick={() => lightboxSrc = null} aria-label="Close"><XIcon size={20}/></button>
-    <img src={lightboxSrc} alt="" class="cb-lightbox__img" onclick={(e) => e.stopPropagation()} />
+    onclick={() => lightboxHash = null} onkeydown={(e) => { if (e.key === "Escape") lightboxHash = null; }} tabindex="-1">
+    <button class="cb-lightbox__close" onclick={() => lightboxHash = null} aria-label="Close"><XIcon size={20}/></button>
+    <ClipboardImage hash={lightboxHash} alt="" class="cb-lightbox__img" immediate />
   </div>
 {/if}
 

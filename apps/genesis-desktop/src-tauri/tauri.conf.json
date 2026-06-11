@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' module: http://module.localhost; style-src 'self' 'unsafe-inline' module: http://module.localhost; img-src 'self' data: https: module: http://module.localhost; font-src 'self' data: module: http://module.localhost; connect-src 'self' https://updates.iamazeyou.me https://api.iamazeyou.me module: http://module.localhost; frame-ancestors 'none'",
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' module: http://module.localhost; style-src 'self' 'unsafe-inline' module: http://module.localhost; img-src 'self' data: https: module: http://module.localhost http://asset.localhost; font-src 'self' data: module: http://module.localhost; connect-src 'self' https://updates.iamazeyou.me https://api.iamazeyou.me module: http://module.localhost; frame-ancestors 'none'",
       "capabilities": ["default"]
     }
   },
