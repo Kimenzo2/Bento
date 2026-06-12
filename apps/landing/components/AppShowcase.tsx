@@ -56,9 +56,9 @@ export default function AppShowcase() {
               marginTop: '16px',
             }}
           >
-            Each app is fully self-contained. They share your data with each other where it helps &mdash;
-            your sleep data might inform your mood patterns &mdash; but nothing ever leaves your
-            machine.
+            Each app is fully self-contained. They share your data with each other where it helps
+            &mdash; your sleep data might inform your mood patterns &mdash; but nothing ever leaves
+            your machine.
           </p>
         </div>
 

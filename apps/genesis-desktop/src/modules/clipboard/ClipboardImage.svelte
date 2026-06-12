@@ -14,8 +14,13 @@
   } & Record<string, unknown> = $props();
 
   let containerRef = $state<HTMLDivElement | null>(null);
-  let inView = $state(immediate);
+  let inView = $state(false);
   let imageSrc = $state<string | null>(null);
+
+  // Sync immediate prop to inView reactively
+  $effect(() => {
+    if (immediate) inView = true;
+  });
   let error = $state(false);
   let generation = $state(0);
 

@@ -694,6 +694,12 @@ pub fn run() {
             crate::habits::habits_increment,
             crate::habits::habits_get_stats,
             crate::habits::habits_export_csv,
+            crate::habits::habits_get_freeze_state,
+            crate::habits::habits_save_freeze_state,
+            crate::habits::habits_skip_today,
+            crate::habits::habits_unskip_today,
+            crate::habits::habits_freeze_streak,
+            crate::habits::habits_unfreeze_streak,
             // Goals — Goal Tracker
             crate::goals::goals_list,
             crate::goals::goals_save,

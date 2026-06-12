@@ -1,15 +1,8 @@
 {
-  "buildCommand": "bun run build:vercel",
-  "outputDirectory": "dist",
-  "framework": "vite",
+  "rootDirectory": "apps/landing",
   "installCommand": "bun install",
   "devCommand": "bun run dev",
   "trailingSlash": false,
-  "functions": {
-    "api/ai-generate.ts": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/.well-known/apple-developer-merchantid-domain-association",
@@ -21,19 +14,6 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600"
-        }
-      ]
-    },
-    {
-      "source": "/og-genesis-hero-v2.webp",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
         }
       ]
     },
@@ -78,7 +58,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.supabase.co https://*.sentry.io https://*.vercel-insights.com https://*.google.com https://*.gstatic.com https://*.dodopayments.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.unsplash.com https://*.cloudinary.com https://*.googleapis.com https://*.googleusercontent.com https://*.r2.dev https://api.dicebear.com https://*.workers.dev https://*.bytez.com https://neeed.directory; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.x.ai https://api.openai.com https://generativelanguage.googleapis.com https://*.vercel-insights.com https://*.dodopayments.com https://*.bytez.ai https://*.bytez.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.railway.app https://*.onrender.com; frame-src 'self' https://*.dodopayments.com https://*.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
         }
       ]
     },
@@ -106,24 +86,6 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/sw.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/registerSW.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
         }
       ]
     }
@@ -168,10 +130,6 @@
     {
       "source": "/bento-desktop",
       "destination": "/api/updates/bento-desktop"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ]
 }

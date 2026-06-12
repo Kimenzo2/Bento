@@ -5,6 +5,7 @@
  * Uses warm dark brown (#2c2418) instead of cold near-black.
  */
 
+import Image from 'next/image';
 import { tokens } from './tokens';
 
 export default function Footer() {
@@ -39,7 +40,7 @@ export default function Footer() {
               marginBottom: '14px',
             }}
           >
-            <img
+            <Image
               src="/bento-icon.png"
               alt="Bento"
               width={26}

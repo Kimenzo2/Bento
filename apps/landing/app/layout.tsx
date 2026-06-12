@@ -1,5 +1,12 @@
 import type { Metadata } from 'next';
+import { DM_Sans } from 'next/font/google';
 import './globals.css';
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Bento — Your whole day, one warm desktop app',
@@ -28,14 +35,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/bento-icon.png" type="image/png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
-          rel="stylesheet"
-        />
       </head>
-      <body>{children}</body>
+      <body className={dmSans.className}>{children}</body>
     </html>
   );
 }

@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react';
 import { tokens } from './tokens';
 
+import Image from 'next/image';
+
 const NAV_LINKS = [
   { label: 'Apps', href: '#apps' },
   { label: 'Why Bento', href: '#why' },
@@ -71,7 +73,7 @@ export default function Nav() {
           }}
           aria-label="Back to top"
         >
-          <img
+          <Image
             src="/bento-icon.png"
             alt="Bento"
             width={28}
@@ -153,24 +155,38 @@ export default function Nav() {
             display: 'none',
           }}
         >
-          <span style={{
-            display: 'block', width: '22px', height: '2px',
-            background: tokens.ink, marginBottom: '5px',
-            transition: 'transform 0.2s',
-            transform: open ? 'rotate(45deg) translateY(7px)' : 'none',
-          }} />
-          <span style={{
-            display: 'block', width: '22px', height: '2px',
-            background: tokens.ink, marginBottom: '5px',
-            opacity: open ? 0 : 1,
-            transition: 'opacity 0.2s',
-          }} />
-          <span style={{
-            display: 'block', width: '22px', height: '2px',
-            background: tokens.ink,
-            transform: open ? 'rotate(-45deg) translateY(-7px)' : 'none',
-            transition: 'transform 0.2s',
-          }} />
+          <span
+            style={{
+              display: 'block',
+              width: '22px',
+              height: '2px',
+              background: tokens.ink,
+              marginBottom: '5px',
+              transition: 'transform 0.2s',
+              transform: open ? 'rotate(45deg) translateY(7px)' : 'none',
+            }}
+          />
+          <span
+            style={{
+              display: 'block',
+              width: '22px',
+              height: '2px',
+              background: tokens.ink,
+              marginBottom: '5px',
+              opacity: open ? 0 : 1,
+              transition: 'opacity 0.2s',
+            }}
+          />
+          <span
+            style={{
+              display: 'block',
+              width: '22px',
+              height: '2px',
+              background: tokens.ink,
+              transform: open ? 'rotate(-45deg) translateY(-7px)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+          />
         </button>
       </div>
 

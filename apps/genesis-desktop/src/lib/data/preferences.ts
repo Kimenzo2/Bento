@@ -88,7 +88,7 @@ export const reopenShortcutOptions: ReopenShortcutOption[] = [
  * Used by the Notes and Journal editors to dynamically switch fonts.
  */
 export function getEditorFontFamily(fontPairingId: string): string {
-  const pairing = fontPairings.find(p => p.id === fontPairingId);
+  const pairing = fontPairings.find((p) => p.id === fontPairingId);
   if (!pairing) return 'Instrument Serif, serif';
 
   switch (pairing.id) {
@@ -106,7 +106,7 @@ export function getEditorFontFamily(fontPairingId: string): string {
  * Get the font pairing name for display purposes.
  */
 export function getFontPairingName(fontPairingId: string): string {
-  return fontPairings.find(p => p.id === fontPairingId)?.name ?? 'Instrument Serif';
+  return fontPairings.find((p) => p.id === fontPairingId)?.name ?? 'Instrument Serif';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -169,15 +169,20 @@ export const journalFontVariations: JournalFontVariation[] = [
 export const defaultJournalFontVariationId = 'jv-plex-instrument';
 
 export function getJournalFontBody(variationId: string): string {
-  return journalFontVariations.find(v => v.id === variationId)?.body ?? "'Instrument Serif', serif";
+  return (
+    journalFontVariations.find((v) => v.id === variationId)?.body ?? "'Instrument Serif', serif"
+  );
 }
 
 export function getJournalFontHeading(variationId: string): string {
-  return journalFontVariations.find(v => v.id === variationId)?.heading ?? "'IBM Plex Sans', sans-serif";
+  return (
+    journalFontVariations.find((v) => v.id === variationId)?.heading ??
+    "'IBM Plex Sans', sans-serif"
+  );
 }
 
 export function getJournalFontVariationName(variationId: string): string {
-  return journalFontVariations.find(v => v.id === variationId)?.name ?? 'Instrument Serif';
+  return journalFontVariations.find((v) => v.id === variationId)?.name ?? 'Instrument Serif';
 }
 
 export const defaultFontPairingId = fontPairings[0]?.id ?? 'bento-classic';

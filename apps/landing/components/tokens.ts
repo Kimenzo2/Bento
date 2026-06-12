@@ -15,6 +15,11 @@ export const tokens = {
   accentSecondary: '#7c8e6e',
   accentSecondaryLight: '#e2e8db',
 
+  // Tertiary accent — dusty violet, used sparingly for highlights
+  accentViolet: '#8c7cc7',
+  accentVioletLight: '#ece7f7',
+  heroHighlight: 'linear-gradient(135deg, #b85c3a 0%, #8c7cc7 100%)',
+
   // Neutrals — warm ivory/cream family
   ink: '#2c2418',
   inkMuted: '#6b5e53',

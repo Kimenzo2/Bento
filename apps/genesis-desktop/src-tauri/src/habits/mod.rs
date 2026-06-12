@@ -4,12 +4,14 @@
 // Full CRUD for habits with completion tracking, streaks, and CSV export.
 // ─────────────────────────────────────────────────────────────────────────────
 
+use chrono::{Datelike, Local, TimeZone};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use tauri::State;
+use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::settings;
 use crate::util::time;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -23,6 +25,8 @@ pub struct HabitRow {
     pub name: String,
     pub emoji: String,
     pub color: String,
+    pub kind: String,             // 'build' | 'quit'
+    pub archived: bool,
     pub completion_type: String,  // 'binary' | 'count' | 'duration'
     pub target_count: i32,
     pub unit: String,
@@ -40,6 +44,8 @@ pub struct HabitInput {
     pub name: String,
     pub emoji: String,
     pub color: String,
+    pub kind: String,
+    pub archived: Option<bool>,
     pub completion_type: String,
     pub target_count: i32,
     pub unit: String,
@@ -93,7 +99,7 @@ pub async fn habits_list(
     ensure_habits_tables(&state.db()).await?;
 
     let habits = sqlx::query(
-        "SELECT id, name, emoji, color, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at
+        "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at
          FROM habits ORDER BY sort_order ASC, created_at ASC",
     )
     .fetch_all(&state.db())
@@ -108,38 +114,60 @@ pub async fn habits_list(
     for row in habits {
         let id: String = row.get("id");
 
-        // Fetch last 90 days of completions
+        // Fetch completions (last 90 days + sentinels)
+        let recent_bound = ninety_days_ago;
         let completions: Vec<i64> = sqlx::query_scalar(
             "SELECT completed_at FROM habit_completions WHERE habit_id = ? AND completed_at >= ? ORDER BY completed_at ASC",
         )
         .bind(&id)
-        .bind(ninety_days_ago)
+        .bind(recent_bound)
         .fetch_all(&state.db())
         .await
         .map_err(|e| e.to_string())?;
 
+        // Detect sentinels: -1 = skip, -2 = freeze
+        let has_skip_sentinel = completions.contains(&-1);
+        let has_freeze_sentinel = completions.contains(&-2);
+
+        // Filter sentinels out for history calculation
+        let real_completions: Vec<&i64> = completions.iter().filter(|ts| **ts > 0).collect();
+
         // Build completion_history as 90-element boolean array (oldest → newest)
         let mut history = vec![false; 90];
-        for ts in &completions {
-            let idx = ((ts - ninety_days_ago) / 86_400_000) as usize;
+        for ts in &real_completions {
+            let idx = ((*ts - ninety_days_ago) / 86_400_000) as usize;
             if idx < 90 {
                 history[idx] = true;
             }
         }
 
-        // Compute streak (consecutive trailing true from yesterday backward)
-        let mut streak = 0i32;
-        for i in (0..90).rev() {
-            if history[i] {
-                streak += 1;
-            } else {
-                break;
+        // Determine today's completion status
+        let today_completed = real_completions.iter().any(|ts| **ts >= today_start && **ts < tomorrow_start);
+
+        // Compute frequency-aware streak (consecutive trailing true, skipping days the habit doesn't require)
+        let freq: String = row.get("frequency");
+        let freq_streak = |end_idx: usize| -> i32 {
+            let mut s = 0i32;
+            for i in (0..=end_idx).rev() {
+                let day_start = today_start - ((89 - i) as i64 * 86_400_000);
+                let dow = Local.timestamp_millis_opt(day_start).single()
+                    .map(|dt| dt.weekday().num_days_from_monday())
+                    .unwrap_or(0);
+                let required = match freq.as_str() {
+                    "weekdays" => dow < 5,
+                    "weekends" => dow >= 5,
+                    _ => true,
+                };
+                if !required { continue; }
+                if history[i] { s += 1; } else { break; }
             }
+            s
+        };
+        let mut streak = freq_streak(89);
+        // If today not done but freeze sentinel active, use yesterday's streak
+        if !today_completed && has_freeze_sentinel && streak == 0 {
+            streak = freq_streak(88);
         }
-        // Exclude today from streak if it's the last element (today hasn't ended yet)
-        // Actually streak should count continuous completions up to yesterday.
-        // Today's completion is tracked separately via completed_today.
-        let today_completed = completions.iter().any(|ts| *ts >= today_start && *ts < tomorrow_start);
 
         // Longest streak
         let mut longest = 0i32;
@@ -155,7 +183,7 @@ pub async fn habits_list(
             }
         }
 
-        // Current count for today (for count-based habits)
+        // Current count for today (for count/duration habits)
         let current_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM habit_completions WHERE habit_id = ? AND completed_at >= ? AND completed_at < ?",
         )
@@ -172,6 +200,8 @@ pub async fn habits_list(
                 name: row.get("name"),
                 emoji: row.get("emoji"),
                 color: row.get("color"),
+                kind: row.get::<Option<String>, _>("kind").unwrap_or_default(),
+                archived: row.get::<i64, _>("archived") != 0,
                 completion_type: row.get("completion_type"),
                 target_count: row.get::<i64, _>("target_count") as i32,
                 unit: row.get("unit"),
@@ -185,8 +215,8 @@ pub async fn habits_list(
             longest_streak: longest,
             completed_today: today_completed,
             current_count: current_count as i32,
-            skipped_today: false,   // tracked client-side for now
-            frozen_streak: false,   // tracked client-side for now
+            skipped_today: has_skip_sentinel,
+            frozen_streak: has_freeze_sentinel,
             completion_history: history,
         });
     }
@@ -211,11 +241,13 @@ pub async fn habits_save(
     if let Some(id) = input.id {
         // Update existing
         sqlx::query(
-            "UPDATE habits SET name=?, emoji=?, color=?, completion_type=?, target_count=?, unit=?, frequency=?, why=?, updated_at=? WHERE id=?",
+            "UPDATE habits SET name=?, emoji=?, color=?, kind=?, archived=?, completion_type=?, target_count=?, unit=?, frequency=?, why=?, updated_at=? WHERE id=?",
         )
         .bind(&trimmed_name)
         .bind(&input.emoji)
         .bind(&input.color)
+        .bind(&input.kind)
+        .bind(input.archived.unwrap_or(false) as i64)
         .bind(&input.completion_type)
         .bind(input.target_count as i64)
         .bind(&input.unit)
@@ -229,7 +261,7 @@ pub async fn habits_save(
 
         // Return updated row
         let row = sqlx::query(
-            "SELECT id, name, emoji, color, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at FROM habits WHERE id=?",
+            "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at FROM habits WHERE id=?",
         )
         .bind(&id)
         .fetch_one(&state.db())
@@ -241,6 +273,8 @@ pub async fn habits_save(
             name: row.get("name"),
             emoji: row.get("emoji"),
             color: row.get("color"),
+            kind: row.get::<Option<String>, _>("kind").unwrap_or_default(),
+            archived: row.get::<i64, _>("archived") != 0,
             completion_type: row.get("completion_type"),
             target_count: row.get::<i64, _>("target_count") as i32,
             unit: row.get("unit"),
@@ -261,13 +295,15 @@ pub async fn habits_save(
             .map_err(|e| e.to_string())?;
 
         sqlx::query(
-            "INSERT INTO habits (id, name, emoji, color, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO habits (id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&id)
         .bind(&trimmed_name)
         .bind(&input.emoji)
         .bind(&input.color)
+        .bind(&input.kind)
+        .bind(false as i64)
         .bind(&input.completion_type)
         .bind(input.target_count as i64)
         .bind(&input.unit)
@@ -285,6 +321,8 @@ pub async fn habits_save(
             name: trimmed_name,
             emoji: input.emoji,
             color: input.color,
+            kind: input.kind,
+            archived: false,
             completion_type: input.completion_type,
             target_count: input.target_count,
             unit: input.unit,
@@ -339,7 +377,7 @@ pub async fn habits_toggle_complete(
     .map_err(|e| e.to_string())?;
 
     if existing.is_some() {
-        // Remove today's completion
+        // Remove today's completion (including skip sentinel)
         sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at >= ? AND completed_at < ?")
             .bind(&habit_id)
             .bind(today_start)
@@ -347,8 +385,20 @@ pub async fn habits_toggle_complete(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        // Also clear skip sentinel
+        sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at = -1")
+            .bind(&habit_id)
+            .execute(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(false)
     } else {
+        // Clear any existing skip sentinel
+        sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at = -1")
+            .bind(&habit_id)
+            .execute(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
         // Add completion
         let now = time::now_ms();
         sqlx::query("INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
@@ -527,6 +577,120 @@ fn csv_escape(s: &str) -> String {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// FREEZE STATE — persisted in DesktopSettings
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Get current freeze token state from settings.
+#[tauri::command]
+pub async fn habits_get_freeze_state(
+    app: AppHandle,
+) -> Result<StreakFreezeState, String> {
+    let s = settings::current_settings(&app);
+    Ok(StreakFreezeState {
+        freeze_tokens: s.habits.freeze_tokens,
+        used_freeze_tokens: s.habits.used_freeze_tokens,
+        vacation_active: false,
+        vacation_until: None,
+    })
+}
+
+/// Save freeze token state to settings.
+#[tauri::command]
+pub async fn habits_save_freeze_state(
+    app: AppHandle,
+    freeze_tokens: i32,
+    used_freeze_tokens: i32,
+) -> Result<(), String> {
+    let tokens = freeze_tokens.max(1).min(10);
+    let used = used_freeze_tokens.max(0).min(tokens);
+    settings::update_desktop_settings(&app, |next| {
+        next.habits.freeze_tokens = tokens;
+        next.habits.used_freeze_tokens = used;
+    })?;
+    Ok(())
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SKIP / FREEZE sentinel commands
+// Sentinels are stored in habit_completions:
+//   completed_at = -1 → skip today
+//   completed_at = -2 → freeze streak
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Mark a habit as skipped today (inserts sentinel).
+#[tauri::command]
+pub async fn habits_skip_today(
+    state: State<'_, BentoAppState>,
+    habit_id: String,
+) -> Result<(), String> {
+    ensure_habits_tables(&state.db()).await?;
+    sqlx::query("INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, -1)")
+        .bind(&habit_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Remove the skip sentinel for a habit.
+#[tauri::command]
+pub async fn habits_unskip_today(
+    state: State<'_, BentoAppState>,
+    habit_id: String,
+) -> Result<(), String> {
+    sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at = -1")
+        .bind(&habit_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Freeze a habit's streak (inserts freeze sentinel + decrements token).
+#[tauri::command]
+pub async fn habits_freeze_streak(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    habit_id: String,
+) -> Result<(), String> {
+    ensure_habits_tables(&state.db()).await?;
+    sqlx::query("INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, -2)")
+        .bind(&habit_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    // Decrement used_freeze_tokens
+    settings::update_desktop_settings(&app, |next| {
+        let max = next.habits.freeze_tokens;
+        if next.habits.used_freeze_tokens < max {
+            next.habits.used_freeze_tokens += 1;
+        }
+    })?;
+    Ok(())
+}
+
+/// Unfreeze a habit (removes sentinel + refunds token).
+#[tauri::command]
+pub async fn habits_unfreeze_streak(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    habit_id: String,
+) -> Result<(), String> {
+    sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at = -2")
+        .bind(&habit_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    // Refund token
+    settings::update_desktop_settings(&app, |next| {
+        if next.habits.used_freeze_tokens > 0 {
+            next.habits.used_freeze_tokens -= 1;
+        }
+    })?;
+    Ok(())
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // TABLE BOOTSTRAP
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -538,6 +702,8 @@ pub async fn ensure_habits_tables(pool: &sqlx::SqlitePool) -> Result<(), String>
             name TEXT NOT NULL,
             emoji TEXT NOT NULL DEFAULT '⭐',
             color TEXT NOT NULL DEFAULT 'var(--mod-accent)',
+            kind TEXT NOT NULL DEFAULT 'build',
+            archived INTEGER NOT NULL DEFAULT 0,
             completion_type TEXT NOT NULL DEFAULT 'binary',
             target_count INTEGER NOT NULL DEFAULT 1,
             unit TEXT NOT NULL DEFAULT '',
@@ -554,15 +720,6 @@ pub async fn ensure_habits_tables(pool: &sqlx::SqlitePool) -> Result<(), String>
         )"#,
         r#"CREATE INDEX IF NOT EXISTS idx_habit_completions_habit ON habit_completions(habit_id)"#,
         r#"CREATE INDEX IF NOT EXISTS idx_habit_completions_date ON habit_completions(completed_at DESC)"#,
-        // Additive column migrations (harmless if columns already exist)
-        r#"ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT '⭐'"#,
-        r#"ALTER TABLE habits ADD COLUMN color TEXT NOT NULL DEFAULT 'var(--mod-accent)'"#,
-        r#"ALTER TABLE habits ADD COLUMN completion_type TEXT NOT NULL DEFAULT 'binary'"#,
-        r#"ALTER TABLE habits ADD COLUMN target_count INTEGER NOT NULL DEFAULT 1"#,
-        r#"ALTER TABLE habits ADD COLUMN unit TEXT NOT NULL DEFAULT ''"#,
-        r#"ALTER TABLE habits ADD COLUMN why TEXT NOT NULL DEFAULT ''"#,
-        r#"ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE habits ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0"#,
     ];
 
     for sql in migrations {

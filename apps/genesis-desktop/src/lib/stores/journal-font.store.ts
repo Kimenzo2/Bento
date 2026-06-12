@@ -5,7 +5,11 @@
  */
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
-import { defaultJournalFontVariationId, getJournalFontBody, getJournalFontHeading } from '$lib/data/preferences';
+import {
+  defaultJournalFontVariationId,
+  getJournalFontBody,
+  getJournalFontHeading,
+} from '$lib/data/preferences';
 
 const STORAGE_KEY = 'bento_journal_font_variation';
 
@@ -14,7 +18,9 @@ function loadInitialValue(): string {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return stored;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return defaultJournalFontVariationId;
 }
 
@@ -23,7 +29,11 @@ export const journalFontVariationId = writable<string>(loadInitialValue());
 /** Subscribe to changes and persist + apply CSS custom properties. */
 export function applyJournalFont(variationId: string): void {
   if (!browser) return;
-  try { localStorage.setItem(STORAGE_KEY, variationId); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, variationId);
+  } catch {
+    /* ignore */
+  }
   const body = getJournalFontBody(variationId);
   const heading = getJournalFontHeading(variationId);
   document.documentElement.style.setProperty('--je-body-font', body);

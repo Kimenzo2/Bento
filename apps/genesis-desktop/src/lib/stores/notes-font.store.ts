@@ -18,7 +18,9 @@ function loadInitialValue(): string {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return stored;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return defaultJournalFontVariationId;
 }
 
@@ -27,7 +29,11 @@ export const notesFontVariationId = writable<string>(loadInitialValue());
 /** Subscribe to changes and persist + apply CSS custom properties. */
 export function applyNotesFont(variationId: string): void {
   if (!browser) return;
-  try { localStorage.setItem(STORAGE_KEY, variationId); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, variationId);
+  } catch {
+    /* ignore */
+  }
   const body = getJournalFontBody(variationId);
   const heading = getJournalFontHeading(variationId);
   document.documentElement.style.setProperty('--notes-body-font', body);

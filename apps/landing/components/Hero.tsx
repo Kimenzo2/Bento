@@ -7,6 +7,7 @@
  */
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { tokens } from './tokens';
 
@@ -22,7 +23,13 @@ function detectPlatform(): Platform | null {
   return null;
 }
 
-export default function Hero({ version, platforms }: { version: string; platforms: Record<Platform, PlatformInfo> }) {
+export default function Hero({
+  version,
+  platforms,
+}: {
+  version: string;
+  platforms: Record<Platform, PlatformInfo>;
+}) {
   const [platform] = useState(detectPlatform);
   const active = platform ? platforms[platform] : null;
 
@@ -35,7 +42,7 @@ export default function Hero({ version, platforms }: { version: string; platform
         background: tokens.heroGradient,
         paddingTop: '60px',
       }}
-      aria-labelledby='hero-heading'
+      aria-labelledby="hero-heading"
     >
       <div
         style={{
@@ -66,9 +73,9 @@ export default function Hero({ version, platforms }: { version: string; platform
             flexWrap: 'wrap',
           }}
         >
-          <img
-            src='/bento-icon.png'
-            alt='Bento app icon'
+          <Image
+            src="/bento-icon.png"
+            alt="Bento app icon"
             width={72}
             height={72}
             style={{
@@ -79,7 +86,7 @@ export default function Hero({ version, platforms }: { version: string; platform
           />
           <div style={{ flex: 1, minWidth: '260px' }}>
             <h1
-              id='hero-heading'
+              id="hero-heading"
               style={{
                 fontSize: tokens.heroSize,
                 fontWeight: 700,
@@ -105,9 +112,9 @@ export default function Hero({ version, platforms }: { version: string; platform
             marginBottom: '40px',
           }}
         >
-          Bento is a calm, private desktop app with twelve tools built in &mdash; mood, focus, habits,
-          sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and a gentle AI
-          chat. Everything you need to run your day, nothing you don&rsquo;t.
+          Bento is a calm, private desktop app with twelve tools built in &mdash; mood, focus,
+          habits, sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and a
+          gentle AI chat. Everything you need to run your day, nothing you don&rsquo;t.
         </p>
 
         <div
@@ -136,13 +143,13 @@ export default function Hero({ version, platforms }: { version: string; platform
               letterSpacing: '-0.01em',
             }}
           >
-            <svg width='16' height='16' viewBox='0 0 16 16' fill='none' aria-hidden='true'>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
-                d='M8 1v9M8 10l-3-3M8 10l3-3M2 13h12'
-                stroke='currentColor'
-                strokeWidth='1.75'
-                strokeLinecap='round'
-                strokeLinejoin='round'
+                d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </svg>
             Download for {active ? active.label : 'Windows'} &mdash; free
@@ -186,6 +193,28 @@ export default function Hero({ version, platforms }: { version: string; platform
               {p.label} installer
             </a>
           ))}
+        </div>
+
+        {/* Hero screenshot */}
+        <div
+          style={{
+            marginTop: 'clamp(3rem, 6vw, 5rem)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: tokens.surface,
+          }}
+        >
+          <Image
+            src="/images/hero-app-screenshot.png"
+            alt="Bento tasks view, showing a calendar with scheduled tasks for the month"
+            width={1920}
+            height={1132}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: 'auto',
+            }}
+          />
         </div>
       </div>
     </section>

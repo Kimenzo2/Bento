@@ -9,17 +9,16 @@
 import { tokens } from './tokens';
 
 export default function DownloadSection({ version }: { version: string }) {
-  const v = 'v' + version;
   const winHref = '/downloads/Bento_' + version + '_x64-setup.exe';
 
   return (
     <section
-      id='download'
+      id="download"
       style={{
         background: tokens.heroGradient,
         padding: tokens.sectionPad + ' 28px',
       }}
-      aria-labelledby='download-heading'
+      aria-labelledby="download-heading"
     >
       <div
         style={{
@@ -45,7 +44,7 @@ export default function DownloadSection({ version }: { version: string }) {
             Ready when you are
           </p>
           <h2
-            id='download-heading'
+            id="download-heading"
             style={{
               fontSize: tokens.headingSize,
               fontWeight: 700,
@@ -89,13 +88,13 @@ export default function DownloadSection({ version }: { version: string }) {
               letterSpacing: '-0.01em',
             }}
           >
-            <svg width='16' height='16' viewBox='0 0 16 16' fill='none' aria-hidden='true'>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
-                d='M8 1v9M8 10l-3-3M8 10l3-3M2 13h12'
-                stroke='currentColor'
-                strokeWidth='1.75'
-                strokeLinecap='round'
-                strokeLinejoin='round'
+                d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </svg>
             Download for free
@@ -158,20 +157,26 @@ export default function DownloadSection({ version }: { version: string }) {
                 }}
               >
                 <svg
-                  width='15'
-                  height='15'
-                  viewBox='0 0 15 15'
-                  fill='none'
-                  aria-hidden='true'
+                  width="15"
+                  height="15"
+                  viewBox="0 0 15 15"
+                  fill="none"
+                  aria-hidden="true"
                   style={{ marginTop: '2px', flexShrink: 0 }}
                 >
-                  <circle cx='7.5' cy='7.5' r='7' stroke={tokens.accentSecondary} strokeWidth='1.25' />
-                  <path
-                    d='M4.5 7.5l2.25 2.25L10.5 5.5'
+                  <circle
+                    cx="7.5"
+                    cy="7.5"
+                    r="7"
                     stroke={tokens.accentSecondary}
-                    strokeWidth='1.25'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
+                    strokeWidth="1.25"
+                  />
+                  <path
+                    d="M4.5 7.5l2.25 2.25L10.5 5.5"
+                    stroke={tokens.accentSecondary}
+                    strokeWidth="1.25"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                 </svg>
                 {note}
@@ -191,7 +196,7 @@ export default function DownloadSection({ version }: { version: string }) {
             Also available for macOS and Linux. <br />
             Questions?{' '}
             <a
-              href='mailto:support@bentoproductivity.app'
+              href="mailto:support@bentoproductivity.app"
               style={{ color: tokens.accent, textDecoration: 'none' }}
             >
               Get in touch.

@@ -46,6 +46,8 @@ pub struct DesktopSettings {
     pub byok: ByokSettings,
     #[serde(default)]
     pub cloud_backup: CloudBackupSettings,
+    #[serde(default)]
+    pub habits: HabitSettings,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -184,6 +186,17 @@ pub struct PaymentSettings {
     #[serde(default)]
     pub receipt: Option<PaymentReceipt>,
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HabitSettings {
+    #[serde(default = "default_freeze_tokens")]
+    pub freeze_tokens: i32,
+    #[serde(default)]
+    pub used_freeze_tokens: i32,
+}
+
+fn default_freeze_tokens() -> i32 { 3 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -520,6 +533,7 @@ pub fn default_settings() -> DesktopSettings {
         payment: PaymentSettings::default(),
         byok: ByokSettings::default(),
         cloud_backup: CloudBackupSettings::default(),
+        habits: HabitSettings::default(),
     }
 }
 

@@ -6,27 +6,27 @@
 ════════════════════════════════════════════════════════════════ */
 
 :global(.cb-workspace) {
-  --cb-bg:             var(--background);
-  --cb-surface:        color-mix(in srgb, var(--surface) 96%, var(--background));
+  --cb-bg: var(--background);
+  --cb-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
   --cb-surface-strong: color-mix(in srgb, var(--surface) 88%, var(--background));
-  --cb-border:         color-mix(in srgb, var(--border) 86%, transparent);
-  --cb-ink:            var(--foreground);
-  --cb-muted:          var(--muted);
-  --cb-accent:         var(--primary);
+  --cb-border: color-mix(in srgb, var(--border) 86%, transparent);
+  --cb-ink: var(--foreground);
+  --cb-muted: var(--muted);
+  --cb-accent: var(--primary);
 
   /* Kind colors (used for subtle accents only) */
-  --cb-code:      #7c3aed;
-  --cb-link:      #2563eb;
-  --cb-image:     #0891b2;
+  --cb-code: #7c3aed;
+  --cb-link: #2563eb;
+  --cb-image: #0891b2;
   --cb-sensitive: #dc2626;
-  --cb-pin:       #d97706;
-  --cb-fav:       #7c3aed;
+  --cb-pin: #d97706;
+  --cb-fav: #7c3aed;
 
-  height:     100%;
-  padding:    32px 36px;
+  height: 100%;
+  padding: 32px 36px;
   background: var(--cb-bg);
-  color:      var(--cb-ink);
-  overflow:   hidden;
+  color: var(--cb-ink);
+  overflow: hidden;
   font-family: var(--font-body);
   box-sizing: border-box;
 }
@@ -174,12 +174,11 @@
 :global(.cb-panel) {
   border: none;
   border-radius: 16px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
-      color-mix(in srgb, var(--cb-surface) 86%, var(--background))
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
+    color-mix(in srgb, var(--cb-surface) 86%, var(--background))
+  );
 }
 
 :global(.cb-panel),
@@ -405,7 +404,7 @@
   padding: 16px 18px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--cb-ink) 5%, transparent);
-  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
   font-size: 0.82rem;
   line-height: 1.65;
   color: var(--cb-ink);
@@ -565,10 +564,11 @@
   padding: 16px 18px;
   border: none;
   border-radius: 16px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
-      color-mix(in srgb, var(--cb-surface) 88%, var(--background)));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
+    color-mix(in srgb, var(--cb-surface) 88%, var(--background))
+  );
   color: var(--cb-ink);
   font: inherit;
   cursor: pointer;
@@ -576,10 +576,11 @@
 }
 
 :global(.cb-snippet-card:hover) {
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--cb-surface) 100%, var(--background)),
-      color-mix(in srgb, var(--cb-surface) 92%, var(--background)));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cb-surface) 100%, var(--background)),
+    color-mix(in srgb, var(--cb-surface) 92%, var(--background))
+  );
 }
 
 :global(.cb-snippet-card__head) {
@@ -613,7 +614,7 @@
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
-  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
   max-height: 5em;
 }
 
@@ -659,12 +660,11 @@
   flex-direction: column;
   border: none;
   border-radius: 16px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
-      color-mix(in srgb, var(--cb-surface) 86%, var(--background))
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
+    color-mix(in srgb, var(--cb-surface) 86%, var(--background))
+  );
   padding: 0;
   overflow: hidden;
   cursor: pointer;
@@ -674,12 +674,11 @@
 }
 
 :global(.cb-image-card:hover) {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--cb-surface) 100%, var(--background)),
-      color-mix(in srgb, var(--cb-surface) 92%, var(--background))
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cb-surface) 100%, var(--background)),
+    color-mix(in srgb, var(--cb-surface) 92%, var(--background))
+  );
 }
 
 /* Image frame — natural aspect ratio preserved */

@@ -22,10 +22,9 @@
 }
 
 .tasks-app.detail-open {
-  grid-template-columns: var(--tasks-sidebar-width, 220px) var(
-      --tasks-list-width,
-      380px
-    ) 1px minmax(0, 1fr);
+  grid-template-columns:
+    var(--tasks-sidebar-width, 220px) var(--tasks-list-width, 380px)
+    1px minmax(0, 1fr);
 }
 
 .tasks-app,
@@ -2687,8 +2686,13 @@
   border-radius: 6px;
   letter-spacing: -0.01em;
 }
-.tasks-cal-select:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
-.tasks-cal-select option { background: var(--background); color: var(--foreground); }
+.tasks-cal-select:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+.tasks-cal-select option {
+  background: var(--background);
+  color: var(--foreground);
+}
 
 .tasks-cal-arrow {
   display: grid;
@@ -2702,7 +2706,9 @@
   cursor: pointer;
   transition: background 100ms ease;
 }
-.tasks-cal-arrow:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.tasks-cal-arrow:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
 
 .tasks-cal-today-btn {
   height: 28px;
@@ -2716,7 +2722,9 @@
   cursor: pointer;
   transition: background 100ms ease;
 }
-.tasks-cal-today-btn:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.tasks-cal-today-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
 
 /* ── Grid wrapper ── */
 .tasks-cal-wrap {
@@ -2766,8 +2774,8 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-height: 90px;       /* base height for empty cells */
-  height: auto;            /* grow with content — no overflow hidden */
+  min-height: 90px; /* base height for empty cells */
+  height: auto; /* grow with content — no overflow hidden */
   position: relative;
   transition: background 80ms ease;
 }
@@ -2816,7 +2824,9 @@
   place-items: center;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 100ms ease, background 100ms ease;
+  transition:
+    opacity 100ms ease,
+    background 100ms ease;
   flex-shrink: 0;
 }
 
@@ -2920,7 +2930,7 @@
   background: var(--background);
   border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
   padding: 8px;
   min-width: 180px;
   display: flex;

@@ -16,7 +16,6 @@ import DownloadSection from '../components/DownloadSection';
 import Footer from '../components/Footer';
 
 function buildPlatforms(version: string) {
-  const v = 'v' + version;
   return {
     windows: {
       label: 'Windows',
@@ -41,7 +40,8 @@ function getLatestVersion(): string {
     const dir = path.join(process.cwd(), 'public', 'downloads');
     if (!fs.existsSync(dir)) return '0.1.0';
 
-    const versions = fs.readdirSync(dir)
+    const versions = fs
+      .readdirSync(dir)
       .map((f) => f.match(/Bento_(\d+\.\d+\.\d+)_/))
       .filter(Boolean)
       .map((m) => m![1])
@@ -62,9 +62,11 @@ export default function HomePage() {
 
   return (
     <>
-      <a href='#main-content' className='skip-link'>Skip to main content</a>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Nav />
-      <main id='main-content'>
+      <main id="main-content">
         <Hero version={version} platforms={platforms} />
         <AppShowcase />
         <WhyBento />

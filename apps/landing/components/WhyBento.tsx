@@ -12,32 +12,28 @@ const reasons = [
   {
     icon: '🔒',
     title: 'Completely private',
-    body:
-      'Your data stays on your computer. No telemetry, no tracking, no internet required after install.',
+    body: 'Your data stays on your computer. No telemetry, no tracking, no internet required after install.',
     bg: tokens.surface,
     iconBg: tokens.accentLight,
   },
   {
     icon: '📦',
     title: 'Twelve apps, one install',
-    body:
-      'Stop juggling separate tools for habits, focus, sleep, budget, and mood. Bento brings them together so they can actually talk to each other.',
+    body: 'Stop juggling separate tools for habits, focus, sleep, budget, and mood. Bento brings them together so they can actually talk to each other.',
     bg: tokens.surfaceAlt,
     iconBg: tokens.accentSecondaryLight,
   },
   {
     icon: '🌿',
     title: 'Calm by design',
-    body:
-      'No gamification dark patterns. No streaks that guilt you. No notifications that interrupt. Bento is there when you want it, quiet when you don\'t.',
+    body: "No gamification dark patterns. No streaks that guilt you. No notifications that interrupt. Bento is there when you want it, quiet when you don't.",
     bg: tokens.surface,
     iconBg: tokens.surfaceWarm,
   },
   {
     icon: '⚡',
     title: 'Fast and native',
-    body:
-      'Built with Tauri, Bento is a real desktop app. It opens instantly, uses very little memory, and works offline — always.',
+    body: 'Built with Tauri, Bento is a real desktop app. It opens instantly, uses very little memory, and works offline — always.',
     bg: tokens.surfaceAlt,
     iconBg: tokens.accentLight,
   },
@@ -88,8 +84,8 @@ export default function WhyBento() {
               marginTop: '16px',
             }}
           >
-            Most productivity apps assume you have an ideal schedule and unlimited willpower.
-            Bento doesn&rsquo;t. It&rsquo;s designed for messy, real, human days.
+            Most productivity apps assume you have an ideal schedule and unlimited willpower. Bento
+            doesn&rsquo;t. It&rsquo;s designed for messy, real, human days.
           </p>
         </div>
 
