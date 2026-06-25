@@ -1,8 +1,0 @@
-# Add these Paystack plan codes to your .env file:
-
-# Paystack Plan Codes (from your Paystack dashboard)
-VITE_PAYSTACK_CREATOR_PLAN=PLN_zbnzvdqjsdxfcqc
-VITE_PAYSTACK_STUDIO_PLAN=PLN_09zg1ly5kg57niz
-VITE_PAYSTACK_EMPIRE_PLAN=PLN_tv2y349z88b1bd8
-
-# Note: Also add these to your Vercel environment variables for production!

@@ -143,6 +143,3 @@ package-lock.json
 *.avif
 *.heic
 *.heif
-
-# Playwright results
-tests/playwright/results/

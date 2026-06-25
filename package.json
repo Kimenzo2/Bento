@@ -1,63 +1,29 @@
 {
-  "name": "genesis-monorepo",
-  "version": "2.0.0",
+  "name": "bento-monorepo",
+  "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "mastra",
-    "apps/genesis-app",
     "apps/landing",
-    "packages/*"
+    "apps/genesis-desktop"
   ],
   "scripts": {
-    "dev": "turbo dev",
-    "dev:api": "bun dev-api-server.mjs",
-    "guard:payments": "node scripts/check-payment-guardrails.cjs",
-    "dev:both": "turbo dev --filter=@genesis/app --filter=@genesis/landing",
-    "dev:all": " bun run dev:both",
-    "dev:genesis": "turbo dev --filter=@genesis/app",
     "dev:landing": "turbo dev --filter=@genesis/landing",
-    "dev:mastra": "bun run --cwd mastra dev",
-    "mastra:build": "bun run --cwd mastra build",
-    "mastra:start": "bun run --cwd mastra start",
-    "build": "node scripts/check-payment-guardrails.cjs && turbo build --concurrency=1 && node scripts/sync-root-dist.cjs",
-    "build:genesis": "turbo build --filter=@genesis/app",
+    "dev:desktop": "turbo dev --filter=@bento/desktop",
     "build:landing": "turbo build --filter=@genesis/landing",
-    "build:vercel": "bun run --cwd apps/genesis-app build && node scripts/sync-root-dist.cjs",
-    "type-check:mastra": "bun run --cwd mastra type-check",
-    "test:mastra": "bun run --cwd mastra test",
-    "mastra:deploy": "bun run --cwd mastra server:deploy",
-    "mastra:studio": "bun run --cwd mastra studio:deploy",
+    "build:desktop": "turbo build --filter=@bento/desktop",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "lint:ci": "oxlint --deny-warnings .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "check": "bun run format:check && bun run lint",
-    "pre-commit": "bun run check",
-    "ci": "bun run format:check && bun run lint:ci && bun run type-check && bun run test",
     "type-check": "turbo type-check",
     "test": "turbo test"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.99.1",
-    "dodopayments": "^2.23.2",
-    "iceberg-js": "^0.7.0",
-    "jose": "^6.2.1",
-    "resend": "^6.9.4"
-  },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@vercel/node": "^5.6.18",
     "oxfmt": "^0.47.0",
     "oxlint": "^1.62.0",
-    "playwright": "^1.58.2",
     "turbo": "^2.8.20",
-    "typescript": "^6.0.2",
-    "vitest": "4.1.2"
-  },
-  "overrides": {
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "typescript": "^6.0.2"
   },
   "packageManager": "bun@1.3.11"
 }

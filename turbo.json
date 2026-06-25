@@ -3,7 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", ".mastra/output/**"]
+      "outputs": [".next/**", "dist/**"]
     },
     "dev": {
       "cache": false,
