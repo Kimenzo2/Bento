@@ -10,14 +10,43 @@
  */
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+
+const FALLBACK_SUPABASE_URL = 'https://qjjocfnqwtccuxbnoult.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9jZm5xd3RjY3V4Ym5vdWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NzY3MzUsImV4cCI6MjA3OTI1MjczNX0.oPqt-rffxO2gtX7xv4RisONqIdSSJ98hl7QNDjM_Y4c';
+
+function resolveSupabaseEnv(...values: Array<string | undefined>) {
+  const resolved = values.find((value): value is string => Boolean(value && value.trim().length > 0));
+
+  if (!resolved) {
+    throw new Error(
+      'Missing Supabase env: set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY or the legacy GENESIS_PUBLIC_* values.'
+    );
+  }
+
+  return resolved;
+}
 
 export async function createClient() {
   const cookieStore = await cookies();
+  const supabaseUrl = resolveSupabaseEnv(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.GENESIS_PUBLIC_SUPABASE_URL,
+    process.env.VITE_SUPABASE_URL,
+    FALLBACK_SUPABASE_URL
+  );
+  const supabaseAnonKey = resolveSupabaseEnv(
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.GENESIS_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.VITE_SUPABASE_ANON_KEY,
+    FALLBACK_SUPABASE_ANON_KEY
+  );
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       auth: {
         flowType: 'pkce',
@@ -39,6 +68,23 @@ export async function createClient() {
       },
     }
   );
+}
+
+export function createAdminClient() {
+  const supabaseUrl = resolveSupabaseEnv(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.GENESIS_PUBLIC_SUPABASE_URL,
+    process.env.VITE_SUPABASE_URL,
+    FALLBACK_SUPABASE_URL
+  );
+  const supabaseServiceRole = resolveSupabaseEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  return createSupabaseAdminClient(supabaseUrl, supabaseServiceRole, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 /**

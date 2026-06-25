@@ -1621,19 +1621,26 @@ fn subscription_is_access_active(
     subscription_end_date: Option<&str>,
     cancel_at_period_end: Option<bool>,
 ) -> bool {
-    if !matches!(payment_provider.map(str::trim), Some("dodo")) {
+    if !matches!(payment_provider.map(str::trim), Some("dodo") | Some("paystack")) {
         return false;
     }
+
+    let subscription_active_until = subscription_end_date
+        .and_then(parse_rfc3339_to_utc)
+        .map(|end_date| end_date > Utc::now())
+        .unwrap_or(true);
 
     match subscription_status.map(|value| value.trim()) {
         Some("active") => true,
         // Anytype finalization pattern: payment succeeded but user must complete setup.
         // During this window the tier is granted on a grace basis.
         Some("finalization_required") => true,
+        Some("attention") => subscription_active_until,
+        Some("non-renewing") => subscription_active_until,
         Some("cancelled") if cancel_at_period_end.unwrap_or(false) => subscription_end_date
             .and_then(parse_rfc3339_to_utc)
             .map(|end_date| end_date > Utc::now())
-            .unwrap_or(true),
+            .unwrap_or(subscription_active_until),
         _ => false,
     }
 }

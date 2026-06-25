@@ -8,6 +8,7 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { goto } from "@mateothegreat/svelte5-router";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { authStore } from "$lib/stores/auth.store";
   import { openExternal } from "$lib/desktop/open-external";
   import { time } from "$lib/utils/time";
 
@@ -116,6 +117,7 @@
 
   const currentTier = $derived(normalizeTier(billingProfile?.billingTier));
   const currentTierRank = $derived(tierOrder[currentTier]);
+  const desktopAccountEmail = $derived(($authStore.user?.email ?? "").trim());
   const currentPlanLabel = $derived(
     currentTier === "free" ? _t('pricingFree') : currentTier.charAt(0).toUpperCase() + currentTier.slice(1)
   );
@@ -243,17 +245,15 @@
     }
 
     const planCode = billingPeriod === "yearly" ? tier.planCodes.yearly : tier.planCodes.monthly;
-    const fallbackUrl = `https://iamazeyou.me/pricing?plan=${encodeURIComponent(planCode)}`;
+    const pricingBase = import.meta.env.DEV ? "http://localhost:3000/pricing" : "https://iamazeyou.me/pricing";
+    const emailParam = desktopAccountEmail ? `&email=${encodeURIComponent(desktopAccountEmail)}` : "";
+    const upgradeUrl = `${pricingBase}?plan=${encodeURIComponent(planCode)}&source=desktop${emailParam}`;
     processingPlan = tier.name;
 
     try {
-      // Desktop-native flow: call create_checkout to resolve product ID + Dodo env,
-      // then open the checkout URL in the system browser.
+      await openExternal(upgradeUrl);
       if (canUseTauri) {
-        const checkoutUrl = await invoke<string>("create_checkout", { plan: planCode });
-        await openExternal(checkoutUrl);
-      } else {
-        await openExternal(fallbackUrl);
+        void invoke("force_refresh_billing").catch(() => {});
       }
     } catch (error) {
       console.error("Checkout failed:", error);
@@ -264,19 +264,18 @@
             ? error.message
             : "Checkout failed. Check console for details.";
       showError(msg);
-      await openExternal(fallbackUrl);
     } finally {
       processingPlan = null;
     }
   }
 
-  // Dodo portal has been removed from the Rust backend (no secret keys in app).
-  // Redirect users directly to the web billing portal.
+  // Billing is web-owned so no payment provider secrets or checkout initialization
+  // live in the desktop app.
   async function handleManageBilling() {
     if (openingBillingPortal) return;
     openingBillingPortal = true;
     try {
-      await openExternal("https://iamazeyou.me/account/billing");
+      await openExternal(import.meta.env.DEV ? "http://localhost:3000/pricing" : "https://iamazeyou.me/pricing");
     } catch (error) {
       console.error("Billing portal failed:", error);
       const msg =

@@ -79,8 +79,7 @@ async function handleUpdater(_request: NextRequest) {
       'User-Agent': 'bento-desktop-updater',
     };
 
-    const token =
-      process.env.GITHUB_TOKEN || process.env.VERCEL_GITHUB_TOKEN;
+    const token = process.env.GITHUB_TOKEN || process.env.VERCEL_GITHUB_TOKEN;
     if (token) {
       headers.Authorization = 'Bearer ' + token;
     }
@@ -94,15 +93,8 @@ async function handleUpdater(_request: NextRequest) {
       if (releaseRes.status === 404) {
         return new NextResponse(null, { status: 204 });
       }
-      console.error(
-        'GitHub API error:',
-        releaseRes.status,
-        await releaseRes.text()
-      );
-      return NextResponse.json(
-        { error: 'Failed to fetch release data' },
-        { status: 502 }
-      );
+      console.error('GitHub API error:', releaseRes.status, await releaseRes.text());
+      return NextResponse.json({ error: 'Failed to fetch release data' }, { status: 502 });
     }
 
     const release: GitHubRelease = await releaseRes.json();
@@ -111,12 +103,8 @@ async function handleUpdater(_request: NextRequest) {
     let hasAnyPlatform = false;
 
     for (const pattern of PLATFORM_PATTERNS) {
-      const sigAsset = release.assets.find((a) =>
-        pattern.sigPattern.test(a.name)
-      );
-      const dlAsset = release.assets.find((a) =>
-        pattern.assetPattern.test(a.name)
-      );
+      const sigAsset = release.assets.find((a) => pattern.sigPattern.test(a.name));
+      const dlAsset = release.assets.find((a) => pattern.assetPattern.test(a.name));
 
       if (!sigAsset || !dlAsset) continue;
 
@@ -138,9 +126,7 @@ async function handleUpdater(_request: NextRequest) {
     }
 
     const body: UpdaterResponse = {
-      version: release.tag_name.startsWith('v')
-        ? release.tag_name.slice(1)
-        : release.tag_name,
+      version: release.tag_name.startsWith('v') ? release.tag_name.slice(1) : release.tag_name,
       notes: release.body || '',
       pub_date: release.published_at,
       platforms,
@@ -149,17 +135,11 @@ async function handleUpdater(_request: NextRequest) {
     const resp = NextResponse.json(body, { status: 200 });
     resp.headers.set('Access-Control-Allow-Origin', '*');
     resp.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    resp.headers.set(
-      'Cache-Control',
-      'no-store, no-cache, must-revalidate'
-    );
+    resp.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
     return resp;
   } catch (err) {
     console.error('Updater handler error:', err);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

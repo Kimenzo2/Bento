@@ -7,70 +7,33 @@
   const canUseTauri = browser && "__TAURI_INTERNALS__" in window;
 
   type CallbackState =
-    | { status: "verifying" }
-    | { status: "success"; tier: string }
+    | { status: "syncing" }
+    | { status: "ready" }
     | { status: "error"; message: string };
 
-  let state = $state<CallbackState>({ status: "verifying" });
+  let state = $state<CallbackState>({ status: "syncing" });
 
   onMount(() => {
     if (!canUseTauri) {
-      state = { status: "error", message: "Payment callback only works in the desktop app." };
+      state = { status: "ready" };
       return;
     }
 
-    // Dodo returns payment_id or subscription_id plus status and plan.
-    // Older flows may still pass session_id, so we keep it as a fallback.
-    const params = new URLSearchParams(window.location.search);
-    const paymentId = params.get("payment_id") || "";
-    const subscriptionId = params.get("subscription_id") || "";
-    const sessionId = params.get("session_id") || "";
-    const status = params.get("status") || "";
-    const plan = params.get("plan") || "";
-    const reference = paymentId || subscriptionId || sessionId;
-
-    if (!reference) {
-      // No payment reference means this wasn't a payment callback — likely a direct nav.
-      // Check for local receipt as a fallback.
-      void checkLocalReceipt();
-      return;
-    }
-
-    void handlePaymentCallback(paymentId || sessionId, subscriptionId, status, plan);
+    void refreshBilling();
   });
 
-  async function handlePaymentCallback(
-    paymentId: string,
-    subscriptionId: string,
-    status: string,
-    plan: string
-  ) {
+  async function refreshBilling() {
     try {
-      const receipt = await invoke<any>("handle_payment_callback", {
-        paymentId: paymentId || null,
-        subscriptionId: subscriptionId || null,
-        status: status || null,
-        plan: plan || null,
-      });
-      state = { status: "success", tier: receipt.tier || "pro" };
+      await invoke("force_refresh_billing");
+      state = { status: "ready" };
     } catch (error) {
-      const msg = typeof error === "string" ? error
-        : error instanceof Error ? error.message
-        : "Payment verification failed.";
-      state = { status: "error", message: msg };
-    }
-  }
-
-  async function checkLocalReceipt() {
-    try {
-      const receipt = await invoke<any | null>("get_payment_receipt");
-      if (receipt) {
-        state = { status: "success", tier: receipt.tier || "pro" };
-      } else {
-        state = { status: "error", message: "No payment reference found." };
-      }
-    } catch {
-      state = { status: "error", message: "Could not verify payment status." };
+      const message =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Could not refresh subscription status.";
+      state = { status: "error", message };
     }
   }
 
@@ -80,50 +43,43 @@
 </script>
 
 <section class="payment-callback-shell">
-  {#if state.status === "verifying"}
-    <div class="payment-callback-shell__card">
+  <div class="payment-callback-shell__card">
+    {#if state.status === "syncing"}
       <svg class="payment-callback-shell__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <path d="M21 12a9 9 0 1 1-6.219-8.56" />
       </svg>
-      <h1 class="payment-callback-shell__title">Verifying your payment</h1>
+      <h1 class="payment-callback-shell__title">Syncing subscription</h1>
       <p class="payment-callback-shell__desc">
-        Confirming your purchase with Dodo Payments…
+        Bento is checking Supabase for your latest plan. Payment confirmation is handled securely on the web.
       </p>
-    </div>
-
-  {:else if state.status === "success"}
-    <div class="payment-callback-shell__card payment-callback-shell__card--success">
+    {:else if state.status === "ready"}
       <svg class="payment-callback-shell__check-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
         <circle cx="32" cy="32" r="28" stroke="#22c55e" stroke-width="2.5" class="payment-callback-shell__icon-ring" />
         <path d="M20 33l8 8 16-16" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="payment-callback-shell__icon-check" />
       </svg>
-      <h1 class="payment-callback-shell__title">Payment successful!</h1>
+      <h1 class="payment-callback-shell__title">Subscription sync requested</h1>
       <p class="payment-callback-shell__desc">
-        Your <strong class="payment-callback-shell__tier">{state.tier}</strong> plan is now active.
-        You can manage your subscription in the pricing page.
+        If payment is complete, your plan will update automatically as soon as the Paystack webhook reaches Supabase.
       </p>
       <button class="payment-callback-shell__btn" onclick={goToPricing}>
-        Go to Pricing
+        Back to Pricing
       </button>
-    </div>
-
-  {:else if state.status === "error"}
-    <div class="payment-callback-shell__card payment-callback-shell__card--error">
+    {:else}
       <svg class="payment-callback-shell__error-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" />
         <path d="M8 5v3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
         <circle cx="8" cy="10.5" r="0.65" fill="currentColor" />
       </svg>
-      <h1 class="payment-callback-shell__title">Payment verification issue</h1>
+      <h1 class="payment-callback-shell__title">Sync delayed</h1>
       <p class="payment-callback-shell__desc">{state.message}</p>
       <p class="payment-callback-shell__hint">
-        Your payment may still have gone through. Check your subscription status in the pricing page.
+        Your payment can still complete. Reopen Pricing after a moment to refresh your plan.
       </p>
       <button class="payment-callback-shell__btn" onclick={goToPricing}>
         Check Subscription
       </button>
-    </div>
-  {/if}
+    {/if}
+  </div>
 </section>
 
 <style>
@@ -157,7 +113,7 @@
 
   @keyframes callback-spin {
     from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
   }
 
   .payment-callback-shell__title {
@@ -183,11 +139,6 @@
     line-height: 1.45;
   }
 
-  .payment-callback-shell__tier {
-    text-transform: capitalize;
-    color: var(--foreground);
-  }
-
   .payment-callback-shell__btn {
     margin-top: 0.5rem;
     padding: 0.75rem 2rem;
@@ -205,7 +156,6 @@
     opacity: 0.85;
   }
 
-  /* ── Success animations ── */
   .payment-callback-shell__check-icon {
     width: 4rem;
     height: 4rem;
@@ -221,12 +171,12 @@
 
   @keyframes callback-ring-in {
     from { opacity: 0; transform: scale(0.5); }
-    to   { opacity: 1; transform: scale(1); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   @keyframes callback-check-in {
     from { opacity: 0; stroke-dasharray: 40; stroke-dashoffset: 40; }
-    to   { opacity: 1; stroke-dasharray: 40; stroke-dashoffset: 0; }
+    to { opacity: 1; stroke-dasharray: 40; stroke-dashoffset: 0; }
   }
 
   .payment-callback-shell__error-icon {
@@ -234,10 +184,5 @@
     height: 2.5rem;
     color: #ef4444;
     display: block;
-  }
-
-  .payment-callback-shell__card--error .payment-callback-shell__btn {
-    background: var(--foreground);
-    color: var(--background);
   }
 </style>

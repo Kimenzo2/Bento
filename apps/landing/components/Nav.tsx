@@ -13,6 +13,7 @@ import Image from 'next/image';
 
 const NAV_LINKS = [
   { label: 'Apps', href: '#apps' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Why Bento', href: '#why' },
   { label: 'Download', href: '#download' },
 ];
@@ -29,6 +30,10 @@ export default function Nav() {
 
   const handleAnchor = (href: string) => {
     setOpen(false);
+    if (!href.startsWith('#')) {
+      window.location.href = href;
+      return;
+    }
     const el = document.querySelector(href);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
