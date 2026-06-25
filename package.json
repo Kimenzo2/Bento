@@ -7,6 +7,7 @@
     "apps/genesis-desktop"
   ],
   "scripts": {
+    "build": "turbo build --filter=@genesis/landing",
     "dev:landing": "turbo dev --filter=@genesis/landing",
     "dev:desktop": "turbo dev --filter=@bento/desktop",
     "build:landing": "turbo build --filter=@genesis/landing",
