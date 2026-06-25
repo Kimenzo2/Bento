@@ -1,5 +1,4 @@
 {
-  "rootDirectory": "apps/landing",
   "installCommand": "bun install",
   "trailingSlash": false,
   "headers": [
