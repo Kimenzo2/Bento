@@ -13,13 +13,15 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+# ---------------------------------------------------------------------------
+# Dependencies — ALL regular dependencies in a single contiguous block
+# (target-specific deps use [target."..."] sections below)
+# ---------------------------------------------------------------------------
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 dotenvy = "0.15"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-# Database
 sqlx = { version = "0.8", default-features = false, features = [
   "runtime-tokio",
   "sqlite-unbundled",
@@ -27,14 +29,13 @@ sqlx = { version = "0.8", default-features = false, features = [
   "derive",
   "json",
 ] }
-
-# Cryptography
 argon2 = { version = "0.5", features = ["std"] }
 zeroize = { version = "1.8", features = ["derive"] }
 secrecy = { version = "0.8", features = ["alloc"] }
 rand = "0.8"
 hex = "0.4"
-
+sha2 = "0.10"
+aes-gcm-siv = "0.11"
 tauri = { version = "2", features = ["tray-icon", "custom-protocol"], optional = true }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-deep-link = "2"
@@ -47,15 +48,14 @@ tauri-plugin-window-state = "2.4.1"
 tauri-plugin-shell = "2"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
-tokio = { version = "1", features = ["sync", "time"] }
-base64 = "0.22"
-keyring = "3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-sha2 = "0.10"
-aes-gcm-siv = "0.11"
 tauri-plugin-oauth = "2"
 tauri-plugin-opener = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+base64 = "0.22"
 url = "2"
+uuid = { version = "1", features = ["v4"] }
+keyring = "3"
 zip = "2"
 roxmltree = "0.21"
 lopdf = "0.38"
@@ -66,14 +66,13 @@ hound = "3.5"
 rodio = "0.19"
 sysinfo = "0.33"
 libloading = "0.8"
-uuid = { version = "1", features = ["v4"] }
 regex = "1"
 image = "0.25"
 neo_frizbee = "0.10"
 
-# Windows/Linux: system-linked SQLCipher via vcpkg/pkg-config
-# macOS: bundled-sqlcipher required for universal-apple-darwin (cross-arch
-# compilation; system brew sqlcipher is single-arch only)
+# ---------------------------------------------------------------------------
+# Target-specific dependencies
+# ---------------------------------------------------------------------------
 [target."cfg(not(target_os = \"macos\"))".dependencies.libsqlite3-sys]
 version = "0.30"
 features = ["sqlcipher", "unlock_notify"]
@@ -81,7 +80,6 @@ features = ["sqlcipher", "unlock_notify"]
 [target."cfg(target_os = \"macos\")".dependencies.libsqlite3-sys]
 version = "0.30"
 features = ["bundled-sqlcipher", "unlock_notify"]
-
 
 [target."cfg(target_os = \"macos\")".dependencies]
 objc2 = "0.6"
@@ -91,6 +89,9 @@ objc2-foundation = { version = "0.3", features = ["NSString"] }
 [target."cfg(any(target_os = \"macos\", target_os = \"linux\", windows))".dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
+# ---------------------------------------------------------------------------
+# Features
+# ---------------------------------------------------------------------------
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
@@ -98,7 +99,6 @@ custom-protocol = ["tauri/custom-protocol"]
 # ---------------------------------------------------------------------------
 # Profiles
 # ---------------------------------------------------------------------------
-
 [profile.release]
 codegen-units = 1
 opt-level = "z"
@@ -115,19 +115,15 @@ debug = 1
 incremental = true
 split-debuginfo = "unpacked"
 
-# All C/C++ dependency crates: compile at opt-level 1 even in dev.
-# C code is slower at -O0 (no builtin inlining). This only affects
-# first compile, not incremental Rust rebuilds.
 [profile.dev.package."*"]
 opt-level = 1
 
-# Biggest compile bottlenecks -- pure C/C++, always opt-level 3
 [profile.dev.package.libsqlite3-sys]
 opt-level = 3
+
 [profile.dev.package.ring]
 opt-level = 3
 
-# CI profile: no debug info, no incremental (cold CI starts)
 [profile.ci]
 inherits = "dev"
 debug = 0
