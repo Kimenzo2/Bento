@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 
 const WINDOWS_INSTALLER_FILENAME = 'Bento_0.1.0_x64-setup.exe';
 const FALLBACK_INSTALLER_URL =
-  'https://github.com/Kimenzo/bento-desktop/releases/latest/download/Bento_Windows_x64-setup.exe';
+  'https://github.com/Kimenzo/Bento/releases/latest/download/Bento_Windows_x64-setup.exe';
 
 export async function GET(request: NextRequest) {
   // Try to serve the local installer first

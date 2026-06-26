@@ -200,7 +200,7 @@ export async function POST(request: Request) {
         selected_channels: channels,
         checkout_intent_at: checkoutIntent.payload.checkout_intent_at,
         checkout_origin: source,
-        app: 'bento-desktop',
+        app: 'Bento',
       },
     };
 

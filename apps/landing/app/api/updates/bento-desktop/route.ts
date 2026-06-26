@@ -10,7 +10,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 const GITHUB_OWNER = 'Kimenzo';
-const GITHUB_REPO = 'bento-desktop';
+const GITHUB_REPO = 'Bento';
 
 interface UpdaterResponse {
   version: string;
@@ -76,7 +76,7 @@ async function handleUpdater(_request: NextRequest) {
   try {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'bento-desktop-updater',
+      'User-Agent': 'Bento-Updater',
     };
 
     const token = process.env.GITHUB_TOKEN || process.env.VERCEL_GITHUB_TOKEN;
