@@ -45,7 +45,7 @@ secrecy = { version = "0.8", features = ["alloc"] }
 rand = "0.8"
 hex = "0.4"
 
-tauri = { version = "2", features = ["tray-icon", "custom-protocol"] }
+tauri = { version = "2", features = ["tray-icon", "custom-protocol"], optional = true }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
@@ -90,7 +90,7 @@ objc2-foundation = { version = "0.3", features = ["NSString"] }
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [features]
-custom-protocol = ["tauri/custom-protocol"]
+default = ["tauri"]
 
 # ---------------------------------------------------------------------------
 # Profiles

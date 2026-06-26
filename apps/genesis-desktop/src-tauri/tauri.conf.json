@@ -7,7 +7,6 @@
     "beforeDevCommand": "bun run dev:frontend",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun run build",
-    "features": ["custom-protocol"],
     "frontendDist": "../build"
   },
   "app": {
