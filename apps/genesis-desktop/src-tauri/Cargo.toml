@@ -80,7 +80,7 @@ features = ["sqlcipher", "unlock_notify"]
 
 [target."cfg(target_os = \"macos\")".dependencies.libsqlite3-sys]
 version = "0.30"
-features = ["bundled-sqlcipher", "unlock_notify"]
+features = ["bundled-sqlcipher", "unlock_notify", "buildtime_bindgen"]
 
 
 [target."cfg(target_os = \"macos\")".dependencies]
