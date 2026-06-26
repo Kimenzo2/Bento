@@ -25,8 +25,8 @@ function buildPlatforms(_version: string) {
     },
     macos: {
       label: 'macOS',
-      arch: 'macOS (Apple Silicon)',
-      href: CN_CDN + '/dmg-aarch64',
+      arch: 'macOS (Universal)',
+      href: CN_CDN + '/dmg-universal',
     },
     linux: {
       label: 'Linux',

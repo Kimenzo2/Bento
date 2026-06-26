@@ -7,7 +7,7 @@
 # Pipeline:
 #   1. prepare   — Extracts version from tag
 #   2. draft     — Creates a release draft on CrabNebula Cloud
-#   3. build     — Matrix build across macOS (aarch64 + x86_64), Windows (x64), Linux (x64)
+#   3. build     — Matrix build across macOS (universal), Windows (x64), Linux (x64)
 #   4. publish   — Publishes the release on CrabNebula Cloud
 #   5. deploy-landing — Downloads assets from CrabNebula CDN → copies to landing page → deploys Vercel
 
@@ -84,9 +84,9 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            target: aarch64-apple-darwin
+            target: universal-apple-darwin
             bundles: dmg
-            arch: arm64
+            arch: universal
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: nsis
@@ -111,12 +111,19 @@ jobs:
           cache-key: ${{ runner.os }}-release-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
 
       # ── Rust toolchain ──
+      # For universal-apple-darwin (macOS), we add both arch-specific targets
+      # so cargo can build each architecture. For other platforms, the single
+      # target triplet is sufficient.
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
           rustup toolchain install stable --component rustfmt
           rustup default stable
-          rustup target add ${{ matrix.target }}
+          if [ "${{ matrix.target }}" = "universal-apple-darwin" ]; then
+            rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          else
+            rustup target add ${{ matrix.target }}
+          fi
 
       # ── Bun + Node.js ──
       - name: Setup Bun
@@ -153,24 +160,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-release-
 
-      # ── Pre-build MCP sidecar ──
-      - name: Build MCP sidecar
-        shell: bash
-        env:
-          RUSTC_WRAPPER: sccache
+      # ── vcpkg (Windows: SQLCipher via vcpkg, same strategy as local dev) ──
+      - name: Cache vcpkg
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/Genesis/vcpkg
+            ~/AppData/Local/Genesis/vcpkg-bincache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles(format('{0}/scripts/setup-vcpkg.ps1', env.APP_DIR)) }}
+
+      - name: Install vcpkg + SQLCipher
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          cargo build --profile ci \
-            --target ${{ matrix.target }} \
-            --manifest-path src-tauri/Cargo.toml \
-            --bin bento-mcp
-          mkdir -p src-tauri/binaries
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "src-tauri/target/${{ matrix.target }}/ci/bento-mcp.exe" \
-               "src-tauri/binaries/bento-mcp-${{ matrix.target }}.exe"
-          else
-            cp "src-tauri/target/${{ matrix.target }}/ci/bento-mcp" \
-               "src-tauri/binaries/bento-mcp-${{ matrix.target }}"
-          fi
+          & "${{ github.workspace }}\${{ env.APP_DIR }}\scripts\setup-vcpkg.ps1"
+          # Persist env vars to GITHUB_ENV so they're available to subsequent steps
+          @('VCPKG_ROOT','VCPKG_DEFAULT_TRIPLET','VCPKG_TARGET_TRIPLET','VCPKGRS_TRIPLET','VCPKG_BINARY_SOURCES','VCPKGRS_DYNAMIC','SQLCIPHER_STATIC','SQLCIPHER_INCLUDE_DIR','SQLCIPHER_LIB_DIR') | ForEach-Object {
+            "$_=$([System.Environment]::GetEnvironmentVariable($_))" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+          $llp = [System.Environment]::GetEnvironmentVariable('LIBCLANG_PATH')
+          if ($llp) { "LIBCLANG_PATH=$llp" | Out-File -FilePath $env:GITHUB_ENV -Append }
 
       # ── Build the Tauri app ──
       - name: Build Tauri app
@@ -183,19 +193,6 @@ jobs:
           bun run tauri build \
             --bundles ${{ matrix.bundles }} \
             --target ${{ matrix.target }}
-
-      # ── macOS: Also build for x86_64 (Intel) ──
-      - name: Build Tauri app (macOS x86_64)
-        if: runner.os == 'macOS'
-        shell: bash
-        env:
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        run: |
-          rustup target add x86_64-apple-darwin
-          bun run tauri build \
-            --bundles dmg \
-            --target x86_64-apple-darwin
 
       # ── Upload assets to CrabNebula Cloud ──
       - name: Upload assets to CrabNebula Cloud
@@ -247,9 +244,9 @@ jobs:
           curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_x64-setup.exe" \
             "$CDN_BASE/nsis-x86_64" || echo "WARN: nsis-x86_64 not found"
 
-          # macOS (DMG aarch64)
-          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_aarch64.dmg" \
-            "$CDN_BASE/dmg-aarch64" || echo "WARN: dmg-aarch64 not found"
+          # macOS (DMG universal)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_universal.dmg" \
+            "$CDN_BASE/dmg-universal" || echo "WARN: dmg-universal not found"
 
           # Linux (AppImage x86_64)
           curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.AppImage" \

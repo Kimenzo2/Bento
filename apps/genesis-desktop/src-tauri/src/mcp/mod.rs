@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::io::{self, BufRead, Write};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum McpMethod {
@@ -46,7 +45,7 @@ pub struct McpResponse {
     pub error: Option<McpError>,
 }
 
-fn handle_request(request: McpRequest) -> McpResponse {
+pub fn handle_request(request: McpRequest) -> McpResponse {
     let result = match request.method.as_str() {
         "ping" => Some(json!({ "message": "pong", "source": "bento-mcp" })),
         "creative.plan" => Some(json!({
@@ -84,33 +83,4 @@ fn handle_request(request: McpRequest) -> McpResponse {
     }
 }
 
-pub fn run_stdio_server() -> io::Result<()> {
-    let stdin = io::stdin();
-    let stdout = io::stdout();
-    let mut writer = io::BufWriter::new(stdout.lock());
 
-    for line in stdin.lock().lines() {
-        let raw = line?;
-        if raw.trim().is_empty() {
-            continue;
-        }
-
-        let response = match serde_json::from_str::<McpRequest>(&raw) {
-            Ok(request) => handle_request(request),
-            Err(error) => McpResponse {
-                id: "parse-error".to_string(),
-                result: None,
-                error: Some(McpError {
-                    code: -32700,
-                    message: format!("Invalid MCP payload: {error}"),
-                }),
-            },
-        };
-
-        serde_json::to_writer(&mut writer, &response)?;
-        writer.write_all(b"\n")?;
-        writer.flush()?;
-    }
-
-    Ok(())
-}

@@ -49,7 +49,7 @@ use crate::cloud_backup::{
     spawn_cloud_backup_worker, test_connection,
 };
 use crate::commands::{
-    DashboardCache, McpManager, PendingDeepLink, backup_desktop_settings, begin_background_task,
+    DashboardCache, PendingDeepLink, backup_desktop_settings, begin_background_task,
     consume_pending_deep_link, emit_main_window_event, export_content_to_file,
     finish_background_task, get_dashboard_data, get_feedback_by_id, get_feedback_realtime_config,
     get_focus_dashboard, get_lifecycle_state, get_my_feedback, load_desktop_settings,
@@ -221,7 +221,6 @@ pub fn run() {
     load_desktop_env();
 
     let mut builder = tauri::Builder::default()
-        .manage(McpManager::default())
         .manage(PendingDeepLink::default())
         .manage(DashboardCache::new())
         .manage(Arc::new(NoteFullCache::new()))

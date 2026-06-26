@@ -25,7 +25,7 @@ function Get-VcpkgCacheDir {
 function Find-LibClangPath {
   $libclang = Get-ChildItem -Path "C:\Program Files\LLVM\bin", "C:\Program Files (x86)\LLVM\bin" -Filter libclang.dll -ErrorAction SilentlyContinue | Select-Object -First 1
   if (-not $libclang) {
-    throw "libclang.dll was not found. Install LLVM so sqlx bindgen can run on Windows."
+    return $null
   }
 
   return $libclang.Directory.FullName
@@ -69,7 +69,10 @@ if (-not (Test-Path (Join-Path $tripletRoot "include\sqlcipher\sqlite3.h"))) {
 [System.Environment]::SetEnvironmentVariable("SQLCIPHER_STATIC", "1", "Process")
 [System.Environment]::SetEnvironmentVariable("SQLCIPHER_INCLUDE_DIR", $includeRoot, "Process")
 [System.Environment]::SetEnvironmentVariable("SQLCIPHER_LIB_DIR", $libRoot, "Process")
-[System.Environment]::SetEnvironmentVariable("LIBCLANG_PATH", (Find-LibClangPath), "Process")
+$libclangPath = Find-LibClangPath
+if ($libclangPath) {
+  [System.Environment]::SetEnvironmentVariable("LIBCLANG_PATH", $libclangPath, "Process")
+}
 
 $installedBin = Join-Path $tripletRoot "bin"
 if ((Test-Path $installedBin) -and -not ($env:PATH -split ";" | Where-Object { $_ -eq $installedBin })) {
