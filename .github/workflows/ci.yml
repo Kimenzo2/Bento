@@ -84,10 +84,6 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
           restore-keys: ${{ runner.os }}-cargo-registry-
-      - name: Stage MCP sidecar placeholder
-        run: |
-          mkdir -p binaries
-          touch binaries/bento-mcp-x86_64-unknown-linux-gnu
       - name: cargo check
         env:
           RUSTC_WRAPPER: sccache
@@ -101,5 +97,3 @@ jobs:
         env:
           RUSTC_WRAPPER: sccache
         run: cargo build --profile ci --workspace --bins
-      - name: Update MCP sidecar (real binary)
-        run: cp target/ci/bento-mcp binaries/bento-mcp-x86_64-unknown-linux-gnu

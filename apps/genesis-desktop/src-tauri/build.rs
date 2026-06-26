@@ -1,4 +1,10 @@
 fn main() {
+    // Workaround: DEP_TAURI_DEV is not always propagated when using a
+    // custom profile (e.g. `ci`). Default to dev=true to prevent panic.
+    if std::env::var_os("DEP_TAURI_DEV").is_none() {
+        std::env::set_var("DEP_TAURI_DEV", "true");
+    }
+
     tauri_build::build();
     link_vcpkg_openssl_on_windows();
 }
