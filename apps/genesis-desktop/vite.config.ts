@@ -37,10 +37,6 @@ const config = {
             return 'mastra';
           }
 
-          if (id.includes('@lorenzootieno/gen-')) {
-            return 'gen-libs';
-          }
-
           if (id.includes('@supabase/supabase-js') || id.includes('/zod')) {
             return 'vendor';
           }

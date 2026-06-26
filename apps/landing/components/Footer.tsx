@@ -1,10 +1,3 @@
-/**
- * Footer — Bento Landing
- *
- * Warm dark footer. Brand mark, tagline, a couple of links.
- * Uses warm dark brown (#2c2418) instead of cold near-black.
- */
-
 import Image from 'next/image';
 import { tokens } from './tokens';
 
@@ -14,9 +7,10 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: tokens.ink,
+        background: tokens.bg,
         padding: 'clamp(3rem, 6vw, 5rem) 28px',
         color: '#fff',
+        borderTop: '1px solid rgba(255,255,255,0.04)',
       }}
     >
       <div
@@ -30,7 +24,6 @@ export default function Footer() {
           gap: '40px',
         }}
       >
-        {/* Brand */}
         <div style={{ maxWidth: '280px' }}>
           <div
             style={{
@@ -62,7 +55,7 @@ export default function Footer() {
             style={{
               fontSize: tokens.smallSize,
               lineHeight: 1.6,
-              color: 'rgba(255,255,255,0.5)',
+              color: tokens.inkFaint,
               margin: 0,
             }}
           >
@@ -70,7 +63,6 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Links */}
         <nav aria-label="Footer navigation">
           <div
             style={{
@@ -86,7 +78,7 @@ export default function Footer() {
                   fontWeight: 600,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.35)',
+                  color: tokens.inkFaint,
                   marginBottom: '14px',
                 }}
               >
@@ -113,7 +105,7 @@ export default function Footer() {
                       href={l.href}
                       style={{
                         fontSize: tokens.smallSize,
-                        color: 'rgba(255,255,255,0.6)',
+                        color: tokens.inkMuted,
                         textDecoration: 'none',
                       }}
                     >
@@ -131,7 +123,7 @@ export default function Footer() {
                   fontWeight: 600,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.35)',
+                  color: tokens.inkFaint,
                   marginBottom: '14px',
                 }}
               >
@@ -158,7 +150,7 @@ export default function Footer() {
                       href={l.href}
                       style={{
                         fontSize: tokens.smallSize,
-                        color: 'rgba(255,255,255,0.6)',
+                        color: tokens.inkMuted,
                         textDecoration: 'none',
                       }}
                     >
@@ -172,14 +164,13 @@ export default function Footer() {
         </nav>
       </div>
 
-      {/* Bottom bar */}
       <div
         style={{
           maxWidth: tokens.contentMax,
           margin: '0 auto',
           paddingTop: '40px',
           marginTop: '40px',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'space-between',
@@ -190,7 +181,7 @@ export default function Footer() {
         <p
           style={{
             fontSize: tokens.labelSize,
-            color: 'rgba(255,255,255,0.3)',
+            color: tokens.inkFaint,
             margin: 0,
           }}
         >
@@ -199,7 +190,7 @@ export default function Footer() {
         <p
           style={{
             fontSize: tokens.labelSize,
-            color: 'rgba(255,255,255,0.3)',
+            color: tokens.inkFaint,
             margin: 0,
           }}
         >

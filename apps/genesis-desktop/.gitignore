@@ -19,3 +19,25 @@ bento-build-setup.cmd
 
 # Tauri signing keys (private key — never commit!)
 src-tauri/.keys/
+
+# Patch scripts
+patch-tasks*.mjs
+patch*.mjs
+
+# Log files
+*.log
+
+# Lint + check output
+check_output*.txt
+lint*_output.txt
+svelte-check-*
+
+# Codex artifacts
+.codex-svelte-check-errors-*.md
+
+# Tauri junk
+src-tauri/genesis-*.json
+src-tauri/genesis-desktop-settings-backup.json
+src-tauri/Trying Out things
+src-tauri/src/saved_settings.rs.bak
+

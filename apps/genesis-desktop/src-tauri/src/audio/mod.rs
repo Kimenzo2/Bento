@@ -17,7 +17,8 @@ use std::sync::{
     mpsc,
 };
 use std::thread;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+pub mod moonshine;
 
 // ─── Recording State ──────────────────────────────────────────────────
 
@@ -691,6 +692,7 @@ impl RecordingEngine {
         let language = language.unwrap_or("en").to_string();
         let model_path_for_db = model_path.clone();
         let language_for_db = language.clone();
+        let app_dir = self.app_dir.clone();
 
         let transcript = tokio::task::spawn_blocking(move || {
             let mut reader = hound::WavReader::open(&file_path).map_err(|e| e.to_string())?;
@@ -706,33 +708,12 @@ impl RecordingEngine {
             let mono = downmix_to_mono_f32(&samples, channels);
             let audio = resample_linear(&mono, sample_rate, 16_000);
 
-            let context =
-                WhisperContext::new_with_params(&model_path, WhisperContextParameters::default())
-                    .map_err(|e| e.to_string())?;
+            let transcriber = moonshine::Moonshine::new(&app_dir)
+                .map_err(|e| e.to_string())?;
+            let text = transcriber.transcribe(&audio, 16_000)
+                .map_err(|e| e.to_string())?;
 
-            let mut state = context.create_state().map_err(|e| e.to_string())?;
-            let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-            params.set_language(Some(&language));
-            params.set_translate(false);
-            params.set_print_special(false);
-            params.set_print_progress(false);
-            params.set_print_realtime(false);
-            params.set_print_timestamps(false);
-
-            state.full(params, &audio).map_err(|e| e.to_string())?;
-
-            let mut transcript = String::new();
-            for segment in state.as_iter() {
-                let text = segment.to_string();
-                if !text.trim().is_empty() {
-                    if !transcript.is_empty() {
-                        transcript.push(' ');
-                    }
-                    transcript.push_str(text.trim());
-                }
-            }
-
-            Ok::<String, String>(transcript.trim().to_string())
+            Ok::<String, String>(text.trim().to_string())
         })
         .await
         .map_err(|e| e.to_string())??;

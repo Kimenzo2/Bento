@@ -1,14 +1,7 @@
 'use client';
-/**
- * Nav — Bento Landing
- *
- * Minimal top bar. Transparent until scrolled, then warm cream.
- * Mobile: collapses to a clean drawer.
- */
 
 import { useEffect, useState } from 'react';
 import { tokens } from './tokens';
-
 import Image from 'next/image';
 
 const NAV_LINKS = [
@@ -46,7 +39,7 @@ export default function Nav() {
         left: 0,
         right: 0,
         zIndex: 50,
-        borderBottom: scrolled ? '1px solid rgba(184,92,58,0.12)' : '1px solid transparent',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
         background: scrolled ? tokens.surface : 'transparent',
         transition: 'background 0.25s, border-color 0.25s',
       }}
@@ -63,7 +56,6 @@ export default function Nav() {
           justifyContent: 'space-between',
         }}
       >
-        {/* Logo */}
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -97,7 +89,6 @@ export default function Nav() {
           </span>
         </button>
 
-        {/* Desktop links */}
         <div
           style={{
             display: 'flex',
@@ -133,7 +124,7 @@ export default function Nav() {
               marginLeft: '8px',
               padding: '9px 20px',
               background: tokens.accent,
-              color: '#fff',
+              color: tokens.bg,
               borderRadius: '100px',
               fontSize: '0.875rem',
               fontWeight: 600,
@@ -145,7 +136,6 @@ export default function Nav() {
           </a>
         </div>
 
-        {/* Mobile hamburger */}
         <button
           type="button"
           className="nav-mobile-toggle"
@@ -195,12 +185,11 @@ export default function Nav() {
         </button>
       </div>
 
-      {/* Mobile drawer */}
       {open && (
         <div
           style={{
             background: tokens.surface,
-            borderTop: '1px solid rgba(184,92,58,0.12)',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
             padding: '16px 28px 24px',
             display: 'flex',
             flexDirection: 'column',
@@ -237,7 +226,7 @@ export default function Nav() {
               textAlign: 'center',
               padding: '14px',
               background: tokens.accent,
-              color: '#fff',
+              color: tokens.bg,
               borderRadius: '100px',
               fontSize: '0.9rem',
               fontWeight: 600,

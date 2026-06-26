@@ -143,3 +143,32 @@ package-lock.json
 *.avif
 *.heic
 *.heif
+
+# Patch scripts — temporary fix files
+patch-tasks*.mjs
+patch*.mjs
+
+# Temporary PNG screenshots
+.tmp_*.png
+
+# Lint and check output files
+check_output*.txt
+lint*_output.txt
+svelte-check-*.txt
+svelte-check-*.log
+
+# Desktop app junk
+apps/genesis-desktop/*.mjs
+apps/genesis-desktop/*.log
+apps/genesis-desktop/check_output*.txt
+apps/genesis-desktop/lint*_output.txt
+apps/genesis-desktop/svelte-check-*
+apps/genesis-desktop/bento-build-setup.cmd
+apps/genesis-desktop/.codex-svelte-check-errors-*.md
+
+# Tauri junk
+apps/genesis-desktop/src-tauri/genesis-*.json
+apps/genesis-desktop/src-tauri/genesis-desktop-settings-backup.json
+apps/genesis-desktop/src-tauri/Trying Out things
+apps/genesis-desktop/src-tauri/src/saved_settings.rs.bak
+

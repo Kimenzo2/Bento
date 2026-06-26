@@ -1,11 +1,3 @@
-/**
- * WhyBento — Bento Landing
- *
- * Four honest reasons to use Bento.
- * Warm sand background, alternating card tones.
- * Plain language. No buzzwords. No fake claims.
- */
-
 import { tokens } from './tokens';
 
 const reasons = [
@@ -13,29 +5,29 @@ const reasons = [
     icon: '🔒',
     title: 'Completely private',
     body: 'Your data stays on your computer. No telemetry, no tracking, no internet required after install.',
-    bg: tokens.surface,
-    iconBg: tokens.accentLight,
+    bg: tokens.elevated,
+    iconBg: tokens.accentGlow,
   },
   {
     icon: '📦',
     title: 'Twelve apps, one install',
     body: 'Stop juggling separate tools for habits, focus, sleep, budget, and mood. Bento brings them together so they can actually talk to each other.',
-    bg: tokens.surfaceAlt,
-    iconBg: tokens.accentSecondaryLight,
+    bg: tokens.surface,
+    iconBg: tokens.accentSecondaryGlow,
   },
   {
     icon: '🌿',
     title: 'Calm by design',
     body: "No gamification dark patterns. No streaks that guilt you. No notifications that interrupt. Bento is there when you want it, quiet when you don't.",
-    bg: tokens.surface,
-    iconBg: tokens.surfaceWarm,
+    bg: tokens.elevated,
+    iconBg: tokens.accentTertiaryGlow,
   },
   {
     icon: '⚡',
     title: 'Fast and native',
     body: 'Built with Tauri, Bento is a real desktop app. It opens instantly, uses very little memory, and works offline — always.',
-    bg: tokens.surfaceAlt,
-    iconBg: tokens.accentLight,
+    bg: tokens.surface,
+    iconBg: tokens.accentGlow,
   },
 ] as const;
 
@@ -44,7 +36,7 @@ export default function WhyBento() {
     <section
       id="why"
       style={{
-        background: tokens.surfaceWarm,
+        background: tokens.surface,
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="why-heading"

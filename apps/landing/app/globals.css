@@ -1,10 +1,3 @@
-/*
- * Bento Landing — globals.css
- *
- * Minimal reset + warm earthy foundation.
- * Font: DM Sans — warm, human, readable.
- */
-
 *,
 *::before,
 *::after {
@@ -20,15 +13,9 @@ html {
 }
 
 body {
-  font-family:
-    'DM Sans',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  background-color: #fefcf8;
-  color: #2c2418;
+  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #131211;
+  color: #e6e0d6;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -56,8 +43,8 @@ button {
   position: absolute;
   top: -100px;
   left: 16px;
-  background: #b85c3a;
-  color: #fff;
+  background: #c49a6c;
+  color: #131211;
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 0.875rem;
@@ -74,7 +61,7 @@ button {
   outline: none;
 }
 :focus-visible {
-  outline: 2px solid #b85c3a;
+  outline: 2px solid #c49a6c;
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -90,36 +77,33 @@ button {
   }
 }
 
-/* Interactive hover states — subtle, tactile, no heavy animations */
 .cta-primary {
   transition: background 0.2s ease;
 }
 .cta-primary:hover {
-  background: #d47a55 !important;
+  background: #d4aa7a !important;
 }
 
 .cta-secondary {
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 .cta-secondary:hover {
-  background: #efe0d4 !important;
-  border-color: #efe0d4 !important;
+  background: #2d2926 !important;
+  border-color: #2d2926 !important;
 }
 
 .nav-link {
   transition: background 0.15s ease;
 }
 .nav-link:hover {
-  background: #fcf7f0;
+  background: #2d2926;
 }
 
 .nav-cta {
   transition: background 0.2s ease;
 }
 .nav-cta:hover {
-  background: #d47a55 !important;
+  background: #d4aa7a !important;
 }
 
 .footer-link {

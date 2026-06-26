@@ -67,11 +67,11 @@ cpal = "0.15"
 hound = "3.5"
 rodio = "0.19"
 sysinfo = "0.33"
-whisper-rs = "0.16"
+libloading = "0.8"
 uuid = { version = "1", features = ["v4"] }
 regex = "1"
-tantivy = "0.26"
 image = "0.25"
+neo_frizbee = "0.10"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 objc2 = "0.6"
@@ -121,10 +121,6 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.ring]
 opt-level = 3
-[profile.dev.package.whisper-rs-sys]
-opt-level = 3
-[profile.dev.package.tantivy]
-opt-level = 2
 
 # CI profile: no debug info, no incremental (cold CI starts)
 [profile.ci]

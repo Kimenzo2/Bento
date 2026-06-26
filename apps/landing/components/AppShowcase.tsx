@@ -1,15 +1,8 @@
 'use client';
-/**
- * AppShowcase — Bento Landing
- *
- * Displays the 12 apps inside Bento in a clean grid.
- * Emoji cards with subtle tinted backgrounds. Alternating tones for rhythm.
- * No borders, no shadows.
- */
 
 import { bentoApps, tokens } from './tokens';
 
-const EMOJI_BGS = [tokens.accentLight, tokens.accentSecondaryLight, tokens.surfaceWarm];
+const EMOJI_BGS = [tokens.accentGlow, tokens.accentSecondaryGlow, tokens.accentTertiaryGlow];
 
 export default function AppShowcase() {
   return (
@@ -73,7 +66,7 @@ export default function AppShowcase() {
             <div
               key={app.name}
               style={{
-                background: i % 2 === 0 ? tokens.surfaceAlt : tokens.surface,
+                background: i % 2 === 0 ? tokens.elevated : tokens.surface,
                 borderRadius: '16px',
                 padding: '24px 22px',
               }}

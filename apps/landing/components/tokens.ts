@@ -1,37 +1,26 @@
-/**
- * Bento Landing — Design Tokens
- *
- * Warm earthy palette — muted terracotta, cream, sage.
- * No orange. No cold whites. Everything intentional.
- */
-
 export const tokens = {
-  // Brand accent — muted terracotta, warm and grounded
-  accent: '#b85c3a',
-  accentLight: '#efe0d4',
-  accentMid: '#d47a55',
+  accent: '#c49a6c',
+  accentHover: '#d4aa7a',
+  accentGlow: 'rgba(196, 154, 108, 0.12)',
+  accentLine: 'rgba(196, 154, 108, 0.25)',
 
-  // Secondary accent — soft sage for balance and variety
-  accentSecondary: '#7c8e6e',
-  accentSecondaryLight: '#e2e8db',
+  accentSecondary: '#7c8f72',
+  accentSecondaryGlow: 'rgba(124, 143, 114, 0.12)',
 
-  // Tertiary accent — dusty violet, used sparingly for highlights
-  accentViolet: '#8c7cc7',
-  accentVioletLight: '#ece7f7',
-  heroHighlight: 'linear-gradient(135deg, #b85c3a 0%, #8c7cc7 100%)',
+  accentTertiary: '#937b9e',
+  accentTertiaryGlow: 'rgba(147, 123, 158, 0.12)',
 
-  // Neutrals — warm ivory/cream family
-  ink: '#2c2418',
-  inkMuted: '#6b5e53',
-  inkFaint: '#9c8e80',
-  surface: '#fefcf8',
-  surfaceAlt: '#fcf7f0',
-  surfaceWarm: '#f7efe4',
+  bg: '#131211',
+  surface: '#1c1917',
+  elevated: '#242120',
+  highlight: '#2d2926',
 
-  // Font
+  ink: '#e6e0d6',
+  inkMuted: '#9e9589',
+  inkFaint: '#6b645b',
+
   fontFamily: "'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 
-  // Type scale (rem)
   heroSize: 'clamp(2.6rem, 5.5vw, 4.2rem)',
   headingSize: 'clamp(1.6rem, 3vw, 2.2rem)',
   subheadSize: '1.1rem',
@@ -39,20 +28,14 @@ export const tokens = {
   smallSize: '0.875rem',
   labelSize: '0.75rem',
 
-  // Spacing rhythm
   sectionPad: 'clamp(4rem, 8vw, 7rem)',
   contentMax: '1100px',
   textMax: '640px',
 
-  // Gradients — visible warmth for section backgrounds
-  heroGradient: 'linear-gradient(180deg, #f7efe4 0%, #fcf7f0 30%, #fefcf8 70%, #fefcf8 100%)',
-  warmGradient: 'linear-gradient(180deg, #fefcf8 0%, #fcf7f0 100%)',
-  sandGradient: 'linear-gradient(180deg, #fcf7f0 0%, #f7efe4 100%)',
+  heroGradient: 'linear-gradient(180deg, #131211 0%, #1c1917 50%, #131211 100%)',
+  sectionGradient: 'linear-gradient(180deg, #1c1917 0%, #131211 100%)',
 } as const;
 
-/**
- * The 12 apps inside Bento.
- */
 export const bentoApps = [
   { name: 'Mood', emoji: '😌', desc: 'Check in with how you feel. Spot the patterns.' },
   { name: 'Focus', emoji: '⏱️', desc: 'Pomodoro timer with session history.' },

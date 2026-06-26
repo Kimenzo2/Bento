@@ -1,10 +1,3 @@
-/**
- * Hero - Bento Landing
- *
- * Warm, spacious. One clear promise. One download CTA.
- * Detects the user's OS to show the right download.
- * Version + download URLs come from the server (page.tsx).
- */
 'use client';
 
 import Image from 'next/image';
@@ -135,7 +128,7 @@ export default function Hero({
               gap: '8px',
               padding: '14px 28px',
               background: tokens.accent,
-              color: '#fff',
+              color: tokens.bg,
               borderRadius: '100px',
               fontSize: '0.95rem',
               fontWeight: 600,
@@ -185,9 +178,9 @@ export default function Hero({
                 fontSize: '0.8rem',
                 fontWeight: 500,
                 color: platform === key ? tokens.accent : tokens.inkMuted,
-                background: platform === key ? tokens.accentLight : tokens.surface,
+                background: platform === key ? tokens.accentGlow : 'transparent',
                 textDecoration: 'none',
-                border: '1px solid ' + (platform === key ? tokens.accentLight : tokens.surfaceAlt),
+                border: '1px solid ' + (platform === key ? tokens.accentLine : tokens.highlight),
               }}
             >
               {p.label} installer
@@ -195,7 +188,6 @@ export default function Hero({
           ))}
         </div>
 
-        {/* Hero screenshot */}
         <div
           style={{
             marginTop: 'clamp(3rem, 6vw, 5rem)',

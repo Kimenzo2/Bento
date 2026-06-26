@@ -1,11 +1,3 @@
-/**
- * DownloadSection - Bento Landing
- *
- * Warm final CTA. Restates the value. Big download button.
- * Version comes from the server (page.tsx).
- * Installers served from /downloads/ directory.
- */
-
 import { tokens } from './tokens';
 
 export default function DownloadSection({ version }: { version: string }) {
@@ -15,7 +7,7 @@ export default function DownloadSection({ version }: { version: string }) {
     <section
       id="download"
       style={{
-        background: tokens.heroGradient,
+        background: tokens.surface,
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="download-heading"
@@ -80,7 +72,7 @@ export default function DownloadSection({ version }: { version: string }) {
               gap: '8px',
               padding: '15px 30px',
               background: tokens.accent,
-              color: '#fff',
+              color: tokens.bg,
               borderRadius: '100px',
               fontSize: '0.95rem',
               fontWeight: 600,
@@ -113,7 +105,7 @@ export default function DownloadSection({ version }: { version: string }) {
 
         <div
           style={{
-            background: tokens.surfaceAlt,
+            background: tokens.elevated,
             borderRadius: '20px',
             padding: '32px 28px',
           }}
@@ -141,7 +133,7 @@ export default function DownloadSection({ version }: { version: string }) {
           >
             {[
               'All twelve apps included at launch',
-              'Fully offline \u2014 no internet required after install',
+              'Fully offline — no internet required after install',
               'Light and dark theme across every app',
               'Native installers for Windows, macOS, and Linux',
             ].map((note) => (
@@ -188,7 +180,7 @@ export default function DownloadSection({ version }: { version: string }) {
             style={{
               marginTop: '24px',
               paddingTop: '20px',
-              borderTop: '1px solid ' + tokens.surfaceWarm,
+              borderTop: '1px solid ' + tokens.highlight,
               fontSize: tokens.labelSize,
               color: tokens.inkFaint,
             }}
