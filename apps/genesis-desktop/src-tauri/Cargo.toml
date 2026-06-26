@@ -27,7 +27,16 @@ sqlx = { version = "0.8", default-features = false, features = [
   "derive",
   "json",
 ] }
-libsqlite3-sys = { version = "0.30", features = ["sqlcipher", "unlock_notify", "loadable_extension"] }
+# Windows/Linux: system-linked SQLCipher via vcpkg/pkg-config
+# macOS: bundled-sqlcipher required for universal-apple-darwin (cross-arch
+# compilation; system brew sqlcipher is single-arch only)
+[target."cfg(not(target_os = \"macos\"))".dependencies.libsqlite3-sys]
+version = "0.30"
+features = ["sqlcipher", "unlock_notify"]
+
+[target."cfg(target_os = \"macos\")".dependencies.libsqlite3-sys]
+version = "0.30"
+features = ["bundled-sqlcipher", "unlock_notify"]
 
 # Cryptography
 argon2 = { version = "0.5", features = ["std"] }

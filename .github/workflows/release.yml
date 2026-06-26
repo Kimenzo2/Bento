@@ -149,7 +149,9 @@ jobs:
             patchelf \
             libxdo-dev \
             libssl-dev \
-            libasound2-dev
+            libasound2-dev \
+            libsqlcipher-dev \
+            pkg-config
 
       # ── Cargo registry cache ──
       - name: Cache Cargo registry
