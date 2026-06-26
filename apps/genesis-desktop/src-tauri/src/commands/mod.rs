@@ -25,7 +25,7 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::{
     auth::{AuthBootstrapState, AuthManager},
-    mcp::{McpError, McpRequest, McpResponse},
+    mcp::{McpRequest, McpResponse},
     runtime::{DesktopRuntime, LifecycleState},
     settings::{self, DesktopSettings},
     window_bounds::restore_main_window,
