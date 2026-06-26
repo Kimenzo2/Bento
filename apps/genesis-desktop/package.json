@@ -24,7 +24,7 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "tauri": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/tauri.ps1"
+    "tauri": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/tauri.ps1"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.2.8",

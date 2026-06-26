@@ -17,30 +17,34 @@ if (Test-Path $envFilePath) {
   Write-Host "Loaded .env from $envFilePath" -ForegroundColor DarkGray
 }
 $srcTauri = Join-Path $appRoot "src-tauri"
-$cargoBin = Join-Path $HOME ".cargo\\bin"
-$gitUsrBin = "C:\\Program Files\\Git\\usr\\bin"
-$llvmBin = "C:\\Program Files\\LLVM\\bin"
+$cargoBin = Join-Path $HOME ".cargo" "bin"
 $skipVcpkgBootstrap = $env:GENESIS_DESKTOP_SKIP_VCPKG_BOOTSTRAP -eq "1"
 $isWindowsPlatform = $env:OS -eq "Windows_NT"
-$desktopBinary = Join-Path $srcTauri "target\\debug\\genesis-desktop.exe"
 $allowRustBuild = $env:GENESIS_DESKTOP_ALLOW_RUST_BUILD -eq "1"
 $isRelease = $args -contains "build"
 $isDev = ($args -contains "dev") -and (-not $isRelease)
 
-if (-not ($env:PATH -split ";" | Where-Object { $_ -eq $cargoBin })) {
-  $env:PATH = "$cargoBin;$env:PATH"
+$pathSep = if ($isWindowsPlatform) { ";" } else { ":" }
+
+if (-not ($env:PATH -split $pathSep | Where-Object { $_ -eq $cargoBin })) {
+  $env:PATH = "$cargoBin$pathSep$env:PATH"
 }
 
-if ((Test-Path $gitUsrBin) -and -not ($env:PATH -split ";" | Where-Object { $_ -eq $gitUsrBin })) {
-  $env:PATH = "$gitUsrBin;$env:PATH"
-}
+if ($isWindowsPlatform) {
+  $gitUsrBin = "C:\Program Files\Git\usr\bin"
+  $llvmBin = "C:\Program Files\LLVM\bin"
 
-if ((Test-Path (Join-Path $llvmBin "lld-link.exe")) -and -not ($env:PATH -split ";" | Where-Object { $_ -eq $llvmBin })) {
-  $env:PATH = "$llvmBin;$env:PATH"
+  if ((Test-Path $gitUsrBin) -and -not ($env:PATH -split $pathSep | Where-Object { $_ -eq $gitUsrBin })) {
+    $env:PATH = "$gitUsrBin$pathSep$env:PATH"
+  }
+
+  if ((Test-Path (Join-Path $llvmBin "lld-link.exe")) -and -not ($env:PATH -split $pathSep | Where-Object { $_ -eq $llvmBin })) {
+    $env:PATH = "$llvmBin$pathSep$env:PATH"
+  }
 }
 
 if ($isWindowsPlatform -and -not $skipVcpkgBootstrap) {
-  & (Join-Path $appRoot "scripts\\setup-vcpkg.ps1")
+  & (Join-Path $appRoot "scripts" "setup-vcpkg.ps1")
 }
 
 function Start-GenesisFrontend {
@@ -86,6 +90,8 @@ function Assert-CachedRustBinaryFresh {
 }
 
 if ($isDev -and -not $allowRustBuild) {
+  $desktopBinary = Join-Path $srcTauri "target\debug\genesis-desktop.exe"
+
   if (-not (Test-Path $desktopBinary)) {
     throw "Cached desktop binary not found at $desktopBinary. Run a full build once, or set GENESIS_DESKTOP_ALLOW_RUST_BUILD=1 for a rebuild."
   }
