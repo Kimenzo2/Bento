@@ -29,7 +29,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     summary: 'Five anchor apps',
     price: { monthly: '$9', yearly: '$90' },
     period: { monthly: '/mo', yearly: '/yr' },
-    accent: '#b85c3a',
+    accent: '#c49a6c',
     features: [
       'Tasks, Notes, Journal, Password Vault, Budget',
       'Local-first desktop experience',

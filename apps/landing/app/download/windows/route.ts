@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 
 const WINDOWS_INSTALLER_FILENAME = 'Bento_0.1.0_x64-setup.exe';
 const FALLBACK_INSTALLER_URL =
-  'https://github.com/Kimenzo/Genesis/releases/latest/download/Genesis_Windows_x64-setup.exe';
+  'https://github.com/Kimenzo/bento-desktop/releases/latest/download/Bento_Windows_x64-setup.exe';
 
 export async function GET(request: NextRequest) {
   // Try to serve the local installer first
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Fallback: proxy from remote URL
-  const upstreamUrl = process.env.GENESIS_DESKTOP_WINDOWS_INSTALLER_URL ?? FALLBACK_INSTALLER_URL;
+  const upstreamUrl = process.env.BENTO_DESKTOP_WINDOWS_INSTALLER_URL ?? FALLBACK_INSTALLER_URL;
   const upstream = await fetch(upstreamUrl, {
     cache: 'no-store',
     redirect: 'follow',
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          'The Genesis Windows installer is temporarily unavailable. Please try again shortly.',
+          'The Bento Windows installer is temporarily unavailable. Please try again shortly.',
       },
       { status: 502 }
     );

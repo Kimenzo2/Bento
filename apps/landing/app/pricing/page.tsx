@@ -335,11 +335,8 @@ export default async function PricingPage({
 
       <style>{`
         .pricing-page {
-          background:
-            radial-gradient(circle at top left, rgba(184,92,58,0.09), transparent 32%),
-            radial-gradient(circle at top right, rgba(140,124,199,0.08), transparent 28%),
-            linear-gradient(180deg, #fefcf8 0%, #fcf7f0 55%, #fefcf8 100%);
-          color: #2c2418;
+          background: #131211;
+          color: #e6e0d6;
           min-height: 100vh;
         }
 
@@ -355,12 +352,10 @@ export default async function PricingPage({
 
         .pricing-page__alert {
           margin-bottom: 1.25rem;
-          border-radius: 20px;
-          border: 1px solid rgba(184,92,58,0.18);
-          background: rgba(239, 224, 212, 0.66);
-          color: #6b3a25;
+          border-radius: 100px;
+          background: rgba(196, 154, 108, 0.1);
+          color: #c49a6c;
           padding: 0.95rem 1rem;
-          box-shadow: 0 14px 28px rgba(44,36,24,0.05);
           max-width: 760px;
         }
 
@@ -372,9 +367,9 @@ export default async function PricingPage({
           display: inline-block;
           font-size: 0.74rem;
           font-weight: 700;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #b85c3a;
+          color: #c49a6c;
           margin-bottom: 1rem;
         }
 
@@ -384,12 +379,13 @@ export default async function PricingPage({
           letter-spacing: -0.04em;
           margin: 0;
           max-width: 10.5ch;
+          color: #e6e0d6;
         }
 
         .pricing-page__subtitle {
           font-size: 1.12rem;
           line-height: 1.7;
-          color: #6b5e53;
+          color: #9e9589;
           max-width: 62ch;
           margin-top: 1.25rem;
         }
@@ -402,51 +398,47 @@ export default async function PricingPage({
         }
 
         .pricing-page__meta-pill {
-          border: 1px solid rgba(44,36,24,0.09);
-          background: rgba(254, 252, 248, 0.78);
-          border-radius: 999px;
+          background: #1c1917;
+          border-radius: 100px;
           padding: 0.72rem 1rem;
           font-size: 0.9rem;
-          color: #6b5e53;
-          box-shadow: 0 12px 24px rgba(44,36,24,0.04);
+          color: #9e9589;
         }
 
         .pricing-page__hero-panel {
           margin-top: 2rem;
-          border: 1px solid rgba(44,36,24,0.08);
-          background: rgba(254,252,248,0.82);
-          border-radius: 28px;
+          background: #1c1917;
+          border-radius: 16px;
           padding: 1.25rem;
-          box-shadow: 0 24px 60px rgba(44,36,24,0.06);
           max-width: 520px;
         }
 
         .pricing-page__billing-switch {
           display: inline-flex;
-          background: #f7efe4;
+          background: #242120;
           padding: 0.3rem;
-          border-radius: 999px;
+          border-radius: 100px;
           gap: 0.2rem;
         }
 
         .pricing-page__billing-switch a {
           text-decoration: none;
-          color: #6b5e53;
+          color: #9e9589;
           padding: 0.7rem 1rem;
-          border-radius: 999px;
+          border-radius: 100px;
           font-size: 0.95rem;
           font-weight: 700;
           transition: background 0.2s ease, color 0.2s ease;
         }
 
         .pricing-page__billing-switch a.is-active {
-          background: #2c2418;
-          color: #fff;
+          background: #c49a6c;
+          color: #131211;
         }
 
         .pricing-page__panel-copy {
           margin-top: 1rem;
-          color: #6b5e53;
+          color: #9e9589;
           line-height: 1.65;
         }
 
@@ -471,13 +463,14 @@ export default async function PricingPage({
           margin: 0;
           font-size: clamp(1.6rem, 3vw, 2.2rem);
           letter-spacing: -0.03em;
+          color: #e6e0d6;
         }
 
         .pricing-page__plans-header p,
         .pricing-page__flow-header p {
           margin: 0;
           max-width: 44ch;
-          color: #6b5e53;
+          color: #9e9589;
         }
 
         .pricing-page__grid {
@@ -487,24 +480,21 @@ export default async function PricingPage({
         }
 
         .pricing-page__card {
-          border-radius: 28px;
+          border-radius: 16px;
           padding: 1.4rem;
-          border: 1px solid rgba(44,36,24,0.08);
-          background: rgba(254,252,248,0.9);
-          box-shadow: 0 18px 40px rgba(44,36,24,0.05);
+          background: #1c1917;
           display: flex;
           flex-direction: column;
           min-height: 100%;
         }
 
         .pricing-page__card.is-selected {
-          border-color: color-mix(in srgb, var(--plan-accent) 38%, rgba(44,36,24,0.08));
-          box-shadow: 0 22px 48px rgba(44,36,24,0.08);
+          background: #242120;
         }
 
         .pricing-page__card.is-current .pricing-page__cta {
-          background: #efe0d4;
-          color: #6b5e53;
+          background: #242120;
+          color: #9e9589;
           cursor: default;
         }
 
@@ -523,7 +513,7 @@ export default async function PricingPage({
 
         .pricing-page__card-top p {
           margin-top: 0.35rem;
-          color: #6b5e53;
+          color: #9e9589;
           line-height: 1.55;
           max-width: 28ch;
         }
@@ -534,10 +524,9 @@ export default async function PricingPage({
           letter-spacing: 0.12em;
           text-transform: uppercase;
           color: var(--plan-accent);
-          background: color-mix(in srgb, var(--plan-accent) 12%, #fff);
-          border: 1px solid color-mix(in srgb, var(--plan-accent) 22%, transparent);
+          background: color-mix(in srgb, var(--plan-accent) 15%, #1c1917);
           padding: 0.45rem 0.7rem;
-          border-radius: 999px;
+          border-radius: 100px;
           white-space: nowrap;
         }
 
@@ -559,15 +548,16 @@ export default async function PricingPage({
           font-size: 2.4rem;
           font-weight: 700;
           letter-spacing: -0.05em;
+          color: #e6e0d6;
         }
 
         .pricing-page__period {
-          color: #6b5e53;
+          color: #9e9589;
           font-weight: 700;
         }
 
         .pricing-page__summary {
-          color: #6b5e53;
+          color: #9e9589;
           font-size: 0.95rem;
         }
 
@@ -582,7 +572,7 @@ export default async function PricingPage({
         .pricing-page__features li {
           position: relative;
           padding-left: 1.2rem;
-          color: #46382b;
+          color: #e6e0d6;
           line-height: 1.55;
         }
 
@@ -604,32 +594,44 @@ export default async function PricingPage({
         .pricing-page__cta {
           width: 100%;
           border: none;
-          border-radius: 999px;
+          border-radius: 100px;
           padding: 0.95rem 1.15rem;
-          background: #2c2418;
-          color: #fff;
+          background: #c49a6c;
+          color: #131211;
           font-weight: 700;
           font-size: 0.95rem;
           cursor: pointer;
-          transition: transform 0.16s ease, background 0.16s ease, opacity 0.16s ease;
+          transition: background 0.2s ease;
         }
 
         .pricing-page__cta:hover:not(:disabled) {
-          transform: translateY(-1px);
-          background: color-mix(in srgb, var(--plan-accent) 84%, #2c2418);
+          background: #d4aa7a;
         }
 
         .pricing-page__cta:disabled {
-          opacity: 0.85;
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
+        .pricing-page__method-strip {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-top: 0.75rem;
+        }
+
+        .pricing-page__method-pill {
+          background: #242120;
+          border-radius: 100px;
+          padding: 0.4rem 0.75rem;
+          font-size: 0.8rem;
+          color: #9e9589;
+        }
+
         .pricing-page__step {
-          border-radius: 24px;
-          border: 1px solid rgba(44,36,24,0.08);
-          background: rgba(254,252,248,0.9);
+          border-radius: 16px;
+          background: #1c1917;
           padding: 1.25rem;
-          box-shadow: 0 12px 30px rgba(44,36,24,0.04);
         }
 
         .pricing-page__steps {
@@ -644,8 +646,8 @@ export default async function PricingPage({
           width: 2rem;
           height: 2rem;
           border-radius: 999px;
-          background: #f7efe4;
-          color: #b85c3a;
+          background: #242120;
+          color: #c49a6c;
           font-weight: 800;
           margin-bottom: 0.9rem;
         }
@@ -658,16 +660,14 @@ export default async function PricingPage({
 
         .pricing-page__step p {
           margin-top: 0.45rem;
-          color: #6b5e53;
+          color: #9e9589;
           line-height: 1.55;
         }
 
         .pricing-page__note-card {
-          border-radius: 28px;
-          border: 1px solid rgba(44,36,24,0.08);
-          background: linear-gradient(180deg, rgba(247,239,228,0.72), rgba(254,252,248,0.92));
+          border-radius: 16px;
+          background: #1c1917;
           padding: 1.5rem;
-          box-shadow: 0 18px 40px rgba(44,36,24,0.05);
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -676,7 +676,7 @@ export default async function PricingPage({
 
         .pricing-page__note-card p {
           max-width: 62ch;
-          color: #6b5e53;
+          color: #9e9589;
           line-height: 1.65;
           margin-top: 0.5rem;
         }
@@ -686,12 +686,17 @@ export default async function PricingPage({
           align-items: center;
           justify-content: center;
           padding: 0.9rem 1.2rem;
-          border-radius: 999px;
+          border-radius: 100px;
           text-decoration: none;
           font-weight: 700;
-          color: #fff;
-          background: #b85c3a;
+          color: #131211;
+          background: #c49a6c;
           white-space: nowrap;
+          transition: background 0.2s ease;
+        }
+
+        .pricing-page__note-link:hover {
+          background: #d4aa7a;
         }
 
         @media (max-width: 900px) {

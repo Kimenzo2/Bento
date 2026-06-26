@@ -10,7 +10,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 const GITHUB_OWNER = 'Kimenzo';
-const GITHUB_REPO = 'Genesis';
+const GITHUB_REPO = 'bento-desktop';
 
 interface UpdaterResponse {
   version: string;

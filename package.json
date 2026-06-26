@@ -7,10 +7,10 @@
     "apps/genesis-desktop"
   ],
   "scripts": {
-    "build": "turbo build --filter=@genesis/landing",
-    "dev:landing": "turbo dev --filter=@genesis/landing",
+    "build": "turbo build --filter=@bento/landing",
+    "dev:landing": "turbo dev --filter=@bento/landing",
     "dev:desktop": "turbo dev --filter=@bento/desktop",
-    "build:landing": "turbo build --filter=@genesis/landing",
+    "build:landing": "turbo build --filter=@bento/landing",
     "build:desktop": "turbo build --filter=@bento/desktop",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
