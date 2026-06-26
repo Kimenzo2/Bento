@@ -45,7 +45,7 @@ secrecy = { version = "0.8", features = ["alloc"] }
 rand = "0.8"
 hex = "0.4"
 
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "custom-protocol"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
