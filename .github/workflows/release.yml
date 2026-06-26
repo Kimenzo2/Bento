@@ -1,0 +1,279 @@
+# Bento Desktop — CrabNebula Cloud Release Pipeline
+#
+# Triggered by:
+#   - Pushing a tag matching v* (e.g., v0.2.0)
+#   - Manual workflow_dispatch with a tag input (for re-runs)
+#
+# Pipeline:
+#   1. prepare   — Extracts version from tag
+#   2. draft     — Creates a release draft on CrabNebula Cloud
+#   3. build     — Matrix build across macOS (universal), Windows (x64), Linux (x64)
+#   4. publish   — Publishes the release on CrabNebula Cloud
+#   5. deploy-landing — Downloads assets from CrabNebula CDN → copies to landing page → deploys Vercel
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.2.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_DIR: apps/genesis-desktop
+  CN_APPLICATION: bento-industries/bento
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # 1. PREPARE — Extract version info
+  # ─────────────────────────────────────────────────────────
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      tag_name: ${{ steps.get-version.outputs.tag_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get-version
+        shell: bash
+        run: |
+          TAG_NAME="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG_NAME#v}"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  # ─────────────────────────────────────────────────────────
+  # 2. DRAFT — Create a release draft on CrabNebula Cloud
+  # ─────────────────────────────────────────────────────────
+  draft:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create draft release on CrabNebula Cloud
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release draft ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  # ─────────────────────────────────────────────────────────
+  # 3. BUILD — Matrix build across platforms
+  # ─────────────────────────────────────────────────────────
+  build:
+    needs: draft
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: universal-apple-darwin
+            bundles: dmg
+            arch: universal
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            arch: x64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+            arch: amd64
+
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Sccache (distributed compilation cache) ──
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+        with:
+          cache-key: ${{ runner.os }}-release-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
+
+      # ── Rust toolchain ──
+      # For universal-apple-darwin (macOS), we add both arch-specific targets
+      # so cargo can build each architecture. For other platforms, the single
+      # target triplet is sufficient.
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable --component rustfmt
+          rustup default stable
+          if [ "${{ matrix.target }}" = "universal-apple-darwin" ]; then
+            rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          else
+            rustup target add ${{ matrix.target }}
+          fi
+
+      # ── Bun + Node.js ──
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      # ── Linux system deps (Tauri v2) ──
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev
+
+      # ── Cargo registry cache ──
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-release-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-release-
+
+      # ── vcpkg (Windows: SQLCipher via vcpkg, same strategy as local dev) ──
+      - name: Cache vcpkg
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/Genesis/vcpkg
+            ~/AppData/Local/Genesis/vcpkg-bincache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles(format('{0}/scripts/setup-vcpkg.ps1', env.APP_DIR)) }}
+
+      - name: Install vcpkg + SQLCipher
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "${{ github.workspace }}\${{ env.APP_DIR }}\scripts\setup-vcpkg.ps1"
+          # Persist env vars to GITHUB_ENV so they're available to subsequent steps
+          @('VCPKG_ROOT','VCPKG_DEFAULT_TRIPLET','VCPKG_TARGET_TRIPLET','VCPKGRS_TRIPLET','VCPKG_BINARY_SOURCES','VCPKGRS_DYNAMIC','SQLCIPHER_STATIC','SQLCIPHER_INCLUDE_DIR','SQLCIPHER_LIB_DIR') | ForEach-Object {
+            "$_=$([System.Environment]::GetEnvironmentVariable($_))" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+          $llp = [System.Environment]::GetEnvironmentVariable('LIBCLANG_PATH')
+          if ($llp) { "LIBCLANG_PATH=$llp" | Out-File -FilePath $env:GITHUB_ENV -Append }
+
+      # ── Build the Tauri app ──
+      - name: Build Tauri app
+        shell: bash
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: |
+          bun install
+          bun run tauri build \
+            --bundles ${{ matrix.bundles }} \
+            --target ${{ matrix.target }}
+
+      # ── Upload assets to CrabNebula Cloud ──
+      - name: Upload assets to CrabNebula Cloud
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+          working-directory: ${{ env.APP_DIR }}
+
+  # ─────────────────────────────────────────────────────────
+  # 4. PUBLISH — Publish the release on CrabNebula Cloud
+  # ─────────────────────────────────────────────────────────
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish release on CrabNebula Cloud
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release publish ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  # ─────────────────────────────────────────────────────────
+  # 5. DEPLOY LANDING — Download assets from CrabNebula CDN,
+  #    sync to landing page public/downloads/, deploy Vercel
+  # ─────────────────────────────────────────────────────────
+  deploy-landing:
+    needs: [prepare, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Download release assets from CrabNebula CDN
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          mkdir -p apps/landing/public/downloads
+
+          CDN_BASE="https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform"
+
+          # Windows (NSIS x86_64)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_x64-setup.exe" \
+            "$CDN_BASE/nsis-x86_64" || echo "WARN: nsis-x86_64 not found"
+
+          # macOS (DMG universal)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_universal.dmg" \
+            "$CDN_BASE/dmg-universal" || echo "WARN: dmg-universal not found"
+
+          # Linux (AppImage x86_64)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.AppImage" \
+            "$CDN_BASE/appimage-x86_64" || echo "WARN: appimage-x86_64 not found"
+
+          # Linux (deb x86_64) — saved under the versioned name
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.deb" \
+            "$CDN_BASE/deb-x86_64" || echo "WARN: deb-x86_64 not found"
+
+          echo "Downloaded assets:"
+          ls -la apps/landing/public/downloads/
+
+      - name: Install landing page dependencies
+        run: bun install
+
+      - name: Build landing page
+        run: bun --cwd apps/landing run build
+
+      - name: Deploy landing page to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel deploy apps/landing \
+            --prod \
+            --token="$VERCEL_TOKEN" \
+            --scope="$VERCEL_ORG_ID" \
+            --project="$VERCEL_PROJECT_ID"
+          echo "Landing page deployed."
