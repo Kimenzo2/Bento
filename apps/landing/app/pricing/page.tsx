@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import type { CSSProperties } from 'react';
+import { tokens } from '../../components/tokens';
 import { createAdminClient, createClient, getAuthenticatedUser } from '../../lib/supabase/server';
 import { PRICING_PLANS, findPlanByCode, getBillingPeriod, tierRank } from '../../lib/billing';
 import {
   detectCheckoutCountry,
-  getCountryDisplayName,
   getCountryFromHeaders,
   normalizeCountryCode,
 } from '../../lib/paystack/country';
@@ -25,20 +25,10 @@ function firstString(value: string | string[] | undefined) {
   return value;
 }
 
-function formatStatus(subscriptionStatus?: string | null) {
-  const value = (subscriptionStatus ?? 'free').trim().toLowerCase();
-  if (value === 'active') return 'Active';
-  if (value === 'attention') return 'Needs attention';
-  if (value === 'non-renewing') return 'Cancels at period end';
-  if (value === 'cancelled') return 'Cancelled';
-  if (value === 'finalization_required') return 'Pending activation';
-  return 'Free';
-}
-
 function manageLabel(currentTierRank: number, planRank: number) {
   if (planRank === currentTierRank) return 'Current plan';
-  if (planRank < currentTierRank) return 'Switch to this plan';
-  return 'Continue to Paystack';
+  if (planRank < currentTierRank) return 'Downgrade';
+  return 'Upgrade';
 }
 
 export default async function PricingPage({
@@ -110,14 +100,6 @@ export default async function PricingPage({
     selectPreferredPaystackMethod(detectedCountry, methodRules, profile?.last_checkout_method).selectedMethodKey;
   const paymentMethodViews = toPaystackMethodViews(availableMethods);
   const canCheckout = Boolean(user || desktopEmail);
-  const billingNote = user
-    ? profile
-      ? `${user.email} · ${formatStatus(profile.subscription_status)}`
-      : `${user.email} · no subscription record yet`
-    : desktopEmail
-      ? `Continuing as ${desktopEmail}`
-    : 'Sign in in the browser before starting checkout.';
-  const countryLabel = getCountryDisplayName(detectedCountry);
 
   return (
     <main className="pricing-page">
@@ -126,62 +108,44 @@ export default async function PricingPage({
           {issue ? (
             <div className="pricing-page__alert" role="status" aria-live="polite">
               {issue === 'signin_required'
-                ? 'Sign in first or continue from the desktop app email. Bento needs a profile match to attach the payment to the right account.'
+                ? 'Please sign in to continue.'
                 : issue === 'unknown_plan'
-                  ? 'That plan was not recognized. Pick a plan below.'
+                  ? 'Plan not found. Please select another plan.'
                   : issue === 'missing_paystack_plan'
-                    ? 'The Paystack plan code for this tier is missing in environment configuration.'
-                    : 'Checkout could not start. Please try again.'}
+                    ? 'This plan is temporarily unavailable.'
+                    : 'Something went wrong. Please try again.'}
             </div>
           ) : null}
 
           <div className="pricing-page__hero-copy">
-            <p className="pricing-page__eyebrow">Bento pricing</p>
-            <h1 className="pricing-page__title">Pick a plan, pay on the web, unlock in desktop.</h1>
+            <p className="pricing-page__eyebrow">Pricing</p>
+            <h1 className="pricing-page__title">Simple, transparent pricing.</h1>
             <p className="pricing-page__subtitle">
-              Upgrade opens a secure hosted checkout on Paystack. Bento never stores your payment
-              secret, and the desktop app only reacts to Supabase subscription updates.
+              Pick the tier that fits you best. Upgrade or downgrade at any time.
             </p>
-
-            <div className="pricing-page__hero-meta">
-              <span className="pricing-page__meta-pill">{billingNote}</span>
-              <span className="pricing-page__meta-pill">
-                Desktop syncs automatically after the Paystack webhook updates Supabase.
-              </span>
-              <span className="pricing-page__meta-pill">
-                {countryLabel
-                  ? `Detected country: ${countryLabel}`
-                  : 'Detected country: defaulting to card-only checkout.'}
-              </span>
-            </div>
           </div>
 
-          <div className="pricing-page__hero-panel">
-            <div className="pricing-page__billing-switch" aria-label="Billing period">
-              <Link
-                className={period === 'monthly' ? 'is-active' : ''}
-                href={`/pricing?billing=monthly${selectedPlanCode ? `&plan=${selectedPlanCode}` : ''}${desktopEmail ? `&email=${encodeURIComponent(desktopEmail)}` : ''}`}
-              >
-                Monthly
-              </Link>
-              <Link
-                className={period === 'yearly' ? 'is-active' : ''}
-                href={`/pricing?billing=yearly${selectedPlanCode ? `&plan=${selectedPlanCode}` : ''}${desktopEmail ? `&email=${encodeURIComponent(desktopEmail)}` : ''}`}
-              >
-                Yearly
-              </Link>
-            </div>
-            <p className="pricing-page__panel-copy">
-              Choose a plan below. The card you click posts directly to the server route that
-              initializes Paystack using Bento&apos;s secret key on the web side only.
-            </p>
-            <div className="pricing-page__method-strip" aria-label="Available payment methods">
-              {paymentMethodViews.map((method) => (
-                <span key={`${method.countryCode}:${method.methodKey}`} className="pricing-page__method-pill">
-                  {method.label}
-                </span>
-              ))}
-            </div>
+          <div className="pricing-page__billing-switch" aria-label="Billing period">
+            <Link
+              className={period === 'monthly' ? 'is-active' : ''}
+              href={`/pricing?billing=monthly${selectedPlanCode ? `&plan=${selectedPlanCode}` : ''}${desktopEmail ? `&email=${encodeURIComponent(desktopEmail)}` : ''}`}
+            >
+              Monthly
+            </Link>
+            <Link
+              className={period === 'yearly' ? 'is-active' : ''}
+              href={`/pricing?billing=yearly${selectedPlanCode ? `&plan=${selectedPlanCode}` : ''}${desktopEmail ? `&email=${encodeURIComponent(desktopEmail)}` : ''}`}
+            >
+              Yearly
+            </Link>
+          </div>
+
+          <div className="pricing-page__method-strip" aria-label="Accepted payment methods">
+            {paymentMethodViews.map((method) => (
+              <span key={`${method.countryCode}:${method.methodKey}`} className="pricing-page__method-pill">
+                {method.label}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -192,7 +156,7 @@ export default async function PricingPage({
             <h2 id="pricing-plans-heading">Plans</h2>
             <p>
               {activePlan
-                ? `Your current plan is ${activePlan.name}. Select another plan to upgrade or renew.`
+                ? `Your current plan is ${activePlan.name}.`
                 : 'Select the plan that fits how you use Bento.'}
             </p>
           </div>
@@ -261,15 +225,16 @@ export default async function PricingPage({
                     <input type="hidden" name="source" value={user ? 'web' : 'desktop'} />
                     {desktopEmail ? <input type="hidden" name="email" value={desktopEmail} /> : null}
                     <button
+                      data-slot="button"
                       type="submit"
-                      className="pricing-page__cta"
+                      className="pricing-page__cta btn-accent"
                       disabled={isCurrent || !canCheckout}
                     >
                       {!canCheckout
-                        ? 'Sign in to continue'
+                        ? 'Sign in to subscribe'
                         : user
                           ? manageLabel(currentTierRank, rank)
-                          : 'Continue to Paystack'}
+                          : 'Subscribe'}
                     </button>
                   </form>
                 </article>
@@ -279,55 +244,15 @@ export default async function PricingPage({
         </div>
       </section>
 
-      <section className="pricing-page__flow" aria-labelledby="pricing-flow-heading">
-        <div className="pricing-page__inner">
-          <div className="pricing-page__flow-header">
-            <h2 id="pricing-flow-heading">How the upgrade flow works</h2>
-            <p>Desktop stays local-first. Web handles payment. Supabase moves the plan state.</p>
-          </div>
-
-          <div className="pricing-page__steps">
-            <div className="pricing-page__step">
-              <span>1</span>
-              <h3>Choose a plan</h3>
-              <p>
-                Pick monthly or yearly, then submit the card that matches your target tier and
-                country.
-              </p>
-            </div>
-            <div className="pricing-page__step">
-              <span>2</span>
-              <h3>Pay on Paystack</h3>
-              <p>
-                Checkout opens on Paystack&apos;s hosted surface. The web app keeps the secret key.
-              </p>
-            </div>
-            <div className="pricing-page__step">
-              <span>3</span>
-              <h3>Webhook updates Supabase</h3>
-              <p>A Paystack webhook updates the `profiles` row with the new subscription state.</p>
-            </div>
-            <div className="pricing-page__step">
-              <span>4</span>
-              <h3>Desktop unlocks automatically</h3>
-              <p>
-                Bento listens to Supabase realtime, refreshes billing, and unlocks the new tier.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="pricing-page__note">
         <div className="pricing-page__inner">
           <div className="pricing-page__note-card">
-            <h2>Security-first by design</h2>
+            <h2>Your privacy comes first.</h2>
             <p>
-              No Paystack secret key lives in the Tauri app. Desktop only opens this page, and all
-              subscription changes land back in the app through Supabase.
+              Payment details stay in your browser. Your data stays on your device.
             </p>
-            <Link href="/" className="pricing-page__note-link">
-              Back to the home page
+            <Link href="/" data-slot="button" className="pricing-page__note-link btn-accent">
+              Back to home
             </Link>
           </div>
         </div>
@@ -336,7 +261,7 @@ export default async function PricingPage({
       <style>{`
         .pricing-page {
           background: #131211;
-          color: #e6e0d6;
+          color: #dce0e6;
           min-height: 100vh;
         }
 
@@ -348,19 +273,22 @@ export default async function PricingPage({
 
         .pricing-page__hero {
           padding: 7.5rem 0 4rem;
+          text-align: center;
         }
 
         .pricing-page__alert {
           margin-bottom: 1.25rem;
-          border-radius: 100px;
-          background: rgba(196, 154, 108, 0.1);
-          color: #c49a6c;
+          border-radius: 0.75rem;
+          background: rgba(122, 155, 181, 0.1);
+          color: #7a9bb5;
           padding: 0.95rem 1rem;
           max-width: 760px;
+          margin-inline: auto;
         }
 
         .pricing-page__hero-copy {
-          max-width: 680px;
+          max-width: 640px;
+          margin-inline: auto;
         }
 
         .pricing-page__eyebrow {
@@ -369,7 +297,7 @@ export default async function PricingPage({
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #c49a6c;
+          color: #7a9bb5;
           margin-bottom: 1rem;
         }
 
@@ -378,78 +306,46 @@ export default async function PricingPage({
           line-height: 1.05;
           letter-spacing: -0.04em;
           margin: 0;
-          max-width: 10.5ch;
-          color: #e6e0d6;
+          color: #dce0e6;
         }
 
         .pricing-page__subtitle {
           font-size: 1.12rem;
           line-height: 1.7;
-          color: #9e9589;
-          max-width: 62ch;
-          margin-top: 1.25rem;
-        }
-
-        .pricing-page__hero-meta {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.75rem;
-          margin-top: 1.5rem;
-        }
-
-        .pricing-page__meta-pill {
-          background: #1c1917;
-          border-radius: 100px;
-          padding: 0.72rem 1rem;
-          font-size: 0.9rem;
-          color: #9e9589;
-        }
-
-        .pricing-page__hero-panel {
-          margin-top: 2rem;
-          background: #1c1917;
-          border-radius: 16px;
-          padding: 1.25rem;
-          max-width: 520px;
+          color: #90959e;
+          max-width: 52ch;
+          margin: 1.25rem auto 0;
         }
 
         .pricing-page__billing-switch {
-          display: inline-flex;
-          background: #242120;
-          padding: 0.3rem;
-          border-radius: 100px;
-          gap: 0.2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.25rem;
+          margin-top: 2rem;
         }
 
         .pricing-page__billing-switch a {
           text-decoration: none;
-          color: #9e9589;
-          padding: 0.7rem 1rem;
-          border-radius: 100px;
-          font-size: 0.95rem;
-          font-weight: 700;
-          transition: background 0.2s ease, color 0.2s ease;
+          color: #90959e;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          font-size: 0.9rem;
+          font-weight: 500;
+          transition: color 0.15s ease, background 0.15s ease;
         }
 
         .pricing-page__billing-switch a.is-active {
-          background: #c49a6c;
-          color: #131211;
-        }
-
-        .pricing-page__panel-copy {
-          margin-top: 1rem;
-          color: #9e9589;
-          line-height: 1.65;
+          color: #dce0e6;
+          background: rgba(255,255,255,0.06);
         }
 
         .pricing-page__plans,
-        .pricing-page__flow,
         .pricing-page__note {
           padding: 0 0 4rem;
         }
 
-        .pricing-page__plans-header,
-        .pricing-page__flow-header {
+        .pricing-page__plans-header {
           display: flex;
           justify-content: space-between;
           gap: 1rem;
@@ -458,19 +354,17 @@ export default async function PricingPage({
         }
 
         .pricing-page__plans-header h2,
-        .pricing-page__flow-header h2,
         .pricing-page__note-card h2 {
           margin: 0;
           font-size: clamp(1.6rem, 3vw, 2.2rem);
           letter-spacing: -0.03em;
-          color: #e6e0d6;
+          color: #dce0e6;
         }
 
-        .pricing-page__plans-header p,
-        .pricing-page__flow-header p {
+        .pricing-page__plans-header p {
           margin: 0;
           max-width: 44ch;
-          color: #9e9589;
+          color: #90959e;
         }
 
         .pricing-page__grid {
@@ -480,22 +374,16 @@ export default async function PricingPage({
         }
 
         .pricing-page__card {
-          border-radius: 16px;
-          padding: 1.4rem;
-          background: #1c1917;
+          border-radius: 1.5rem;
+          padding: 12px 16px;
+          background: #1b1c1d;
           display: flex;
           flex-direction: column;
           min-height: 100%;
         }
 
         .pricing-page__card.is-selected {
-          background: #242120;
-        }
-
-        .pricing-page__card.is-current .pricing-page__cta {
-          background: #242120;
-          color: #9e9589;
-          cursor: default;
+          background: #242527;
         }
 
         .pricing-page__card-top {
@@ -513,7 +401,7 @@ export default async function PricingPage({
 
         .pricing-page__card-top p {
           margin-top: 0.35rem;
-          color: #9e9589;
+          color: #90959e;
           line-height: 1.55;
           max-width: 28ch;
         }
@@ -524,9 +412,9 @@ export default async function PricingPage({
           letter-spacing: 0.12em;
           text-transform: uppercase;
           color: var(--plan-accent);
-          background: color-mix(in srgb, var(--plan-accent) 15%, #1c1917);
+          background: color-mix(in srgb, var(--plan-accent) 15%, #1b1c1d);
           padding: 0.45rem 0.7rem;
-          border-radius: 100px;
+          border-radius: 0.75rem;
           white-space: nowrap;
         }
 
@@ -548,16 +436,16 @@ export default async function PricingPage({
           font-size: 2.4rem;
           font-weight: 700;
           letter-spacing: -0.05em;
-          color: #e6e0d6;
+          color: #dce0e6;
         }
 
         .pricing-page__period {
-          color: #9e9589;
+          color: #90959e;
           font-weight: 700;
         }
 
         .pricing-page__summary {
-          color: #9e9589;
+          color: #90959e;
           font-size: 0.95rem;
         }
 
@@ -572,7 +460,7 @@ export default async function PricingPage({
         .pricing-page__features li {
           position: relative;
           padding-left: 1.2rem;
-          color: #e6e0d6;
+          color: #dce0e6;
           line-height: 1.55;
         }
 
@@ -594,80 +482,59 @@ export default async function PricingPage({
         .pricing-page__cta {
           width: 100%;
           border: none;
-          border-radius: 100px;
-          padding: 0.95rem 1.15rem;
-          background: #c49a6c;
+          border-radius: 0.75rem;
+          padding: 0 18px;
+          background: #7a9bb5;
           color: #131211;
-          font-weight: 700;
-          font-size: 0.95rem;
+          font-weight: 500;
+          font-size: 0.875rem;
+          height: 36px;
           cursor: pointer;
-          transition: background 0.2s ease;
+          transition: background 0.2s ease, box-shadow 0.15s ease;
         }
 
         .pricing-page__cta:hover:not(:disabled) {
-          background: #d4aa7a;
+          background: #8fb0ca;
         }
 
         .pricing-page__cta:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+          background: #7a9bb5;
+          color: #131211;
+        }
+
+        .pricing-page__card.is-current .pricing-page__cta {
+          background: #242527;
+          color: #90959e;
+          cursor: default;
+        }
+
+        .pricing-page__card.is-current .pricing-page__cta:hover {
+          background: #242527 !important;
+          color: #90959e;
         }
 
         .pricing-page__method-strip {
           display: flex;
           flex-wrap: wrap;
+          justify-content: center;
           gap: 0.5rem;
-          margin-top: 0.75rem;
+          margin-top: 1rem;
         }
 
         .pricing-page__method-pill {
-          background: #242120;
-          border-radius: 100px;
+          background: #242527;
+          border-radius: 0.75rem;
           padding: 0.4rem 0.75rem;
           font-size: 0.8rem;
-          color: #9e9589;
-        }
-
-        .pricing-page__step {
-          border-radius: 16px;
-          background: #1c1917;
-          padding: 1.25rem;
-        }
-
-        .pricing-page__steps {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 1rem;
-        }
-
-        .pricing-page__step span {
-          display: inline-grid;
-          place-items: center;
-          width: 2rem;
-          height: 2rem;
-          border-radius: 999px;
-          background: #242120;
-          color: #c49a6c;
-          font-weight: 800;
-          margin-bottom: 0.9rem;
-        }
-
-        .pricing-page__step h3 {
-          margin: 0;
-          font-size: 1.05rem;
-          letter-spacing: -0.02em;
-        }
-
-        .pricing-page__step p {
-          margin-top: 0.45rem;
-          color: #9e9589;
-          line-height: 1.55;
+          color: #90959e;
         }
 
         .pricing-page__note-card {
-          border-radius: 16px;
-          background: #1c1917;
-          padding: 1.5rem;
+          border-radius: 1.5rem;
+          background: #1b1c1d;
+          padding: 12px 16px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -676,7 +543,7 @@ export default async function PricingPage({
 
         .pricing-page__note-card p {
           max-width: 62ch;
-          color: #9e9589;
+          color: #90959e;
           line-height: 1.65;
           margin-top: 0.5rem;
         }
@@ -685,35 +552,27 @@ export default async function PricingPage({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 0.9rem 1.2rem;
-          border-radius: 100px;
+          padding: 0 18px;
+          border-radius: 0.75rem;
           text-decoration: none;
-          font-weight: 700;
+          font-weight: 500;
+          font-size: 0.875rem;
+          height: 36px;
           color: #131211;
-          background: #c49a6c;
+          background: #7a9bb5;
           white-space: nowrap;
-          transition: background 0.2s ease;
-        }
-
-        .pricing-page__note-link:hover {
-          background: #d4aa7a;
+          transition: background 0.2s ease, box-shadow 0.15s ease;
         }
 
         @media (max-width: 900px) {
-          .pricing-page__grid,
-          .pricing-page__steps {
+          .pricing-page__grid {
             grid-template-columns: 1fr;
           }
 
           .pricing-page__plans-header,
-          .pricing-page__flow-header,
           .pricing-page__note-card {
             flex-direction: column;
             align-items: start;
-          }
-
-          .pricing-page__title {
-            max-width: none;
           }
         }
       `}</style>

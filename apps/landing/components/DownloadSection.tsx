@@ -7,7 +7,7 @@ export default function DownloadSection({ version }: { version: string }) {
     <section
       id="download"
       style={{
-        background: tokens.surface,
+        background: `radial-gradient(ellipse 80% 50% at 70% 60%, rgba(122, 155, 181, 0.04) 0%, transparent 60%), ${tokens.surface}`,
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="download-heading"
@@ -17,7 +17,7 @@ export default function DownloadSection({ version }: { version: string }) {
           maxWidth: tokens.contentMax,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '48px',
           alignItems: 'center',
         }}
@@ -43,11 +43,11 @@ export default function DownloadSection({ version }: { version: string }) {
               letterSpacing: '-0.02em',
               lineHeight: 1.2,
               color: tokens.ink,
-              margin: '0 0 20px',
-              maxWidth: '500px',
+              margin: '0 0 18px',
+              maxWidth: '480px',
             }}
           >
-            Download Bento and settle in.
+            Free. Private. Yours to keep.
           </h2>
           <p
             style={{
@@ -55,29 +55,35 @@ export default function DownloadSection({ version }: { version: string }) {
               lineHeight: 1.7,
               color: tokens.inkMuted,
               marginBottom: '32px',
-              maxWidth: '440px',
+              maxWidth: '420px',
             }}
           >
-            No account. No credit card. No onboarding flow that takes twenty minutes. Install it,
-            open it, and start the day.
+            No account, no credit card, no onboarding that takes twenty minutes. Install it, open
+            it, and pick up where you left off. It&rsquo;s that quiet.
           </p>
 
           <a
-            className="cta-primary"
+            data-slot="button"
+            className="btn-accent"
             href={winHref}
             download
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
-              padding: '15px 30px',
+              whiteSpace: 'nowrap',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              height: '36px',
+              borderRadius: '0.75rem',
+              padding: '0 18px',
               background: tokens.accent,
               color: tokens.bg,
-              borderRadius: '100px',
-              fontSize: '0.95rem',
-              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
               textDecoration: 'none',
-              letterSpacing: '-0.01em',
+              transition: 'color 0.15s ease, box-shadow 0.15s ease',
             }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -99,32 +105,32 @@ export default function DownloadSection({ version }: { version: string }) {
               marginTop: '14px',
             }}
           >
-            v{version} &mdash; Available for Windows, macOS, and Linux
+            v{version} &mdash; Windows, macOS, and Linux
           </p>
         </div>
 
         <div
           style={{
+            flex: '1',
+            borderRadius: '1.5rem',
             background: tokens.elevated,
-            borderRadius: '20px',
-            padding: '32px 28px',
+            padding: '12px 16px',
           }}
         >
           <p
             style={{
-              fontSize: tokens.smallSize,
+              fontSize: '0.75rem',
               fontWeight: 600,
               color: tokens.ink,
-              marginBottom: '18px',
               letterSpacing: '-0.01em',
             }}
           >
-            What&rsquo;s in v{version}
+            Ships with v{version}
           </p>
           <ul
             style={{
               listStyle: 'none',
-              margin: 0,
+              margin: '16px 0 0',
               padding: 0,
               display: 'flex',
               flexDirection: 'column',
@@ -132,10 +138,10 @@ export default function DownloadSection({ version }: { version: string }) {
             }}
           >
             {[
-              'All twelve apps included at launch',
-              'Fully offline — no internet required after install',
-              'Light and dark theme across every app',
-              'Native installers for Windows, macOS, and Linux',
+              'All twelve apps — ready from the first launch',
+              'Fully offline. No internet needed after install.',
+              'Light and dark themes across every tool',
+              'Native installers for every platform',
             ].map((note) => (
               <li
                 key={note}
@@ -149,23 +155,17 @@ export default function DownloadSection({ version }: { version: string }) {
                 }}
               >
                 <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 15 15"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
                   fill="none"
                   aria-hidden="true"
-                  style={{ marginTop: '2px', flexShrink: 0 }}
+                  style={{ marginTop: '3px', flexShrink: 0 }}
                 >
-                  <circle
-                    cx="7.5"
-                    cy="7.5"
-                    r="7"
-                    stroke={tokens.accentSecondary}
-                    strokeWidth="1.25"
-                  />
+                  <circle cx="8" cy="8" r="7" stroke={tokens.accent} strokeWidth="1.25" />
                   <path
-                    d="M4.5 7.5l2.25 2.25L10.5 5.5"
-                    stroke={tokens.accentSecondary}
+                    d="M5 8l2.25 2.25L11 6"
+                    stroke={tokens.accent}
                     strokeWidth="1.25"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -178,20 +178,20 @@ export default function DownloadSection({ version }: { version: string }) {
 
           <div
             style={{
-              marginTop: '24px',
-              paddingTop: '20px',
+              marginTop: '16px',
+              paddingTop: '12px',
               borderTop: '1px solid ' + tokens.highlight,
               fontSize: tokens.labelSize,
+              lineHeight: 1.6,
               color: tokens.inkFaint,
             }}
           >
-            Also available for macOS and Linux. <br />
-            Questions?{' '}
+            Also on macOS and Linux. Questions?{' '}
             <a
-              href="mailto:support@bentoproductivity.app"
+              href="mailto:support@iamazeyou.me"
               style={{ color: tokens.accent, textDecoration: 'none' }}
             >
-              Get in touch.
+              Say hello.
             </a>
           </div>
         </div>

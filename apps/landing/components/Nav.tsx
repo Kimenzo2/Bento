@@ -8,15 +8,33 @@ const NAV_LINKS = [
   { label: 'Apps', href: '#apps' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Why Bento', href: '#why' },
-  { label: 'Download', href: '#download' },
 ];
+
+const btn = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  whiteSpace: 'nowrap',
+  fontSize: '0.875rem',
+  fontWeight: 500,
+  height: '28px',
+  borderRadius: '0.75rem',
+  padding: '0 12px',
+  background: 'rgba(255,255,255,0.06)',
+  color: 'rgba(220,224,230,0.8)',
+  border: 'none',
+  cursor: 'pointer',
+  textDecoration: 'none',
+  transition: 'color 0.15s ease, box-shadow 0.15s ease',
+} as const;
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -39,18 +57,20 @@ export default function Nav() {
         left: 0,
         right: 0,
         zIndex: 50,
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
-        background: scrolled ? tokens.surface : 'transparent',
-        transition: 'background 0.25s, border-color 0.25s',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.04)' : '1px solid transparent',
+        background: scrolled ? 'rgba(12, 11, 10, 0.85)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(12px)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+        transition: 'background 0.3s, border-color 0.3s, backdrop-filter 0.3s',
       }}
       aria-label="Primary navigation"
     >
       <div
         style={{
-          maxWidth: '1100px',
+          maxWidth: tokens.contentMax,
           margin: '0 auto',
-          padding: '0 28px',
-          height: '60px',
+          padding: '0 28px 0 8px',
+          height: '48px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -80,7 +100,7 @@ export default function Nav() {
           <span
             style={{
               fontWeight: 600,
-              fontSize: '1.05rem',
+              fontSize: '1rem',
               color: tokens.ink,
               letterSpacing: '-0.01em',
             }}
@@ -93,44 +113,27 @@ export default function Nav() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            gap: '2px',
           }}
           className="nav-desktop"
         >
           {NAV_LINKS.map((link) => (
             <button
-              className="nav-link"
+              data-slot="button"
               key={link.href}
               type="button"
               onClick={() => handleAnchor(link.href)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 14px',
-                fontSize: '0.9rem',
-                color: tokens.inkMuted,
-                borderRadius: '8px',
-                fontWeight: 500,
-              }}
+              style={btn}
+              className="nav-btn"
             >
               {link.label}
             </button>
           ))}
           <a
-            className="nav-cta"
+            data-slot="button"
+            className="btn-accent"
             href="#download"
-            style={{
-              marginLeft: '8px',
-              padding: '9px 20px',
-              background: tokens.accent,
-              color: tokens.bg,
-              borderRadius: '100px',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              textDecoration: 'none',
-              letterSpacing: '-0.01em',
-            }}
+            style={{ ...btn, marginLeft: '12px', background: tokens.accent, color: tokens.bg }}
           >
             Download
           </a>
@@ -153,19 +156,19 @@ export default function Nav() {
           <span
             style={{
               display: 'block',
-              width: '22px',
-              height: '2px',
+              width: '20px',
+              height: '1.5px',
               background: tokens.ink,
               marginBottom: '5px',
-              transition: 'transform 0.2s',
-              transform: open ? 'rotate(45deg) translateY(7px)' : 'none',
+              transition: 'transform 0.2s, opacity 0.2s',
+              transform: open ? 'rotate(45deg) translateY(6.5px)' : 'none',
             }}
           />
           <span
             style={{
               display: 'block',
-              width: '22px',
-              height: '2px',
+              width: '20px',
+              height: '1.5px',
               background: tokens.ink,
               marginBottom: '5px',
               opacity: open ? 0 : 1,
@@ -175,11 +178,11 @@ export default function Nav() {
           <span
             style={{
               display: 'block',
-              width: '22px',
-              height: '2px',
+              width: '20px',
+              height: '1.5px',
               background: tokens.ink,
-              transform: open ? 'rotate(-45deg) translateY(-7px)' : 'none',
-              transition: 'transform 0.2s',
+              transition: 'transform 0.2s, opacity 0.2s',
+              transform: open ? 'rotate(-45deg) translateY(-6.5px)' : 'none',
             }}
           />
         </button>
@@ -189,8 +192,8 @@ export default function Nav() {
         <div
           style={{
             background: tokens.surface,
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            padding: '16px 28px 24px',
+            borderTop: '1px solid rgba(255,255,255,0.04)',
+            padding: '12px 28px 20px 8px',
             display: 'flex',
             flexDirection: 'column',
             gap: '4px',
@@ -199,39 +202,20 @@ export default function Nav() {
         >
           {NAV_LINKS.map((link) => (
             <button
-              className="nav-link"
+              data-slot="button"
               key={link.href}
               type="button"
               onClick={() => handleAnchor(link.href)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left',
-                padding: '12px 4px',
-                fontSize: '1rem',
-                color: tokens.ink,
-                fontWeight: 500,
-              }}
+              style={{ ...btn, width: '100%', justifyContent: 'flex-start' }}
             >
               {link.label}
             </button>
           ))}
           <a
-            className="nav-cta"
+            data-slot="button"
+            className="btn-accent"
             href="#download"
-            style={{
-              marginTop: '12px',
-              display: 'block',
-              textAlign: 'center',
-              padding: '14px',
-              background: tokens.accent,
-              color: tokens.bg,
-              borderRadius: '100px',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
+            style={{ ...btn, width: '100%', justifyContent: 'center', marginTop: '8px', background: tokens.accent, color: tokens.bg, height: '36px' }}
           >
             Download
           </a>
@@ -239,6 +223,7 @@ export default function Nav() {
       )}
 
       <style>{`
+        .nav-btn:hover { background: rgba(255,255,255,0.1) !important; }
         @media (max-width: 700px) {
           .nav-desktop { display: none !important; }
           .nav-mobile-toggle { display: flex !important; flex-direction: column; }

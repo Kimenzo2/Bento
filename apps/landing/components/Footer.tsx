@@ -9,8 +9,7 @@ export default function Footer() {
       style={{
         background: tokens.bg,
         padding: 'clamp(3rem, 6vw, 5rem) 28px',
-        color: '#fff',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
+        borderTop: '1px solid rgba(255,255,255,0.03)',
       }}
     >
       <div
@@ -21,10 +20,10 @@ export default function Footer() {
           flexWrap: 'wrap',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          gap: '40px',
+          gap: '48px',
         }}
       >
-        <div style={{ maxWidth: '280px' }}>
+        <div style={{ maxWidth: '260px' }}>
           <div
             style={{
               display: 'flex',
@@ -36,15 +35,15 @@ export default function Footer() {
             <Image
               src="/bento-icon.png"
               alt="Bento"
-              width={26}
-              height={26}
+              width={24}
+              height={24}
               style={{ borderRadius: '6px' }}
             />
             <span
               style={{
                 fontWeight: 600,
-                fontSize: '1rem',
-                color: '#fff',
+                fontSize: '0.95rem',
+                color: tokens.ink,
                 letterSpacing: '-0.01em',
               }}
             >
@@ -68,7 +67,7 @@ export default function Footer() {
             style={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 'clamp(32px, 5vw, 80px)',
+              gap: 'clamp(40px, 6vw, 80px)',
             }}
           >
             <div>
@@ -79,7 +78,7 @@ export default function Footer() {
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   color: tokens.inkFaint,
-                  marginBottom: '14px',
+                  marginBottom: '16px',
                 }}
               >
                 Product
@@ -124,7 +123,7 @@ export default function Footer() {
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   color: tokens.inkFaint,
-                  marginBottom: '14px',
+                  marginBottom: '16px',
                 }}
               >
                 Support
@@ -140,7 +139,7 @@ export default function Footer() {
                 }}
               >
                 {[
-                  { label: 'Email support', href: 'mailto:support@bentoproductivity.app' },
+                  { label: 'Email support', href: 'mailto:support@iamazeyou.me' },
                   { label: 'Privacy Policy', href: '/legal/privacy' },
                   { label: 'Terms of Service', href: '/legal/terms' },
                 ].map((l) => (
@@ -168,9 +167,9 @@ export default function Footer() {
         style={{
           maxWidth: tokens.contentMax,
           margin: '0 auto',
-          paddingTop: '40px',
-          marginTop: '40px',
-          borderTop: '1px solid rgba(255,255,255,0.04)',
+          paddingTop: '36px',
+          marginTop: '36px',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'space-between',
@@ -185,16 +184,18 @@ export default function Footer() {
             margin: 0,
           }}
         >
-          © {year} Bento. All rights reserved.
+          &copy; {year} Bento. All rights reserved.
         </p>
         <p
           style={{
-            fontSize: tokens.labelSize,
+            fontSize: '0.65rem',
             color: tokens.inkFaint,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
             margin: 0,
           }}
         >
-          Made with care. Runs on your machine.
+          Made with care, not noise.
         </p>
       </div>
     </footer>

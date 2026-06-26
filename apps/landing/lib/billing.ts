@@ -25,11 +25,11 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     key: 'core',
     name: 'Core',
-    description: 'The essentials for people who want a calm, local-first workflow.',
+    description: 'The essentials for a calm, focused workflow.',
     summary: 'Five anchor apps',
     price: { monthly: '$9', yearly: '$90' },
     period: { monthly: '/mo', yearly: '/yr' },
-    accent: '#c49a6c',
+    accent: '#7a9bb5',
     features: [
       'Tasks, Notes, Journal, Password Vault, Budget',
       'Local-first desktop experience',
@@ -45,7 +45,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     summary: 'All 21 apps',
     price: { monthly: '$19', yearly: '$180' },
     period: { monthly: '/mo', yearly: '/yr' },
-    accent: '#7c8e6e',
+    accent: '#6ba5b0',
     features: [
       'All 21 apps',
       'Supabase sync across devices',
@@ -58,7 +58,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     key: 'power',
     name: 'Power',
-    description: 'For heavy users who want the full operating system version of Bento.',
+    description: 'For heavy users who want the full Bento experience.',
     summary: 'Everything unlocked',
     price: { monthly: '$29', yearly: '$270' },
     period: { monthly: '/mo', yearly: '/yr' },

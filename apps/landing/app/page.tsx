@@ -68,8 +68,11 @@ export default function HomePage() {
       <Nav />
       <main id="main-content">
         <Hero version={version} platforms={platforms} />
+        <div className="section-divider" aria-hidden="true" />
         <AppShowcase />
+        <div className="section-divider" aria-hidden="true" />
         <WhyBento />
+        <div className="section-divider" aria-hidden="true" />
         <DownloadSection version={version} />
       </main>
       <Footer />

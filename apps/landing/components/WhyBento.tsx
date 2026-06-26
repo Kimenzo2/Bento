@@ -5,51 +5,45 @@ const reasons = [
     icon: '🔒',
     title: 'Completely private',
     body: 'Your data stays on your computer. No telemetry, no tracking, no internet required after install.',
-    bg: tokens.elevated,
-    iconBg: tokens.accentGlow,
   },
   {
     icon: '📦',
     title: 'Twelve apps, one install',
     body: 'Stop juggling separate tools for habits, focus, sleep, budget, and mood. Bento brings them together so they can actually talk to each other.',
-    bg: tokens.surface,
-    iconBg: tokens.accentSecondaryGlow,
   },
   {
     icon: '🌿',
     title: 'Calm by design',
     body: "No gamification dark patterns. No streaks that guilt you. No notifications that interrupt. Bento is there when you want it, quiet when you don't.",
-    bg: tokens.elevated,
-    iconBg: tokens.accentTertiaryGlow,
   },
   {
     icon: '⚡',
     title: 'Fast and native',
     body: 'Built with Tauri, Bento is a real desktop app. It opens instantly, uses very little memory, and works offline — always.',
-    bg: tokens.surface,
-    iconBg: tokens.accentGlow,
   },
 ] as const;
 
 export default function WhyBento() {
+  const mid = Math.ceil(reasons.length / 2);
+
   return (
     <section
       id="why"
       style={{
-        background: tokens.surface,
+        background: `radial-gradient(ellipse 70% 50% at 30% 40%, rgba(122, 155, 181, 0.04) 0%, transparent 70%), ${tokens.bg}`,
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="why-heading"
     >
       <div style={{ maxWidth: tokens.contentMax, margin: '0 auto' }}>
-        <div style={{ maxWidth: tokens.textMax, marginBottom: 'clamp(2.5rem, 5vw, 4rem)' }}>
+        <header style={{ maxWidth: tokens.textMax, marginBottom: 'clamp(3rem, 5vw, 4.5rem)' }}>
           <p
             style={{
               fontSize: tokens.labelSize,
               fontWeight: 600,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: tokens.accentSecondary,
+              color: tokens.accent,
               marginBottom: '16px',
             }}
           >
@@ -66,7 +60,7 @@ export default function WhyBento() {
               margin: 0,
             }}
           >
-            Built for the way real days actually go.
+            Built for real days.
           </h2>
           <p
             style={{
@@ -76,69 +70,97 @@ export default function WhyBento() {
               marginTop: '16px',
             }}
           >
-            Most productivity apps assume you have an ideal schedule and unlimited willpower. Bento
+            Most productivity apps assume an ideal schedule and unlimited willpower. Bento
             doesn&rsquo;t. It&rsquo;s designed for messy, real, human days.
           </p>
-        </div>
+        </header>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '24px',
-          }}
-        >
-          {reasons.map((r) => (
-            <div
-              key={r.title}
-              style={{
-                padding: '32px 28px',
-                borderRadius: '16px',
-                background: r.bg,
-              }}
-            >
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '14px',
-                  background: r.iconBg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.3rem',
-                  marginBottom: '18px',
-                  lineHeight: 1,
-                }}
-                aria-hidden="true"
-              >
-                {r.icon}
-              </div>
-              <h3
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: 650,
-                  color: tokens.ink,
-                  margin: '0 0 10px',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {r.title}
-              </h3>
-              <p
-                style={{
-                  fontSize: tokens.smallSize,
-                  lineHeight: 1.65,
-                  color: tokens.inkMuted,
-                  margin: 0,
-                }}
-              >
-                {r.body}
-              </p>
-            </div>
-          ))}
+        <div className="why-grid">
+          <div className="why-col">
+            {reasons.slice(0, mid).map((r) => (
+              <WhyItem key={r.title} icon={r.icon} title={r.title} body={r.body} />
+            ))}
+          </div>
+          <div className="why-col">
+            {reasons.slice(mid).map((r) => (
+              <WhyItem key={r.title} icon={r.icon} title={r.title} body={r.body} />
+            ))}
+          </div>
         </div>
       </div>
+
+      <style>{`
+        .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
+        .why-col { display: flex; flex-direction: column; gap: 4px; }
+        .why-item {
+          padding: 24px 0 24px 20px;
+          border-left: 1px solid ${tokens.highlight};
+          transition: border-color 0.2s ease, background 0.2s ease;
+          border-radius: 0 8px 8px 0;
+        }
+        .why-item:hover {
+          border-left-color: ${tokens.accent};
+          background: rgba(255,255,255,0.015);
+        }
+        @media (max-width: 700px) {
+          .why-grid { grid-template-columns: 1fr; gap: 0; }
+        }
+      `}</style>
     </section>
+  );
+}
+
+function WhyItem({
+  icon,
+  title,
+  body,
+}: {
+  icon: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="why-item">
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px' }}>
+        <div
+          style={{
+            width: '36px',
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.1rem',
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+          aria-hidden="true"
+        >
+          {icon}
+        </div>
+        <div>
+          <h3
+            style={{
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              color: tokens.ink,
+              margin: '0 0 6px',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {title}
+          </h3>
+          <p
+            style={{
+              fontSize: tokens.smallSize,
+              lineHeight: 1.65,
+              color: tokens.inkMuted,
+              margin: 0,
+            }}
+          >
+            {body}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

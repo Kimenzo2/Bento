@@ -1,48 +1,31 @@
 import Link from 'next/link';
-import { createClient, getAuthenticatedUser } from '../../../lib/supabase/server';
+import { getAuthenticatedUser } from '../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PricingSuccessPage() {
   const user = await getAuthenticatedUser();
-  const supabase = await createClient();
 
-  let status = 'pending';
-  let plan = 'your selected plan';
   let email = user?.email ?? '';
-
-  if (user) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('subscription_status, subscription_plan_code, user_tier')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (data) {
-      status = data.subscription_status ?? 'pending';
-      plan = data.subscription_plan_code ?? data.user_tier ?? 'your selected plan';
-    }
-  }
 
   return (
     <main className="pricing-success">
       <section className="pricing-success__card">
         <p className="pricing-success__eyebrow">Payment received</p>
-        <h1>Thanks. We&apos;re waiting for the Paystack webhook.</h1>
+        <h1>Thanks for subscribing.</h1>
         <p className="pricing-success__copy">
           {email
-            ? `We checked the Bento account for ${email}. The current subscription state is ${status}.`
-            : 'Your payment was sent successfully and Bento will refresh as soon as the webhook lands.'}
+            ? `We sent a confirmation to ${email}.`
+            : 'Your payment was successful.'}
         </p>
         <p className="pricing-success__copy">
-          Current plan hint: <strong>{plan}</strong>. The desktop app will update automatically once
-          Supabase receives Paystack&apos;s event.
+          Your apps will unlock automatically in the desktop app. This usually takes a minute.
         </p>
         <div className="pricing-success__actions">
-          <Link href="/pricing" className="pricing-success__primary">
+          <Link href="/pricing" data-slot="button" className="pricing-success__primary btn-accent">
             Back to pricing
           </Link>
-          <Link href="/" className="pricing-success__secondary">
+          <Link href="/" data-slot="button" className="pricing-success__secondary">
             Go home
           </Link>
         </div>
@@ -54,18 +37,14 @@ export default async function PricingSuccessPage() {
           display: grid;
           place-items: center;
           padding: 2rem;
-          background:
-            radial-gradient(circle at top, rgba(184,92,58,0.08), transparent 30%),
-            linear-gradient(180deg, #fefcf8 0%, #fcf7f0 100%);
-          color: #2c2418;
+          background: #131211;
+          color: #dce0e6;
         }
 
         .pricing-success__card {
           width: min(720px, 100%);
-          border-radius: 28px;
-          border: 1px solid rgba(44,36,24,0.08);
-          background: rgba(254,252,248,0.9);
-          box-shadow: 0 20px 50px rgba(44,36,24,0.06);
+          border-radius: 1.5rem;
+          background: #1b1c1d;
           padding: clamp(1.5rem, 5vw, 3rem);
         }
 
@@ -73,9 +52,9 @@ export default async function PricingSuccessPage() {
           display: inline-block;
           font-size: 0.74rem;
           font-weight: 700;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #b85c3a;
+          color: #7a9bb5;
           margin-bottom: 1rem;
         }
 
@@ -88,7 +67,7 @@ export default async function PricingSuccessPage() {
 
         .pricing-success__copy {
           margin-top: 1rem;
-          color: #6b5e53;
+          color: #90959e;
           line-height: 1.7;
           font-size: 1.04rem;
         }
@@ -105,21 +84,28 @@ export default async function PricingSuccessPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 0.9rem 1.2rem;
-          border-radius: 999px;
+          padding: 0 18px;
+          border-radius: 0.75rem;
           text-decoration: none;
-          font-weight: 700;
+          font-weight: 500;
+          font-size: 0.875rem;
+          height: 36px;
+          transition: background 0.2s ease, box-shadow 0.15s ease;
         }
 
         .pricing-success__primary {
-          background: #2c2418;
-          color: #fff;
+          background: #7a9bb5;
+          color: #131211;
         }
 
         .pricing-success__secondary {
-          border: 1px solid rgba(44,36,24,0.12);
-          color: #2c2418;
-          background: transparent;
+          border: none;
+          color: rgba(220,224,230,0.8);
+          background: rgba(255,255,255,0.06);
+        }
+
+        .pricing-success__secondary:hover {
+          background: rgba(255,255,255,0.1) !important;
         }
       `}</style>
     </main>
