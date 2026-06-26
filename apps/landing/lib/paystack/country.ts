@@ -40,10 +40,20 @@ export function detectCheckoutCountry(input: {
 }
 
 export function getCountryFromHeaders(headers: Pick<Headers, 'get'>) {
-  return normalizeCountryCode(
+  const fromIp = normalizeCountryCode(
     headers.get('x-vercel-ip-country') ??
       headers.get('cf-ipcountry') ??
       headers.get('x-country-code') ??
       headers.get('x-country')
   );
+  if (fromIp) return fromIp;
+
+  const acceptLanguage = headers.get('accept-language') ?? '';
+  const match = acceptLanguage.match(/[_-]([A-Z]{2})(?:;|,|$)/i);
+  if (match) {
+    const fromLang = normalizeCountryCode(match[1]);
+    if (fromLang) return fromLang;
+  }
+
+  return null;
 }

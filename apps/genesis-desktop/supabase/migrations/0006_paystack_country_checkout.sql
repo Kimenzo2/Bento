@@ -86,7 +86,7 @@ values
   ('pos', 'NG', 'pos', true, true, false, 70, 'Nigeria only'),
   ('mobile_money', 'GH', 'mobile_money', true, true, false, 80, 'Ghana mobile money'),
   ('mobile_money', 'CI', 'mobile_money', true, true, false, 90, 'Cote dIvoire mobile money'),
-  ('mobile_money', 'KE', 'mobile_money', true, true, false, 100, 'Kenya mobile money'),
+  ('mobile_money', 'KE', 'mobile_money_mpesa', true, true, false, 100, 'Kenya M-Pesa'),
   ('qr', 'ZA', 'qr', true, true, false, 110, 'South Africa QR'),
   ('capitec_pay', 'ZA', 'capitec_pay', true, true, false, 120, 'South Africa only'),
   ('eft', 'ZA', 'eft', true, true, false, 130, 'South Africa only'),

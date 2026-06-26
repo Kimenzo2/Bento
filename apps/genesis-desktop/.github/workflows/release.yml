@@ -1,14 +1,15 @@
-# Bento Desktop — Release Pipeline
+# Bento Desktop — CrabNebula Cloud Release Pipeline
 #
 # Triggered by:
 #   - Pushing a tag matching v* (e.g., v0.2.0)
 #   - Manual workflow_dispatch with a tag input (for re-runs)
 #
 # Pipeline:
-#   1. prepare   — Creates a draft GitHub Release with generated notes
-#   2. build     — Matrix build across macOS (aarch64), Windows (x64), Linux (x64)
-#                 Builds, signs, and uploads platform artifacts + updater artifacts
-#   3. publish   — Marks the draft release as "Published" once all matrix jobs pass
+#   1. prepare   — Extracts version from tag
+#   2. draft     — Creates a release draft on CrabNebula Cloud
+#   3. build     — Matrix build across macOS (aarch64 + x86_64), Windows (x64), Linux (x64)
+#   4. publish   — Publishes the release on CrabNebula Cloud
+#   5. deploy-landing — Downloads assets from CrabNebula CDN → copies to landing page → deploys Vercel
 
 name: Release
 
@@ -28,13 +29,11 @@ concurrency:
 
 env:
   APP_DIR: apps/genesis-desktop
-
-permissions:
-  contents: write
+  CN_APPLICATION: bento-industries/bento
 
 jobs:
   # ─────────────────────────────────────────────────────────
-  # 1. PREPARE — Create a draft release
+  # 1. PREPARE — Extract version info
   # ─────────────────────────────────────────────────────────
   prepare:
     runs-on: ubuntu-latest
@@ -56,20 +55,29 @@ jobs:
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create draft release
-        uses: softprops/action-gh-release@v2
+  # ─────────────────────────────────────────────────────────
+  # 2. DRAFT — Create a release draft on CrabNebula Cloud
+  # ─────────────────────────────────────────────────────────
+  draft:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create draft release on CrabNebula Cloud
+        uses: crabnebula-dev/cloud-release@v0
         with:
-          tag_name: ${{ steps.get-version.outputs.tag_name }}
-          name: Bento v${{ steps.get-version.outputs.version }}
-          draft: true
-          generate_release_notes: true
-          fail_on_unmatched_files: false
+          command: release draft ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
 
   # ─────────────────────────────────────────────────────────
-  # 2. BUILD — Matrix build across platforms
+  # 3. BUILD — Matrix build across platforms
   # ─────────────────────────────────────────────────────────
   build:
-    needs: prepare
+    needs: draft
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -110,7 +118,17 @@ jobs:
           rustup default stable
           rustup target add ${{ matrix.target }}
 
-      # ── Linux system deps (Tauri) ──
+      # ── Bun + Node.js ──
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      # ── Linux system deps (Tauri v2) ──
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         shell: bash
@@ -141,13 +159,10 @@ jobs:
         env:
           RUSTC_WRAPPER: sccache
         run: |
-          # Target dir is auto-detected as src-tauri/target/ since the Cargo.toml
-          # is at src-tauri/Cargo.toml (no workspace Cargo.toml at project root)
           cargo build --profile ci \
             --target ${{ matrix.target }} \
             --manifest-path src-tauri/Cargo.toml \
             --bin bento-mcp
-          # Copy sidecar into the location Tauri expects during bundling
           mkdir -p src-tauri/binaries
           if [ "${{ runner.os }}" = "Windows" ]; then
             cp "src-tauri/target/${{ matrix.target }}/ci/bento-mcp.exe" \
@@ -157,58 +172,60 @@ jobs:
                "src-tauri/binaries/bento-mcp-${{ matrix.target }}"
           fi
 
-      # ── Build + bundle the Tauri app (unsigned) ──
+      # ── Build the Tauri app ──
       - name: Build Tauri app
-        id: build-tauri
-        uses: tauri-apps/tauri-action@v0
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Tauri updater — self-generated keypair stored in GitHub Secrets
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        with:
-          projectPath: ${{ env.APP_DIR }}
-          tauriScript: bun run tauri
-          tagName: ${{ needs.prepare.outputs.tag_name }}
-          releaseName: Bento v${{ needs.prepare.outputs.version }}
-          releaseDraft: true
-          releaseId: ''
-          bundles: ${{ matrix.bundles }}
-          target: ${{ matrix.target }}
-          architecture: ${{ matrix.arch }}
-          includeUpdaterArtifacts: true
-          createUpdaterArtifacts: true
+        run: |
+          bun install
+          bun run tauri build \
+            --bundles ${{ matrix.bundles }} \
+            --target ${{ matrix.target }}
 
-      # ── Upload platform artifacts ──
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      # ── macOS: Also build for x86_64 (Intel) ──
+      - name: Build Tauri app (macOS x86_64)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        run: |
+          rustup target add x86_64-apple-darwin
+          bun run tauri build \
+            --bundles dmg \
+            --target x86_64-apple-darwin
+
+      # ── Upload assets to CrabNebula Cloud ──
+      - name: Upload assets to CrabNebula Cloud
+        uses: crabnebula-dev/cloud-release@v0
         with:
-          name: bento-${{ matrix.os }}-${{ matrix.arch }}
-          path: |
-            ${{ env.APP_DIR }}/src-tauri/target/release/bundle/**/*
-            ${{ env.APP_DIR }}/src-tauri/target/*.msi*
-            ${{ env.APP_DIR }}/src-tauri/target/release/updater/**/*
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+          working-directory: ${{ env.APP_DIR }}
 
   # ─────────────────────────────────────────────────────────
-  # 3. PUBLISH — Mark the draft release as published
-  # ─────────────────────────────────────────────────────────  publish:
+  # 4. PUBLISH — Publish the release on CrabNebula Cloud
+  # ─────────────────────────────────────────────────────────
+  publish:
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.prepare.outputs.tag_name }}
-          name: Bento v${{ needs.prepare.outputs.version }}
-          draft: false
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
 
+      - name: Publish release on CrabNebula Cloud
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release publish ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  # ─────────────────────────────────────────────────────────
+  # 5. DEPLOY LANDING — Download assets from CrabNebula CDN,
+  #    sync to landing page public/downloads/, deploy Vercel
+  # ─────────────────────────────────────────────────────────
   deploy-landing:
-    needs: [prepare, build, publish]
+    needs: [prepare, publish]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -218,20 +235,36 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Download release assets
+      - name: Download release assets from CrabNebula CDN
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           mkdir -p apps/landing/public/downloads
-          gh release download "${{ needs.prepare.outputs.tag_name }}" \
-            --repo "${{ github.repository }}" \
-            --dir apps/landing/public/downloads \
-            --pattern "Bento_*"
+
+          CDN_BASE="https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform"
+
+          # Windows (NSIS x86_64)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_x64-setup.exe" \
+            "$CDN_BASE/nsis-x86_64" || echo "WARN: nsis-x86_64 not found"
+
+          # macOS (DMG aarch64)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_aarch64.dmg" \
+            "$CDN_BASE/dmg-aarch64" || echo "WARN: dmg-aarch64 not found"
+
+          # Linux (AppImage x86_64)
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.AppImage" \
+            "$CDN_BASE/appimage-x86_64" || echo "WARN: appimage-x86_64 not found"
+
+          # Linux (deb x86_64) — saved under the versioned name
+          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.deb" \
+            "$CDN_BASE/deb-x86_64" || echo "WARN: deb-x86_64 not found"
+
           echo "Downloaded assets:"
           ls -la apps/landing/public/downloads/
 
-      - name: Install dependencies
+      - name: Install landing page dependencies
         run: bun install
+
       - name: Build landing page
         run: bun --cwd apps/landing run build
 
@@ -246,4 +279,4 @@ jobs:
             --token="$VERCEL_TOKEN" \
             --scope="$VERCEL_ORG_ID" \
             --project="$VERCEL_PROJECT_ID"
-          echo "Landing page deployed. Configure the custom domain in Vercel dashboard."
+          echo "Landing page deployed."

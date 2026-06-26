@@ -106,7 +106,6 @@ export default function Hero({
               data-slot="button"
               className="btn-accent"
               href={active ? active.href : platforms.windows.href}
-              download
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -161,7 +160,6 @@ export default function Hero({
                 data-slot="button"
                 key={key}
                 href={p.href}
-                download
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

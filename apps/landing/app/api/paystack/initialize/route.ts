@@ -113,35 +113,99 @@ export async function POST(request: Request) {
       console.error('[paystack:init] profile lookup failed', profileError);
     }
 
-    if (!profile) {
-      return NextResponse.redirect(
-        new URL('/pricing?error=profile_missing', getAppOrigin(request)),
-        303
-      );
-    }
-
-    const email = user?.email ?? profile.email ?? formEmail;
+    const email = user?.email ?? formEmail;
     if (!email) {
       return NextResponse.redirect(new URL('/pricing?signin=required', getAppOrigin(request)), 303);
+    }
+
+    let resolvedProfile = profile;
+
+    if (!resolvedProfile && user) {
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .upsert(
+          { id: user.id, email: user.email, user_tier: 'free' },
+          { onConflict: 'id' }
+        )
+        .select('id, email, user_tier, payment_provider, subscription_status, subscription_plan_code, billing_country, shipping_country, last_checkout_country, last_checkout_method')
+        .maybeSingle();
+
+      if (createError || !newProfile) {
+        const reason = createError?.message || 'profile creation returned no row';
+        console.error('[paystack:init] failed to create profile', createError);
+        return NextResponse.redirect(
+          new URL(`/pricing?error=profile_creation&details=${encodeURIComponent(reason)}`, getAppOrigin(request)),
+          303
+        );
+      }
+
+      resolvedProfile = newProfile;
+    }
+
+    if (!resolvedProfile) {
+      if (formEmail) {
+        const adminSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjocfnqwtccuxbnoult.supabase.co';
+        const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+        const authHeader = { Authorization: `Bearer ${serviceRole}`, 'apikey': serviceRole, 'Content-Type': 'application/json' };
+
+        let authUserId: string | null = null;
+
+        const existingResp = await fetch(`${adminSupabaseUrl}/auth/v1/admin/users?filter=email:eq:${encodeURIComponent(formEmail)}`, { headers: authHeader });
+        const existingBody = await existingResp.json().catch(() => null);
+        const existingUser = existingBody?.users?.[0] ?? null;
+        if (existingUser?.id) {
+          authUserId = existingUser.id;
+        } else {
+          const createResp = await fetch(`${adminSupabaseUrl}/auth/v1/admin/users`, {
+            method: 'POST',
+            headers: authHeader,
+            body: JSON.stringify({ email: formEmail, email_confirm: true, user_metadata: { source: 'desktop_app' } }),
+          });
+          const createBody = await createResp.json().catch(() => null);
+          if (createResp.ok && createBody?.id) {
+            authUserId = createBody.id;
+          } else {
+            const msg = createBody?.msg || `HTTP ${createResp.status}`;
+            console.error('[paystack:init] failed to create auth user', createResp.status, createBody);
+            return NextResponse.redirect(new URL(`/pricing?error=auth_user&details=${encodeURIComponent(msg)}`, getAppOrigin(request)), 303);
+          }
+        }
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .upsert({ id: authUserId, email: formEmail, user_tier: 'free' }, { onConflict: 'id' })
+          .select('id, email, user_tier, payment_provider, subscription_status, subscription_plan_code, billing_country, shipping_country, last_checkout_country, last_checkout_method')
+          .maybeSingle();
+
+        if (createError || !newProfile) {
+          const reason = createError?.message || 'profile creation returned no row';
+          console.error('[paystack:init] failed to create desktop profile', createError);
+          return NextResponse.redirect(new URL(`/pricing?error=profile_creation&details=${encodeURIComponent(reason)}`, getAppOrigin(request)), 303);
+        }
+
+        resolvedProfile = newProfile;
+      } else {
+        return NextResponse.redirect(new URL('/pricing?signin=required', getAppOrigin(request)), 303);
+      }
     }
 
     const rules = await loadPaystackMethodRules(supabase);
     const detectedCountry = detectCheckoutCountry({
       manualCountry,
-      profileCountry: profile.last_checkout_country ?? null,
-      billingCountry: billingCountry || profile.billing_country || null,
-      shippingCountry: shippingCountry || profile.shipping_country || null,
+      profileCountry: resolvedProfile.last_checkout_country ?? null,
+      billingCountry: billingCountry || resolvedProfile.billing_country || null,
+      shippingCountry: shippingCountry || resolvedProfile.shipping_country || null,
     });
     const selection = selectPreferredPaystackMethod(detectedCountry, rules, preferredMethod);
     const channels = getPaystackChannelsForCountry(detectedCountry, rules);
     const reference = `bento_${plan.key}_${period}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const checkoutIntent = buildCheckoutIntentRecord({
       reference,
-      profileId: profile.id,
+      profileId: resolvedProfile.id,
       email,
       countryCode: detectedCountry ?? 'GLOBAL',
-      billingCountry: billingCountry || profile.billing_country || null,
-      shippingCountry: shippingCountry || profile.shipping_country || null,
+      billingCountry: billingCountry || resolvedProfile.billing_country || null,
+      shippingCountry: shippingCountry || resolvedProfile.shipping_country || null,
       selectedMethodKey: selection.selectedMethodKey,
       selectedChannels: channels,
       planCode: selectedPlanCode,
@@ -163,9 +227,9 @@ export async function POST(request: Request) {
       .from('profiles')
       .upsert(
         {
-          id: profile.id,
-          billing_country: billingCountry || profile.billing_country || detectedCountry,
-          shipping_country: shippingCountry || profile.shipping_country || null,
+          id: resolvedProfile.id,
+          billing_country: billingCountry || resolvedProfile.billing_country || detectedCountry,
+          shipping_country: shippingCountry || resolvedProfile.shipping_country || null,
           last_checkout_country: detectedCountry,
           last_checkout_method: selection.selectedMethodKey,
           last_checkout_intent_at: new Date().toISOString(),
@@ -187,14 +251,14 @@ export async function POST(request: Request) {
       metadata: {
         checkout_source: 'bento-pricing-page',
         checkout_reference: reference,
-        user_id: user?.id ?? profile.id,
-        profile_id: profile.id,
+        user_id: user?.id ?? resolvedProfile.id,
+        profile_id: resolvedProfile.id,
         customer_email: email,
         plan_key: plan.key,
         billing_period: period,
         subscription_plan_code: selectedPlanCode,
-        billing_country: billingCountry || profile.billing_country || null,
-        shipping_country: shippingCountry || profile.shipping_country || null,
+        billing_country: billingCountry || resolvedProfile.billing_country || null,
+        shipping_country: shippingCountry || resolvedProfile.shipping_country || null,
         country: detectedCountry,
         selected_method: selection.selectedMethodKey,
         selected_channels: channels,
@@ -212,6 +276,9 @@ export async function POST(request: Request) {
       );
     }
 
+    const priceString = plan.price[period].replace(/[^0-9]/g, '');
+    const amountInCents = plan.key === 'pro' ? 1 : parseInt(priceString, 10) * 100;
+
     const response = await fetch(`${PAYSTACK_API_BASE}/transaction/initialize`, {
       method: 'POST',
       headers: {
@@ -221,6 +288,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         email: body.email,
+        amount: String(amountInCents),
         plan: planCodeFromEnv,
         reference: body.reference,
         channels: body.channels,
@@ -236,9 +304,10 @@ export async function POST(request: Request) {
     } | null;
 
     if (!response.ok || !payload?.status || !payload.data?.authorization_url) {
+      const reason = payload?.message || `HTTP ${response.status}`;
       console.error('[paystack:init] initialize failed', response.status, payload);
       return NextResponse.redirect(
-        new URL('/pricing?error=checkout_failed', getAppOrigin(request)),
+        new URL(`/pricing?error=paystack&details=${encodeURIComponent(reason)}`, getAppOrigin(request)),
         303
       );
     }
@@ -254,9 +323,10 @@ export async function POST(request: Request) {
 
     return NextResponse.redirect(payload.data.authorization_url, 303);
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('[paystack:init] unexpected error', error);
     return NextResponse.redirect(
-      new URL('/pricing?error=checkout_failed', getAppOrigin(request)),
+      new URL(`/pricing?error=server&details=${encodeURIComponent(message)}`, getAppOrigin(request)),
       303
     );
   }

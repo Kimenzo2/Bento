@@ -42,6 +42,9 @@
   let errorMsg = $state<string | null>(null);
   let errorTimer: ReturnType<typeof setTimeout> | null = null;
   let refreshFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let pollTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  let pollingTargetTier: string | null = null;
 
   function showError(msg: string) {
     if (errorTimer) clearTimeout(errorTimer);
@@ -202,10 +205,27 @@
     }
   });
 
+  $effect(() => {
+    const tier = billingProfile?.billingTier;
+    if (tier && pollingTargetTier && normalizeTier(tier) === pollingTargetTier && tierOrder[normalizeTier(tier)] >= tierOrder[pollingTargetTier]) {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      if (pollTimeoutTimer) {
+        clearTimeout(pollTimeoutTimer);
+        pollTimeoutTimer = null;
+      }
+      pollingTargetTier = null;
+    }
+  });
+
   onDestroy(() => {
     unlistenBilling?.();
     if (refreshFeedbackTimer) clearTimeout(refreshFeedbackTimer);
     if (errorTimer) clearTimeout(errorTimer);
+    if (pollTimer) clearInterval(pollTimer);
+    if (pollTimeoutTimer) clearTimeout(pollTimeoutTimer);
   });
 
   async function handleFinalize() {
@@ -247,13 +267,39 @@
     const planCode = billingPeriod === "yearly" ? tier.planCodes.yearly : tier.planCodes.monthly;
     const pricingBase = import.meta.env.DEV ? "http://localhost:3000/pricing" : "https://iamazeyou.me/pricing";
     const emailParam = desktopAccountEmail ? `&email=${encodeURIComponent(desktopAccountEmail)}` : "";
-    const upgradeUrl = `${pricingBase}?plan=${encodeURIComponent(planCode)}&source=desktop${emailParam}`;
+    let countryParam = "";
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && tz.indexOf('/') > 0) {
+        const city = tz.split('/')[1];
+        const africaMap: Record<string, string> = { Nairobi: 'KE', Lagos: 'NG', Accra: 'GH', Abidjan: 'CI', Johannesburg: 'ZA', Cairo: 'EG', Casablanca: 'MA', Tunis: 'TN', Algiers: 'DZ', Khartoum: 'SD', Addis_Ababa: 'ET', Dar_es_Salaam: 'TZ', Kampala: 'UG', Kigali: 'RW', Maputo: 'MZ', Luanda: 'AO', Douala: 'CM', Dakar: 'SN', Harare: 'ZW' };
+        const detected = africaMap[city];
+        if (detected) countryParam = `&country=${detected}`;
+      }
+    } catch {}
+    const upgradeUrl = `${pricingBase}?plan=${encodeURIComponent(planCode)}&source=desktop${emailParam}${countryParam}`;
     processingPlan = tier.name;
 
     try {
       await openExternal(upgradeUrl);
       if (canUseTauri) {
-        void invoke("force_refresh_billing").catch(() => {});
+        pollingTargetTier = tier.key;
+        const poll = () => {
+          if (pollTimer) clearInterval(pollTimer);
+          pollTimer = setInterval(async () => {
+            try {
+              await invoke("force_refresh_billing");
+            } catch { /* polling silently */ }
+          }, 5000);
+        };
+        poll();
+        pollTimeoutTimer = setTimeout(() => {
+          if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+          }
+          pollingTargetTier = null;
+        }, 600_000);
       }
     } catch (error) {
       console.error("Checkout failed:", error);

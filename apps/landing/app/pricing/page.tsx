@@ -44,6 +44,7 @@ export default async function PricingPage({
   const issue =
     firstString(params.error) ??
     (firstString(params.signin) === 'required' ? 'signin_required' : null);
+  const issueDetails = firstString(params.details) ?? null;
   const user = await getAuthenticatedUser();
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
@@ -109,11 +110,15 @@ export default async function PricingPage({
             <div className="pricing-page__alert" role="status" aria-live="polite">
               {issue === 'signin_required'
                 ? 'Please sign in to continue.'
-                : issue === 'unknown_plan'
-                  ? 'Plan not found. Please select another plan.'
-                  : issue === 'missing_paystack_plan'
-                    ? 'This plan is temporarily unavailable.'
-                    : 'Something went wrong. Please try again.'}
+                : issue === 'profile_missing'
+                  ? 'No account found for that email. Please sign in first.'
+                  : issue === 'unknown_plan'
+                    ? 'Plan not found. Please select another plan.'
+                    : issue === 'missing_paystack_plan'
+                      ? 'This plan is temporarily unavailable.'
+                      : issue === 'paystack' || issue === 'server' || issue === 'profile_creation' || issue === 'auth_user'
+                        ? `Error: ${issueDetails || 'Something went wrong'}`
+                        : `Something went wrong.${issueDetails ? ` (${issueDetails})` : ''}`}
             </div>
           ) : null}
 
@@ -576,6 +581,26 @@ export default async function PricingPage({
           }
         }
       `}</style>
+      <script dangerouslySetInnerHTML={{__html: `
+        (function(){
+          var c = null, tz;
+          try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e){}
+          if (tz && tz.indexOf('/') > 0) {
+            var city = tz.split('/')[1];
+            var africa = {Nairobi:'KE',Lagos:'NG',Accra:'GH',Abidjan:'CI',Johannesburg:'ZA',Cairo:'EG',Casablanca:'MA',Tunis:'TN',Algiers:'DZ',Khartoum:'SD',Addis_Ababa:'ET',Dar_es_Salaam:'TZ',Kampala:'UG',Kigali:'RW',Maputo:'MZ',Luanda:'AO',Douala:'CM',Dakar:'SN',Harare:'ZW'};
+            c = africa[city] || (city.length===2 ? city.toUpperCase() : null);
+          }
+          document.querySelectorAll('input[name="country"]').forEach(function(el){
+            if (c && (el.value==='GLOBAL'||!el.value)) el.value = c;
+          });
+          document.querySelectorAll('form.pricing-page__form').forEach(function(f){
+            f.addEventListener('submit',function(){
+              var inp = this.querySelector('input[name="country"]');
+              if (inp && c && (inp.value==='GLOBAL'||!inp.value)) inp.value = c;
+            });
+          });
+        })();
+      `}} />
     </main>
   );
 }

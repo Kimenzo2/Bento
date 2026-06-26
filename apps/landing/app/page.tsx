@@ -1,9 +1,8 @@
 /**
  * Bento Landing Page
  *
- * Download links point to local /downloads/ directory.
- * Version is detected by scanning the downloads folder at build time.
- * CI copies installer artifacts to public/downloads/ before deploying.
+ * Download links point to CrabNebula Cloud CDN for the latest release.
+ * CI copies installer artifacts to public/downloads/ as fallback.
  */
 
 import fs from 'fs';
@@ -15,22 +14,24 @@ import WhyBento from '../components/WhyBento';
 import DownloadSection from '../components/DownloadSection';
 import Footer from '../components/Footer';
 
-function buildPlatforms(version: string) {
+const CN_CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform';
+
+function buildPlatforms(_version: string) {
   return {
     windows: {
       label: 'Windows',
       arch: 'Windows 64-bit',
-      href: '/downloads/Bento_' + version + '_x64-setup.exe',
+      href: CN_CDN + '/nsis-x86_64',
     },
     macos: {
       label: 'macOS',
       arch: 'macOS (Apple Silicon)',
-      href: '/downloads/Bento_' + version + '_aarch64.dmg',
+      href: CN_CDN + '/dmg-aarch64',
     },
     linux: {
       label: 'Linux',
       arch: 'Linux (AppImage + deb)',
-      href: '/downloads/Bento_' + version + '_amd64.AppImage',
+      href: CN_CDN + '/appimage-x86_64',
     },
   };
 }

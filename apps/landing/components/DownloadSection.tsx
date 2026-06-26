@@ -1,7 +1,9 @@
 import { tokens } from './tokens';
 
+const WIN_CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform/nsis-x86_64';
+
 export default function DownloadSection({ version }: { version: string }) {
-  const winHref = '/downloads/Bento_' + version + '_x64-setup.exe';
+  const winHref = WIN_CDN;
 
   return (
     <section
@@ -66,7 +68,6 @@ export default function DownloadSection({ version }: { version: string }) {
             data-slot="button"
             className="btn-accent"
             href={winHref}
-            download
             style={{
               display: 'inline-flex',
               alignItems: 'center',
