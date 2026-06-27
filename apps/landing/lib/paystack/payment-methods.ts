@@ -139,12 +139,12 @@ const DEFAULT_METHOD_RULES: PaystackMethodRule[] = [
   {
     methodKey: 'mobile_money',
     countryCode: 'KE',
-    channel: 'mobile_money_mpesa',
+    channel: 'mobile_money',
     enabled: true,
     checkoutVisible: true,
     fallbackToCard: false,
     sortOrder: 100,
-    notes: 'Kenya M-Pesa via Paystack hosted checkout.',
+    notes: 'Kenya mobile money (M-Pesa, Airtel Money) via Paystack hosted checkout.',
   },
   {
     methodKey: 'qr',
