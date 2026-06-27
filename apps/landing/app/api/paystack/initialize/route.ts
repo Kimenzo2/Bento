@@ -317,7 +317,8 @@ export async function POST(request: Request) {
       metadata: body.metadata,
     };
 
-    if (planCodeFromEnv) {
+    const isTestKey = getPaystackSecretKey().startsWith('sk_test_');
+    if (planCodeFromEnv && !isTestKey) {
       paystackPayload.plan = planCodeFromEnv;
     }
 
