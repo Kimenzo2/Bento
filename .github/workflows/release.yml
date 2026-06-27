@@ -377,21 +377,20 @@ jobs:
           echo "Downloaded assets:"
           ls -la apps/landing/public/downloads/
 
-      - name: Install landing page dependencies
-        run: bun install
-
-      - name: Build landing page
-        run: bun --cwd apps/landing run build
-
-      - name: Deploy landing page to Vercel
+      - name: Build landing page with Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npx vercel deploy apps/landing \
-            --prod \
-            --token="$VERCEL_TOKEN" \
-            --scope="$VERCEL_ORG_ID" \
-            --project="$VERCEL_PROJECT_ID"
-          echo "Landing page deployed."
+          bun x vercel pull --yes --environment=production --cwd apps/landing
+          bun x vercel build --prod --yes --cwd apps/landing
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          bun x vercel deploy --prebuilt --prod --yes --cwd apps/landing
+          echo "Landing page deployed to production."
