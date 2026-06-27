@@ -183,6 +183,9 @@ jobs:
           if ($llp) { "LIBCLANG_PATH=$llp" | Out-File -FilePath $env:GITHUB_ENV -Append }
 
       # ── Build the Tauri app ──
+      # If updater signing secrets are available and valid, they are used.
+      # If signing fails (e.g. incorrect key/password), the build retries
+      # without updater artifacts so that unsigned bundles are still produced.
       - name: Build Tauri app
         shell: bash
         env:
@@ -190,9 +193,41 @@ jobs:
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: |
           bun install
-          bun run tauri build \
-            --bundles ${{ matrix.bundles }} \
-            --target ${{ matrix.target }}
+
+          if bun run tauri build --bundles ${{ matrix.bundles }} --target ${{ matrix.target }}; then
+            echo "✅ Build succeeded with updater signing"
+          else
+            echo "⚠️ Build with signing failed — retrying without updater artifacts"
+            echo "   (This is expected when signing secrets are missing or mismatched)"
+            bun run tauri build \
+              --bundles ${{ matrix.bundles }} \
+              --target ${{ matrix.target }} \
+              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          fi
+
+      # ── Copy bundles to standard path ──
+      # tauri build --target puts bundles in a target-specific subdirectory
+      # (e.g. target/universal-apple-darwin/release/bundle/), but
+      # cn release upload --framework tauri expects them at the standard
+      # target/release/bundle/ path. Copy them so cn can find them.
+      - name: Copy bundles to standard target path for cn
+        shell: bash
+        run: |
+          TARGET_BUNDLE="src-tauri/target/${{ matrix.target }}/release/bundle"
+          STANDARD_BUNDLE="src-tauri/target/release/bundle"
+          echo "=== Debug: pre-copy ==="
+          pwd
+          ls -la "$TARGET_BUNDLE" 2>/dev/null || echo "TARGET_BUNDLE not found"
+          find . -name "*.dmg" -o -name "*.app" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o -name "*.tar.gz" 2>/dev/null | head -20
+          echo "=== Copying to standard path ==="
+          if [ -d "$TARGET_BUNDLE" ]; then
+            mkdir -p "$STANDARD_BUNDLE"
+            cp -R "$TARGET_BUNDLE/"* "$STANDARD_BUNDLE/" 2>/dev/null || true
+            echo "Copied bundles to: $STANDARD_BUNDLE"
+            ls -laR "$STANDARD_BUNDLE/"
+          else
+            echo "WARNING: No target bundles at $TARGET_BUNDLE — skipping copy"
+          fi
 
       # ── Upload assets to CrabNebula Cloud ──
       - name: Upload assets to CrabNebula Cloud
