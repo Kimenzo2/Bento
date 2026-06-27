@@ -63,9 +63,6 @@ export default function HomePage() {
 
   return (
     <>
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
       <Nav platforms={platforms} />
       <main id="main-content">
         <Hero version={version} platforms={platforms} />

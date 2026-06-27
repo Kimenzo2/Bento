@@ -19,7 +19,7 @@ const reasons = [
   {
     icon: '⚡',
     title: 'Fast and native',
-    body: 'Built with Tauri, Bento is a real desktop app. It opens instantly, uses very little memory, and works offline — always.',
+    body: 'Opens instantly, uses almost no memory, and works entirely offline.',
   },
 ] as const;
 
@@ -69,7 +69,8 @@ export default function WhyBento() {
             }}
           >
             Most productivity apps assume an ideal schedule and unlimited willpower. Bento
-            doesn&rsquo;t. It&rsquo;s designed for messy, real, human days.
+            doesn&rsquo;t. It&rsquo;s designed for the kind of day where you sleep badly, skip a
+            habit, and still want to open the app the next morning.
           </p>
         </header>
 

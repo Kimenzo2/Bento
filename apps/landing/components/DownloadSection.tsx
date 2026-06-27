@@ -124,7 +124,7 @@ export default function DownloadSection({ version }: { version: string }) {
               letterSpacing: '-0.01em',
             }}
           >
-            Ships with v{version}
+            Includes v{version}
           </p>
           <ul
             style={{
@@ -138,9 +138,9 @@ export default function DownloadSection({ version }: { version: string }) {
           >
             {[
               'All twelve apps — ready from the first launch',
-              'Fully offline. No internet needed after install.',
-              'Light and dark themes across every tool',
-              'Native installers for every platform',
+              'Works fully offline — no internet required',
+              'Light and dark themes, everywhere',
+              'Available on Windows, macOS, and Linux',
             ].map((note) => (
               <li
                 key={note}
