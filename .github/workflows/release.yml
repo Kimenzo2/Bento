@@ -186,6 +186,21 @@ jobs:
           $llp = [System.Environment]::GetEnvironmentVariable('LIBCLANG_PATH')
           if ($llp) { "LIBCLANG_PATH=$llp" | Out-File -FilePath $env:GITHUB_ENV -Append }
 
+      # ── Configure macOS signing ──
+      # If APPLE_SIGNING_IDENTITY secret is set, signing is enabled.
+      # Otherwise, signing is skipped (produces unsigned .app/.dmg).
+      # This allows adding Apple certificates later without workflow changes.
+      - name: Configure macOS signing
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> "$GITHUB_ENV"
+            echo "APPLE_PROVIDER_SHORT_NAME=${{ secrets.APPLE_PROVIDER_SHORT_NAME }}" >> "$GITHUB_ENV"
+          else
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+          fi
+
       # ── Build the Tauri app ──
       - name: Build Tauri app
         shell: bash
