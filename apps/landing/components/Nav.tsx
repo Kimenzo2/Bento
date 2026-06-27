@@ -64,7 +64,7 @@ export default function Nav({
         left: 0,
         right: 0,
         zIndex: 50,
-        padding: scrolled ? '10px 16px' : '14px 16px 0',
+        padding: scrolled ? '8px 16px' : '16px 16px 0',
         transition: 'padding 300ms ease',
       }}
       aria-label="Primary navigation"
@@ -80,15 +80,17 @@ export default function Nav({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            height: scrolled ? '44px' : '48px',
-            padding: scrolled ? '0 12px' : '0 8px',
-            background: scrolled ? 'rgba(12, 11, 10, 0.85)' : 'transparent',
-            backdropFilter: scrolled ? 'blur(20px)' : 'none',
-            WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-            borderRadius: scrolled ? '16px' : '0',
-            border: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
-            boxShadow: scrolled ? '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)' : 'none',
-            transition: 'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, border-radius 300ms ease, box-shadow 300ms ease, padding 300ms ease, height 300ms ease',
+            height: '46px',
+            padding: scrolled ? '0 8px' : '0 10px',
+            background: scrolled
+              ? 'linear-gradient(180deg, rgba(18,17,16,0.78) 0%, rgba(12,11,10,0.82) 100%)'
+              : 'transparent',
+            backdropFilter: scrolled ? 'blur(24px)' : 'none',
+            WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
+            borderRadius: '16px',
+            border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+            boxShadow: scrolled ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+            transition: 'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, box-shadow 300ms ease, padding 300ms ease',
           }}
         >
           <button
@@ -114,10 +116,10 @@ export default function Nav({
             />
             <span
               style={{
-                fontWeight: 600,
+                fontWeight: 650,
                 fontSize: '1rem',
                 color: tokens.ink,
-                letterSpacing: '-0.01em',
+                letterSpacing: '-0.02em',
               }}
             >
               Bento
@@ -128,7 +130,7 @@ export default function Nav({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '2px',
+              gap: '4px',
             }}
             className="nav-desktop"
           >
@@ -155,7 +157,7 @@ export default function Nav({
               }}
               style={{
                 ...btn,
-                marginLeft: '12px',
+                marginLeft: '16px',
                 background: tokens.accent,
                 color: tokens.bg,
                 opacity: detecting ? 0.6 : 1,
@@ -220,11 +222,11 @@ export default function Nav({
             style={{
               marginTop: '8px',
               borderRadius: '16px',
-              background: 'rgba(18, 17, 16, 0.95)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+              background: 'linear-gradient(180deg, rgba(18,17,16,0.92) 0%, rgba(12,11,10,0.95) 100%)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
               padding: '12px 12px 20px',
               display: 'flex',
               flexDirection: 'column',
@@ -270,7 +272,7 @@ export default function Nav({
         )}
 
         <style>{`
-          .nav-btn:hover { background: rgba(255,255,255,0.1) !important; }
+          .nav-btn:hover { background: rgba(255,255,255,0.12) !important; }
           @media (max-width: 700px) {
             .nav-desktop { display: none !important; }
             .nav-mobile-toggle { display: flex !important; flex-direction: column; }
