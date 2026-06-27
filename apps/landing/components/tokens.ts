@@ -73,7 +73,8 @@ export const tokens = {
   inkMuted: '#90959e',
   inkFaint: '#5e626a',
 
-  fontFamily: "'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  fontFamily: '"universalSans", var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamilyDisplay: 'var(--font-dm-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 
   heroSize: 'clamp(2.4rem, 5vw, 4rem)',
   headingSize: 'clamp(1.5rem, 2.8vw, 2rem)',

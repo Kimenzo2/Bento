@@ -46,10 +46,8 @@ export default function AppShowcase() {
             Twelve tools. One desktop. No subscriptions.
           </h2>
           <p
+            className="text-body"
             style={{
-              fontSize: tokens.bodySize,
-              lineHeight: 1.7,
-              color: tokens.inkMuted,
               marginTop: '16px',
             }}
           >
@@ -120,11 +118,9 @@ export default function AppShowcase() {
                       {app.name}
                     </h3>
                     <p
+                      className="text-body"
                       style={{
                         maxWidth: '80%',
-                        fontSize: '0.875rem',
-                        lineHeight: 1.5,
-                        color: tokens.inkMuted,
                         marginTop: '4px',
                       }}
                     >

@@ -51,10 +51,8 @@ export default function Footer() {
             </span>
           </div>
           <p
+            className="text-body"
             style={{
-              fontSize: tokens.smallSize,
-              lineHeight: 1.6,
-              color: tokens.inkFaint,
               margin: 0,
             }}
           >
@@ -93,25 +91,23 @@ export default function Footer() {
                   gap: '10px',
                 }}
               >
-                {[
-                  { label: 'Apps', href: '#apps' },
-                  { label: 'Why Bento', href: '#why' },
-                  { label: 'Download', href: '#download' },
-                ].map((l) => (
-                  <li key={l.href}>
-                    <a
-                      className="footer-link"
-                      href={l.href}
-                      style={{
-                        fontSize: tokens.smallSize,
-                        color: tokens.inkMuted,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
+                  {[
+                    { label: 'Apps', href: '#apps' },
+                    { label: 'Why Bento', href: '#why' },
+                    { label: 'Download', href: '#download' },
+                  ].map((l) => (
+                    <li key={l.href}>
+                      <a
+                        className="footer-link"
+                        href={l.href}
+                        style={{
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {l.label}
+                      </a>
+                    </li>
+                  ))}
               </ul>
             </div>
 
@@ -138,25 +134,23 @@ export default function Footer() {
                   gap: '10px',
                 }}
               >
-                {[
-                  { label: 'Email support', href: 'mailto:support@iamazeyou.me' },
-                  { label: 'Privacy Policy', href: '/legal/privacy' },
-                  { label: 'Terms of Service', href: '/legal/terms' },
-                ].map((l) => (
-                  <li key={l.label}>
-                    <a
-                      className="footer-link"
-                      href={l.href}
-                      style={{
-                        fontSize: tokens.smallSize,
-                        color: tokens.inkMuted,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
+                  {[
+                    { label: 'Email support', href: 'mailto:support@iamazeyou.me' },
+                    { label: 'Privacy Policy', href: '/legal/privacy' },
+                    { label: 'Terms of Service', href: '/legal/terms' },
+                  ].map((l) => (
+                    <li key={l.label}>
+                      <a
+                        className="footer-link"
+                        href={l.href}
+                        style={{
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {l.label}
+                      </a>
+                    </li>
+                  ))}
               </ul>
             </div>
           </div>

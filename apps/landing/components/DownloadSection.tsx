@@ -52,10 +52,8 @@ export default function DownloadSection({ version }: { version: string }) {
             Free. Private. Yours to keep.
           </h2>
           <p
+            className="text-body"
             style={{
-              fontSize: tokens.bodySize,
-              lineHeight: 1.7,
-              color: tokens.inkMuted,
               marginBottom: '32px',
               maxWidth: '420px',
             }}
@@ -146,13 +144,11 @@ export default function DownloadSection({ version }: { version: string }) {
             ].map((note) => (
               <li
                 key={note}
+                className="text-body"
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '10px',
-                  fontSize: tokens.smallSize,
-                  color: tokens.inkMuted,
-                  lineHeight: 1.5,
                 }}
               >
                 <svg
@@ -178,13 +174,12 @@ export default function DownloadSection({ version }: { version: string }) {
           </ul>
 
           <div
+            className="text-body"
             style={{
               marginTop: '16px',
               paddingTop: '12px',
               borderTop: '1px solid ' + tokens.highlight,
-              fontSize: tokens.labelSize,
-              lineHeight: 1.6,
-              color: tokens.inkFaint,
+              fontSize: '0.75rem',
             }}
           >
             Also on macOS and Linux. Questions?{' '}

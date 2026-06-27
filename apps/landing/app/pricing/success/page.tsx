@@ -13,12 +13,12 @@ export default async function PricingSuccessPage() {
       <section className="pricing-success__card">
         <p className="pricing-success__eyebrow">Payment received</p>
         <h1>Thanks for subscribing.</h1>
-        <p className="pricing-success__copy">
+        <p className="pricing-success__copy text-body">
           {email
             ? `We sent a confirmation to ${email}.`
             : 'Your payment was successful.'}
         </p>
-        <p className="pricing-success__copy">
+        <p className="pricing-success__copy text-body">
           Your apps will unlock automatically in the desktop app. This usually takes a minute.
         </p>
         <div className="pricing-success__actions">
@@ -67,9 +67,6 @@ export default async function PricingSuccessPage() {
 
         .pricing-success__copy {
           margin-top: 1rem;
-          color: #90959e;
-          line-height: 1.7;
-          font-size: 1.04rem;
         }
 
         .pricing-success__actions {

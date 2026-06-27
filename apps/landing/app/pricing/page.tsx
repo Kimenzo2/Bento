@@ -107,7 +107,7 @@ export default async function PricingPage({
       <section className="pricing-page__hero">
         <div className="pricing-page__inner">
           {issue ? (
-            <div className="pricing-page__alert" role="status" aria-live="polite">
+            <div className="pricing-page__alert text-body" role="status" aria-live="polite">
               {issue === 'signin_required'
                 ? 'Please sign in to continue.'
                 : issue === 'profile_missing'
@@ -159,7 +159,7 @@ export default async function PricingPage({
         <div className="pricing-page__inner">
           <div className="pricing-page__plans-header">
             <h2 id="pricing-plans-heading">Plans</h2>
-            <p>
+            <p className="text-body">
               {activePlan
                 ? `Your current plan is ${activePlan.name}.`
                 : 'Select the plan that fits how you use Bento.'}
@@ -185,7 +185,7 @@ export default async function PricingPage({
                   <div className="pricing-page__card-top">
                     <div>
                       <h3>{plan.name}</h3>
-                      <p>{plan.description}</p>
+                      <p className="text-body">{plan.description}</p>
                     </div>
                     {plan.badge ? <span className="pricing-page__badge">{plan.badge}</span> : null}
                   </div>
@@ -200,7 +200,7 @@ export default async function PricingPage({
 
                   <ul className="pricing-page__features">
                     {plan.features.map((feature) => (
-                      <li key={feature}>{feature}</li>
+                      <li key={feature} className="text-body">{feature}</li>
                     ))}
                   </ul>
 
@@ -253,7 +253,7 @@ export default async function PricingPage({
         <div className="pricing-page__inner">
           <div className="pricing-page__note-card">
             <h2>Your privacy comes first.</h2>
-            <p>
+            <p className="text-body">
               Payment details stay in your browser. Your data stays on your device.
             </p>
             <Link href="/" data-slot="button" className="pricing-page__note-link btn-accent">
@@ -268,6 +268,8 @@ export default async function PricingPage({
           background: #131211;
           color: #dce0e6;
           min-height: 100vh;
+          line-height: 1.5;
+          letter-spacing: -0.1px;
         }
 
         .pricing-page__inner {
@@ -369,7 +371,6 @@ export default async function PricingPage({
         .pricing-page__plans-header p {
           margin: 0;
           max-width: 44ch;
-          color: #90959e;
         }
 
         .pricing-page__grid {
@@ -406,8 +407,6 @@ export default async function PricingPage({
 
         .pricing-page__card-top p {
           margin-top: 0.35rem;
-          color: #90959e;
-          line-height: 1.55;
           max-width: 28ch;
         }
 
@@ -465,8 +464,6 @@ export default async function PricingPage({
         .pricing-page__features li {
           position: relative;
           padding-left: 1.2rem;
-          color: #dce0e6;
-          line-height: 1.55;
         }
 
         .pricing-page__features li::before {
@@ -548,8 +545,6 @@ export default async function PricingPage({
 
         .pricing-page__note-card p {
           max-width: 62ch;
-          color: #90959e;
-          line-height: 1.65;
           margin-top: 0.5rem;
         }
 

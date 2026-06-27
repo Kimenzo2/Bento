@@ -63,10 +63,8 @@ export default function WhyBento() {
             Built for real days.
           </h2>
           <p
+            className="text-body"
             style={{
-              fontSize: tokens.bodySize,
-              lineHeight: 1.7,
-              color: tokens.inkMuted,
               marginTop: '16px',
             }}
           >
@@ -150,10 +148,8 @@ function WhyItem({
             {title}
           </h3>
           <p
+            className="text-body"
             style={{
-              fontSize: tokens.smallSize,
-              lineHeight: 1.65,
-              color: tokens.inkMuted,
               margin: 0,
             }}
           >
