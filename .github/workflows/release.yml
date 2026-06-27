@@ -202,17 +202,115 @@ jobs:
           fi
 
       # ── Build the Tauri app ──
+      # If updater signing secrets are available and valid, they are used.
+      # If signing fails (e.g. incorrect key/password), the build retries
+      # without updater artifacts so that unsigned bundles are still produced.
       - name: Build Tauri app
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # Tauri v2 uses TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          # Legacy name TAURI_KEY_PASSWORD is kept for fallback compatibility
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           LIBSQLITE3_FLAGS: -USQLITE_OMIT_LOAD_EXTENSION
         run: |
+          # Linux-only diagnostic: verify signing env var integrity
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            echo "=== Signing env var diagnostics ==="
+            for var in TAURI_SIGNING_PRIVATE_KEY TAURI_KEY_PASSWORD TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+              val="${!var}"
+              if [ -n "$val" ]; then
+                echo "$var: EXISTS | length=${#val}"
+              else
+                echo "$var: NOT SET"
+              fi
+            done
+            echo "=== Key fingerprint (sha256) ==="
+            key_val="$TAURI_SIGNING_PRIVATE_KEY"
+            if [ -n "$key_val" ]; then
+              printf "%s" "$key_val" | sha256sum | cut -d" " -f1
+            fi
+            echo "=== Password length ==="
+            pw_val="$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+            if [ -n "$pw_val" ]; then
+              echo "length=${#pw_val}"
+            fi
+            echo "If lengths differ from Windows: trailing newline, CRLF, or shell metacharacters."
+          fi
           bun install
           bun run tauri build \
             --bundles ${{ matrix.bundles }} \
-            --target ${{ matrix.target }}
+            --target ${{ matrix.target }} || {
+            echo "Build with signing failed — retrying without updater artifacts (expected when signing secrets are missing or mismatched)"
+            bun run tauri build \
+              --bundles ${{ matrix.bundles }} \
+              --target ${{ matrix.target }} \
+              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          }
+
+      # ── Copy bundles to standard target paths for CrabNebula discovery ──
+      # cn release upload --framework tauri searches for bundles at
+      # src-tauri/target/release/bundle/ from its working directory.
+      # The matrix target (e.g. universal-apple-darwin) produces bundles in a
+      # target-specific subdirectory, so we copy them to the standard location
+      # that cn expects. We copy to both APP_DIR (if cn respects working-directory)
+      # and repo root (if cn runs from workspace root as some @v0 actions do).
+      - name: Copy bundles to standard target path for cn
+        shell: bash
+        run: |
+          SRC="src-tauri/target/${{ matrix.target }}/release/bundle"
+          APP_STANDARD="src-tauri/target/release/bundle"
+          ROOT_STANDARD="${{ github.workspace }}/src-tauri/target/release/bundle"
+
+          echo "=== Bundle discovery debug ==="
+          echo "pwd: $(pwd)"
+          echo "Source: $SRC"
+          echo "APP_DIR standard: $APP_STANDARD"
+          echo "Repo root standard: $ROOT_STANDARD"
+
+          if [ ! -d "$SRC" ]; then
+            echo "ERROR: Source bundle directory not found at $SRC"
+            ls -la src-tauri/target/ 2>/dev/null | head -20
+            exit 1
+          fi
+
+          echo "Source bundles:"
+          ls -laR "$SRC/" | head -40
+
+          mkdir -p "$APP_STANDARD"
+          cp -R "$SRC/"* "$APP_STANDARD/" 2>/dev/null || true
+          echo "Copied to APP_DIR standard: $APP_STANDARD"
+          ls -la "$APP_STANDARD/" 2>/dev/null || echo "  (empty)"
+
+          mkdir -p "$ROOT_STANDARD"
+          cp -R "$SRC/"* "$ROOT_STANDARD/" 2>/dev/null || true
+          echo "Copied to repo root standard: $ROOT_STANDARD"
+          ls -la "$ROOT_STANDARD/" 2>/dev/null || echo "  (empty)"
+
+          echo "All bundles from repo root:"
+          find "${{ github.workspace }}" -maxdepth 10 \( \
+            -name "*.dmg" -o -name "*.app" -o -name "*.zip" -o -name "*.deb" -o \
+            -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o \
+            -name "*.tar.gz" \
+          \) 2>/dev/null | head -20
+
+      # ── Verify bundles before upload ──
+      - name: Verify bundles before CrabNebula upload
+        shell: bash
+        run: |
+          echo "=== Pre-upload verification ==="
+          echo "pwd: $(pwd)"
+          echo "--- APP_DIR standard path ---"
+          ls -la "src-tauri/target/release/bundle/" 2>/dev/null || echo "  (not found)"
+          echo "--- Repo root standard path ---"
+          ls -la "${{ github.workspace }}/src-tauri/target/release/bundle/" 2>/dev/null || echo "  (not found)"
+          echo "--- Discovered assets ---"
+          find . -maxdepth 8 \( \
+            -name "*.dmg" -o -name "*.app" -o -name "*.zip" -o -name "*.deb" -o \
+            -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o \
+            -name "*.tar.gz" \
+          \) 2>/dev/null | head -20
 
       # ── Upload assets to CrabNebula Cloud ──
       - name: Upload assets to CrabNebula Cloud
