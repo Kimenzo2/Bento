@@ -133,6 +133,8 @@ package-lock.json
 # Binary image assets
 *.png
 !apps/genesis-desktop/src/assets/bento-icon.png
+!apps/landing/public/bento-icon.png
+!apps/landing/public/images/hero-app-screenshot.png
 *.jpg
 *.jpeg
 *.gif
