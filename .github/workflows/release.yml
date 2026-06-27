@@ -342,9 +342,6 @@ jobs:
   deploy-landing:
     needs: [prepare, publish]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/landing
     steps:
       - uses: actions/checkout@v4
 
@@ -354,6 +351,7 @@ jobs:
           bun-version: latest
 
       - name: Download release assets from CrabNebula CDN
+        working-directory: apps/landing
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
@@ -381,6 +379,7 @@ jobs:
           ls -la public/downloads/
 
       - name: Debug — verify paths before Vercel build
+        working-directory: apps/landing
         run: |
           echo "=== Path diagnostics ==="
           echo "pwd: $(pwd)"
