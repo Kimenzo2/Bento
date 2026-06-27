@@ -66,7 +66,7 @@ export default function HomePage() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <Nav />
+      <Nav platforms={platforms} />
       <main id="main-content">
         <Hero version={version} platforms={platforms} />
         <div className="section-divider" aria-hidden="true" />

@@ -1,11 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
 import { tokens } from './tokens';
-
-type Platform = 'windows' | 'macos' | 'linux';
-type PlatformInfo = { label: string; arch: string; href: string };
+import { useDownload } from './useDownload';
+import type { Platform, PlatformInfo } from './useDownload';
 
 export default function Hero({
   version,
@@ -14,16 +12,7 @@ export default function Hero({
   version: string;
   platforms: Record<Platform, PlatformInfo>;
 }) {
-  const [platform, setPlatform] = useState<Platform | null>(null);
-
-  useEffect(() => {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes('win')) setPlatform('windows');
-    else if (ua.includes('mac')) setPlatform('macos');
-    else if (ua.includes('linux')) setPlatform('linux');
-  }, []);
-
-  const active = platform ? platforms[platform] : null;
+  const { platform, active, detecting } = useDownload(platforms);
 
   return (
     <section
@@ -105,7 +94,8 @@ export default function Hero({
             <a
               data-slot="button"
               className="btn-accent"
-              href={active ? active.href : platforms.windows.href}
+              href={active?.href ?? platforms.windows.href}
+              aria-disabled={detecting}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -120,9 +110,11 @@ export default function Hero({
                 background: tokens.accent,
                 color: tokens.bg,
                 border: 'none',
-                cursor: 'pointer',
+                cursor: detecting ? 'default' : 'pointer',
                 textDecoration: 'none',
+                opacity: detecting ? 0.6 : 1,
                 transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                pointerEvents: detecting ? 'none' as const : undefined,
               }}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -134,7 +126,7 @@ export default function Hero({
                   strokeLinejoin="round"
                 />
               </svg>
-              Download for {active ? active.label : 'Windows'}
+              {detecting ? 'Detecting…' : `Download for ${active ? active.label : platforms.windows.label}`}
             </a>
 
             <span

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { tokens } from './tokens';
 import Image from 'next/image';
+import { useDownload } from './useDownload';
+import type { Platform, PlatformInfo } from './useDownload';
 
 const NAV_LINKS = [
   { label: 'Apps', href: '#apps' },
@@ -29,7 +31,12 @@ const btn = {
   transition: 'color 0.15s ease, box-shadow 0.15s ease',
 } as const;
 
-export default function Nav() {
+export default function Nav({
+  platforms,
+}: {
+  platforms: Record<Platform, PlatformInfo>;
+}) {
+  const { detecting, downloadHref, scrollToDownload } = useDownload(platforms);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -129,14 +136,26 @@ export default function Nav() {
               {link.label}
             </button>
           ))}
-          <a
+          <button
             data-slot="button"
             className="btn-accent"
-            href="#download"
-            style={{ ...btn, marginLeft: '12px', background: tokens.accent, color: tokens.bg }}
+            type="button"
+            disabled={detecting}
+            onClick={() => {
+              if (downloadHref) window.location.href = downloadHref;
+              else scrollToDownload();
+            }}
+            style={{
+              ...btn,
+              marginLeft: '12px',
+              background: tokens.accent,
+              color: tokens.bg,
+              opacity: detecting ? 0.6 : 1,
+              cursor: detecting ? 'default' : 'pointer',
+            }}
           >
-            Download
-          </a>
+            {detecting ? 'Checking…' : 'Download'}
+          </button>
         </div>
 
         <button
@@ -211,14 +230,29 @@ export default function Nav() {
               {link.label}
             </button>
           ))}
-          <a
+          <button
             data-slot="button"
             className="btn-accent"
-            href="#download"
-            style={{ ...btn, width: '100%', justifyContent: 'center', marginTop: '8px', background: tokens.accent, color: tokens.bg, height: '36px' }}
+            type="button"
+            disabled={detecting}
+            onClick={() => {
+              if (downloadHref) window.location.href = downloadHref;
+              else scrollToDownload();
+            }}
+            style={{
+              ...btn,
+              width: '100%',
+              justifyContent: 'center',
+              marginTop: '8px',
+              background: tokens.accent,
+              color: tokens.bg,
+              height: detecting ? '36px' : '36px',
+              opacity: detecting ? 0.6 : 1,
+              cursor: detecting ? 'default' : 'pointer',
+            }}
           >
-            Download
-          </a>
+            {detecting ? 'Checking…' : 'Download'}
+          </button>
         </div>
       )}
 
