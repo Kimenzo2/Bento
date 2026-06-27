@@ -49,7 +49,7 @@ export default function DownloadSection({ version }: { version: string }) {
               maxWidth: '480px',
             }}
           >
-            Free. Private. Yours to keep.
+            Private. Yours to keep.
           </h2>
           <p
             className="text-body"
@@ -94,7 +94,7 @@ export default function DownloadSection({ version }: { version: string }) {
                 strokeLinejoin="round"
               />
             </svg>
-            Download for free
+            Download now
           </a>
 
           <p

@@ -1,11 +1,56 @@
 import Link from 'next/link';
 import { getAuthenticatedUser } from '../../../lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PricingSuccessPage() {
-  const user = await getAuthenticatedUser();
+function getPaystackSecretKey() {
+  const key = process.env.PAYSTACK_SECRET_KEY;
+  if (!key) throw new Error('PAYSTACK_SECRET_KEY is not configured.');
+  return key;
+}
 
+async function verifyTransaction(reference: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: {
+        Authorization: `Bearer ${getPaystackSecretKey()}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+    const body = await res.json();
+    return body?.status === true && body?.data?.status === 'success';
+  } catch {
+    return false;
+  }
+}
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function firstString(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+export default async function PricingSuccessPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams> | SearchParams;
+}) {
+  const params = await Promise.resolve(searchParams ?? {});
+  const reference = firstString(params.reference) ?? firstString(params.trxref) ?? '';
+
+  if (!reference) {
+    redirect('/pricing?error=unknown');
+  }
+
+  const verified = await verifyTransaction(reference);
+  if (!verified) {
+    redirect('/pricing?error=paystack');
+  }
+
+  const user = await getAuthenticatedUser();
   let email = user?.email ?? '';
 
   return (

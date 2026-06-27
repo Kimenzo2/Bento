@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { findPlanByCode, type BillingPeriod, type BillingTier, type PricingPlanCode } from './billing';
+import { PRICING_PLANS, findPlanByCode, type BillingPeriod, type BillingTier, type PricingPlanCode } from './billing';
 
 export const SUPPORTED_PAYSTACK_EVENTS = [
   'charge.dispute.create',
@@ -328,6 +328,53 @@ export function buildBillingUpdate(payload: PaystackPayload): BillingUpdate | nu
   const invoiceStatus = getString(asRecord(data.invoice), 'status') ?? getString(data, 'status');
   const affectsBilling = BILLING_RELEVANT_PAYSTACK_EVENTS.has(eventName);
 
+  const amountKobo = resolveAmountKobo(data);
+  const receivedCurrency = resolveCurrency(data);
+
+  const metadata = asRecord(data.metadata);
+  const expectedCurrency = getString(metadata, 'expected_currency');
+  const expectedAmountRaw = metadata?.['expected_amount_smallest_unit'];
+  const expectedAmountSmallestUnit = parseAmount(expectedAmountRaw);
+
+  if (affectsBilling && tier && amountKobo && expectedAmountSmallestUnit && expectedCurrency) {
+    if (receivedCurrency && receivedCurrency !== expectedCurrency) {
+      console.error('[paystack:webhook] CURRENCY MISMATCH - possible underpayment', {
+        event: eventName,
+        tier,
+        planCode,
+        expectedCurrency,
+        receivedCurrency,
+        expectedAmount: expectedAmountSmallestUnit,
+        receivedAmount: amountKobo,
+      });
+    } else if (amountKobo < expectedAmountSmallestUnit) {
+      console.error('[paystack:webhook] AMOUNT BELOW EXPECTED - possible underpayment', {
+        event: eventName,
+        tier,
+        planCode,
+        currency: receivedCurrency ?? expectedCurrency,
+        expected: expectedAmountSmallestUnit,
+        received: amountKobo,
+        shortfall: expectedAmountSmallestUnit - amountKobo,
+      });
+    }
+  } else if (affectsBilling && tier && amountKobo && !expectedAmountSmallestUnit) {
+    const matchedPlan = PRICING_PLANS.find((p) => p.key === tier);
+    if (matchedPlan) {
+      const usdPriceFloat = parseFloat(matchedPlan.price[billingPeriod ?? 'monthly'].replace(/[^0-9.]/g, ''));
+      const usdInSmallestUnit = Math.round(usdPriceFloat * 100);
+      if (amountKobo < usdInSmallestUnit * 0.5) {
+        console.warn('[paystack:webhook] amount too low (legacy check, no expected_currency in metadata)', {
+          event: eventName,
+          tier,
+          planCode,
+          expected: usdInSmallestUnit,
+          received: amountKobo,
+        });
+      }
+    }
+  }
+
   return {
     profileId,
     affectsBilling,
@@ -344,7 +391,7 @@ export function buildBillingUpdate(payload: PaystackPayload): BillingUpdate | nu
     paystackSubscriptionCode:
       getString(asRecord(data.subscription), 'subscription_code') ?? getString(data, 'subscription_code'),
     paystackInvoiceCode: getString(asRecord(data.invoice), 'invoice_code') ?? getString(data, 'invoice_code'),
-    amountKobo: resolveAmountKobo(data),
+    amountKobo,
     currency: resolveCurrency(data),
     paymentProvider: 'paystack',
   };
@@ -377,13 +424,11 @@ export function deriveProfilePatch(
                   ? 'cancelled'
                   : (asRecord(data?.subscription) ? 'active' : 'free'),
     billing_status: currentStatus,
-    subscription_plan_code: update.planCode,
     subscription_end_date: update.accessExpiresAt,
     access_expires_at: update.accessExpiresAt,
     billing_period: update.billingPeriod,
     billing_updated_at: new Date().toISOString(),
     cancel_at_period_end: eventName === 'subscription.not_renew',
-    user_tier: update.tier,
     paystack_customer_id: update.paystackCustomerCode,
     paystack_subscription_id: update.paystackSubscriptionCode,
     paystack_authorization_code: getString(asRecord(data?.authorization), 'authorization_code'),
@@ -400,6 +445,9 @@ export function deriveProfilePatch(
     paystack_last_event_id: update.paystackEventId,
     paystack_last_payment_reference: update.paystackReference,
   };
+
+  if (update.tier) patch.user_tier = update.tier;
+  if (update.planCode) patch.subscription_plan_code = update.planCode;
 
   const billingCountry = getString(metadata, 'billing_country');
   const shippingCountry = getString(metadata, 'shipping_country');

@@ -21,6 +21,8 @@ export type CheckoutIntentRecord = {
   paystackAuthorizationUrl: string | null;
   payload: Record<string, unknown>;
   processedAt: string | null;
+  expectedCurrency: string;
+  expectedAmountSmallestUnit: number;
 };
 
 export function buildCheckoutIntentRecord(input: {
@@ -38,6 +40,8 @@ export function buildCheckoutIntentRecord(input: {
   paystackAccessCode?: string | null;
   paystackAuthorizationUrl?: string | null;
   payload?: Record<string, unknown>;
+  expectedCurrency?: string;
+  expectedAmountSmallestUnit?: number;
 }): CheckoutIntentRecord {
   return {
     reference: input.reference,
@@ -57,6 +61,8 @@ export function buildCheckoutIntentRecord(input: {
     paystackAuthorizationUrl: input.paystackAuthorizationUrl ?? null,
     payload: input.payload ?? {},
     processedAt: null,
+    expectedCurrency: input.expectedCurrency ?? 'USD',
+    expectedAmountSmallestUnit: input.expectedAmountSmallestUnit ?? 0,
   };
 }
 
@@ -80,6 +86,8 @@ export async function persistCheckoutIntent(supabase: any, intent: CheckoutInten
       paystack_authorization_url: intent.paystackAuthorizationUrl,
       payload: intent.payload,
       processed_at: intent.processedAt,
+      expected_currency: intent.expectedCurrency,
+      expected_amount_smallest_unit: intent.expectedAmountSmallestUnit,
     },
     { onConflict: 'reference' }
   );

@@ -9,8 +9,13 @@ import fs from 'fs';
 import path from 'path';
 import Nav from '../components/Nav';
 import Hero from '../components/Hero';
+import HowItWorks from '../components/HowItWorks';
 import AppShowcase from '../components/AppShowcase';
 import WhyBento from '../components/WhyBento';
+import SocialProof from '../components/SocialProof';
+import Testimonials from '../components/Testimonials';
+import Pricing from '../components/Pricing';
+import FAQ from '../components/FAQ';
 import DownloadSection from '../components/DownloadSection';
 import Footer from '../components/Footer';
 
@@ -67,9 +72,16 @@ export default function HomePage() {
       <main id="main-content">
         <Hero version={version} platforms={platforms} />
         <div className="section-divider" aria-hidden="true" />
+        <HowItWorks />
         <AppShowcase />
         <div className="section-divider" aria-hidden="true" />
         <WhyBento />
+        <SocialProof />
+        <div className="section-divider" aria-hidden="true" />
+        <Testimonials />
+        <div className="section-divider" aria-hidden="true" />
+        <Pricing />
+        <FAQ />
         <div className="section-divider" aria-hidden="true" />
         <DownloadSection version={version} />
       </main>

@@ -135,7 +135,7 @@ export default function Hero({
                 color: tokens.inkFaint,
               }}
             >
-              v{version} &mdash; free, no account needed
+              v{version} &mdash; sign in with Google to start
             </span>
           </div>
 

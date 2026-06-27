@@ -11,6 +11,7 @@ import {
   loadPaystackMethodRules,
   selectPreferredPaystackMethod,
 } from '../../../../lib/paystack/payment-methods';
+import { convertUsdToLocal, parseUsdPrice } from '../../../../lib/paystack/currency';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -131,10 +132,9 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (createError || !newProfile) {
-        const reason = createError?.message || 'profile creation returned no row';
         console.error('[paystack:init] failed to create profile', createError);
         return NextResponse.redirect(
-          new URL(`/pricing?error=profile_creation&details=${encodeURIComponent(reason)}`, getAppOrigin(request)),
+          new URL('/pricing?error=profile_creation', getAppOrigin(request)),
           303
         );
       }
@@ -165,9 +165,8 @@ export async function POST(request: Request) {
           if (createResp.ok && createBody?.id) {
             authUserId = createBody.id;
           } else {
-            const msg = createBody?.msg || `HTTP ${createResp.status}`;
             console.error('[paystack:init] failed to create auth user', createResp.status, createBody);
-            return NextResponse.redirect(new URL(`/pricing?error=auth_user&details=${encodeURIComponent(msg)}`, getAppOrigin(request)), 303);
+            return NextResponse.redirect(new URL('/pricing?error=auth_user', getAppOrigin(request)), 303);
           }
         }
 
@@ -178,9 +177,8 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (createError || !newProfile) {
-          const reason = createError?.message || 'profile creation returned no row';
           console.error('[paystack:init] failed to create desktop profile', createError);
-          return NextResponse.redirect(new URL(`/pricing?error=profile_creation&details=${encodeURIComponent(reason)}`, getAppOrigin(request)), 303);
+          return NextResponse.redirect(new URL('/pricing?error=profile_creation', getAppOrigin(request)), 303);
         }
 
         resolvedProfile = newProfile;
@@ -199,6 +197,22 @@ export async function POST(request: Request) {
     const selection = selectPreferredPaystackMethod(detectedCountry, rules, preferredMethod);
     const channels = getPaystackChannelsForCountry(detectedCountry, rules);
     const reference = `bento_${plan.key}_${period}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
+
+    const usdPriceString = plan.price[period];
+    const usdPriceFloat = parseUsdPrice(usdPriceString);
+
+    let conversion;
+    try {
+      conversion = await convertUsdToLocal(usdPriceFloat, detectedCountry);
+    } catch (convError) {
+      const message = convError instanceof Error ? convError.message : 'Unknown conversion error';
+      console.error('[paystack:init] currency conversion failed', message, convError);
+      return NextResponse.redirect(
+        new URL(`/pricing?error=server&details=${encodeURIComponent(message)}`, getAppOrigin(request)),
+        303
+      );
+    }
+
     const checkoutIntent = buildCheckoutIntentRecord({
       reference,
       profileId: resolvedProfile.id,
@@ -211,6 +225,8 @@ export async function POST(request: Request) {
       planCode: selectedPlanCode,
       billingPeriod: period,
       source: source === 'desktop' || source === 'manual' ? source : 'web',
+      expectedCurrency: conversion.currencyCode,
+      expectedAmountSmallestUnit: conversion.smallestUnitAmount,
       payload: {
         plan_key: plan.key,
         billing_period: period,
@@ -219,10 +235,29 @@ export async function POST(request: Request) {
         selected_method: selection.selectedMethodKey,
         selected_channels: channels,
         checkout_intent_at: new Date().toISOString(),
+        expected_currency: conversion.currencyCode,
+        expected_amount_smallest_unit: conversion.smallestUnitAmount,
+        usd_price_float: usdPriceFloat,
       },
     });
 
     await persistCheckoutIntent(supabase, checkoutIntent);
+
+    const { data: existingIntent } = await supabase
+      .from('paystack_checkout_intents')
+      .select('paystack_authorization_url')
+      .eq('profile_id', resolvedProfile.id)
+      .eq('plan_code', selectedPlanCode)
+      .eq('billing_period', period)
+      .eq('payment_status', 'pending')
+      .neq('reference', reference)
+      .not('paystack_authorization_url', 'is', null)
+      .maybeSingle();
+
+    if (existingIntent?.paystack_authorization_url) {
+      return NextResponse.redirect(existingIntent.paystack_authorization_url, 303);
+    }
+
     const { error: profileUpdateError } = await supabase
       .from('profiles')
       .upsert(
@@ -265,19 +300,26 @@ export async function POST(request: Request) {
         checkout_intent_at: checkoutIntent.payload.checkout_intent_at,
         checkout_origin: source,
         app: 'Bento',
+        expected_currency: conversion.currencyCode,
+        expected_amount_smallest_unit: conversion.smallestUnitAmount,
       },
     };
 
     const planCodeFromEnv = body.plan;
-    if (!planCodeFromEnv) {
-      return NextResponse.redirect(
-        new URL('/pricing?error=missing_paystack_plan', getAppOrigin(request)),
-        303
-      );
-    }
 
-    const priceString = plan.price[period].replace(/[^0-9]/g, '');
-    const amountInCents = plan.key === 'pro' ? 1 : parseInt(priceString, 10) * 100;
+    const paystackPayload: Record<string, unknown> = {
+      email: body.email,
+      amount: String(conversion.smallestUnitAmount),
+      currency: conversion.currencyCode,
+      reference: body.reference,
+      channels: body.channels,
+      callback_url: body.callback_url,
+      metadata: body.metadata,
+    };
+
+    if (planCodeFromEnv) {
+      paystackPayload.plan = planCodeFromEnv;
+    }
 
     const response = await fetch(`${PAYSTACK_API_BASE}/transaction/initialize`, {
       method: 'POST',
@@ -286,15 +328,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({
-        email: body.email,
-        amount: String(amountInCents),
-        plan: planCodeFromEnv,
-        reference: body.reference,
-        channels: body.channels,
-        callback_url: body.callback_url,
-        metadata: body.metadata,
-      }),
+      body: JSON.stringify(paystackPayload),
     });
 
     const payload = (await response.json().catch(() => null)) as {
@@ -307,7 +341,7 @@ export async function POST(request: Request) {
       const reason = payload?.message || `HTTP ${response.status}`;
       console.error('[paystack:init] initialize failed', response.status, payload);
       return NextResponse.redirect(
-        new URL(`/pricing?error=paystack&details=${encodeURIComponent(reason)}`, getAppOrigin(request)),
+        new URL(`/pricing?error=paystack`, getAppOrigin(request)),
         303
       );
     }
@@ -324,9 +358,10 @@ export async function POST(request: Request) {
     return NextResponse.redirect(payload.data.authorization_url, 303);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[paystack:init] unexpected error', error);
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : JSON.stringify(error);
+    console.error('[paystack:init] unexpected error', { message, type: typeof error, isError: error instanceof Error, error });
     return NextResponse.redirect(
-      new URL(`/pricing?error=server&details=${encodeURIComponent(message)}`, getAppOrigin(request)),
+      new URL(`/pricing?error=server&details=${encodeURIComponent(detail)}`, getAppOrigin(request)),
       303
     );
   }
