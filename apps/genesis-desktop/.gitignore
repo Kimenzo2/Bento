@@ -41,3 +41,4 @@ src-tauri/genesis-desktop-settings-backup.json
 src-tauri/Trying Out things
 src-tauri/src/saved_settings.rs.bak
 
+.vercel
