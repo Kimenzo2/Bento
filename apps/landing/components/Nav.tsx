@@ -64,11 +64,8 @@ export default function Nav({
         left: 0,
         right: 0,
         zIndex: 50,
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.04)' : '1px solid transparent',
-        background: scrolled ? 'rgba(12, 11, 10, 0.85)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(12px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
-        transition: 'background 0.3s, border-color 0.3s, backdrop-filter 0.3s',
+        padding: scrolled ? '10px 16px' : '14px 16px 0',
+        transition: 'padding 300ms ease',
       }}
       aria-label="Primary navigation"
     >
@@ -76,196 +73,213 @@ export default function Nav({
         style={{
           maxWidth: tokens.contentMax,
           margin: '0 auto',
-          padding: '0 28px 0 8px',
-          height: '48px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
         }}
       >
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          aria-label="Back to top"
-        >
-          <Image
-            src="/bento-icon.png"
-            alt="Bento"
-            width={28}
-            height={28}
-            style={{ borderRadius: '6px' }}
-          />
-          <span
-            style={{
-              fontWeight: 600,
-              fontSize: '1rem',
-              color: tokens.ink,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Bento
-          </span>
-        </button>
-
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '2px',
+            justifyContent: 'space-between',
+            height: scrolled ? '44px' : '48px',
+            padding: scrolled ? '0 12px' : '0 8px',
+            background: scrolled ? 'rgba(12, 11, 10, 0.85)' : 'transparent',
+            backdropFilter: scrolled ? 'blur(20px)' : 'none',
+            WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+            borderRadius: scrolled ? '16px' : '0',
+            border: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+            boxShadow: scrolled ? '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)' : 'none',
+            transition: 'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, border-radius 300ms ease, box-shadow 300ms ease, padding 300ms ease, height 300ms ease',
           }}
-          className="nav-desktop"
         >
-          {NAV_LINKS.map((link) => (
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+            aria-label="Back to top"
+          >
+            <Image
+              src="/bento-icon.png"
+              alt="Bento"
+              width={28}
+              height={28}
+              style={{ borderRadius: '6px' }}
+            />
+            <span
+              style={{
+                fontWeight: 600,
+                fontSize: '1rem',
+                color: tokens.ink,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Bento
+            </span>
+          </button>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+            }}
+            className="nav-desktop"
+          >
+            {NAV_LINKS.map((link) => (
+              <button
+                data-slot="button"
+                key={link.href}
+                type="button"
+                onClick={() => handleAnchor(link.href)}
+                style={btn}
+                className="nav-btn"
+              >
+                {link.label}
+              </button>
+            ))}
             <button
               data-slot="button"
-              key={link.href}
+              className="btn-accent"
               type="button"
-              onClick={() => handleAnchor(link.href)}
-              style={btn}
-              className="nav-btn"
+              disabled={detecting}
+              onClick={() => {
+                if (downloadHref) window.location.href = downloadHref;
+                else scrollToDownload();
+              }}
+              style={{
+                ...btn,
+                marginLeft: '12px',
+                background: tokens.accent,
+                color: tokens.bg,
+                opacity: detecting ? 0.6 : 1,
+                cursor: detecting ? 'default' : 'pointer',
+              }}
             >
-              {link.label}
+              {detecting ? 'Checking…' : 'Download'}
             </button>
-          ))}
+          </div>
+
           <button
-            data-slot="button"
-            className="btn-accent"
             type="button"
-            disabled={detecting}
-            onClick={() => {
-              if (downloadHref) window.location.href = downloadHref;
-              else scrollToDownload();
-            }}
+            className="nav-mobile-toggle"
+            onClick={() => setOpen(!open)}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
             style={{
-              ...btn,
-              marginLeft: '12px',
-              background: tokens.accent,
-              color: tokens.bg,
-              opacity: detecting ? 0.6 : 1,
-              cursor: detecting ? 'default' : 'pointer',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'none',
             }}
           >
-            {detecting ? 'Checking…' : 'Download'}
+            <span
+              style={{
+                display: 'block',
+                width: '20px',
+                height: '1.5px',
+                background: tokens.ink,
+                marginBottom: '5px',
+                transition: 'transform 0.2s, opacity 0.2s',
+                transform: open ? 'rotate(45deg) translateY(6.5px)' : 'none',
+              }}
+            />
+            <span
+              style={{
+                display: 'block',
+                width: '20px',
+                height: '1.5px',
+                background: tokens.ink,
+                marginBottom: '5px',
+                opacity: open ? 0 : 1,
+                transition: 'opacity 0.2s',
+              }}
+            />
+            <span
+              style={{
+                display: 'block',
+                width: '20px',
+                height: '1.5px',
+                background: tokens.ink,
+                transition: 'transform 0.2s, opacity 0.2s',
+                transform: open ? 'rotate(-45deg) translateY(-6.5px)' : 'none',
+              }}
+            />
           </button>
         </div>
 
-        <button
-          type="button"
-          className="nav-mobile-toggle"
-          onClick={() => setOpen(!open)}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px',
-            display: 'none',
-          }}
-        >
-          <span
+        {open && (
+          <div
             style={{
-              display: 'block',
-              width: '20px',
-              height: '1.5px',
-              background: tokens.ink,
-              marginBottom: '5px',
-              transition: 'transform 0.2s, opacity 0.2s',
-              transform: open ? 'rotate(45deg) translateY(6.5px)' : 'none',
-            }}
-          />
-          <span
-            style={{
-              display: 'block',
-              width: '20px',
-              height: '1.5px',
-              background: tokens.ink,
-              marginBottom: '5px',
-              opacity: open ? 0 : 1,
-              transition: 'opacity 0.2s',
-            }}
-          />
-          <span
-            style={{
-              display: 'block',
-              width: '20px',
-              height: '1.5px',
-              background: tokens.ink,
-              transition: 'transform 0.2s, opacity 0.2s',
-              transform: open ? 'rotate(-45deg) translateY(-6.5px)' : 'none',
-            }}
-          />
-        </button>
-      </div>
-
-      {open && (
-        <div
-          style={{
-            background: tokens.surface,
-            borderTop: '1px solid rgba(255,255,255,0.04)',
-            padding: '12px 28px 20px 8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-          className="nav-drawer"
-        >
-          {NAV_LINKS.map((link) => (
-            <button
-              data-slot="button"
-              key={link.href}
-              type="button"
-              onClick={() => handleAnchor(link.href)}
-              style={{ ...btn, width: '100%', justifyContent: 'flex-start' }}
-            >
-              {link.label}
-            </button>
-          ))}
-          <button
-            data-slot="button"
-            className="btn-accent"
-            type="button"
-            disabled={detecting}
-            onClick={() => {
-              if (downloadHref) window.location.href = downloadHref;
-              else scrollToDownload();
-            }}
-            style={{
-              ...btn,
-              width: '100%',
-              justifyContent: 'center',
               marginTop: '8px',
-              background: tokens.accent,
-              color: tokens.bg,
-              height: detecting ? '36px' : '36px',
-              opacity: detecting ? 0.6 : 1,
-              cursor: detecting ? 'default' : 'pointer',
+              borderRadius: '16px',
+              background: 'rgba(18, 17, 16, 0.95)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+              padding: '12px 12px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
             }}
+            className="nav-drawer"
           >
-            {detecting ? 'Checking…' : 'Download'}
-          </button>
-        </div>
-      )}
+            {NAV_LINKS.map((link) => (
+              <button
+                data-slot="button"
+                key={link.href}
+                type="button"
+                onClick={() => handleAnchor(link.href)}
+                style={{ ...btn, width: '100%', justifyContent: 'flex-start' }}
+              >
+                {link.label}
+              </button>
+            ))}
+            <button
+              data-slot="button"
+              className="btn-accent"
+              type="button"
+              disabled={detecting}
+              onClick={() => {
+                if (downloadHref) window.location.href = downloadHref;
+                else scrollToDownload();
+              }}
+              style={{
+                ...btn,
+                width: '100%',
+                justifyContent: 'center',
+                marginTop: '8px',
+                background: tokens.accent,
+                color: tokens.bg,
+                height: '36px',
+                opacity: detecting ? 0.6 : 1,
+                cursor: detecting ? 'default' : 'pointer',
+              }}
+            >
+              {detecting ? 'Checking…' : 'Download'}
+            </button>
+          </div>
+        )}
 
-      <style>{`
-        .nav-btn:hover { background: rgba(255,255,255,0.1) !important; }
-        @media (max-width: 700px) {
-          .nav-desktop { display: none !important; }
-          .nav-mobile-toggle { display: flex !important; flex-direction: column; }
-        }
-        @media (min-width: 701px) {
-          .nav-drawer { display: none !important; }
-        }
-      `}</style>
+        <style>{`
+          .nav-btn:hover { background: rgba(255,255,255,0.1) !important; }
+          @media (max-width: 700px) {
+            .nav-desktop { display: none !important; }
+            .nav-mobile-toggle { display: flex !important; flex-direction: column; }
+          }
+          @media (min-width: 701px) {
+            .nav-drawer { display: none !important; }
+          }
+        `}</style>
+      </div>
     </nav>
   );
 }
