@@ -271,12 +271,12 @@ jobs:
 
           if [ ! -d "$SRC" ]; then
             echo "ERROR: Source bundle directory not found at $SRC"
-            ls -la src-tauri/target/ 2>/dev/null | head -20
+            ls -la src-tauri/target/ 2>/dev/null | head -20 || true
             exit 1
           fi
 
           echo "Source bundles:"
-          ls -laR "$SRC/" | head -40
+          ls -laR "$SRC/" | head -40 || true
 
           mkdir -p "$APP_STANDARD"
           cp -R "$SRC/"* "$APP_STANDARD/" 2>/dev/null || true
@@ -293,7 +293,7 @@ jobs:
             -name "*.dmg" -o -name "*.app" -o -name "*.zip" -o -name "*.deb" -o \
             -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o \
             -name "*.tar.gz" \
-          \) 2>/dev/null | head -20
+          \) 2>/dev/null | head -20 || true
 
       # ── Verify bundles before upload ──
       - name: Verify bundles before CrabNebula upload
@@ -310,7 +310,7 @@ jobs:
             -name "*.dmg" -o -name "*.app" -o -name "*.zip" -o -name "*.deb" -o \
             -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o \
             -name "*.tar.gz" \
-          \) 2>/dev/null | head -20
+          \) 2>/dev/null | head -20 || true
 
       # ── Upload assets to CrabNebula Cloud ──
       - name: Upload assets to CrabNebula Cloud
