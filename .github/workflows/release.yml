@@ -342,6 +342,9 @@ jobs:
   deploy-landing:
     needs: [prepare, publish]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/landing
     steps:
       - uses: actions/checkout@v4
 
@@ -354,28 +357,44 @@ jobs:
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          mkdir -p apps/landing/public/downloads
+          mkdir -p public/downloads
 
           CDN_BASE="https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform"
 
           # Windows (NSIS x86_64)
-          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_x64-setup.exe" \
+          curl -fSL -o "public/downloads/Bento_${VERSION}_x64-setup.exe" \
             "$CDN_BASE/nsis-x86_64" || echo "WARN: nsis-x86_64 not found"
 
           # macOS (DMG universal)
-          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_universal.dmg" \
+          curl -fSL -o "public/downloads/Bento_${VERSION}_universal.dmg" \
             "$CDN_BASE/dmg-universal" || echo "WARN: dmg-universal not found"
 
           # Linux (AppImage x86_64)
-          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.AppImage" \
+          curl -fSL -o "public/downloads/Bento_${VERSION}_amd64.AppImage" \
             "$CDN_BASE/appimage-x86_64" || echo "WARN: appimage-x86_64 not found"
 
           # Linux (deb x86_64) — saved under the versioned name
-          curl -fSL -o "apps/landing/public/downloads/Bento_${VERSION}_amd64.deb" \
+          curl -fSL -o "public/downloads/Bento_${VERSION}_amd64.deb" \
             "$CDN_BASE/deb-x86_64" || echo "WARN: deb-x86_64 not found"
 
           echo "Downloaded assets:"
-          ls -la apps/landing/public/downloads/
+          ls -la public/downloads/
+
+      - name: Debug — verify paths before Vercel build
+        run: |
+          echo "=== Path diagnostics ==="
+          echo "pwd: $(pwd)"
+          echo "workspace: ${{ github.workspace }}"
+          echo "repo relative: ${PWD#${{ github.workspace }}/}"
+          echo "--- package.json ---"
+          ls -la package.json 2>/dev/null || echo "MISSING: no package.json at $(pwd)"
+          echo "--- .vercel/project.json ---"
+          cat .vercel/project.json 2>/dev/null || echo "MISSING: no .vercel/project.json"
+          echo "--- vercel.json ---"
+          cat vercel.json 2>/dev/null || echo "MISSING: no vercel.json"
+          echo "--- Vercel project env vars ---"
+          echo "VERCEL_ORG_ID: ${VERCEL_ORG_ID:+SET}"
+          echo "VERCEL_PROJECT_ID: ${VERCEL_PROJECT_ID:+SET}"
 
       - name: Build landing page with Vercel
         env:
@@ -383,8 +402,8 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          bun x vercel pull --yes --environment=production --cwd apps/landing
-          bun x vercel build --prod --yes --cwd apps/landing
+          bun x vercel pull --yes --environment=production
+          bun x vercel build --prod --yes
 
       - name: Deploy to Vercel
         env:
@@ -392,5 +411,5 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          bun x vercel deploy --prebuilt --prod --yes --cwd apps/landing
+          bun x vercel deploy --prebuilt --prod --yes
           echo "Landing page deployed to production."
