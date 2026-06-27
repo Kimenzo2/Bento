@@ -3,7 +3,8 @@ import path from 'node:path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  ...(process.env.VERCEL ? {} : { outputFileTracingRoot: path.join(process.cwd(), '../..') }),
+  turbopack: { root: path.resolve(__dirname, '../..') },
+  outputFileTracingRoot: path.join(__dirname, '../..'),
   images: {
     unoptimized: true,
   },

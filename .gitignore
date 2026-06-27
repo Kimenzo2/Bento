@@ -97,6 +97,8 @@ refactor.cjs
 *.tsbuildinfo
 .turbo/
 apps/landing/.next/
+apps/landing/app/.next/
+apps/landing/app/package.json
 
 # Exclude large workspace/cache directories
 darn-workspace/
