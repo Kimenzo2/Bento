@@ -47,6 +47,16 @@ const DEFAULT_METHOD_RULES: PaystackMethodRule[] = [
     notes: 'Cards are globally available and act as the fallback method.',
   },
   {
+    methodKey: 'apple_pay',
+    countryCode: '*',
+    channel: 'apple_pay',
+    enabled: true,
+    checkoutVisible: true,
+    fallbackToCard: true,
+    sortOrder: 5,
+    notes: 'Apple Pay is available globally on supported Apple devices via Paystack hosted checkout.',
+  },
+  {
     methodKey: 'bank',
     countryCode: 'NG',
     channel: 'bank',

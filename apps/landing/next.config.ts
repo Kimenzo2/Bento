@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/.well-known/:path*',
+        destination: '/api/well-known/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
