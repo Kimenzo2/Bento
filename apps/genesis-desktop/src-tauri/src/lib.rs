@@ -467,6 +467,7 @@ pub fn run() {
             crate::auth::get_auth_bootstrap_state,
             crate::auth::check_auth_session,
             crate::auth::begin_google_auth,
+            crate::auth::set_session_from_deep_link,
             crate::auth::prepare_login_window,
             crate::auth::prepare_shell_window,
             crate::auth::sign_out,

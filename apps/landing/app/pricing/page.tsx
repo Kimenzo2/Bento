@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Script from 'next/script';
 import { headers } from 'next/headers';
 import type { CSSProperties } from 'react';
 import { tokens } from '../../components/tokens';
@@ -576,7 +577,7 @@ export default async function PricingPage({
           }
         }
       `}</style>
-      <script dangerouslySetInnerHTML={{__html: `
+      <Script id="pricing-country-detect" strategy="afterInteractive">{`
         (function(){
           var c = null, tz;
           try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e){}
@@ -595,7 +596,7 @@ export default async function PricingPage({
             });
           });
         })();
-      `}} />
+      `}</Script>
     </main>
   );
 }

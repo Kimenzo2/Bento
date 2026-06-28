@@ -88,6 +88,8 @@
 
       const host = url.hostname.toLowerCase();
       if (host === "auth") {
+        // bento://auth?access_token=...&refresh_token=...
+        // The AuthPage will handle the token exchange
         goto(`/auth${url.search}${url.hash}`);
         return;
       }

@@ -1,9 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { tokens } from './tokens';
 import { useDownload } from './useDownload';
 import type { Platform, PlatformInfo } from './useDownload';
+import { createClient } from '../lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 export default function Hero({
   version,
@@ -13,6 +17,16 @@ export default function Hero({
   platforms: Record<Platform, PlatformInfo>;
 }) {
   const { platform, active, detecting } = useDownload(platforms);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setUser(data.user);
+      setAuthLoaded(true);
+    });
+  }, []);
 
   return (
     <section
@@ -91,51 +105,155 @@ export default function Hero({
               flexWrap: 'wrap',
             }}
           >
-            <a
-              data-slot="button"
-              className="btn-accent"
-              href={active?.href ?? platforms.windows.href}
-              aria-disabled={detecting}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                whiteSpace: 'nowrap',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                height: '36px',
-                borderRadius: '0.75rem',
-                padding: '0 18px',
-                background: tokens.accent,
-                color: tokens.bg,
-                border: 'none',
-                cursor: detecting ? 'default' : 'pointer',
-                textDecoration: 'none',
-                opacity: detecting ? 0.6 : 1,
-                transition: 'color 0.15s ease, box-shadow 0.15s ease',
-                pointerEvents: detecting ? 'none' as const : undefined,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path
-                  d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {detecting ? 'Detecting…' : `Download for ${active ? active.label : platforms.windows.label}`}
-            </a>
+            {authLoaded && user ? (
+              // Authenticated user — show download + go to pricing
+              <>
+                <a
+                  data-slot="button"
+                  className="btn-accent"
+                  href={active?.href ?? platforms.windows.href}
+                  aria-disabled={detecting}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    height: '36px',
+                    borderRadius: '0.75rem',
+                    padding: '0 18px',
+                    background: tokens.accent,
+                    color: tokens.bg,
+                    border: 'none',
+                    cursor: detecting ? 'default' : 'pointer',
+                    textDecoration: 'none',
+                    opacity: detecting ? 0.6 : 1,
+                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                    pointerEvents: detecting ? 'none' as const : undefined,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  {detecting ? 'Detecting…' : `Download for ${active ? active.label : platforms.windows.label}`}
+                </a>
+                <Link
+                  href="/pricing"
+                  data-slot="button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    height: '36px',
+                    borderRadius: '0.75rem',
+                    padding: '0 18px',
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(220,224,230,0.8)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                >
+                  Pricing & Plans
+                </Link>
+              </>
+            ) : (
+              // New visitor — show Get Started (signup) + download
+              <>
+                <Link
+                  href="/auth/signup"
+                  data-slot="button"
+                  className="btn-accent"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    height: '36px',
+                    borderRadius: '0.75rem',
+                    padding: '0 18px',
+                    background: tokens.accent,
+                    color: tokens.bg,
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                >
+                  Get started
+                </Link>
+                <a
+                  data-slot="button"
+                  href={active?.href ?? platforms.windows.href}
+                  aria-disabled={detecting}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    height: '36px',
+                    borderRadius: '0.75rem',
+                    padding: '0 18px',
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(220,224,230,0.8)',
+                    border: 'none',
+                    cursor: detecting ? 'default' : 'pointer',
+                    textDecoration: 'none',
+                    opacity: detecting ? 0.6 : 1,
+                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                    pointerEvents: detecting ? 'none' as const : undefined,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  {detecting ? 'Detecting…' : `Download for ${active ? active.label : platforms.windows.label}`}
+                </a>
+              </>
+            )}
+          </div>
 
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              flexWrap: 'wrap',
+              marginTop: '12px',
+            }}
+          >
             <span
               style={{
                 fontSize: tokens.smallSize,
                 color: tokens.inkFaint,
               }}
             >
-              v{version} &mdash; sign in with Google to start
+              v{version} &mdash; {authLoaded && user ? 'Already signed in' : 'Try it'}
             </span>
           </div>
 

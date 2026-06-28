@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { tokens } from './tokens';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useDownload } from './useDownload';
 import type { Platform, PlatformInfo } from './useDownload';
+import { createClient } from '../lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 const NAV_LINKS = [
   { label: 'Apps', href: '#apps' },
@@ -39,11 +42,30 @@ export default function Nav({
   const { detecting, downloadHref, scrollToDownload } = useDownload(platforms);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+
+    // Load auth state
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setUser(data.user);
+      setAuthLoaded(true);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthLoaded(true);
+    });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleAnchor = (href: string) => {
@@ -55,6 +77,12 @@ export default function Nav({
     const el = document.querySelector(href);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+  }
 
   return (
     <nav
@@ -146,6 +174,47 @@ export default function Nav({
                 {link.label}
               </button>
             ))}
+
+            {/* Auth buttons */}
+            {authLoaded && user ? (
+              <>
+                <Link
+                  href="/pricing"
+                  data-slot="button"
+                  style={{ ...btn, textDecoration: 'none' }}
+                  className="nav-btn"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{ ...btn, fontSize: '0.78rem', opacity: 0.6 }}
+                  className="nav-btn"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/signup"
+                  data-slot="button"
+                  className="btn-accent nav-btn-accent"
+                  type="button"
+                  style={{
+                    ...btn,
+                    marginLeft: '8px',
+                    background: tokens.accent,
+                    color: tokens.bg,
+                  }}
+                >
+                  Get started
+                </Link>
+              </>
+            )}
+
+            {/* Download button */}
             <button
               data-slot="button"
               className="btn-accent"
@@ -245,6 +314,44 @@ export default function Nav({
                 {link.label}
               </button>
             ))}
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
+            {authLoaded && user ? (
+              <>
+                <Link
+                  href="/pricing"
+                  data-slot="button"
+                  style={{ ...btn, width: '100%', justifyContent: 'flex-start', textDecoration: 'none' }}
+                >
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  style={{ ...btn, width: '100%', justifyContent: 'flex-start', fontSize: '0.78rem', opacity: 0.6 }}
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/signup"
+                  data-slot="button"
+                  className="btn-accent"
+                  style={{
+                    ...btn,
+                    width: '100%',
+                    justifyContent: 'center',
+                    background: tokens.accent,
+                    color: tokens.bg,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Get started
+                </Link>
+              </>
+            )}
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
             <button
               data-slot="button"
               className="btn-accent"
@@ -273,6 +380,7 @@ export default function Nav({
 
         <style>{`
           .nav-btn:hover { background: rgba(255,255,255,0.12) !important; }
+          .nav-btn-accent:hover { opacity: 0.9 !important; }
           @media (max-width: 700px) {
             .nav-desktop { display: none !important; }
             .nav-mobile-toggle { display: flex !important; flex-direction: column; }

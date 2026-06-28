@@ -996,7 +996,8 @@ impl AuthManager {
             .append_pair("provider", "google")
             .append_pair("redirect_to", redirect_to.as_str())
             .append_pair("code_challenge", &challenge)
-            .append_pair("code_challenge_method", "S256");
+            .append_pair("code_challenge_method", "S256")
+            .append_pair("prompt", "select_account");
         Ok(url)
     }
 
@@ -1890,6 +1891,67 @@ pub async fn check_auth_session(
             Ok(AuthBootstrapState::login_required())
         }
     }
+}
+
+/// Set session from a deep link received from the web authentication flow.
+/// This allows users who sign up and pay on the web to automatically
+/// authenticate in the desktop app via a bento://auth deep link.
+///
+/// The deep link contains a Supabase access_token and refresh_token
+/// which are used to create a local session.
+#[tauri::command]
+pub async fn set_session_from_deep_link(
+    app: AppHandle,
+    manager: State<'_, AuthManager>,
+    access_token: String,
+    refresh_token: String,
+) -> Result<AuthSuccessPayload, String> {
+    let config = manager.inner.config.clone();
+    let client = reqwest::Client::new();
+
+    // Validate the access token by fetching the user from Supabase
+    let url = format!(
+        "{}/auth/v1/user",
+        config.supabase_url.trim_end_matches('/')
+    );
+
+    let response = client
+        .get(&url)
+        .header("apikey", &config.supabase_anon_key)
+        .header("Authorization", format!("Bearer {}", &access_token))
+        .send()
+        .await
+        .map_err(|error| format!("Network error validating session: {error}"))?;
+
+    if !response.status().is_success() {
+        return Err("The authentication link is invalid or expired. Please sign in manually.".to_string());
+    }
+
+    let supabase_user: SupabaseUser = response.json().await.map_err(|error| error.to_string())?;
+    let user = map_supabase_user(supabase_user);
+
+    // We don't know the exact expiry — use a reasonable default
+    let expires_at_ms = unix_ms() + 3600_000; // 1 hour
+
+    let session = StoredAuthSession {
+        access_token: access_token.to_string(),
+        refresh_token: refresh_token.to_string(),
+        expires_at_ms,
+        user: user.clone(),
+    };
+
+    manager.persist_session(&session)?;
+    manager.set_session(session.clone()).await;
+    manager.set_bootstrap(AuthBootstrapState::restored(user.clone())).await;
+    manager.ensure_refresh_loop(app.clone());
+    manager.spawn_profile_sync(session.clone());
+
+    app.emit("auth:success", AuthSuccessPayload {
+        user: user.clone(),
+    })
+    .map_err(|error| error.to_string())?;
+
+    Ok(AuthSuccessPayload { user })
 }
 
 /// Fetch billing profile with caching (Anytype cache.go pattern).
