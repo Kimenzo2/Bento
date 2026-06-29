@@ -24,9 +24,15 @@ export interface ByokSettings {
   onboardingDismissed: boolean;
 }
 
+export interface ConnectionError {
+  code: string;
+  message: string;
+  statusCode: number | null;
+}
+
 export interface ConnectionTestResult {
   ok: boolean;
-  error: string | null;
+  error: ConnectionError | null;
   latencyMs: number | null;
   availableModels: string[];
 }
@@ -79,6 +85,11 @@ export async function deleteApiKey(provider: string): Promise<void> {
   await refreshProviders();
 }
 
+export async function validateKey(provider: string, key: string): Promise<number> {
+  if (!isAvailable()) return 0;
+  return invoke<number>('byok_validate_key', { provider, key });
+}
+
 export async function testConnection(provider: string): Promise<ConnectionTestResult> {
   byokTesting.update((state) => ({ ...state, [provider]: 'testing' }));
   try {
@@ -92,7 +103,11 @@ export async function testConnection(provider: string): Promise<ConnectionTestRe
   } catch (e) {
     const errorResult: ConnectionTestResult = {
       ok: false,
-      error: String(e),
+      error: {
+        code: 'InvokeError',
+        message: String(e),
+        statusCode: null,
+      },
       latencyMs: null,
       availableModels: [],
     };

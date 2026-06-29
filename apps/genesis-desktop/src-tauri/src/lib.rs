@@ -2,6 +2,7 @@ pub mod actors;
 pub mod audio;
 pub mod auth;
 pub mod budget;
+pub mod ai;
 pub mod byok;
 pub mod clipboard;
 pub mod cloud_backup;
@@ -55,7 +56,7 @@ use crate::commands::{
     get_focus_dashboard, get_lifecycle_state, get_my_feedback, load_desktop_settings,
     pick_export_directory, pick_import_file, pick_transcription_model, quit_app,
     record_focus_session, export_focus_sessions, restore_desktop_settings_backup, restore_window, save_desktop_settings,
-    save_export_manifest, send_mcp_request, start_mcp_sidecar, submit_feedback, write_debug_log,
+    save_export_manifest, submit_feedback, write_debug_log,
 };
 use crate::crypto::CryptoService;
 use crate::db::{
@@ -357,6 +358,23 @@ pub fn run() {
         // Spawn clipboard background monitor (poller + writer tasks)
         crate::clipboard::spawn_clipboard_monitor(app.handle().clone());
 
+        // ── Spawn MCP Streamable HTTP server ────────────────────────────
+        {
+            let pool = app.state::<BentoAppState>().inner().db();
+            let app_handle = app.handle().clone();
+
+            tauri::async_runtime::spawn(async move {
+                match crate::mcp::spawn_mcp_server(app_handle, pool).await {
+                    Ok((port, _)) => {
+                        eprintln!("[mcp] MCP server started on port {port}");
+                    }
+                    Err(e) => {
+                        eprintln!("[mcp] Failed to start MCP server: {e}");
+                    }
+                }
+            });
+        }
+
         Ok(())
     });
 
@@ -403,8 +421,8 @@ pub fn run() {
             register_local_module,
             install_module,
             uninstall_module,
-            start_mcp_sidecar,
-            send_mcp_request,
+            // MCP Streamable HTTP Server
+            crate::mcp::get_mcp_connection_info,
             crate::search::service::index_content,
             crate::search::service::search_in_module,
             crate::search::service::rebuild_index,
@@ -476,6 +494,11 @@ pub fn run() {
             crate::auth::get_billing_profile_cached,
             crate::auth::force_refresh_billing,
             crate::auth::finalize_subscription,
+            // AI — Completion & streaming commands
+            crate::ai::ai_complete,
+            crate::ai::ai_stream,
+            crate::ai::list_ai_models,
+            crate::ai::get_ai_provider_status,
             // BYOK — Bring Your Own Key
             crate::byok::commands::byok_save_key,
             crate::byok::commands::byok_get_key_preview,
@@ -490,6 +513,9 @@ pub fn run() {
             crate::clipboard::clipboard_list,
             crate::clipboard::clipboard_get,
             crate::clipboard::clipboard_save,
+            crate::clipboard::clipboard_pin,
+            crate::clipboard::clipboard_favorite,
+            crate::clipboard::clipboard_copy,
             crate::clipboard::clipboard_toggle_pin,
             crate::clipboard::clipboard_toggle_favorite,
             crate::clipboard::clipboard_delete,
@@ -763,6 +789,9 @@ pub fn run() {
             crate::commands::passwords::passwords_save,
             crate::commands::passwords::passwords_delete,
             crate::commands::passwords::passwords_migrate_from_storage,
+            // AI Features Prefs (persisted via settings.json)
+            crate::settings::commands::load_ai_features_prefs,
+            crate::settings::commands::save_ai_features_prefs,
             // Language & Region
             crate::settings::commands::get_active_language,
             crate::settings::commands::set_interface_language,

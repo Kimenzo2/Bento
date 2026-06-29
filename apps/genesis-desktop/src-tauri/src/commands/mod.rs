@@ -25,13 +25,10 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::{
     auth::{AuthBootstrapState, AuthManager},
-    mcp::{McpRequest, McpResponse},
     runtime::{DesktopRuntime, LifecycleState},
     settings::{self, DesktopSettings},
     window_bounds::restore_main_window,
 };
-
-const MAX_MCP_REQUEST_BYTES: usize = 64 * 1024;
 
 #[derive(Default, Clone)]
 pub struct PendingDeepLink(Arc<Mutex<VecDeque<String>>>);
@@ -46,13 +43,6 @@ impl PendingDeepLink {
     pub fn take(&self) -> Option<String> {
         self.0.lock().ok()?.pop_front()
     }
-}
-
-#[derive(Clone, Serialize)]
-pub struct McpSidecarStatus {
-    started: bool,
-    pid: Option<u32>,
-    command: String,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -135,24 +125,6 @@ fn finish_busy_task(app: &AppHandle) {
             app.exit(0);
         }
     }
-}
-
-fn validate_mcp_request(request: &McpRequest) -> Result<(), String> {
-    if request.id.trim().is_empty() || request.id.len() > 128 {
-        return Err("MCP request id must be between 1 and 128 bytes.".to_string());
-    }
-
-    let size = serde_json::to_vec(request)
-        .map_err(|error| format!("Failed to measure MCP request size: {error}"))?
-        .len();
-
-    if size > MAX_MCP_REQUEST_BYTES {
-        return Err(format!(
-            "MCP request is too large. Maximum size is {MAX_MCP_REQUEST_BYTES} bytes."
-        ));
-    }
-
-    Ok(())
 }
 
 #[tauri::command]
@@ -461,20 +433,7 @@ pub fn save_export_manifest(
     result
 }
 
-#[tauri::command]
-pub fn start_mcp_sidecar() -> McpSidecarStatus {
-    McpSidecarStatus {
-        started: true,
-        pid: Some(std::process::id()),
-        command: "in-process".to_string(),
-    }
-}
 
-#[tauri::command]
-pub fn send_mcp_request(request: McpRequest) -> Result<McpResponse, String> {
-    validate_mcp_request(&request)?;
-    Ok(crate::mcp::handle_request(request))
-}
 
 #[tauri::command]
 pub fn consume_pending_deep_link(pending: State<'_, PendingDeepLink>) -> Option<String> {

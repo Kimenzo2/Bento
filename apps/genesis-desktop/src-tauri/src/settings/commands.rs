@@ -6,7 +6,7 @@ use sqlx::Row;
 use tauri::{AppHandle, Emitter, State, ipc::Channel};
 
 use crate::auth::AuthManager;
-use crate::byok::{self, ByokProvider};
+use crate::byok::{self, ByokProvider, ConnectionTestResult};
 use crate::db::BentoAppState;
 use crate::settings;
 
@@ -117,13 +117,6 @@ pub struct AiConfig {
 #[serde(rename_all = "camelCase")]
 pub struct ApiKeyStatus {
     pub is_set: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConnectionTestResult {
-    pub ok: bool,
-    pub model_list: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -772,19 +765,59 @@ pub async fn get_api_key_status(provider: String) -> Result<ApiKeyStatus, String
 }
 
 #[tauri::command]
-pub async fn test_ai_connection(provider: String) -> Result<ConnectionTestResult, String> {
+pub async fn test_ai_connection(app: AppHandle, provider: String) -> Result<ConnectionTestResult, String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
-    let result = byok::test_connection(&provider).await;
-    Ok(ConnectionTestResult {
-        ok: result.ok,
-        model_list: result.available_models,
-    })
+    let settings = crate::settings::current_settings(&app);
+    let base_url_overrides = settings.byok.base_url_overrides.clone();
+    let result = byok::test_connection(&provider, &base_url_overrides).await;
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn set_ai_config(patch: AiConfig) -> Result<(), String> {
     let _ = patch;
     Ok(())
+}
+
+// ── AI Features Prefs ─────────────────────────────────────────────────────────
+
+/// Load the current AI features preferences from settings.
+#[tauri::command]
+pub async fn load_ai_features_prefs(app: AppHandle) -> Result<settings::AiFeaturesPrefs, String> {
+    let settings = settings::current_settings(&app);
+    let mut prefs = settings.ai;
+
+    // Ensure the features map is populated with defaults if it's empty
+    if prefs.features.is_empty() {
+        prefs.features = settings::default_ai_features();
+    }
+
+    Ok(prefs)
+}
+
+/// Save AI features preferences (partial patch allowed).
+/// Fields set to `None` are left unchanged.
+#[tauri::command]
+pub async fn save_ai_features_prefs(
+    app: AppHandle,
+    patch: settings::AiFeaturesPrefsPatch,
+) -> Result<settings::AiFeaturesPrefs, String> {
+    let result = settings::update_desktop_settings(&app, |next| {
+        if let Some(enabled) = patch.enabled {
+            next.ai.enabled = enabled;
+        }
+        if let Some(features) = patch.features {
+            // Merge: only update the keys that were provided
+            for (key, value) in features {
+                next.ai.features.insert(key, value);
+            }
+        }
+        if let Some(system_prompt) = patch.system_prompt {
+            next.ai.system_prompt = system_prompt;
+        }
+    })?;
+
+    Ok(result.ai)
 }
 
 // ──────────────────────────────────────────────────────────

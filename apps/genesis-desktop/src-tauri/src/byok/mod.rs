@@ -193,8 +193,6 @@ pub struct ByokSettings {
     pub onboarding_dismissed: bool,
 }
 
-
-
 impl ByokSettings {
     /// Verify which providers actually have keys, and update the configured list.
     pub fn refresh_configured_providers(&mut self) {
@@ -224,55 +222,294 @@ impl ByokSettings {
 
 // ── Connection Testing ───────────────────────────────────────────────────────
 
+use rand::Rng;
+use std::collections::HashMap;
+use std::str::FromStr;
+use std::sync::OnceLock;
+use std::time::Duration;
+
+/// Structured error code for test connection failures.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ConnectionErrorCode {
+    NoKey,
+    KeyringError,
+    NetworkError,
+    DnsFailure,
+    Timeout,
+    SslError,
+    AuthFailed,
+    RateLimited,
+    ServerError,
+    ParseError,
+    UnknownProvider,
+    Offline,
+    Unknown,
+}
+
+/// Structured connection error with a machine-readable code and human message.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionError {
+    pub code: ConnectionErrorCode,
+    pub message: String,
+    pub status_code: Option<u16>,
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}: {}", self.code, self.message)
+    }
+}
+
 /// Result of testing a connection to an AI provider.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionTestResult {
     pub ok: bool,
-    pub error: Option<String>,
+    pub error: Option<ConnectionError>,
     pub latency_ms: Option<u64>,
     pub available_models: Vec<String>,
 }
 
+fn classify_reqwest_error(e: &reqwest::Error) -> (ConnectionErrorCode, Option<u16>) {
+    if e.is_timeout() {
+        return (ConnectionErrorCode::Timeout, None);
+    }
+    if e.is_connect() {
+        if e.to_string().contains("dns") || e.to_string().contains("resolve") {
+            return (ConnectionErrorCode::DnsFailure, None);
+        }
+        if e.to_string().contains("ssl") || e.to_string().contains("certificate") {
+            return (ConnectionErrorCode::SslError, None);
+        }
+        return (ConnectionErrorCode::NetworkError, None);
+    }
+    if e.is_status() {
+        if let Some(status) = e.status() {
+            let code = status.as_u16();
+            match code {
+                401 | 403 => return (ConnectionErrorCode::AuthFailed, Some(code)),
+                429 => return (ConnectionErrorCode::RateLimited, Some(code)),
+                s if s >= 500 => return (ConnectionErrorCode::ServerError, Some(code)),
+                _ => return (ConnectionErrorCode::Unknown, Some(code)),
+            }
+        }
+    }
+    (ConnectionErrorCode::NetworkError, None)
+}
+
+fn classify_status_code(status: u16) -> ConnectionErrorCode {
+    match status {
+        401 | 403 => ConnectionErrorCode::AuthFailed,
+        429 => ConnectionErrorCode::RateLimited,
+        s if s >= 500 => ConnectionErrorCode::ServerError,
+        _ => ConnectionErrorCode::Unknown,
+    }
+}
+
+/// Build (or retrieve from cache) a reqwest client for test connections.
+/// Cached globally so connection pools are reused across test calls.
+fn test_client() -> Result<&'static reqwest::Client, String> {
+    static CLIENT: OnceLock<Result<reqwest::Client, String>> = OnceLock::new();
+    CLIENT
+        .get_or_init(|| {
+            reqwest::Client::builder()
+                .timeout(Duration::from_secs(10))
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .map_err(|e| format!("Failed to build HTTP client: {e}"))
+        })
+        .as_ref()
+        .map_err(|e| e.clone())
+}
+
+const RETRY_BASE_MS: u64 = 500;
+const RETRY_MAX_MS: u64 = 30_000;
+
+/// Compute exponential backoff delay with full jitter for a given attempt (0-indexed).
+fn backoff_delay(attempt: u32) -> Duration {
+    let exp = RETRY_BASE_MS * 2u64.saturating_pow(attempt);
+    let capped = exp.min(RETRY_MAX_MS);
+    let jittered = rand::thread_rng().gen_range(0..=capped);
+    Duration::from_millis(jittered)
+}
+
+/// Retry a single HTTP request up to `max_retries` times with exponential backoff + full jitter.
+/// Respects `Retry-After` headers on 429 responses.
+/// Only retries transient failures (NetworkError, Timeout, DnsFailure, 5xx, 429).
+async fn retry_request(
+    _client: &reqwest::Client,
+    build_request: impl Fn() -> reqwest::RequestBuilder,
+    max_retries: u32,
+) -> Result<reqwest::Response, ConnectionError> {
+    let mut last_err = None;
+    for attempt in 0..=max_retries {
+        let req = build_request();
+        match req.send().await {
+            Ok(resp) => {
+                let status = resp.status().as_u16();
+                if status >= 500 && attempt < max_retries {
+                    tokio::time::sleep(backoff_delay(attempt)).await;
+                    last_err = Some(ConnectionError {
+                        code: ConnectionErrorCode::ServerError,
+                        message: format!("Server returned {status}, retrying..."),
+                        status_code: Some(status),
+                    });
+                    continue;
+                }
+                if status == 429 && attempt < max_retries {
+                    let retry_after = resp
+                        .headers()
+                        .get("retry-after")
+                        .and_then(|v| v.to_str().ok())
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .map(Duration::from_secs)
+                        .unwrap_or_else(|| backoff_delay(attempt));
+                    tokio::time::sleep(retry_after).await;
+                    last_err = Some(ConnectionError {
+                        code: ConnectionErrorCode::RateLimited,
+                        message: "Rate limited, retrying...".to_string(),
+                        status_code: Some(429),
+                    });
+                    continue;
+                }
+                return Ok(resp);
+            }
+            Err(e) => {
+                let (code, sc) = classify_reqwest_error(&e);
+                let can_retry = matches!(
+                    code,
+                    ConnectionErrorCode::NetworkError
+                        | ConnectionErrorCode::Timeout
+                        | ConnectionErrorCode::DnsFailure
+                );
+                if can_retry && attempt < max_retries {
+                    tokio::time::sleep(backoff_delay(attempt)).await;
+                    last_err = Some(ConnectionError {
+                        code,
+                        message: e.to_string(),
+                        status_code: sc,
+                    });
+                    continue;
+                }
+                return Err(ConnectionError {
+                    code,
+                    message: e.to_string(),
+                    status_code: sc,
+                });
+            }
+        }
+    }
+    Err(last_err.unwrap_or(ConnectionError {
+        code: ConnectionErrorCode::Unknown,
+        message: "Max retries reached".to_string(),
+        status_code: None,
+    }))
+}
+
 /// Test a connection to an AI provider using the stored key.
-/// This performs a lightweight API call (list models or a simple completion).
-pub async fn test_connection(provider: &str) -> ConnectionTestResult {
+/// Uses free validation endpoints (list models) where possible.
+/// Accepts base URL overrides for self-hosted providers like Ollama.
+pub async fn test_connection(
+    provider: &str,
+    base_url_overrides: &HashMap<String, String>,
+) -> ConnectionTestResult {
     use std::time::Instant;
     let start = Instant::now();
 
-    // Get the key
-    let key = match get_api_key(provider) {
-        Ok(Some(k)) => k,
-        Ok(None) => {
-            return ConnectionTestResult {
-                ok: false,
-                error: Some(format!("No API key configured for {provider}")),
-                latency_ms: None,
-                available_models: Vec::new(),
-            };
+    // Get the key (Ollama doesn't need one)
+    let key = if <ByokProvider as FromStr>::from_str(provider)
+        .map(|p: ByokProvider| p.requires_key())
+        .unwrap_or(true)
+    {
+        match get_api_key(provider) {
+            Ok(Some(k)) => Some(k),
+            Ok(None) => {
+                return ConnectionTestResult {
+                    ok: false,
+                    error: Some(ConnectionError {
+                        code: ConnectionErrorCode::NoKey,
+                        message: format!("No API key configured for {provider}"),
+                        status_code: None,
+                    }),
+                    latency_ms: None,
+                    available_models: Vec::new(),
+                };
+            }
+            Err(e) => {
+                return ConnectionTestResult {
+                    ok: false,
+                    error: Some(ConnectionError {
+                        code: ConnectionErrorCode::KeyringError,
+                        message: format!("Keyring error: {e}"),
+                        status_code: None,
+                    }),
+                    latency_ms: None,
+                    available_models: Vec::new(),
+                };
+            }
         }
+    } else {
+        None
+    };
+
+    let client = match test_client() {
+        Ok(c) => c,
         Err(e) => {
             return ConnectionTestResult {
                 ok: false,
-                error: Some(format!("Keyring error: {e}")),
+                error: Some(ConnectionError {
+                    code: ConnectionErrorCode::Unknown,
+                    message: e,
+                    status_code: None,
+                }),
                 latency_ms: None,
                 available_models: Vec::new(),
             };
         }
     };
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .unwrap_or_default();
-
     let result = match provider {
-        "openai" => test_openai_connection(&client, &key).await,
-        "anthropic" => test_anthropic_connection(&client, &key).await,
-        "gemini" => test_gemini_connection(&client, &key).await,
-        "grok" => test_grok_connection(&client, &key).await,
-        "ollama" => test_ollama_connection(&client).await,
-        _ => Err(format!("Unknown provider: {provider}")),
+        "openai" => {
+            let base_url = base_url_overrides
+                .get("openai")
+                .map(|s| s.as_str())
+                .unwrap_or("https://api.openai.com/v1");
+            test_openai_connection(client, &key.unwrap_or_default(), base_url).await
+        }
+        "anthropic" => {
+            let base_url = base_url_overrides
+                .get("anthropic")
+                .map(|s| s.as_str())
+                .unwrap_or("https://api.anthropic.com/v1");
+            test_anthropic_connection(client, &key.unwrap_or_default(), base_url).await
+        }
+        "gemini" => {
+            let base_url = base_url_overrides
+                .get("gemini")
+                .map(|s| s.as_str())
+                .unwrap_or("https://generativelanguage.googleapis.com/v1beta");
+            test_gemini_connection(client, &key.unwrap_or_default(), base_url).await
+        }
+        "grok" => {
+            let base_url = base_url_overrides
+                .get("grok")
+                .map(|s| s.as_str())
+                .unwrap_or("https://api.x.ai/v1");
+            test_grok_connection(client, &key.unwrap_or_default(), base_url).await
+        }
+        "ollama" => {
+            let base_url = base_url_overrides
+                .get("ollama")
+                .map(|s| s.as_str())
+                .unwrap_or("http://localhost:11434");
+            test_ollama_connection(client, base_url).await
+        }
+        _ => Err(ConnectionError {
+            code: ConnectionErrorCode::UnknownProvider,
+            message: format!("Unknown provider: {provider}"),
+            status_code: None,
+        }),
     };
 
     let elapsed = start.elapsed().as_millis() as u64;
@@ -293,24 +530,43 @@ pub async fn test_connection(provider: &str) -> ConnectionTestResult {
     }
 }
 
+/// Test connection via list-models endpoint (free, no token cost).
 async fn test_openai_connection(
     client: &reqwest::Client,
     key: &str,
-) -> Result<Vec<String>, String> {
-    let resp = client
-        .get("https://api.openai.com/v1/models")
-        .header("Authorization", format!("Bearer {key}"))
-        .send()
-        .await
-        .map_err(|e| format!("OpenAI connection failed: {e}"))?;
+    base_url: &str,
+) -> Result<Vec<String>, ConnectionError> {
+    // Use validate_key-style: GET /models — free endpoint.
+    let resp = retry_request(client, || {
+        client
+            .get(format!("{base_url}/models"))
+            .header("Authorization", format!("Bearer {key}"))
+    }, 1).await?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("OpenAI returned {status}: {body}"));
+    match resp.status().as_u16() {
+        200 => {}
+        401 | 403 => {
+            return Err(ConnectionError {
+                code: ConnectionErrorCode::AuthFailed,
+                message: "Invalid API key".to_string(),
+                status_code: Some(resp.status().as_u16()),
+            });
+        }
+        status => {
+            return Err(ConnectionError {
+                code: classify_status_code(status),
+                message: format!("OpenAI returned HTTP {status}"),
+                status_code: Some(status),
+            });
+        }
     }
 
-    let body: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
+    let body: serde_json::Value = resp.json().await.map_err(|e| ConnectionError {
+        code: ConnectionErrorCode::ParseError,
+        message: format!("Parse error: {e}"),
+        status_code: None,
+    })?;
+
     let models = body["data"]
         .as_array()
         .map(|arr| {
@@ -323,60 +579,100 @@ async fn test_openai_connection(
     Ok(models)
 }
 
+/// Test Anthropic connection via models list endpoint (free, no cost).
 async fn test_anthropic_connection(
     client: &reqwest::Client,
     key: &str,
-) -> Result<Vec<String>, String> {
-    // Anthropic doesn't have a list-models endpoint that's easily accessible.
-    // We'll do a lightweight ping instead.
-    let resp = client
-        .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", key)
-        .header("anthropic-version", "2023-06-01")
-        .header("Content-Type", "application/json")
-        .json(&serde_json::json!({
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 1,
-            "messages": [{"role": "user", "content": "ping"}]
-        }))
-        .send()
-        .await
-        .map_err(|e| format!("Anthropic connection failed: {e}"))?;
+    base_url: &str,
+) -> Result<Vec<String>, ConnectionError> {
+    let resp = retry_request(client, || {
+        client
+            .get(format!("{base_url}/models"))
+            .header("x-api-key", key)
+            .header("anthropic-version", "2023-06-01")
+    }, 1).await?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Anthropic returned {status}: {body}"));
+    match resp.status().as_u16() {
+        200 => {}
+        401 | 403 => {
+            return Err(ConnectionError {
+                code: ConnectionErrorCode::AuthFailed,
+                message: "Invalid API key".to_string(),
+                status_code: Some(resp.status().as_u16()),
+            });
+        }
+        status => {
+            return Err(ConnectionError {
+                code: classify_status_code(status),
+                message: format!("Anthropic returned HTTP {status}"),
+                status_code: Some(status),
+            });
+        }
     }
 
-    // Return the known models for Anthropic
-    let provider = ByokProvider::Anthropic;
-    Ok(provider
-        .known_models()
-        .into_iter()
-        .map(String::from)
-        .collect())
+    let body: serde_json::Value = resp.json().await.map_err(|e| ConnectionError {
+        code: ConnectionErrorCode::ParseError,
+        message: format!("Parse error: {e}"),
+        status_code: None,
+    })?;
+
+    let models: Vec<String> = body["data"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| m["id"].as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if models.is_empty() {
+        Ok(ByokProvider::Anthropic
+            .known_models()
+            .into_iter()
+            .map(String::from)
+            .collect())
+    } else {
+        Ok(models)
+    }
 }
 
+/// Test Gemini connection via models list endpoint.
+/// Uses `x-goog-api-key` header (not query param) per Google security best practices.
 async fn test_gemini_connection(
     client: &reqwest::Client,
     key: &str,
-) -> Result<Vec<String>, String> {
-    let resp = client
-        .get(format!(
-            "https://generativelanguage.googleapis.com/v1beta/models?key={key}"
-        ))
-        .send()
-        .await
-        .map_err(|e| format!("Gemini connection failed: {e}"))?;
+    base_url: &str,
+) -> Result<Vec<String>, ConnectionError> {
+    let resp = retry_request(client, || {
+        client
+            .get(format!("{base_url}/models"))
+            .header("x-goog-api-key", key)
+    }, 1).await?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Gemini returned {status}: {body}"));
+    match resp.status().as_u16() {
+        200 => {}
+        401 | 403 => {
+            return Err(ConnectionError {
+                code: ConnectionErrorCode::AuthFailed,
+                message: "Invalid API key".to_string(),
+                status_code: Some(resp.status().as_u16()),
+            });
+        }
+        status => {
+            return Err(ConnectionError {
+                code: classify_status_code(status),
+                message: format!("Gemini returned HTTP {status}"),
+                status_code: Some(status),
+            });
+        }
     }
 
-    let body: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
+    let body: serde_json::Value = resp.json().await.map_err(|e| ConnectionError {
+        code: ConnectionErrorCode::ParseError,
+        message: format!("Parse error: {e}"),
+        status_code: None,
+    })?;
+
     let models = body["models"]
         .as_array()
         .map(|arr| {
@@ -389,22 +685,43 @@ async fn test_gemini_connection(
     Ok(models)
 }
 
-async fn test_grok_connection(client: &reqwest::Client, key: &str) -> Result<Vec<String>, String> {
-    let resp = client
-        .get("https://api.x.ai/v1/models")
-        .header("Authorization", format!("Bearer {key}"))
-        .send()
-        .await
-        .map_err(|e| format!("Grok connection failed: {e}"))?;
+/// Test Grok connection via models list endpoint (free).
+async fn test_grok_connection(
+    client: &reqwest::Client,
+    key: &str,
+    base_url: &str,
+) -> Result<Vec<String>, ConnectionError> {
+    let resp = retry_request(client, || {
+        client
+            .get(format!("{base_url}/models"))
+            .header("Authorization", format!("Bearer {key}"))
+    }, 1).await?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Grok returned {status}: {body}"));
+    match resp.status().as_u16() {
+        200 => {}
+        401 | 403 => {
+            return Err(ConnectionError {
+                code: ConnectionErrorCode::AuthFailed,
+                message: "Invalid API key".to_string(),
+                status_code: Some(resp.status().as_u16()),
+            });
+        }
+        status => {
+            return Err(ConnectionError {
+                code: classify_status_code(status),
+                message: format!("Grok returned HTTP {status}"),
+                status_code: Some(status),
+            });
+        }
     }
 
-    let body: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
-    let models = body["data"]
+    let body: serde_json::Value = resp.json().await.map_err(|e| ConnectionError {
+        code: ConnectionErrorCode::ParseError,
+        message: format!("Parse error: {e}"),
+        status_code: None,
+    })?;
+
+    let models: Vec<String> = body["data"]
         .as_array()
         .map(|arr| {
             arr.iter()
@@ -416,20 +733,34 @@ async fn test_grok_connection(client: &reqwest::Client, key: &str) -> Result<Vec
     Ok(models)
 }
 
-async fn test_ollama_connection(client: &reqwest::Client) -> Result<Vec<String>, String> {
-    let resp = client
-        .get("http://localhost:11434/api/tags")
-        .send()
-        .await
-        .map_err(|e| format!("Ollama connection failed: {e}"))?;
+/// Test Ollama connection using base_url from settings.
+async fn test_ollama_connection(
+    client: &reqwest::Client,
+    base_url: &str,
+) -> Result<Vec<String>, ConnectionError> {
+    let resp = retry_request(client, || {
+        client
+            .get(format!("{base_url}/api/tags"))
+            .timeout(Duration::from_secs(5))
+    }, 1).await?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Ollama returned {status}: {body}"));
+    match resp.status().as_u16() {
+        200 => {}
+        status => {
+            return Err(ConnectionError {
+                code: classify_status_code(status),
+                message: format!("Ollama returned HTTP {status}"),
+                status_code: Some(status),
+            });
+        }
     }
 
-    let body: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
+    let body: serde_json::Value = resp.json().await.map_err(|e| ConnectionError {
+        code: ConnectionErrorCode::ParseError,
+        message: format!("Parse error: {e}"),
+        status_code: None,
+    })?;
+
     let models = body["models"]
         .as_array()
         .map(|arr| {

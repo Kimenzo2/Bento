@@ -1,0 +1,34 @@
+{
+  "name": "bento",
+  "version": "0.1.0",
+  "description": "Bento life-OS — access tasks, habits, mood, focus, journal, sleep, notes, goals, and cross-module life intelligence via MCP tools.",
+  "author": {
+    "name": "Bento",
+    "url": "https://bento.so"
+  },
+  "homepage": "https://bento.so",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anomalyco/genesis"
+  },
+  "license": "MIT",
+  "keywords": ["productivity", "life-os", "journal", "habits", "tasks", "mood"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Bento",
+    "shortDescription": "Personal life-OS: tasks, habits, mood, focus, and life intelligence",
+    "longDescription": "Bento is a personal productivity and life operating system. This plugin gives Codex access to the Bento MCP server, letting it read and write your tasks, habits, mood check-ins, focus sessions, journal entries, sleep logs, notes, goals, meals, and budget transactions. Includes 12+ cross-module intelligence tools for pattern discovery, failure analysis, period comparison, cognitive scheduling, commitment tracking, weekly board reports, and journal narrative generation.",
+    "developerName": "Bento",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://bento.so",
+    "defaultPrompt": [
+      "Use Bento to check my tasks for today",
+      "Use Bento to give me a life overview and spot patterns",
+      "Use Bento to log my mood and a focus session",
+      "Use Bento to generate a weekly board report"
+    ],
+    "brandColor": "#6366F1",
+    "logo": "./assets/icon.svg"
+  }
+}

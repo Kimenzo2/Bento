@@ -12,8 +12,10 @@
   import InfoIcon from "@lucide/svelte/icons/info";
   import KeyboardIcon from "@lucide/svelte/icons/keyboard";
   import MessageSquarePlusIcon from "@lucide/svelte/icons/message-square-plus";
+  import BrainCircuitIcon from "@lucide/svelte/icons/brain-circuit";
   import MonitorCogIcon from "@lucide/svelte/icons/monitor-cog";
   import PaintbrushIcon from "@lucide/svelte/icons/paintbrush";
+  import KeyRoundIcon from "@lucide/svelte/icons/key-round";
   import ShieldIcon from "@lucide/svelte/icons/shield";
   import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
   import TypeIcon from "@lucide/svelte/icons/type";
@@ -42,6 +44,7 @@
   } from "$lib/stores/crypto.store";
 
   import ByokSettings from "$lib/components/settings/ByokSettings.svelte";
+  import AiFeatures from "$lib/components/settings/AiFeatures.svelte";
   import FeedbackPage from "$lib/components/settings/FeedbackPage.svelte";
 
   // ── i18n ──────────────────────────────────────────────────────────────────
@@ -58,7 +61,7 @@
   // ── Sections ──────────────────────────────────────────────────────────────
   type SectionId =
     | "account" | "appearance" | "typography" | "sync"
-    | "credentials" | "notifications" | "shortcuts" | "privacy" | "backup" | "system"
+    | "credentials" | "ai" | "notifications" | "shortcuts" | "privacy" | "backup" | "system"
     | "accessibility" | "language" | "updates" | "about" | "feedback";
 
   interface Section { id: SectionId; label: string; tKey: string; icon: typeof UserIcon; }
@@ -68,7 +71,8 @@
     { id: "appearance",    label: "Appearance",        tKey: "settingsSectionAppearance",    icon: PaintbrushIcon },
     { id: "typography",    label: "Typography",        tKey: "settingsSectionTypography",    icon: TypeIcon },
     { id: "sync",          label: "Sync & Storage",    tKey: "settingsSectionSync",          icon: SmartphoneIcon },
-    { id: "credentials",   label: "Credentials",       tKey: "settingsSectionCredentials", icon: ShieldIcon },
+    { id: "credentials",   label: "Credentials",       tKey: "settingsSectionCredentials", icon: KeyRoundIcon },
+    { id: "ai",            label: "AI Features",        tKey: "AI Features",                    icon: BrainCircuitIcon },
     { id: "notifications", label: "Notifications",     tKey: "settingsSectionNotifications", icon: BellIcon },
     { id: "shortcuts",     label: "Shortcuts",         tKey: "settingsSectionShortcuts",     icon: KeyboardIcon },
     { id: "privacy",       label: "Privacy & Security",tKey: "settingsSectionPrivacy",       icon: ShieldIcon },
@@ -551,6 +555,12 @@
           <div class="global-settings__section">
             <div class="global-settings__section-heading"><h3>Credentials</h3><p>Manage locally stored provider keys and encrypted access tokens.</p></div>
             <ByokSettings surface="panel" />
+          </div>
+
+        {:else if activeSection === "ai"}
+          <div class="global-settings__section">
+            <div class="global-settings__section-heading"><h3>AI Features</h3><p>Configure AI capabilities, custom instructions, and MCP server connection.</p></div>
+            <AiFeatures surface="panel" />
           </div>
 
         {:else if activeSection === "notifications"}

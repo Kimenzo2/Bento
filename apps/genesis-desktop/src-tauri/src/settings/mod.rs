@@ -13,6 +13,8 @@ use crate::{
     window_bounds::restore_main_window,
 };
 
+use std::collections::HashMap;
+
 const SETTINGS_FILE_NAME: &str = "settings.json";
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -48,6 +50,8 @@ pub struct DesktopSettings {
     pub cloud_backup: CloudBackupSettings,
     #[serde(default)]
     pub habits: HabitSettings,
+    #[serde(default)]
+    pub ai: AiFeaturesPrefs,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -197,6 +201,55 @@ pub struct HabitSettings {
 }
 
 fn default_freeze_tokens() -> i32 { 3 }
+
+// ── AI Features Prefs ────────────────────────────────────────────────────────
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AiFeaturesPrefs {
+    /// Master toggle for AI features.
+    #[serde(default = "default_ai_enabled")]
+    pub enabled: bool,
+
+    /// Per-feature toggles. Key = feature ID, value = enabled.
+    /// Known keys: smartSuggestions, journalPrompts, noteSummarization,
+    ///             taskBreakdown, moodInsights, habitRecommendations.
+    #[serde(default)]
+    pub features: HashMap<String, bool>,
+
+    /// Custom system prompt sent with every AI request.
+    #[serde(default = "default_ai_system_prompt")]
+    pub system_prompt: String,
+}
+
+fn default_ai_enabled() -> bool { true }
+
+fn default_ai_system_prompt() -> String {
+    "You are Bento, a helpful AI assistant integrated into a personal productivity app. \
+Be concise, practical, and warm. Use the user's data context when available to provide \
+personalized suggestions.".to_string()
+}
+
+/// Populate the AI features map with defaults if it's empty.
+pub fn default_ai_features() -> HashMap<String, bool> {
+    let mut m = HashMap::new();
+    m.insert("smartSuggestions".to_string(), true);
+    m.insert("journalPrompts".to_string(), true);
+    m.insert("noteSummarization".to_string(), true);
+    m.insert("taskBreakdown".to_string(), true);
+    m.insert("moodInsights".to_string(), true);
+    m.insert("habitRecommendations".to_string(), false);
+    m
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiFeaturesPrefsPatch {
+    pub enabled: Option<bool>,
+    pub features: Option<HashMap<String, bool>>,
+    pub system_prompt: Option<String>,
+}
+
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -534,6 +587,11 @@ pub fn default_settings() -> DesktopSettings {
         byok: ByokSettings::default(),
         cloud_backup: CloudBackupSettings::default(),
         habits: HabitSettings::default(),
+        ai: AiFeaturesPrefs {
+            enabled: default_ai_enabled(),
+            features: default_ai_features(),
+            system_prompt: default_ai_system_prompt(),
+        },
     }
 }
 
@@ -573,15 +631,22 @@ pub fn save_desktop_settings(
         .try_state::<DesktopRuntime>()
         .map(|runtime| runtime.settings().shortcuts.reopen_id);
 
+    let shortcut_changed = previous_shortcut
+        .as_ref()
+        .map(|prev| prev != &normalized.shortcuts.reopen_id)
+        .unwrap_or(true);
+
     if let Some(runtime) = app.try_state::<DesktopRuntime>() {
         runtime.replace_settings(normalized.clone());
     }
 
-    apply_reopen_shortcut(
-        app,
-        previous_shortcut,
-        normalized.shortcuts.reopen_id.clone(),
-    )?;
+    if shortcut_changed {
+        apply_reopen_shortcut(
+            app,
+            previous_shortcut,
+            normalized.shortcuts.reopen_id.clone(),
+        )?;
+    }
 
     Ok(normalized)
 }

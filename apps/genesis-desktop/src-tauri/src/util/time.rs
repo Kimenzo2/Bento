@@ -170,6 +170,12 @@ pub fn start_of_today() -> i64 {
         .timestamp_millis()
 }
 
+/// Alias for `start_of_today()`. Returns the timestamp in ms for the start of today.
+#[must_use]
+pub fn start_of_today_ms() -> i64 {
+    start_of_today()
+}
+
 /// Returns the timestamp in ms for the start of the current week (Monday).
 #[must_use]
 pub fn start_of_week() -> i64 {

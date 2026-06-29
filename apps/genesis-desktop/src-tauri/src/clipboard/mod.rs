@@ -35,15 +35,21 @@ const DEFAULT_PAGE_SIZE: u32 = 200;
 /// Max preview length (characters) stored in the DB.
 const PREVIEW_MAX_LEN: usize = 200;
 /// Clipboard polling interval (milliseconds).
-const POLL_INTERVAL_MS: u64 = 800;
+/// Lower = more responsive, higher = less CPU. 300ms gives responsive capture
+/// while still being gentle on battery.
+const POLL_INTERVAL_MS: u64 = 300;
 /// Faster polling interval when actively copying.
-const POLL_INTERVAL_FOCUSED_MS: u64 = 400;
+const POLL_INTERVAL_FOCUSED_MS: u64 = 200;
 /// Auto-expiry for sensitive items (milliseconds). Default: 10 minutes.
 const SENSITIVE_EXPIRY_MS: i64 = 600_000;
 /// Threshold in bytes: content above this is stored on disk, not inline.
 const EXTERNAL_STORE_THRESHOLD: usize = 1024;
 /// Maximum number of pending clipboard saves in the bounded channel.
 const CHANNEL_CAPACITY: usize = 50;
+/// Global semaphore limiting concurrent clipboard reads to 1.
+/// Windows clipboard access is single-threaded — concurrent reads block
+/// each other and saturate the blocking thread pool, causing app freeze.
+static CLIPBOARD_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
 /// Tantivy index memory budget in bytes.
 // ─── Sensitive Detection Patterns ────────────────────────────────────────────
 
@@ -104,9 +110,20 @@ fn content_store_root(data_dir: &std::path::Path) -> PathBuf {
 /// Full path for a given content hash.
 /// Uses two-level sharding: first 2 chars / full hash.
 fn content_path(data_dir: &std::path::Path, hash: &str) -> PathBuf {
+    let prefix = if hash.len() >= 2 { &hash[..2] } else { "__" };
     content_store_root(data_dir)
-        .join(&hash[..2])
+        .join(prefix)
         .join(hash)
+}
+
+/// Full path for an image file (with .png extension).
+/// Image files need the extension so that Tauri's asset protocol
+/// (via convertFileSrc) serves the correct MIME type for <img> tags.
+fn image_content_path(data_dir: &std::path::Path, hash: &str) -> PathBuf {
+    let prefix = if hash.len() >= 2 { &hash[..2] } else { "__" };
+    content_store_root(data_dir)
+        .join(prefix)
+        .join(format!("{hash}.png"))
 }
 
 /// Store content to disk if it exceeds the inline threshold.
@@ -170,12 +187,17 @@ async fn read_content(
 }
 
 /// Delete an external content file if it exists.
+/// Handles both legacy extensionless paths and current .png image paths.
 async fn delete_content_file(data_dir: &std::path::Path, hash: &str) {
+    // Try .png extension first (new image storage), then extensionless (legacy)
+    let png_path = image_content_path(data_dir, hash);
     let path = content_path(data_dir, hash);
-    if path.exists() {
-        let _ = tokio::fs::remove_file(&path).await;
+    let target = if png_path.exists() { png_path } else { path };
+
+    if target.exists() {
+        let _ = tokio::fs::remove_file(&target).await;
         // Remove parent dir if empty
-        if let Some(parent) = path.parent() {
+        if let Some(parent) = target.parent() {
             let _ = tokio::fs::remove_dir(parent).await;
         }
     }
@@ -749,6 +771,38 @@ pub async fn clipboard_save(
     Ok(entry)
 }
 
+/// Pin or unpin a clipboard item (wrapper matching frontend API).
+/// Accepts explicit `pinned` boolean for optimistic-UI-friendly contracts.
+#[tauri::command]
+pub async fn clipboard_pin(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+    pinned: bool,
+) -> Result<bool, String> {
+    let pool = state.db();
+    sqlx::query("UPDATE clipboard_items SET pinned = ?, updated_at = ? WHERE id = ?")
+        .bind(if pinned { 1i64 } else { 0i64 })
+        .bind(time::now_ms())
+        .bind(&id)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let row = sqlx::query(
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+         FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let entry = ClipEntry::from_row(row);
+    index_clip_entry(&app, &entry).await;
+
+    Ok(pinned)
+}
+
 /// Toggle the pinned state of a clipboard item.
 #[tauri::command]
 pub async fn clipboard_toggle_pin(
@@ -792,6 +846,37 @@ pub async fn clipboard_toggle_pin(
         }
         None => Err("Clipboard item not found.".to_string()),
     }
+}
+
+/// Favorite or unfavorite a clipboard item (wrapper matching frontend API).
+#[tauri::command]
+pub async fn clipboard_favorite(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+    favorite: bool,
+) -> Result<bool, String> {
+    let pool = state.db();
+    sqlx::query("UPDATE clipboard_items SET favorite = ?, updated_at = ? WHERE id = ?")
+        .bind(if favorite { 1i64 } else { 0i64 })
+        .bind(time::now_ms())
+        .bind(&id)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let row = sqlx::query(
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+         FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let entry = ClipEntry::from_row(row);
+    index_clip_entry(&app, &entry).await;
+
+    Ok(favorite)
 }
 
 /// Toggle the favorite state of a clipboard item.
@@ -1140,9 +1225,12 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     let id = uuid::Uuid::new_v4().to_string();
     let byte_size = image_bytes.len() as i64;
 
-    // Store image bytes in content-addressable store
+    // Store image bytes in content-addressable store with .png extension
+    // Extension is critical — Tauri's convertFileSrc() uses the asset protocol
+    // which determines MIME type from the file extension. Without .png, the
+    // webview serves application/octet-stream and <img> tags refuse to render.
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let path = content_path(&data_dir, &hash);
+    let path = image_content_path(&data_dir, &hash);
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent)
             .await
@@ -1200,6 +1288,105 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     Ok(())
 }
 
+/// Copy a clipboard item back to the system clipboard.
+/// Supports plain text, rich text (HTML), and images.
+/// For images, reads the stored PNG bytes and writes them to the system clipboard.
+#[tauri::command]
+pub async fn clipboard_copy(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    id: String,
+    _mode: Option<String>,
+) -> Result<(), String> {
+    let pool = state.db();
+    let row = sqlx::query(
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+         FROM clipboard_items WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let Some(row) = row else {
+        return Err("Clipboard item not found.".to_string());
+    };
+
+    let entry = ClipEntry::from_row(row);
+    match entry.kind {
+        ClipKind::Image => {
+            let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+
+            // Try PNG path first, then legacy extensionless path
+            let png_path = image_content_path(&data_dir, &entry.content_hash);
+            let ext_path = content_path(&data_dir, &entry.content_hash);
+            let image_path = if png_path.exists() { png_path } else { ext_path };
+
+            if !image_path.exists() {
+                return Err("Image file not found on disk.".to_string());
+            }
+
+            let image_bytes = tokio::fs::read(&image_path)
+                .await
+                .map_err(|e| format!("Failed to read image: {e}"))?;
+
+            // Write image back to system clipboard using RGBA
+            let app_clone = app.clone();
+            tokio::task::spawn_blocking(move || -> Result<(), String> {
+                #[cfg(desktop)]
+                {
+                    use tauri_plugin_clipboard_manager::ClipboardExt;
+                    // Decode PNG bytes back to RGBA pixels
+                    let img = image::load_from_memory(&image_bytes)
+                        .map_err(|e| format!("Failed to decode image: {e}"))?
+                        .into_rgba8();
+                    let (width, height) = img.dimensions();
+                    let rgba = img.into_raw();
+                    let image_obj = tauri::image::Image::new(&rgba, width, height);
+                    app_clone.clipboard()
+                        .write_image(&image_obj)
+                        .map_err(|e| format!("Failed to write image to clipboard: {e}"))
+                }
+                #[cfg(not(desktop))]
+                {
+                    let _ = app_clone;
+                    Err("Clipboard copy not supported on this platform.".to_string())
+                }
+            })
+            .await
+            .map_err(|e| format!("Blocking task failed: {e}"))?
+        }
+        _ => {
+            // Text/HTML: write the content string
+            let content = if entry.content.is_empty() && !entry.content_hash.is_empty() {
+                let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+                read_content(&data_dir, "", Some(&entry.content_hash), &entry.content_hash).await?
+            } else {
+                entry.content.clone()
+            };
+
+            let app_clone = app.clone();
+            tokio::task::spawn_blocking(move || -> Result<(), String> {
+                #[cfg(desktop)]
+                {
+                    use tauri_plugin_clipboard_manager::ClipboardExt;
+                    app_clone.clipboard()
+                        .write_text(content)
+                        .map_err(|e| format!("Failed to write text to clipboard: {e}"))
+                }
+                #[cfg(not(desktop))]
+                {
+                    let _ = app_clone;
+                    let _ = content;
+                    Err("Clipboard copy not supported on this platform.".to_string())
+                }
+            })
+            .await
+            .map_err(|e| format!("Blocking task failed: {e}"))?
+        }
+    }
+}
+
 /// Get the absolute file path for an image stored in the content-addressable store.
 /// The frontend uses `convertFileSrc()` to turn this into a webview-loadable URL.
 /// This avoids base64-encoding the entire image through IPC.
@@ -1213,14 +1400,21 @@ pub async fn clipboard_get_image_path(
         return Err("Invalid content hash.".to_string());
     }
 
-    // First try direct store path
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+
+    // Try PNG extension path first (new storage format)
+    let png_path = image_content_path(&data_dir, &hash);
+    if png_path.exists() {
+        return Ok(Some(png_path.to_string_lossy().to_string()));
+    }
+
+    // Fallback: try extensionless path (legacy storage format)
     let store_path = content_path(&data_dir, &hash);
     if store_path.exists() {
         return Ok(Some(store_path.to_string_lossy().to_string()));
     }
 
-    // Fallback: look up by hash in the DB to get the content_path
+    // Last resort: look up by hash in the DB to get the content_path
     let pool = state.db();
     let content_path_str: Option<String> = sqlx::query_scalar(
         "SELECT content_path FROM clipboard_items WHERE content_hash = ?"
@@ -1236,6 +1430,8 @@ pub async fn clipboard_get_image_path(
             let full_path = if std::path::Path::new(&path).is_absolute() {
                 std::path::PathBuf::from(&path)
             } else {
+                let png = image_content_path(&data_dir, &hash);
+                if png.exists() { return Ok(Some(png.to_string_lossy().to_string())); }
                 content_path(&data_dir, &hash)
             };
             if full_path.exists() {
@@ -1265,10 +1461,14 @@ pub async fn clipboard_get_image_data(
     }
 
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let store_path = content_path(&data_dir, &hash);
 
-    if store_path.exists() {
-        let bytes = tokio::fs::read(&store_path)
+    // Try PNG extension path first, then extensionless
+    let png_path = image_content_path(&data_dir, &hash);
+    let store_path = content_path(&data_dir, &hash);
+    let read_path = if png_path.exists() { png_path } else { store_path };
+
+    if read_path.exists() {
+        let bytes = tokio::fs::read(&read_path)
             .await
             .map_err(|e| format!("Failed to read image: {e}"))?;
         let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
@@ -1290,7 +1490,8 @@ pub async fn clipboard_get_image_data(
             let full_path = if std::path::Path::new(&path).is_absolute() {
                 std::path::PathBuf::from(&path)
             } else {
-                content_path(&data_dir, &hash)
+                let png = image_content_path(&data_dir, &hash);
+                if png.exists() { png } else { content_path(&data_dir, &hash) }
             };
             if full_path.exists() {
                 let bytes = tokio::fs::read(&full_path)
@@ -1490,7 +1691,10 @@ pub fn spawn_clipboard_monitor(app: AppHandle) {
 }
 
 /// Background poller: reads the clipboard at intervals.
-/// Rotates through text, image, and HTML reads on each tick.
+/// Rotates through text, image, and HTML on each tick to avoid saturating
+/// the blocking thread pool. Uses a global semaphore to ensure only ONE
+/// clipboard read happens at a time — Windows clipboard access is
+/// single-threaded and concurrent reads cause app freeze.
 async fn clipboard_poller_task(app: AppHandle) {
     let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_MS));
     let mut consecutive_empty = 0u32;
@@ -1499,6 +1703,12 @@ async fn clipboard_poller_task(app: AppHandle) {
     loop {
         interval.tick().await;
         poll_phase = (poll_phase + 1) % 3;
+
+        // Acquire global semaphore — only 1 concurrent clipboard read allowed.
+        // On Windows, opening the clipboard is a cross-process COM operation
+        // that can block for 50-200ms. Without this, multiple spawn_blocking
+        // tasks pile up, saturate the thread pool, and freeze the app.
+        let _permit = CLIPBOARD_SEM.acquire().await;
 
         match poll_phase {
             0 => {
@@ -1654,8 +1864,8 @@ async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<Clipb
 }
 
 /// Read the current system clipboard image (PNG bytes).
-/// Returns the raw PNG bytes from the clipboard, or None if no image is present
-/// or the data does not have a valid PNG header.
+/// Returns the raw PNG bytes from the clipboard, or None if no image is present.
+/// Uses optimal compression settings for fast encoding.
 async fn read_system_clipboard_image(app: &AppHandle) -> Option<Vec<u8>> {
     let app_clone = app.clone();
     let result = tokio::task::spawn_blocking(move || -> Option<Vec<u8>> {
@@ -1667,22 +1877,32 @@ async fn read_system_clipboard_image(app: &AppHandle) -> Option<Vec<u8>> {
                     let rgba = img.rgba();
                     let width = img.width();
                     let height = img.height();
-                    if rgba.is_empty() || width == 0 || height == 0 {
+                    if rgba.is_empty() || width == 0 || height == 0 || width > 16384 || height > 16384 {
                         return None;
                     }
                     // Encode RGBA pixels to PNG bytes
-                    use image::codecs::png::PngEncoder;
-                    use image::ColorType;
-                    use image::ImageEncoder;
+                    // Use Fast compression + NoFilter for speed — crucial for large
+                    // screenshots (e.g., 4K = ~33MB RGBA) where default compression
+                    // would take seconds and block the clipboard poll.
+                    use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+                    use image::{ColorType, ImageEncoder};
                     let mut png_bytes = Vec::new();
                     {
-                        let encoder = PngEncoder::new(&mut png_bytes);
+                        let encoder = PngEncoder::new_with_quality(
+                            &mut png_bytes,
+                            CompressionType::Fast,
+                            FilterType::NoFilter,
+                        );
                         if encoder
-                            .write_image(rgba, width, height, ColorType::Rgba8.into())
+                            .write_image(&rgba, width, height, ColorType::Rgba8.into())
                             .is_err()
                         {
                             return None;
                         }
+                    }
+                    // Validate that the encoded output is a valid PNG
+                    if png_bytes.len() < 8 || &png_bytes[..8] != &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] {
+                        return None;
                     }
                     Some(png_bytes)
                 }

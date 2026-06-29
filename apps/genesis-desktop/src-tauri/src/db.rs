@@ -1012,6 +1012,22 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
             updated_at INTEGER NOT NULL
         )
         "#,
+        // ── Intelligence: Commitment Bonds ───────────────────────────────────
+        r#"
+        CREATE TABLE IF NOT EXISTS commitment_bonds (
+            id                TEXT PRIMARY KEY,
+            title             TEXT NOT NULL,
+            goal_id           TEXT REFERENCES goals(id),
+            deadline          INTEGER NOT NULL,
+            success_metric    TEXT NOT NULL,
+            consequence       TEXT NOT NULL,
+            check_in_days     INTEGER DEFAULT 7,
+            status            TEXT DEFAULT 'active',
+            check_in_history  TEXT DEFAULT '[]',
+            created_at        INTEGER NOT NULL,
+            updated_at        INTEGER NOT NULL
+        )
+        "#,
         r#"
         CREATE TABLE IF NOT EXISTS countdown_birthdays (
             id         TEXT PRIMARY KEY,

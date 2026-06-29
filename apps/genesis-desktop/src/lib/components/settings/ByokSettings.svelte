@@ -12,13 +12,14 @@
   import PlusIcon from "@lucide/svelte/icons/plus";
   import RefreshCwIcon from "@lucide/svelte/icons/refresh-cw";
   import ShieldIcon from "@lucide/svelte/icons/shield";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import XIcon from "@lucide/svelte/icons/x";
-  import ZapIcon from "@lucide/svelte/icons/zap";
-  import BotIcon from "@lucide/svelte/icons/bot";
-  import StarIcon from "@lucide/svelte/icons/star";
-  import ServerIcon from "@lucide/svelte/icons/server";
+
+  import OpenAiIcon from "$lib/components/icons/OpenAiIcon.svelte";
+  import AnthropicIcon from "$lib/components/icons/AnthropicIcon.svelte";
+  import GeminiIcon from "$lib/components/icons/GeminiIcon.svelte";
+  import GrokIcon from "$lib/components/icons/GrokIcon.svelte";
+  import OllamaIcon from "$lib/components/icons/OllamaIcon.svelte";
 
   import {
     byokSettings,
@@ -52,7 +53,7 @@
   let { surface = "panel" }: { surface?: "panel" | "page" } = $props();
 
   // ── State ──────────────────────────────────────────────────────────────────
-  let onboardingVisible = $state(true);
+  let onboardingVisible = $derived(!$byokSettings.onboardingDismissed);
   let addingKeyProvider = $state<string | null>(null);
   let editingKeyProvider = $state<string | null>(null);
   let keyInput = $state("");
@@ -98,8 +99,6 @@
   onMount(() => {
     void loadByokSettings();
     void refreshProviders();
-
-    onboardingVisible = !$byokSettings.onboardingDismissed;
   });
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -177,7 +176,6 @@
   }
 
   async function handleDismissOnboarding() {
-    onboardingVisible = false;
     await dismissOnboarding();
   }
 
@@ -199,11 +197,11 @@
   // ── Provider Icons ─────────────────────────────────────────────────────────
   function providerIcon(provider: string) {
     const icons: Record<string, any> = {
-      openai: SparklesIcon,
-      anthropic: BotIcon,
-      gemini: StarIcon,
-      grok: ZapIcon,
-      ollama: ServerIcon,
+      openai: OpenAiIcon,
+      anthropic: AnthropicIcon,
+      gemini: GeminiIcon,
+      grok: GrokIcon,
+      ollama: OllamaIcon,
     };
     return icons[provider] ?? KeyIcon;
   }
@@ -426,8 +424,31 @@
                   {/if}
                 </span>
               {:else}
-                <AlertCircleIcon size={16} />
-                <span>Connection failed: {connectionResult.result.error}</span>
+                {#if connectionResult.result.error?.code === 'AuthFailed'}
+                  <ShieldIcon size={16} />
+                  <span>Authentication failed: invalid API key</span>
+                {:else if connectionResult.result.error?.code === 'RateLimited'}
+                  <AlertCircleIcon size={16} />
+                  <span>Rate limited: too many requests (HTTP {connectionResult.result.error.statusCode})</span>
+                {:else if connectionResult.result.error?.code === 'Timeout'}
+                  <AlertCircleIcon size={16} />
+                  <span>Connection timed out — server may be unreachable</span>
+                {:else if connectionResult.result.error?.code === 'DnsFailure'}
+                  <AlertCircleIcon size={16} />
+                  <span>DNS resolution failed — check your network or base URL</span>
+                {:else if connectionResult.result.error?.code === 'SslError'}
+                  <AlertCircleIcon size={16} />
+                  <span>SSL/TLS error — check certificate configuration</span>
+                {:else if connectionResult.result.error?.code === 'ServerError'}
+                  <AlertCircleIcon size={16} />
+                  <span>Server error (HTTP {connectionResult.result.error.statusCode})</span>
+                {:else if connectionResult.result.error?.code === 'NoKey'}
+                  <KeyIcon size={16} />
+                  <span>No API key configured for this provider</span>
+                {:else}
+                  <AlertCircleIcon size={16} />
+                  <span>Connection failed: {connectionResult.result.error?.message ?? 'Unknown error'}</span>
+                {/if}
               {/if}
               <button type="button" class="byok-result-dismiss" onclick={() => (connectionResult = null)}>
                 <XIcon size={14} />
@@ -656,8 +677,9 @@
     gap: 0.85rem;
     padding: 1.15rem 1.25rem;
     border-radius: 16px;
-    border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border) 70%);
-    background: color-mix(in srgb, var(--primary) 6%, var(--background));
+    border: none;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     align-items: start;
   }
   .byok-onboarding__icon {
@@ -728,8 +750,9 @@
     gap: 1rem;
     padding: 2rem;
     border-radius: 20px;
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    border: none;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     text-align: center;
     place-items: center;
     max-width: 32rem;
@@ -793,7 +816,8 @@
     gap: 1rem;
     padding: 0.85rem 1rem;
     border-radius: 14px;
-    border: 1px solid var(--border);
+    border: none;
+    box-shadow: none;
     background: color-mix(in srgb, var(--foreground) 3%, var(--background));
   }
   .byok-toggle-row__info {
@@ -846,7 +870,7 @@
     border-radius: 9999px;
     background: white;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    box-shadow: none;
   }
   .byok-toggle input:checked + .byok-toggle__track .byok-toggle__thumb {
     transform: translateX(1.2rem);
@@ -883,7 +907,7 @@
     gap: 0.55rem;
     width: 100%;
     padding: 0.7rem 1rem;
-    border: 1px solid var(--border);
+    border: none;
     border-radius: 12px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     color: var(--foreground);
@@ -891,10 +915,10 @@
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    transition: background 0.15s ease;
   }
   .byok-select-trigger:hover {
-    border-color: var(--primary);
+    background: color-mix(in srgb, var(--foreground) 6%, var(--background));
   }
   .byok-select-placeholder {
     color: var(--muted);
@@ -915,10 +939,10 @@
     right: 0;
     z-index: 20;
     margin-top: 0.3rem;
-    border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--background);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    border: none;
+    box-shadow: none;
     overflow: hidden;
     max-height: 16rem;
     overflow-y: auto;
@@ -1005,14 +1029,15 @@
     gap: 0.5rem;
   }
   .byok-provider-card {
-    border: 1px solid var(--border);
+    border: none;
+    box-shadow: none;
     border-radius: 14px;
     padding: 0.85rem 1rem;
     background: color-mix(in srgb, var(--foreground) 3%, var(--background));
-    transition: border-color 0.15s ease;
+    transition: background 0.15s ease;
   }
   .byok-provider-card--expanded {
-    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--background));
   }
   .byok-provider-card__main {
     display: flex;
@@ -1083,7 +1108,7 @@
     font-size: 0.82rem;
     background: color-mix(in srgb, var(--foreground) 8%, var(--background));
     color: var(--foreground);
-    border: 1px solid var(--border);
+    border: none;
   }
   .byok-btn--sm:hover {
     background: color-mix(in srgb, var(--foreground) 14%, var(--background));
@@ -1132,8 +1157,9 @@
     margin-top: 0.85rem;
     padding: 1rem;
     border-radius: 12px;
+    border: none;
+    box-shadow: none;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
-    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   }
   .byok-key-input-wrap {
     display: grid;
@@ -1152,18 +1178,19 @@
   .byok-key-input {
     flex: 1;
     padding: 0.55rem 0.85rem;
-    border: 1px solid var(--border);
+    border: none;
     border-radius: 10px;
     background: color-mix(in srgb, var(--foreground) 5%, var(--background));
     color: var(--foreground);
     font-size: 0.88rem;
     font-family: var(--font-mono, monospace);
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: outline-color 0.15s ease;
     box-sizing: border-box;
   }
   .byok-key-input:focus {
-    border-color: var(--primary);
+    outline: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    outline-offset: 1px;
   }
   .byok-key-actions {
     display: flex;
@@ -1201,6 +1228,8 @@
     gap: 0.5rem;
     padding: 0.6rem 0.85rem;
     border-radius: 10px;
+    border: none;
+    box-shadow: none;
     font-size: 0.82rem;
     font-weight: 600;
     line-height: 1.4;
@@ -1208,12 +1237,10 @@
   .byok-connection-result--ok {
     background: color-mix(in srgb, #10b981 10%, var(--background));
     color: #10b981;
-    border: 1px solid color-mix(in srgb, #10b981 22%, transparent);
   }
   .byok-connection-result--err {
     background: color-mix(in srgb, #ef4444 10%, var(--background));
     color: #ef4444;
-    border: 1px solid color-mix(in srgb, #ef4444 22%, transparent);
   }
   .byok-connection-result svg {
     flex-shrink: 0;
@@ -1240,7 +1267,8 @@
     gap: 0.75rem;
     padding: 1rem;
     border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border: none;
+    box-shadow: none;
     background: color-mix(in srgb, var(--foreground) 3%, var(--background));
     align-items: flex-start;
   }

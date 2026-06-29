@@ -201,7 +201,7 @@ import { time } from "$lib/utils/time";
     const batch = pendingEntries;
     pendingEntries = [];
     for (const entry of batch) {
-      if (clips.find(c => c.content === entry.content)) continue;
+      if (clips.find(c => c.contentHash === entry.contentHash)) continue;
       clips = [entry, ...clips];
     }
     if (!activeId && clips.length > 0) activeId = clips[0].id;
@@ -211,7 +211,7 @@ import { time } from "$lib/utils/time";
     try {
       unlisten = await listen<ClipEntry>("clipboard://new-entry", (event) => {
         const entry = event.payload;
-        if (clips.find(c => c.content === entry.content)) return;
+        if (clips.find(c => c.contentHash === entry.contentHash)) return;
         pendingEntries.push(entry);
         if (flushTimer) clearTimeout(flushTimer);
         flushTimer = setTimeout(flushPending, 200);
