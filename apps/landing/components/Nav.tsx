@@ -104,6 +104,7 @@ export default function Nav({
         }}
       >
         <div
+          className="nav-inner"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -256,19 +257,21 @@ export default function Nav({
               style={{
                 display: 'block',
                 width: '20px',
-                height: '1.5px',
-                background: tokens.ink,
+                height: '2.5px',
+                background: 'var(--color-ink)',
+                borderRadius: '10px',
                 marginBottom: '5px',
-                transition: 'transform 0.2s, opacity 0.2s',
-                transform: open ? 'rotate(45deg) translateY(6.5px)' : 'none',
+                transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s',
+                transform: open ? 'rotate(45deg) translateY(5.5px)' : 'none',
               }}
             />
             <span
               style={{
                 display: 'block',
                 width: '20px',
-                height: '1.5px',
-                background: tokens.ink,
+                height: '2.5px',
+                background: 'var(--color-ink)',
+                borderRadius: '10px',
                 marginBottom: '5px',
                 opacity: open ? 0 : 1,
                 transition: 'opacity 0.2s',
@@ -278,10 +281,11 @@ export default function Nav({
               style={{
                 display: 'block',
                 width: '20px',
-                height: '1.5px',
-                background: tokens.ink,
-                transition: 'transform 0.2s, opacity 0.2s',
-                transform: open ? 'rotate(-45deg) translateY(-6.5px)' : 'none',
+                height: '2.5px',
+                background: 'var(--color-ink)',
+                borderRadius: '10px',
+                transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s',
+                transform: open ? 'rotate(-45deg) translateY(-5.5px)' : 'none',
               }}
             />
           </button>
@@ -385,6 +389,23 @@ export default function Nav({
           @media (max-width: 700px) {
             .nav-desktop { display: none !important; }
             .nav-mobile-toggle { display: flex !important; flex-direction: column; }
+            .nav-inner {
+              background: var(--color-glass) !important;
+              backdrop-filter: blur(12px) !important;
+              -webkit-backdrop-filter: blur(12px) !important;
+              border-radius: 18px !important;
+              border: 1px solid var(--color-border) !important;
+              box-shadow: inset 0 1px 0 var(--color-glass-line) !important;
+              padding: 5px 10px !important;
+              height: auto !important;
+            }
+            .nav-drawer {
+              background: var(--color-glass) !important;
+              backdrop-filter: blur(12px) !important;
+              -webkit-backdrop-filter: blur(12px) !important;
+              border: 1px solid var(--color-border) !important;
+              box-shadow: inset 0 1px 0 var(--color-glass-line) !important;
+            }
           }
           @media (min-width: 701px) {
             .nav-drawer { display: none !important; }

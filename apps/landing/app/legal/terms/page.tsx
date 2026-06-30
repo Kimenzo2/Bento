@@ -6,7 +6,7 @@ import type { LegalSection } from '../../../components/legal/LegalLayout';
 export const metadata: Metadata = {
   title: 'Terms of Service — Bento',
   description:
-    'The terms and conditions that govern your use of Bento, our calm desktop productivity app with twelve built-in tools.',
+    'The terms and conditions that govern your use of Bento, our calm desktop productivity app with seventeen built-in mini-apps.',
 };
 
 const EFFECTIVE_DATE = 'March 12, 2026';
@@ -55,8 +55,8 @@ const sections: LegalSection[] = [
     content: (
       <>
         <P>
-          Bento is a desktop application designed to help you organise your life across twelve
-          built-in tools: mood tracker, focus timer, habit tracker, sleep tracker, nutrition log,
+          Bento is a desktop application designed to help you organise your life across seventeen
+          built-in mini-apps: mood tracker, focus timer, habit tracker, sleep tracker, nutrition log,
           budget planner, task manager, recipe book, countdown timer, password vault, notes, and AI
           chat assistant. The App is available for macOS and Windows.
         </P>
@@ -428,7 +428,7 @@ export default function TermsPage() {
   return (
     <LegalLayout
       title="Terms of Service"
-      description="The terms and conditions that govern your use of Bento, our calm desktop productivity app with twelve built-in tools."
+      description="The terms and conditions that govern your use of Bento, our calm desktop productivity app with seventeen built-in mini-apps."
       effectiveDate={EFFECTIVE_DATE}
       sections={sections}
       currentPage="terms"

@@ -96,7 +96,7 @@ export default function Hero({
               maxWidth: '520px',
             }}
           >
-            Twelve tools &mdash; mood, focus, habits, sleep, budget, tasks, notes, and more &mdash;
+            Seventeen mini-apps &mdash; mood, focus, habits, sleep, budget, tasks, notes, and more &mdash;
             in one calm desktop app that stays out of your way.
           </p>
 

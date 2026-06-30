@@ -82,30 +82,14 @@ export default function Pricing() {
               style={{
                 flex: '1',
                 borderRadius: '1.5rem',
-                background: plan.badge ? tokens.elevated : tokens.surface,
+                background: tokens.surface,
                 padding: '12px 16px',
-                borderTop: plan.badge ? '2px solid ' + plan.accent : '2px solid transparent',
+                borderTop: '2px solid transparent',
                 display: 'flex',
                 flexDirection: 'column',
               }}
             >
-              {plan.badge && (
-                <span
-                  style={{
-                    display: 'inline-block',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: plan.accent,
-                    background: `color-mix(in srgb, ${plan.accent} 15%, transparent)`,
-                    padding: '2px 10px',
-                    borderRadius: '999px',
-                    alignSelf: 'flex-start',
-                    marginBottom: '8px',
-                  }}
-                >
-                  {plan.badge}
-                </span>
-              )}
+
 
               <p
                 style={{
@@ -204,8 +188,8 @@ export default function Pricing() {
                     height: '36px',
                     borderRadius: '0.75rem',
                     padding: '0 18px',
-                    background: plan.badge ? tokens.accent : 'var(--color-highlight)',
-                    color: plan.badge ? tokens.bg : 'var(--color-ink)',
+                    background: 'var(--color-accent)',
+                    color: 'var(--color-accent-text)',
                     border: 'none',
                     cursor: 'pointer',
                     textDecoration: 'none',

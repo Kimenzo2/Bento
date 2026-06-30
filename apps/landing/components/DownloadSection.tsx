@@ -49,7 +49,7 @@ export default function DownloadSection({ version }: { version: string }) {
               maxWidth: '480px',
             }}
           >
-            Private. Yours to keep.
+            Private. Local-first. Offline-ready.
           </h2>
           <p
             className="text-body"
@@ -58,8 +58,9 @@ export default function DownloadSection({ version }: { version: string }) {
               maxWidth: '420px',
             }}
           >
-            No account, no credit card, no onboarding that takes twenty minutes. Install it, open
-            it, and pick up where you left off. It&rsquo;s that quiet.
+            Sign in with Google and you&rsquo;re in &mdash; no onboarding tour, no setup wizard.
+            All your data lives on your machine and works fully offline. Upgrade only when you
+            want more.
           </p>
 
           <a
@@ -137,7 +138,7 @@ export default function DownloadSection({ version }: { version: string }) {
             }}
           >
             {[
-              'All twelve apps — ready from the first launch',
+              'Seventeen mini-apps in one desktop app',
               'Works fully offline — no internet required',
               'Light and dark themes, everywhere',
               'Available on Windows, macOS, and Linux',

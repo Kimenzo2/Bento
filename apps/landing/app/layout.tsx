@@ -26,7 +26,7 @@ const biscotti = localFont({
 export const metadata: Metadata = {
   title: 'Bento — Your whole day, one warm desktop app',
   description:
-    'Bento is a calm, private desktop app with twelve built-in tools for the rhythms that make your day feel like yours: mood, focus, habits, sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and a gentle AI chat.',
+    'Bento is a calm, private desktop app with seventeen built-in mini-apps for the rhythms that make your day feel like yours: mood, focus, habits, sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and a gentle AI chat.',
   keywords: [
     'productivity app',
     'desktop app',
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Bento — A calm desktop app for real days',
     description:
-      'Twelve thoughtful tools in one private desktop app. No subscriptions per feature. No hype. Just the stuff that helps your day feel more like yours.',
+      'Seventeen thoughtful mini-apps in one private desktop app. No subscriptions per feature. No hype. Just the stuff that helps your day feel more like yours.',
     type: 'website',
   },
 };

@@ -24,7 +24,7 @@ const sections: LegalSection[] = [
           desktop application and website at <B>iamazeyou.me</B> and all associated services.
         </P>
         <P>
-          Bento is a calm, private desktop app with twelve built-in tools &mdash; mood, focus,
+          Bento is a calm, private desktop app with seventeen built-in mini-apps &mdash; mood, focus,
           habits, sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and AI
           chat. This policy covers every interaction you have with Bento, whether you are browsing
           the website, using the free version, or subscribed to a paid plan.
@@ -67,7 +67,7 @@ const sections: LegalSection[] = [
             </>,
             <>
               <B>Content you create</B>: entries, notes, tasks, habits, and any data you log within
-              Bento&rsquo;s tools
+              Bento&rsquo;s mini-apps
             </>,
             <>
               <B>Payment information</B>: billing details provided during subscription. Bento does
@@ -93,7 +93,7 @@ const sections: LegalSection[] = [
         <DashList
           items={[
             <>
-              <B>Usage data</B>: which tools you use, how often, session duration, and features you
+              <B>Usage data</B>: which mini-apps you use, how often, session duration, and features you
               interact with
             </>,
             <>
@@ -148,7 +148,7 @@ const sections: LegalSection[] = [
         <Sub>To Improve Bento</Sub>
         <P>
           We analyse aggregated and anonymised usage patterns to understand how people use the app,
-          identify technical issues before they affect you, improve existing tools, and develop
+          identify technical issues before they affect you, improve existing mini-apps, and develop
           features that serve real needs.
         </P>
 

@@ -1,31 +1,6 @@
 import { tokens } from './tokens';
 
-const reasons = [
-  {
-    icon: '🔒',
-    title: 'Completely private',
-    body: 'Your data stays on your computer. No telemetry, no tracking, no internet required after install.',
-  },
-  {
-    icon: '📦',
-    title: 'Twelve apps, one install',
-    body: 'Stop juggling separate tools for habits, focus, sleep, budget, and mood. Bento brings them together so they can actually talk to each other.',
-  },
-  {
-    icon: '🌿',
-    title: 'Calm by design',
-    body: "No gamification dark patterns. No streaks that guilt you. No notifications that interrupt. Bento is there when you want it, quiet when you don't.",
-  },
-  {
-    icon: '⚡',
-    title: 'Fast and native',
-    body: 'Opens instantly, uses almost no memory, and works entirely offline.',
-  },
-] as const;
-
 export default function WhyBento() {
-  const mid = Math.ceil(reasons.length / 2);
-
   return (
     <section
       id="why"
@@ -35,8 +10,17 @@ export default function WhyBento() {
       }}
       aria-labelledby="why-heading"
     >
-      <div style={{ maxWidth: tokens.contentMax, margin: '0 auto' }}>
-        <header style={{ maxWidth: tokens.textMax, marginBottom: 'clamp(3rem, 5vw, 4.5rem)' }}>
+      <div
+        style={{
+          maxWidth: '900px',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(3rem, 6vw, 6rem)',
+        }}
+      >
+        {/* ── Header ── */}
+        <header style={{ maxWidth: '680px' }}>
           <p
             style={{
               fontSize: tokens.labelSize,
@@ -47,7 +31,7 @@ export default function WhyBento() {
               marginBottom: '16px',
             }}
           >
-            Why Bento
+            The cost of more
           </p>
           <h2
             id="why-heading"
@@ -57,107 +41,200 @@ export default function WhyBento() {
               letterSpacing: '-0.02em',
               lineHeight: 1.2,
               color: tokens.ink,
-              margin: 0,
+              margin: '0 0 20px',
             }}
           >
-            Built for real days.
+            Your attention is not the problem.
+            <br />
+            Your tool stack is.
           </h2>
           <p
             className="text-body"
             style={{
-              marginTop: '16px',
-            }}
-          >
-            Most productivity apps assume an ideal schedule and unlimited willpower. Bento
-            doesn&rsquo;t. It&rsquo;s designed for the kind of day where you sleep badly, skip a
-            habit, and still want to open the app the next morning.
-          </p>
-        </header>
-
-        <div className="why-grid">
-          <div className="why-col">
-            {reasons.slice(0, mid).map((r) => (
-              <WhyItem key={r.title} icon={r.icon} title={r.title} body={r.body} />
-            ))}
-          </div>
-          <div className="why-col">
-            {reasons.slice(mid).map((r) => (
-              <WhyItem key={r.title} icon={r.icon} title={r.title} body={r.body} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
-        .why-col { display: flex; flex-direction: column; gap: 4px; }
-        .why-item {
-          padding: 24px 0 24px 20px;
-          border-left: 1px solid ${tokens.highlight};
-          transition: border-color 0.2s ease, background 0.2s ease;
-          border-radius: 0 8px 8px 0;
-        }
-        .why-item:hover {
-          border-left-color: ${tokens.accent};
-          background: var(--color-surface);
-        }
-        @media (max-width: 700px) {
-          .why-grid { grid-template-columns: 1fr; gap: 0; }
-        }
-      `}</style>
-    </section>
-  );
-}
-
-function WhyItem({
-  icon,
-  title,
-  body,
-}: {
-  icon: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="why-item">
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px' }}>
-        <div
-          style={{
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.1rem',
-            lineHeight: 1,
-            flexShrink: 0,
-          }}
-          aria-hidden="true"
-        >
-          {icon}
-        </div>
-        <div>
-          <h3
-            style={{
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              color: tokens.ink,
-              margin: '0 0 6px',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {title}
-          </h3>
-          <p
-            className="text-body"
-            style={{
+              fontSize: '1rem',
+              lineHeight: 1.8,
               margin: 0,
             }}
           >
-            {body}
+            Over the past two decades the average human attention span on a screen has fallen from
+            two and a half minutes to forty seven seconds. That is not a failure of willpower. It is
+            the direct consequence of an environment designed to fracture focus at every turn.
           </p>
+        </header>
+
+        {/* ── Section: The toggle tax ── */}
+        <div>
+          <h3
+            style={{
+              fontSize: '1.3rem',
+              fontWeight: 600,
+              color: tokens.ink,
+              letterSpacing: '-0.02em',
+              margin: '0 0 16px',
+            }}
+          >
+            The toggle tax
+          </h3>
+          <div
+            className="text-body"
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.8,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              The average knowledge worker now toggles between applications nearly twelve hundred
+              times per day. That is one switch every four minutes, every hour, every day. Each
+              switch carries a cost not just the second it takes to click a different window, but the
+              cognitive load of reorienting. Where was I? What was I doing? What was I searching for?
+              Researchers call this the toggle tax and it consumes roughly four hours per week, or
+              nine percent of working time, per person. Across a year that adds up to five working
+              weeks erased entirely by the act of navigating between tools.
+            </p>
+            <p style={{ margin: 0 }}>
+              The average organisation now runs over a hundred applications. The average employee
+              interacts with forty distinct tools to do their job. Yet despite this proliferation,
+              productivity per knowledge worker has stagnated or declined. The correlation is not
+              accidental. Each new tool adds capability in theory, but in practice it adds another
+              context to manage, another notification stream to ignore, another login to remember,
+              another place where a thought can land and never be seen again.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Section: The illusion of integration ── */}
+        <div>
+          <h3
+            style={{
+              fontSize: '1.3rem',
+              fontWeight: 600,
+              color: tokens.ink,
+              letterSpacing: '-0.02em',
+              margin: '0 0 16px',
+            }}
+          >
+            The illusion of integration
+          </h3>
+          <div
+            className="text-body"
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.8,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              The software industry has responded with integrations. Connect your calendar to your
+              task manager, your task manager to your notes app, your notes app to your habit
+              tracker. But integration is not unity. It is a patchwork of API calls that break when a
+              service updates its pricing, a startup shuts down, or a privacy policy changes. The
+              underlying fragmentation remains. You are still managing multiple surfaces. Your mood
+              data lives in one place, your sleep data in another, your tasks in a third, and never
+              the three shall meet unless you build the bridge yourself.
+            </p>
+            <p style={{ margin: 0 }}>
+              This fragmentation carries a hidden cost beyond the toggle tax. It prevents the kind of
+              cross-context awareness that makes a tool feel intelligent. A sleep tracker that cannot
+              talk to your mood log is not a sleep tracker that understands you. A habit streak that
+              ignores your focus sessions is a number, not insight. The promise of connected
+              productivity has been deferred to the user in the form of configuration work. The user
+              must become the integrator.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Section: The local alternative ── */}
+        <div>
+          <h3
+            style={{
+              fontSize: '1.3rem',
+              fontWeight: 600,
+              color: tokens.ink,
+              letterSpacing: '-0.02em',
+              margin: '0 0 16px',
+            }}
+          >
+            A different architecture
+          </h3>
+          <div
+            className="text-body"
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.8,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              Bento starts from a different premise. Instead of adding another tool to your
+              collection, it replaces the collection with a single local environment where every
+              mini-app shares the same data layer, the same storage, the same context. Your sleep
+              logs sit next to your mood checkins. Your focus timer writes into the same timeline
+              your habit tracker reads from. Your tasks, notes, journal, and voice memos all share a
+              unified search that does not require an internet connection to return results.
+            </p>
+            <p style={{ margin: 0 }}>
+              Because everything runs on your machine there is no sync delay, no offline mode that
+              means limited mode, no subscription tier that gates access to your own data. The apps
+              talk to each other not because a cloud service brokers the conversation, but because
+              they were never separate to begin with. The integration is architectural, not
+              contractual.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Section: The feeling ── */}
+        <div>
+          <h3
+            style={{
+              fontSize: '1.3rem',
+              fontWeight: 600,
+              color: tokens.ink,
+              letterSpacing: '-0.02em',
+              margin: '0 0 16px',
+            }}
+          >
+            What it feels like
+          </h3>
+          <div
+            className="text-body"
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.8,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              The measure of a good tool is not how many features it contains, but how quickly it
+              gets out of your way. Bento opens instantly. It does not ping you. It does not badge
+              unread counts in the hope of pulling you back. It does not make you feel guilty for
+              skipping a day. It holds your data, connects your contexts, and waits.
+            </p>
+            <p style={{ margin: 0 }}>
+              When you log a rough nights sleep, the app does not ask you to reenter that context
+              when you open your mood checkin in the morning. When you finish a focus session, your
+              habit streak knows. When you need to find something, there is one search bar, not a
+              hunt across a dozen silos. The feeling is not that the software is smart. It is that
+              the software is present. It remembers what you have told it because it never had to
+              look away.
+            </p>
+            <p style={{ margin: 0 }}>
+              This is what local-first, unified productivity actually feels like. Not a dashboard
+              that aggregates data from ten different APIs. Not a calendar that only syncs when you
+              are online. Not a notes app that cannot see your tasks. Just one environment where
+              everything belongs together because it was built that way from the ground up.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

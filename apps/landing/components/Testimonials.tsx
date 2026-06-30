@@ -82,7 +82,7 @@ export default function Testimonials() {
               margin: 0,
             }}
           >
-            Quiet tools. Real difference.
+            Quiet mini-apps. Real difference.
           </h2>
         </header>
 

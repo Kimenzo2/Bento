@@ -3,9 +3,10 @@
 import { bentoApps, tokens } from './tokens';
 
 const categories = [
-  { label: 'How you feel', indices: [0, 1, 2] },
-  { label: 'How you live', indices: [3, 4, 5, 6, 7] },
-  { label: 'What you keep', indices: [8, 9, 10, 11] },
+  { label: 'Start your day', indices: [0, 1, 2, 3, 4] },
+  { label: 'Stay in rhythm', indices: [5, 6, 7, 8, 9] },
+  { label: 'Know your body', indices: [10, 11, 12] },
+  { label: 'Secure your life', indices: [13, 14, 15, 16] },
 ] as const;
 
 export default function AppShowcase() {
@@ -43,7 +44,7 @@ export default function AppShowcase() {
               margin: 0,
             }}
           >
-            Twelve tools. One desktop. No subscriptions.
+            Seventeen mini-apps. One desktop. No subscriptions.
           </h2>
           <p
             className="text-body"
@@ -52,7 +53,7 @@ export default function AppShowcase() {
             }}
           >
             Log a rough night of sleep and your morning mood check-in will already know. Your focus
-            sessions stack against your habit streaks. Each tool talks to the others &mdash; but
+            sessions stack against your habit streaks. Each mini-app talks to the others &mdash; but
             only on your machine.
           </p>
         </header>
@@ -93,19 +94,14 @@ export default function AppShowcase() {
                     }}
                   >
                     <div
+                      aria-hidden="true"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        color: 'var(--color-ink-muted)',
                         width: '28px',
                         height: '28px',
-                        fontSize: '1.1rem',
-                        lineHeight: 1,
                       }}
-                      aria-hidden="true"
-                    >
-                      {app.emoji}
-                    </div>
+                      dangerouslySetInnerHTML={{ __html: app.icon }}
+                    />
                     <h3
                       style={{
                         marginTop: '5rem',

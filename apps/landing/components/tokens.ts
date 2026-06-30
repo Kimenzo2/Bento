@@ -88,16 +88,89 @@ export const tokens = {
 } as const;
 
 export const bentoApps = [
-  { name: 'Mood', emoji: '😌', desc: 'Check in with how you feel. Spot the patterns.' },
-  { name: 'Focus', emoji: '⏱️', desc: 'Pomodoro timer with session history.' },
-  { name: 'Habits', emoji: '🔁', desc: 'Build streaks, one day at a time.' },
-  { name: 'Sleep', emoji: '🌙', desc: 'Log your sleep and see what changes it.' },
-  { name: 'Nutrition', emoji: '🥗', desc: 'Track meals without the obsession.' },
-  { name: 'Budget', emoji: '💰', desc: 'Know where your money actually goes.' },
-  { name: 'Tasks', emoji: '✅', desc: 'Capture, prioritise, and finish things.' },
-  { name: 'Recipes', emoji: '🍳', desc: 'Cook from a library that remembers what you liked.' },
-  { name: 'Countdown', emoji: '📅', desc: 'Count down to — and since — the things that matter.' },
-  { name: 'Password Vault', emoji: '🔐', desc: 'One place for all your credentials. Offline.' },
-  { name: 'Notes', emoji: '📝', desc: 'Quick thoughts, long ideas. All in one drawer.' },
-  { name: 'AI Chat', emoji: '✨', desc: 'A calm, private AI companion — always on hand.' },
+  {
+    name: 'Dashboard',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="4" rx="1.5"/><rect x="3" y="12" width="7" height="9" rx="1.5"/><rect x="14" y="9" width="7" height="12" rx="1.5"/></svg>',
+    desc: 'Recent work, quick actions, and your day at a glance.',
+  },
+  {
+    name: 'Notes',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M7 8h10"/><path d="M7 12h7"/><path d="M7 16h4"/></svg>',
+    desc: 'Rich notes that live alongside everything else.',
+  },
+  {
+    name: 'Journal',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M7 4v16"/><path d="M12 8l2 2-2 2"/></svg>',
+    desc: 'Daily prompts, photo attachments, private recaps.',
+  },
+  {
+    name: 'Tasks',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 12l3 3 5-5"/></svg>',
+    desc: 'Natural language capture. Recurring work. Done.',
+  },
+  {
+    name: 'Voice Memos',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0014 0v-1"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>',
+    desc: 'One tap record. Transcribed and searchable.',
+  },
+  {
+    name: 'Focus',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+    desc: 'Pomodoro sessions with ambient modes and history.',
+  },
+  {
+    name: 'Habits',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-5"/></svg>',
+    desc: 'Streaks, heatmaps, and review summaries.',
+  },
+  {
+    name: 'Mood',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>',
+    desc: 'One tap checkins. Patterns over time.',
+  },
+  {
+    name: 'Goals',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
+    desc: 'Long term milestones with accountability checkins.',
+  },
+  {
+    name: 'Clipboard',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>',
+    desc: 'History, snippets, images. Nothing lost.',
+  },
+  {
+    name: 'Sleep',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 12a7 7 0 01-7-7 7 7 0 1014 0 7 7 0 01-7 7z"/><path d="M21 12v3"/><path d="M19 15h4"/></svg>',
+    desc: 'Scores, smart alarms, and weekly trends.',
+  },
+  {
+    name: 'Health',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-2.5 2-5 2-7a6 6 0 00-12 0c0 2 1 4.5 2 7"/><path d="M12 6v4"/><path d="M10 8h4"/><path d="M4 22l4-8h3l-2 6h3l-4 8"/></svg>',
+    desc: 'Workouts, body metrics, and progress tracking.',
+  },
+  {
+    name: 'Nutrition',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 9a4 4 0 008 0"/><circle cx="12" cy="15" r="6"/></svg>',
+    desc: 'Meals, macros, hydration all in one log.',
+  },
+  {
+    name: 'Budget',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>',
+    desc: 'Transactions, categories, and forecasts.',
+  },
+  {
+    name: 'Passwords',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>',
+    desc: 'Local first vault with passkeys and breach alerts.',
+  },
+  {
+    name: 'Countdown',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/><path d="M8 18h.01"/></svg>',
+    desc: 'Events, milestones, birthdays, days since.',
+  },
+  {
+    name: 'Settings',
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>',
+    desc: 'Theme, preferences, and shell wide controls.',
+  },
 ] as const;

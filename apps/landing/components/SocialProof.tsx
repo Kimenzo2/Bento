@@ -1,7 +1,7 @@
 import { tokens } from './tokens';
 
 const stats = [
-  { value: '12', label: 'Apps included' },
+  { value: '17', label: 'Apps included' },
   { value: '100%', label: 'Offline capable' },
   { value: '0', label: 'Data sent to servers' },
   { value: '3 platforms', label: 'Windows, macOS & Linux' },

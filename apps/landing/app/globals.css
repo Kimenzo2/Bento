@@ -40,6 +40,9 @@ html {
 
   --color-border: rgba(0, 0, 0, 0.06);
   --color-border-strong: rgba(0, 0, 0, 0.1);
+
+  --color-glass: rgba(247, 247, 247, 0.8);
+  --color-glass-line: rgba(255, 255, 255, 0.5);
 }
 
 /* ── Dark mode ── */
@@ -63,6 +66,9 @@ html {
 
   --color-border: rgba(255, 255, 255, 0.06);
   --color-border-strong: rgba(255, 255, 255, 0.1);
+
+  --color-glass: rgba(13, 13, 13, 0.8);
+  --color-glass-line: rgba(255, 255, 255, 0.08);
 }
 
 body {
