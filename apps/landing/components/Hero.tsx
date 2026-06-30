@@ -254,12 +254,19 @@ export default function Hero({
             }}
           >
             <span
+              data-slot="button"
               style={{
                 fontSize: '0.72rem',
+                fontWeight: 500,
+                height: '28px',
+                borderRadius: '0.75rem',
+                padding: '0 12px',
                 color: tokens.inkFaint,
                 background: tokens.highlight,
-                padding: '4px 12px',
-                borderRadius: '999px',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                whiteSpace: 'nowrap',
                 letterSpacing: '0.02em',
               }}
             >
@@ -271,21 +278,20 @@ export default function Hero({
                 key={key}
                 href={p.href}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap',
                   fontSize: '0.72rem',
                   fontWeight: 500,
-                  height: '26px',
-                  borderRadius: '999px',
-                  padding: '0 10px',
+                  height: '28px',
+                  borderRadius: '0.75rem',
+                  padding: '0 12px',
                   background: platform === key ? tokens.accent : tokens.highlight,
                   color: platform === key ? tokens.bg : tokens.inkFaint,
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
                   letterSpacing: '0.02em',
                   transition: 'color 0.15s ease, box-shadow 0.15s ease',
                 }}
@@ -293,18 +299,6 @@ export default function Hero({
                 {p.label}
               </a>
             ))}
-            <span
-              style={{
-                fontSize: '0.72rem',
-                color: tokens.inkFaint,
-                background: tokens.highlight,
-                padding: '4px 12px',
-                borderRadius: '999px',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {authLoaded && user ? 'Already signed in' : 'Try it'}
-            </span>
           </div>
         </div>
       </section>
