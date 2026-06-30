@@ -231,23 +231,11 @@ export default function FAQ() {
         </header>
 
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
-            width: '100%',
-          }}
           className="faq-grid"
         >
           <FAQColumn items={faqsLeft} startIndex={0} />
           <FAQColumn items={faqsRight} startIndex={faqsLeft.length} />
         </div>
-
-        <style>{`
-          @media (max-width: 700px) {
-            .faq-grid { grid-template-columns: 1fr !important; }
-          }
-        `}</style>
       </div>
     </section>
   );

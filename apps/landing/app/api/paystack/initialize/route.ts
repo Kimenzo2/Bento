@@ -339,7 +339,6 @@ export async function POST(request: Request) {
     } | null;
 
     if (!response.ok || !payload?.status || !payload.data?.authorization_url) {
-      const reason = payload?.message || `HTTP ${response.status}`;
       console.error('[paystack:init] initialize failed', response.status, payload);
       return NextResponse.redirect(
         new URL(`/pricing?error=paystack`, getAppOrigin(request)),

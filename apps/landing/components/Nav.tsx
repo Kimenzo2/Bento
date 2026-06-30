@@ -383,34 +383,6 @@ export default function Nav({
           </div>
         )}
 
-        <style>{`
-          .nav-btn:hover { background: var(--color-highlight) !important; }
-          .nav-btn-accent:hover { opacity: 0.9 !important; }
-          @media (max-width: 700px) {
-            .nav-desktop { display: none !important; }
-            .nav-mobile-toggle { display: flex !important; flex-direction: column; }
-            .nav-inner {
-              background: var(--color-glass) !important;
-              backdrop-filter: blur(12px) !important;
-              -webkit-backdrop-filter: blur(12px) !important;
-              border-radius: 18px !important;
-              border: 1px solid var(--color-border) !important;
-              box-shadow: inset 0 1px 0 var(--color-glass-line) !important;
-              padding: 5px 10px !important;
-              height: auto !important;
-            }
-            .nav-drawer {
-              background: var(--color-glass) !important;
-              backdrop-filter: blur(12px) !important;
-              -webkit-backdrop-filter: blur(12px) !important;
-              border: 1px solid var(--color-border) !important;
-              box-shadow: inset 0 1px 0 var(--color-glass-line) !important;
-            }
-          }
-          @media (min-width: 701px) {
-            .nav-drawer { display: none !important; }
-          }
-        `}</style>
       </div>
     </nav>
   );

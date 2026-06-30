@@ -81,8 +81,6 @@ export type BillingUpdate = {
   paymentProvider: 'paystack';
 };
 
-const encoder = new TextEncoder();
-
 function getString(record: Record<string, unknown> | undefined, key: string) {
   const value = record?.[key];
   return typeof value === 'string' ? value : null;

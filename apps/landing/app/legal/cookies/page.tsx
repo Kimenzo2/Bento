@@ -1,4 +1,3 @@
-import type React from 'react';
 import type { Metadata } from 'next';
 import LegalLayout, { P, Sub, DashList, B } from '../../../components/legal/LegalLayout';
 import type { LegalSection } from '../../../components/legal/LegalLayout';

@@ -2,7 +2,6 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { headers } from 'next/headers';
 import type { CSSProperties } from 'react';
-import { tokens } from '../../components/tokens';
 import { createAdminClient, createClient, getAuthenticatedUser } from '../../lib/supabase/server';
 import { PRICING_PLANS, findPlanByCode, getBillingPeriod, tierRank } from '../../lib/billing';
 import {

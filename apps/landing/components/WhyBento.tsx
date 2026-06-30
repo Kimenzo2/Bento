@@ -103,6 +103,20 @@ export default function WhyBento() {
               another place where a thought can land and never be seen again.
             </p>
           </div>
+          <p style={{ margin: '12px 0 0' }}>
+            <a
+              href="#how"
+              className="why-cta"
+              style={{
+                fontSize: '0.85rem',
+                color: tokens.accent,
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
+              See all 17 mini-apps &rarr;
+            </a>
+          </p>
         </div>
 
         {/* ── Section: The illusion of integration ── */}
@@ -146,6 +160,20 @@ export default function WhyBento() {
               must become the integrator.
             </p>
           </div>
+          <p style={{ margin: '12px 0 0' }}>
+            <a
+              href="#apps"
+              className="why-cta"
+              style={{
+                fontSize: '0.85rem',
+                color: tokens.accent,
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
+              See how your data connects &rarr;
+            </a>
+          </p>
         </div>
 
         {/* ── Section: The local alternative ── */}
@@ -187,6 +215,20 @@ export default function WhyBento() {
               contractual.
             </p>
           </div>
+          <p style={{ margin: '12px 0 0' }}>
+            <a
+              href="#download"
+              className="why-cta"
+              style={{
+                fontSize: '0.85rem',
+                color: tokens.accent,
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
+              Experience local-first &rarr;
+            </a>
+          </p>
         </div>
 
         {/* ── Section: The feeling ── */}
@@ -233,6 +275,20 @@ export default function WhyBento() {
               everything belongs together because it was built that way from the ground up.
             </p>
           </div>
+          <p style={{ margin: '12px 0 0' }}>
+            <a
+              href="#download"
+              className="why-cta"
+              style={{
+                fontSize: '0.85rem',
+                color: tokens.accent,
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
+              Try Bento &rarr;
+            </a>
+          </p>
         </div>
       </div>
     </section>

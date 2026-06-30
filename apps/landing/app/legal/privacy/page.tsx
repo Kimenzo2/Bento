@@ -1,4 +1,3 @@
-import type React from 'react';
 import type { Metadata } from 'next';
 import LegalLayout, { P, Sub, DashList, B } from '../../../components/legal/LegalLayout';
 import type { LegalSection } from '../../../components/legal/LegalLayout';
@@ -24,9 +23,10 @@ const sections: LegalSection[] = [
           desktop application and website at <B>iamazeyou.me</B> and all associated services.
         </P>
         <P>
-          Bento is a calm, private desktop app with seventeen built-in mini-apps &mdash; mood, focus,
-          habits, sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and AI
-          chat. This policy covers every interaction you have with Bento, whether you are browsing
+          Bento is a calm, private desktop app with seventeen built-in mini-apps &mdash; dashboard,
+          notes, journal, tasks, voice memos, focus, habits, mood, goals, clipboard, sleep, health,
+          nutrition, budget, passwords, countdowns, and settings. This policy covers every
+          interaction you have with Bento, whether you are browsing
           the website, using the free version, or subscribed to a paid plan.
         </P>
         <P>
@@ -140,9 +140,9 @@ const sections: LegalSection[] = [
       <>
         <Sub>To Provide the Service</Sub>
         <P>
-          We use your information to create and maintain your account, sync your data across devices
-          (if you choose to enable cloud sync), process your subscription, and deliver the
-          features you use.
+          We use your information to create and maintain your account, process your subscription,
+          and deliver the features you use. Cloud sync (coming soon) will allow you to sync data
+          across devices if you choose to enable it.
         </P>
 
         <Sub>To Improve Bento</Sub>
@@ -191,7 +191,7 @@ const sections: LegalSection[] = [
         </P>
         <P>
           <B>Bento is designed to be private first.</B> Your data stays on your computer by default.
-          If you enable cloud sync, your data is encrypted in transit and at rest.
+          When cloud sync launches, your data will be encrypted in transit and at rest.
         </P>
       </>
     ),

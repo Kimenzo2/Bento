@@ -1,9 +1,8 @@
 import { tokens } from './tokens';
 
-const WIN_CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform/nsis-x86_64';
+const CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform';
 
 export default function DownloadSection({ version }: { version: string }) {
-  const winHref = WIN_CDN;
 
   return (
     <section
@@ -63,40 +62,49 @@ export default function DownloadSection({ version }: { version: string }) {
             want more.
           </p>
 
-          <a
-            data-slot="button"
-            className="btn-accent"
-            href={winHref}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              height: '36px',
-              borderRadius: '0.75rem',
-              padding: '0 18px',
-              background: tokens.accent,
-              color: tokens.bg,
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              transition: 'color 0.15s ease, box-shadow 0.15s ease',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Download now
-          </a>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {[
+              { label: 'Windows', href: CDN + '/nsis-x86_64' },
+              { label: 'macOS', href: CDN + '/dmg-universal' },
+              { label: 'Linux', href: CDN + '/appimage-x86_64' },
+            ].map((p) => (
+              <a
+                key={p.label}
+                data-slot="button"
+                className="btn-accent"
+                href={p.href}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  whiteSpace: 'nowrap',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  height: '36px',
+                  borderRadius: '0.75rem',
+                  padding: '0 18px',
+                  background: tokens.accent,
+                  color: tokens.bg,
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M8 1v9M8 10l-3-3M8 10l3-3M2 13h12"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {p.label}
+              </a>
+            ))}
+          </div>
 
           <p
             style={{
@@ -105,7 +113,7 @@ export default function DownloadSection({ version }: { version: string }) {
               marginTop: '14px',
             }}
           >
-            v{version} &mdash; Windows, macOS, and Linux
+            v{version}
           </p>
         </div>
 

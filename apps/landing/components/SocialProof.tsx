@@ -88,21 +88,6 @@ export default function SocialProof() {
         </p>
       </div>
 
-      <style>{`
-        .social-proof-strip {
-          gap: 24px;
-        }
-        @media (max-width: 600px) {
-          .social-proof-strip {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr;
-            gap: 28px 16px;
-          }
-          .social-proof-divider {
-            display: none;
-          }
-        }
-      `}</style>
     </section>
   );
 }

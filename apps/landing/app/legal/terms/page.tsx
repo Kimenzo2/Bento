@@ -1,4 +1,3 @@
-import type React from 'react';
 import type { Metadata } from 'next';
 import LegalLayout, { P, Sub, DashList, B } from '../../../components/legal/LegalLayout';
 import type { LegalSection } from '../../../components/legal/LegalLayout';
@@ -56,19 +55,19 @@ const sections: LegalSection[] = [
       <>
         <P>
           Bento is a desktop application designed to help you organise your life across seventeen
-          built-in mini-apps: mood tracker, focus timer, habit tracker, sleep tracker, nutrition log,
-          budget planner, task manager, recipe book, countdown timer, password vault, notes, and AI
-          chat assistant. The App is available for macOS and Windows.
+          built-in mini-apps: dashboard, notes, journal, tasks, voice memos, focus timer, habits,
+          mood tracker, goals, clipboard, sleep tracker, health tracker, nutrition log, budget planner,
+          password vault, countdown timer, and settings. The App is available for Windows, macOS, and Linux.
         </P>
         <P>
           Bento operates on a local-first architecture. Your data resides on your computer by
-          default. Cloud sync is an optional feature that, when enabled, backs up your data to our
-          secure servers so it can be restored or accessed across devices.
+          default. Cloud sync (coming soon) will be an optional feature that, when enabled, backs up
+          your data to our secure servers so it can be restored or accessed across devices.
         </P>
         <P>
-          The App is offered in a free tier with basic features and a paid subscription tier
-          (&ldquo;Bento Pro&rdquo;) with additional capabilities, extended limits, and priority
-          support. All features are subject to these Terms.
+          The App is offered in a free plan and three paid subscription tiers (Core, Pro, and
+          Power) with additional capabilities, extended limits, and priority support. All features
+          are subject to these Terms.
         </P>
       </>
     ),
@@ -108,10 +107,11 @@ const sections: LegalSection[] = [
     title: 'Plans, Billing, and Payments',
     content: (
       <>
-        <Sub>Free vs. Pro</Sub>
+        <Sub>Free vs. Paid Plans</Sub>
         <P>
-          Bento offers a free plan with core functionality and a Bento Pro plan with expanded
-          features. The specific features of each plan are described on our pricing page at{' '}
+          Bento offers a free plan with core functionality and paid plans (Core, Pro, and Power)
+          with expanded features. The specific features of each plan are described on our pricing
+          page at{' '}
           <a
             href="https://iamazeyou.me/pricing"
             className="legal-link"
@@ -123,15 +123,15 @@ const sections: LegalSection[] = [
 
         <Sub>Subscription Billing</Sub>
         <P>
-          Pro subscriptions are billed monthly or annually, as selected during checkout. Payments
+          Paid subscriptions are billed monthly or annually, as selected during checkout. Payments
           are processed securely by Paystack. Your subscription will auto-renew at the end of each
           billing cycle unless cancelled before the renewal date.
         </P>
 
         <Sub>Cancellation and Refunds</Sub>
         <P>
-          You may cancel your Pro subscription at any time from your account settings. Upon
-          cancellation, your Pro access will continue until the end of the current billing period.
+          You may cancel your paid subscription at any time from your account settings. Upon
+          cancellation, your paid plan access will continue until the end of the current billing period.
           No prorated refunds are provided for partial billing periods unless required by applicable
           consumer law.
         </P>
@@ -143,7 +143,7 @@ const sections: LegalSection[] = [
 
         <Sub>Price Changes</Sub>
         <P>
-          We reserve the right to adjust pricing for the Pro plan with 30 days&rsquo; notice via
+          We reserve the right to adjust pricing for paid plans with 30 days&rsquo; notice via
           email. Price changes will not affect your current billing period and will apply from the
           next renewal date onward.
         </P>

@@ -49,7 +49,7 @@ export default function Hero({
             alignItems: 'center',
             gap: '20px',
             textAlign: 'center',
-            padding: 'clamp(4rem, 10vh, 8rem) 0 clamp(3rem, 5vh, 4rem)',
+            padding: 'clamp(6rem, 12vh, 10rem) 0 clamp(3rem, 5vh, 4rem)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -326,6 +326,7 @@ export default function Hero({
             alt="Bento tasks view, showing a calendar with scheduled tasks for the month"
             width={1920}
             height={1132}
+            priority
             style={{
               display: 'block',
               width: '100%',

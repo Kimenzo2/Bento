@@ -26,7 +26,7 @@ const biscotti = localFont({
 export const metadata: Metadata = {
   title: 'Bento — Your whole day, one warm desktop app',
   description:
-    'Bento is a calm, private desktop app with seventeen built-in mini-apps for the rhythms that make your day feel like yours: mood, focus, habits, sleep, nutrition, budget, tasks, recipes, countdowns, passwords, notes, and a gentle AI chat.',
+    'Bento is a calm, private desktop app with seventeen built-in mini-apps for the rhythms that make your day feel like yours: mood, focus, habits, sleep, nutrition, budget, tasks, countdowns, passwords, notes, journal, voice memos, clipboard, goals, health, and settings.',
   keywords: [
     'productivity app',
     'desktop app',
@@ -49,12 +49,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#f7f7f7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
         <link rel="icon" href="/bento-icon.png" type="image/png" />
         <script dangerouslySetInnerHTML={{
           __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t)}else if(window.matchMedia("(prefers-color-scheme:dark)").matches){document.documentElement.setAttribute("data-theme","dark")}}catch(e){}})()`,
         }} />
       </head>
-      <body className={`${inter.variable} ${dmSans.variable} ${biscotti.variable}`}>{children}</body>
+      <body className={`${inter.variable} ${dmSans.variable} ${biscotti.variable}`}>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

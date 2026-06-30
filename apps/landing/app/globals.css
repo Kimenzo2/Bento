@@ -17,6 +17,12 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+/* Scroll offset for fixed nav (46px) */
+#apps, #how, #why, #pricing, #faq, #download, #main-content {
+  scroll-margin-top: 80px;
 }
 
 /* ── Light mode (default) ── */
@@ -148,6 +154,7 @@ button {
 
 .showcase-card {
   transition: background 0.2s ease;
+  min-width: 0;
 }
 
 .showcase-card:hover {
@@ -189,4 +196,145 @@ button {
 
 .text-body a:hover {
   text-decoration: underline;
+}
+
+/* ── AppShowcase grid + mobile snap scroll ── */
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .showcase-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    padding-right: 28px;
+    scrollbar-width: none;
+    outline: none;
+  }
+  .showcase-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .showcase-grid > .showcase-card {
+    flex: 0 0 72vw;
+    min-width: 240px;
+    max-width: 320px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .showcase-grid {
+    scroll-snap-type: none;
+  }
+}
+
+/* ── FAQ grid ── */
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Social proof strip ── */
+.social-proof-strip {
+  gap: 24px;
+}
+
+@media (max-width: 600px) {
+  .social-proof-strip {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 16px;
+  }
+  .social-proof-divider {
+    display: none;
+  }
+}
+
+/* ── Skip link ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 100;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+/* ── Mobile touch targets ── */
+@media (max-width: 700px) {
+  [data-slot='button'] {
+    min-height: 44px;
+  }
+}
+
+/* ── WhyBento section CTAs ── */
+.why-cta {
+  transition: opacity 0.15s ease;
+}
+.why-cta:hover {
+  opacity: 0.7;
+}
+
+/* ── Nav responsive ── */
+.nav-btn:hover {
+  background: var(--color-highlight) !important;
+}
+.nav-btn-accent:hover {
+  opacity: 0.9 !important;
+}
+
+@media (max-width: 700px) {
+  .nav-desktop {
+    display: none !important;
+  }
+  .nav-mobile-toggle {
+    display: flex !important;
+    flex-direction: column;
+  }
+  .nav-inner {
+    background: var(--color-glass) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-radius: 18px !important;
+    border: 1px solid var(--color-border) !important;
+    box-shadow: inset 0 1px 0 var(--color-glass-line) !important;
+    padding: 5px 10px !important;
+    height: auto !important;
+  }
+  .nav-drawer {
+    background: var(--color-glass) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--color-border) !important;
+    box-shadow: inset 0 1px 0 var(--color-glass-line) !important;
+  }
+}
+
+@media (min-width: 701px) {
+  .nav-drawer {
+    display: none !important;
+  }
 }

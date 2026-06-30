@@ -10,7 +10,6 @@ const plans = PRICING_PLANS.map((plan) => ({
   sub: '/mo',
   accent: plan.accent,
   features: plan.features,
-  badge: plan.badge,
   cta: { label: 'Subscribe', href: '/pricing', ghost: true },
 }));
 

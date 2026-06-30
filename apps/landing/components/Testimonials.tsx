@@ -1,6 +1,5 @@
 import { tokens } from './tokens';
 
-// Placeholder testimonials — replace with real quotes when available
 const testimonials = [
   {
     quote:

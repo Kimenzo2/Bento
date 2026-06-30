@@ -1,5 +1,3 @@
-'use client';
-
 import { bentoApps, tokens } from './tokens';
 
 const categories = [
@@ -74,11 +72,10 @@ export default function AppShowcase() {
               {cat.label}
             </p>
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                gap: '12px',
-              }}
+              className="showcase-grid"
+              role="region"
+              aria-label={`${cat.label} mini-apps`}
+              tabIndex={0}
             >
               {cat.indices.map((i) => {
                 const app = bentoApps[i];
@@ -87,7 +84,6 @@ export default function AppShowcase() {
                     key={app.name}
                     className="showcase-card"
                     style={{
-                      flex: '1',
                       borderRadius: '1.5rem',
                       background: tokens.elevated,
                       padding: '12px 16px',
@@ -129,6 +125,7 @@ export default function AppShowcase() {
           </div>
         ))}
       </div>
+
     </section>
   );
 }

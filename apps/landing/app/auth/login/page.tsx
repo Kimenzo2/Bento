@@ -11,7 +11,6 @@ const bg = 'var(--color-bg)';
 const surface = 'var(--color-surface)';
 const ink = 'var(--color-ink)';
 const inkMuted = 'var(--color-ink-muted)';
-const inkFaint = 'var(--color-ink-faint)';
 
 function LoginForm() {
   const searchParams = useSearchParams();
